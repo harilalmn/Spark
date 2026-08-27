@@ -115,6 +115,17 @@ public sealed class ViewportControl : OpenGlControlBase
         return capture;
     }
 
+    /// <summary>
+    /// Asks for another GL frame because the scene's contents changed.
+    /// </summary>
+    /// <remarks>
+    /// The scene is mutated in place by the view model rather than replaced, so setting
+    /// <see cref="Scene"/> again would be a no-op and the viewport would go on showing the previous
+    /// run's geometry. The renderer reconciles against the scene's version counter, so all this has
+    /// to do is ask for a frame.
+    /// </remarks>
+    public void InvalidateGeometry() => RequestNextFrameRendering();
+
     /// <summary>Frames the whole scene.</summary>
     public void ZoomToFit()
     {

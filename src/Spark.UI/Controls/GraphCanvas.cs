@@ -50,6 +50,9 @@ public sealed class GraphCanvas : Control
     private const double PortHoverRadius = 3.5;
     private const double PortHitScreenSize = 14;
     private const double PortMinimumHitScreenSize = 10;
+    private const double WireHitScreenSize = 6;
+    private const int WireHitSamples = 16;
+    private const double GlyphFontSize = 12;
     private const double HeaderFontSize = 12;
     private const double PortFontSize = 11;
     private const int MaximumCachedTextRuns = 4096;
@@ -64,11 +67,12 @@ public sealed class GraphCanvas : Control
     private readonly CanvasTransform _transform = new();
     private readonly Dictionary<string, FormattedText> _headerText = [];
     private readonly Dictionary<string, FormattedText> _labelText = [];
+    private readonly Dictionary<string, FormattedText> _glyphText = [];
     private readonly List<WireVisual> _wireVisuals = [];
     private readonly HashSet<int> _selection = [];
-    private readonly HashSet<PlaceholderPort> _connectedPorts = [];
+    private readonly HashSet<CanvasPort> _connectedPorts = [];
 
-    private PlaceholderGraph _graph = new();
+    private CanvasGraph _graph = new();
     private bool _indexDirty = true;
 
     private InteractionMode _mode;
@@ -76,8 +80,9 @@ public sealed class GraphCanvas : Control
     private Point _dragStartWorld;
     private int _hoverNode = -1;
     private int _focusNode = -1;
-    private PlaceholderPort? _hoverPort;
-    private PlaceholderPort? _dragSourcePort;
+    private CanvasPort? _hoverPort;
+    private CanvasPort? _dragSourcePort;
+    private CanvasWire? _selectedWire;
     private Point _dragWireWorldEnd;
     private WireOutcome _dragOutcome = WireOutcome.Refused;
     private Point _marqueeStartWorld;
@@ -96,25 +101,19 @@ public sealed class GraphCanvas : Control
         LostFocus += (_, _) => InvalidateVisual();
     }
 
-    /// <summary>How a wire being dragged is reported back to the user while the button is down.</summary>
+    /// <summary>
+    /// Raised whenever a gesture changed the graph's structure — a wire drawn or removed, a node
+    /// deleted. The shell listens for this and starts an evaluation.
+    /// </summary>
     /// <remarks>
-    /// The three outcomes are drawn in <c>state.success</c>, <c>state.warning</c> and
-    /// <c>state.error</c> — the same three hexes used by node error badges (Decision V1). The
-    /// reuse is safe because semantic colours appear only on strokes, rings and glyphs and never
-    /// as a fill, and because each is accompanied by a glyph so the meaning survives colour
-    /// blindness.
+    /// The canvas reports intent and never evaluates anything itself. Evaluation is off the UI
+    /// thread and belongs to the view model; a control that started a run would be doing it on the
+    /// thread it is drawing on.
     /// </remarks>
-    public enum WireOutcome
-    {
-        /// <summary>The connection is accepted as-is. Drawn in <c>state.success</c> with a <c>✓</c>.</summary>
-        Accepted,
+    public event EventHandler? GraphChanged;
 
-        /// <summary>Accepted with a lossy conversion. Drawn in <c>state.warning</c> with a <c>≈</c>.</summary>
-        Lossy,
-
-        /// <summary>Refused. Drawn in <c>state.error</c> with a <c>✕</c>.</summary>
-        Refused,
-    }
+    /// <summary>Raised when the selected nodes change, so the inspector can follow.</summary>
+    public event EventHandler? SelectionChanged;
 
     private enum InteractionMode
     {
@@ -138,7 +137,7 @@ public sealed class GraphCanvas : Control
     public CanvasTransform Transform => _transform;
 
     /// <summary>
-    /// The slots currently selected, as indices into <see cref="PlaceholderGraph.Nodes"/>.
+    /// The slots currently selected, as indices into <see cref="CanvasGraph.Nodes"/>.
     /// </summary>
     /// <remarks>
     /// Exposed as a read-only view rather than raised as a change notification. Two thousand nodes
@@ -151,7 +150,62 @@ public sealed class GraphCanvas : Control
     public int FocusedSlot => _focusNode;
 
     /// <summary>The port under the pointer, or null.</summary>
-    public PlaceholderPort? HoveredPort => _hoverPort;
+    public CanvasPort? HoveredPort => _hoverPort;
+
+    /// <summary>The wire the last click selected, or null.</summary>
+    public CanvasWire? SelectedWire => _selectedWire;
+
+    /// <summary>
+    /// Rebuilds the spatial index and the wire geometry after the graph was edited from outside the
+    /// canvas — the library panel placing a node, the inspector changing a literal.
+    /// </summary>
+    /// <remarks>
+    /// The canvas never places a node itself. A view that constructed a node instance would have to
+    /// reach into <c>Spark.Engine</c>, and the whole point of the seam is that it does not.
+    /// </remarks>
+    public void RefreshStructure()
+    {
+        _wireVisuals.Clear();
+        _indexDirty = true;
+        InvalidateVisual();
+    }
+
+    /// <summary>Selects exactly one slot and gives it keyboard focus.</summary>
+    /// <param name="slot">The slot, or −1 to select nothing.</param>
+    public void SelectOnly(int slot)
+    {
+        _selection.Clear();
+        _selectedWire = null;
+
+        if (slot >= 0 && slot < _graph.Nodes.Count)
+        {
+            _selection.Add(slot);
+            _focusNode = slot;
+        }
+        else
+        {
+            _focusNode = -1;
+        }
+
+        InvalidateVisual();
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// A world position near the centre of the visible canvas, offset so repeated placements do
+    /// not land on top of each other.
+    /// </summary>
+    /// <param name="ordinal">How many nodes have already been placed this way.</param>
+    /// <param name="x">The left edge to place at.</param>
+    /// <param name="y">The top edge to place at.</param>
+    public void SuggestPlacement(int ordinal, out double x, out double y)
+    {
+        CanvasBounds visible = _transform.VisibleWorld(
+            Math.Max(1, Bounds.Width), Math.Max(1, Bounds.Height));
+
+        x = visible.MinX + (visible.Width * 0.30) + ((ordinal % 6) * 28);
+        y = visible.MinY + (visible.Height * 0.25) + ((ordinal % 6) * 34);
+    }
 
     /// <summary>The number of nodes the last frame's cull found visible.</summary>
     public int LastVisibleNodeCount { get; private set; }
@@ -164,7 +218,7 @@ public sealed class GraphCanvas : Control
     /// Setting this rebuilds the spatial index on the next frame rather than immediately, so that
     /// loading a graph costs one rebuild however many times the property is touched.
     /// </remarks>
-    public PlaceholderGraph Graph
+    public CanvasGraph Graph
     {
         get => _graph;
         set
@@ -172,11 +226,14 @@ public sealed class GraphCanvas : Control
             ArgumentNullException.ThrowIfNull(value);
             _graph = value;
             _selection.Clear();
+            _selectedWire = null;
             _hoverNode = -1;
             _focusNode = -1;
+            _hoverPort = null;
             _wireVisuals.Clear();
             _indexDirty = true;
             InvalidateVisual();
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -216,13 +273,14 @@ public sealed class GraphCanvas : Control
             return;
         }
 
-        PlaceholderPort? port = HitTestPort(world);
+        CanvasPort? port = HitTestPort(world);
         if (port is not null)
         {
             _mode = InteractionMode.DraggingWire;
             _dragSourcePort = port;
             _dragWireWorldEnd = world;
             _dragOutcome = WireOutcome.Refused;
+            _selectedWire = null;
             e.Pointer.Capture(this);
             e.Handled = true;
             InvalidateVisual();
@@ -248,18 +306,35 @@ public sealed class GraphCanvas : Control
                 _selection.Add(node);
             }
 
+            _selectedWire = null;
             _focusNode = node;
             _mode = InteractionMode.DraggingNodes;
             _dragStartWorld = world;
             e.Pointer.Capture(this);
             e.Handled = true;
             InvalidateVisual();
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
             return;
         }
 
+        // A wire is only reachable on empty canvas, so it is tested after nodes and ports. Testing
+        // it first would make a wire crossing a node steal that node's clicks.
+        if (HitTestWire(world) is { } wire)
+        {
+            _selection.Clear();
+            _selectedWire = wire;
+            _mode = InteractionMode.None;
+            e.Handled = true;
+            InvalidateVisual();
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        _selectedWire = null;
         if (!e.KeyModifiers.HasFlag(KeyModifiers.Shift))
         {
             _selection.Clear();
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
         }
 
         _mode = InteractionMode.Marquee;
@@ -309,7 +384,7 @@ public sealed class GraphCanvas : Control
         }
 
         int node = HitTestNode(world);
-        PlaceholderPort? port = HitTestPort(world);
+        CanvasPort? port = HitTestPort(world);
 
         if (node != _hoverNode || !NullablePortEquals(port, _hoverPort))
         {
@@ -383,8 +458,15 @@ public sealed class GraphCanvas : Control
 
             case Key.Escape:
                 _selection.Clear();
+                _selectedWire = null;
                 InvalidateVisual();
+                SelectionChanged?.Invoke(this, EventArgs.Empty);
                 e.Handled = true;
+                break;
+
+            case Key.Delete:
+            case Key.Back:
+                e.Handled = DeleteSelection();
                 break;
 
             default:
@@ -446,7 +528,7 @@ public sealed class GraphCanvas : Control
         }
 
         List<CanvasBounds> bounds = new(_graph.Nodes.Count);
-        foreach (PlaceholderNode node in _graph.Nodes)
+        foreach (CanvasNode node in _graph.Nodes)
         {
             bounds.Add(node.Bounds);
         }
@@ -466,15 +548,27 @@ public sealed class GraphCanvas : Control
 
         foreach (int slot in _index.Visible)
         {
-            PlaceholderNode node = _graph.Nodes[slot];
+            CanvasNode node = _graph.Nodes[slot];
             bool selected = _selection.Contains(slot);
             bool hovered = slot == _hoverNode;
+
+            bool notEvaluated = node.State.HasFlag(CanvasNodeState.NotEvaluated);
 
             Rect nodeRect = new(node.X, node.Y, node.Width, node.Height);
             RoundedRect rounded = new(nodeRect, CornerRadius);
             Color categoryColour = hovered
                 ? NodeCategoryColours.HoverColourOf(node.Category)
                 : NodeCategoryColours.ColourOf(node.Category);
+
+            if (notEvaluated)
+            {
+                // §7.7. The desaturation is luminance-preserving, so header text contrast is
+                // unchanged to within a hundredth: the state is carried by the loss of HUE, which
+                // costs no contrast at all, plus a dashed outline and a ○ glyph. A user must still
+                // be able to read a node that did not run, because reading it is how they work out
+                // what should have run.
+                categoryColour = SparkPalette.Desaturate(categoryColour);
+            }
 
             if (detail == CanvasDetail.Silhouette)
             {
@@ -502,11 +596,13 @@ public sealed class GraphCanvas : Control
 
             // Body. Hover and selection step the fill DOWN the ladder, never up: the text on it is
             // light, so darkening is the direction that raises contrast (§5.1).
-            Color bodyColour = selected
+            Color bodyColour = notEvaluated
                 ? SparkPalette.NodeBodySelected
-                : hovered
-                    ? SparkPalette.NodeBodyHover
-                    : SparkPalette.NodeBody;
+                : selected
+                    ? SparkPalette.NodeBodySelected
+                    : hovered
+                        ? SparkPalette.NodeBodyHover
+                        : SparkPalette.NodeBody;
 
             if (categoryBlend > 0)
             {
@@ -521,7 +617,7 @@ public sealed class GraphCanvas : Control
             // Header: full-strength category colour with dark text (Decision V2). Clipped rather
             // than drawn as a separately-rounded rectangle so the top corners match the body's
             // radius exactly.
-            Rect headerRect = new(node.X, node.Y, node.Width, PlaceholderNode.HeaderHeight);
+            Rect headerRect = new(node.X, node.Y, node.Width, CanvasNode.HeaderHeight);
             using (context.PushClip(headerRect))
             {
                 context.DrawRectangle(new ImmutableSolidColorBrush(categoryColour), null, rounded);
@@ -548,7 +644,7 @@ public sealed class GraphCanvas : Control
             // sits at 1.21:1 against the canvas and a node's extent is what you aim at.
             if (drawsOutline)
             {
-                context.DrawRectangle(null, pens.NodeOutline, rounded);
+                context.DrawRectangle(null, notEvaluated ? pens.NodeOutlineDashed : pens.NodeOutline, rounded);
             }
 
             DrawPorts(context, pens, node, slot, detail);
@@ -560,7 +656,20 @@ public sealed class GraphCanvas : Control
                 {
                     context.DrawText(
                         title,
-                        new Point(node.X + 8, node.Y + ((PlaceholderNode.HeaderHeight - title.Height) / 2)));
+                        new Point(node.X + 8, node.Y + ((CanvasNode.HeaderHeight - title.Height) / 2)));
+
+                    // The state glyph is right-aligned in the header (§7.4) and is what makes the
+                    // state survive colour blindness and a monochrome screenshot. Colour is never
+                    // the only carrier of meaning.
+                    if (StateGlyph(node.State) is { } glyph)
+                    {
+                        FormattedText run = GlyphRun(glyph);
+                        context.DrawText(
+                            run,
+                            new Point(
+                                node.X + node.Width - 8 - run.Width,
+                                node.Y + ((CanvasNode.HeaderHeight - run.Height) / 2)));
+                    }
                 }
             }
 
@@ -578,7 +687,7 @@ public sealed class GraphCanvas : Control
         }
     }
 
-    private void DrawPorts(DrawingContext context, in FramePens pens, PlaceholderNode node, int slot, CanvasDetail detail)
+    private void DrawPorts(DrawingContext context, in FramePens pens, CanvasNode node, int slot, CanvasDetail detail)
     {
         // Below 67% ports are 2 px screen-space dots; above it they are drawn at their design size
         // and grow on hover. The hit target never shrinks below 10 px of screen space regardless
@@ -586,22 +695,25 @@ public sealed class GraphCanvas : Control
         double zoom = _transform.Zoom;
         double radius = detail <= CanvasDetail.Fill ? 1.0 / zoom : PortRadius;
 
+        bool shaped = detail >= CanvasDetail.Lip;
+
         for (int i = 0; i < node.Inputs.Count; i++)
         {
             node.InputPortCentre(i, out double x, out double y);
-            PlaceholderPort port = new(slot, i, IsOutput: false);
-            DrawPort(context, pens, port, x, y, radius);
+            CanvasPort port = new(slot, i, IsOutput: false);
+            DrawPort(context, pens, port, x, y, radius, shaped ? node.Inputs[i].DeclaredRank : 0);
         }
 
         for (int i = 0; i < node.Outputs.Count; i++)
         {
             node.OutputPortCentre(i, out double x, out double y);
-            PlaceholderPort port = new(slot, i, IsOutput: true);
-            DrawPort(context, pens, port, x, y, radius);
+            CanvasPort port = new(slot, i, IsOutput: true);
+            DrawPort(context, pens, port, x, y, radius, shaped ? node.Outputs[i].DeclaredRank : 0);
         }
     }
 
-    private void DrawPort(DrawingContext context, in FramePens pens, PlaceholderPort port, double x, double y, double radius)
+    private void DrawPort(
+        DrawingContext context, in FramePens pens, CanvasPort port, double x, double y, double radius, int declaredRank)
     {
         bool hovered = _hoverPort == port;
         bool connected = _connectedPorts.Contains(port);
@@ -610,30 +722,39 @@ public sealed class GraphCanvas : Control
         IBrush fill = connected ? SparkPalette.PortConnectedBrush : SparkPalette.PortRestBrush;
         context.DrawEllipse(fill, null, new Point(x, y), drawn, drawn);
 
+        // §7.6: port geometry encodes declared rank, so a user can see why a node replicated
+        // without opening anything. A rank-1 output feeding a rank-0 input is a lacing waiting to
+        // happen, and this is the only place on the canvas that says so before the run.
+        if (declaredRank >= 1)
+        {
+            double ring = drawn + (1.5 / _transform.Zoom);
+            context.DrawEllipse(null, pens.PortRankRing, new Point(x, y), ring, ring);
+        }
+
         if (hovered)
         {
             context.DrawEllipse(null, pens.AccentThin, new Point(x, y), drawn + (2 / _transform.Zoom), drawn + (2 / _transform.Zoom));
         }
     }
 
-    private void DrawPortLabels(DrawingContext context, PlaceholderNode node)
+    private void DrawPortLabels(DrawingContext context, CanvasNode node)
     {
         for (int i = 0; i < node.Inputs.Count; i++)
         {
             node.InputPortCentre(i, out _, out double y);
-            FormattedText label = LabelRun(node.Inputs[i]);
+            FormattedText label = LabelRun(node.Inputs[i].Name);
             context.DrawText(label, new Point(node.X + 9, y - (label.Height / 2)));
         }
 
         for (int i = 0; i < node.Outputs.Count; i++)
         {
             node.OutputPortCentre(i, out _, out double y);
-            FormattedText label = LabelRun(node.Outputs[i]);
+            FormattedText label = LabelRun(node.Outputs[i].Name);
             context.DrawText(label, new Point(node.X + node.Width - 9 - label.Width, y - (label.Height / 2)));
         }
     }
 
-    private void DrawStateRings(DrawingContext context, in FramePens pens, PlaceholderNode node, Rect nodeRect, bool selected)
+    private void DrawStateRings(DrawingContext context, in FramePens pens, CanvasNode node, Rect nodeRect, bool selected)
     {
         // State strokes are drawn at screen width and never scale, which is what makes an error
         // findable in a zoomed-out graph. Error and warning rings go around the node's outer edge
@@ -647,18 +768,18 @@ public sealed class GraphCanvas : Control
             context.DrawRectangle(null, pens.SelectionRing, ring);
         }
 
-        if (node.State.HasFlag(PlaceholderNodeState.Error))
+        if (node.State.HasFlag(CanvasNodeState.Error))
         {
             RoundedRect ring = new(nodeRect.Inflate(4 / zoom), CornerRadius + (4 / zoom));
             context.DrawRectangle(null, pens.ErrorRing, ring);
         }
-        else if (node.State.HasFlag(PlaceholderNodeState.Warning))
+        else if (node.State.HasFlag(CanvasNodeState.Warning))
         {
             RoundedRect ring = new(nodeRect.Inflate(4 / zoom), CornerRadius + (4 / zoom));
             context.DrawRectangle(null, pens.WarningRing, ring);
         }
 
-        if (node.State.HasFlag(PlaceholderNodeState.Anchor))
+        if (node.State.HasFlag(CanvasNodeState.Anchor))
         {
             DrawAnchorTicks(context, pens, nodeRect);
         }
@@ -716,7 +837,12 @@ public sealed class GraphCanvas : Control
             // bright node header — and the casing is retained at every zoom including LOD, because
             // at LOD every node is a bright rectangle (Decision V9).
             context.DrawGeometry(null, pens.WireCasing, visual.Geometry);
-            context.DrawGeometry(null, detail == CanvasDetail.Silhouette ? pens.WireCoreThin : pens.WireCore, visual.Geometry);
+
+            IPen core = _selectedWire == visual.Wire
+                ? pens.WireSelected
+                : detail == CanvasDetail.Silhouette ? pens.WireCoreThin : pens.WireCore;
+
+            context.DrawGeometry(null, core, visual.Geometry);
         }
     }
 
@@ -802,13 +928,13 @@ public sealed class GraphCanvas : Control
 
     private void EnsureWireVisuals()
     {
-        IReadOnlyList<PlaceholderWire> wires = _graph.Wires;
+        IReadOnlyList<CanvasWire> wires = _graph.Wires;
 
         // Whether a port is connected decides its fill, and it is asked once per port per frame.
         // Answering it by walking the wire list would be quadratic in graph size, which is
         // invisible on a demo graph and fatal on a real one.
         _connectedPorts.Clear();
-        foreach (PlaceholderWire wire in wires)
+        foreach (CanvasWire wire in wires)
         {
             _connectedPorts.Add(wire.From);
             _connectedPorts.Add(wire.To);
@@ -821,7 +947,7 @@ public sealed class GraphCanvas : Control
 
         for (int i = 0; i < wires.Count; i++)
         {
-            PlaceholderWire wire = wires[i];
+            CanvasWire wire = wires[i];
             PortCentre(wire.From, out double x0, out double y0);
             PortCentre(wire.To, out double x1, out double y1);
 
@@ -872,7 +998,7 @@ public sealed class GraphCanvas : Control
                 continue;
             }
 
-            PlaceholderNode node = _graph.Nodes[slot];
+            CanvasNode node = _graph.Nodes[slot];
             node.X += dx;
             node.Y += dy;
             _index.Update(slot, node.Bounds);
@@ -894,32 +1020,129 @@ public sealed class GraphCanvas : Control
         {
             _selection.Add(slot);
         }
+
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void TryConnect(PlaceholderPort source, PlaceholderPort target)
+    private void TryConnect(CanvasPort source, CanvasPort target)
     {
-        (PlaceholderPort from, PlaceholderPort to) = source.IsOutput ? (source, target) : (target, source);
-        if (_graph.AddWire(new PlaceholderWire(from, to)))
+        if (!_graph.TryConnect(source, target))
         {
-            _wireVisuals.Clear();
+            return;
         }
+
+        _wireVisuals.Clear();
+        _selectedWire = null;
+        GraphChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private static WireOutcome EvaluateDrag(PlaceholderPort? source, PlaceholderPort? target)
+    private WireOutcome EvaluateDrag(CanvasPort? source, CanvasPort? target)
     {
+        // The answer is the engine's own type check, reached through the canvas graph — never a
+        // guess made here. That is what makes the amber "accepted with a lossy conversion" stroke
+        // mean something rather than being a colour the canvas can draw but never shows.
         if (source is not { } from || target is not { } to)
         {
             return WireOutcome.Refused;
         }
 
-        if (from.IsOutput == to.IsOutput || from.NodeIndex == to.NodeIndex)
+        return _graph.Preview(from, to);
+    }
+
+    /// <summary>
+    /// Deletes the selected wire if there is one, otherwise every selected node.
+    /// </summary>
+    /// <remarks>
+    /// Wire first. A user who has just clicked a wire and pressed Delete means the wire, and
+    /// deleting their whole selection instead is the kind of surprise that costs trust in an editor
+    /// permanently.
+    /// </remarks>
+    /// <returns>True when something was removed.</returns>
+    public bool DeleteSelection()
+    {
+        if (_selectedWire is { } wire)
         {
-            return WireOutcome.Refused;
+            _selectedWire = null;
+            if (!_graph.Disconnect(wire))
+            {
+                return false;
+            }
+
+            _wireVisuals.Clear();
+            InvalidateVisual();
+            GraphChanged?.Invoke(this, EventArgs.Empty);
+            return true;
         }
 
-        // The placeholder accepts every input-to-output pair. The real answer comes from the graph
-        // engine's type check, which also reports the lossy case this canvas already draws.
-        return WireOutcome.Accepted;
+        if (_selection.Count == 0)
+        {
+            return false;
+        }
+
+        // Highest slot first: removing a node renumbers every slot after it, so removing in
+        // ascending order would delete the wrong nodes from the second one onwards.
+        List<int> doomed = [.. _selection];
+        doomed.Sort();
+
+        for (int index = doomed.Count - 1; index >= 0; index--)
+        {
+            _graph.Remove(doomed[index]);
+        }
+
+        _selection.Clear();
+        _hoverNode = -1;
+        _focusNode = -1;
+        _hoverPort = null;
+        _wireVisuals.Clear();
+        _indexDirty = true;
+
+        InvalidateVisual();
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
+        GraphChanged?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
+    /// <summary>
+    /// The wire whose curve passes closest to a world point, within a screen-space reach.
+    /// </summary>
+    /// <remarks>
+    /// Sampled rather than solved. The exact closest point on a cubic Bézier is a quintic root
+    /// find, and sixteen samples is well inside the tolerance of a fourteen-pixel target while
+    /// being cheap enough to run on every click without thinking about it.
+    /// </remarks>
+    private CanvasWire? HitTestWire(Point world)
+    {
+        EnsureWireVisuals();
+
+        double reach = WireHitScreenSize / _transform.Zoom;
+        double best = reach * reach;
+        CanvasWire? found = null;
+
+        foreach (WireVisual visual in _wireVisuals)
+        {
+            if (!visual.Bounds.Contains(world.X, world.Y))
+            {
+                continue;
+            }
+
+            for (int step = 0; step <= WireHitSamples; step++)
+            {
+                double t = step / (double)WireHitSamples;
+                visual.Sample(t, out double x, out double y);
+
+                double dx = x - world.X;
+                double dy = y - world.Y;
+                double distance = (dx * dx) + (dy * dy);
+
+                if (distance < best)
+                {
+                    best = distance;
+                    found = visual.Wire;
+                }
+            }
+        }
+
+        return found;
     }
 
     private int HitTestNode(Point world)
@@ -932,7 +1155,7 @@ public sealed class GraphCanvas : Control
         return _index.HitTest(world.X, world.Y);
     }
 
-    private PlaceholderPort? HitTestPort(Point world)
+    private CanvasPort? HitTestPort(Point world)
     {
         EnsureIndex();
 
@@ -942,14 +1165,14 @@ public sealed class GraphCanvas : Control
 
         foreach (int slot in _index.VisibleTopDown)
         {
-            PlaceholderNode node = _graph.Nodes[slot];
+            CanvasNode node = _graph.Nodes[slot];
 
             for (int i = 0; i < node.Inputs.Count; i++)
             {
                 node.InputPortCentre(i, out double x, out double y);
                 if (Math.Abs(x - world.X) <= reach && Math.Abs(y - world.Y) <= reach)
                 {
-                    return new PlaceholderPort(slot, i, IsOutput: false);
+                    return new CanvasPort(slot, i, IsOutput: false);
                 }
             }
 
@@ -958,7 +1181,7 @@ public sealed class GraphCanvas : Control
                 node.OutputPortCentre(i, out double x, out double y);
                 if (Math.Abs(x - world.X) <= reach && Math.Abs(y - world.Y) <= reach)
                 {
-                    return new PlaceholderPort(slot, i, IsOutput: true);
+                    return new CanvasPort(slot, i, IsOutput: true);
                 }
             }
         }
@@ -966,7 +1189,7 @@ public sealed class GraphCanvas : Control
         return null;
     }
 
-    private void PortCentre(PlaceholderPort port, out double x, out double y)
+    private void PortCentre(CanvasPort port, out double x, out double y)
     {
         if (port.NodeIndex < 0 || port.NodeIndex >= _graph.Nodes.Count)
         {
@@ -975,7 +1198,7 @@ public sealed class GraphCanvas : Control
             return;
         }
 
-        PlaceholderNode node = _graph.Nodes[port.NodeIndex];
+        CanvasNode node = _graph.Nodes[port.NodeIndex];
         if (port.IsOutput)
         {
             node.OutputPortCentre(port.PortIndex, out x, out y);
@@ -989,8 +1212,30 @@ public sealed class GraphCanvas : Control
     private Point ToWorld(Point screen) =>
         new(_transform.ToWorldX(screen.X), _transform.ToWorldY(screen.Y));
 
-    private static bool NullablePortEquals(PlaceholderPort? left, PlaceholderPort? right) =>
+    private static bool NullablePortEquals(CanvasPort? left, CanvasPort? right) =>
         left is null ? right is null : right is not null && left.Value == right.Value;
+
+    /// <summary>
+    /// The header glyph for a state, from §7.4. Error wins over warning, and both win over
+    /// not-evaluated, because a node that errored is the one the user is looking for.
+    /// </summary>
+    private static string? StateGlyph(CanvasNodeState state)
+    {
+        if (state.HasFlag(CanvasNodeState.Error))
+        {
+            return "✕";
+        }
+
+        if (state.HasFlag(CanvasNodeState.Warning))
+        {
+            return "⚠";
+        }
+
+        return state.HasFlag(CanvasNodeState.NotEvaluated) ? "○" : null;
+    }
+
+    private FormattedText GlyphRun(string text) =>
+        Run(_glyphText, text, HeaderTypeface, GlyphFontSize, SparkPalette.TextInverseBrush);
 
     private FormattedText HeaderRun(string text) =>
         Run(_headerText, text, HeaderTypeface, HeaderFontSize, SparkPalette.TextInverseBrush);
@@ -1021,7 +1266,7 @@ public sealed class GraphCanvas : Control
 
     private sealed class WireVisual
     {
-        internal WireVisual(PlaceholderWire wire, double x0, double y0, double x1, double y1, StreamGeometry geometry)
+        internal WireVisual(CanvasWire wire, double x0, double y0, double x1, double y1, StreamGeometry geometry)
         {
             Wire = wire;
             X0 = x0;
@@ -1033,7 +1278,7 @@ public sealed class GraphCanvas : Control
                 Math.Min(x0, x1) - 64, Math.Min(y0, y1) - 8, Math.Max(x0, x1) + 64, Math.Max(y0, y1) + 8);
         }
 
-        internal PlaceholderWire Wire { get; }
+        internal CanvasWire Wire { get; }
 
         internal double X0 { get; }
 
@@ -1047,8 +1292,22 @@ public sealed class GraphCanvas : Control
 
         internal CanvasBounds Bounds { get; }
 
-        internal bool Matches(PlaceholderWire wire, double x0, double y0, double x1, double y1) =>
+        internal bool Matches(CanvasWire wire, double x0, double y0, double x1, double y1) =>
             Wire == wire && X0 == x0 && Y0 == y0 && X1 == x1 && Y1 == y1;
+
+        /// <summary>The point on the wire's cubic Bézier at parameter <paramref name="t"/>.</summary>
+        internal void Sample(double t, out double x, out double y)
+        {
+            double reach = Math.Max(40, Math.Abs(X1 - X0) * 0.5);
+            double u = 1 - t;
+            double a = u * u * u;
+            double b = 3 * u * u * t;
+            double c = 3 * u * t * t;
+            double d = t * t * t;
+
+            x = (a * X0) + (b * (X0 + reach)) + (c * (X1 - reach)) + (d * X1);
+            y = (a * Y0) + (b * Y0) + (c * Y1) + (d * Y1);
+        }
     }
 
     /// <summary>
@@ -1062,6 +1321,18 @@ public sealed class GraphCanvas : Control
             double screen = 1 / zoom;
 
             NodeOutline = Pen(SparkPalette.BorderControl, screen);
+
+            // Dashes are given in multiples of the stroke width, so a screen-space stroke gives a
+            // screen-space dash for free and the pattern does not dissolve when zoomed out.
+            NodeOutlineDashed = new ImmutablePen(
+                new ImmutableSolidColorBrush(SparkPalette.BorderControl),
+                screen,
+                new ImmutableDashStyle([3, 2], 0),
+                PenLineCap.Flat,
+                PenLineJoin.Round);
+
+            PortRankRing = Pen(SparkPalette.PortRest, screen);
+            WireSelected = Pen(SparkPalette.Accent, Math.Max(2.25, screen));
             LipRest = Pen(Color.FromArgb(0xB3, 0x3E, 0x46, 0x54), screen);
             LipHover = Pen(Color.FromArgb(0xB3, 0x86, 0x74, 0xD6), screen);
             SelectionRing = Pen(SparkPalette.Accent, 2 * screen);
@@ -1083,6 +1354,12 @@ public sealed class GraphCanvas : Control
         }
 
         internal IPen NodeOutline { get; }
+
+        internal IPen NodeOutlineDashed { get; }
+
+        internal IPen PortRankRing { get; }
+
+        internal IPen WireSelected { get; }
 
         internal IPen LipRest { get; }
 

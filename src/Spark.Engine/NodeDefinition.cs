@@ -48,6 +48,12 @@ public sealed class NodeDefinition
     /// run epoch into its cache key and poisons the keys of everything downstream.
     /// </param>
     /// <param name="description">One paragraph describing the node. Optional.</param>
+    /// <param name="category">
+    /// The library category the node is filed under, which is what decides its header colour on the
+    /// canvas. Defaults to <see cref="NodeCategories.Custom"/>. A plain string rather than an enum,
+    /// because a third-party package must be able to file its nodes under a name Spark has never
+    /// heard of and still get a legible node.
+    /// </param>
     /// <exception cref="ArgumentNullException">A required argument is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">
     /// There are no output ports, or <paramref name="defaultLacing"/> is <see cref="LacingMode.Auto"/>.
@@ -61,7 +67,8 @@ public sealed class NodeDefinition
         LacingMode defaultLacing = LacingMode.Longest,
         int version = 1,
         bool isSideEffect = false,
-        string? description = null)
+        string? description = null,
+        string? category = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
         ArgumentNullException.ThrowIfNull(inputs);
@@ -94,6 +101,7 @@ public sealed class NodeDefinition
         Version = version;
         IsSideEffect = isSideEffect;
         Description = description;
+        Category = string.IsNullOrWhiteSpace(category) ? NodeCategories.Custom : category;
     }
 
     /// <summary>The definition's stable identity, including the package that published it.</summary>
@@ -104,6 +112,12 @@ public sealed class NodeDefinition
 
     /// <summary>One paragraph describing the node, or <see langword="null"/>.</summary>
     public string? Description { get; }
+
+    /// <summary>
+    /// The library category, one of <see cref="NodeCategories"/> or a name a package invented.
+    /// Never blank.
+    /// </summary>
+    public string Category { get; }
 
     /// <summary>The input ports, in port order.</summary>
     public IReadOnlyList<PortDefinition> Inputs { get; }

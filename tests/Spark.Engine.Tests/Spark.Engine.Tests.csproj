@@ -6,8 +6,14 @@
     theory data. Where the table and the engine disagree, the table is right.
   -->
 
+  <!--
+    Spark.Nodes.Core is referenced so the two-way importer coverage test can run against the real
+    first-party library rather than against fixtures. Fixtures would only ever assert what the
+    importer already does; the library is the thing that has to stay covered as it grows.
+  -->
   <ItemGroup>
     <ProjectReference Include="../../src/Spark.Engine/Spark.Engine.csproj" />
+    <ProjectReference Include="../../src/Spark.Nodes.Core/Spark.Nodes.Core.csproj" />
   </ItemGroup>
 
 </Project>

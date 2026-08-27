@@ -199,6 +199,21 @@ public sealed class Graph
     }
 
     /// <summary>
+    /// Whether a wire from <paramref name="source"/> to <paramref name="target"/> would close a
+    /// cycle, without drawing it.
+    /// </summary>
+    /// <remarks>
+    /// The canvas asks this while a wire is being dragged, so the stroke under the cursor can be
+    /// red before the button comes up. <see cref="TryConnect"/> asks the same question again and is
+    /// the authority; this one exists so the answer can be shown a gesture earlier.
+    /// </remarks>
+    /// <param name="source">The node the value would come from.</param>
+    /// <param name="target">The node the value would go to.</param>
+    /// <returns><see langword="true"/> when the wire would be refused as a cycle.</returns>
+    public bool WouldCloseCycle(NodeId source, NodeId target) =>
+        source == target || Reaches(target, source);
+
+    /// <summary>
     /// Adds a wire without validating it. This is the deserialisation path.
     /// </summary>
     /// <remarks>

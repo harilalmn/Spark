@@ -44,6 +44,36 @@ public enum NodeCategory
 }
 
 /// <summary>
+/// Maps the category <i>names</i> a node definition carries onto the ten
+/// <see cref="NodeCategory"/> values the renderer colours.
+/// </summary>
+/// <remarks>
+/// The engine's category is a string rather than an enum so a third-party package can file its
+/// nodes under a name Spark has never heard of. An unrecognised name resolves to
+/// <see cref="NodeCategory.Custom"/> — a legible grey-blue node — rather than throwing, because a
+/// package with an odd category should still be usable.
+/// </remarks>
+public static class NodeCategoryNames
+{
+    /// <summary>Resolves a category name to the value that carries its colour.</summary>
+    /// <param name="name">The name from the node definition. May be null.</param>
+    /// <returns>The category, or <see cref="NodeCategory.Custom"/> when the name is not one of the ten.</returns>
+    public static NodeCategory Parse(string? name) => name switch
+    {
+        Spark.Api.NodeCategories.Input => NodeCategory.Input,
+        Spark.Api.NodeCategories.Logic => NodeCategory.Logic,
+        Spark.Api.NodeCategories.Display => NodeCategory.Display,
+        Spark.Api.NodeCategories.Solid => NodeCategory.Solid,
+        Spark.Api.NodeCategories.Curve => NodeCategory.Curve,
+        Spark.Api.NodeCategories.Point => NodeCategory.Point,
+        Spark.Api.NodeCategories.Script => NodeCategory.Script,
+        Spark.Api.NodeCategories.List => NodeCategory.List,
+        Spark.Api.NodeCategories.Math => NodeCategory.Math,
+        _ => NodeCategory.Custom,
+    };
+}
+
+/// <summary>
 /// Category colours, and the two derived values a node renderer needs on every frame.
 /// </summary>
 /// <remarks>

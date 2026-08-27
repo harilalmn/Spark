@@ -1,1 +1,37 @@
 #nullable enable
+Spark.Nodes.Core.BoundingBox
+Spark.Nodes.Core.Colour
+Spark.Nodes.Core.Display
+Spark.Nodes.Core.Math
+Spark.Nodes.Core.Number
+Spark.Nodes.Core.Plane
+Spark.Nodes.Core.Point
+Spark.Nodes.Core.Vector
+const Spark.Nodes.Core.Number.MaximumRangeCount = 1000000 -> int
+static Spark.Nodes.Core.BoundingBox.ByCorners(Spark.Geometry.Point3d corner, Spark.Geometry.Point3d oppositeCorner) -> Spark.Geometry.BoundingBox
+static Spark.Nodes.Core.BoundingBox.Centre(Spark.Geometry.BoundingBox box) -> Spark.Geometry.Point3d
+static Spark.Nodes.Core.Colour.ByRgb(double red = 255, double green = 255, double blue = 255) -> Spark.Api.Rgba
+static Spark.Nodes.Core.Display.ByGeometryColour(object! geometry, Spark.Api.Rgba colour = default(Spark.Api.Rgba), double lineWeight = 1) -> Spark.Api.Displayable!
+static Spark.Nodes.Core.Math.Add(double a = 0, double b = 0) -> double
+static Spark.Nodes.Core.Math.Cos(double degrees = 0) -> double
+static Spark.Nodes.Core.Math.Divide(double a = 0, double b = 1) -> double
+static Spark.Nodes.Core.Math.Multiply(double a = 1, double b = 1) -> double
+static Spark.Nodes.Core.Math.Pi() -> double
+static Spark.Nodes.Core.Math.Sin(double degrees = 0) -> double
+static Spark.Nodes.Core.Math.Subtract(double a = 0, double b = 0) -> double
+static Spark.Nodes.Core.Number.Range(double start = 0, double end = 10, double step = 1) -> System.Collections.Generic.IReadOnlyList<double>!
+static Spark.Nodes.Core.Number.Value(double value = 0) -> double
+static Spark.Nodes.Core.Plane.ByOriginNormal(Spark.Geometry.Point3d origin, Spark.Geometry.Vector3d normal) -> Spark.Geometry.Plane
+static Spark.Nodes.Core.Plane.XY() -> Spark.Geometry.Plane
+static Spark.Nodes.Core.Point.ByCoordinates(double x = 0, double y = 0, double z = 0) -> Spark.Geometry.Point3d
+static Spark.Nodes.Core.Point.Coordinates(Spark.Geometry.Point3d point, out double x, out double y, out double z) -> void
+static Spark.Nodes.Core.Point.Distance(Spark.Geometry.Point3d start, Spark.Geometry.Point3d end) -> double
+static Spark.Nodes.Core.Point.Origin() -> Spark.Geometry.Point3d
+static Spark.Nodes.Core.Point.Translate(Spark.Geometry.Point3d point, Spark.Geometry.Vector3d direction, double distance = 1) -> Spark.Geometry.Point3d
+static Spark.Nodes.Core.Vector.ByCoordinates(double x = 0, double y = 0, double z = 0) -> Spark.Geometry.Vector3d
+static Spark.Nodes.Core.Vector.ByTwoPoints(Spark.Geometry.Point3d start, Spark.Geometry.Point3d end) -> Spark.Geometry.Vector3d
+static Spark.Nodes.Core.Vector.Length(Spark.Geometry.Vector3d vector) -> double
+static Spark.Nodes.Core.Vector.Scale(Spark.Geometry.Vector3d vector, double factor) -> Spark.Geometry.Vector3d
+static Spark.Nodes.Core.Vector.XAxis() -> Spark.Geometry.Vector3d
+static Spark.Nodes.Core.Vector.YAxis() -> Spark.Geometry.Vector3d
+static Spark.Nodes.Core.Vector.ZAxis() -> Spark.Geometry.Vector3d

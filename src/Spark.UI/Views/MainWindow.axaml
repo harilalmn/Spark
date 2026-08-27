@@ -44,22 +44,42 @@
         <Button Classes="toolbar" Content="Frame viewport" Click="OnFrameViewport" />
         <Button Classes="toolbar" Content="2000 nodes" Click="OnLoadSynthetic" />
         <Button Classes="toolbar" Content="Demo graph" Click="OnLoadDemo" />
+        <Button Classes="toolbar" Content="Run" Click="OnRun" />
       </StackPanel>
     </Border>
 
-    <Grid Grid.Row="1" ColumnDefinitions="240,4,*,4,300" x:Name="ShellColumns">
+    <Grid Grid.Row="1" ColumnDefinitions="260,4,*,4,320" x:Name="ShellColumns">
 
+      <!-- Library. Select an entry and press Place, or double-click it. -->
       <Border Grid.Column="0" Classes="pane" x:Name="LibraryPane">
-        <StackPanel>
-          <TextBlock Classes="paneTitle" Text="LIBRARY" />
-          <TextBlock Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
-                     Text="Out of scope for this pass. The pane exists so the shell layout, its splitters and its workspace presets are real rather than sketched." />
-        </StackPanel>
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+          <TextBlock Grid.Row="0" Classes="paneTitle" Text="LIBRARY" />
+
+          <TextBox Grid.Row="1" Margin="10,0,10,8" Text="{Binding LibrarySearch, Mode=TwoWay}" />
+
+          <ListBox Grid.Row="2" Margin="6,0,6,6"
+                   x:Name="LibraryList"
+                   ItemsSource="{Binding LibraryEntries}"
+                   SelectedItem="{Binding SelectedLibraryEntry, Mode=TwoWay}"
+                   DoubleTapped="OnLibraryDoubleTapped">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:LibraryEntryViewModel">
+                <StackPanel Spacing="1" ToolTip.Tip="{Binding Description}">
+                  <TextBlock Text="{Binding DisplayName}" />
+                  <TextBlock Classes="muted" FontSize="10" Text="{Binding Signature}" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <Button Grid.Row="3" Classes="toolbar" Margin="10,0,10,10"
+                  HorizontalAlignment="Stretch" Content="Place node" Click="OnPlaceNode" />
+        </Grid>
       </Border>
 
       <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
 
-      <Grid Grid.Column="2" RowDefinitions="*,4,2*" x:Name="CentreRows">
+      <Grid Grid.Column="2" RowDefinitions="*,4,*" x:Name="CentreRows">
         <Border Grid.Row="0" Classes="pane" Padding="1">
           <controls:GraphCanvas x:Name="Canvas" />
         </Border>
@@ -74,14 +94,36 @@
       <GridSplitter Grid.Column="3" ResizeDirection="Columns" />
 
       <Border Grid.Column="4" Classes="pane" x:Name="InspectorPane">
-        <StackPanel>
-          <TextBlock Classes="paneTitle" Text="PROPERTIES" />
-          <TextBlock Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
-                     Text="Out of scope for this pass." />
-          <TextBlock Classes="paneTitle" Text="VIEWPORT" />
-          <TextBlock Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
-                     Text="{Binding ViewportStatusText}" />
-        </StackPanel>
+        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
+          <TextBlock Grid.Row="0" Classes="paneTitle" Text="PROPERTIES" />
+
+          <TextBlock Grid.Row="1" Margin="10,0,10,4" TextWrapping="Wrap"
+                     Text="{Binding SelectionTitle}" />
+
+          <TextBlock Grid.Row="2" Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
+                     Text="{Binding SelectionDescription}" />
+
+          <!-- Editing a value here writes the literal through the engine graph, which marks the
+               node and everything downstream dirty, and starts a run off the UI thread. -->
+          <ItemsControl Grid.Row="3" Margin="10,0,10,10" ItemsSource="{Binding Inspector}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:PortLiteralViewModel">
+                <Grid ColumnDefinitions="90,*" Margin="0,0,0,6">
+                  <TextBlock Grid.Column="0" Classes="muted" VerticalAlignment="Center"
+                             Text="{Binding Label}" ToolTip.Tip="{Binding TypeName}" />
+                  <TextBox Grid.Column="1" IsEnabled="{Binding IsEditable}"
+                           Text="{Binding Text, Mode=TwoWay}"
+                           LostFocus="OnLiteralCommitted"
+                           KeyDown="OnLiteralKeyDown" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <TextBlock Grid.Row="4" Classes="paneTitle" Text="DIAGNOSTICS" />
+          <TextBlock Grid.Row="5" Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
+                     Text="{Binding DiagnosticsText}" />
+        </Grid>
       </Border>
     </Grid>
 

@@ -4,9 +4,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Spark.Engine;
 using Spark.UI.Controls;
 using Spark.UI.Graph;
-using Spark.UI.Theming;
 
 namespace Spark.UI.Tests;
 
@@ -80,7 +80,7 @@ public sealed class GraphCanvasInputTests
     public void DraggingANodeMovesItAndTheIndexFollows() => OnUiThread(() =>
     {
         (Window window, GraphCanvas canvas) = Open(TwoNodes());
-        PlaceholderNode node = canvas.Graph.Nodes[0];
+        CanvasNode node = canvas.Graph.Nodes[0];
 
         window.MouseDown(new Point(60, 30), MouseButton.Left, RawInputModifiers.None);
         window.MouseMove(new Point(160, 80), RawInputModifiers.None);
@@ -223,7 +223,7 @@ public sealed class GraphCanvasInputTests
     [Fact]
     public void HomeFitsTheGraphAndEscapeClearsTheSelection() => OnUiThread(() =>
     {
-        (Window window, GraphCanvas canvas) = Open(SampleGraphs.Demo());
+        (Window window, GraphCanvas canvas) = Open(TestGraphs.Demo());
 
         Click(window, 400, 300);
         canvas.Transform.Zoom = 4;
@@ -246,7 +246,7 @@ public sealed class GraphCanvasInputTests
     [Fact]
     public void TwoThousandNodesSurvivePanningAndZoomingThroughEveryDetailLevel() => OnUiThread(() =>
     {
-        (Window window, GraphCanvas canvas) = Open(SampleGraphs.Synthetic(2000));
+        (Window window, GraphCanvas canvas) = Open(TestGraphs.Synthetic(2000));
         canvas.ZoomToFit();
 
         for (int i = 0; i < 12; i++)
@@ -264,30 +264,153 @@ public sealed class GraphCanvasInputTests
         Assert.True(canvas.LastConsideredNodeCount < 2000);
     });
 
+    [Fact]
+    public void DrawingAWireReportsAGraphChange() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        int changes = 0;
+        canvas.GraphChanged += (_, _) => changes++;
+
+        DragWire(window, canvas, 0, 1);
+
+        // The event is what starts an evaluation. Without it the wire is drawn and nothing runs,
+        // which is the single most confusing failure this shell can have.
+        Assert.Equal(1, changes);
+        Assert.Single(canvas.Graph.Wires);
+    });
+
+    /// <summary>
+    /// A wire the engine refuses is not created, and the canvas said so under the cursor first.
+    /// </summary>
+    [Fact]
+    public void ARefusedWireIsNotCreated() => OnUiThread(() =>
+    {
+        CanvasGraph graph = new();
+        int point = graph.Add(TestGraphs.Library.ByName("Point.ByCoordinates"), 0, 0);
+        int sin = graph.Add(TestGraphs.Library.ByName("Math.Sin"), 300, 0);
+
+        (Window window, GraphCanvas canvas) = Open(graph);
+        int changes = 0;
+        canvas.GraphChanged += (_, _) => changes++;
+
+        DragWire(window, canvas, point, sin);
+
+        Assert.Empty(canvas.Graph.Wires);
+        Assert.Equal(0, changes);
+    });
+
+    [Fact]
+    public void ClickingAWireSelectsItAndDeleteRemovesIt() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        DragWire(window, canvas, 0, 1);
+        Assert.Single(canvas.Graph.Wires);
+
+        int changes = 0;
+        canvas.GraphChanged += (_, _) => changes++;
+
+        // The midpoint of the wire, which is empty canvas as far as node hit-testing is concerned.
+        canvas.Graph.Nodes[0].OutputPortCentre(0, out double x0, out double y0);
+        canvas.Graph.Nodes[1].InputPortCentre(0, out double x1, out double y1);
+        Click(window, Screen(canvas, (x0 + x1) / 2, (y0 + y1) / 2));
+
+        Assert.NotNull(canvas.SelectedWire);
+        Assert.Empty(canvas.Selection);
+
+        window.KeyPress(Key.Delete, RawInputModifiers.None, PhysicalKey.Delete, null);
+
+        Assert.Empty(canvas.Graph.Wires);
+        Assert.Null(canvas.SelectedWire);
+        Assert.Equal(1, changes);
+    });
+
+    [Fact]
+    public void DeleteRemovesTheSelectedNodesAndTheirWires() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        DragWire(window, canvas, 0, 1);
+
+        int changes = 0;
+        canvas.GraphChanged += (_, _) => changes++;
+
+        Click(window, 60, 30);
+        Assert.Single(canvas.Selection);
+
+        window.KeyPress(Key.Delete, RawInputModifiers.None, PhysicalKey.Delete, null);
+
+        Assert.Single(canvas.Graph.Nodes);
+        Assert.Empty(canvas.Graph.Wires);
+        Assert.Empty(canvas.Selection);
+        Assert.Equal(1, changes);
+    });
+
+    /// <summary>
+    /// Deleting with a wire selected removes the wire and not the nodes. A user who just clicked a
+    /// wire means the wire, and taking their whole selection instead is the kind of surprise that
+    /// costs trust in an editor permanently.
+    /// </summary>
+    [Fact]
+    public void DeletingAWireDoesNotAlsoDeleteNodes() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        DragWire(window, canvas, 0, 1);
+
+        canvas.Graph.Nodes[0].OutputPortCentre(0, out double x0, out double y0);
+        canvas.Graph.Nodes[1].InputPortCentre(0, out double x1, out double y1);
+        Click(window, Screen(canvas, (x0 + x1) / 2, (y0 + y1) / 2));
+
+        window.KeyPress(Key.Delete, RawInputModifiers.None, PhysicalKey.Delete, null);
+
+        Assert.Equal(2, canvas.Graph.Nodes.Count);
+        Assert.Empty(canvas.Graph.Wires);
+    });
+
+    [Fact]
+    public void SelectingANodeReportsTheSelectionChange() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        int changes = 0;
+        canvas.SelectionChanged += (_, _) => changes++;
+
+        Click(window, 60, 30);
+
+        // The inspector rebuilds from this, so a missed notification is a properties panel that
+        // shows the previous node's values.
+        Assert.True(changes >= 1);
+    });
+
     /// <summary>Runs a test body on the headless UI thread, rethrowing anything it threw.</summary>
     /// <param name="body">The gesture sequence and its assertions.</param>
     private static void OnUiThread(Action body) =>
         Session.Dispatch(body, CancellationToken.None).GetAwaiter().GetResult();
 
-    private static void Click(Window window, double x, double y, RawInputModifiers modifiers = RawInputModifiers.None)
+    private static void Click(Window window, double x, double y, RawInputModifiers modifiers = RawInputModifiers.None) =>
+        Click(window, new Point(x, y), modifiers);
+
+    private static void Click(Window window, Point point, RawInputModifiers modifiers = RawInputModifiers.None)
     {
-        Point point = new(x, y);
         window.MouseDown(point, MouseButton.Left, modifiers);
         window.MouseUp(point, MouseButton.Left, modifiers);
+    }
+
+    /// <summary>Drags a wire from one node's output port 0 to another node's input port 0.</summary>
+    private static void DragWire(Window window, GraphCanvas canvas, int fromSlot, int toSlot)
+    {
+        canvas.Graph.Nodes[fromSlot].OutputPortCentre(0, out double fromX, out double fromY);
+        canvas.Graph.Nodes[toSlot].InputPortCentre(0, out double toX, out double toY);
+
+        window.MouseDown(Screen(canvas, fromX, fromY), MouseButton.Left, RawInputModifiers.None);
+        window.MouseMove(Screen(canvas, (fromX + toX) / 2, (fromY + toY) / 2), RawInputModifiers.None);
+        window.MouseMove(Screen(canvas, toX, toY), RawInputModifiers.None);
+        window.MouseUp(Screen(canvas, toX, toY), MouseButton.Left, RawInputModifiers.None);
     }
 
     private static Point Screen(GraphCanvas canvas, double worldX, double worldY) => new(
         canvas.Transform.ToScreenX(worldX), canvas.Transform.ToScreenY(worldY));
 
-    private static PlaceholderGraph TwoNodes()
-    {
-        PlaceholderGraph graph = new();
-        graph.Add(new PlaceholderNode("a", "Left", NodeCategory.Input, 0, 0, [], ["out"]));
-        graph.Add(new PlaceholderNode("b", "Right", NodeCategory.Math, 300, 0, ["in"], ["out"]));
-        return graph;
-    }
+    private static CanvasGraph TwoNodes() => TestGraphs.SourceAndSink();
 
-    private static (Window Window, GraphCanvas Canvas) Open(PlaceholderGraph graph)
+    private static (Window Window, GraphCanvas Canvas) Open(CanvasGraph graph)
     {
         GraphCanvas canvas = new() { Graph = graph };
         Window window = new()

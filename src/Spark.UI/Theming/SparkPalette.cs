@@ -235,4 +235,33 @@ public static class SparkPalette
             (byte)(from.G + ((to.G - from.G) * t)),
             (byte)(from.B + ((to.B - from.B) * t)));
     }
+
+    /// <summary>
+    /// Replaces a colour with the grey of <b>identical relative luminance</b>, which is how §7.7
+    /// desaturates a frozen or not-evaluated node header.
+    /// </summary>
+    /// <param name="colour">The colour to desaturate.</param>
+    /// <returns>The equal-luminance grey.</returns>
+    /// <remarks>
+    /// Preserving luminance is the whole trick: <c>cat.point</c> <c>#5AA2EA</c> becomes
+    /// <c>#9E9E9E</c> and the header text's contrast moves from 6.58:1 to 6.62:1 — unchanged to
+    /// within a hundredth. The state is carried by the loss of <i>hue</i>, which costs no contrast
+    /// at all, so a node that did not run is still perfectly readable. Fading it instead, which is
+    /// the obvious implementation, is what makes the state unreadable.
+    /// </remarks>
+    public static Color Desaturate(Color colour)
+    {
+        double y = (0.2126 * Linear(colour.R)) + (0.7152 * Linear(colour.G)) + (0.0722 * Linear(colour.B));
+        byte grey = (byte)System.Math.Round(System.Math.Clamp(Encode(y), 0, 1) * 255.0);
+        return Color.FromArgb(colour.A, grey, grey, grey);
+    }
+
+    private static double Linear(byte channel)
+    {
+        double value = channel / 255.0;
+        return value <= 0.04045 ? value / 12.92 : System.Math.Pow((value + 0.055) / 1.055, 2.4);
+    }
+
+    private static double Encode(double linear) =>
+        linear <= 0.0031308 ? linear * 12.92 : (1.055 * System.Math.Pow(linear, 1 / 2.4)) - 0.055;
 }

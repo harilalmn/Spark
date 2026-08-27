@@ -2,8 +2,10 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -11,8 +13,6 @@ using Avalonia.Threading;
 using Spark.UI.Controls;
 using Spark.UI.Graph;
 using Spark.UI.ViewModels;
-using Spark.Viewport;
-using Spark.Viewport.Meshes;
 
 namespace Spark.UI.Views;
 
@@ -43,11 +43,115 @@ public sealed partial class MainWindow : Window
         // and the first line below throws — which is exactly what happened the first time.
         InitializeComponent();
 
-        Canvas.Graph = SampleGraphs.Demo();
         Canvas.ShowFrameStatistics = true;
-        Viewport.Scene = BuildDemoScene();
 
+        // The canvas reports gestures; the view model runs the graph. A view that started an
+        // evaluation would be doing it on the thread it draws on (ADR-0005).
+        Canvas.GraphChanged += OnCanvasGraphChanged;
+        Canvas.SelectionChanged += OnCanvasSelectionChanged;
+
+        DataContextChanged += OnDataContextChanged;
         Opened += OnOpened;
+    }
+
+    private MainWindowViewModel? Model => DataContext as MainWindowViewModel;
+
+    private void OnDataContextChanged(object? sender, EventArgs e)
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        Viewport.Scene = model.Scene;
+        model.GraphReplaced += (_, _) => BindGraph();
+        model.EvaluationCompleted += OnEvaluationCompleted;
+        BindGraph();
+    }
+
+    private void BindGraph()
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        Canvas.Graph = model.Graph;
+        Canvas.ZoomToFit();
+        model.ShowSelection(Canvas.Selection);
+    }
+
+    private void OnEvaluationCompleted(object? sender, EventArgs e)
+    {
+        Canvas.InvalidateVisual();
+        Viewport.InvalidateGeometry();
+        UpdateStatus();
+    }
+
+    private void OnCanvasGraphChanged(object? sender, EventArgs e)
+    {
+        if (Model is { } model)
+        {
+            _ = model.EvaluateAsync();
+        }
+    }
+
+    private void OnCanvasSelectionChanged(object? sender, EventArgs e) =>
+        Model?.ShowSelection(Canvas.Selection);
+
+    private void OnRun(object? sender, RoutedEventArgs e)
+    {
+        if (Model is { } model)
+        {
+            _ = model.EvaluateAsync();
+        }
+    }
+
+    private void OnPlaceNode(object? sender, RoutedEventArgs e) => PlaceSelectedLibraryEntry();
+
+    private void OnLibraryDoubleTapped(object? sender, TappedEventArgs e) => PlaceSelectedLibraryEntry();
+
+    private void PlaceSelectedLibraryEntry()
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        Canvas.SuggestPlacement(model.PlacementOrdinal, out double x, out double y);
+
+        int slot = model.PlaceSelectedLibraryEntry(x, y);
+        if (slot < 0)
+        {
+            return;
+        }
+
+        Canvas.RefreshStructure();
+        Canvas.SelectOnly(slot);
+        Canvas.Focus();
+        _ = model.EvaluateAsync();
+    }
+
+    private void OnLiteralCommitted(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: PortLiteralViewModel literal })
+        {
+            literal.Commit();
+        }
+    }
+
+    private void OnLiteralKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key is not Key.Enter and not Key.Return)
+        {
+            return;
+        }
+
+        if (sender is Control { DataContext: PortLiteralViewModel literal })
+        {
+            literal.Commit();
+            e.Handled = true;
+        }
     }
 
     /// <summary>Command-line options, chiefly the benchmark switches.</summary>
@@ -64,17 +168,36 @@ public sealed partial class MainWindow : Window
             Canvas.ZoomToFit();
         }
 
-        Viewport.ZoomToFit();
         UpdateStatus();
 
         if (Options.IsBenchmark)
         {
             StartBenchmark(Options.BenchmarkFrames);
+            return;
         }
-        else if (Options.IsScreenshot)
+
+        if (Options.IsScreenshot)
         {
-            StartCapture(Options.ScreenshotPrefix!);
+            // The demo graph is evaluated on construction; the capture waits for that run to have
+            // landed, because a screenshot taken before the first evaluation shows an empty
+            // viewport and proves nothing at all.
+            _ = CaptureWhenReadyAsync(Options.ScreenshotPrefix!);
+            return;
         }
+
+        Viewport.ZoomToFit();
+    }
+
+    private async Task CaptureWhenReadyAsync(string prefix)
+    {
+        if (Model is { } model)
+        {
+            await model.EvaluateAsync().ConfigureAwait(true);
+        }
+
+        Canvas.ZoomToFit();
+        Viewport.ZoomToFit();
+        StartCapture(prefix);
     }
 
     /// <summary>
@@ -196,31 +319,16 @@ public sealed partial class MainWindow : Window
 
     private void OnLoadSynthetic(object? sender, RoutedEventArgs e) => LoadSynthetic(2000);
 
-    private void OnLoadDemo(object? sender, RoutedEventArgs e)
-    {
-        Canvas.Graph = SampleGraphs.Demo();
-        Canvas.ZoomToFit();
-        UpdateStatus();
-    }
+    private void OnLoadDemo(object? sender, RoutedEventArgs e) => Model?.LoadDemo();
 
-    private void LoadSynthetic(int nodeCount)
-    {
-        Canvas.Graph = SampleGraphs.Synthetic(nodeCount);
-        Canvas.ZoomToFit();
-        UpdateStatus();
-    }
+    private void LoadSynthetic(int nodeCount) => Model?.LoadSynthetic(nodeCount);
 
     private void UpdateStatus()
     {
-        if (DataContext is not MainWindowViewModel model)
+        if (Model is not { } model)
         {
             return;
         }
-
-        model.StatusText = string.Create(
-            CultureInfo.InvariantCulture,
-            $"{Canvas.Graph.Nodes.Count} nodes, {Canvas.Graph.Wires.Count} wires. " +
-            $"Middle-drag pans, wheel zooms, Home fits. Right-drag orbits the viewport.");
 
         model.ViewportStatusText = Viewport.Status ?? "Waiting for the OpenGL context.";
     }
@@ -327,29 +435,4 @@ public sealed partial class MainWindow : Window
         Close();
     }
 
-    private static ViewportScene BuildDemoScene()
-    {
-        // A box and a sphere, in the same node-keyed slots real geometry will arrive in. The box
-        // proves flat shading and the winding convention; the sphere proves the lighting gradient
-        // is a gradient rather than a facet count.
-        ViewportScene scene = new();
-
-        Mesh box = PrimitiveMeshes.Box(new System.Numerics.Vector3(-3f, -2f, 0f), new System.Numerics.Vector3(1f, 2f, 3f));
-        scene.Set(box.ToRenderPackage(new GeometryKey("demo-box", 0), "solid", Appearance.Default));
-
-        Mesh sphere = PrimitiveMeshes.Sphere(new System.Numerics.Vector3(3.2f, 0.6f, 1.6f), 1.6f);
-        scene.Set(sphere.ToRenderPackage(
-            new GeometryKey("demo-sphere", 0),
-            "solid",
-            Appearance.Default with { IsSelected = true }));
-
-        // The plinth's top face sits just ABOVE z = 0 rather than at it. Level with the ground
-        // grid it z-fights; below it the grid draws over the top face, which is geometrically
-        // correct and reads as a bug. Either one in a demo scene looks like a renderer defect.
-        Mesh plinth = PrimitiveMeshes.Box(
-            new System.Numerics.Vector3(-4.5f, -3.5f, -0.4f), new System.Numerics.Vector3(5.5f, 3.5f, 0.04f));
-        scene.Set(plinth.ToRenderPackage(new GeometryKey("demo-plinth", 0), "solid", Appearance.Default));
-
-        return scene;
-    }
 }

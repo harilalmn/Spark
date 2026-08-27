@@ -27,6 +27,7 @@ Spark.Api.LacingMode.Longest = 2 -> Spark.Api.LacingMode
 Spark.Api.LacingMode.Shortest = 1 -> Spark.Api.LacingMode
 Spark.Api.NoReplicationAttribute
 Spark.Api.NoReplicationAttribute.NoReplicationAttribute() -> void
+Spark.Api.NodeCategories
 Spark.Api.NodeIgnoreAttribute
 Spark.Api.NodeIgnoreAttribute.NodeIgnoreAttribute(string! reason) -> void
 Spark.Api.NodeIgnoreAttribute.Reason.get -> string!
@@ -78,6 +79,16 @@ Spark.Api.SparkNodeAttribute.DefaultLacing.set -> void
 Spark.Api.SparkNodeAttribute.Name.get -> string?
 Spark.Api.SparkNodeAttribute.Name.set -> void
 Spark.Api.SparkNodeAttribute.SparkNodeAttribute() -> void
+const Spark.Api.NodeCategories.Curve = "Curve" -> string!
+const Spark.Api.NodeCategories.Custom = "Custom" -> string!
+const Spark.Api.NodeCategories.Display = "Display" -> string!
+const Spark.Api.NodeCategories.Input = "Input" -> string!
+const Spark.Api.NodeCategories.List = "List" -> string!
+const Spark.Api.NodeCategories.Logic = "Logic" -> string!
+const Spark.Api.NodeCategories.Math = "Math" -> string!
+const Spark.Api.NodeCategories.Point = "Point" -> string!
+const Spark.Api.NodeCategories.Script = "Script" -> string!
+const Spark.Api.NodeCategories.Solid = "Solid" -> string!
 override Spark.Api.Displayable.ToString() -> string!
 override Spark.Api.Rgba.Equals(object? obj) -> bool
 override Spark.Api.Rgba.GetHashCode() -> int
