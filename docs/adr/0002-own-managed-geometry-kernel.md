@@ -1,6 +1,6 @@
 # ADR-0002 — Own pure-managed BRep/NURBS kernel; no native dependencies in the default build
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0020](0020-occt-via-c-abi-shim.md)
 **Date:** 2026-08-27
 **Deciders:** Nicety
 

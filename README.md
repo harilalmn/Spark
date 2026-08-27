@@ -4,17 +4,18 @@
 
 Spark is an open-source, independent alternative to Autodesk Dynamo Sandbox: nodes, wires,
 ports, a graph canvas, a 3D viewport, a searchable node library and code blocks — with no
-Autodesk software required, and with its own geometry kernel.
+Autodesk software required.
 
-MIT licensed. `net10.0`. No native dependencies.
+MIT licensed. `net10.0`. Solid modelling by [OpenCascade](https://dev.opencascade.org/),
+which ships with Spark.
 
-**Last updated:** 2026-08-27
+**Last updated:** 2026-08-28
 
 > ## Status: M1 has started — there is still nothing to run
 >
 > **This repository is scaffolding, gates, specification, and the first slice of the
 > geometry kernel.** It contains a solution, twelve project stubs, a reference graph, build
-> properties, the project documents, nineteen ADRs, the lacing specification, a CI workflow,
+> properties, the project documents, twenty-one ADRs, the lacing specification, a CI workflow,
 > public-API baselines, and four test projects.
 >
 > **The one piece of product code that exists** is `Spark.Geometry`'s **value layer**:
@@ -37,6 +38,15 @@ MIT licensed. `net10.0`. No native dependencies.
 > to guard it were structurally incapable of failing. Every fix in the accepted version is
 > regression-proven by reverting it and naming the test that goes red.
 >
+> **One decision has landed since that slice, and it is the largest in the project.** Spark
+> will use **OpenCascade** as its solid-modelling kernel, reached through a C-ABI shim we own,
+> rather than writing its own exact BRep kernel — so exact booleans, fillet, chamfer, shell,
+> trim and STEP are **in 1.0** rather than post-1.0. **None of it is built:** there is no
+> `native/` directory, no `Spark.Geometry.Occt` project and no OpenCascade anywhere in this
+> tree. See [ADR-0020](docs/adr/0020-occt-via-c-abi-shim.md) and
+> [ADR-0021](docs/adr/0021-brep-kernel-residency.md), and the paragraph below on what that
+> means for a project whose whole premise is not depending on somebody else's CAD component.
+>
 > The rest of M1 is curves; M2 is the first milestone at which anything is usable — drag two
 > nodes, wire them, see geometry. See
 > [docs/PRD.md §11](docs/PRD.md#11-release-plan) for the plan and
@@ -52,8 +62,40 @@ Autodesk product installed. Somebody who wants a parametric node graph — a fac
 structural layout generator, a fabrication script — must first buy into a commercial CAD
 licence for a component they never asked for.
 
-That is the dependency Spark exists to remove. Spark ships its own geometry kernel,
-`Spark.Geometry`, so the only thing you need to run it is .NET.
+That is the dependency Spark exists to remove. Spark ships its own geometry model,
+`Spark.Geometry`, so the only thing you need to run it is Spark.
+
+### A dependency we do ship, and why it is a different thing
+
+**Spark ships OpenCascade**, an open-source solid-modelling kernel, and it is installed with
+Spark by default. That deserves saying plainly rather than discovering, because the objection
+writes itself: *Spark exists because Dynamo drags in a heavyweight dependency, and now Spark
+drags in a heavyweight dependency.*
+
+The difference is the one that mattered in the first place. **The problem with ProtoGeometry
+was never that it was large — it was that it was somebody else's commercial product, and using
+Spark meant buying into a CAD licence for a component you never asked for.** OpenCascade is
+open source (LGPL with the Open CASCADE exception), freely redistributable, installed *with*
+Spark, and needs **no account, no licence purchase, no subscription and no other vendor's
+software**. You install Spark and everything works. Nothing phones home, nothing expires, and
+nothing asks who you are.
+
+Three things follow, and they are all true at once:
+
+- **`Spark.Geometry` is pure managed and stays that way.** Values, curves, surfaces, meshes,
+  planar geometry, evaluation, tessellation and every mesh-interchange writer are ours and have
+  no native component. A CI check asserts that its published output contains **zero native
+  binaries**, and that check is unchanged by any of this.
+- **The exact solid operations — boolean, trim, fillet, chamfer, shell, and STEP — come from
+  OpenCascade**, through a small C-ABI shim we wrote and own (MIT), in a separate assembly.
+  Writing those ourselves was a multi-year research problem; this is the honest way to give
+  people fillets.
+- **It ships in the default install**, because a capability you have to opt into is a
+  capability most people will find missing.
+
+The full reasoning, including the four engines and the four binding strategies that were
+rejected, is [ADR-0020](docs/adr/0020-occt-via-c-abi-shim.md).
+**Nothing of it is built yet** — the decision is recorded, the code is not written.
 
 **And DesignScript is a language nobody else uses.** It is competent, and it is a dead end
 for the person writing it: no ecosystem, no package manager, no IDE outside the host, no
@@ -94,14 +136,25 @@ Naming these up front, because each is a decision rather than a gap. Full reason
 - **No telemetry**, of any kind, in v1.
 - **Windows-only releases for v1**, with Linux built and tested in CI as a rot-guard.
   (**D14**)
-- **Exact NURBS booleans, and fillet and chamfer on solids, are post-1.0.** 1.0 ships on
-  robust mesh booleans, with `IBrepKernel` documented as the extension point. Better said
-  loudly now than discovered later.
+- **No pure-managed exact solid kernel of our own.** Exact booleans, fillet, chamfer, shell
+  and trim are **in 1.0** and come from OpenCascade — see above. Writing them ourselves was a
+  research-grade problem that might never have reached production robustness, and choosing not
+  to attempt it is the largest decision in this project.
+  ([ADR-0020](docs/adr/0020-occt-via-c-abi-shim.md), which supersedes
+  [ADR-0002](docs/adr/0002-own-managed-geometry-kernel.md).)
+- **Robust *mesh* booleans are 1.x, not 1.0.** This is the one place the trade goes the other
+  way: OpenCascade is poor at mesh booleans, Dynamo has them, and so they stay on the list —
+  greyed out in the UI until they land rather than throwing when you run your graph.
 
 ## Building
 
 You need the **.NET 10 SDK** and nothing else. No Autodesk product, no native toolchain, no
 GPU.
+
+That will change once the OpenCascade provider exists: building `native/spark_occt` will need
+a C++ toolchain and vcpkg, and CI will build it once per platform and cache the result.
+**Neither the directory nor the project exists yet**, so today the sentence above is exactly
+true and the whole solution builds with the SDK alone.
 
 ```bash
 git clone https://github.com/harilalmn/Spark.git
@@ -181,6 +234,12 @@ Three of those edges are missing on purpose, and each is load-bearing:
   cannot be side-by-sided, changes to it are deliberate rather than routine
   ([ADR-0019](docs/adr/0019-deliberate-public-api-change-control.md)).
 
+Two more will be added by [ADR-0020](docs/adr/0020-occt-via-c-abi-shim.md) and **do not exist
+yet**: `native/spark_occt/`, the C-ABI shim over OpenCascade, and `src/Spark.Geometry.Occt/`,
+the only assembly permitted to P/Invoke it or to hold a native handle. A test will assert that
+last part, as a **companion** to the rule that keeps `Spark.Geometry` free of third-party
+dependencies — not as a relaxation of it.
+
 ## Packages: Spark consumes them, and publishes none
 
 **Spark reads NuGet. It does not write it.** These two directions are easy to conflate, so
@@ -212,7 +271,7 @@ is not a dotnet global tool. (**D11**)
 | [docs/NOTES.md](docs/NOTES.md) | Numbered implementation notes: the non-obvious facts |
 | [AGENTS.md](AGENTS.md) | The working agreement. Read before committing |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | MIT, DCO sign-off, how to build, what a PR needs |
-| [docs/adr/](docs/adr/README.md) | Nineteen architecture decision records: what was decided, what was rejected, and what it costs |
+| [docs/adr/](docs/adr/README.md) | Twenty-one architecture decision records: what was decided, what was rejected, and what it costs |
 | [docs/help/concepts/lacing.md](docs/help/concepts/lacing.md) | How lists, ranks and lacing work — **written before the engine, and the engine will be written to match it** |
 | [docs/help/concepts/geometry-basics.md](docs/help/concepts/geometry-basics.md) | Points, vectors, planes, right-handedness, unitless coordinates, `Angle`, and tolerance — aimed at a designer, with every example run against the assembly |
 | [docs/help/concepts/design-language.md](docs/help/concepts/design-language.md) | Spark's visual design language — **written before any UI code exists, and the UI is written to match it** |
@@ -239,4 +298,15 @@ At M0 the most valuable contribution is argument: if one of the decisions in the
 
 ## Licence
 
-[MIT](LICENSE). Copyright (c) 2026 Nicety.
+[MIT](LICENSE). Copyright (c) 2026 Nicety. That covers everything in this repository,
+including the `native/spark_occt` shim when it is written.
+
+**Third-party notice — OpenCascade.** Spark's solid-modelling operations are provided by
+[Open CASCADE Technology](https://dev.opencascade.org/), which is licensed under **LGPL-2.1
+with the Open CASCADE exception**. Spark links it dynamically and ships it as unmodified,
+replaceable shared libraries, so you may substitute your own build of it. The licence text,
+the exception text, the exact OCCT version and the source offer will be shipped with every
+release and shown in the About box. **None of this is built yet**, and this notice is here in
+advance of the code rather than after it, which is deliberate:
+[ADR-0020](docs/adr/0020-occt-via-c-abi-shim.md) sets out the obligations and the six
+questions that are with counsel. *Nothing in this repository's documentation is legal advice.*

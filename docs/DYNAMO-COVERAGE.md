@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-08-27
+**Last updated:** 2026-08-28
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -666,6 +666,48 @@ either revising an estimate we have no basis for revising or reopening ADR-0002 
 spike has told us anything. But this is a client decision, not ours: it trades the headline
 promise against the release date, and both belong to the client. It is registered as **Q11**.
 
+#### The decision: path (3), taken by the client
+
+**Answered on 2026-08-28. The client chose path (3), not the recommended path (2).** Presented
+with all three and with the price of each, the client instructed that Spark take an existing
+engine deliberately rather than as a contingency. **The 70 members are 1.0 requirements.**
+
+What was decided, and where it is recorded:
+
+- **The engine is OpenCascade Technology**, and after a full comparison it was not close —
+  OpenNURBS is a representation and file-format library with no booleans, Manifold and the
+  mesh-boolean libraries produce no BRep at all, CGAL's boolean packages are GPL-3.0, and
+  Parasolid, ACIS and C3D lose on the per-seat licensing argument ADR-0002 already made and
+  which is undisturbed. [ADR-0020](adr/0020-occt-via-c-abi-shim.md), PRD **D15**.
+- **The binding is a hand-written C-ABI shim we own** — `spark_occt`, MIT, in
+  `native/spark_occt/`, reached by `LibraryImport` from a new `Spark.Geometry.Occt`. No
+  third-party binding is adopted. The alternative that came closest, C++/CLI, was rejected for
+  being **Windows-only permanently**.
+- **OCCT ships in the default install**, because a Dynamo user finding booleans greyed out on
+  first run is precisely what FR-81 forbids. `Spark.Geometry` itself stays pure managed and
+  independently distributable, and NFR-5 is unchanged.
+- **The seam's residency rule is redrawn** by [ADR-0021](adr/0021-brep-kernel-residency.md),
+  and the reason is fidelity rather than speed: a Spark→OCCT→Spark round trip is not identity.
+- **ADR-0002 is superseded; ADR-0003 is amended.** Both keep their number and their text.
+
+What it costs, stated as two numbers because one would mislead: **+7 to +11 weeks against the
+plan as written, and years saved against what was actually asked for.** The first is positive
+only because the plan as written never contained the expensive thing — M6's 14 weeks bought
+mesh booleans, while exact booleans, fillet, chamfer and trim sat in PRD §9's out-of-scope
+list. Parity was never funded, and this is what funding it looks like.
+
+**R1 and R12 retire. R3 does not — it changes owner**, since the numerical failure modes move
+inside OCCT where they can be observed and not fixed (**R18**). Eight new risks, **R15 … R22**,
+arrive with the native dependency, and **R13 is reframed and considerably enlarged**: Spark now
+acquires a heavyweight native dependency, and the distinction from the one it exists to remove
+holds only if **we state it first, in our own words.**
+
+The work is [EPICS.md E13](EPICS.md#e13--occt-provider), `E13-T1` … `E13-T17`, roughly 24
+weeks, most of it inside M6, which goes from 14 weeks to 20–24. **E2-T47 is closed.** **Q6 and
+Q11 are answered.** **Q12 is not** — OpenCascade has no subdivision modeller either, so nothing
+about this decision makes T-Splines cheaper or more likely, and §6.2's recommendation stands
+exactly as written.
+
 ### 6.2 T-Splines is a second product, not a subsystem
 
 **169 members across 8 types — 20.2% of the entire ProtoGeometry surface.** `TSplineSurface`
@@ -810,8 +852,11 @@ The manifest makes drift visible; it does not make judgement unnecessary.
 
 - [PRD.md](PRD.md) — FR-47 … FR-60 (geometry), §11 release plan, §12 risks, §14 open questions
 - [EPICS.md](EPICS.md) — [E2, geometry kernel](EPICS.md#e2--geometry-kernel)
-- [TASKS.md](TASKS.md) — E2-T40 … E2-T48, E11-T23
-- [TODO.md](TODO.md) — Q11 and Q12 under *Decisions waiting on someone*
+- [TASKS.md](TASKS.md) — E2-T40 … E2-T48, E13-T1 … E13-T17, E11-T23
+- [TODO.md](TODO.md) — Q12, Q13 and Q14 under *Decisions waiting on someone*; Q6 and Q11 are
+  answered there
+- [ADR-0020](adr/0020-occt-via-c-abi-shim.md) — the engine and the binding, superseding ADR-0002
+- [ADR-0021](adr/0021-brep-kernel-residency.md) — the residency rule, amending ADR-0003
 - [ADR-0002](adr/0002-own-managed-geometry-kernel.md) — own pure-managed kernel, staged
 - [ADR-0003](adr/0003-ibrepkernel-seams-operations.md) — `IBrepKernel` seams operations
 - [ADR-0004](adr/0004-idiomatic-core-plus-by-facade.md) — idiomatic core plus `By*` façade

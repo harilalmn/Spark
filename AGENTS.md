@@ -2,7 +2,7 @@
 
 For anyone changing this repository — human or AI. Read this before committing.
 
-**Last updated:** 2026-08-27
+**Last updated:** 2026-08-28
 
 ---
 
@@ -183,6 +183,28 @@ A CI check asserts no native binaries appear in `Spark.Geometry`'s published out
 turns a promise into a fact, and it is why the package installer also discloses whether a
 **third-party** package ships native binaries: users deserve to know when the promise is
 being broken on their behalf.
+
+**And the promise is now narrower than it used to be. Read this before you "fix" either
+test.** Under [ADR-0020](docs/adr/0020-occt-via-c-abi-shim.md) the *product* ships
+OpenCascade — an open-source, freely redistributable native kernel — in its default install,
+because exact booleans, fillet, chamfer, trim and STEP come from it rather than from us. The
+promise above attaches to **`Spark.Geometry` the assembly**, not to the product, and in that
+form it is unchanged: `Spark.Geometry` stays pure managed and independently distributable,
+and the CI check is untouched.
+
+Three rules follow, and each will at some point look like a bug to somebody:
+
+- **`SparkGeometryTakesNoThirdPartyDependencyBeyondClipper` stays exactly as it is.** OCCT is
+  a dependency of `Spark.Geometry.Occt`, a different assembly. What that test gets is a
+  **companion** rule asserting `Spark.Geometry.Occt` is referenced only by composition roots.
+  **Relaxing the original would be the wrong repair.**
+- **`AllowUnsafeBlocks` stays `false` repository-wide, with one opt-in.** The `LibraryImport`
+  source generator emits unsafe code and requires it true, so `Spark.Geometry.Occt` sets it in
+  its own csproj with a comment naming ADR-0020 — and an architecture test asserts it is the
+  **only** project doing so. Do not move it to `Directory.Build.props`.
+- **No `-windows` TFM, still, anywhere.** The whole reason the binding is a C ABI rather than
+  C++/CLI is that C++/CLI would have been Windows-only permanently, killing the Linux
+  rot-guard and reversing ADR-0001. That is 15–25% more binding effort deliberately spent.
 
 **Nothing in this repository is published to nuget.org, and `IsPackable` is `false`
 everywhere.**

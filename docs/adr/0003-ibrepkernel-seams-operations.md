@@ -1,6 +1,6 @@
 # ADR-0003 — `IBrepKernel` seams operations, not the data model
 
-**Status:** Accepted
+**Status:** Amended by [ADR-0021](0021-brep-kernel-residency.md)
 **Date:** 2026-08-27
 **Deciders:** Nicety
 

@@ -1,6 +1,7 @@
 # Architecture Decision Records
 
-**Last updated:** 2026-08-27
+**Last updated:** 2026-08-28
+**Records:** twenty-one
 
 This directory holds Spark's architecture decision records. An ADR captures a decision that
 could have gone differently: what forced it, what we chose, what we rejected and why, and what
@@ -16,8 +17,8 @@ withdrawn, and the gap stays.
 | # | Title | Status | Date |
 |---|---|---|---|
 | [0001](0001-avalonia-not-wpf.md) | Avalonia as the UI framework, not WPF | Accepted | 2026-08-27 |
-| [0002](0002-own-managed-geometry-kernel.md) | Own pure-managed BRep/NURBS kernel; no native dependencies in the default build | Accepted | 2026-08-27 |
-| [0003](0003-ibrepkernel-seams-operations.md) | `IBrepKernel` seams operations, not the data model | Accepted | 2026-08-27 |
+| [0002](0002-own-managed-geometry-kernel.md) | Own pure-managed BRep/NURBS kernel; no native dependencies in the default build | **Superseded by [0020](0020-occt-via-c-abi-shim.md)** | 2026-08-27 |
+| [0003](0003-ibrepkernel-seams-operations.md) | `IBrepKernel` seams operations, not the data model | **Amended by [0021](0021-brep-kernel-residency.md)** | 2026-08-27 |
 | [0004](0004-idiomatic-core-plus-by-facade.md) | Idiomatic C# core plus `By*` façade, with parameter-type-sequence dedup for node generation | Accepted | 2026-08-27 |
 | [0005](0005-api-engine-host-layering.md) | `Api`/`Engine`/`Host` layering for embeddability | Accepted | 2026-08-27 |
 | [0006](0006-mit-licence-dco-not-cla.md) | MIT licence, DCO rather than a CLA | Accepted | 2026-08-27 |
@@ -34,12 +35,40 @@ withdrawn, and the gap stays.
 | [0017](0017-spark-file-is-plain-json.md) | `.spark` is canonically-formatted JSON, not a container | Accepted | 2026-08-27 |
 | [0018](0018-property-based-tests-on-the-kernel.md) | Property-based tests on the kernel from M1, not later | Accepted | 2026-08-27 |
 | [0019](0019-deliberate-public-api-change-control.md) | Deliberate change control on `Spark.Api` and `Spark.Geometry`, not permanent additivity | Accepted | 2026-08-27 |
+| [0020](0020-occt-via-c-abi-shim.md) | OpenCascade as the solid-modelling kernel, reached through a C-ABI shim we own | Accepted | 2026-08-27 |
+| [0021](0021-brep-kernel-residency.md) | Kernel residency is canonical, not cached | Accepted | 2026-08-27 |
 
-Statuses are *Proposed*, *Accepted*, *Superseded by ADR-NNNN* or *Withdrawn*. Every record in
-this set was accepted at M0, before implementation, which is the point of having made the
-decisions explicitly.
+Statuses are *Proposed*, *Accepted*, *Superseded by ADR-NNNN*, *Amended by ADR-NNNN* or
+*Withdrawn*. Every record numbered 0001 to 0019 was accepted at M0, before implementation,
+which is the point of having made the decisions explicitly; 0020 and 0021 were accepted during
+M1, and each says in its own text what forced it.
 
-**One supersession has already happened, and it is worth reading as a pair.** ADR-0009 made
+**The difference between *superseded* and *amended* is deliberate.** A superseded record's
+decision no longer holds and a later record replaces it whole. An amended record's decision
+still holds, and a later record changes one part of it and says which part. Both keep their
+number, their text and their status line; neither is edited to reflect the later opinion.
+
+**Two relationships in this set are worth reading as pairs, and they are of different kinds.**
+
+**ADR-0002 and ADR-0020 — a supersession.** ADR-0002 chose our own pure-managed kernel and
+rejected OCCT *as the default*, keeping an OCCT-backed optional package as the documented
+fallback for the exact-boolean risk. FR-81's capability-parity instruction, and
+[DYNAMO-COVERAGE §6.1](../DYNAMO-COVERAGE.md#61-parity-on-solid-and-surface-commits-us-to-exact-solid-modelling)'s
+finding that 70 members cannot exist without exact BRep booleans, turned that fallback into the
+plan. ADR-0020 records the choice of OCCT and, more importantly, the choice of a hand-written
+C-ABI shim over four rejected binding strategies. ADR-0002's argument against the *commercial*
+kernels — that per-seat royalty licensing is incompatible with an MIT tool users install
+freely — is undisturbed and is restated in ADR-0020 rather than overturned.
+
+**ADR-0003 and ADR-0021 — an amendment.** ADR-0003's central judgement, that the seam abstracts
+operations and never the data model, is right and is untouched. What ADR-0021 changes is one of
+its three supports: the opaque handle cache, which ADR-0003 described as an optimisation about
+*speed*. With a real OCCT provider it is neither optional nor about speed, because a
+Spark→OCCT→Spark round trip is not identity — the model is re-sewed and re-toleranced on every
+crossing. ADR-0021 makes provider residency canonical rather than cached, and the argument is
+fidelity.
+
+**One supersession happened earlier, and is also worth reading as a pair.** ADR-0009 made
 `Spark.Api` and `Spark.Geometry` strictly additive for the whole of 1.x, on the premise that
 Spark would publish its contract assemblies to nuget.org and that a breaking change would
 therefore break every installed package at once. That premise was a misread requirement: Spark

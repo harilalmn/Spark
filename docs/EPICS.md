@@ -1,10 +1,10 @@
 # Spark — Epics
 
-Twelve epics. Each has a goal, a scope boundary, acceptance criteria and a status.
+Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a status.
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-27
+**Last updated:** 2026-08-28
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -33,6 +33,13 @@ prove is ticked.
 | [E10](#e10--documentation) | Documentation | M0 onwards | Partly done |
 | [E11](#e11--quality-and-verification) | Quality and verification | M0 onwards | Partly done |
 | [E12](#e12--embedding-and-release) | Embedding and release | M8 | Not started |
+| [E13](#e13--occt-provider) | OCCT provider | M1.6, M6, M8 | Not started |
+
+**E13 is new and it is the largest single change to this plan since it was written.** The
+client chose to take an existing solid-modelling kernel rather than write one — **D2 reverses**
+— and [ADR-0020](adr/0020-occt-via-c-abi-shim.md) records the choice of OpenCascade reached
+through a C-ABI shim we own. Read E13 and E2 together: **E2 loses its hardest work and E13
+gains harder work of a different kind.**
 
 ---
 
@@ -133,17 +140,28 @@ until `--no-incremental` was added. Verify a clean build with the flag or do not
 
 ## E2 — Geometry kernel
 
-**Goal.** A pure-managed 3D BRep/NURBS kernel good enough to model with, that ships no
-native binaries and depends on no commercial CAD product.
+**Goal.** A 3D BRep/NURBS geometry model good enough to model with, in which **`Spark.Geometry`
+itself is pure managed and ships no native binaries**, and which depends on no commercial CAD
+product.
+
+**The scoping of that sentence changed and the change is deliberate.** It used to attach *ships
+no native binaries* to the product. It now attaches it to **the assembly**. Under
+[ADR-0020](adr/0020-occt-via-c-abi-shim.md) the product ships OpenCascade in its default
+install; `Spark.Geometry` does not, stays independently distributable, and **NFR-5's CI
+assertion is untouched**. Saying which of the two the promise is about is the whole of the
+correction, and leaving it ambiguous is how a promise becomes a broken one.
 
 **In scope.** `Spark.Geometry` and `Spark.Geometry.Io`: value types, tolerance, curves,
-surfaces, BRep topology, meshes, the planar supporting layer, tessellation, ray casting,
-modelling operations, mesh booleans, the `IBrepKernel` seam, native serialization and
-interchange formats.
+surfaces, BRep topology, meshes, the planar supporting layer, mesh tessellation, ray casting,
+the `IBrepKernel` seam's managed side, native serialization and interchange formats.
 
 **Out of scope.** Nodes over the geometry — that is [E5](#e5--node-authoring-and-library).
 Rendering it — that is [E9](#e9--3d-viewport). Anything with identity, style or screen
-awareness: geometry has none of the three, by design.
+awareness: geometry has none of the three, by design. **And, new under ADR-0020: everything
+behind the seam** — exact booleans, trim, fillet, chamfer, shell, thicken, draft, extrude,
+revolve, loft, sweep, sew, heal, validate, BRep tessellation and STEP. That is
+[E13](#e13--occt-provider). The managed implementations of all of them are **discarded, not
+descoped**.
 
 **What is being salvaged, and what is not.** `C2VGeometry` is a 2D *drawing* library, not
 a kernel. Every `Shape` constructor auto-registers into a global mutable static registry;
@@ -185,11 +203,21 @@ serves mesh booleans, viewport picking and intersection seeding alike.
 - [ ] BRep topology is index-based — arrays and int indices, no object references — with
       `readonly ref struct` navigator views for ergonomics (**E2-T22**, **E2-T23**).
 - [ ] Every operation behind `IBrepKernel` returns `Result<T>` carrying diagnostics and
-      partial results; kernel failure is diagnosable, never thrown (**E2-T28**).
+      partial results; kernel failure is diagnosable, never thrown (**E2-T28**). *Unchanged by
+      ADR-0020, and more load-bearing than before: the failures are now OCCT's (**R18**), and
+      `Result<T>` was designed before anyone knew whose they would be.*
 - [ ] A `Capabilities` flag set lets the node library grey out unsupported operations
-      instead of throwing — this is what makes staged delivery honest (**E2-T28**).
+      instead of throwing — this is what makes staged delivery honest (**E2-T28**). *What it
+      greys out has inverted: most of what it was designed to expose arrives on day one, and
+      what is absent at 1.0 is **mesh** booleans.*
+- [ ] **Residency is canonical, not cached** ([ADR-0021](adr/0021-brep-kernel-residency.md)).
+      Exactly two crossings, `Import` and `Materialise`; a ten-operation chain performs zero
+      imports and one materialisation; round-trip asserts **tolerance-bounded equivalence,
+      never identity**; only `Spark.Geometry.Occt` observes the token (**E2-T28**, **E13**).
 - [ ] Mesh booleans are robust, pure managed, built on the ported BVH plus
-      adaptive-precision exact predicates (**E2-T27**).
+      adaptive-precision exact predicates (**E2-T27**). *Moved to **1.x** by ADR-0020, with
+      `Capabilities` greying it meanwhile. Reduced, not eliminated: OCCT is poor at mesh
+      booleans and Dynamo has them.*
 - [ ] Serialization carries **per-type `schemaVersion`**, so a `NurbsCurve` at v2 and a
       `Mesh` at v1 coexist, with migrations applied JSON-to-JSON (**E2-T29**).
 - [ ] A reflection-driven round-trip test enumerates every concrete geometry type, so a new
@@ -206,9 +234,13 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       with the planar pipeline (**E2-T14**). The architecture test that guards this now
       asserts a **ceiling rather than an exact set**, which is what lets it hold on both sides
       of that round trip. The CI check itself is still unwritten, so this stays unticked.*
-- [ ] OBJ, STL and PLY read and write; glTF write (**E2-T34**, **E2-T35**).
-- [ ] STEP AP203/AP214 read and write over a documented subset, validated against a public
-      corpus and a third-party viewer — **never our own reader** (**E2-T36**).
+- [ ] OBJ, STL and PLY read and write; glTF write (**E2-T34**, **E2-T35**). *These stay ours
+      and must work in a build with no native component at all — M1's demoable is `spark`
+      writing an OBJ polyline.*
+- [ ] ~~STEP AP203/AP214 read and write over a documented subset~~ — **withdrawn to
+      [E13-T12](#e13--occt-provider)** (**E2-T36**). OCCT gives AP203, AP214 and AP242 plus
+      IGES, and **R12 retires**. The validation rule survives verbatim: a public corpus and a
+      third-party viewer, **never our own reader**.
 - [ ] No drafting or annotation types exist anywhere in the kernel (**D13**).
 
 **Status.** Started, and the **first slice — the value layer — is landed, reviewed, repaired
@@ -704,7 +736,7 @@ user needs. XML doc = what this member does.*
       gaps left on deletion (**E10-T1**).
 
 **Status.** Partly done. As of 2026-08-27: the eight project documents exist and have been
-reconciled against the repository, nineteen ADRs exist with an index — one of them, ADR-0009,
+reconciled against the repository, twenty-one ADRs exist with an index — one of them, ADR-0009,
 superseded by ADR-0019 — and **three help topics exist**: `concepts/lacing.md`,
 `concepts/geometry-basics.md` (the first topic about the kernel) and
 `concepts/design-language.md`, the last of which is owned by `spark-ui`, landed alongside
@@ -901,7 +933,108 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
 - [ ] The release workflow refuses to publish when the computed version and the tag disagree
       (**E12-T11**).
 - [ ] A performance pass and an accessibility pass before 1.0 (**E12-T12**, **E12-T13**).
-- [ ] Exact NURBS booleans, and fillet and chamfer on solids, are stated publicly as **out
-      of scope for 1.0**, with `IBrepKernel` documented as the extension point.
+- [ ] ~~Exact NURBS booleans, and fillet and chamfer on solids, are stated publicly as **out
+      of scope for 1.0**~~ — **withdrawn** (**E12-T15**). They are *in* 1.0 under
+      [ADR-0020](adr/0020-occt-via-c-abi-shim.md), so the sentence this criterion existed to
+      say publicly is no longer true. What replaces it is the **positioning paragraph** in the
+      README, which says that Spark ships OpenCascade and why that is not the dependency Spark
+      exists to remove (**R13**).
+- [ ] **The publish pipeline meets the OCCT licence obligations** — dynamic linking,
+      replaceable shared libraries, **no single-file seal and no NativeAOT over OCCT**, the
+      LGPL and exception texts shipped, prominent notice in About, README, installer and
+      release notes, a source offer against a pinned tag, and any modification kept as a
+      numbered patch file ([E13-T16](#e13--occt-provider), **R21**). *This constrains
+      **E12-T8**, which was written before the constraint existed. Nothing here is legal
+      advice; six questions are with counsel — **Q13**.*
 
 **Status.** Not started.
+
+---
+
+## E13 — OCCT provider
+
+**Goal.** Exact solid modelling — booleans, trimming, filleting, shelling and STEP — reachable
+from a Spark graph, through OpenCascade, behind `IBrepKernel`, on Windows and Linux, with a
+native surface small enough that one person can maintain it across upstream upgrades.
+
+**Why this epic exists.** The client instructed capability parity with Dynamo's geometry
+(FR-81), and [DYNAMO-COVERAGE §6.1](DYNAMO-COVERAGE.md#61-parity-on-solid-and-surface-commits-us-to-exact-solid-modelling)
+established that **70 members cannot exist without exact BRep booleans, trimming, filleting and
+sewing.** Offered three paths, the client chose to take an existing engine.
+[ADR-0020](adr/0020-occt-via-c-abi-shim.md) records the engine and the binding;
+[ADR-0021](adr/0021-brep-kernel-residency.md) records what that does to the seam.
+
+**In scope.** `native/spark_occt/` — the C-ABI shim, C++, MIT, ours. `Spark.Geometry.Occt` —
+the `LibraryImport` layer and the `IBrepKernel` implementation. The `Import` and `Materialise`
+crossings. Booleans, trim, split, fillet, chamfer, shell, thicken, draft, offset, extrude,
+revolve, loft, sweep, patch, sew, heal, validate. BRep tessellation. STEP and IGES. The
+per-RID build, cache and distribution pipeline. Diagnostics across the boundary. Licence
+compliance in the publish pipeline.
+
+**Out of scope.** Everything in front of the seam — values, curves, surfaces, meshes, planar
+geometry, evaluation, mesh tessellation, serialisation and the OBJ/STL/PLY/glTF writers stay
+[E2](#e2--geometry-kernel), and **must keep working in a build with no native component at
+all**. Mesh booleans stay E2 and move to 1.x. A **second** provider: there is one, and building
+another to justify the abstraction is explicitly not wanted.
+
+**The cost, stated as two numbers because one would mislead.** Against the plan as written,
+**+7 to +11 weeks**. Against what was actually asked for, it **saves years and retires R1**.
+Both are true, and the first is positive only because the plan as written never contained the
+expensive thing: M6's 14 weeks bought mesh booleans, while exact booleans, fillet, chamfer and
+trim sat in PRD §9's out-of-scope list. This epic is roughly **24 weeks**, most of it inside M6,
+which goes from 14 weeks to **20–24**.
+
+**Acceptance criteria**
+
+- [ ] **M1.6 passes**: OCCT builds from a pinned tag through a vcpkg manifest on Windows *and*
+      Linux, one boolean runs end to end through a minimal shim and `LibraryImport`, and the
+      per-RID binary footprint is **measured** rather than bracketed (**E13-T1**).
+- [ ] The shim is **hand-written, MIT, and ours**, in `native/spark_occt/`, at an order of
+      350–500 exported entry points over roughly 2–3% of OCCT's class surface. **No
+      third-party binding is adopted** (**E13-T2**, [ADR-0020](adr/0020-occt-via-c-abi-shim.md)).
+- [ ] **Every entry point has a `catch(...)`** and `OSD::SetSignal(false)` is called at
+      initialisation, so no C++ exception and no OCCT signal handler ever reaches a managed
+      frame (**E13-T2**, **R19**).
+- [ ] `Spark.Geometry.Occt` is the **only** project with `AllowUnsafeBlocks=true`, opted in
+      with a comment naming ADR-0020, and an architecture test asserts it (**E13-T4**,
+      **NFR-15**).
+- [ ] `SparkGeometryTakesNoThirdPartyDependencyBeyondClipper` is **unchanged**, and gains a
+      *companion* rule asserting `Spark.Geometry.Occt` is referenced only by composition roots
+      (**E13-T4**, **NFR-5b**). *Relaxing either test would be the wrong repair.*
+- [ ] **Residency is canonical, not cached**: exactly two crossings, a ten-operation chain
+      performing zero imports and one materialisation, and **round-trip asserted as
+      tolerance-bounded equivalence — never identity** (**E13-T5**, **E13-T6**,
+      [ADR-0021](adr/0021-brep-kernel-residency.md)).
+- [ ] The evaluation cache tracks a **native budget reported by the shim**, not an estimate of
+      managed size (**E13-T3**, **NFR-4**).
+- [ ] Equality and hashing of a `Brep` are defined on the **materialised model**, never on the
+      handle (**E13-T6**).
+- [ ] Every failure carries an OCCT `Message_Report` translated into `SparkDiagnostic`, and a
+      **Draw-Harness-compatible `.brep` dump**, so a bug reproduces upstream; `BRepCheck_Analyzer`
+      runs in Debug (**E13-T13**, **R16**).
+- [ ] The Linux CI leg still runs, on a **cached per-RID artefact keyed on
+      `(occt-tag, vcpkg-baseline, shim-source-hash, rid)`**, with the from-clean build nightly
+      (**E13-T15**). *ADR-0001 justified the rot-guard as a rot-guard because it was nearly
+      free. It is not free any more, and **without the cache it will not survive a busy PR
+      queue**.*
+- [ ] STEP AP203/AP214/**AP242** and IGES read and write, validated against a public corpus and
+      a **third-party viewer, never our own reader** (**E13-T12**). *OCCT wrote the exporter;
+      that is not evidence our use of it is right.*
+- [ ] The licence obligations are met **by the pipeline rather than by remembering**
+      (**E13-T16**, **R21**).
+- [ ] **NFR-8 is answered rather than suppressed.** Either the watertightness property holds
+      against OCCT's mesher at a deflection we choose, or the requirement is restated to say
+      exactly what it guarantees (**E13-T11**).
+- [ ] The threading policy is **decided on evidence**, not assumed (**E13-T14**, **R20**,
+      **Q14**).
+
+**What is deliberately not claimed here.** Seven things are unknown and are recorded in
+[ADR-0020](adr/0020-occt-via-c-abi-shim.md) as open with how to find out: real binary sizes;
+whether excluding the Visualization module drops FreeType; whether STEP can avoid XCAF; OCCT's
+real thread-safety envelope; the counsel question; whether `OcctNet.Wrapper` has a source
+repository at all; and E13-T3's real cost. **None of them is resolved by writing confidently
+about it**, and M1.6 exists to answer the first four.
+
+**Status.** Not started. **Nothing of this epic exists in the tree** — there is no `native/`
+directory, no `Spark.Geometry.Occt` project and no OCCT anywhere. The decision is recorded; the
+work has not begun.

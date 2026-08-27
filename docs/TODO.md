@@ -3,10 +3,10 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-27
+**Last updated:** 2026-08-28
 
 M0 has essentially landed and **M1 has started**. The solution, twelve project stubs, the
-reference graph, the build properties, these documents, nineteen ADRs, the lacing
+reference graph, the build properties, these documents, twenty-one ADRs, the lacing
 specification, the CI workflow, the public-API baselines, and four test projects that pass all
 exist. So does the first slice of the geometry kernel: `src/Spark.Geometry` holds thirteen
 value types, declares 387 public members, and is covered by 304 of the 315 tests in the
@@ -29,6 +29,17 @@ Three distinctions do the work in what follows, and all three are easy to blur:
 
 **The kernel is values only.** There are no curves, surfaces, meshes or BRep types, and
 nothing below should be read as implying otherwise.
+
+**One decision has landed since the last revision, and it is the largest in the project.** The
+client chose to take an existing solid-modelling kernel rather than write one:
+**OpenCascade, reached through a C-ABI shim we own**
+([ADR-0020](adr/0020-occt-via-c-abi-shim.md),
+[ADR-0021](adr/0021-brep-kernel-residency.md), PRD **D2** and **D15**). It retires **R1** and
+**R12**, adds **R15 … R22**, adds a new two-week spike **M1.6**, adds a new epic
+[E13](EPICS.md#e13--occt-provider) of roughly 24 weeks, and costs **+7 to +11 weeks against the
+plan as written while saving years against what was actually asked for**. **Nothing of it is
+built** — there is no `native/` directory, no `Spark.Geometry.Occt` project and no OCCT
+anywhere in the tree — and nothing below should be read as implying otherwise either.
 
 ---
 
@@ -65,7 +76,7 @@ IDs* (`E1-T24`, which was the only M0 item with an outside clock on it). Both ar
 `IsPackable` is now `false` for every project and there is nothing to reserve, rename or
 reconcile. M0 lost a blocker rather than gaining one.
 
-## Next — name the M1.5 criteria, before M1 starts
+## Next — name the M1.5 **and M1.6** criteria, before M1 starts
 
 Small, and deliberately its own step rather than a bullet inside M0, because the whole value
 of it is the *order*.
@@ -76,6 +87,16 @@ of it is the *order*.
       acceptable AvaloniaEdit completion popup. Written down in advance is what makes the
       gate honest; written down afterwards is what makes it a rationalisation. A failed
       criterion changes the architecture, which is the entire point of spending the week.
+- [ ] **Write the M1.6 pass/fail criteria into TASKS.md** — `E13-T1`. **M1.6 gates ADR-0020
+      the way M1.5 gates ADR-0001**, and the same rule applies: written down in advance or it
+      is a rationalisation. At minimum — OCCT builds from a pinned tag through a vcpkg
+      manifest on Windows *and* Linux; one boolean runs end to end through a minimal
+      `spark_occt` and `LibraryImport`; the per-RID binary footprint is **measured** rather
+      than left at its 40–160 MB bracket; a `Materialise` on a realistic shape is timed,
+      because ADR-0021's whole rule rests on it being paid once; and a first read is taken on
+      OCCT's threading envelope (`Q14`) and on whether `ShapeFix` can be constrained to a
+      policy we choose. What a *failure* would mean is the part that needs deciding before the
+      spike, not after it.
 
 ## Then — M1, the geometry core
 
@@ -123,15 +144,20 @@ of it is the *order*.
       belongs in the contract rather than after it.
 - [ ] `spark` writes an OBJ polyline that a third-party viewer opens. That is the M1 demo.
 
-## After that — M1.5 and M2, the walking skeleton
+## After that — M1.5, M1.6 and M2, the walking skeleton
 
-M1.5 is a week of throwaway spikes, deleted afterwards. M2 is the highest-information
-milestone in the project: it simultaneously validates Avalonia GL, the canvas rendering
-strategy, the reflection importer, the lacing engine and the layering split — the five
-things that could still force an architectural change.
+M1.5 is a week of throwaway spikes, deleted afterwards. **M1.6 is two weeks and is not
+throwaway in the same sense** — its scaffolding goes, but the vcpkg manifest and the build
+recipe are kept. M2 is the highest-information milestone in the project: it simultaneously
+validates Avalonia GL, the canvas rendering strategy, the reflection importer, the lacing
+engine and the layering split — the five things that could still force an architectural change.
 
 - [ ] The three M1.5 spikes, against criteria written down beforehand — `E11-T19`,
       `E11-T20`, `E11-T21`.
+- [ ] **The M1.6 OCCT spike, against criteria written down beforehand** — `E13-T1`. It answers
+      four of the seven things [ADR-0020](adr/0020-occt-via-c-abi-shim.md) records as open, and
+      **it is the only place they can be answered** — the rest of that list needs counsel or a
+      publisher, not a build.
 - [ ] Graph model, topological evaluation, provenance cache — `E3-T1` … `E3-T8`.
 - [ ] **The full replication engine against the lacing specification** — `E4-T2` …
       `E4-T12`. Lacing is folded into M2 rather than deferred, because a graph engine
@@ -158,16 +184,23 @@ the exclusions is what keeps a walking skeleton from becoming a death march.
       wire-typed IntelliSense, tuple-named outputs, resident and persistent compile caches,
       guard weaving — M4, `E6`. **Demo this publicly when it lands** — it is the signature
       differentiator.
-- [ ] Surfaces, `NurbsSurface`, `Mesh`, tessellation and `RenderPackage` streaming, shaded
-      viewport, OBJ/STL/PLY read and write, glTF write, the software renderer and CI visual
-      regression — M5, plus the throwaway SSI spike (`E2-T37`) while it is still cheap to
-      learn SSI is hard.
-- [ ] BRep, modelling operations, `IBrepKernel` with `Capabilities` gating the UI, and the
-      robust mesh boolean — M6, `E2-T22` … `E2-T28`.
+- [ ] Surfaces, `NurbsSurface`, `Mesh`, mesh tessellation and `RenderPackage` streaming,
+      shaded viewport, OBJ/STL/PLY read and write, glTF write, the software renderer and CI
+      visual regression — M5. **The throwaway SSI spike is gone** (`E2-T37`, withdrawn): there
+      is no longer a managed exact-boolean estimate for it to calibrate, and its de-risk budget
+      moves to M1.6.
+- [ ] BRep, `IBrepKernel` with `Capabilities` gating the UI, and **exact solid operations
+      through OCCT** — M6, `E2-T22` … `E2-T28` plus most of `E13`. **M6 is now 20–24 weeks
+      rather than 14**, and its demoable improves from *solids that can be combined* to
+      *solids that can be combined, filleted, shelled, trimmed and exported to STEP*. The
+      robust **mesh** boolean (`E2-T27`) moves out of M6 to 1.x, greyed by `Capabilities` —
+      reduced, not cancelled, because OCCT is poor at mesh booleans and Dynamo has them.
 - [ ] Packages, per-package-version ALCs, missing-package placeholders, the trust store,
       local DLLs with hot reload, custom nodes, groups, notes, freeze — M7, `E7`.
-- [ ] `Spark.Host` proven inside a real Revit or AutoCAD add-in; STEP; the Windows
-      installer; the website; performance and accessibility passes — M8, `E12`. **1.0.**
+- [ ] `Spark.Host` proven inside a real Revit or AutoCAD add-in; STEP and IGES through OCCT
+      (`E13-T12`); the Windows installer, **now carrying native binaries and the licence
+      obligations that come with them** (`E13-T16`, `E13-T17`, `E12-T18`); the website;
+      performance and accessibility passes — M8, `E12`. **1.0.**
 
 ## Decisions waiting on someone
 
@@ -176,11 +209,30 @@ the exclusions is what keeps a walking skeleton from becoming a death march.
 | Q1 | Do the three M1.5 spikes pass? A failure changes the architecture, which is what they are for. | M2 design |
 | Q4 | `Directory.Build.props` promotes CS1591 to an error on **four** projects; the plan named three. Is `Spark.Geometry.Io` deliberately included? | `E10-T8` scope |
 | Q5 | Revit or AutoCAD as the M8 embedding proof host? The scheduler is the same either way; the add-in shell, licensing and test loop are not. | `E12-T4` |
-| Q6 | If `R1` forces the OCCT fallback, does an *optional* OCCT-backed package breach the no-native-dependencies promise? `E7-T8` already discloses native binaries, which suggests it can be lived with. | M6 |
-| Q7 | Which public STEP corpus is authoritative, and which third-party viewer is the reference? | `E2-T36` |
+| **Q13** | **The six licensing questions for counsel, and this is the item on this page with an outside clock on it.** The central one: **is a thin shim whose entire purpose is to expose OCCT a *work that uses the Library* under the Open CASCADE exception, or a derivative work under LGPL §5?** Then — whether single-file, trimmed or AOT publishing is compatible with the relink obligation; whether **vcpkg's port declaring `LGPL-2.1-only`, omitting the exception**, creates exposure; what *prominent notice in supporting documentation* requires concretely; what obligations attach to a user embedding `Spark.Host` in a commercial add-in (`D5`); and whether the source offer is satisfied by a tag reference or needs a hosted archive. **None of this is legal advice and no amount of further reading settles it** — it is a question for a lawyer, and it is on this page for that reason. [ADR-0020](adr/0020-occt-via-c-abi-shim.md) | **Items 1 and 3 before M6.** The rest before 1.0 |
+| **Q14** | **What is OCCT's real thread-safety envelope?** May the parallel evaluator call the shim concurrently, and at what granularity? Documented guidance is thin, and `R20` is a **top-three risk that cannot be mitigated until this is known**. *How to find out:* read the upstream source of the packages we actually call, and stress the shim at the evaluator's real thread count — `E13-T14`, started at M1.6. The conservative fallback is a single-writer policy, which would cost throughput on exactly the workload replication makes common. | `E13-T14`, M6 |
+| Q7 | Which public STEP corpus is authoritative, and which third-party viewer is the reference? **Downgraded, not closed.** We no longer write a STEP writer, so this stops being about defending a subset and becomes about validating *our use* of OCCT's — smaller, and still necessary, because *OCCT wrote it* is not evidence that a file we produce is correct. | `E13-T12`, and no longer gating anything upstream |
 | Q8 | Where does the website live, and who maintains it? | `E10-T14` |
-| Q11 | **Does capability parity with Dynamo move exact solid booleans into 1.0?** 32 members — `Solid.Union`, `Difference`, `Fillet`, `Chamfer`, `ThinShell`, `Surface.Trim`, `Join`, `Thicken` and their neighbours — cannot exist without exact BRep booleans, trimming, filleting and sewing, with 38 more behind the same `IBrepKernel` seam. That is exactly the work `ADR-0002` stages last, `R1` calls research-grade and PRD §9 states publicly as post-1.0. Full parity contradicts all three. The recommendation is to scope the parity promise to *the end of 1.x* rather than *at 1.0*, but the trade is headline promise against release date and it belongs to the client. [DYNAMO-COVERAGE §6.1](DYNAMO-COVERAGE.md#61-parity-on-solid-and-surface-commits-us-to-exact-solid-modelling), `E2-T47` | M5 SSI spike, M6 scope, `E12-T15` |
 | Q12 | **Is T-Splines in scope at all?** 169 members across 8 types — **20.2% of the entire ProtoGeometry surface**, with `TSplineSurface` alone at 94, more than `Curve`. It is a subdivision-surface modeller, a different discipline from BRep/NURBS, and its API is a sculpting editor (bevel, bridge, weld, crease, slide, fill hole) with its own file formats and its own topology layer. Recommendation: exclude it and say so publicly, as PRD §9 already does for STEP's scope. `ADR-0003`'s closing note calls a subdivision backend *a different decision, not a widening of this one*, so nothing is foreclosed. **The answer sets the denominator of every coverage figure we quote.** [DYNAMO-COVERAGE §6.2](DYNAMO-COVERAGE.md#62-t-splines-is-a-second-product-not-a-subsystem), `E2-T48` | Every parity figure; M5 planning |
+
+*Q6 and Q11 are answered, both by the same client decision, and **the answer to each is the
+opposite of what was recommended**. **Q11** asked whether parity moves exact solid booleans into
+1.0. It does: the 70 members are 1.0 requirements, delivered by OpenCascade, and **`R1` retires
+rather than being mitigated again**. **Q6** asked whether an *optional* OCCT-backed package
+would breach the no-native-dependencies promise, and is answered by the package not being
+optional — **OCCT ships in the default install**, because a Dynamo user finding booleans greyed
+out on first run is precisely what FR-81 forbids. What survives untouched is **NFR-5**:
+`Spark.Geometry`'s published output still contains no native binaries, still asserted by CI,
+because the native component lives in `Spark.Geometry.Occt`. What replaces the question is
+**`R13`, reframed and enlarged** — Spark now acquires a heavyweight native dependency, the
+distinction from the one it exists to remove is real, and **it only holds if we say it first,
+in our own words**. `E2-T47`, PRD **D2** and **D15**,
+[ADR-0020](adr/0020-occt-via-c-abi-shim.md).*
+
+*Q12 stays open and ADR-0020 does not answer it. OCCT has no subdivision modeller either, so
+nothing about this decision makes T-Splines cheaper or likelier. The recommendation is
+unchanged — exclude it and say so publicly — and so is the reason it must be decided rather
+than left: **the answer is the denominator of every parity figure we quote.***
 
 *Q2, Q3 and Q10 — all three about package IDs and which projects would publish — are answered
 and withdrawn together. Nothing publishes: `IsPackable` is `false` for every project and no
@@ -230,11 +282,56 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   ubuntu build-and-test job stays in CI as a rot-guard, because it is nearly free and it is
   the only thing that stops cross-platform support rotting silently — but **no Linux or
   macOS artefact is published**, and macOS is not built at all. PRD decision **D14**.
-- **Exact NURBS booleans, and fillet and chamfer on solids, are post-1.0.** Robust
-  surface-surface intersection with tangential and degenerate cases is a research-grade
-  problem and is what makes commercial kernels cost millions. 1.0 ships on **mesh
-  booleans** with `IBrepKernel` documented as the extension point, and this is stated
-  publicly rather than discovered by a disappointed user. `R1`.
+- **Exact NURBS booleans, and fillet and chamfer on solids, are in 1.0 — and they come from
+  OpenCascade.** This reverses what this bullet said, and the reversal is the point rather
+  than an embarrassment: robust surface-surface intersection *is* a research-grade problem and
+  is what makes commercial kernels cost millions, which is exactly why we are not writing one.
+  `R1` **retires**. PRD **D2**, **D15**, [ADR-0020](adr/0020-occt-via-c-abi-shim.md).
+- **Spark ships a heavyweight native dependency, and this is the thing to be honest about
+  first.** Spark exists because Dynamo Sandbox forces users to have an Autodesk product
+  installed, and because solving that by acquiring a different heavyweight dependency would
+  move the problem rather than remove it. The distinction is real — **OCCT is open source,
+  freely redistributable, installed *with* Spark, and needs no account, no licence purchase and
+  no other vendor's product** — and it only holds if we say it first, clearly, in our own
+  words. The README says it. `Spark.Geometry` stays pure managed and independently
+  distributable, **NFR-5 is unchanged**, and OCCT ships in the default install because a Dynamo
+  user finding booleans greyed out on first run is what FR-81 forbids. `R13`.
+- **Robust mesh booleans move to 1.x. Reduced, not cancelled.** OCCT is **poor** at mesh
+  booleans and Dynamo has them, so `E2-T27` keeps its purpose and loses only its urgency;
+  `Capabilities` greys the operation until it lands. Do not read the deferral as a deletion.
+- **The Linux CI job is no longer nearly free, and that was its entire justification.**
+  ADR-0001 kept it as a rot-guard because it cost almost nothing; it must now build native
+  code. The mitigation is a cached per-RID artefact keyed on
+  `(occt-tag, vcpkg-baseline, shim-source-hash, rid)`, with the from-clean build nightly —
+  **without it the rot-guard will not survive a busy PR queue**, and losing it would quietly
+  convert `D1` into wasted effort. `E13-T15`.
+- **`Brep` is no longer a pure value.** Under [ADR-0021](adr/0021-brep-kernel-residency.md)
+  residency is **canonical, not cached**: after a kernel operation the provider's
+  representation is authoritative and ours is materialised lazily. The reason is **fidelity,
+  not speed** — a Spark→OCCT→Spark round trip is not identity, because OCCT carries tolerances
+  we do not, `ShapeFix` may legitimately merge vertices and split faces at seams, and a face
+  from an intersection may come back a B-spline where the input was a cylinder. Ten
+  convert-in/convert-out operations would re-sew and re-tolerance the model ten times, and the
+  user would watch their geometry drift while doing nothing. Consequences to accept, not fix:
+  a finalizable native resource on a geometry value; equality and hashing defined on the
+  materialised model and **never on the handle**; and **`NFR-4`'s cache must track a native
+  budget reported by the shim**, because a managed size estimator cannot see OCCT's heap.
+- **`NFR-8`'s watertightness property now tests a third party's mesher.** `Brep` tessellation
+  moved behind the seam because tessellating a trimmed BRep face is genuinely hard and OCCT
+  solves it — and OCCT's mesher is not guaranteed watertight at default deflection. Either the
+  property holds at a deflection we choose or the requirement is restated to say what it
+  guarantees. **It must not quietly become a suppressed test**, which is the failure mode this
+  bullet exists to name. `E13-T11`.
+- **There will be exactly one `IBrepKernel` provider, and a second is not planned.** The seam
+  is retained for `Result<T>`, `Capabilities` and insurance. **Do not build a second provider
+  to justify the abstraction.**
+- **`AllowUnsafeBlocks` is `false` everywhere except `Spark.Geometry.Occt`.** The
+  `LibraryImport` source generator emits unsafe code and will not run without it. The
+  repository default stays `false`, the opt-in is in one csproj with a comment naming
+  ADR-0020, and an architecture test asserts it is the only one. Likewise
+  `SparkGeometryTakesNoThirdPartyDependencyBeyondClipper` **stays exactly as it is** and gains
+  a *companion* rule for `Spark.Geometry.Occt`. **Relaxing either test would be the wrong
+  repair**, and it will look like the obvious one.
 - **Upgrading a package restarts the application by default.** An ALC is pinned by node
   definitions, compiled invokers, cached values, viewport buffers and undo history. Upgrade
   purges all of them, unloads, and verifies by weak reference — and when it does not

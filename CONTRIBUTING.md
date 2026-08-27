@@ -3,7 +3,7 @@
 Thank you for looking. Spark is MIT-licensed, open to contributions, and maintained by one
 person — which shapes most of what follows.
 
-**Last updated:** 2026-08-27
+**Last updated:** 2026-08-28
 
 ---
 
@@ -17,7 +17,8 @@ add a node, there is no node library to add it to.
 
 What is genuinely useful right now is review: of the
 [decision log](docs/PRD.md#13-decision-log), of the
-[eighteen ADRs](docs/adr/README.md), of the
+[twenty-one ADRs](docs/adr/README.md) — two of which, [ADR-0020](docs/adr/0020-occt-via-c-abi-shim.md)
+and [ADR-0021](docs/adr/0021-brep-kernel-residency.md), are the newest and the largest — of the
 [lacing specification](docs/help/concepts/lacing.md) — which is written and which the engine
 will be built to match — and of the architecture in [EPICS.md](docs/EPICS.md). An argument
 that one of those decisions is wrong is worth far more at M0 than at M4, when a graph
@@ -178,12 +179,19 @@ them — most are in the [decision log](docs/PRD.md#13-decision-log) or in
 - **Units, unit types or a `UnitSystem`.** Decision **D12**.
 - **Dimensions, hatches, text, arrows or grids.** Decision **D13**.
 - **A native dependency in `Spark.Geometry`**, or a second managed one without a very good
-  argument.
+  argument. *This is about the assembly, not the product.* Spark itself ships OpenCascade —
+  open source, freely redistributable, installed with Spark, no account and no licence
+  purchase — for exact solid modelling, in a separate assembly called `Spark.Geometry.Occt`.
+  **`Spark.Geometry` stays pure managed and the CI check on it is unchanged.**
+  [ADR-0020](docs/adr/0020-occt-via-c-abi-shim.md).
 - **A reference from `Spark.Nodes.Core` to `Spark.Engine`**, or an Avalonia reference in
   `Spark.Viewport`. Both are enforced by test.
 - **An ambient or static tolerance.** It would be invisible to the evaluation cache, which
   would then silently serve geometry computed at the old tolerance.
-- **A `-windows` target framework**, or unsafe code.
+- **A `-windows` target framework** — no exceptions, ever. Unsafe code, with exactly one:
+  `Spark.Geometry.Occt` opts into `AllowUnsafeBlocks` because the `LibraryImport` source
+  generator emits unsafe code, and an architecture test asserts it is the only project that
+  does. Do not widen it and do not move it into `Directory.Build.props`.
 - **Telemetry of any kind.**
 - **A breaking change to `Spark.Api` or `Spark.Geometry`** during 1.x. Add an overload; add
   an interface. Never change one.
