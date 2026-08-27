@@ -99,5 +99,21 @@ the failure when there is one.
 ## Notes
 
 `Invoke` is an expression-tree-compiled delegate rather than `MethodInfo.Invoke` specifically
-because of this decision: under replication over 100k items the reflection path is 50–100× slower,
-which would make lacing unusable regardless of how correct it is.
+because of this decision: under replication over 100k items the reflection path was expected to be
+50–100× slower, which would make lacing unusable regardless of how correct it is.
+
+**Correction, 2026-08-28, on measurement.** That ratio was inherited from older runtimes and no
+longer describes .NET 10, which emits its own invoke stub. Measured on the engine's actual path —
+200,000 calls to a two-argument static method — the compiled delegate took 2.27 ms against
+`MethodInfo.Invoke`'s 4.37 ms: **about 1.9×, not 50–100×.**
+
+The decision stands unchanged; only the number was wrong. Roughly 2× on the hottest path in the
+evaluator, widening with argument count, still justifies compiling. But the guard could not be
+written as a timing assertion at that margin without being flaky, so it is structural instead:
+a compiled `DynamicMethod` has a null `DeclaringType` where any C#-source delegate does not, and
+the test builds the forbidden reflection wrapper alongside the real invoker and asserts the
+discriminator separates them.
+
+Recorded here rather than silently edited, because the original figure was used to justify the
+decision and a reader deserves to know it was overstated — and because a claim that has been
+measured is worth more than one that has been repeated.

@@ -757,8 +757,8 @@ All use `Add(double a, double b)` with both ports declared rank 0.
 | 26 | Equal lengths — Cross Product, k=2, shape 3×3 | `Add` | a:0, b:0 | a=`[1,2,3]`, b=`[10,20,30]` | CrossProduct | `[[11,21,31],[12,22,32],[13,23,33]]` | 2 | — |
 | 27 | Equal lengths — Disabled | `Add` | a:0, b:0 | a=`[1,2,3]`, b=`[10,20,30]` | Disabled | `—` | — | `E:SPK1041` |
 | 28 | One shorter — Shortest truncates to 2 | `Add` | a:0, b:0 | a=`[1,2,3]`, b=`[10,20]` | Shortest | `[11,22]` | 1 | — |
-| 29 | One shorter — Longest repeats b's **last** element | `Add` | a:0, b:0 | a=`[1,2,3]`, b=`[10,20]` | Longest | `[11,22,32]` | 1 | — |
-| 30 | One shorter — `Auto` resolves to Longest | `Add` | a:0, b:0 | a=`[1,2,3]`, b=`[10,20]` | Auto | `[11,22,32]` | 1 | — |
+| 29 | One shorter — Longest repeats b's **last** element | `Add` | a:0, b:0 | a=`[1,2,3]`, b=`[10,20]` | Longest | `[11,22,23]` | 1 | — |
+| 30 | One shorter — `Auto` resolves to Longest | `Add` | a:0, b:0 | a=`[1,2,3]`, b=`[10,20]` | Auto | `[11,22,23]` | 1 | — |
 | 31 | One shorter — Cross Product, shape 3×2 | `Add` | a:0, b:0 | a=`[1,2,3]`, b=`[10,20]` | CrossProduct | `[[11,21],[12,22],[13,23]]` | 2 | — |
 | 32 | One of length 1 — Shortest collapses to a single item | `Add` | a:0, b:0 | a=`[1,2,3]`, b=`[10]` | Shortest | `[11]` | 1 | — |
 | 33 | One of length 1 — Longest repeats it | `Add` | a:0, b:0 | a=`[1,2,3]`, b=`[10]` | Longest | `[11,12,13]` | 1 | — |

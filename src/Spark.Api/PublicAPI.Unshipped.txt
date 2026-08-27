@@ -1,1 +1,94 @@
 #nullable enable
+Spark.Api.Appearance
+Spark.Api.Appearance.Appearance(Spark.Api.Rgba colour, double lineWeight = 1, bool visible = true) -> void
+Spark.Api.Appearance.Colour.get -> Spark.Api.Rgba
+Spark.Api.Appearance.LineWeight.get -> double
+Spark.Api.Appearance.Visible.get -> bool
+Spark.Api.Appearance.WithColour(Spark.Api.Rgba colour) -> Spark.Api.Appearance!
+Spark.Api.Appearance.WithLineWeight(double lineWeight) -> Spark.Api.Appearance!
+Spark.Api.Appearance.WithVisible(bool visible) -> Spark.Api.Appearance!
+Spark.Api.DiagnosticSeverity
+Spark.Api.DiagnosticSeverity.Error = 2 -> Spark.Api.DiagnosticSeverity
+Spark.Api.DiagnosticSeverity.Information = 0 -> Spark.Api.DiagnosticSeverity
+Spark.Api.DiagnosticSeverity.Warning = 1 -> Spark.Api.DiagnosticSeverity
+Spark.Api.Displayable
+Spark.Api.Displayable.Appearance.get -> Spark.Api.Appearance!
+Spark.Api.Displayable.Displayable(object! geometry, Spark.Api.Appearance! appearance) -> void
+Spark.Api.Displayable.Geometry.get -> object!
+Spark.Api.IEvaluationScheduler
+Spark.Api.IEvaluationScheduler.Run(System.Collections.Generic.IReadOnlyList<System.Action!>! operations, System.Threading.CancellationToken cancellationToken) -> void
+Spark.Api.KeepStructureAttribute
+Spark.Api.KeepStructureAttribute.KeepStructureAttribute() -> void
+Spark.Api.LacingMode
+Spark.Api.LacingMode.Auto = 0 -> Spark.Api.LacingMode
+Spark.Api.LacingMode.CrossProduct = 3 -> Spark.Api.LacingMode
+Spark.Api.LacingMode.Disabled = 4 -> Spark.Api.LacingMode
+Spark.Api.LacingMode.Longest = 2 -> Spark.Api.LacingMode
+Spark.Api.LacingMode.Shortest = 1 -> Spark.Api.LacingMode
+Spark.Api.NoReplicationAttribute
+Spark.Api.NoReplicationAttribute.NoReplicationAttribute() -> void
+Spark.Api.NodeIgnoreAttribute
+Spark.Api.NodeIgnoreAttribute.NodeIgnoreAttribute(string! reason) -> void
+Spark.Api.NodeIgnoreAttribute.Reason.get -> string!
+Spark.Api.NodePortAttribute
+Spark.Api.NodePortAttribute.Description.get -> string?
+Spark.Api.NodePortAttribute.Description.set -> void
+Spark.Api.NodePortAttribute.Name.get -> string?
+Spark.Api.NodePortAttribute.Name.set -> void
+Spark.Api.NodePortAttribute.NodePortAttribute() -> void
+Spark.Api.NodePortAttribute.NodePortAttribute(string! name) -> void
+Spark.Api.NodeSideEffectAttribute
+Spark.Api.NodeSideEffectAttribute.NodeSideEffectAttribute() -> void
+Spark.Api.NodeSideEffectAttribute.NodeSideEffectAttribute(string! reason) -> void
+Spark.Api.NodeSideEffectAttribute.Reason.get -> string?
+Spark.Api.ReplicationGuideAttribute
+Spark.Api.ReplicationGuideAttribute.Guide.get -> int
+Spark.Api.ReplicationGuideAttribute.ReplicationGuideAttribute(int guide) -> void
+Spark.Api.Rgba
+Spark.Api.Rgba.Alpha.get -> byte
+Spark.Api.Rgba.Blue.get -> byte
+Spark.Api.Rgba.Equals(Spark.Api.Rgba other) -> bool
+Spark.Api.Rgba.Green.get -> byte
+Spark.Api.Rgba.Red.get -> byte
+Spark.Api.Rgba.Rgba() -> void
+Spark.Api.Rgba.Rgba(byte red, byte green, byte blue, byte alpha = 255) -> void
+Spark.Api.SparkDiagnostic
+Spark.Api.SparkDiagnostic.Code.get -> string!
+Spark.Api.SparkDiagnostic.Detail.get -> string?
+Spark.Api.SparkDiagnostic.ElementPath.get -> System.Collections.Generic.IReadOnlyList<int>!
+Spark.Api.SparkDiagnostic.ElementPathText() -> string!
+Spark.Api.SparkDiagnostic.HelpTopicId.get -> string?
+Spark.Api.SparkDiagnostic.Message.get -> string!
+Spark.Api.SparkDiagnostic.NodeId.get -> System.Guid?
+Spark.Api.SparkDiagnostic.PortIndex.get -> int?
+Spark.Api.SparkDiagnostic.Severity.get -> Spark.Api.DiagnosticSeverity
+Spark.Api.SparkDiagnostic.SparkDiagnostic(Spark.Api.DiagnosticSeverity severity, string! code, string! message, string? helpTopicId = null, string? detail = null, System.Guid? nodeId = null, int? portIndex = null, System.Collections.Generic.IReadOnlyList<int>? elementPath = null) -> void
+Spark.Api.SparkDiagnostic.WithNode(System.Guid nodeId, int? portIndex = null) -> Spark.Api.SparkDiagnostic!
+Spark.Api.SparkList
+Spark.Api.SparkList.Count.get -> int
+Spark.Api.SparkList.GetEnumerator() -> System.Collections.Generic.IEnumerator<object?>!
+Spark.Api.SparkList.Rank.get -> int
+Spark.Api.SparkList.SparkList(System.Collections.Generic.IEnumerable<object?>! items, int rank) -> void
+Spark.Api.SparkList.this[int index].get -> object?
+Spark.Api.SparkNodeAttribute
+Spark.Api.SparkNodeAttribute.Category.get -> string?
+Spark.Api.SparkNodeAttribute.Category.set -> void
+Spark.Api.SparkNodeAttribute.DefaultLacing.get -> Spark.Api.LacingMode
+Spark.Api.SparkNodeAttribute.DefaultLacing.set -> void
+Spark.Api.SparkNodeAttribute.Name.get -> string?
+Spark.Api.SparkNodeAttribute.Name.set -> void
+Spark.Api.SparkNodeAttribute.SparkNodeAttribute() -> void
+override Spark.Api.Displayable.ToString() -> string!
+override Spark.Api.Rgba.Equals(object? obj) -> bool
+override Spark.Api.Rgba.GetHashCode() -> int
+override Spark.Api.Rgba.ToString() -> string!
+override Spark.Api.SparkDiagnostic.ToString() -> string!
+override Spark.Api.SparkList.ToString() -> string!
+static Spark.Api.Appearance.Default.get -> Spark.Api.Appearance!
+static Spark.Api.Displayable.Unwrap(object? value) -> object?
+static Spark.Api.Rgba.operator !=(Spark.Api.Rgba left, Spark.Api.Rgba right) -> bool
+static Spark.Api.Rgba.operator ==(Spark.Api.Rgba left, Spark.Api.Rgba right) -> bool
+static Spark.Api.SparkDiagnostic.FormatElementPath(System.Collections.Generic.IReadOnlyList<int>! elementPath) -> string!
+static Spark.Api.SparkList.Empty(int rank) -> Spark.Api.SparkList!
+static Spark.Api.SparkList.Of(params object?[]! items) -> Spark.Api.SparkList!
+static Spark.Api.SparkList.RankOf(object? value) -> int

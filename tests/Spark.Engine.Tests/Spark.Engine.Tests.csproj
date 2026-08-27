@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tests for the graph engine. The lacing case table in docs/help/concepts/lacing.md is the
+    specification, written before this code existed, and LacingCaseTable.cs transcribes it as
+    theory data. Where the table and the engine disagree, the table is right.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Spark.Engine/Spark.Engine.csproj" />
+  </ItemGroup>
+
+</Project>
