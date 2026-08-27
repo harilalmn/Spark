@@ -10,21 +10,35 @@ MIT licensed. `net10.0`. No native dependencies.
 
 **Last updated:** 2026-08-27
 
-> ## Status: M0 — nothing works yet
+> ## Status: M1 has started — there is still nothing to run
 >
-> **This repository is scaffolding, gates and specification.** It contains a solution,
-> twelve empty project stubs, a reference graph, build properties, the project documents,
-> nineteen ADRs, the lacing specification, a CI workflow, and two test projects that check
-> the repository against itself. **No product code has landed and been reviewed**, though
-> the first geometry value types are being written now.
+> **This repository is scaffolding, gates, specification, and the first slice of the
+> geometry kernel.** It contains a solution, twelve project stubs, a reference graph, build
+> properties, the project documents, nineteen ADRs, the lacing specification, a CI workflow,
+> public-API baselines, and four test projects.
 >
-> What has been run: `dotnet build Spark.slnx -warnaserror` is clean with zero warnings, and
-> `dotnet test Spark.slnx` runs eleven tests that enforce the reference graph and the state
-> of the documents. What has **not** been run: CI. The workflow is written and committed and
-> has never executed, so nothing here is yet known to hold on Linux.
+> **The one piece of product code that exists** is `Spark.Geometry`'s **value layer**:
+> thirteen types — `Angle`, `Tolerance`, `Point3d`, `Vector3d`, `Point2d`, `Vector2d`, `UV`,
+> `Interval`, `BoundingBox`, `Plane`, `Transform`, `CoordinateSystem` and an internal
+> `NamespaceDoc` — declaring 387 public members, all documented, landed and **reviewed,
+> repaired and accepted**. There are **no curves, no surfaces, no meshes and no solids**, and
+> no graph engine, UI or viewport at all.
 >
-> Milestone M1 is the geometry core; M2 is the first milestone at which anything is
-> usable — drag two nodes, wire them, see geometry. See
+> What has been run, on Windows, on 2026-08-27:
+> `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen projects;
+> `dotnet test Spark.slnx` runs **315 passing tests** across four projects; and
+> `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean. What has **not**
+> been run: CI against this tree. The workflow has been green on Windows and Linux for
+> earlier commits and has seen none of the kernel.
+>
+> **Worth knowing about how that slice was accepted.** Its first version passed all three
+> gates and was rejected on review, with three of its eight claims false — most visibly a
+> default-constructed `Plane` on which every point in space silently lay. Both tests written
+> to guard it were structurally incapable of failing. Every fix in the accepted version is
+> regression-proven by reverting it and naming the test that goes red.
+>
+> The rest of M1 is curves; M2 is the first milestone at which anything is usable — drag two
+> nodes, wire them, see geometry. See
 > [docs/PRD.md §11](docs/PRD.md#11-release-plan) for the plan and
 > [docs/TODO.md](docs/TODO.md) for what happens next.
 
@@ -98,10 +112,16 @@ dotnet build Spark.slnx
 The way CI builds it:
 
 ```bash
-dotnet build Spark.slnx -warnaserror
+dotnet build Spark.slnx --no-incremental -warnaserror
 dotnet test Spark.slnx
 dotnet format Spark.slnx --verify-no-changes --severity warn
 ```
+
+`--no-incremental` matters more than it looks. An incremental build skips projects MSBuild
+considers up to date, analyzers run inside the compilation it skipped, and the summary still
+prints `0 Warning(s)` — so a clean build and a skipped one read identically. That is not
+hypothetical here: the public-API analyzer findings that produced the baselines were invisible
+without the flag ([docs/NOTES.md N15](docs/NOTES.md)).
 
 Everything targets `net10.0` with no `-windows` target framework, so it builds on Windows,
 Linux and macOS. Warnings are errors in CI only, never in the project files —
@@ -109,10 +129,13 @@ Linux and macOS. Warnings are errors in CI only, never in the project files —
 solution format, which needs a recent SDK and a recent Visual Studio
 ([N1](docs/NOTES.md)).
 
-There is nothing to run yet. `dotnet test` finds eleven tests, none of which test product
-code — they enforce the reference graph below and check these documents against the
-repository. Both suites were deliberately stood up before the code they will eventually
-guard: a gate added later is a gate that gets an exemption for everything already there.
+There is still nothing to *run* — no application, no CLI behaviour. `dotnet test` finds **315
+tests** across four projects. `Spark.Geometry.Tests` (276) and `Spark.Geometry.Properties`
+(28) cover the kernel's value layer by example and by CsCheck property respectively;
+`Spark.Architecture.Tests` (6) enforces the reference graph below by reading `.csproj` files
+as XML; `Spark.Docs.Verify` (5) checks these documents against the repository. The last two
+were deliberately stood up before the code they now guard: a gate added later is a gate that
+gets an exemption for everything already there.
 
 ## Repository layout
 
@@ -191,9 +214,11 @@ is not a dotnet global tool. (**D11**)
 | [CONTRIBUTING.md](CONTRIBUTING.md) | MIT, DCO sign-off, how to build, what a PR needs |
 | [docs/adr/](docs/adr/README.md) | Nineteen architecture decision records: what was decided, what was rejected, and what it costs |
 | [docs/help/concepts/lacing.md](docs/help/concepts/lacing.md) | How lists, ranks and lacing work — **written before the engine, and the engine will be written to match it** |
+| [docs/help/concepts/geometry-basics.md](docs/help/concepts/geometry-basics.md) | Points, vectors, planes, right-handedness, unitless coordinates, `Angle`, and tolerance — aimed at a designer, with every example run against the assembly |
+| [docs/help/concepts/design-language.md](docs/help/concepts/design-language.md) | Spark's visual design language — **written before any UI code exists, and the UI is written to match it** |
 
-Still to come: the rest of `docs/help/`, and `docs/examples/` for worked example graphs
-that CI executes.
+Still to come: the rest of `docs/help/`, the generated API reference, and `docs/examples/`
+for worked example graphs that CI executes.
 
 **Documentation here is a build gate, not a chore.** Undocumented public API on a contract
 project does not compile — that one works today. Every help topic must contain a worked

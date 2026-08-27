@@ -86,9 +86,15 @@ exemption for everything that already exists.
       (**E1-T21**).
 - [ ] The release workflow refuses to publish when the computed version and the tag
       disagree (**E1-T22**).
-- [ ] Public-API baselines for `Spark.Api` and `Spark.Geometry` are checked in, so every
+- [x] Public-API baselines for `Spark.Api` and `Spark.Geometry` are checked in, so every
       change to the public surface is a reviewed line in a text file (**E1-T23**). *A review
-      aid, not a compatibility guarantee — ADR-0019.*
+      aid, not a compatibility guarantee — ADR-0019. Delivered wider than asked: all four
+      contract projects carry a `PublicAPI.Shipped.txt` and a `PublicAPI.Unshipped.txt`,
+      referenced from `Directory.Build.props`. `Spark.Geometry` declares 387 members; the
+      other three are empty. RS0016 stays at error and **was proved to fire** by adding a
+      public member and watching the build fail; RS0026 is suppressed with its reasoning
+      recorded, because it protects a source-compatibility promise ADR-0019 retired
+      ([NOTES.md N17](NOTES.md)).*
 - [x] `IsPackable` is `false` for every project and no packaging metadata exists anywhere, so
       the repository cannot publish to nuget.org by accident (**E1-T24**, withdrawn).
       *Reserving NuGet IDs is withdrawn rather than done: **D11** settles that Spark consumes
@@ -106,12 +112,22 @@ exemption for everything that already exists.
 **Status.** Partly done, and further along than the milestone plan expected at this point.
 The solution, the twelve stubs, the reference graph, the build properties, the pinned package
 versions, the licence and the git metadata all exist; the solution builds clean with
-`-warnaserror`; `global.json` pins the toolchain; two test projects run eleven checks; and
+`--no-incremental -warnaserror`; `global.json` pins the toolchain; the public-API baselines
+are live on all four contract projects; **four test projects run 315 checks**; and
 `.github/workflows/ci.yml` and five of the eight agent definitions are written.
 
-**What is not true: CI has run.** It has not. `bench/` and `scripts/` are still empty
-directories, the public-API baselines do not exist, and three of the eight agent definitions
-are unwritten. Until CI is green on GitHub, M0 is not finished.
+**What is not true: CI has run against this.** It has been green on Windows and Linux for
+earlier commits and has seen nothing of the geometry kernel — which is the half of the
+solution most likely to behave differently on Linux. `bench/` and `scripts/` are still empty
+directories and three of the eight agent definitions are unwritten, `reviewer` among them.
+Until CI is green on GitHub against the current tree, M0 is not finished.
+
+**One trap this epic owns and everybody should know about.** A `dotnet build` that reports
+`0 Warning(s)` may have skipped the analysis entirely: MSBuild's incremental build skips
+projects it considers up to date, analyzers run inside the compilation it skipped, and the
+summary still prints zero. The public-API findings that produced the baselines were invisible
+until `--no-incremental` was added. Verify a clean build with the flag or do not claim one —
+[NOTES.md N15](NOTES.md).
 
 ---
 
@@ -141,16 +157,30 @@ serves mesh booleans, viewport picking and intersection seeding alike.
 
 **Acceptance criteria**
 
-- [ ] Values are readonly structs implementing `IEquatable<T>` and passed by `in`
-      (**E2-T1** … **E2-T6**).
+- [x] Values are readonly structs implementing `IEquatable<T>` and passed by `in`
+      (**E2-T1** … **E2-T6**). *Twelve types, 387 public members, checked member by member
+      against `PublicAPI.Unshipped.txt`. `operator ==` is exact on every one of them and
+      `EqualsWithin(other, in Tolerance)` is the separate, explicit geometric comparison; a
+      fuzzy `==` was deliberately rejected because it breaks hashing and transitivity.
+      `Quaternion` is still unwritten, which is why **E2-T1** is not `Done` (`Rgba` has moved to **E5**, being a display concern the kernel must not carry) —
+      but the criterion is about the shape of a value type, and every value type that exists
+      has it.*
 - [ ] Curves, surfaces, meshes and BReps are sealed and immutable, with backing state never
       handed out. Mutable **builders** are the only mutable things and never escape into
       the graph. Lazy internal caches are permitted: immutability is observable, not
       bitwise.
-- [ ] `Tolerance` is explicit and passed, never ambient, defaults per call via
-      `in Tolerance tol = default`, and is scale-aware (**E2-T4**).
-- [ ] `Angle` appears in **every** public angular signature, with no implicit conversion
-      from `double` (**E2-T5**).
+- [x] `Tolerance` is explicit and passed, never ambient, defaults per call via
+      `in Tolerance tol = default`, and is scale-aware (**E2-T4**). *There is no static,
+      thread-local or document-scoped default anywhere in the assembly. `ForScale` and
+      `Scaled` derive one from a characteristic length, floored at 1e-15 so a derived value
+      can never collapse back into the "use the default" sentinel. `AreEqual`, `IsLessThan`
+      and `IsGreaterThan` form a genuine three-way partition because all three compare the
+      same subtraction against the same threshold — the version that did not was caught in
+      review, not by a gate.*
+- [x] `Angle` appears in **every** public angular signature, with no implicit conversion
+      from `double` (**E2-T5**). *Verified against the public-API baseline rather than by
+      recollection: `Vector3d.Rotate`, `AngleTo`, `SignedAngleTo`, `Vector2d.Rotate` and
+      `Transform.Rotation` all take or return `Angle`, and `Tolerance.Angular` is one.*
 - [ ] Analytic surfaces are first-class, not NURBS in disguise (**E2-T18**).
 - [ ] BRep topology is index-based — arrays and int indices, no object references — with
       `readonly ref struct` navigator views for ergonomics (**E2-T22**, **E2-T23**).
@@ -170,18 +200,44 @@ serves mesh booleans, viewport picking and intersection seeding alike.
 - [ ] The C2VGeometry test harvest is **timeboxed to one week with a hard stop**; anything
       needing a `Shape` is discarded without argument (**E2-T32**).
 - [ ] Clipper2 stays isolated behind a single internal file, and CI asserts no native
-      binaries in the published output ([E1-T20](#e1--foundations-build-and-ci)).
+      binaries in the published output ([E1-T20](#e1--foundations-build-and-ci)). *Not
+      referenced at all at present: the `PackageReference` came out on 2026-08-27 once it
+      proved unused (**E2-T39**), so `Spark.Geometry` is on the BCL alone, and it returns
+      with the planar pipeline (**E2-T14**). The architecture test that guards this now
+      asserts a **ceiling rather than an exact set**, which is what lets it hold on both sides
+      of that round trip. The CI check itself is still unwritten, so this stays unticked.*
 - [ ] OBJ, STL and PLY read and write; glTF write (**E2-T34**, **E2-T35**).
 - [ ] STEP AP203/AP214 read and write over a documented subset, validated against a public
       corpus and a third-party viewer — **never our own reader** (**E2-T36**).
 - [ ] No drafting or annotation types exist anywhere in the kernel (**D13**).
 
-**Status.** Not started as at the last reconciliation, on 2026-08-27, when both projects
-were empty stubs that build. The first value types — `Angle`, `Interval`, `BoundingBox`,
-`Plane`, `Point2d`, `Point3d`, `Tolerance`, `UV`, `Vector2d`, `Vector3d` — began landing
-immediately afterwards. **Nothing above has been ticked on account of them**: they are
-mid-flight and unreviewed, and a criterion here is ticked when something demonstrates it.
-This epic gets its own pass when that work settles.
+**Status.** Started, and the **first slice — the value layer — is landed, reviewed, repaired
+and accepted.** `src/Spark.Geometry` holds `Angle`, `Tolerance`, `Point3d`, `Vector3d`,
+`Point2d`, `Vector2d`, `UV`, `Interval`, `BoundingBox`, `Plane`, `Transform` and
+`CoordinateSystem`, plus an internal `NamespaceDoc` carrying the conventions the whole
+namespace obeys. Together they declare **387 public members**, all documented — CS1591 is an
+error here — and all recorded in `PublicAPI.Unshipped.txt`. They are covered by
+`tests/Spark.Geometry.Tests` (276 example-based tests) and `tests/Spark.Geometry.Properties`
+(28 CsCheck properties), both green.
+
+**Nothing else in this epic has started.** There are no curves, no surfaces, no meshes, no
+BRep topology, no `IBrepKernel`, no serialization and no interchange. `Spark.Geometry.Io` is
+still an empty project. Four criteria above are ticked; the rest describe work that does not
+exist.
+
+**How the slice was accepted matters more than that it was.** The first attempt passed
+`build -warnaserror`, `test` and `format`, and was **rejected**: an independent review found
+three of its eight claims false, the worst being a `default(Plane)` that reported every point
+in space as lying on it, silently. Both tests guarding the tolerance partition were
+structurally incapable of failing — the property drew two independent uniforms, and
+simulating its generator gave zero violations in five million draws against the hundred
+CsCheck performs per run, where a generator straddling the threshold finds 908 in 12,006
+pairs. NaN handling in `Interval.Includes` and `BoundingBox.Intersects`, a sign flip in
+`SignedAngleTo` where the cross product underflows near 1e-170, an `ArgumentException` naming
+a parameter absent from its own signature, and four over-claiming round-trip doc comments
+were repaired in the same pass. **Every fix was regression-proven by reverting it and naming
+the test that goes red**, and that is now the standard this epic works to.
+[NOTES.md N18](NOTES.md) carries the detail.
 
 ---
 
@@ -649,10 +705,28 @@ user needs. XML doc = what this member does.*
 
 **Status.** Partly done. As of 2026-08-27: the eight project documents exist and have been
 reconciled against the repository, nineteen ADRs exist with an index — one of them, ADR-0009,
-superseded by ADR-0019 — and
-`docs/help/concepts/lacing.md` exists. The rest of the help skeleton, the generated
-reference, the changelog fragments and every XML doc comment do not, and `docs/examples/`
-has not been created at all.
+superseded by ADR-0019 — and **three help topics exist**: `concepts/lacing.md`,
+`concepts/geometry-basics.md` (the first topic about the kernel) and
+`concepts/design-language.md`, the last of which is owned by `spark-ui`, landed alongside
+this reconciliation, and is recorded here rather than reviewed here.
+
+**XML doc comments have started, and started where they are enforced.** All 387 public
+members of `Spark.Geometry` carry them — CS1591-as-error makes that structural rather than
+diligent — together with an internal `NamespaceDoc` that states the namespace-wide
+conventions once instead of thirteen times. They are not minimal: they state units, edge
+behaviour at zero, `NaN` and `default`, and in several places why a member behaves as it
+does. `Spark.Api`, `Spark.Geometry.Io` and `Spark.Nodes.Core` are still empty projects.
+
+The rest of the help skeleton, the generated reference and the changelog fragments do not
+exist, and `docs/examples/` is an empty directory.
+
+**A caution the geometry topic had to observe, and every future topic must.** Its worked
+examples were run against the compiled assembly, not written from the signatures. Two of them
+came back wrong — `Angle.FullTurn / 3.0` is `119.99999999999999°`, not `120°`, and
+`Tolerance.Default.Scaled(10.0).Linear` is `9.999999999999999e-6`, not `1e-5`. Both would
+have read as perfectly plausible and both would have been false. Until
+[E11-T2](#e11--quality-and-verification) compiles and runs the fences automatically, running
+them by hand is the only thing standing between a help topic and a confident lie.
 
 **One defect closed, and it is worth recording how.** Two ADR citations in build files
 pointed at real records about unrelated subjects — `Directory.Packages.props` cited the
@@ -703,6 +777,11 @@ nothing.
       the build** (**E11-T4**).
 - [ ] **Reverse coverage**: every `nodes:` front-matter entry resolves to a real node, which
       is what catches renames (**E11-T5**).
+- [x] `Spark.Geometry` takes no third-party dependency beyond Clipper2, asserted as a
+      **ceiling rather than an exact set** (**E11-T22**). *Relaxed and renamed on 2026-08-27
+      when the unused Clipper2 reference came out. An exact-set assertion would have had to be
+      edited twice for one round trip and broke a passing test that was not testing anything
+      wrong; a ceiling holds before the planar pipeline arrives and after.*
 - [ ] Every `SPK####` code in source has a help topic, by source scan (**E11-T6**).
 - [ ] Link and asset integrity, plus Markdown renderer parity against a golden corpus
       (**E11-T7**). *Relative-link integrity is done and passing; asset integrity and
@@ -711,15 +790,20 @@ nothing.
       `Spark.Api` sees only the BCL and `Spark.Geometry`; `Spark.Nodes.Core` never
       references `Spark.Engine`; `Spark.Viewport` is Avalonia-free; nothing under `src/`
       references anything under `tests/`; no `-windows` TFM anywhere (**E11-T8**). *Six
-      tests passing locally — the five rules plus `Spark.Geometry` depending on nothing but
-      Clipper2. It reads the `.csproj` files as XML and references none of the projects it
+      tests passing locally — the five rules plus the Clipper2 ceiling above. It reads the
+      `.csproj` files as XML and references none of the projects it
       inspects, because a test that referenced them could not observe a forbidden reference.
       The related rule **views never touch `Spark.Engine`** is not yet enforced: there is no
       `Spark.UI` code to check.*
 - [ ] A reflection-driven geometry serialization round-trip test enumerates every concrete
       type (**E11-T9**).
 - [ ] Property-based tests on the kernel with CsCheck **from M1 — non-negotiable**
-      (**E11-T10**).
+      (**E11-T10**). *`tests/Spark.Geometry.Properties` exists and its 28 properties pass over
+      the value layer, with generators spanning 1e-9 to 1e9 log-uniform per **ADR-0018** and a
+      whole scene generated at one shared scale. Unticked because the criterion is about the
+      kernel and most of the kernel does not exist. **The lesson from the review belongs
+      here:** judge a property by its generator, not its assertion — one that cannot reach the
+      boundary it tests cannot fail, and reports identically to one that can.*
 - [ ] Golden-file geometry tests print readable diff tables on failure (**E11-T11**).
 - [ ] The lacing case table asserts value and rank separately (**E11-T12**).
 - [ ] The node↔member two-way diff passes in both directions (**E11-T13**).
@@ -736,17 +820,38 @@ nothing.
       criteria is written. This is the next thing this epic owes, and it must land before M1
       ends, not before M1.5 begins.*
 
-**Status.** Partly done, which is a change of state for this epic. Two test projects exist
-and `dotnet test Spark.slnx` runs eleven tests: `Spark.Architecture.Tests` (six, enforcing
-the reference graph) and `Spark.Docs.Verify` (five, checking the documents against the
-repository). Both were stood up **before the code they will eventually guard**, which was
-the whole argument for putting them in M0.
+**Status.** Partly done, and materially further along than at the last pass. **Four test
+projects exist and `dotnet test Spark.slnx` runs 315 tests**, all passing locally on
+2026-08-27: `Spark.Geometry.Tests` (276 example-based), `Spark.Geometry.Properties` (28
+CsCheck properties), `Spark.Architecture.Tests` (6, enforcing the reference graph) and
+`Spark.Docs.Verify` (5, checking the documents against the repository). The two older ones
+were stood up **before the code they now guard**, which was the whole argument for putting
+them in M0.
 
 The harness has already earned its keep rather than merely existing: extending its
 ADR-citation check to scan build files turned up two citations pointing at records nobody had
 written, and closing that produced two real ADRs
 ([E1-T29](#e1--foundations-build-and-ci)). A gate that finds something on the day it is
 switched on is a gate worth having.
+
+**And the epic has now met the limit of what gates do.** The geometry kernel's first slice
+passed every gate this epic owns and was rejected on review, with three of its eight claims
+false. Two of the tests meant to guard it were **structurally incapable of failing**: the
+property drew two independent uniform values and could not produce a case near the boundary
+it asserted about — zero violations in five million simulated draws, against the hundred
+CsCheck runs per invocation. A generator that straddles the threshold finds 908 in 12,006.
+
+Three things follow, and they are this epic's obligations rather than observations:
+
+1. **A fix is regression-proven by reverting it and naming the test that goes red.** That is
+   the standard the repaired slice was held to, and it is the one thing that was missing the
+   first time.
+2. **A property is judged by its generator.** Ask what fraction of generated cases can reach
+   the condition under test. Generators now span 1e-9 to 1e9 log-uniform per **ADR-0018**, and
+   widening them turned two further properties red — both naive assertions rather than kernel
+   bugs, which is the outcome a widened generator exists to produce.
+3. **`reviewer` is no longer an optional agent definition.** It is [E1-T30](#e1--foundations-build-and-ci),
+   it is unwritten, and this epic now has direct evidence of what its absence costs.
 
 One honest qualification. Every one of these gates has run **only on a Windows developer
 machine**. The CI workflow that would run them on Linux, and run them on every push, is

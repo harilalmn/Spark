@@ -5,42 +5,56 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 
 **Last updated:** 2026-08-27
 
-Spark is at M0, and most of M0 has landed. The solution, twelve project stubs, the reference
-graph, the build properties, these documents, nineteen ADRs, the lacing specification, the CI
-workflow, and two test projects that pass all exist. Of the previous version of this
-paragraph — *"there is no CI, no test project and no implementation code of any kind"* — only
-the last clause survived, and it is now going too: the first M1 kernel value types began
-landing in `src/Spark.Geometry` as this was written. They are not reflected in the statuses
-in [TASKS.md](TASKS.md), which describe M0 and were checked on 2026-08-27.
+M0 has essentially landed and **M1 has started**. The solution, twelve project stubs, the
+reference graph, the build properties, these documents, nineteen ADRs, the lacing
+specification, the CI workflow, the public-API baselines, and four test projects that pass all
+exist. So does the first slice of the geometry kernel: `src/Spark.Geometry` holds thirteen
+value types, declares 387 public members, and is covered by 304 of the 315 tests in the
+solution.
 
-Two distinctions do the work in what follows, and both are easy to blur:
+Three distinctions do the work in what follows, and all three are easy to blur:
 
-- **The architecture and documentation tests genuinely pass.** `dotnet test Spark.slnx` runs
-  eleven tests and they are real checks against the repository, run locally on 2026-08-27.
-- **CI has never run.** `.github/workflows/ci.yml` is written and committed and nobody has
-  seen it execute. A workflow that has not run is a workflow with unknown YAML, unknown
-  runner behaviour and unknown Linux results. It is not a gate yet; it is a file.
+- **The three gates genuinely pass, locally, on Windows, on 2026-08-27.**
+  `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen projects;
+  `dotnet test Spark.slnx` runs **315 tests** across four projects; `dotnet format Spark.slnx
+  --verify-no-changes --severity warn` is clean.
+- **CI has not run on this commit.** `.github/workflows/ci.yml` has been green on Windows and
+  Linux for earlier commits, and has seen nothing of the geometry kernel. Linux is where the
+  surprises live, and none of the above is a Linux result.
+- **Gates are not review, and this project now has its own proof.** The first attempt at the
+  kernel's value layer passed all three gates and was **rejected**: an independent review
+  found three of its eight claims false, including a `default(Plane)` on which every point in
+  space silently lay. The two tests guarding that type were structurally incapable of failing.
+  See *Known and deliberately accepted* below, and [NOTES.md N18](NOTES.md).
+
+**The kernel is values only.** There are no curves, surfaces, meshes or BRep types, and
+nothing below should be read as implying otherwise.
 
 ---
 
-## Now — finish M0 before anything else
+## Now — get the gates in front of real code
 
-M0 is *foundations*, and its whole value is that the gates exist before the code does.
-Everything in this section is cheap now and expensive later.
+M0 is *foundations*, and its whole value is that the gates exist before the code does. There
+is now real code for them to be in front of, which makes the first item below more urgent
+than it was, not less.
 
-- [ ] **Get CI to run, and green, on GitHub** — `E1-T14` … `E1-T18`. Push, open a pull
-      request, watch all three jobs. The Linux leg is where surprises live: everything
-      verified so far was verified on Windows. Doing this before any code exists is the
-      point — a gate added later is a gate that gets an exemption for everything that
-      already exists. The Linux job is a rot-guard, not a release target — see **D14**.
+- [ ] **Get CI green on GitHub against the kernel** — `E1-T14` … `E1-T18`. Push, open a pull
+      request, watch all three jobs. **The Linux leg has seen none of the geometry kernel**,
+      and floating-point results, culture-dependent formatting and case-sensitive paths are
+      exactly the things that differ. Everything verified so far was verified on Windows. The
+      Linux job is a rot-guard, not a release target — see **D14**. `docs-freshness` is
+      `pull_request`-only and cannot run until there is a PR, so opening one closes two items
+      at once.
 - [ ] **Write the three remaining agent definitions** — `E1-T30`. `ui-shell`, `viewport` and
       `reviewer`. Needed by M2, which is the first milestone to touch any of the three areas
       they own. File ownership must stay disjoint, so parallel agents never conflict.
-- [ ] **Check in the public-API baselines** — `E1-T23`. `Spark.Api` and `Spark.Geometry`
-      cannot be side-by-sided, so changing them is deliberate rather than routine
-      (**ADR-0019**). The baseline is how every change to the public surface becomes a
-      reviewed line in a text file instead of a hope — a review aid, not a compatibility
-      guarantee. Cheapest to add now, while both surfaces are empty.
+      **`reviewer` has stopped being a formality:** the kernel's first slice passed all three
+      gates and was rejected on review, and nothing in the repository currently describes how
+      that review is meant to be conducted.
+- [ ] **Add the no-native-binaries CI check** — `E1-T20`. It was blocked on there being a
+      published output to inspect. `Spark.Geometry` now builds a real assembly and, having
+      shed its unused Clipper2 reference (`E2-T39`), references nothing but the BCL — so the
+      check is trivially satisfiable today, which is precisely when a gate should be added.
 - [ ] **Create `bench/Spark.Benchmarks`** — `E1-T13`. `bench/` and `scripts/` are still empty
       directories. BenchmarkDotNet is pinned and unreferenced.
 
@@ -65,21 +79,37 @@ of it is the *order*.
 
 ## Then — M1, the geometry core
 
-- [ ] Value types, `Transform`, `Plane`, `CoordinateSystem`, `Tolerance`, `Angle` —
-      `E2-T1` … `E2-T6`. Scale-aware tolerance is built in from the start, never
-      retrofitted: that is the whole mitigation for `R3`.
+**Done, and the reason this section is shorter than it was:**
+
+- [x] Value types, `Transform`, `Plane`, `CoordinateSystem`, `Tolerance`, `Angle` — `E2-T2`
+      … `E2-T6`, with `E2-T1` short only its `Quaternion`. Thirteen types, 387
+      public members, reviewed and repaired. Scale-aware tolerance was built in from the
+      first commit rather than retrofitted, which is the whole mitigation for `R3`.
+- [x] Property-based tests with CsCheck on the value layer — 28 properties, generators
+      spanning 1e-9 to 1e9 per **ADR-0018**. `E2-T33` stays open for the criteria that need
+      curves and meshes.
+
+**Still to do, in rough order:**
+
+- [ ] `Quaternion` — `E2-T1`. **`Rgba` is settled and no longer in scope here:** the kernel
+      carries no styling, no screen awareness and no appearance, so a colour type belongs
+      beside `Appearance` in `Spark.Api` (`E5`). It was listed as a geometry value type in
+      the original plan, on the same page as the rule forbidding exactly that.
 - [ ] `Line`, `Arc`, `Circle`, `EllipseCurve`, `PolyLine`, `PolyCurve` — `E2-T7` …
       `E2-T9`. Harvest `VArc`'s eight construction algorithms; they are fiddly, correct
-      and costly to recreate.
+      and costly to recreate. The value layer they sit on is now settled, which is what
+      makes this the next thing rather than a parallel thing.
 - [ ] Extract `RayCaster.cs` and its BVH — `E2-T15`. The highest-value file in
       C2VGeometry, and it pays for itself three times over: mesh booleans, viewport
       picking, intersection seeding.
 - [ ] Geometry serialization v1 and the reflection-driven round-trip test — `E2-T29`,
       `E2-T31`. Get the test in before there are twenty types to retrofit it onto.
-- [ ] Property-based tests with CsCheck — `E2-T33`. From M1, non-negotiable.
 - [ ] **The C2VGeometry test harvest, timeboxed to one week with a hard stop** — `E2-T32`.
       `R10` is that this sprawls into a multi-week rewrite. Harvest only pure-maths-on-values
-      tests; anything needing a `Shape` is discarded without argument.
+      tests; anything needing a `Shape` is discarded without argument. **Harvest the
+      assertions, not the generators** — a harvested test whose inputs never approach the
+      boundary it checks is a test that cannot fail, which is the trap this project has
+      already fallen into once.
 - [ ] `spark` writes an OBJ polyline that a third-party viewer opens. That is the M1 demo.
 
 ## After that — M1.5 and M2, the walking skeleton
@@ -146,9 +176,15 @@ and withdrawn together. Nothing publishes: `IsPackable` is `false` for every pro
 `IsPackable=true` was an oversight now removed. PRD decision **D11**,
 [NOTES.md N14](NOTES.md).*
 
-*Q9 — whether xunit v3 was viable — is withdrawn. Both test projects consume it and eleven
+*Q9 — whether xunit v3 was viable — is withdrawn. All four test projects consume it and 315
 tests run green; the 2.9.x fallback turned out to be moot rather than costless, because the
 .NET 10 SDK has removed the VSTest bridge entirely. See [NOTES.md N11](NOTES.md).*
+
+*Q4 — whether `Spark.Geometry.Io`'s inclusion in the CS1591 promotion was deliberate — is
+**answered by precedent rather than by decision, and stays open until somebody says so.**
+`Directory.Build.props` now applies the public-API baselines to the same four projects, which
+means two independent mechanisms have converged on the same list. That is evidence the list is
+right; it is not a record that anyone chose it.*
 
 ## Known and deliberately accepted
 
@@ -232,8 +268,45 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
 - **Warnings are errors in CI only, never in the csproj.** A red build on a stray unused
   variable mid-edit trains people to pass `-warnaserror:false`, which defeats the gate
   entirely. Local development stays pleasant; the gate stays absolute.
-- **Clipper2 is a third-party dependency of `Spark.Geometry`, and that is fine.** Its C#
-  distribution is pure managed and Boost-licensed. It is pinned exactly, isolated behind a
-  single internal file, and a CI check asserts no native binaries appear in the published
-  output — the `dotnet publish` directory — so the no-native-dependencies promise stays
-  checkable rather than merely asserted. `R13`.
+- **Clipper2 is an accepted third-party dependency of `Spark.Geometry`, but it is not
+  referenced right now.** Its C# distribution is pure managed and Boost-licensed, and the
+  version stays pinned exactly in `Directory.Packages.props`. The `PackageReference` was
+  **removed** on 2026-08-27 because nothing in the value layer used it, and an unused
+  reference costs restore time, licence surface and audit noise while making the reference
+  graph lie about what the assembly needs. It returns with the planar boolean pipeline
+  (`E2-T14`), isolated behind a single internal file as always. The architecture test asserts
+  a **ceiling — no third-party dependency beyond Clipper2 — not an exact set**, so it holds
+  on both sides of that round trip. Do not "restore" the reference because its absence looks
+  like an omission. `R13`.
+- **RS0026 is suppressed in `.editorconfig`, deliberately and with the reasoning recorded
+  there.** It forbids two overloads of one name both carrying optional parameters, in order to
+  prevent a future **source-breaking** change in a published library. Spark publishes nothing
+  (**ADR-0019**), so that promise is one Spark no longer makes; the overloads it flagged —
+  `Contains(point)` and `Contains(box)`, each with an optional tolerance — differ in a
+  **required** parameter type, so every call site resolves unambiguously, and genuine
+  ambiguity is caught by the compiler as CS0121 regardless. Mangling a good API to satisfy a
+  rule aimed at a constraint we do not have is the tail wagging the dog. **RS0016 — undeclared
+  public symbol — stays at its default error severity**, and that is the rule the baselines
+  exist for. [NOTES.md N17](NOTES.md).
+- **A `dotnet build` reporting "0 warnings" may be reusing a cached analysis.** This one is a
+  genuine trap and it will catch somebody. Incremental builds can skip re-running analyzers
+  over a project MSBuild considers up to date and still print a clean summary, so a warning
+  that a fresh compilation would raise never appears. The public-API findings that led to the
+  baselines were **invisible under a plain `dotnet build` and appeared the moment
+  `--no-incremental` was added**. Before you believe a clean build — and always before
+  claiming one in a document, a review or a commit message — run
+  `dotnet build Spark.slnx --no-incremental -warnaserror`. "It built clean" is not a claim
+  worth making about an incremental build. [NOTES.md N15](NOTES.md).
+- **Private `const` fields are PascalCase, not `_underscored`.** CA1802 actively pushes code
+  towards `const`, so requiring an underscore on private consts would have set two analyzers
+  arguing with each other over the same field. The rule must sit **before** the underscore
+  rule in `.editorconfig`, because naming rules are evaluated in file order and the first
+  match wins. It sits beside the same rule for private `static readonly` fields, and the pair
+  makes the underscore itself informative: it marks something that can change.
+  [NOTES.md N16](NOTES.md).
+- **A fix to the kernel is not finished until it is regression-proven by reverting it and
+  naming the test that goes red.** Not "a test exists nearby", not "the suite is green" — the
+  specific test, identified by having watched it fail. A fix with no test that notices its
+  absence is a fix the next refactor silently undoes. This is the standard because its absence
+  is exactly what let the kernel's first slice pass three gates while three of its eight
+  claims were false. [NOTES.md N18](NOTES.md).

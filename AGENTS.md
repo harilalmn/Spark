@@ -35,9 +35,16 @@ enforces is a preference:
    overridable only by an explicit `docs: none-needed` commit trailer, which is **visible in
    review**. A silent exemption is worthless; a loud one is fine.
 
-Mechanism 1 works. Mechanism 2 exists and runs, in the reduced form described above.
-Mechanism 3 is **written but has never run** — CI has not executed once (`E1-T14`,
+Mechanism 1 works, and has now been exercised in anger: all 387 public members of
+`Spark.Geometry` carry XML doc comments because the build refused to produce an assembly
+without them. Mechanism 2 exists and runs, in the reduced form described above. Mechanism 3
+is **written and has never run** — it is `pull_request`-only and no PR exists (`E1-T14`,
 `E11-T14`), so for the moment that third rule rests entirely on you.
+
+There is a **fourth** mechanism that is not on this list because it is not automatable, and
+the geometry kernel's first slice is the reason it gets named at all: **somebody reads it.**
+That slice passed all three gates and was rejected, with three of its eight claims false. A
+gate proves an absence of the failures it was written to detect, and nothing more.
 
 ## What "update the documents" means
 
@@ -65,7 +72,9 @@ XML doc = what this member does.*
 
 ## Before you commit
 
-1. `dotnet build Spark.slnx -warnaserror` — clean, **zero warnings**.
+1. `dotnet build Spark.slnx --no-incremental -warnaserror` — clean, **zero warnings**. Use
+   exactly this form. `--no-incremental` is not optional caution: without it the warning
+   count can be a cached result from a compilation that never ran, and it will read as clean.
 2. `dotnet test Spark.slnx` — green. This runs the docs harness and the architecture tests;
    there is no separate command for either.
 3. `dotnet format Spark.slnx --verify-no-changes --severity warn` — clean. Use exactly this
@@ -74,19 +83,61 @@ XML doc = what this member does.*
 4. Documents updated per the table above, including their **Last updated** dates.
 5. New user-facing behaviour has a help topic **with a worked example**.
 6. New public API on a contract project has an XML doc comment and a public-API baseline
-   entry.
-7. Commit message says what changed and why, and **names the task IDs it advances**.
-8. Sign off with DCO: `git commit -s`. See [CONTRIBUTING.md](CONTRIBUTING.md).
+   entry. The baselines are live on all four contract projects, so an unrecorded member is a
+   build error (RS0016), not an oversight somebody spots later.
+7. **A bug fix has been reverted once, to watch a named test go red.** If nothing failed, the
+   regression test is not written yet.
+8. Commit message says what changed and why, and **names the task IDs it advances**.
+9. Sign off with DCO: `git commit -s`. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 All three commands above have been verified to work as written, on Windows, on 2026-08-27.
 Steps 1 through 3 are gates. A red docs harness is a broken build, including when the only
 thing broken is a dangling ADR citation in a build-file comment — that is precisely the point
 of it, and it has already caught exactly that (`E1-T29`).
 
-**Everything verified so far was verified on Windows.** CI is written and has never run, so
-nothing about this repository is yet known to hold on Linux.
+**Everything verified for the current tree was verified on Windows.** CI has been green on
+Windows and Linux for **earlier commits**, and it has seen nothing of the geometry kernel —
+which is the half of the solution where a Linux difference would actually show up, in
+floating-point results, culture-dependent formatting and case-sensitive paths. Say which
+commit a green CI run was green on.
 
 ## Things that will bite you
+
+**A `dotnet build` reporting "0 warnings" may be reusing a cached analysis.**
+
+Always verify with the flag:
+
+```
+dotnet build Spark.slnx --no-incremental -warnaserror
+```
+
+MSBuild skips a project whose inputs are older than its outputs. Roslyn analyzers run inside
+that compilation, so a skipped project's analyzers do not run — and the summary still prints
+`0 Warning(s)`, because there genuinely were none *in the work it did*. A clean build and a
+skipped build are indistinguishable from that line.
+
+This has already happened here. The public-API analyzer findings that produced
+`PublicAPI.Unshipped.txt` were **invisible under a plain `dotnet build` and appeared the
+moment `--no-incremental` was added**. It bites hardest right after you add or reconfigure an
+analyzer, because that is exactly when the analyzer is new and the code is not. CI is immune —
+a fresh runner has no `obj/` — which is why this is a local trap and why nobody else will
+catch it for you. **Do not write "the build is clean" into a document, a review or a commit
+message on the strength of an incremental build.** [NOTES.md N15](docs/NOTES.md).
+
+**A fix is not finished until it is regression-proven by reverting it.**
+
+Make the fix, then put the bug back and **name the test that goes red**. Not "a test exists
+nearby", not "the suite is green" — the specific test, identified by having watched it fail.
+If nothing fails, you have not written the regression test yet; you have written a fix that
+the next refactor will silently undo.
+
+This is the standard because its absence is exactly what let the geometry kernel's first
+slice pass all three gates with three of its eight claims false. Two of the tests guarding it
+were **structurally incapable of failing**: the property drew two independent uniform values
+and could not produce a case near the boundary it asserted about — zero violations in five
+million simulated draws, against the hundred CsCheck runs per invocation. It reported exactly
+like a real test. **Judge a property by its generator, not by its assertion**, and ask of any
+test you write or inherit: *how would this fail?* [NOTES.md N18](docs/NOTES.md).
 
 **Changing `Spark.Api` or `Spark.Geometry` is a deliberate act, not a routine one.**
 
@@ -113,11 +164,19 @@ stricter rule and says why.
 
 **The no-native-dependencies promise, and the one dependency that looks like it breaks it.**
 
-`Spark.Geometry` has exactly one third-party dependency: **Clipper2**, pinned at `[2.0.0]`.
-Its C# distribution is pure managed and Boost-licensed, so the promise holds — but only
-while it is confined. Keep it isolated behind a **single internal file**, exactly as
-C2VGeometry already does. Do not let a `Clipper2Lib` type appear in a public signature, and
-do not add a second dependency to the kernel without a very good answer.
+`Spark.Geometry` may take exactly one third-party dependency: **Clipper2**, pinned at
+`[2.0.0]` in `Directory.Packages.props`. Its C# distribution is pure managed and
+Boost-licensed, so the promise holds — but only while it is confined. Keep it isolated behind
+a **single internal file**, exactly as C2VGeometry already does. Do not let a `Clipper2Lib`
+type appear in a public signature, and do not add a second dependency to the kernel without a
+very good answer.
+
+**It is not referenced at present.** The `PackageReference` was removed once the value layer
+proved it unused (`E2-T39`); `Spark.Geometry` currently references nothing but the BCL. It
+returns with the planar boolean pipeline (`E2-T14`), and the version stays pinned so that is
+one line and no decision. Do not "restore" it because its absence looks like an omission. The
+architecture test asserts a **ceiling — no third-party dependency beyond Clipper2 — not an
+exact set**, precisely so it holds on both sides of that round trip.
 
 A CI check asserts no native binaries appear in `Spark.Geometry`'s published output
 (`E1-T20`) — *published* there meaning `dotnet publish`, never nuget.org. That check is what
@@ -297,9 +356,12 @@ scripts/                 repository helper scripts                    (not creat
 
 Two of those lines are intent rather than description, and are marked. Everything else
 matches disk, with one qualification worth knowing before you add a project: `tests/` holds
-`Spark.Architecture.Tests` and `Spark.Docs.Verify` and nothing else. The remaining test
-projects arrive **with the code they test**, not ahead of it, because a test project
-containing no tests fails the run outright — [NOTES.md N12](docs/NOTES.md). `tests/` has its
+four projects — `Spark.Architecture.Tests`, `Spark.Docs.Verify`, `Spark.Geometry.Tests` and
+`Spark.Geometry.Properties` — and nothing else. `tests/corpus/` does not exist yet. The
+remaining test projects arrive **with the code they test**, not ahead of it, because a test
+project containing no tests fails the run outright — [NOTES.md N12](docs/NOTES.md). The two
+geometry projects are the only ones granted `InternalsVisibleTo` on the kernel, and that is a
+deliberate ceiling of two — [NOTES.md N10](docs/NOTES.md). `tests/` has its
 own `Directory.Build.props` carrying `OutputType=Exe`, the xunit v3 reference and the global
 `using Xunit`, so a new test project is a near-empty `.csproj` plus a line in `Spark.slnx`.
 
@@ -318,7 +380,8 @@ UI ─> {Api, Host, Viewport, Avalonia} ─> Desktop
 Six rules, all enforced by a passing test rather than by vigilance: `Spark.Api` references
 only the BCL and `Spark.Geometry` — never Roslyn, Avalonia, NuGet or `Spark.Engine`;
 `Spark.Nodes.Core` never references `Spark.Engine`; `Spark.Viewport` is Avalonia-free;
-`Spark.Geometry` depends on nothing but Clipper2; nothing under `src/` references anything
+`Spark.Geometry` takes **no third-party dependency beyond Clipper2** — a ceiling, not an
+exact set, and it currently takes none at all; nothing under `src/` references anything
 under `tests/`; no `-windows` TFM anywhere.
 
 `Spark.Architecture.Tests` reads the `.csproj` files **as XML and references none of the
@@ -360,28 +423,39 @@ As of 2026-08-27, in three tiers. The tiers are the point; collapsing them is th
 
 **Confirmed working, on Windows, by running it.**
 
-- `dotnet build Spark.slnx -warnaserror` — twelve projects, zero warnings, zero errors.
-- `dotnet test Spark.slnx` — eleven tests across two projects, all passing.
-  `Spark.Architecture.Tests` enforces six reference-graph rules by reading `.csproj` files as
-  XML; `Spark.Docs.Verify` checks front matter, worked examples, relative links, ADR
-  citations and `Last updated` lines.
-- `dotnet format Spark.slnx --verify-no-changes --severity warn` — clean over the M0
-  scaffolding. **It is failing as this is written**, on IDE1006 in the in-flight
-  `Spark.Geometry` value types (`Angle.cs`, `Tolerance.cs`) — a primary-constructor parameter
-  captured into a field does not pick up the `_` prefix the rule expects. That belongs to
-  whoever is writing those files, not to this document.
+- `dotnet build Spark.slnx --no-incremental -warnaserror` — **sixteen** projects, zero
+  warnings, zero errors. Use the flag: without it the warning count can come from a cached
+  analysis (see *Things that will bite you*).
+- `dotnet test Spark.slnx` — **315 tests across four projects**, all passing.
+  `Spark.Geometry.Tests` (276) covers the kernel's value layer by example;
+  `Spark.Geometry.Properties` (28) covers it with CsCheck properties over generators spanning
+  1e-9 to 1e9; `Spark.Architecture.Tests` (6) enforces the reference-graph rules by reading
+  `.csproj` files as XML; `Spark.Docs.Verify` (5) checks front matter, worked examples,
+  relative links, ADR citations and `Last updated` lines.
+- `dotnet format Spark.slnx --verify-no-changes --severity warn` — clean over the whole
+  solution, geometry value layer included. The IDE1006 failures reported here previously are
+  closed: private `const` fields are PascalCase by rule now ([NOTES.md N16](docs/NOTES.md)).
 
-**Written, and never executed.** `.github/workflows/ci.yml`, in full: the
-windows-plus-ubuntu build matrix, the `format` job and the `docs-freshness` job. It is
-committed. Nobody has watched it run. Its YAML is unvalidated, its Linux leg is unexercised,
-and the `docs-freshness` job is `pull_request`-only so it cannot run until a PR exists. **Do
-not describe CI as existing without saying it has never run.**
+**Reviewed, repaired and accepted.** The geometry kernel's **value layer** — thirteen types
+in `src/Spark.Geometry`, 387 public members, all documented, all in the public-API baseline.
+It is a stronger claim than the tier above, and it was earned rather than assumed: the first
+attempt at this slice passed all three gates and was **rejected**, with three of its eight
+claims false and both of its guarding tests structurally incapable of failing. Every fix in
+the repaired version is regression-proven by reverting it and naming the test that goes red.
+[NOTES.md N18](docs/NOTES.md).
+
+**Written, and not executed against the current tree.** `.github/workflows/ci.yml`, in full:
+the windows-plus-ubuntu build matrix, the `format` job and the `docs-freshness` job. It has
+been green on both platforms for **earlier commits** and has seen nothing of the geometry
+kernel — the half of the solution where floating-point results, culture-dependent formatting
+and case-sensitive paths could actually differ. The `docs-freshness` job is
+`pull_request`-only, so it cannot run until a PR exists. **Do not describe CI as green
+without saying which commit it was green on.**
 
 **Not built at all.** Almost every line of product code. Eleven of the twelve `src/` projects
-are empty stubs that compile; the first value types are being written into `Spark.Geometry`
-and have not been reviewed, documented or reflected in any status table. There is no
-benchmark project, there are no public-API baselines, and `docs/examples/` has not been
-created.
+are empty stubs that compile. The geometry kernel has **values only** — no curves, no
+surfaces, no meshes, no BRep, and `Quaternion` and `Rgba` are unwritten. There is no graph
+engine, no UI, no viewport, no benchmark project, and `docs/examples/` is empty.
 
 Keep the distinction honest in anything you write here. CADScript's experience is the
 argument for taking it seriously: compile verification was green the entire time, and the

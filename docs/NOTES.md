@@ -152,6 +152,13 @@ aspirational.** It is one of three: this, the docs harness (`E11-T1`), and the
 `docs-freshness` CI job (`E11-T14`). Do not suppress CS1591 to unblock yourself; write the
 comment.
 
+**A second mechanism has since converged on the same four.** The public-API baselines
+(`E1-T23`, [N17](#n17--rs0026-is-suppressed-rs0016-is-the-rule-that-matters)) are applied by
+`Directory.Build.props` to exactly this list, under an identically shaped condition. Keep the
+two conditions in step: a project that is a contract for CS1591's purposes is a contract for
+RS0016's purposes, and a divergence between the two lists would be an accident rather than a
+position.
+
 **Discrepancy on record.** The approved plan named *three* projects here;
 `Directory.Build.props` covers four, adding `Spark.Geometry.Io`. Including it looks correct —
 its readers and writers are part of the surface a code block scripts against, and a user
@@ -288,28 +295,46 @@ Separately, `Tolerance` is **scale-aware**: `Tolerance.ForScale(characteristicLe
 because a fixed `1e-6` is wrong for kilometres and wrong for microns. This survives **D12**
 untouched — it is numerical robustness, not units.
 
-## N10 — `Spark.Geometry` declares `InternalsVisibleTo` for two projects that do not exist yet
+**What is implemented today, as distinct from what is described above.** `Tolerance` landed
+in `src/Spark.Geometry` on 2026-08-27 (`E2-T4`) and the sentinel works exactly as described:
+a zero backing `Linear` resolves to `Tolerance.Default`, `Tolerance.Default == default` is
+`true`, and reading `Linear` on a default-constructed value returns `1e-6` rather than zero.
+There is no `EvaluationContext` yet, so "the document default" is currently a **fixed** set of
+components — linear `1e-6`, angular `0.001°`, relative epsilon `1e-12` — rather than one that
+flows from a document. The cache-key argument is the reason the shape was chosen; it is not
+yet a mechanism that exists, and `E3-T22` is where it becomes one.
+
+Two implementation facts about the type are worth having here rather than only in its XML
+docs. First, the default components are **private** consts, not public ones: a public `const`
+bakes into every consuming assembly at compile time, so a node DLL built against one version
+would carry that version's epsilon forever — precisely the C2VGeometry problem this note opens
+with, hiding inside a constant. Second, `ForScale` and `Scaled` floor the derived linear
+tolerance at `1e-15`, because a derived value of zero would be read straight back as the
+"use the default" sentinel and silently widen the tolerance instead of tightening it.
+
+## N10 — `Spark.Geometry` grants `InternalsVisibleTo` to exactly two test assemblies
 
 ```xml
 <InternalsVisibleTo Include="Spark.Geometry.Tests" />
 <InternalsVisibleTo Include="Spark.Geometry.Properties" />
 ```
 
-Neither project exists. `tests/` now holds `Spark.Architecture.Tests` and
-`Spark.Docs.Verify`, and neither is named here — deliberately, because neither needs
-internals: one reads `.csproj` files as XML and the other reads Markdown. This is not a
-mistake and it does not break the build — `InternalsVisibleTo` names an assembly that may or
-may not ever be produced.
+**Both projects now exist.** When this note was first written neither did, and it recorded
+the two entries as a declaration of intent about test shape so that a reader would not delete
+them as dead configuration. The intent has been carried out: `tests/Spark.Geometry.Tests`
+holds 276 example-based tests and `tests/Spark.Geometry.Properties` holds 28 CsCheck
+properties (`E2-T33`, `E11-T10`), and both are in `Spark.slnx`.
 
-It is recorded here because it is the kind of thing a reader flags as dead configuration and
-deletes. It is a **declaration of intent about test shape**: the kernel gets exactly two
-test assemblies with privileged access — one for conventional unit tests, one for the
-CsCheck property-based suite (`E2-T33`, `E11-T10`) — and both target `Spark.Geometry`
-specifically. Any other test project sees the public surface only, which is the same surface
-a user sees.
+The rule the two entries encode is unchanged and still worth stating. The kernel grants
+privileged access to **exactly two** test assemblies — one conventional, one property-based —
+and both target `Spark.Geometry` specifically. `Spark.Architecture.Tests` and
+`Spark.Docs.Verify` are deliberately not named, because neither needs internals: one reads
+`.csproj` files as XML and the other reads Markdown.
 
-Anything needing a third entry here is a signal to look again at whether the thing being
-tested should be public.
+Every other test project sees the public surface only, which is the same surface a user sees.
+Anything wanting a third entry here is a signal to look again at whether the thing being
+tested should be public — or at whether the test should be written against the public surface
+instead.
 
 ## N11 — `global.json` pins the SDK *and* selects the test runner, and the second half is not optional
 
@@ -428,3 +453,164 @@ Three things follow that a reader would otherwise get wrong:
 `docs/adr/0019-deliberate-public-api-change-control.md` is the decision record; this note
 exists because the fact is discoverable only from a comment in a build file, and a fact that
 lives in one comment is a fact that gets re-litigated.
+
+---
+
+## N15 — A `dotnet build` reporting "0 warnings" may be reusing a cached analysis
+
+**Verify a clean build with `--no-incremental`, or do not claim it.**
+
+```
+dotnet build Spark.slnx --no-incremental -warnaserror
+```
+
+MSBuild's incremental build skips a project whose inputs are older than its outputs. Roslyn
+analyzers run as part of that compilation, so when the compilation is skipped the analyzers do
+not run either — and the build summary still prints `0 Warning(s)`, because there were no
+warnings *in the work it did*. The number is true and the conclusion a reader draws from it is
+false.
+
+This is not hypothetical here. The public-API analyzer findings that produced
+`PublicAPI.Unshipped.txt` were **invisible under a plain `dotnet build` and appeared the
+moment `--no-incremental` was added**. Nothing about the earlier output looked wrong; a clean
+build and a skipped build are indistinguishable from the summary line.
+
+Three consequences worth internalising:
+
+1. **CI is not exposed to this**, because a fresh runner has no `obj/` to reuse. That is
+   precisely why the trap is a *local* one: the thing that catches it is the thing you were
+   not running.
+2. **It is worst exactly when it matters most** — after adding or reconfiguring an analyzer.
+   The analyzer is new, the code is not, so the projects that would surface its findings are
+   the projects MSBuild is most confident it can skip.
+3. **"It built clean" is a claim about a compilation, not about a command.** Before writing
+   that sentence into a document, a review or a commit message, run the full command above.
+   The same applies to any statement in `docs/` that a gate is green.
+
+`dotnet test` and `dotnet format` do not share this failure mode in the same way — `format`
+re-reads sources, and a test run that skips a project also reports fewer tests, which is
+visible. It is the warning count that lies quietly.
+
+---
+
+## N16 — Private `const` fields are PascalCase, and the rule must come first in `.editorconfig`
+
+Private fields in Spark are `_camelCase`. Private `const` fields are **`PascalCase`**, as are
+private `static readonly` fields. Both exceptions are deliberate and both are enforced.
+
+The reason is not aesthetic. It is that the alternative sets two analyzers arguing:
+
+- **CA1802 actively pushes code towards `const`.** It flags a `static readonly` field whose
+  value is a compile-time constant and tells you to make it `const`.
+- If private consts required an underscore, taking CA1802's advice would immediately raise
+  IDE1006 on the field you just changed, and satisfying IDE1006 would mean renaming a field
+  for no reason a reader could see.
+
+So the rules are aligned rather than left to fight: things that cannot change are PascalCase,
+and **the underscore is reserved for mutable instance state**, which makes the underscore
+itself informative. A reader seeing `_linear` knows it can change; a reader seeing
+`DefaultLinearTolerance` knows it cannot.
+
+**The ordering in the file is load-bearing.** `.editorconfig` naming rules are evaluated in
+file order and **the first matching rule wins**, so `private_const_pascal` must appear *before*
+the general private-field underscore rule. Move it below and it stops doing anything, silently
+and with no diagnostic: the general rule matches first and the const rule is never consulted.
+
+This gap was found by the geometry value layer rather than by inspection. `Tolerance` carries
+four private consts, `dotnet format --verify-no-changes` failed IDE1006 on them, and the rule
+was written in response. Related: `E1-T32`.
+
+---
+
+## N17 — RS0026 is suppressed; RS0016 is the rule that matters
+
+`Microsoft.CodeAnalysis.PublicApiAnalyzers` is referenced from `Directory.Build.props` for the
+four contract projects — `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io` and
+`Spark.Nodes.Core` — each with a `PublicAPI.Shipped.txt` and a `PublicAPI.Unshipped.txt` as
+`AdditionalFiles`. Two of its rules are worth telling apart, because they are aimed at very
+different things and only one of them fits Spark.
+
+**RS0016 — "Symbol is not part of the declared API" — stays at its default error severity.**
+It is the whole point of having baselines: a public member that is not written down in
+`PublicAPI.Unshipped.txt` does not build, so every change to a public surface arrives as a
+reviewable line in a text file rather than as something noticed a month later. It has been
+proved to fire rather than assumed to — adding a public member to `Spark.Geometry` and
+rebuilding fails the build with RS0016.
+
+**RS0026 — "Do not add multiple public overloads with optional parameters" — is off**, with
+the reasoning recorded in `.editorconfig` beside the suppression. It exists to prevent a
+future **source-breaking** change in a library that other people compile against: where two
+overloads both carry optional parameters, adding a parameter later can silently change which
+one a caller binds to.
+
+It does not fit here, for three independent reasons, any one of which would be enough:
+
+1. **Spark publishes nothing** (ADR-0019, N14). The source-compatibility promise the rule
+   protects is one Spark no longer makes.
+2. **The overloads it flags differ in a required parameter type.**
+   `Contains(in Point3d, in Tolerance = default)` and
+   `Contains(in BoundingBox, in Tolerance = default)` are distinguished by their first
+   argument, which is never omitted, so every call site resolves unambiguously.
+3. **Genuine ambiguity is still caught**, by the compiler, as CS0121. Turning RS0026 off
+   removes a speculative warning, not a safety net.
+
+The alternative was to rename one of each such pair — `ContainsPoint`, `ContainsBox` — making
+the API worse to read in order to satisfy a rule aimed at a constraint the project does not
+have. Related: `E1-T33`.
+
+---
+
+## N18 — Three green gates are not a review, and a passing test is not evidence a test can fail
+
+The geometry kernel's first slice **passed `build -warnaserror`, `test` and `format`, and was
+rejected.** An independent review found three of its eight claims false. This note exists so
+that the specific failure mode is remembered, not just the general moral.
+
+**What the gates could not see:**
+
+- `default(Plane).Contains(anyPoint)` returned **`true`**. Every point in space silently lay
+  on the null plane — no throw, no diagnostic, and a class-level doc comment that said the
+  opposite.
+- `Tolerance` documented a three-way partition and invited callers to depend on it, while
+  `2.0` against `2.000001` fell into **none** of the three buckets. The cause was two
+  roundings: `AreEqual` compared `a - b` against a threshold, the ordering predicates compared
+  `a` against `b` plus or minus that threshold, and the two subtractions disagreed by an ulp
+  exactly on the boundary.
+- `Interval.IsValid` required `Min <= Max`, so the guard everybody writes without thinking —
+  `if (!domain.IsValid) throw` — would have rejected every reversed curve domain at M3.
+
+**Why the tests did not catch it, which is the part worth keeping.** Both tests guarding the
+tolerance partition were **structurally incapable of failing**. The property drew two
+independent uniform values and asserted a relationship that only breaks when they land within
+a tolerance of one another; simulating that generator gave **zero violations in five million
+draws**, against the hundred draws CsCheck performs per run. A generator that deliberately
+straddles the threshold finds **908 violations in 12,006 pairs**. The test was not weak — it
+was decorative, and it was indistinguishable from a real one in every report anybody would
+look at.
+
+Three practices follow, and they are requirements rather than suggestions:
+
+1. **Every fix is regression-proven by reverting it and naming the test that goes red.** Not
+   "a test exists nearby"; the specific test, identified by having watched it fail. This is
+   the standard the repaired slice was held to, for every fix in it.
+2. **Judge a property by its generator, not by its assertion.** Ask what fraction of generated
+   cases can reach the condition being tested. If the answer is "essentially none", the
+   property is decorative. Generators here span **1e-9 to 1e9, log-uniform**, per ADR-0018,
+   and widening them from the original narrow range turned two further properties red — both
+   naive assertions rather than kernel bugs, which is exactly what a widened generator is for.
+3. **A degenerate input gets an explicit answer or a loud failure, never a quiet default.**
+   `default(Plane)` now throws from every geometric member; `Vector3d.Normalised()` throws on
+   a zero vector rather than returning zero; `Interval.Includes` and `BoundingBox.Intersects`
+   reject `NaN`. The seed library returned quiet defaults for all of these and let meaningless
+   values propagate far from their cause.
+
+Also repaired in the same pass, and listed because each is a distinct class of defect: a sign
+flip in `Vector3d.SignedAngleTo` where the cross product underflows near 1e-170; an
+`ArgumentException` in `Plane.ByThreePoints` whose `ParamName` named a parameter absent from
+its own signature, forwarded up from the factory it delegated to; and four round-trip doc
+comments claiming an exactness that floating-point conversion does not provide.
+
+The general moral — *gates are necessary and not sufficient* — was already believed here. What
+this note adds is that the project now has its own evidence for it, at a cost of one rejected
+slice, and that the cheapest available check on a test suite is to ask of each test **how it
+would fail**.

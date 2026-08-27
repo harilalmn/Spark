@@ -25,18 +25,27 @@ Because the platform is .NET, package management comes nearly free: NuGet *is* t
 manager, and users can reference arbitrary DLLs with nodes generated from them by
 reflection.
 
-**As of this document, none of that is built.** M0 has produced a solution, twelve project
-stubs, a reference graph, build properties, these documents, nineteen ADRs, the replication
-specification, a CI workflow, and two test projects that between them run eleven passing
-checks against the repository. Every functional requirement below is still `Not started`:
-what exists is the scaffolding, the gates and the specification, none of which is product.
-The first M1 kernel value types began landing in `src/Spark.Geometry` as this revision was
-written; no requirement status below has been moved on account of work still in flight.
+**As of this document, almost none of that is built.** M0 has produced a solution, twelve
+project stubs, a reference graph, build properties, these documents, nineteen ADRs, the
+replication specification, a CI workflow, public-API baselines, and four test projects that
+between them run **315 passing checks** against the repository.
 
-One distinction is worth stating before the tables use it. The architecture and
-documentation tests **pass**, locally, and that is a fact. The CI workflow has been
-**written and never run**, and that is a different fact. Nothing in this document treats the
-second as the first.
+**One requirement has moved off `Not started`, and only one.** The geometry kernel's **value
+layer** has landed, been reviewed, repaired and accepted: thirteen types in
+`src/Spark.Geometry` declaring 387 public members, covered by 304 tests. That is FR-47 in
+part and FR-56 in full. Everything else below is still scaffolding, gates and specification,
+none of which is product — there are **no curves, no surfaces, no meshes and no BRep types**,
+and no graph engine at all.
+
+Two distinctions are worth stating before the tables use them.
+
+- The three gates **pass, locally, on Windows**, and that is a fact. The CI workflow has been
+  green on Windows and Linux for **earlier commits** and has seen nothing of the geometry
+  kernel, and that is a different fact. Nothing in this document treats the second as the
+  first.
+- **Passing the gates is not the same as being reviewed**, and this project has paid to learn
+  it. The kernel's first slice passed all three and was rejected on review, with three of its
+  eight claims false. See [NOTES.md N18](NOTES.md).
 
 ## 2. Problem
 
@@ -138,7 +147,9 @@ Each of these was chosen over a plausible alternative; the reasoning is preserve
 
 ## 6. Functional requirements
 
-Everything is `Not started`. M0 produced scaffolding, not behaviour.
+Everything is `Not started` except the two geometry rows that say otherwise — FR-47, in part,
+and FR-56. M0 produced scaffolding, not behaviour; M1's first slice produced the value layer
+of the kernel and nothing above it.
 
 ### Graph engine
 
@@ -215,7 +226,7 @@ Everything is `Not started`. M0 produced scaffolding, not behaviour.
 
 | ID | Requirement | Status |
 |---|---|---|
-| FR-47 | Value types: `Point3d`, `Vector3d`, `Point2d`, `Vector2d`, `UV`, `Interval`, `BoundingBox`, `Transform` (4×4), `Plane`, `Angle`, `Tolerance`, `Quaternion`, `Rgba`, plus immutable `CoordinateSystem`. | Not started (E2) |
+| FR-47 | Value types: `Point3d`, `Vector3d`, `Point2d`, `Vector2d`, `UV`, `Interval`, `BoundingBox`, `Transform` (4×4), `Plane`, `Angle`, `Tolerance`, `Quaternion`, plus immutable `CoordinateSystem`. **`Rgba` is deliberately not here** — it is a display concern, and the kernel has no styling, no screen awareness and no appearance of any kind. It belongs beside `Appearance` in `Spark.Api`. | **Twelve of thirteen done** (E2) — all but `Quaternion`, which is unwritten. Landed 2026-08-27, reviewed, repaired and accepted; 387 public members, 304 tests |
 | FR-48 | Curves — `Line`, `Arc`, `Circle`, `EllipseCurve`, `PolyLine`, `PolyCurve`, `NurbsCurve` — with a common evaluation surface: `Domain`, `PointAt`, `TangentAt`, `DerivativeAt`, `FrameAt`, `CurvatureAt`, `Length(tol)`, `ParameterAtLength`, `ClosestPoint`, `Trim`, `Split`, `Reverse`, `IsClosed`, `IsPlanar`, `ToNurbsCurve`. | Not started (E2) |
 | FR-49 | Surfaces — `PlaneSurface`, `SphericalSurface`, `CylindricalSurface`, `ConicalSurface`, `ToroidalSurface`, `ExtrusionSurface`, `RevolutionSurface`, `RuledSurface`, `NurbsSurface` — with analytics **first-class, not NURBS in disguise**. | Not started (E2) |
 | FR-50 | Index-based BRep topology (`BrepVertex`, `BrepEdge`, `BrepTrim`, `BrepLoop`, `BrepFace`, `BrepShell`, `Brep`) with `readonly ref struct` navigator views for ergonomics. | Not started (E2) |
@@ -224,7 +235,7 @@ Everything is `Not started`. M0 produced scaffolding, not behaviour.
 | FR-53 | **Robust mesh boolean** — ported BVH plus adaptive-precision exact predicates, pure managed. | Not started (E2) |
 | FR-54 | `IBrepKernel` seam with a `Capabilities` flag set. The node library **greys out unsupported operations rather than throwing**. | Not started (E2) |
 | FR-55 | Every kernel operation returns `Result<T>` carrying diagnostics and partial results. | Not started (E2) |
-| FR-56 | `Tolerance { Linear, Angular, RelativeEpsilon }` is explicit and passed, defaults per call via `in Tolerance tol = default`, is scale-aware through `Tolerance.ForScale(characteristicLength)`, and is **hashed into every node's cache key**. | Not started (E2, E3) |
+| FR-56 | `Tolerance { Linear, Angular, RelativeEpsilon }` is explicit and passed, defaults per call via `in Tolerance tol = default`, is scale-aware through `Tolerance.ForScale(characteristicLength)`, and is **hashed into every node's cache key**. | **Done in the kernel** (E2); the cache-key half is `Not started` (E3). `Tolerance` exists with all three components, the zero-`Linear` sentinel, `ForScale` and `Scaled`, and `in Tolerance tolerance = default` on every predicate in the assembly. There is no `EvaluationContext` yet, so "the default" is currently a fixed set of components rather than one flowing from a document — see [NOTES.md N9](NOTES.md) |
 | FR-57 | Geometry serialization: source-generated `System.Text.Json` with polymorphic discriminators and **per-type `schemaVersion`**, plus a compact binary `.sparkgeo` for bulk data. | Not started (E2) |
 | FR-58 | Interchange: OBJ, STL and PLY read and write; glTF write. | Not started (E2) |
 | FR-59 | STEP AP203/AP214 read and write, scoped to a documented subset. | Not started (E2) |
@@ -269,13 +280,12 @@ Everything is `Not started`. M0 produced scaffolding, not behaviour.
 | NFR-3 | `SparkList` marshalling to and from declared collection types carries a standing benchmark; it is the performance-critical path of the whole engine. | Not started |
 | NFR-4 | The evaluation cache is LRU with a memory budget, evicted by last use and estimated size. | Not started |
 | NFR-5 | `Spark.Geometry`'s published output contains **no native binaries**, asserted by CI. *Published* here means the `dotnet publish` directory, never nuget.org — nothing is packaged (**D11**). | Not started |
-| NFR-6 | Every change to the public surface of `Spark.Api` or `Spark.Geometry` is visible in a checked-in public-API baseline diff, and a breaking one is a recorded decision with a release note rather than a discovery. Adding is preferred to changing; the baselines are a **review aid, not a compatibility guarantee**. **ADR-0019**, which supersedes ADR-0009's strictly-additive rule. | Not started — analyzer pinned (`[5.6.0]`), baselines not yet created |
+| NFR-6 | Every change to the public surface of `Spark.Api` or `Spark.Geometry` is visible in a checked-in public-API baseline diff, and a breaking one is a recorded decision with a release note rather than a discovery. Adding is preferred to changing; the baselines are a **review aid, not a compatibility guarantee**. **ADR-0019**, which supersedes ADR-0009's strictly-additive rule. | **Done for the mechanism** — `Microsoft.CodeAnalysis.PublicApiAnalyzers [5.6.0]` is referenced from `Directory.Build.props` for all four contract projects, each with a `PublicAPI.Shipped.txt` and a `PublicAPI.Unshipped.txt`. `Spark.Geometry` declares 387 public members; the other three surfaces are empty. RS0016 is at error severity and **was proved to fire**, not assumed to. The *release note* half awaits a release |
 | NFR-7 | A graph containing no script nodes never loads `Spark.Scripting`, so Roslyn cold start is not paid by users who do not script. Background warm-up on idle covers the rest. | Not started |
 | NFR-8 | Tessellation of a closed solid is watertight — a property-based test, not a spot check. | Not started |
-| NFR-9 | Tolerance is scale-aware from the first release of the kernel, not retrofitted. A fixed `1e-6` is wrong for kilometres and wrong for microns. | Not started |
+| NFR-9 | Tolerance is scale-aware from the first release of the kernel, not retrofitted. A fixed `1e-6` is wrong for kilometres and wrong for microns. | **Done for the value layer** — `Tolerance.ForScale` and `Scaled` exist, and every geometric `EqualsWithin` in `Spark.Geometry` routes through one hybrid absolute/relative rule (`IsNegligible`) so a comparison keeps meaning at 1e9 as well as at 1e-9. Property generators span that whole range (ADR-0018). Curves, surfaces and meshes must be built to the same rule as they arrive; the requirement is about *not retrofitting*, so it is never fully closed until the kernel is |
 | NFR-10 | Undocumented public API on `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io` or `Spark.Nodes.Core` fails the build (CS1591 promoted to error). | **Done** — wired in `Directory.Build.props` |
-| NFR-11 | The build is clean with `-warnaserror` on Windows and Linux. | **Partly done** — clean locally on Windows with `-warnaserror` and zero warnings, and `dotnet format Spark.slnx --verify-no-changes --severity warn` was clean over the M0
-scaffolding — it currently reports IDE1006 on the in-flight kernel value types. The CI workflow that would prove the Linux half is **written and has never run**, so the Linux claim is untested |
+| NFR-11 | The build is clean with `-warnaserror` on Windows and Linux. | **Partly done** — on Windows, on 2026-08-27, `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over all sixteen projects and `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean over the whole solution, kernel included; the IDE1006 findings outstanding at the last revision are closed. **Verify with `--no-incremental` or not at all**: an incremental build can print "0 warnings" from a cached analysis, which is how the public-API findings stayed hidden ([NOTES.md N15](NOTES.md)). CI has been green on both platforms for **earlier commits** and has never run against the kernel, so the Linux half of this row is untested |
 | NFR-12 | The software renderer is deterministic, so `spark render` is usable for CI visual regression. GPU output is not testable; software output is. | Not started |
 | NFR-13 | No telemetry of any kind in v1. Opt-in crash reporting is considered post-1.0, with graphs excluded from any payload. | **Done by construction** — nothing collects anything |
 | NFR-14 | Every package version is pinned exactly; there are no floating ranges. | **Done** — `Directory.Packages.props` |
@@ -296,8 +306,8 @@ reviewed change — see [AGENTS.md](../AGENTS.md) for why.
 | Implicit usings | **Disabled** | Explicit usings matter for a library people script against in code blocks. |
 | Unsafe code | `AllowUnsafeBlocks=false` | `Span<T>`, `ref struct` and `System.Numerics` cover the kernel. |
 | Versioning | MinVer **`[7.0.0]`**, SemVer, tag prefix `v` | Embedders reference `Spark.Host` and node authors reference `Spark.Api` from an install, and both need *does upgrading break me?* answerable from the number, which CalVer cannot do. **D11**, ADR-0007. |
-| Public API baselines | `Microsoft.CodeAnalysis.PublicApiAnalyzers` **`[5.6.0]`** | The mechanism behind NFR-6, kept as a review aid rather than a compatibility guarantee. Baselines not yet created. |
-| Planar geometry | Clipper2 **`[2.0.0]`** | The **only** third-party dependency of `Spark.Geometry`. Its C# distribution is pure managed and Boost-licensed. Isolated behind one internal file so the no-native-dependencies promise stays checkable. |
+| Public API baselines | `Microsoft.CodeAnalysis.PublicApiAnalyzers` **`[5.6.0]`** | The mechanism behind NFR-6, kept as a review aid rather than a compatibility guarantee. **Live** on the four contract projects; RS0016 at error, **RS0026 suppressed** with the reasoning in `.editorconfig` — it protects a source-compatibility promise Spark no longer makes after ADR-0019. |
+| Planar geometry | Clipper2 **`[2.0.0]`** | The **only** third-party dependency `Spark.Geometry` may take — and it does not take it at present. The `PackageReference` was removed once it proved unused, leaving the assembly on the BCL alone, and **returns with the planar boolean pipeline**; the version stays pinned meanwhile. Its C# distribution is pure managed and Boost-licensed. Isolated behind one internal file so the no-native-dependencies promise stays checkable. |
 | Roslyn | `Microsoft.CodeAnalysis.CSharp`, `.Scripting`, `.Workspaces`, `.Features`, all **`[5.9.0]`** | Confined to `Spark.Scripting`. A floating Roslyn is how CADScript's pinning problem arose. |
 | NuGet client | `NuGet.Protocol`, `NuGet.Packaging`, both **`[7.9.0]`** | Confined to `Spark.Packages`. Reusing NuGet wholesale rather than building a registry. |
 | UI | Avalonia, `.Desktop`, `.Themes.Fluent`, `.Fonts.Inter` all **`[12.1.1]`**; `Avalonia.AvaloniaEdit` **`[12.0.0]`**; `Dock.Avalonia` and `Dock.Model.Mvvm` **`[12.1.0.4]`**; `CommunityToolkit.Mvvm` **`[8.4.2]`** | Avalonia, not WPF — none of the WPF prior art's UI ports directly. **D1**. MVVM by source generator, not ReactiveUI. |
@@ -378,7 +388,7 @@ retrospectively softened. A failed criterion changes the architecture, which is 
 |---|---|---|---|
 | R1 | **Exact NURBS surface-surface intersection is a research-grade problem.** Robust SSI with tangential and degenerate cases is what makes commercial kernels cost millions | Could sink the kernel | `IBrepKernel` seam locked from the start; mesh booleans at M6 give working booleans regardless; a throwaway SSI spike at M5 calibrates the estimate while it is still cheap to learn it is hard; exact booleans declared post-1.0. **Fallback: an OCCT-backed optional package, which the seam absorbs without a rewrite** |
 | R2 | **Scope versus capacity.** A multi-year effort directed by one person | Existential | Every milestone independently demoable and releasable, with a runnable build shipped from M2 rather than only at 1.0; the `Spark.Api` boundary makes third-party node libraries a contribution path needing no kernel expertise |
-| R3 | **Kernel numerical robustness** — tolerance-dependent code that passes the corpus and fails on real models at unusual scales | High, and discovered late by default | Scale-aware `Tolerance` from M1 rather than retrofitted; property-based tests from M1; watertightness invariants; `Result<T>` so failures are diagnosable rather than silent; a regression corpus that grows with every bug |
+| R3 | **Kernel numerical robustness** — tolerance-dependent code that passes the corpus and fails on real models at unusual scales | High, and discovered late by default | Scale-aware `Tolerance` from M1 rather than retrofitted; property-based tests from M1; watertightness invariants; `Result<T>` so failures are diagnosable rather than silent; a regression corpus that grows with every bug. **Partly realised, and the first slice showed how the mitigation itself can fail:** a property whose generator never reaches the boundary it tests cannot fail and looks exactly like a passing test. Generators now span 1e-9 to 1e9 log-uniform (ADR-0018), and widening them found two more defects. [NOTES.md N18](NOTES.md) |
 | R4 | **Lacing semantics get subtly wrong and then become unfixable**, because graphs depend on the wrong behaviour | Permanent | Specification-first: the case table is written as a help topic before implementation and used directly as the test corpus, and it has already earned its keep — writing it settled ten questions the plan left open and overturned one answer the plan had wrong (**D4**, `Auto`); `Disabled` mode always available; `graph.formatVersion` gates any semantics change so a fix never silently alters an existing graph |
 | R5 | **The node canvas collapses above ~1000 nodes**, which real graphs exceed | Would force a UI rewrite | Immediate-mode plus `SceneIndex` chosen precisely for this; M1.5 spike with 2000 synthetic nodes; LOD below 40% zoom; benchmarked nightly from M2 |
 | R6 | **The Avalonia GL viewport fails or degrades** — driver variance, RDP, virtual machines | Would strand the 3D story | M1.5 spike before committing; the `IViewportRenderer` seam; a software fallback with independent value in headless thumbnails and CI visual regression |
@@ -388,7 +398,7 @@ retrospectively softened. A failed criterion changes the architecture, which is 
 | R10 | **The C2VGeometry test harvest sprawls** into a multi-week rewrite | Eats M1 | Timeboxed to one week, hard stop. Harvest only pure-maths-on-values tests; anything needing a `Shape` is discarded without argument |
 | R11 | **User C# takes down the process** via `StackOverflowException`, which .NET cannot catch | Data loss | Guard weaving reduces frequency; aggressive autosave and crash recovery limit damage; an out-of-process worker is kept viable by the scheduler seam and deferred past v1 |
 | R12 | **STEP is much bigger than budgeted** | Slips M8 | Scoped to a documented subset, deferred whole to M8, blocks nothing upstream; validated against a public corpus and a third-party viewer, **never our own reader** |
-| R13 | **Clipper2 contradicts "no native dependencies"** if misunderstood | Reputational | Its C# distribution is pure managed and Boost-licensed; pinned exactly, isolated behind one internal file, plus a CI check asserting no native binaries appear in `Spark.Geometry`'s published output |
+| R13 | **Clipper2 contradicts "no native dependencies"** if misunderstood | Reputational | Its C# distribution is pure managed and Boost-licensed; pinned exactly, isolated behind one internal file, plus a CI check asserting no native binaries appear in `Spark.Geometry`'s published output. **Not currently referenced at all** — the unused reference was removed and returns with the planar boolean pipeline (`E2-T14`); the architecture test asserts a ceiling rather than an exact set, so it holds on both sides of that |
 
 ## 13. Decision log
 
@@ -417,7 +427,7 @@ could have gone differently also gets an ADR under `docs/adr/`; this table is th
 | # | Question | Needed by |
 |---|---|---|
 | Q1 | Do the three M1.5 spikes pass — GL on Windows and Linux, 2000 nodes at 60 fps, AvaloniaEdit completion? A failure changes the architecture, so the criteria must be written into TASKS.md before M1 begins. | Before M2 |
-| Q4 | `Directory.Build.props` promotes CS1591 to an error on **four** projects — `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io`, `Spark.Nodes.Core` — where the plan named three. Is `Spark.Geometry.Io` deliberately included? | M0 |
+| Q4 | `Directory.Build.props` promotes CS1591 to an error on **four** projects — `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io`, `Spark.Nodes.Core` — where the plan named three. Is `Spark.Geometry.Io` deliberately included? **Still open.** The public-API baselines have since been applied to the same four under an identically shaped condition, so two mechanisms now agree on the list — which is evidence it is right, not a record that anyone chose it. Answering it settles both. | M0 |
 | Q5 | Is Revit or AutoCAD the host that proves `Spark.Host` at M8? The host-thread scheduler is the same either way, but the add-in shell, licensing and test loop are not. | M8 |
 | Q6 | If **R1** forces the OCCT fallback, does an *optional* OCCT-backed package breach the no-native-dependencies promise, or is "the core is pure managed; this package is not, and says so" acceptable? FR-44 already discloses native binaries, which suggests the latter. | M6 |
 | Q7 | Which public STEP corpus is authoritative for validating the AP203/AP214 subset, and which third-party viewer is the reference? | M8 |
