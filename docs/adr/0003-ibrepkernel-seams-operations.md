@@ -10,7 +10,8 @@ ADR-0002 commits to our own pure-managed kernel while keeping an OCCT-backed opt
 package as the documented fallback for the operations we may never get exactly right.
 That fallback is only real if the seam is designed before either side of it is built —
 retrofitting a kernel abstraction into a shipped codebase means changing every signature
-that touches geometry, and under ADR-0009 those signatures cannot change during 1.x.
+that touches geometry, and under ADR-0019 changing those signatures during 1.x is a deliberate
+and expensive act rather than a routine one.
 
 The question is where the seam goes. Everything in Spark is keyed off concrete geometry
 types: serialization enumerates every concrete type by reflection, the node importer

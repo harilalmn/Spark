@@ -88,22 +88,28 @@ nothing about this repository is yet known to hold on Linux.
 
 ## Things that will bite you
 
-**`Spark.Api` and `Spark.Geometry` must be strictly additive across all of 1.x.**
+**Changing `Spark.Api` or `Spark.Geometry` is a deliberate act, not a routine one.**
 
-This is the single most consequential rule in the repository, and it is easy to break by
-accident because nothing about it feels dangerous while you are doing it. Packages load
-into per-package-version load contexts, but **contract assemblies always resolve from the
-default context** — they have to, because a `Circle` from package A must be the same `Type`
-as a `Circle` from package B or nothing can be wired together. Contract assemblies therefore
-**cannot be side-by-sided**, and one breaking change to either breaks *every installed
-package at once*.
+Consumed packages load into per-package-version load contexts, but **contract assemblies
+always resolve from the default context** — they have to, because a `Circle` from package A
+must be the same `Type` as a `Circle` from package B or nothing can be wired together.
+Contract assemblies therefore **cannot be side-by-sided**: there is exactly one `Spark.Api`
+and one `Spark.Geometry` in the process, for every package loaded.
 
-So: add an overload, never change a signature. Add a new interface, never change an existing
-one. Add a member to a class, never to an interface anyone might have implemented. Keep
-`Spark.Api` **deliberately small** — it is a contract, not a convenience library, and every
-type added to it is a type that can never change. Public-API baselines (`E1-T23`) make each
-addition a reviewed line in a text file; that is the mechanism, and it only works if you
-read the diff.
+What follows from that is real but bounded. A user who compiled their own node DLL against
+`Spark.Api` may have to recompile it after upgrading Spark, and `Spark.Geometry` is the
+foundation every other kernel type sits on, so churn there moves serialization schema
+versions, golden files, generated nodes and help topics with it.
+
+So: prefer an overload to a changed signature, and a new interface to an edited one. Keep
+`Spark.Api` **deliberately small** — it is a contract, not a convenience library. When a
+break is genuinely the better option, it is allowed within 1.x, but it is a decision with a
+record and a release note, never something discovered in a diff afterwards. Public-API
+baselines (`E1-T23`) exist to make every change to the public surface a visible line in a
+text file — a **review aid, not a compatibility guarantee** — and that only works if you read
+the diff. Full reasoning in
+[ADR-0019](docs/adr/0019-deliberate-public-api-change-control.md), which supersedes ADR-0009's
+stricter rule and says why.
 
 **The no-native-dependencies promise, and the one dependency that looks like it breaks it.**
 
@@ -114,9 +120,22 @@ C2VGeometry already does. Do not let a `Clipper2Lib` type appear in a public sig
 do not add a second dependency to the kernel without a very good answer.
 
 A CI check asserts no native binaries appear in `Spark.Geometry`'s published output
-(`E1-T20`). That check is what turns a promise into a fact, and it is why the package
-installer also discloses whether a **third-party** package ships native binaries: users
-deserve to know when the promise is being broken on their behalf.
+(`E1-T20`) — *published* there meaning `dotnet publish`, never nuget.org. That check is what
+turns a promise into a fact, and it is why the package installer also discloses whether a
+**third-party** package ships native binaries: users deserve to know when the promise is
+being broken on their behalf.
+
+**Nothing in this repository is published to nuget.org, and `IsPackable` is `false`
+everywhere.**
+
+Spark **consumes** NuGet packages and loose DLLs so that a user can bring any .NET library
+into a graph and get nodes from it; it does not publish its own. There is no `PackageId`, no
+`PackAsTool` and no package metadata in any of the twelve projects, and this is deliberate —
+the reasoning is in a comment in [`Directory.Build.props`](Directory.Build.props) and in
+[NOTES.md N14](docs/NOTES.md). Do not add packaging properties to a `.csproj` because it
+looks like an omission. Two corollaries: a project's assembly name is its only name, so
+there are no package-ID renames to keep track of; and `Spark.Cli` builds `spark.exe` and
+ships beside the desktop application rather than installing as a dotnet global tool.
 
 **`Spark.Nodes.Core` must never reference `Spark.Engine`.**
 
@@ -258,13 +277,13 @@ cost, never on taste.
 ```text
 src/Spark.Geometry/      the kernel: values, curves, surfaces, BRep, mesh, tessellation
 src/Spark.Geometry.Io/   OBJ/STL/PLY/glTF/STEP behind reader and writer interfaces
-src/Spark.Api/           contracts only. Small, deliberate, strictly additive across 1.x
+src/Spark.Api/           contracts only. Small, deliberate, changed only on purpose
 src/Spark.Engine/        graph model, evaluation, lacing, importer, serialization
 src/Spark.Scripting/     Roslyn: compilation, rewriting, source maps, guards, completion
 src/Spark.Packages/      NuGet client, per-package-version load contexts, trust store
 src/Spark.Nodes.Core/    the first-party node library. NEVER references Spark.Engine
 src/Spark.Host/          SparkSession composition root, IHostServices. No UI
-src/Spark.Cli/           the `spark` command. Publishes as Spark.Tool
+src/Spark.Cli/           the `spark` command. Builds spark.exe, ships beside the app
 src/Spark.Viewport/      IViewportRenderer, scene, camera, GL + software. Avalonia-free
 src/Spark.UI/            Avalonia controls and view models
 src/Spark.Desktop/       the application: DI, main window, settings, crash recovery

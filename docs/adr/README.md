@@ -23,7 +23,7 @@ withdrawn, and the gap stays.
 | [0006](0006-mit-licence-dco-not-cla.md) | MIT licence, DCO rather than a CLA | Accepted | 2026-08-27 |
 | [0007](0007-net10-and-semver-via-minver.md) | `net10.0` everywhere and SemVer via MinVer, not calendar versioning | Accepted | 2026-08-27 |
 | [0008](0008-csharp-via-roslyn-not-designscript.md) | C# via Roslyn as the scripting language, not DesignScript | Accepted | 2026-08-27 |
-| [0009](0009-api-and-geometry-strictly-additive.md) | `Spark.Api` and `Spark.Geometry` are strictly additive across 1.x | Accepted | 2026-08-27 |
+| [0009](0009-api-and-geometry-strictly-additive.md) | `Spark.Api` and `Spark.Geometry` are strictly additive across 1.x | **Superseded by [0019](0019-deliberate-public-api-change-control.md)** | 2026-08-27 |
 | [0010](0010-explicit-scale-aware-tolerance.md) | Explicit scale-aware `Tolerance` hashed into cache keys; no ambient tolerance | Accepted | 2026-08-27 |
 | [0011](0011-angle-struct-in-public-signatures.md) | An `Angle` struct in every public angular signature; radians internally | Accepted | 2026-08-27 |
 | [0012](0012-rank-based-replication-specified-first.md) | Rank-based replication with five lacing modes, specified before implementation | Accepted | 2026-08-27 |
@@ -33,10 +33,20 @@ withdrawn, and the gap stays.
 | [0016](0016-no-dynamo-interoperability.md) | No Dynamo `.dyn` interoperability in either direction, and no importer seam | Accepted | 2026-08-27 |
 | [0017](0017-spark-file-is-plain-json.md) | `.spark` is canonically-formatted JSON, not a container | Accepted | 2026-08-27 |
 | [0018](0018-property-based-tests-on-the-kernel.md) | Property-based tests on the kernel from M1, not later | Accepted | 2026-08-27 |
+| [0019](0019-deliberate-public-api-change-control.md) | Deliberate change control on `Spark.Api` and `Spark.Geometry`, not permanent additivity | Accepted | 2026-08-27 |
 
 Statuses are *Proposed*, *Accepted*, *Superseded by ADR-NNNN* or *Withdrawn*. Every record in
 this set was accepted at M0, before implementation, which is the point of having made the
 decisions explicitly.
+
+**One supersession has already happened, and it is worth reading as a pair.** ADR-0009 made
+`Spark.Api` and `Spark.Geometry` strictly additive for the whole of 1.x, on the premise that
+Spark would publish its contract assemblies to nuget.org and that a breaking change would
+therefore break every installed package at once. That premise was a misread requirement: Spark
+**consumes** NuGet packages and loose DLLs, and publishes nothing. ADR-0019 replaces the rule
+with proportionate deliberate change control and records why. ADR-0009 keeps its number and its
+text — the argument it made was sound given what it believed, and the correction is more useful
+beside it than in place of it.
 
 ## Where a piece of writing belongs
 

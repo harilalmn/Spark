@@ -43,8 +43,10 @@ would shorten the M1 harvest. **This is the decisive rejection.** An ambient tol
 invisible to the cache: changing it would not change any node's key, so the graph would go on
 serving results computed at the old tolerance with no indication that anything was wrong. A
 stale geometry result that looks correct is the worst failure mode this system can have.
-Separately, `const` defaults bake into callers at compile time, so a package built against 1.0
-would carry 1.0's epsilon forever — an ADR-0009 hazard hiding inside a constant.
+Separately, `const` defaults bake into callers at compile time, so a custom node DLL built
+against one version would carry that version's epsilon forever — an ADR-0019 hazard hiding
+inside a constant. (Written as ADR-0009 originally; that record's premise was a misread
+requirement, and this citation moved with the matching comment in `Tolerance.cs`.)
 
 ### Tolerance as a property on each geometry object
 

@@ -81,10 +81,10 @@ public readonly struct Tolerance : IEquatable<Tolerance>
     public static Tolerance Default => default;
 
     // The default components are deliberately not *public* constants. A public const bakes
-    // into every consuming assembly at compile time, so a package built against 1.0 would
-    // carry 1.0's epsilon forever even after the kernel changed it — an ADR-0009 hazard
-    // hiding inside a constant. Private consts have no such reach, and the compiler folds
-    // them, so they cost nothing on the comparison paths below.
+    // into every consuming assembly at compile time, so a custom node DLL built against
+    // one version would carry that version's epsilon forever, even after the kernel
+    // changed it — an ADR-0019 hazard hiding inside a constant. Private consts have no
+    // such reach, and the compiler folds them, so they cost nothing on the paths below.
     private const double DefaultLinearTolerance = 1e-6;
 
     private const double DefaultAngularToleranceInDegrees = 0.001;

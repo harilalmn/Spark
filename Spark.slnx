@@ -16,5 +16,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Spark.Architecture.Tests/Spark.Architecture.Tests.csproj" />
     <Project Path="tests/Spark.Docs.Verify/Spark.Docs.Verify.csproj" />
+    <Project Path="tests/Spark.Geometry.Properties/Spark.Geometry.Properties.csproj" />
+    <Project Path="tests/Spark.Geometry.Tests/Spark.Geometry.Tests.csproj" />
   </Folder>
 </Solution>

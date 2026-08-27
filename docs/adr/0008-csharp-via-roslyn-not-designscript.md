@@ -12,8 +12,9 @@ that slot, and the choice determines far more than the code block itself — it 
 the whole extensibility story looks like, because the language a user writes in and the
 language packages are written in should be the same one.
 
-Spark is a .NET application whose package manager is NuGet (ADR-0009 and the extensibility
-design). Every .NET developer already knows C#, and choosing it makes the entire NuGet
+Spark is a .NET application whose package manager is NuGet — the one Spark *consumes*, so
+that a user can bring any .NET library into a graph and get nodes from it. Spark publishes
+nothing of its own (ADR-0019). Every .NET developer already knows C#, and choosing it makes the entire NuGet
 ecosystem reachable from inside a graph. There is also a large amount of directly relevant
 prior art: `RCS` and `CADScript` have between them already built `ScriptRewriter` and its
 source maps, `ReferenceCatalog`, `ScriptLoadContext`, `GuardWeaver`, the editor controllers,

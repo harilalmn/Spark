@@ -11,9 +11,9 @@ M8 — `Spark.Host` running inside a real Revit or AutoCAD add-in through the ho
 scheduler — which is roughly two years out. The temptation is therefore to build one
 assembly now and split it when embedding actually matters.
 
-Two facts make that temptation expensive. First, ADR-0009 makes `Spark.Api` and
-`Spark.Geometry` strictly additive across all of 1.x, and a boundary retrofitted after
-third-party packages exist is a breaking change by definition. Second, the prior art shows
+Two facts make that temptation expensive. First, ADR-0019 puts `Spark.Api` and
+`Spark.Geometry` under deliberate change control across 1.x, and a boundary retrofitted after
+third-party packages and user node DLLs exist is a breaking change by definition. Second, the prior art shows
 what host coupling costs when it is not designed out: `RCS` and `CADScript` each solved the
 scripting problem against a hostile host, and the parts that ported cleanly between them are
 exactly the parts that never referenced host types.
@@ -53,7 +53,8 @@ by a source-scanning `Spark.Architecture.Tests`:
 
 Least ceremony, fastest refactoring, and no cross-project friction while the design is still
 moving — which at M0 it certainly is. It lost because the split cannot be deferred past the
-moment `Spark.Api` is published, which is M2, and because rule 2 in particular only works if
+moment `Spark.Api` is a surface anyone builds against, which is M2, and because rule 2 in
+particular only works if
 it has always been true. Once a first-party node has quietly used an engine internal, the
 importer has a special case in it and nobody notices until a third-party package hits the
 same path and fails.
@@ -68,7 +69,7 @@ the same argument that puts analyzers into an OSS repo with drive-by PRs.
 
 ### Split only `Spark.Api` out, keep the rest together
 
-A reasonable middle: the published contract is isolated, everything else is one assembly.
+A reasonable middle: the contract assembly is isolated, everything else is one assembly.
 It lost on the Avalonia boundary specifically. `Spark.Viewport` must be Avalonia-free for the
 software renderer to run headlessly in CI and for `spark render` to work from the CLI, and
 that separation does not survive being inside an assembly that also holds `Spark.UI`.
@@ -81,7 +82,7 @@ Embedding is a supported shape from day one rather than a late port: a CAD add-i
 `Spark.Host` and supplies `IHostServices` and a host-thread `IEvaluationScheduler`, with no
 Avalonia anywhere in that path. The CLI, the headless docs harness and the CI visual
 regression all fall out of the same layering. `Spark.Api` stays small because it has nowhere
-convenient to grow, which directly serves ADR-0009.
+convenient to grow, which directly serves ADR-0019.
 
 ### Negative
 

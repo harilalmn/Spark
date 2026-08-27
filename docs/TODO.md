@@ -6,7 +6,7 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **Last updated:** 2026-08-27
 
 Spark is at M0, and most of M0 has landed. The solution, twelve project stubs, the reference
-graph, the build properties, these documents, eighteen ADRs, the lacing specification, the CI
+graph, the build properties, these documents, nineteen ADRs, the lacing specification, the CI
 workflow, and two test projects that pass all exist. Of the previous version of this
 paragraph — *"there is no CI, no test project and no implementation code of any kind"* — only
 the last clause survived, and it is now going too: the first M1 kernel value types began
@@ -37,19 +37,19 @@ Everything in this section is cheap now and expensive later.
       `reviewer`. Needed by M2, which is the first milestone to touch any of the three areas
       they own. File ownership must stay disjoint, so parallel agents never conflict.
 - [ ] **Check in the public-API baselines** — `E1-T23`. `Spark.Api` and `Spark.Geometry`
-      cannot be side-by-sided, so they must be strictly additive across all of 1.x. The
-      baseline is how that becomes a reviewed line in a text file instead of a hope. Cheapest
-      to add now, while both surfaces are empty.
+      cannot be side-by-sided, so changing them is deliberate rather than routine
+      (**ADR-0019**). The baseline is how every change to the public surface becomes a
+      reviewed line in a text file instead of a hope — a review aid, not a compatibility
+      guarantee. Cheapest to add now, while both surfaces are empty.
 - [ ] **Create `bench/Spark.Benchmarks`** — `E1-T13`. `bench/` and `scripts/` are still empty
       directories. BenchmarkDotNet is pinned and unreferenced.
-- [ ] **Settle whether `Spark.Host` publishes** — `E12-T17`, `Q10`. It became `IsPackable`
-      without a `PackageId` or a comment, which would publish it as `Spark.Host` — an ID
-      nobody has checked and one every document said would not be published.
-- [ ] **Reserve the NuGet IDs** — `E1-T24`. **Blocked on the client**, not on us: it needs
-      the account that will own them. `Spark.Api`, `Spark.Geometry`, `Spark.Graph`,
-      `Spark.Nodes`, `Spark.Scripting`, `Spark.Docs`, `Spark.Tool`. Four already went:
-      `Spark`, `Spark.Core`, `Spark.Engine`, `Spark.Cli`. This is the only M0 item with
-      somebody else's clock on it — an unclaimed ID is one a stranger can take tomorrow.
+
+**Two items left this section rather than being done**, and both were about publishing to
+nuget.org: *settle whether `Spark.Host` publishes* (`E12-T17`, `Q10`) and *reserve the NuGet
+IDs* (`E1-T24`, which was the only M0 item with an outside clock on it). Both are
+**withdrawn**. Spark consumes NuGet packages and publishes none — PRD decision **D11** — so
+`IsPackable` is now `false` for every project and there is nothing to reserve, rename or
+reconcile. M0 lost a blocker rather than gaining one.
 
 ## Next — name the M1.5 criteria, before M1 starts
 
@@ -133,14 +133,18 @@ the exclusions is what keeps a walking skeleton from becoming a death march.
 | # | Question | Blocks |
 |---|---|---|
 | Q1 | Do the three M1.5 spikes pass? A failure changes the architecture, which is what they are for. | M2 design |
-| Q2 | Is `Spark.Geometry.Io` free on nuget.org? It is `IsPackable` but is not among the IDs **D11** records as checked. | `E1-T24` |
-| Q3 | **Half answered.** `Spark.Graph` now maps to `Spark.Engine`, which became `IsPackable` with that `PackageId`. `Spark.Docs` still maps to nothing: defensive reservation, or a project missing from the layout? | `E1-T24` |
 | Q4 | `Directory.Build.props` promotes CS1591 to an error on **four** projects; the plan named three. Is `Spark.Geometry.Io` deliberately included? | `E10-T8` scope |
 | Q5 | Revit or AutoCAD as the M8 embedding proof host? The scheduler is the same either way; the add-in shell, licensing and test loop are not. | `E12-T4` |
 | Q6 | If `R1` forces the OCCT fallback, does an *optional* OCCT-backed package breach the no-native-dependencies promise? `E7-T8` already discloses native binaries, which suggests it can be lived with. | M6 |
 | Q7 | Which public STEP corpus is authoritative, and which third-party viewer is the reference? | `E2-T36` |
 | Q8 | Where does the website live, and who maintains it? | `E10-T14` |
-| Q10 | `Spark.Host` became `IsPackable` with no `PackageId` and no comment, so it would publish as `Spark.Host` — an ID nobody has checked, for a project every document says is not published. Deliberate, or an oversight beside `Spark.Engine`'s deliberate rename? | `E12-T17` |
+
+*Q2, Q3 and Q10 — all three about package IDs and which projects would publish — are answered
+and withdrawn together. Nothing publishes: `IsPackable` is `false` for every project and no
+`PackageId` exists anywhere, so `Spark.Geometry.Io`'s availability does not matter,
+`Spark.Docs` was a reservation for a package that will not exist, and `Spark.Host`'s
+`IsPackable=true` was an oversight now removed. PRD decision **D11**,
+[NOTES.md N14](NOTES.md).*
 
 *Q9 — whether xunit v3 was viable — is withdrawn. Both test projects consume it and eleven
 tests run green; the 2.9.x fallback turned out to be moot rather than costless, because the
@@ -192,13 +196,22 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   per-origin trust allowlist, and `spark run --no-script` for CI.
 - **No telemetry of any kind in v1.** Not anonymous, not opt-out, not "just crash counts".
   Opt-in crash reporting is considered post-1.0, with graphs excluded from any payload.
-- **`Spark.Engine`, `Spark.Cli`, `Spark.Core` and `Spark` are taken on nuget.org, and we
-  are not renaming.** Only *package* IDs must be unique; project and assembly names are
-  unaffected. So the assembly name and the package ID are allowed to differ, three times
-  over: `Spark.Cli` publishes as **`Spark.Tool`** with the command `spark`,
-  `Spark.Nodes.Core` publishes as `Spark.Nodes`, and `Spark.Engine` publishes as
-  **`Spark.Graph`**. The one ID that genuinely had to be public, `Spark.Api`, is free. PRD
-  decision **D11**.
+- **Nothing here is published to nuget.org, and `IsPackable` is `false` everywhere.** Spark
+  **consumes** NuGet packages and loose DLLs — that is a core feature and it is untouched —
+  and **produces** none. Spark is an application, not a library ecosystem; the two audiences
+  who compile against it, embedders and node authors, reference the assemblies from an
+  install, which is how CAD add-ins are built anyway. So a project's assembly name is its
+  only name, `Spark.Cli` builds `spark.exe` and ships beside the desktop application rather
+  than as a dotnet global tool, and *published output* in these documents always means
+  `dotnet publish`. Do not add packaging metadata to a `.csproj` because it looks like an
+  omission — it is a decision. PRD decision **D11**, [NOTES.md N14](NOTES.md).
+- **`Spark.Api` and `Spark.Geometry` are not strictly additive across 1.x**, which reverses
+  what ADR-0009 said. That rule was built on a public package ecosystem that will not exist.
+  What replaces it is proportionate deliberate change control: prefer adding, break only when
+  it is genuinely better, and record it when you do. The real remaining cost of a break is
+  that a user recompiles their own node DLL — an annoyance for one person, not an ecosystem
+  fracture. Public-API baselines stay, as a **review aid rather than a compatibility
+  guarantee**. **ADR-0019**, superseding ADR-0009.
 - **`Auto` is not a synonym for `Longest`, and must not be "simplified" into one.** It is a
   sentinel meaning *use this node definition's `DefaultLacing`*, resolved to one of the four
   real modes before replication begins; it has no `n` and no output rank of its own. The
@@ -222,5 +235,5 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
 - **Clipper2 is a third-party dependency of `Spark.Geometry`, and that is fine.** Its C#
   distribution is pure managed and Boost-licensed. It is pinned exactly, isolated behind a
   single internal file, and a CI check asserts no native binaries appear in the published
-  output — so the no-native-dependencies promise stays checkable rather than merely
-  asserted. `R13`.
+  output — the `dotnet publish` directory — so the no-native-dependencies promise stays
+  checkable rather than merely asserted. `R13`.

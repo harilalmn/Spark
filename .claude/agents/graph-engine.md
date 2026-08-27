@@ -13,7 +13,8 @@ The part of Spark with no prior art anywhere: nodes, ports, wires, topological e
 dirty propagation, caching, and list replication. Everything else in this project was
 solved once before in DoodleSharp, RCS or CADScript. This was not. Assume nothing transfers.
 
-Read `docs/adr/0003-*`, `0004-*`, `0005-*`, `0009-*` and `0012-*` before designing anything.
+Read `docs/adr/0003-*`, `0004-*`, `0005-*`, `0012-*` and `0019-*` before designing anything.
+ADR-0009 is superseded by ADR-0019 and is worth reading only as history.
 
 ## Rules that are not yours to change
 
@@ -24,10 +25,11 @@ Read `docs/adr/0003-*`, `0004-*`, `0005-*`, `0009-*` and `0012-*` before designi
 - **`Spark.Nodes.Core` must never reference `Spark.Engine`.** First-party nodes go through
   the same zero-config reflection importer as third-party ones. The moment we can register
   a node by hand, the importer can break for everyone else with no test failing.
-- **`Spark.Api` and `Spark.Geometry` are strictly additive across all of 1.x.** They cannot
-  be loaded side by side, so one breaking change breaks every installed package at once.
-  Prefer a new interface over changing one. Keep `Spark.Api` small — it is a contract, not
-  a convenience library.
+- **Changing `Spark.Api` or `Spark.Geometry` is a deliberate act, not a routine one.** They
+  cannot be loaded side by side, so a break means every custom node DLL compiled against them
+  is recompiled or dropped. Prefer a new interface over changing one. Keep `Spark.Api` small
+  — it is a contract, not a convenience library. **ADR-0019**, which supersedes ADR-0009's
+  stricter strictly-additive rule and explains why the premise changed.
 - **Node invocation is an expression-tree-compiled delegate, never `MethodInfo.Invoke`.**
   Under replication over 100k items the reflection path is 50 to 100 times slower, which
   makes lacing unusable rather than merely slow.

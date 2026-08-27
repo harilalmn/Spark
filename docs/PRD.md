@@ -26,7 +26,7 @@ manager, and users can reference arbitrary DLLs with nodes generated from them b
 reflection.
 
 **As of this document, none of that is built.** M0 has produced a solution, twelve project
-stubs, a reference graph, build properties, these documents, eighteen ADRs, the replication
+stubs, a reference graph, build properties, these documents, nineteen ADRs, the replication
 specification, a CI workflow, and two test projects that between them run eleven passing
 checks against the repository. Every functional requirement below is still `Not started`:
 what exists is the scaffolding, the gates and the specification, none of which is product.
@@ -104,7 +104,7 @@ it as the test corpus.
 | **AEC computational designer** | Parametric geometry without a CAD licence for the standalone case, and the same graph running inside Revit or AutoCAD when it matters. Primary user; wins any direct UX conflict. See **D9**. |
 | **.NET developer** | A visual dataflow front end over their own libraries. They want their existing NuGet package to become nodes without writing a plugin. |
 | **Fabricator / maker** | A parametric model out to OBJ, STL or STEP, with a viewport they can trust and no subscription. |
-| **Node package author** | A small, stable contract surface (`Spark.Api`) they can build against, and a guarantee that it will not break under them mid-1.x. |
+| **Node package author** | A small, stable contract surface (`Spark.Api`) they can build against, changed deliberately and never silently, so a Spark upgrade does not quietly invalidate their DLL. |
 | **Educator** | Something free, installable and open that teaches parametric modelling without a licence server. |
 
 ## 5. Product principles
@@ -243,7 +243,7 @@ Everything is `Not started`. M0 produced scaffolding, not behaviour.
 | FR-67 | Geometry reaches the viewport as immutable `RenderPackage { NodeId, PortIndex, ElementPath, Positions, Normals, Indices, EdgeIndices, Appearance }`, one GPU buffer set per `(NodeId, PortIndex)`, tessellated in parallel and streamed during a run. | Not started (E9) |
 | FR-68 | Selection is synchronised between canvas and viewport, falling out of node-keyed identity with no extra bookkeeping. | Not started (E9) |
 | FR-69 | Style is an explicit wrapper — `Appearance` and `Displayable(Geometry, Appearance)` in `Spark.Api`, applied by a `Display.ByGeometryColor` node. Unwrapped geometry renders with defaults. | Not started (E5, E9) |
-| FR-70 | `spark run`, `check`, `render`, `export`, `pkg`, `docs` and `graph`, published as a dotnet global tool named `spark`. | Not started (E12) |
+| FR-70 | `spark run`, `check`, `render`, `export`, `pkg`, `docs` and `graph`, as a `spark.exe` shipping beside the desktop application. | Not started (E12) |
 | FR-71 | `Spark.Host` runs inside a Revit or AutoCAD add-in through the host-thread scheduler and `IHostServices`. | Not started (E12) |
 | FR-72 | Aggressive autosave and crash recovery. | Not started (E8) |
 | FR-73 | A signed Inno Setup installer and a portable zip for Windows. | Not started (E12) |
@@ -268,8 +268,8 @@ Everything is `Not started`. M0 produced scaffolding, not behaviour.
 | NFR-2 | Node invocation is an expression-tree-compiled delegate, never `MethodInfo.Invoke`. Under replication over 100k items the reflection path is 50–100× slower, which would make lacing unusable. | Not started |
 | NFR-3 | `SparkList` marshalling to and from declared collection types carries a standing benchmark; it is the performance-critical path of the whole engine. | Not started |
 | NFR-4 | The evaluation cache is LRU with a memory budget, evicted by last use and estimated size. | Not started |
-| NFR-5 | `Spark.Geometry`'s published output contains **no native binaries**, asserted by CI. | Not started |
-| NFR-6 | `Spark.Api` and `Spark.Geometry` are **strictly additive across all of 1.x**, enforced by checked-in public-API baselines. They cannot be side-by-sided, so one breaking change breaks every installed package at once. | Not started — analyzer pinned (`[5.6.0]`), baselines not yet created |
+| NFR-5 | `Spark.Geometry`'s published output contains **no native binaries**, asserted by CI. *Published* here means the `dotnet publish` directory, never nuget.org — nothing is packaged (**D11**). | Not started |
+| NFR-6 | Every change to the public surface of `Spark.Api` or `Spark.Geometry` is visible in a checked-in public-API baseline diff, and a breaking one is a recorded decision with a release note rather than a discovery. Adding is preferred to changing; the baselines are a **review aid, not a compatibility guarantee**. **ADR-0019**, which supersedes ADR-0009's strictly-additive rule. | Not started — analyzer pinned (`[5.6.0]`), baselines not yet created |
 | NFR-7 | A graph containing no script nodes never loads `Spark.Scripting`, so Roslyn cold start is not paid by users who do not script. Background warm-up on idle covers the rest. | Not started |
 | NFR-8 | Tessellation of a closed solid is watertight — a property-based test, not a spot check. | Not started |
 | NFR-9 | Tolerance is scale-aware from the first release of the kernel, not retrofitted. A fixed `1e-6` is wrong for kilometres and wrong for microns. | Not started |
@@ -295,8 +295,8 @@ reviewed change — see [AGENTS.md](../AGENTS.md) for why.
 | Language / nullability | `latest`, nullable enabled, `WarningsAsErrors=nullable` | Warnings are errors in CI only, not in the csproj. |
 | Implicit usings | **Disabled** | Explicit usings matter for a library people script against in code blocks. |
 | Unsafe code | `AllowUnsafeBlocks=false` | `Span<T>`, `ref struct` and `System.Numerics` cover the kernel. |
-| Versioning | MinVer **`[7.0.0]`**, SemVer, tag prefix `v` | Published contract packages must communicate breakage in the number, which CalVer cannot. |
-| Public API baselines | `Microsoft.CodeAnalysis.PublicApiAnalyzers` **`[5.6.0]`** | The mechanism behind NFR-6. Baselines not yet created. |
+| Versioning | MinVer **`[7.0.0]`**, SemVer, tag prefix `v` | Embedders reference `Spark.Host` and node authors reference `Spark.Api` from an install, and both need *does upgrading break me?* answerable from the number, which CalVer cannot do. **D11**, ADR-0007. |
+| Public API baselines | `Microsoft.CodeAnalysis.PublicApiAnalyzers` **`[5.6.0]`** | The mechanism behind NFR-6, kept as a review aid rather than a compatibility guarantee. Baselines not yet created. |
 | Planar geometry | Clipper2 **`[2.0.0]`** | The **only** third-party dependency of `Spark.Geometry`. Its C# distribution is pure managed and Boost-licensed. Isolated behind one internal file so the no-native-dependencies promise stays checkable. |
 | Roslyn | `Microsoft.CodeAnalysis.CSharp`, `.Scripting`, `.Workspaces`, `.Features`, all **`[5.9.0]`** | Confined to `Spark.Scripting`. A floating Roslyn is how CADScript's pinning problem arose. |
 | NuGet client | `NuGet.Protocol`, `NuGet.Packaging`, both **`[7.9.0]`** | Confined to `Spark.Packages`. Reusing NuGet wholesale rather than building a registry. |
@@ -304,7 +304,7 @@ reviewed change — see [AGENTS.md](../AGENTS.md) for why.
 | Testing | `xunit.v3` **`[4.0.0]`**, `xunit.runner.visualstudio` **`[4.0.0]`**, `Microsoft.NET.Test.Sdk` **`[18.9.0]`**, `Avalonia.Headless.XUnit` **`[12.1.1]`**, CsCheck **`[4.8.0]`** | `xunit.v3` is consumed by both test projects through `tests/Directory.Build.props` and runs eleven tests green. The other four are pinned and still unreferenced. Property-based tests on the kernel from M1 are non-negotiable. |
 | Benchmarking | BenchmarkDotNet **`[0.15.8]`** | Nightly, not per-PR — shared runners are too noisy for per-PR benchmarking. |
 | C2VGeometry | `DoodleSharp\C2VGeometry\`, net9.0, ~20,300 lines | A 2D **drawing** library, not a kernel. Harvested selectively; see [EPICS.md E2](EPICS.md#e2--geometry-kernel). `Code2Viz` contains a single 0-byte file and is not an ancestor. |
-| NuGet package IDs | `Spark`, `Spark.Core`, `Spark.Engine` and `Spark.Cli` are **taken** on nuget.org | Free and to be claimed: `Spark.Api`, `Spark.Geometry`, `Spark.Graph`, `Spark.Nodes`, `Spark.Scripting`, `Spark.Docs`, `Spark.Tool`. Project and assembly names are unaffected; only package IDs must be unique, so three projects publish under a different name — `Spark.Cli` → `Spark.Tool`, `Spark.Nodes.Core` → `Spark.Nodes`, `Spark.Engine` → `Spark.Graph`. **D11**. None is reserved yet, and reserving them needs the client's account (`E1-T24`, blocked). |
+| NuGet publishing | **None.** `IsPackable` is `false` for every project | Spark consumes NuGet packages and loose DLLs and produces neither. No `PackageId`, no `PackAsTool`, no package metadata anywhere; the reasoning is commented in [`Directory.Build.props`](../Directory.Build.props) and recorded as [NOTES.md N14](NOTES.md). A project's assembly name is therefore its only name — there are no package-ID renames — and `Spark.Cli` builds `spark.exe` beside the desktop application rather than installing as a global tool. **D11**. |
 
 ## 9. Out of scope
 
@@ -322,6 +322,9 @@ reviewed change — see [AGENTS.md](../AGENTS.md) for why.
 - **macOS and Linux release artefacts.** Linux is built and tested in CI; nothing is
   published for it. macOS is not built at all.
 - **A Spark package registry.** NuGet is the registry.
+- **Publishing Spark's own assemblies to nuget.org.** Spark consumes NuGet packages; it
+  produces none. Embedders and node authors reference the assemblies from an install. **D11**,
+  [NOTES.md N14](NOTES.md).
 
 ## 10. Success measures
 
@@ -334,7 +337,7 @@ reviewed change — see [AGENTS.md](../AGENTS.md) for why.
 | Example graphs that do not execute in CI | Zero |
 | Public members unreachable as a node | Zero, or listed in an exclusions file with a reason. Enforced by a two-way test in both directions |
 | Graphs damaged by opening them without a required package | Zero. Re-save must be byte-identical |
-| Breaking changes to `Spark.Api` or `Spark.Geometry` during 1.x | Zero |
+| Breaking changes to `Spark.Api` or `Spark.Geometry` during 1.x | Rare, and each one a recorded decision with a release note naming who has to recompile. Not a target of zero: **D11** removed the ecosystem that made zero worth its cost. Zero *unrecorded* ones is the real target |
 | Canvas frame rate at 2000 nodes | 60 fps |
 | Lacing corpus rows passing | Every row of the case table, asserting value **and** rank separately. Not a fixed count: the table grows, and a target expressed as a number would be met by not adding rows |
 
@@ -374,12 +377,12 @@ retrospectively softened. A failed criterion changes the architecture, which is 
 | # | Risk | Impact | Mitigation |
 |---|---|---|---|
 | R1 | **Exact NURBS surface-surface intersection is a research-grade problem.** Robust SSI with tangential and degenerate cases is what makes commercial kernels cost millions | Could sink the kernel | `IBrepKernel` seam locked from the start; mesh booleans at M6 give working booleans regardless; a throwaway SSI spike at M5 calibrates the estimate while it is still cheap to learn it is hard; exact booleans declared post-1.0. **Fallback: an OCCT-backed optional package, which the seam absorbs without a rewrite** |
-| R2 | **Scope versus capacity.** A multi-year effort directed by one person | Existential | Every milestone independently demoable and releasable; packages published from M2; the `Spark.Api` boundary makes third-party node packages a contribution path needing no kernel expertise |
+| R2 | **Scope versus capacity.** A multi-year effort directed by one person | Existential | Every milestone independently demoable and releasable, with a runnable build shipped from M2 rather than only at 1.0; the `Spark.Api` boundary makes third-party node libraries a contribution path needing no kernel expertise |
 | R3 | **Kernel numerical robustness** — tolerance-dependent code that passes the corpus and fails on real models at unusual scales | High, and discovered late by default | Scale-aware `Tolerance` from M1 rather than retrofitted; property-based tests from M1; watertightness invariants; `Result<T>` so failures are diagnosable rather than silent; a regression corpus that grows with every bug |
 | R4 | **Lacing semantics get subtly wrong and then become unfixable**, because graphs depend on the wrong behaviour | Permanent | Specification-first: the case table is written as a help topic before implementation and used directly as the test corpus, and it has already earned its keep — writing it settled ten questions the plan left open and overturned one answer the plan had wrong (**D4**, `Auto`); `Disabled` mode always available; `graph.formatVersion` gates any semantics change so a fix never silently alters an existing graph |
 | R5 | **The node canvas collapses above ~1000 nodes**, which real graphs exceed | Would force a UI rewrite | Immediate-mode plus `SceneIndex` chosen precisely for this; M1.5 spike with 2000 synthetic nodes; LOD below 40% zoom; benchmarked nightly from M2 |
 | R6 | **The Avalonia GL viewport fails or degrades** — driver variance, RDP, virtual machines | Would strand the 3D story | M1.5 spike before committing; the `IViewportRenderer` seam; a software fallback with independent value in headless thumbnails and CI visual regression |
-| R7 | **`Spark.Api` or `Spark.Geometry` need a breaking change after packages exist.** They cannot be side-by-sided, so one break breaks every installed package at once | Ecosystem-wide | Public-API baselines from M0; keep `Spark.Api` deliberately *small* — it is a contract, not a convenience library; prefer adding an interface to changing one |
+| R7 | **`Spark.Api` or `Spark.Geometry` need a breaking change after users have compiled node DLLs against them.** They cannot be side-by-sided, so a break means every such DLL is recompiled or dropped | Moderate, and per-user rather than ecosystem-wide — see **D11** | Public-API baselines from M0 so the change is visible in the diff that approves it; keep `Spark.Api` deliberately *small* — it is a contract, not a convenience library; prefer adding an interface to changing one; when a break is right, record it and name it in the release notes (**ADR-0019**) |
 | R8 | **ALC unloading never works in practice**, so upgrades always need a restart | Low, because it is already the promise | Restart is the documented default. Honest messaging beats a broken promise |
 | R9 | **Roslyn cold start makes code blocks feel sluggish** | Undermines the headline feature | `Spark.Scripting` isolated so graphs without scripts never load it; background warm-up on idle; persistent compiled-assembly cache; resident cache for input changes |
 | R10 | **The C2VGeometry test harvest sprawls** into a multi-week rewrite | Eats M1 | Timeboxed to one week, hard stop. Harvest only pure-maths-on-values tests; anything needing a `Shape` is discarded without argument |
@@ -404,7 +407,7 @@ could have gone differently also gets an ADR under `docs/adr/`; this table is th
 | **D8** | **No Dynamo compatibility, in either direction.** No `.dyn`, no importer, no seam | A `.dyn` importer, or a best-effort one with warnings | A `.dyn` file contains **no geometry** — it is JSON holding nodes, connectors and view state, with geometry existing only after evaluation. So reading one never requires ProtoGeometry, and reading was never the hard part. The hard part is **semantic equivalence**: guaranteeing Spark's circle node behaves identically to ProtoGeometry's in every degenerate case, tolerance and lacing rule. That is unprovable without the very dependency Spark exists to remove, and a silently mistranslating importer is worse than none. Dropping it also removes the one force that would have pulled Spark's API toward ProtoGeometry's semantics. Four graph-model properties survive on their own merits: a public graph-construction API (needed by the CLI, by tests and by collapse-to-custom-node), stable string `NodeKey`s separate from display names (save/load round-trip, search index), first-class lacing, and an unresolved-node placeholder. |
 | **D9** | **Both audiences, AEC first.** AEC wins any direct UX conflict | .NET developers first, or AEC only | The two audiences want opposite defaults: a developer wants terseness and keyboard flow, an AEC designer wants discoverability and visible state. Refusing to rank them means losing both arguments repeatedly. AEC wins because they are the users with no alternative — a .NET developer can already write a console app. Naming the tiebreak once is cheaper than re-litigating it per feature. |
 | **D10** | **Steady, quality-first.** Each milestone independently demoable and documented; at most two or three agents concurrent | Ship a rough end-to-end prototype fast | A rough prototype of a graph engine is a permanent liability, because graphs saved against wrong lacing semantics cannot be fixed later without breaking them (**R4**). Independently demoable milestones also solve the real risk, **R2**: a multi-year one-person effort needs to be releasable at every point, not only at the end. |
-| **D11** | **Keep the name "Spark"; publish only the NuGet IDs that are free** | Rename the project, or squat/dispute the taken IDs | `Spark`, `Spark.Core`, `Spark.Engine` and `Spark.Cli` are taken on nuget.org. Renaming the whole project to win four package IDs is a poor trade, and only *package* IDs must be unique — project and assembly names are unaffected. So a project's assembly name and its package ID are allowed to differ, and three do: the CLI publishes as **`Spark.Tool`** with the command `spark`, `Spark.Nodes.Core` publishes as `Spark.Nodes`, and `Spark.Engine` publishes as **`Spark.Graph`** — the plan had it unpublished, but a free ID that already fits it costs nothing and keeps the layer referenceable. The one ID that genuinely must be public, **`Spark.Api`**, is free. |
+| **D11** | **Spark consumes NuGet packages and publishes none of its own** | Publish the contract assemblies — `Spark.Api`, `Spark.Geometry` and the rest — to nuget.org, as an earlier revision of this document assumed | Consuming and publishing are separate directions and only one was ever asked for. **Consuming is a core feature and is untouched:** a user brings any .NET library — a package from nuget.org, a private feed, or a DLL they built this morning — into a graph and gets nodes from it (FR-40 … FR-45, E7). **Publishing is not a feature at all.** Spark is an application, not a library ecosystem: its users open it and build graphs, they do not `PackageReference` it. The two audiences who genuinely compile against Spark are embedders, who reference `Spark.Host`, and node authors, who reference `Spark.Api` and `Spark.Geometry` — and both reference the assemblies **from an install**, which is how CAD add-ins are built anyway, since a Revit or AutoCAD add-in already resolves its assemblies out of a directory rather than restoring them. Publishing would buy a convenience those two get another way, in exchange for permanent ID ownership, package metadata, a signing story, a release cadence tied to nuget.org and a compatibility obligation to strangers. `IsPackable` is therefore `false` repository-wide ([NOTES.md N14](NOTES.md)), the CLI ships as `spark.exe` beside the desktop application rather than as a dotnet global tool, and a project's assembly name is its only name. **The consequence worth naming: ADR-0009 was decided on the assumption this decision reverses**, and is superseded by **ADR-0019**. |
 | **D12** | **Unitless.** Coordinates are dimensionless world units | A `UnitSystem` on the document with typed lengths and conversion | Unit systems in modelling tools are a large, permanently leaky feature: every operation must decide what a mixed-unit input means, every import must guess, and every API signature gains a dimension. Dynamo is unitless and its users cope. Import and export assume the file's own units and document that they do. This does **not** remove scale-aware tolerance — `Tolerance.ForScale` is numerical robustness, not units, and survives untouched. |
 | **D13** | **Salvage geometry only from C2VGeometry.** Nothing Dynamo lacks | Salvage the drafting types too, since they already exist and are tested | `Hatch/`, `VText`, `VDimension`, `VRadialDimension`, `VArrow`, `VGrid`, `VSpatialGrid` and `VCell` are annotation and drafting concepts. They are free to copy and are not free to *own*: each becomes a public type that must be serialised, versioned, documented, node-ified and kept working in 3D forever, in service of a use case Spark does not have. They are discarded outright rather than parked — a parked type is a type someone eventually revives. |
 | **D14** | **v1 releases target Windows only** | Publish Linux and macOS artefacts too | Windows is where the AEC audience is, and each additional release target carries signing, packaging, installer and support cost that a single maintainer pays forever. macOS additionally needs an Apple Developer account and is not built at all. **But an ubuntu build-and-test job stays in CI**, because it is nearly free and it is the only thing that stops cross-platform support rotting silently — which would quietly convert **D1** from a strategic choice into wasted effort. Flagged explicitly as a judgement call rather than buried. |
@@ -414,14 +417,23 @@ could have gone differently also gets an ADR under `docs/adr/`; this table is th
 | # | Question | Needed by |
 |---|---|---|
 | Q1 | Do the three M1.5 spikes pass — GL on Windows and Linux, 2000 nodes at 60 fps, AvaloniaEdit completion? A failure changes the architecture, so the criteria must be written into TASKS.md before M1 begins. | Before M2 |
-| Q2 | `Spark.Geometry.Io` is `IsPackable` but is not among the NuGet IDs D11 records as checked and free. Is it available? | Before M1 publishes anything |
-| Q3 | **Half answered.** `Spark.Graph` now maps to a project: `Spark.Engine` became `IsPackable` with `PackageId=Spark.Graph`. `Spark.Docs` still maps to nothing — a defensive reservation, or a project missing from the layout? | M0 |
 | Q4 | `Directory.Build.props` promotes CS1591 to an error on **four** projects — `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io`, `Spark.Nodes.Core` — where the plan named three. Is `Spark.Geometry.Io` deliberately included? | M0 |
 | Q5 | Is Revit or AutoCAD the host that proves `Spark.Host` at M8? The host-thread scheduler is the same either way, but the add-in shell, licensing and test loop are not. | M8 |
 | Q6 | If **R1** forces the OCCT fallback, does an *optional* OCCT-backed package breach the no-native-dependencies promise, or is "the core is pure managed; this package is not, and says so" acceptable? FR-44 already discloses native binaries, which suggests the latter. | M6 |
 | Q7 | Which public STEP corpus is authoritative for validating the AP203/AP214 subset, and which third-party viewer is the reference? | M8 |
 | Q8 | Where does the website live, and who maintains it? | M8 |
-| Q10 | `src/Spark.Host/Spark.Host.csproj` sets `IsPackable=true` with no `PackageId` and no explanatory comment, so it would publish as `Spark.Host` — an ID nobody has checked, for a project **§11**, E12 and this table all describe as unpublished. Deliberate, or an oversight beside `Spark.Engine`'s clearly deliberate rename on the same day? | Before M1 publishes anything |
+
+**Q2, Q3 and Q10 are answered and withdrawn, all three by the same correction.** They asked,
+respectively, whether the `Spark.Geometry.Io` package ID was available; whether `Spark.Docs`
+mapped to a project or was a defensive reservation; and whether `Spark.Host` becoming
+`IsPackable` with no `PackageId` was deliberate or an oversight. **The answer to all three is
+that nothing is published**: `IsPackable` is now `false` for every project in the repository,
+no `PackageId` exists anywhere, and the assembly-name-versus-package-ID splits the questions
+were reasoning about are gone with it. `Spark.Geometry.Io`'s availability does not matter;
+`Spark.Docs` mapped to nothing because it was a reservation for a package that will not exist;
+`Spark.Host`'s `IsPackable=true` was an oversight, and it is removed rather than reconciled.
+See **D11** and [NOTES.md N14](NOTES.md). Recorded rather than deleted, because a question with
+its answer beside it stops the same three being asked again by the next reader of a `.csproj`.
 
 **Q9 is withdrawn.** *Is xunit v3 viable, with a costless fallback to 2.9.x?* Both test
 projects consume `xunit.v3 [4.0.0]` and eleven tests run green. The fallback turned out to

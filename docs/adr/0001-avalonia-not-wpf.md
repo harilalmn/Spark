@@ -51,7 +51,7 @@ exactly the thing the architecture tests forbid.
 A defensible sequencing argument: ship the Windows-only v1 on familiar ground, port when
 cross-platform actually matters. It lost because it means writing the shell twice, and the
 second write lands after third-party packages exist and the API surface has hardened under
-ADR-0009. The canvas, viewport and editor integrations are the three highest-risk pieces of
+ADR-0019. The canvas, viewport and editor integrations are the three highest-risk pieces of
 UI work in the project; doing them twice is worse than doing them once on the less familiar
 framework.
 

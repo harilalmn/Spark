@@ -11,8 +11,10 @@ Nothing else. You do not touch the engine, the UI, the viewport, or the node lib
 
 Spark's geometry kernel: a pure-managed BRep/NURBS kernel with no native dependencies. It
 replaces Autodesk's ProtoGeometry, which is the dependency the whole project exists to
-escape. It is also published as a standalone NuGet package, so it must stand on its own
-with no knowledge of graphs, nodes, screens or styling.
+escape. It must stand entirely on its own, with no knowledge of graphs, nodes, screens or
+styling: nothing above it in the reference graph is visible to it, and a user scripting
+against it in a code block meets it with no engine loaded. (It is **not** published as a
+NuGet package — nothing in this repository is; see `docs/NOTES.md` N14.)
 
 Read `docs/adr/0002-*`, `0003-*`, `0010-*` and `0011-*` before starting anything
 substantial. They constrain your design and they were decided deliberately.

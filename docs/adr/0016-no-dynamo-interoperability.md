@@ -59,8 +59,9 @@ the failure mode is identical to the silent one.
 
 Superficially the best of both: Spark ships nothing, and anyone who wants interop builds it
 against a documented extension point. It lost because the seam is not free. Held-open extension
-points shape the design around them, they appear in `Spark.Api` and are therefore frozen for
-1.x under ADR-0009, and they create a standing expectation that someone will fill them. A third
+points shape the design around them, they appear in `Spark.Api` and are therefore under
+deliberate change control for 1.x under ADR-0019, and they create a standing expectation that
+someone will fill them. A third
 party can already build an importer against the public graph-construction API with no special
 accommodation, which is the correct amount of support for it.
 

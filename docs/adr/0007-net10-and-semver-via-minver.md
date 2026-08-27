@@ -15,8 +15,8 @@ does, and its D11 records what happens when a plugin's dependencies want a newer
 host: `System.*` assemblies are on the trusted-platform list, so a newer copy beside the
 plugin is never consulted and the load fails outright. `DoodleSharp` uses calendar versioning,
 which suits an application nobody compiles against. Spark is neither of those: it is a
-standalone application first, and it publishes contract packages that other people build
-against.
+standalone application first, and it ships contract assemblies that other people build
+against — embedders referencing `Spark.Host`, and node authors referencing `Spark.Api`.
 
 ## Decision
 
@@ -59,8 +59,8 @@ which would quietly convert ADR-0001 from a strategic choice into wasted effort.
 
 CalVer communicates recency honestly and removes every argument about whether a change is
 breaking. It lost because `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io`, `Spark.Scripting`
-and `Spark.Nodes` are published contracts that people compile against, and under ADR-0009 the
-question "does upgrading break me?" has to be answerable from the number. `2026.8.27` does not
+and `Spark.Nodes.Core` are contract assemblies that people compile against, and under ADR-0019
+the question "does upgrading break me?" has to be answerable from the number. `2026.8.27` does not
 answer it.
 
 ### Hand-written version numbers in the csproj
@@ -74,8 +74,8 @@ they cannot.
 ### Positive
 
 One toolchain, one build matrix, one set of behaviour to test. The version number carries
-information a package consumer can act on, and the public-API baselines of ADR-0009 are what
-tell us when to bump the major. Exact pinning means a floating dependency cannot move our BCL
+information an embedder or a node author can act on, and the public-API baselines of ADR-0019
+are what make a change to the public surface visible in the diff that decides it. Exact pinning means a floating dependency cannot move our BCL
 requirements underneath us, which is the shape of `CADScript`'s Roslyn problem.
 
 ### Negative
@@ -95,5 +95,5 @@ people script against.
 ## Notes
 
 Revisit the TFM when a target host's runtime is known and a decision is actually blocked by
-it — not before. Revisit nothing about the versioning scheme; changing it after packages ship
+it — not before. Revisit nothing about the versioning scheme; changing it after releases ship
 is worse than any problem it could solve.

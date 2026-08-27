@@ -1,6 +1,6 @@
 # ADR-0009 — `Spark.Api` and `Spark.Geometry` are strictly additive across 1.x
 
-**Status:** Accepted
+**Status:** Superseded by ADR-0019
 **Date:** 2026-08-27
 **Deciders:** Nicety
 

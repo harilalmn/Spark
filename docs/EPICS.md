@@ -43,8 +43,7 @@ code in it, so none of them ever has to be retrofitted.
 
 **In scope.** The solution and its twelve project stubs, the reference graph, build and
 package properties, `.editorconfig`, licence, git metadata, versioning, the CI matrix and
-every CI job, public-API baselines, the agent definitions, and reserving the NuGet
-identifiers.
+every CI job, public-API baselines, and the agent definitions.
 
 **Out of scope.** Anything a user sees. Anything under `docs/` — that is [E10](#e10--documentation).
 The content of the test projects — that is [E11](#e11--quality-and-verification); this epic
@@ -82,15 +81,18 @@ exemption for everything that already exists.
       harness needs no job of its own, since it is a test project the `test` step already
       runs. The headless UI smoke has nothing to smoke until `Spark.UI` exists. None has run.*
 - [ ] A CI check asserts no native binaries appear in `Spark.Geometry`'s published output
-      (**E1-T20**).
+      (**E1-T20**). *`dotnet publish` output — nothing here is packaged for nuget.org.*
 - [ ] Benchmarks run nightly, not per-PR, with results committed as a git time series
       (**E1-T21**).
 - [ ] The release workflow refuses to publish when the computed version and the tag
       disagree (**E1-T22**).
 - [ ] Public-API baselines for `Spark.Api` and `Spark.Geometry` are checked in, so every
-      addition is a reviewed line in a text file (**E1-T23**).
-- [ ] The NuGet IDs recorded as free under **D11** are reserved (**E1-T24**). *Blocked on
-      the client's nuget.org account; not something the team can do.*
+      change to the public surface is a reviewed line in a text file (**E1-T23**). *A review
+      aid, not a compatibility guarantee — ADR-0019.*
+- [x] `IsPackable` is `false` for every project and no packaging metadata exists anywhere, so
+      the repository cannot publish to nuget.org by accident (**E1-T24**, withdrawn).
+      *Reserving NuGet IDs is withdrawn rather than done: **D11** settles that Spark consumes
+      packages and publishes none.*
 - [x] Every ADR citation in a build file points at the record it claims to (**E1-T29**).
       *The two that did not are now ADR-0017 and ADR-0018, both written and indexed. The
       docs harness checks every citation in build files and source comments, not just in
@@ -361,7 +363,8 @@ everybody else. This is enforced by `Spark.Architecture.Tests`, not by disciplin
       (**E5-T12**, **E5-T13**, **E5-T14**).
 - [ ] `Appearance` and `Displayable` live in `Spark.Api`, not the kernel, and a
       `Display.ByGeometryColor` node wraps. Unwrapped geometry renders with defaults, so
-      `Spark.Geometry` stays publishable standalone (**E5-T15**).
+      `Spark.Geometry` stays usable entirely on its own, with no notion of colour and no
+      reference to anything above it (**E5-T15**).
 
 **Status.** Not started.
 
@@ -615,8 +618,10 @@ user needs. XML doc = what this member does.*
 
 - [x] PRD, epics, task register, TODO, notes, working agreement, contributing guide and
       README exist and are honest about status (**E10-T1**).
-- [x] ADR-0001 to ADR-0018 exist with an index, mostly transcribing decisions already made
-      — which is the point of having made them explicitly (**E10-T2**).
+- [x] ADR-0001 to ADR-0019 exist with an index, mostly transcribing decisions already made
+      — which is the point of having made them explicitly (**E10-T2**). *ADR-0019 is the
+      exception and the interesting one: it supersedes ADR-0009, whose strictly-additive rule
+      rested on a public package ecosystem that **D11** establishes will not exist.*
 - [x] Every ADR cited anywhere in the repository — Markdown, source comments and build
       files alike — resolves to a record that exists, checked on every `dotnet test`
       (**E11-T1**).
@@ -643,7 +648,8 @@ user needs. XML doc = what this member does.*
       gaps left on deletion (**E10-T1**).
 
 **Status.** Partly done. As of 2026-08-27: the eight project documents exist and have been
-reconciled against the repository, eighteen ADRs exist with an index, and
+reconciled against the repository, nineteen ADRs exist with an index — one of them, ADR-0009,
+superseded by ADR-0019 — and
 `docs/help/concepts/lacing.md` exists. The rest of the help skeleton, the generated
 reference, the changelog fragments and every XML doc comment do not, and `docs/examples/`
 has not been created at all.
@@ -753,11 +759,16 @@ written and has never executed.
 **Goal.** `Spark.Host` runs inside a real CAD add-in, and a Windows user can install Spark
 from an installer that works.
 
-**In scope.** `Spark.Host`, `Spark.Cli`, packaging, the installer, the global tool, the
-release workflow, and the performance and accessibility passes that gate 1.0.
+**In scope.** `Spark.Host`, `Spark.Cli`, the Windows build, the installer, the portable zip,
+the release workflow, and the performance and accessibility passes that gate 1.0.
 
 **Out of scope.** macOS and Linux artefacts (**D14**). Any host-specific add-in shipped as
-a product — M8 proves the seam, it does not ship a Revit plugin.
+a product — M8 proves the seam, it does not ship a Revit plugin. And — worth saying plainly
+here, because an earlier revision of this epic said the opposite — **publishing anything to
+nuget.org**. Spark consumes NuGet packages and produces none; `IsPackable` is `false`
+repository-wide. Embedders reference `Spark.Host` from an install and node authors reference
+`Spark.Api` from an install, which is how CAD add-ins are built anyway. **D11**,
+[NOTES.md N14](NOTES.md).
 
 **Acceptance criteria**
 
@@ -770,16 +781,16 @@ a product — M8 proves the seam, it does not ship a Revit plugin.
 - [ ] `spark run`, `check`, `render`, `export`, `pkg`, `docs` and `graph` all work
       headlessly, and `spark run` produces output identical to the desktop app's
       (**E12-T5**).
-- [ ] The CLI publishes as the `Spark.Tool` dotnet global tool with the command `spark`
-      (**E12-T6**).
-- [ ] `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io`, `Spark.Nodes` (from
-      `Spark.Nodes.Core`), `Spark.Scripting`, `Spark.Tool` (from `Spark.Cli`) and
-      **`Spark.Graph` (from `Spark.Engine`)** publish to nuget.org; `Spark.Packages`,
-      `Spark.Viewport`, `Spark.UI` and `Spark.Desktop` do not (**E12-T7**). *`Spark.Engine`
-      is published after all, under a free ID, which is a change from the plan.
-      **`Spark.Host` is unreconciled**: it is `IsPackable` on disk with no `PackageId`, and
-      this epic says it should not publish — see **E12-T17** and
-      [PRD Q10](PRD.md#14-open-questions).*
+- [ ] The CLI ships as `spark.exe` inside the installer and the portable zip, beside the
+      desktop application (**E12-T5**, **E12-T9**, **E12-T10**). *`Spark.Cli` sets
+      `<AssemblyName>spark</AssemblyName>`; it is not a dotnet global tool and there is no
+      `Spark.Tool` package — **E12-T6** is withdrawn.*
+- [x] Nothing in the repository publishes to nuget.org: `IsPackable` is `false` for every
+      project, with no `PackageId`, `PackAsTool` or package metadata anywhere (**E12-T7**,
+      withdrawn; **E12-T17**, withdrawn). *Spark consumes NuGet packages and produces none —
+      **D11**. This reverses what an earlier revision of this epic said, and the two questions
+      it left open about `Spark.Host` and `Spark.Engine` are answered by the reversal rather
+      than settled on their own terms.*
 - [ ] A self-contained single-file ReadyToRun Windows build, a **signed** Inno Setup
       installer, and a portable zip (**E12-T8**, **E12-T9**, **E12-T10**).
 - [ ] The release workflow refuses to publish when the computed version and the tag disagree

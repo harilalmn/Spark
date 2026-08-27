@@ -14,7 +14,7 @@ MIT licensed. `net10.0`. No native dependencies.
 >
 > **This repository is scaffolding, gates and specification.** It contains a solution,
 > twelve empty project stubs, a reference graph, build properties, the project documents,
-> eighteen ADRs, the lacing specification, a CI workflow, and two test projects that check
+> nineteen ADRs, the lacing specification, a CI workflow, and two test projects that check
 > the repository against itself. **No product code has landed and been reviewed**, though
 > the first geometry value types are being written now.
 >
@@ -55,8 +55,8 @@ worth caring about:
    local functions, your own types.
 2. **The whole NuGet ecosystem is reachable.** Because the platform is .NET, package
    management comes nearly free: NuGet *is* the package manager, and any assembly — a
-   published package or a DLL you built this morning — becomes nodes by reflection, with no
-   attributes, no plugin and no manifest required.
+   package somebody else published or a DLL you built this morning — becomes nodes by
+   reflection, with no attributes, no plugin and no manifest required.
 3. **IntelliSense inside a code block knows the type on the incoming wire.** Once a port is
    connected, the compiler knows the upstream type, so typing `center.` offers `Point3d`
    members. This is the single most compelling thing Spark can do that Dynamo cannot, and
@@ -154,24 +154,29 @@ Three of those edges are missing on purpose, and each is load-bearing:
   headlessly — which is the only way viewport output becomes testable at all, and gives
   headless thumbnails and a GL fallback for free.
 - **`Spark.Api` sees only the BCL and `Spark.Geometry`** — never Roslyn, Avalonia, NuGet or
-  the engine. It is a contract, not a convenience library, and it must stay strictly
-  additive across all of 1.x, because contract assemblies cannot be side-by-sided.
+  the engine. It is a contract, not a convenience library, and because contract assemblies
+  cannot be side-by-sided, changes to it are deliberate rather than routine
+  ([ADR-0019](docs/adr/0019-deliberate-public-api-change-control.md)).
 
-## Packages
+## Packages: Spark consumes them, and publishes none
 
-Once there is something to publish, these go to nuget.org: `Spark.Api`, `Spark.Geometry`,
-`Spark.Geometry.Io`, `Spark.Nodes`, `Spark.Scripting`, `Spark.Graph`, and `Spark.Tool` — the
-CLI, as a dotnet global tool providing the `spark` command. (Of those, `Spark.Geometry.Io`
-has not yet been checked for availability — see [PRD Q2](docs/PRD.md#14-open-questions).)
+**Spark reads NuGet. It does not write it.** These two directions are easy to conflate, so
+they are stated separately.
 
-`Spark`, `Spark.Core`, `Spark.Engine` and `Spark.Cli` are already taken on nuget.org by
-other people. Only *package* IDs need to be unique, so three projects keep their names and
-publish under a different one: `Spark.Cli` → `Spark.Tool`, `Spark.Nodes.Core` →
-`Spark.Nodes`, and `Spark.Engine` → `Spark.Graph`. The one ID that genuinely had to be
-public, `Spark.Api`, is free. (**D11**)
+**Consuming is a core feature.** A Spark package is an ordinary NuGet package tagged `spark`
+with a `tools/spark.json` manifest, installed from nuget.org or a private feed — and a loose
+DLL you built this morning works the same way. Either becomes nodes by reflection, with no
+attributes, no plugin and no manifest required. That is Spark's answer to Dynamo's Package
+Manager, and reusing NuGet wholesale means protocol, hosting, auth, SemVer, dependency
+resolution and private feeds all come free. It is milestone M7; nothing of it is built yet.
 
-Nothing is published yet, and none of the free IDs is reserved yet
-([`E1-T24`](docs/TASKS.md)).
+**Publishing is not a feature at all.** Nothing in this repository goes to nuget.org.
+`IsPackable` is `false` for every project, with the reasoning in
+[`Directory.Build.props`](Directory.Build.props) and
+[NOTES.md N14](docs/NOTES.md). Embedders reference `Spark.Host` from an install and node
+authors reference `Spark.Api` and `Spark.Geometry` from an install, which is how CAD add-ins
+are built anyway. `Spark.Cli` builds `spark.exe` and ships beside the desktop application; it
+is not a dotnet global tool. (**D11**)
 
 ## Documentation
 
@@ -184,7 +189,7 @@ Nothing is published yet, and none of the free IDs is reserved yet
 | [docs/NOTES.md](docs/NOTES.md) | Numbered implementation notes: the non-obvious facts |
 | [AGENTS.md](AGENTS.md) | The working agreement. Read before committing |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | MIT, DCO sign-off, how to build, what a PR needs |
-| [docs/adr/](docs/adr/README.md) | Eighteen architecture decision records: what was decided, what was rejected, and what it costs |
+| [docs/adr/](docs/adr/README.md) | Nineteen architecture decision records: what was decided, what was rejected, and what it costs |
 | [docs/help/concepts/lacing.md](docs/help/concepts/lacing.md) | How lists, ranks and lacing work — **written before the engine, and the engine will be written to match it** |
 
 Still to come: the rest of `docs/help/`, and `docs/examples/` for worked example graphs

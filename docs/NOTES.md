@@ -131,10 +131,10 @@ member* — to an error, conditioned on the project name:
 ```
 
 **Why these four.** They are the projects whose public surface is somebody else's input.
-`Spark.Api` and `Spark.Geometry` are published contract packages that third-party node
-packages compile against; `Spark.Geometry.Io` publishes alongside them; and every public
-member of `Spark.Nodes.Core` becomes a **node**, whose XML summary becomes its runtime
-tooltip. An undocumented member there is not an untidy library, it is a node in the product
+`Spark.Api` and `Spark.Geometry` are the contract assemblies a third-party node library
+compiles against; `Spark.Geometry.Io` sits directly beside them in what a code block scripts
+against; and every public member of `Spark.Nodes.Core` becomes a **node**, whose XML summary
+becomes its runtime tooltip. An undocumented member there is not an untidy library, it is a node in the product
 with an empty description panel.
 
 **Why not everywhere.** `Spark.Engine`, `Spark.UI`, `Spark.Desktop` and the rest have
@@ -153,9 +153,12 @@ aspirational.** It is one of three: this, the docs harness (`E11-T1`), and the
 comment.
 
 **Discrepancy on record.** The approved plan named *three* projects here;
-`Directory.Build.props` covers four, adding `Spark.Geometry.Io`. Including it looks correct
-— it is `IsPackable` and publishes beside the other two — but it is an unreviewed
-divergence and is logged as [PRD Q4](PRD.md#14-open-questions).
+`Directory.Build.props` covers four, adding `Spark.Geometry.Io`. Including it looks correct —
+its readers and writers are part of the surface a code block scripts against, and a user
+exporting an OBJ meets it directly — but it is an unreviewed divergence and is logged as
+[PRD Q4](PRD.md#14-open-questions). The original justification for including it was that it
+was `IsPackable` beside the other two; that justification is gone (`N14`), and the question
+is left open on the merits rather than closed on a premise that no longer holds.
 
 ## N5 — `Spark.Nodes.Core` must never reference `Spark.Engine`
 
@@ -185,8 +188,9 @@ Two consequences follow, and both are intended:
 - **Anything a node needs from the engine must be a contract in `Spark.Api`** —
   `SparkList`, `SparkDiagnostic`, the node attributes, `Appearance` and `Displayable`.
   Which is a second reason to keep `Spark.Api` small and deliberate: it is a contract, not
-  a convenience library, and it cannot be side-by-sided, so it must be strictly additive
-  across all of 1.x (`E7-T4`, `R7`).
+  a convenience library, it cannot be side-by-sided, and every type added to it is a type a
+  user's own node DLL may end up compiled against — so changes to it are deliberate rather
+  than routine (`E7-T4`, `R7`, ADR-0019).
 
 The inconvenience is real and is accepted; it is listed in
 [TODO.md](TODO.md#known-and-deliberately-accepted) so it is not rediscovered as friction.
@@ -384,3 +388,43 @@ gap; a green stub is a lie with a tick beside it.
 The corollary applies when adding one: a check arrives **with** the first thing it can check,
 and its first run must be able to fail. If a new check passes the moment it is written, prove
 it can fail before committing it.
+
+## N14 — Nothing in this repository is published to nuget.org
+
+`Directory.Build.props` sets `<IsPackable>false</IsPackable>` for every project, with the
+reasoning in a comment beside it. There is no `PackageId`, no `PackAsTool`, no
+`ToolCommandName` and no package metadata anywhere in the twelve projects. This is a
+deliberate, checked position, not an oversight waiting to be corrected by whoever next opens
+a `.csproj`.
+
+**Spark consumes NuGet; it does not produce it.** The two directions are easy to conflate and
+the requirement only ever pointed one way:
+
+- **Consuming is a core feature and is unaffected.** `Spark.Packages` is a NuGet client, a
+  Spark package is an ordinary NuGet package tagged `spark`, and a user brings any .NET
+  library — a package from nuget.org, a private feed, or a DLL they built this morning — into
+  a graph and gets nodes from it by reflection. That is E7, FR-40 to FR-45, and it is the
+  equivalent of Dynamo's Package Manager.
+- **Producing is not a feature at all.** Nothing here goes to nuget.org. Embedders reference
+  `Spark.Host` from an install, and node authors reference `Spark.Api` and `Spark.Geometry`
+  from an install — which is how CAD add-ins are built anyway, because a Revit or AutoCAD
+  add-in is already resolving assemblies out of a directory rather than restoring them.
+
+Three things follow that a reader would otherwise get wrong:
+
+1. **A project's assembly name is its only name.** There is no package ID to be distinct
+   from it, so the assembly-name-versus-package-ID splits that earlier revisions of these
+   documents described — `Spark.Cli` → `Spark.Tool`, `Spark.Nodes.Core` → `Spark.Nodes`,
+   `Spark.Engine` → `Spark.Graph` — do not exist. `Spark.Cli` builds `spark.exe` through
+   `<AssemblyName>spark</AssemblyName>` and ships beside the desktop application; it is not
+   a dotnet global tool.
+2. **"Published output" in this repository means `dotnet publish`, never nuget.org.** The
+   no-native-binaries CI check (`E1-T20`, NFR-5) inspects the publish directory of
+   `Spark.Geometry`. Do not read it as a claim about packaging.
+3. **Public-API baselines are kept as a review aid, not as a compatibility guarantee.**
+   ADR-0019 explains what change control on `Spark.Api` and `Spark.Geometry` is now for, and
+   why the superseded ADR-0009 argued something stronger.
+
+`docs/adr/0019-deliberate-public-api-change-control.md` is the decision record; this note
+exists because the fact is discoverable only from a comment in a build file, and a fact that
+lives in one comment is a fact that gets re-litigated.

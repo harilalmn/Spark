@@ -97,7 +97,10 @@ jobs:
           echo "Changed files:"
           echo "$changed" | sed 's/^/  /'
 
-          needs_docs=$(echo "$changed" | grep -E '^(src/Spark\.Nodes\..*|.*PublicAPI\.(Shipped|Unshipped)\.txt)$' || true)
+          # Any contract surface, not just the node library. An earlier version keyed only
+          # on Spark.Nodes and the API baselines, so the entire geometry kernel could change
+          # without tripping the gate - which is exactly what happened on its first real use.
+          needs_docs=$(echo "$changed" | grep -E '^(src/Spark\.(Api|Geometry|Geometry\.Io|Nodes\.Core)/.*\.cs|.*PublicAPI\.(Shipped|Unshipped)\.txt)$' || true)
           touched_docs=$(echo "$changed" | grep -E '^(docs/|README\.md|AGENTS\.md)' || true)
 
           if [ -n "$needs_docs" ] && [ -z "$touched_docs" ]; then

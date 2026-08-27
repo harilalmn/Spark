@@ -5,8 +5,9 @@
 
     Version is NOT set here. It comes from MinVer, derived from the nearest git tag
     (see ADR-0007 and AGENTS.md). Spark uses SemVer rather than calendar versioning
-    because Spark.Api and Spark.Geometry are published contract packages: the version
-    number has to communicate breakage, which a date cannot do.
+    because Spark.Api and Spark.Geometry are contract assemblies that embedders and node
+    authors build against from an install: the version number has to answer "does
+    upgrading break me?", which a date cannot.
   -->
 
   <PropertyGroup>
@@ -73,8 +74,8 @@
     Spark.Api is the node-authoring contract, Spark.Geometry and Spark.Geometry.Io are
     the kernel a code block scripts against, and Spark.Nodes.Core's XML comments become
     the tooltips on every built-in node. Spark.Engine is deliberately NOT on this list:
-    it is published for embedders, but its surface is consumed by code rather than
-    read by people, so the same standard would be cost without the benefit.
+    an embedder builds against it, but its surface is consumed by code rather than read
+    by people, so the same standard would be cost without the benefit.
   -->
   <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Spark.Api'
                          Or '$(MSBuildProjectName)' == 'Spark.Geometry'
