@@ -107,7 +107,7 @@ public sealed class DocumentationChecks
         {
             string directory = Path.GetDirectoryName(document)!;
 
-            foreach (Match match in link.Matches(File.ReadAllText(document)))
+            foreach (Match match in link.Matches(WithoutFencedCode(File.ReadAllText(document))))
             {
                 string target = match.Groups[1].Value;
 
@@ -221,6 +221,38 @@ public sealed class DocumentationChecks
         }
 
         Assert.Empty(problems);
+    }
+
+    /// <summary>
+    /// Blanks out fenced code blocks, so that a sample's contents are not mistaken for the
+    /// document's own markup.
+    /// </summary>
+    /// <remarks>
+    /// A fenced block routinely contains links that are illustrative rather than navigable —
+    /// template text quoting a file we have not written yet, or markup copied verbatim from
+    /// another project. Treating those as broken links makes the check cry wolf, and a check
+    /// that cries wolf gets suppressed. Line structure is preserved so any future line-numbered
+    /// diagnostic still points at the right place.
+    /// </remarks>
+    private static string WithoutFencedCode(string text)
+    {
+        string[] lines = text.Split('\n');
+        bool inFence = false;
+
+        for (int i = 0; i < lines.Length; i++)
+        {
+            if (lines[i].TrimStart().StartsWith("```", StringComparison.Ordinal))
+            {
+                inFence = !inFence;
+                lines[i] = string.Empty;
+            }
+            else if (inFence)
+            {
+                lines[i] = string.Empty;
+            }
+        }
+
+        return string.Join('\n', lines);
     }
 
     private static bool ContainsExample(string text)
