@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The viewport's testable half. Spark.Viewport has no Avalonia dependency by architecture rule,
+    which is exactly what lets its camera, scene bookkeeping, mesh generation and even its GL
+    backend's buffer management be tested with no window and no GPU.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Spark.Viewport/Spark.Viewport.csproj" />
+  </ItemGroup>
+
+</Project>

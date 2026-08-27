@@ -1,0 +1,88 @@
+<!--
+  Spark's palette, as Avalonia resources, over the Fluent theme.
+
+  Every hex here is the value printed in docs/help/concepts/design-language.md §2 and is
+  duplicated in SparkPalette.cs, which is what the immediate-mode canvas draws from. The
+  duplication is deliberate: the canvas cannot afford a resource lookup per node per frame.
+  If the two ever disagree, grep for the hex.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Surfaces (§2.2). Hover and press step DOWN this ladder, never up. -->
+  <Color x:Key="SparkBackgroundVoid">#12151A</Color>
+  <Color x:Key="SparkCanvasBackground">#171B21</Color>
+  <Color x:Key="SparkSurfaceSunken">#1A1E24</Color>
+  <Color x:Key="SparkSurfaceBase">#23272F</Color>
+  <Color x:Key="SparkSurfaceBaseHover">#1D2128</Color>
+  <Color x:Key="SparkSurfaceBasePressed">#181C22</Color>
+  <Color x:Key="SparkSurfaceRaised">#2A2F38</Color>
+  <Color x:Key="SparkSurfaceRaisedHover">#232830</Color>
+  <Color x:Key="SparkSurfaceRaisedPressed">#1C2027</Color>
+  <Color x:Key="SparkSurfaceFloat">#2E3440</Color>
+
+  <!-- Text (§2.4). The lowest ratio anywhere in this palette is 4.56:1. -->
+  <Color x:Key="SparkTextPrimary">#F2F5FA</Color>
+  <Color x:Key="SparkTextSecondary">#C6CDD9</Color>
+  <Color x:Key="SparkTextMuted">#A4ADBB</Color>
+  <Color x:Key="SparkTextDisabled">#949DAC</Color>
+  <Color x:Key="SparkTextInverse">#141821</Color>
+
+  <!-- Borders, accent, semantics (§2.5). -->
+  <Color x:Key="SparkBorderHairline">#343A45</Color>
+  <Color x:Key="SparkBorderControl">#7C8595</Color>
+  <Color x:Key="SparkBorderStrong">#9AA2B1</Color>
+  <Color x:Key="SparkLipRest">#3E4654</Color>
+  <Color x:Key="SparkLipHover">#8674D6</Color>
+  <Color x:Key="SparkAccent">#A98BFF</Color>
+  <Color x:Key="SparkAccentHover">#C0A8FF</Color>
+  <Color x:Key="SparkAccentPress">#D4C4FF</Color>
+  <Color x:Key="SparkFocusRing">#CDBCFF</Color>
+  <Color x:Key="SparkFocusContour">#0C0E13</Color>
+  <Color x:Key="SparkStateError">#FF7B82</Color>
+  <Color x:Key="SparkStateWarning">#F0A63C</Color>
+  <Color x:Key="SparkStateSuccess">#5FD39A</Color>
+  <Color x:Key="SparkStateInfo">#68B6F2</Color>
+
+  <SolidColorBrush x:Key="SparkBackgroundVoidBrush" Color="{StaticResource SparkBackgroundVoid}" />
+  <SolidColorBrush x:Key="SparkCanvasBackgroundBrush" Color="{StaticResource SparkCanvasBackground}" />
+  <SolidColorBrush x:Key="SparkSurfaceSunkenBrush" Color="{StaticResource SparkSurfaceSunken}" />
+  <SolidColorBrush x:Key="SparkSurfaceBaseBrush" Color="{StaticResource SparkSurfaceBase}" />
+  <SolidColorBrush x:Key="SparkSurfaceBaseHoverBrush" Color="{StaticResource SparkSurfaceBaseHover}" />
+  <SolidColorBrush x:Key="SparkSurfaceBasePressedBrush" Color="{StaticResource SparkSurfaceBasePressed}" />
+  <SolidColorBrush x:Key="SparkSurfaceRaisedBrush" Color="{StaticResource SparkSurfaceRaised}" />
+  <SolidColorBrush x:Key="SparkSurfaceRaisedHoverBrush" Color="{StaticResource SparkSurfaceRaisedHover}" />
+  <SolidColorBrush x:Key="SparkSurfaceRaisedPressedBrush" Color="{StaticResource SparkSurfaceRaisedPressed}" />
+  <SolidColorBrush x:Key="SparkSurfaceFloatBrush" Color="{StaticResource SparkSurfaceFloat}" />
+
+  <SolidColorBrush x:Key="SparkTextPrimaryBrush" Color="{StaticResource SparkTextPrimary}" />
+  <SolidColorBrush x:Key="SparkTextSecondaryBrush" Color="{StaticResource SparkTextSecondary}" />
+  <SolidColorBrush x:Key="SparkTextMutedBrush" Color="{StaticResource SparkTextMuted}" />
+  <SolidColorBrush x:Key="SparkTextDisabledBrush" Color="{StaticResource SparkTextDisabled}" />
+  <SolidColorBrush x:Key="SparkTextInverseBrush" Color="{StaticResource SparkTextInverse}" />
+
+  <SolidColorBrush x:Key="SparkBorderHairlineBrush" Color="{StaticResource SparkBorderHairline}" />
+  <SolidColorBrush x:Key="SparkBorderControlBrush" Color="{StaticResource SparkBorderControl}" />
+  <SolidColorBrush x:Key="SparkBorderStrongBrush" Color="{StaticResource SparkBorderStrong}" />
+  <SolidColorBrush x:Key="SparkLipRestBrush" Color="{StaticResource SparkLipRest}" />
+  <SolidColorBrush x:Key="SparkLipHoverBrush" Color="{StaticResource SparkLipHover}" />
+  <SolidColorBrush x:Key="SparkAccentBrush" Color="{StaticResource SparkAccent}" />
+  <SolidColorBrush x:Key="SparkFocusRingBrush" Color="{StaticResource SparkFocusRing}" />
+  <SolidColorBrush x:Key="SparkFocusContourBrush" Color="{StaticResource SparkFocusContour}" />
+
+  <!--
+    Fluent's own tokens, overridden so that any control we have not styled by hand still lands
+    inside the palette rather than showing Fluent's default blue-grey.
+  -->
+  <SolidColorBrush x:Key="ThemeBackgroundBrush" Color="{StaticResource SparkSurfaceBase}" />
+  <SolidColorBrush x:Key="ThemeForegroundBrush" Color="{StaticResource SparkTextPrimary}" />
+  <SolidColorBrush x:Key="ThemeBorderMidBrush" Color="{StaticResource SparkBorderHairline}" />
+  <SolidColorBrush x:Key="SystemControlForegroundBaseHighBrush" Color="{StaticResource SparkTextPrimary}" />
+  <SolidColorBrush x:Key="SystemControlBackgroundAltHighBrush" Color="{StaticResource SparkSurfaceBase}" />
+  <SolidColorBrush x:Key="SystemAccentColorBrush" Color="{StaticResource SparkAccent}" />
+  <Color x:Key="SystemAccentColor">#A98BFF</Color>
+  <Color x:Key="SystemAccentColorLight1">#C0A8FF</Color>
+  <Color x:Key="SystemAccentColorLight2">#D4C4FF</Color>
+  <Color x:Key="SystemAccentColorDark1">#8674D6</Color>
+
+</ResourceDictionary>

@@ -1,0 +1,92 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:Spark.UI.Controls"
+        xmlns:vm="clr-namespace:Spark.UI.ViewModels"
+        x:Class="Spark.UI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        x:CompileBindings="True"
+        Title="Spark"
+        Width="1480"
+        Height="900"
+        MinWidth="720"
+        MinHeight="480">
+
+  <!--
+    The shell is a Grid with splitters rather than a DockControl. Dock.Avalonia is referenced and
+    is the intended home for this layout, but its control templates ship in a separate package
+    (Dock.Avalonia.Themes.Fluent) that is not in Directory.Packages.props, and without them a
+    DockControl has no template and renders nothing. The serialisable layout model this grid is
+    driven from — Shell/WorkspaceLayout.cs, with reset and named presets — is the part that has
+    to exist either way, and it carries over unchanged when the theme package lands.
+  -->
+
+  <Grid RowDefinitions="Auto,*,Auto">
+
+    <!-- Toolbar. E2 chips on bg.void; the active workspace carries an accent bottom bar as well
+         as a pressed fill, because colour is never the only carrier of meaning. -->
+    <Border Grid.Row="0" Classes="chrome" Padding="8,6">
+      <StackPanel Orientation="Horizontal" Spacing="6">
+        <TextBlock Text="SPARK" Classes="caption" VerticalAlignment="Center" Margin="4,0,12,0" />
+
+        <Button Classes="toolbar" Content="Default"
+                Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Default" />
+        <Button Classes="toolbar" Content="Modelling"
+                Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Modelling" />
+        <Button Classes="toolbar" Content="Authoring"
+                Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Authoring" />
+        <Button Classes="toolbar" Content="Presenting"
+                Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Presenting" />
+
+        <Border Width="1" Margin="6,2" Background="{DynamicResource SparkBorderHairlineBrush}" />
+
+        <Button Classes="toolbar" Content="Reset layout" Command="{Binding ResetLayoutCommand}" />
+        <Button Classes="toolbar" Content="Zoom to fit" Click="OnZoomToFit" />
+        <Button Classes="toolbar" Content="Frame viewport" Click="OnFrameViewport" />
+        <Button Classes="toolbar" Content="2000 nodes" Click="OnLoadSynthetic" />
+        <Button Classes="toolbar" Content="Demo graph" Click="OnLoadDemo" />
+      </StackPanel>
+    </Border>
+
+    <Grid Grid.Row="1" ColumnDefinitions="240,4,*,4,300" x:Name="ShellColumns">
+
+      <Border Grid.Column="0" Classes="pane" x:Name="LibraryPane">
+        <StackPanel>
+          <TextBlock Classes="paneTitle" Text="LIBRARY" />
+          <TextBlock Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
+                     Text="Out of scope for this pass. The pane exists so the shell layout, its splitters and its workspace presets are real rather than sketched." />
+        </StackPanel>
+      </Border>
+
+      <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+
+      <Grid Grid.Column="2" RowDefinitions="*,4,2*" x:Name="CentreRows">
+        <Border Grid.Row="0" Classes="pane" Padding="1">
+          <controls:GraphCanvas x:Name="Canvas" />
+        </Border>
+
+        <GridSplitter Grid.Row="1" ResizeDirection="Rows" />
+
+        <Border Grid.Row="2" Classes="pane" Padding="1">
+          <controls:ViewportControl x:Name="Viewport" />
+        </Border>
+      </Grid>
+
+      <GridSplitter Grid.Column="3" ResizeDirection="Columns" />
+
+      <Border Grid.Column="4" Classes="pane" x:Name="InspectorPane">
+        <StackPanel>
+          <TextBlock Classes="paneTitle" Text="PROPERTIES" />
+          <TextBlock Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
+                     Text="Out of scope for this pass." />
+          <TextBlock Classes="paneTitle" Text="VIEWPORT" />
+          <TextBlock Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
+                     Text="{Binding ViewportStatusText}" />
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <Border Grid.Row="2" Classes="chrome" Padding="10,4">
+      <TextBlock Classes="caption" Text="{Binding StatusText}" />
+    </Border>
+  </Grid>
+</Window>

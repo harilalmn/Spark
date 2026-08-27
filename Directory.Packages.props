@@ -54,6 +54,14 @@
     <PackageVersion Include="Avalonia.AvaloniaEdit" Version="[12.0.0]" />
     <PackageVersion Include="Dock.Avalonia" Version="[12.1.0.4]" />
     <PackageVersion Include="Dock.Model.Mvvm" Version="[12.1.0.4]" />
+    <!--
+      Dock.Avalonia ships its control templates in this companion package. Without it a
+      DockControl has no template and renders nothing at all - which is not an obvious
+      failure. Pinned here so the version is decided; the PackageReference arrives with
+      the slice that implements docking. The shell currently uses Grid + GridSplitter
+      driven by a serialisable WorkspaceLayout, and that layout model carries over.
+    -->
+    <PackageVersion Include="Dock.Avalonia.Themes.Fluent" Version="[12.1.0.4]" />
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="[8.4.2]" />
   </ItemGroup>
 
@@ -61,6 +69,13 @@
     <PackageVersion Include="xunit.v3" Version="[4.0.0]" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="[4.0.0]" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="[18.9.0]" />
+    <!--
+      Used for HeadlessUnitTestSession only. Its [AvaloniaFact] attribute is compiled
+      against xunit.v3 3.2.2 and calls TestIntrospectionHelper.GetTestCaseDetails with a
+      signature that no longer exists in 4.0.0, so every such test fails at DISCOVERY
+      with MissingMethodException rather than at run time. Headless UI tests therefore
+      drive the session directly under a plain [Fact] and take no xunit coupling.
+    -->
     <PackageVersion Include="Avalonia.Headless.XUnit" Version="[12.1.1]" />
     <!-- Property-based testing on the kernel. Non-negotiable from M1 — see ADR-0018. -->
     <PackageVersion Include="CsCheck" Version="[4.8.0]" />

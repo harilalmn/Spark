@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The canvas's testable half: the spatial index, the pan-and-zoom transform, the level-of-detail
+    thresholds, the workspace layout model, and the palette's contrast arithmetic.
+
+    None of these need a window, which is deliberate. ADR-0013 makes the canvas one hand-drawn
+    control, so the framework gives us nothing for free — and the compensation is that the logic
+    underneath is ordinary managed code with no framework dependency in it at all.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Spark.UI/Spark.UI.csproj" />
+  </ItemGroup>
+
+  <!--
+    Headless Avalonia for the input tests. Input is the specific place where "it compiles" and
+    "it works" diverge on a hand-drawn canvas: nothing in the framework routes a click to a node,
+    so the routing is ours and has to be exercised.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Headless.XUnit" />
+  </ItemGroup>
+
+</Project>

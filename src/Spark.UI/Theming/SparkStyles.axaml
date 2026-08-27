@@ -1,0 +1,117 @@
+<!--
+  The hand-written half of the theme: the controls the shell actually uses.
+
+  The one rule that shapes every selector below is §5.1 — hover moves a surface AWAY from the
+  colour of the text on it. Spark's surfaces are dark and carry light text, so hover DARKENS
+  them and press darkens them further. Contrast rises at every step; it never falls. A pull
+  request that reverses one of these is rejected on that ground alone.
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{DynamicResource SparkBackgroundVoidBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SparkTextPrimaryBrush}" />
+    <Setter Property="FontFamily" Value="Inter, Segoe UI Variable Text, Segoe UI, Noto Sans, sans-serif" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+
+  <Style Selector="TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource SparkTextSecondaryBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.primary">
+    <Setter Property="Foreground" Value="{DynamicResource SparkTextPrimaryBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.muted">
+    <Setter Property="Foreground" Value="{DynamicResource SparkTextMutedBrush}" />
+  </Style>
+
+  <!-- Caption: 11 px is the floor. Nothing in Spark is set smaller, at any scale, in any state. -->
+  <Style Selector="TextBlock.caption">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{DynamicResource SparkTextMutedBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.paneTitle">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{DynamicResource SparkTextMutedBrush}" />
+    <Setter Property="Margin" Value="10,8,10,6" />
+  </Style>
+
+  <!-- Panels sit on surface.base with a hairline divider. A hairline is decorative and is never
+       a control boundary; border.control exists for that. -->
+  <Style Selector="Border.pane">
+    <Setter Property="Background" Value="{DynamicResource SparkSurfaceBaseBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SparkBorderHairlineBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <Style Selector="Border.chrome">
+    <Setter Property="Background" Value="{DynamicResource SparkBackgroundVoidBrush}" />
+  </Style>
+
+  <!--
+    E2 raised buttons. The shadow and the 1 px lit lip are the neumorphism; the label is what
+    identifies the control, so a labelled button carries no border (§4.6).
+  -->
+  <Style Selector="Button.toolbar">
+    <Setter Property="Padding" Value="10,4" />
+    <Setter Property="MinHeight" Value="26" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource SparkTextPrimaryBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SparkSurfaceRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SparkLipRestBrush}" />
+    <Setter Property="BorderThickness" Value="1,1,0,0" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+
+  <Style Selector="Button.toolbar /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SparkSurfaceRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SparkLipRestBrush}" />
+    <Setter Property="BorderThickness" Value="1,1,0,0" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+
+  <!-- 12.30:1 -> 13.55:1. Darker, not lighter. -->
+  <Style Selector="Button.toolbar:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SparkSurfaceRaisedHoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SparkLipHoverBrush}" />
+  </Style>
+
+  <!-- 13.55:1 -> 14.95:1, and the lip is dropped because a pressed control is inset, not raised. -->
+  <Style Selector="Button.toolbar:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SparkSurfaceRaisedPressedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SparkBorderHairlineBrush}" />
+  </Style>
+
+  <!-- Disabled removes DEPTH, not contrast: flat fill, no lip, no hover, text still above 4.5:1. -->
+  <Style Selector="Button.toolbar:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SparkSurfaceSunkenBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource SparkTextDisabledBrush}" />
+  </Style>
+
+  <!-- The active workspace carries a 2 px accent bottom bar as well as the raised fill, because
+       colour is never the only carrier of meaning. -->
+  <Style Selector="Button.toolbar.active /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SparkSurfaceRaisedPressedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SparkAccentBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,2" />
+  </Style>
+
+  <!-- Splitters are dock gutters and sit on bg.void, which carries no elevation of its own. -->
+  <Style Selector="GridSplitter">
+    <Setter Property="Background" Value="{DynamicResource SparkBackgroundVoidBrush}" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+  </Style>
+
+  <Style Selector="GridSplitter:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SparkBorderStrongBrush}" />
+  </Style>
+
+</Styles>

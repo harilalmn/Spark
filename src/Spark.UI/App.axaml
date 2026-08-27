@@ -1,0 +1,26 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Spark.UI.App"
+             RequestedThemeVariant="Dark">
+
+  <!--
+    Spark v1 ships a dark theme only, and the variant is pinned rather than following the
+    operating system. A neumorphic system is the worst possible candidate for a naive colour
+    inversion — see design-language.md §2.7 for what a light theme would actually cost — so
+    following the OS would produce a broken light theme rather than no light theme.
+  -->
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://Spark.UI/Theming/SparkTheme.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme />
+    <StyleInclude Source="avares://Spark.UI/Theming/SparkStyles.axaml" />
+  </Application.Styles>
+
+</Application>

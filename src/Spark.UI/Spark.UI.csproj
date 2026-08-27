@@ -2,6 +2,12 @@
 
   <PropertyGroup>
     <Description>Spark's Avalonia controls and view models: the graph canvas, node library, editor host, docking and help.</Description>
+
+    <!--
+      Compiled bindings on by default, so a binding error is a compile error rather than a silent
+      blank in the UI. Every view sets x:DataType; a view that does not fails to build.
+    -->
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
 
   <ItemGroup>

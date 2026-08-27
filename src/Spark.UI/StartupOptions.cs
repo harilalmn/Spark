@@ -1,0 +1,119 @@
+using System;
+using System.Globalization;
+
+namespace Spark.UI;
+
+/// <summary>
+/// What the entry point learned from the command line. Kept in <c>Spark.UI</c> rather than in
+/// <c>Spark.Desktop</c> so the window can read it without the executable having to reach into the
+/// view layer to configure it.
+/// </summary>
+/// <param name="SyntheticNodeCount">
+/// How many synthetic nodes to load instead of the demo graph, or zero for the demo graph.
+/// </param>
+/// <param name="BenchmarkFrames">
+/// How many frames to measure before printing a summary and exiting, or zero to run normally.
+/// </param>
+/// <param name="ScreenshotPrefix">
+/// A file path prefix to write <c>-shell.png</c> and <c>-viewport.png</c> to before exiting, or
+/// null to run normally.
+/// </param>
+/// <param name="BenchmarkZoom">
+/// A zoom to pin the benchmark at, or zero to sweep. Pinning is what separates "how much does the
+/// graph cost" from "how much does what is on screen cost", which is the claim ADR-0013 actually
+/// makes.
+/// </param>
+public readonly record struct StartupOptions(
+    int SyntheticNodeCount, int BenchmarkFrames, double BenchmarkZoom, string? ScreenshotPrefix)
+{
+    /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
+    public static StartupOptions Default => new(0, 0, 0, null);
+
+    /// <summary>True when the window should run the canvas benchmark and then exit.</summary>
+    public bool IsBenchmark => BenchmarkFrames > 0;
+
+    /// <summary>True when the window should capture images and then exit.</summary>
+    public bool IsScreenshot => !string.IsNullOrWhiteSpace(ScreenshotPrefix);
+
+    /// <summary>
+    /// Parses the command line.
+    /// </summary>
+    /// <param name="args">The raw arguments.</param>
+    /// <returns>The options, defaulted where nothing was said.</returns>
+    /// <remarks>
+    /// <para>
+    /// Two switches, both aimed at settling ADR-0013's bet rather than at users:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><c>--nodes N</c> loads N synthetic nodes instead of the demo graph.</item>
+    /// <item>
+    /// <c>--canvas-benchmark [frames]</c> drives a fixed pan-and-zoom cycle for that many frames,
+    /// prints the frame-time distribution and exits. It implies <c>--nodes 2000</c> unless a count
+    /// is given, because 2,000 is the number the ADR names.
+    /// </item>
+    /// <item><c>--zoom Z</c> pins the benchmark at one zoom instead of sweeping.</item>
+    /// <item>
+    /// <c>--screenshot PREFIX</c> writes <c>PREFIX-shell.png</c> and <c>PREFIX-viewport.png</c> and
+    /// exits. The viewport image is a GPU read-back rather than a window grab, so it works over a
+    /// locked session and in CI, where a screen capture returns the lock screen.
+    /// </item>
+    /// </list>
+    /// </remarks>
+    public static StartupOptions Parse(string[]? args)
+    {
+        if (args is null || args.Length == 0)
+        {
+            return Default;
+        }
+
+        int nodes = 0;
+        int frames = 0;
+        double zoom = 0;
+        string? screenshot = null;
+
+        for (int i = 0; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--nodes" when i + 1 < args.Length:
+                    nodes = ParseCount(args[++i], nodes);
+                    break;
+
+                case "--canvas-benchmark":
+                    frames = 600;
+                    if (i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal))
+                    {
+                        frames = ParseCount(args[++i], frames);
+                    }
+
+                    break;
+
+                case "--zoom" when i + 1 < args.Length:
+                    zoom = double.TryParse(
+                        args[++i], NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+                        ? parsed
+                        : 0;
+                    break;
+
+                case "--screenshot" when i + 1 < args.Length:
+                    screenshot = args[++i];
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        if (frames > 0 && nodes == 0)
+        {
+            nodes = 2000;
+        }
+
+        return new StartupOptions(nodes, frames, zoom, screenshot);
+    }
+
+    private static int ParseCount(string text, int fallback) =>
+        int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) && value > 0
+            ? value
+            : fallback;
+}
