@@ -46,6 +46,12 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
 
+    <!--
+      Nothing in this repository is published to nuget.org. Spark CONSUMES NuGet
+      packages so that a user can bring any .NET library into a graph and get nodes
+      from it; it does not publish its own. Embedders and node authors reference the
+      assemblies from an install, which is how CAD add-ins are built anyway.
+    -->
     <IsPackable>false</IsPackable>
     <IsTestProject>false</IsTestProject>
 
@@ -53,11 +59,8 @@
     <Company>Nicety</Company>
     <Product>Spark</Product>
     <Copyright>Copyright (c) Nicety</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/harilalmn/Spark</PackageProjectUrl>
     <RepositoryUrl>https://github.com/harilalmn/Spark</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>node-graph;visual-programming;dataflow;geometry;nurbs;brep;parametric;cad;aec</PackageTags>
   </PropertyGroup>
 
   <!--
@@ -82,6 +85,25 @@
 
   <ItemGroup>
     <PackageReference Include="MinVer" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+  </ItemGroup>
+
+  <!--
+    Public API baselines on the contract projects. Every addition or change to a public
+    surface becomes a line in PublicAPI.Unshipped.txt, which makes it a reviewed diff
+    rather than something noticed later.
+
+    Since Spark publishes nothing to nuget.org (see ADR-0019), this is change control
+    rather than a compatibility guarantee - but the geometry kernel is what every other
+    kernel type is built on, so churn there is expensive regardless of who consumes it.
+    It also feeds the docs-freshness CI job, which keys on these files.
+  -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'Spark.Api'
+                     Or '$(MSBuildProjectName)' == 'Spark.Geometry'
+                     Or '$(MSBuildProjectName)' == 'Spark.Geometry.Io'
+                     Or '$(MSBuildProjectName)' == 'Spark.Nodes.Core'">
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
   </ItemGroup>
 
   <PropertyGroup>

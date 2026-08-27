@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <IsPackable>true</IsPackable>
     <Description>Roslyn-backed C# scripting for Spark code blocks: compilation, rewriting, source maps, reference resolution and completion.</Description>
   </PropertyGroup>
 

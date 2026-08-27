@@ -4,11 +4,7 @@
     <OutputType>Exe</OutputType>
     <AssemblyName>spark</AssemblyName>
     <RootNamespace>Spark.Cli</RootNamespace>
-    <IsPackable>true</IsPackable>
-    <PackAsTool>true</PackAsTool>
-    <ToolCommandName>spark</ToolCommandName>
-    <PackageId>Spark.Tool</PackageId>
-    <Description>The Spark command line: run, check, render, export and inspect graphs headlessly. Install with dotnet tool install -g Spark.Tool.</Description>
+    <Description>The Spark command line: run, check, render, export and inspect graphs headlessly. Ships beside the desktop application.</Description>
   </PropertyGroup>
 
   <ItemGroup>

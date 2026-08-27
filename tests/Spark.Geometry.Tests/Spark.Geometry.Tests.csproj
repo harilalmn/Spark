@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Example-based tests for the geometry kernel. Property-based tests for the same code
+    live next door in Spark.Geometry.Properties; the agent standard is both, not either.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Spark.Geometry/Spark.Geometry.csproj" />
+  </ItemGroup>
+
+</Project>

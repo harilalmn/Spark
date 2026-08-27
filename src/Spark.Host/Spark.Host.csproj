@@ -1,13 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!--
-      Published because embedding is a goal, not an afterthought (ADR-0005): a Revit or
-      AutoCAD add-in hosting Spark needs SparkSession and IHostServices from NuGet, and
-      that is this assembly. The package ID is just the assembly name - unlike
-      Spark.Engine, Spark.Host was still free on nuget.org.
-    -->
-    <IsPackable>true</IsPackable>
     <Description>The Spark composition root. Owns session lifetime and the host services seam that lets Spark be embedded in a CAD application.</Description>
   </PropertyGroup>
 

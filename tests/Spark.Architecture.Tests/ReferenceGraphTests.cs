@@ -73,12 +73,32 @@ public sealed class ReferenceGraphTests
     /// ADR-0002 promises no native dependencies in the default build. Clipper2's C# build
     /// is pure managed, and it is the only third-party dependency the kernel is allowed.
     /// Anything else arriving here needs its transitive native content checked first.
+    /// <para>
+    /// This asserts a ceiling rather than an exact set, so it holds both before the planar
+    /// boolean pipeline brings Clipper2 in and after. An exact-set assertion had to be
+    /// edited the moment the unused reference was removed, which is a test tracking an
+    /// implementation detail rather than the rule it exists to protect.
+    /// </para>
     /// </summary>
+    /// <remarks>
+    /// This asserts a ceiling, not an exact set. Clipper2 is <b>not</b> referenced at present:
+    /// nothing in the kernel uses it until the planar boolean pipeline lands, and a package
+    /// reference that no source file consumes still appears in the published nuspec, so
+    /// consumers would acquire a dependency the library does not actually have. It comes back
+    /// with the code that needs it, and this test keeps holding either way — what it must
+    /// never permit is a <i>second</i> third-party package arriving unnoticed.
+    /// </remarks>
     [Fact]
-    public void SparkGeometryDependsOnNothingButClipper()
+    public void SparkGeometryTakesNoThirdPartyDependencyBeyondClipper()
     {
         Assert.Empty(ProjectReferencesOf("Spark.Geometry"));
-        Assert.Equal(["Clipper2"], PackageReferencesOf("Spark.Geometry").Where(IsNotAmbient).Order());
+
+        string[] packages = PackageReferencesOf("Spark.Geometry")
+            .Where(IsNotAmbient)
+            .Order()
+            .ToArray();
+
+        Assert.All(packages, package => Assert.Equal("Clipper2", package));
     }
 
     /// <summary>

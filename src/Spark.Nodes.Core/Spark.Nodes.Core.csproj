@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <IsPackable>true</IsPackable>
-    <PackageId>Spark.Nodes</PackageId>
     <Description>The built-in Spark node library: geometry, maths, lists, strings, logic, input and output.</Description>
   </PropertyGroup>
 

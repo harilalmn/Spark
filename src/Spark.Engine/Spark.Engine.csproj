@@ -1,13 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <IsPackable>true</IsPackable>
-    <!--
-      The assembly is Spark.Engine but the package is Spark.Graph, because
-      Spark.Engine was already taken on nuget.org. The same split already exists
-      for Spark.Nodes.Core -> Spark.Nodes and Spark.Cli -> Spark.Tool.
-    -->
-    <PackageId>Spark.Graph</PackageId>
     <Description>The Spark graph engine: graph model, evaluation, replication, the reflection node importer, serialization and custom nodes.</Description>
   </PropertyGroup>
 

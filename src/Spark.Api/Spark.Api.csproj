@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <IsPackable>true</IsPackable>
     <Description>The Spark contract surface: node attributes, list and diagnostic types, and the kernel, scheduler and host seams. Reference this to write Spark node packages.</Description>
   </PropertyGroup>
 

@@ -90,6 +90,17 @@ dotnet_naming_rule.members_pascal.style = pascal_case
 dotnet_naming_symbols.member_symbols.applicable_kinds = property,method,event,namespace
 dotnet_naming_symbols.member_symbols.applicable_accessibilities = *
 
+# Private const fields are PascalCase. They are compile-time constants, not state,
+# and CA1802 actively pushes code toward const - so demanding an underscore here would
+# have the analyzers arguing with each other. Must precede the underscore rule: naming
+# rules are evaluated in file order and the first match wins.
+dotnet_naming_rule.private_const_pascal.severity = warning
+dotnet_naming_rule.private_const_pascal.symbols = private_const_symbols
+dotnet_naming_rule.private_const_pascal.style = pascal_case
+dotnet_naming_symbols.private_const_symbols.applicable_kinds = field
+dotnet_naming_symbols.private_const_symbols.applicable_accessibilities = private
+dotnet_naming_symbols.private_const_symbols.required_modifiers = const
+
 # Private static readonly fields read as constants at the use site, so they are
 # PascalCase. Only mutable instance state carries the underscore, which makes the
 # underscore itself informative: it marks something that can change.
@@ -123,6 +134,18 @@ dotnet_diagnostic.CA1852.severity = warning   # type can be sealed
 # Off deliberately: too noisy for the value they return in this codebase.
 dotnet_diagnostic.CA1303.severity = none      # do not pass literals as localised parameters
 dotnet_diagnostic.CA1848.severity = none      # use LoggerMessage delegates
+
+# Public API baselines. RS0016 (undeclared public symbol) is the one that matters and
+# stays at its default error severity - it is what makes an API change a reviewed diff.
+#
+# RS0026 is off. It forbids two overloads of one name both having optional parameters,
+# to prevent a future source-breaking change in a PUBLISHED library. Spark publishes
+# nothing (ADR-0019), and the overloads it flags differ in a REQUIRED parameter type, so
+# every call site resolves unambiguously. Genuine ambiguity is caught by the compiler as
+# CS0121 regardless. Mangling a good API - Contains(point) / Contains(box), each with an
+# optional tolerance - to satisfy a rule aimed at a constraint we do not have would be
+# the tail wagging the dog.
+dotnet_diagnostic.RS0026.severity = none
 
 [tests/**/*.cs]
 # Test method names are full PascalCase sentences with no underscores, inherited from

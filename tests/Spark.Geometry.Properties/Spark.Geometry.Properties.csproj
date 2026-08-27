@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Property-based tests for the geometry kernel, using CsCheck. These are the invariants
+    that have to hold for every input, not the worked examples; the example-based tests
+    live next door in Spark.Geometry.Tests. The agent standard is both, not either.
+  -->
+
+  <ItemGroup>
+    <PackageReference Include="CsCheck" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Spark.Geometry/Spark.Geometry.csproj" />
+  </ItemGroup>
+
+</Project>
