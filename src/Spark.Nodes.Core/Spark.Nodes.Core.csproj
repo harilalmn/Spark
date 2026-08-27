@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>Spark.Nodes</PackageId>
+    <Description>The built-in Spark node library: geometry, maths, lists, strings, logic, input and output.</Description>
+  </PropertyGroup>
+
+  <!--
+    Deliberately references ONLY Spark.Geometry, Spark.Geometry.Io and Spark.Api.
+    It must NEVER reference Spark.Engine. First-party nodes go through the same
+    zero-config reflection importer as third-party ones, so the importer cannot
+    quietly special-case us and then fail for everyone else. Enforced by
+    Spark.Architecture.Tests.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Spark.Geometry\Spark.Geometry.csproj" />
+    <ProjectReference Include="..\Spark.Geometry.Io\Spark.Geometry.Io.csproj" />
+    <ProjectReference Include="..\Spark.Api\Spark.Api.csproj" />
+  </ItemGroup>
+</Project>

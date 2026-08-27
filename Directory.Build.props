@@ -1,0 +1,85 @@
+<Project>
+
+  <!--
+    Canonical build settings for every project in this repository.
+
+    Version is NOT set here. It comes from MinVer, derived from the nearest git tag
+    (see ADR-0007 and AGENTS.md). Spark uses SemVer rather than calendar versioning
+    because Spark.Api and Spark.Geometry are published contract packages: the version
+    number has to communicate breakage, which a date cannot do.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+
+    <!--
+      Implicit usings are OFF deliberately. Spark.Geometry is a library people script
+      against in code blocks, and an explicit using list is part of how they learn the
+      namespace layout. It also stops a global using from silently colliding with a
+      user type. Same reasoning CADScript used.
+    -->
+    <ImplicitUsings>disable</ImplicitUsings>
+
+    <!--
+      Project-wide policy inherited from DoodleSharp: no unsafe code. Span<T>,
+      ref struct and System.Numerics cover everything the kernel needs. Revisit only
+      with a benchmark that shows a real cost, never on taste.
+    -->
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!--
+      Warnings are errors in CI only, never locally. A red build on a stray unused
+      variable mid-edit trains people to pass -warnaserror:false, which defeats the
+      gate entirely. CI passes -warnaserror; local dev stays pleasant.
+    -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
+
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+
+    <Authors>Nicety</Authors>
+    <Company>Nicety</Company>
+    <Product>Spark</Product>
+    <Copyright>Copyright (c) Nicety</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/harilalmn/Spark</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/harilalmn/Spark</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>node-graph;visual-programming;dataflow;geometry;nurbs;brep;parametric;cad;aec</PackageTags>
+  </PropertyGroup>
+
+  <!--
+    CS1591 (missing XML comment on a publicly visible member) is an ERROR on the three
+    contract projects. Undocumented public API does not build. This is the mechanism
+    that makes the documentation standing instruction real rather than aspirational —
+    see ADR-0015. Do not suppress it; write the comment.
+  -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Spark.Api'
+                         Or '$(MSBuildProjectName)' == 'Spark.Geometry'
+                         Or '$(MSBuildProjectName)' == 'Spark.Geometry.Io'
+                         Or '$(MSBuildProjectName)' == 'Spark.Nodes.Core'">
+    <WarningsAsErrors>$(WarningsAsErrors);CS1591</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MinVer" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerDefaultPreReleaseIdentifiers>alpha.0</MinVerDefaultPreReleaseIdentifiers>
+  </PropertyGroup>
+
+</Project>

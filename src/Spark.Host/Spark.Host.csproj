@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>The Spark composition root. Owns session lifetime and the host services seam that lets Spark be embedded in a CAD application.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spark.Engine\Spark.Engine.csproj" />
+    <ProjectReference Include="..\Spark.Scripting\Spark.Scripting.csproj" />
+    <ProjectReference Include="..\Spark.Packages\Spark.Packages.csproj" />
+    <ProjectReference Include="..\Spark.Nodes.Core\Spark.Nodes.Core.csproj" />
+  </ItemGroup>
+</Project>

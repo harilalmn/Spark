@@ -1,0 +1,20 @@
+* text=auto
+
+*.cs        text diff=csharp
+*.csproj    text
+*.props     text
+*.targets   text
+*.slnx      text
+*.md        text
+*.json      text
+*.yml       text
+
+# Graph files are canonically-formatted JSON so they diff and merge in git.
+# That is the whole reason .spark is not a zip container - see ADR-0012.
+*.spark       text eol=lf
+*.sparkcustom text eol=lf
+
+*.sparkz   binary
+*.sparkgeo binary
+*.png      binary
+*.ico      binary

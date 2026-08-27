@@ -1,0 +1,20 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Spark.Api/Spark.Api.csproj" />
+    <Project Path="src/Spark.Cli/Spark.Cli.csproj" />
+    <Project Path="src/Spark.Desktop/Spark.Desktop.csproj" />
+    <Project Path="src/Spark.Engine/Spark.Engine.csproj" />
+    <Project Path="src/Spark.Geometry.Io/Spark.Geometry.Io.csproj" />
+    <Project Path="src/Spark.Geometry/Spark.Geometry.csproj" />
+    <Project Path="src/Spark.Host/Spark.Host.csproj" />
+    <Project Path="src/Spark.Nodes.Core/Spark.Nodes.Core.csproj" />
+    <Project Path="src/Spark.Packages/Spark.Packages.csproj" />
+    <Project Path="src/Spark.Scripting/Spark.Scripting.csproj" />
+    <Project Path="src/Spark.UI/Spark.UI.csproj" />
+    <Project Path="src/Spark.Viewport/Spark.Viewport.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Spark.Architecture.Tests/Spark.Architecture.Tests.csproj" />
+    <Project Path="tests/Spark.Docs.Verify/Spark.Docs.Verify.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,73 @@
+<Project>
+
+  <!--
+    Central Package Management. Every version is pinned exactly, with no floating
+    ranges anywhere.
+
+    The reason is a lesson already paid for in CADScript: a package's own BCL
+    dependencies are what break you, not the package. A Roslyn bump moved
+    System.Collections.Immutable to a version the host runtime would not bind, and it
+    failed only at run time, on the first real script. Pinning makes that a deliberate,
+    reviewed change instead of a surprise on someone else's machine.
+
+    Before adding or bumping ANY package, check what it drags in transitively.
+  -->
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup Label="Build and versioning">
+    <PackageVersion Include="MinVer" Version="[7.0.0]" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="[5.6.0]" />
+  </ItemGroup>
+
+  <ItemGroup Label="Geometry">
+    <!--
+      Clipper2's C# distribution is pure managed and Boost-licensed (MIT-compatible).
+      It is the ONLY third-party dependency of Spark.Geometry, and it stays isolated
+      behind a single internal file exactly as C2VGeometry already isolates it, so the
+      "no native dependencies" promise stays checkable. A CI job asserts no native
+      binaries appear in Spark.Geometry's published output.
+    -->
+    <PackageVersion Include="Clipper2" Version="[2.0.0]" />
+  </ItemGroup>
+
+  <ItemGroup Label="Scripting (Roslyn)">
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="[5.9.0]" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="[5.9.0]" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="[5.9.0]" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Features" Version="[5.9.0]" />
+  </ItemGroup>
+
+  <ItemGroup Label="Packages (NuGet client)">
+    <PackageVersion Include="NuGet.Protocol" Version="[7.9.0]" />
+    <PackageVersion Include="NuGet.Packaging" Version="[7.9.0]" />
+  </ItemGroup>
+
+  <ItemGroup Label="UI (Avalonia)">
+    <PackageVersion Include="Avalonia" Version="[12.1.1]" />
+    <PackageVersion Include="Avalonia.Desktop" Version="[12.1.1]" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="[12.1.1]" />
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="[12.1.1]" />
+    <PackageVersion Include="Avalonia.AvaloniaEdit" Version="[12.0.0]" />
+    <PackageVersion Include="Dock.Avalonia" Version="[12.1.0.4]" />
+    <PackageVersion Include="Dock.Model.Mvvm" Version="[12.1.0.4]" />
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="[8.4.2]" />
+  </ItemGroup>
+
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="xunit.v3" Version="[4.0.0]" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="[4.0.0]" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="[18.9.0]" />
+    <PackageVersion Include="Avalonia.Headless.XUnit" Version="[12.1.1]" />
+    <!-- Property-based testing on the kernel. Non-negotiable from M1 — see ADR-0010. -->
+    <PackageVersion Include="CsCheck" Version="[4.8.0]" />
+  </ItemGroup>
+
+  <ItemGroup Label="Benchmarking">
+    <PackageVersion Include="BenchmarkDotNet" Version="[0.15.8]" />
+  </ItemGroup>
+
+</Project>

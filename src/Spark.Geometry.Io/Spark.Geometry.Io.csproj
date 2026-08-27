@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>Mesh and solid interchange for Spark.Geometry: OBJ, STL, PLY, glTF and STEP, behind reader and writer interfaces.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spark.Geometry\Spark.Geometry.csproj" />
+  </ItemGroup>
+</Project>

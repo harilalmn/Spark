@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The documentation harness. It is a test project rather than the standalone console
+    app CADScript used, because that gets it into `dotnet test` and therefore into CI
+    without a bespoke step.
+
+    It deliberately references NO Spark project. Its job is to check documents against
+    the repository as files, and from M1 to compile documentation samples against the
+    real assemblies loaded from disk - the same way a user's code block will see them,
+    not the way a project reference would.
+  -->
+
+</Project>

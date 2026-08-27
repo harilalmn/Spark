@@ -1,0 +1,32 @@
+<Project>
+
+  <!-- Inherit the repository-wide settings, then add what every test project needs. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+
+    <!--
+      xunit v3 runs on Microsoft.Testing.Platform, where a test project is a real
+      executable that hosts its own runner. The .NET 10 SDK has retired the VSTest
+      bridge entirely, so this is the only supported shape - a VSTest-style project
+      fails at build with an explicit error rather than degrading quietly.
+    -->
+    <OutputType>Exe</OutputType>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+
+    <!-- Test projects are not a public API surface, so undocumented members are fine here. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

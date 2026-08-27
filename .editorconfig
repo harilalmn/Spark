@@ -1,0 +1,131 @@
+# Spark code style.
+#
+# Deliberately small. DoodleSharp has no .editorconfig at all and no analyzers, and
+# that works fine for a single author. Spark is MIT and expects drive-by pull requests,
+# where convention-only style costs a review tax on every PR.
+#
+# The rule for adding to this file: enforce what a reviewer would otherwise have to say
+# out loud, and nothing else. A wall of warnings trains people to ignore warnings, which
+# is worse than having none.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,csproj,props,targets,slnx,xml,axaml}]
+indent_size = 2
+
+[*.md]
+indent_size = 2
+# Markdown uses trailing double-space for hard line breaks.
+trim_trailing_whitespace = false
+
+[*.cs]
+max_line_length = 120
+
+#### Language conventions ####
+
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_using_directive_placement = outside_namespace:warning
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = false:suggestion
+
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+
+dotnet_style_predefined_type_for_locals_parameters_members = true:warning
+dotnet_style_predefined_type_for_member_access = true:warning
+
+dotnet_style_readonly_field = true:warning
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+dotnet_style_prefer_auto_properties = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_coalesce_expression = true:suggestion
+
+csharp_prefer_braces = true:warning
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = when_on_single_line:suggestion
+csharp_style_expression_bodied_accessors = when_on_single_line:suggestion
+csharp_prefer_simple_using_statement = true:suggestion
+csharp_style_prefer_pattern_matching = true:suggestion
+csharp_style_prefer_not_pattern = true:suggestion
+csharp_style_prefer_range_operator = true:suggestion
+csharp_style_prefer_index_operator = true:suggestion
+csharp_style_throw_expression = true:suggestion
+
+# Formatting is enforced in CI via `dotnet format --verify-no-changes`.
+dotnet_diagnostic.IDE0055.severity = warning
+
+#### Naming ####
+
+dotnet_naming_rule.types_pascal.severity = warning
+dotnet_naming_rule.types_pascal.symbols = type_symbols
+dotnet_naming_rule.types_pascal.style = pascal_case
+dotnet_naming_symbols.type_symbols.applicable_kinds = class,struct,interface,enum,delegate
+dotnet_naming_symbols.type_symbols.applicable_accessibilities = *
+
+dotnet_naming_rule.interfaces_i_prefix.severity = warning
+dotnet_naming_rule.interfaces_i_prefix.symbols = interface_symbols
+dotnet_naming_rule.interfaces_i_prefix.style = i_pascal_case
+dotnet_naming_symbols.interface_symbols.applicable_kinds = interface
+dotnet_naming_symbols.interface_symbols.applicable_accessibilities = *
+
+dotnet_naming_rule.members_pascal.severity = warning
+dotnet_naming_rule.members_pascal.symbols = member_symbols
+dotnet_naming_rule.members_pascal.style = pascal_case
+dotnet_naming_symbols.member_symbols.applicable_kinds = property,method,event,namespace
+dotnet_naming_symbols.member_symbols.applicable_accessibilities = *
+
+# Private static readonly fields read as constants at the use site, so they are
+# PascalCase. Only mutable instance state carries the underscore, which makes the
+# underscore itself informative: it marks something that can change.
+dotnet_naming_rule.private_static_readonly_pascal.severity = warning
+dotnet_naming_rule.private_static_readonly_pascal.symbols = private_static_readonly_symbols
+dotnet_naming_rule.private_static_readonly_pascal.style = pascal_case
+dotnet_naming_symbols.private_static_readonly_symbols.applicable_kinds = field
+dotnet_naming_symbols.private_static_readonly_symbols.applicable_accessibilities = private
+dotnet_naming_symbols.private_static_readonly_symbols.required_modifiers = static,readonly
+
+dotnet_naming_rule.private_fields_underscore.severity = warning
+dotnet_naming_rule.private_fields_underscore.symbols = private_field_symbols
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel_case
+dotnet_naming_symbols.private_field_symbols.applicable_kinds = field
+dotnet_naming_symbols.private_field_symbols.applicable_accessibilities = private
+
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+dotnet_naming_style.i_pascal_case.capitalization = pascal_case
+dotnet_naming_style.i_pascal_case.required_prefix = I
+dotnet_naming_style.underscore_camel_case.capitalization = camel_case
+dotnet_naming_style.underscore_camel_case.required_prefix = _
+
+#### Analyzer severities ####
+
+# Performance rules that matter in the kernel's hot paths.
+dotnet_diagnostic.CA1802.severity = warning   # use const where possible
+dotnet_diagnostic.CA1805.severity = warning   # do not initialise unnecessarily
+dotnet_diagnostic.CA1822.severity = warning   # member can be static
+dotnet_diagnostic.CA1852.severity = warning   # type can be sealed
+
+# Off deliberately: too noisy for the value they return in this codebase.
+dotnet_diagnostic.CA1303.severity = none      # do not pass literals as localised parameters
+dotnet_diagnostic.CA1848.severity = none      # use LoggerMessage delegates
+
+[tests/**/*.cs]
+# Test method names are full PascalCase sentences with no underscores, inherited from
+# DoodleSharp's convention: ReplicationOverEqualLengthListsUsesShortestLacing.
+# Underscores would read worse, not better, at that length.
+dotnet_diagnostic.CA1707.severity = warning

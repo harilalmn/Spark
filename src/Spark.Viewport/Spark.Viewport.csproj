@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>The Spark 3D viewport renderer: scene, camera, render packages, and the OpenGL and software backends.</Description>
+  </PropertyGroup>
+
+  <!--
+    Avalonia-free by rule. This project must not reference any Avalonia package;
+    Spark.UI adapts it to OpenGlControlBase. Keeping it UI-agnostic is what makes the
+    software renderer usable headlessly for CI visual regression, which is the only
+    way viewport output becomes testable at all. Enforced by Spark.Architecture.Tests.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Spark.Api\Spark.Api.csproj" />
+  </ItemGroup>
+</Project>

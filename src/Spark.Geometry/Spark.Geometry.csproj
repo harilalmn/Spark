@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>Spark's geometry kernel: values, curves, surfaces, BRep topology, meshes and tessellation. Pure managed, no native dependencies.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Clipper2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Spark.Geometry.Tests" />
+    <InternalsVisibleTo Include="Spark.Geometry.Properties" />
+  </ItemGroup>
+</Project>

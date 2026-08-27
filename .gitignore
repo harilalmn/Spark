@@ -1,19 +1,23 @@
 # Build output
 bin/
 obj/
-build/
-dist/
-out/
+artifacts/
+publish/
+*.binlog
 
-# Dependencies
-node_modules/
+# Test and coverage
+TestResults/
+coverage/
+*.coverage
+*.trx
 
-# IDE / editor
+# IDE
 .vs/
 .vscode/
 .idea/
 *.user
 *.suo
+*.DotSettings.user
 
 # OS
 Thumbs.db
@@ -21,3 +25,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Local-only settings. Committed settings live in .claude/settings.json.
+.claude/settings.local.json
+
+# Local NuGet package cache for graph-scoped packages
+packages/

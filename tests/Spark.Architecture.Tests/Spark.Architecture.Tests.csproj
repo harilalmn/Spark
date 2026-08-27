@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Enforces the reference graph from ADR-0005 by reading project files directly rather
+    than by referencing the projects. Referencing them would defeat the purpose: this
+    test must be able to observe a forbidden reference, which means it cannot itself
+    depend on the assemblies being checked.
+  -->
+
+</Project>

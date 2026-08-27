@@ -1,0 +1,115 @@
+name: CI
+
+# Windows is the v1 release target (decision D14). Linux is built and tested anyway,
+# because it is nearly free and it is the only thing that stops cross-platform support
+# rotting silently — which would quietly turn the Avalonia decision (ADR-0001) into
+# wasted effort. No Linux artefacts are published; the job exists to keep the option real.
+#
+# macOS is deliberately not built. Shipping there needs a paid Apple Developer account
+# and notarization in CI, and until that is arranged a macOS job would only ever be a
+# job we ignore.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  build:
+    name: Build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # MinVer derives the version from the nearest tag, so a shallow clone
+          # would produce a wrong version rather than an obvious failure.
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ matrix.os }}-${{ hashFiles('**/Directory.Packages.props') }}
+          restore-keys: nuget-${{ matrix.os }}-
+
+      - name: Restore
+        run: dotnet restore Spark.slnx
+
+      # Warnings are errors here and only here. Locally they stay warnings, so that a
+      # stray unused variable mid-edit does not train people into passing -warnaserror:false.
+      - name: Build
+        run: dotnet build Spark.slnx --configuration Release --no-restore -warnaserror
+
+      - name: Test
+        run: dotnet test Spark.slnx --configuration Release --no-build
+
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Verify formatting
+        run: dotnet format Spark.slnx --verify-no-changes --severity warn
+
+  docs-freshness:
+    name: Documentation freshness
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    # Enforces the client's standing instruction mechanically rather than by request.
+    # If a change touches the public API surface or the node library, it must also touch
+    # docs/. The escape hatch is deliberate and deliberately loud: a `docs: none-needed`
+    # trailer in a commit message is visible in review, where a silent exemption would not be.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check that code changes are accompanied by documentation
+        shell: bash
+        run: |
+          base="origin/${{ github.base_ref }}"
+          git fetch --no-tags --depth=50 origin "${{ github.base_ref }}"
+          changed=$(git diff --name-only "$base"...HEAD)
+
+          echo "Changed files:"
+          echo "$changed" | sed 's/^/  /'
+
+          needs_docs=$(echo "$changed" | grep -E '^(src/Spark\.Nodes\..*|.*PublicAPI\.(Shipped|Unshipped)\.txt)$' || true)
+          touched_docs=$(echo "$changed" | grep -E '^(docs/|README\.md|AGENTS\.md)' || true)
+
+          if [ -n "$needs_docs" ] && [ -z "$touched_docs" ]; then
+            if git log "$base"..HEAD --format=%B | grep -qi '^docs: none-needed'; then
+              echo "::notice::Documentation exemption claimed via 'docs: none-needed' trailer."
+              exit 0
+            fi
+            echo "::error::This change touches the public API surface or the node library but no documentation."
+            echo "Update the relevant documents, or add a 'docs: none-needed' trailer to a commit and say why."
+            echo "Offending files:"
+            echo "$needs_docs" | sed 's/^/  /'
+            exit 1
+          fi
+
+          echo "Documentation freshness check passed."

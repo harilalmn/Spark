@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>The Spark graph engine: graph model, evaluation, replication, the reflection node importer, serialization and custom nodes.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spark.Api\Spark.Api.csproj" />
+  </ItemGroup>
+</Project>
