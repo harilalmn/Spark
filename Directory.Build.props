@@ -61,10 +61,17 @@
   </PropertyGroup>
 
   <!--
-    CS1591 (missing XML comment on a publicly visible member) is an ERROR on the three
-    contract projects. Undocumented public API does not build. This is the mechanism
+    CS1591 (missing XML comment on a publicly visible member) is an ERROR on the four
+    projects listed below. Undocumented public API does not build. This is the mechanism
     that makes the documentation standing instruction real rather than aspirational —
     see ADR-0015. Do not suppress it; write the comment.
+
+    The four are exactly the surfaces a user or a package author writes against:
+    Spark.Api is the node-authoring contract, Spark.Geometry and Spark.Geometry.Io are
+    the kernel a code block scripts against, and Spark.Nodes.Core's XML comments become
+    the tooltips on every built-in node. Spark.Engine is deliberately NOT on this list:
+    it is published for embedders, but its surface is consumed by code rather than
+    read by people, so the same standard would be cost without the benefit.
   -->
   <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Spark.Api'
                          Or '$(MSBuildProjectName)' == 'Spark.Geometry'

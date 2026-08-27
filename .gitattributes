@@ -10,7 +10,7 @@
 *.yml       text
 
 # Graph files are canonically-formatted JSON so they diff and merge in git.
-# That is the whole reason .spark is not a zip container - see ADR-0012.
+# That is the whole reason .spark is not a zip container - see ADR-0017.
 *.spark       text eol=lf
 *.sparkcustom text eol=lf
 

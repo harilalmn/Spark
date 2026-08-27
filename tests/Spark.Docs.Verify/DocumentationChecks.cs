@@ -137,10 +137,22 @@ public sealed class DocumentationChecks
     }
 
     /// <summary>
-    /// Every architecture decision referenced anywhere in the documentation actually exists.
-    /// ADR numbers are cited constantly in comments and help text, and a citation pointing at
-    /// nothing is worse than no citation: it implies a rationale was recorded when it was not.
+    /// Every architecture decision referenced anywhere in the repository actually exists.
+    /// ADR numbers are cited constantly in comments, build files and help text, and a citation
+    /// pointing at nothing is worse than no citation: it implies a rationale was recorded when
+    /// it was not.
     /// </summary>
+    /// <remarks>
+    /// This deliberately scans build files and source as well as documentation. An earlier
+    /// version looked only at Markdown, and two citations in <c>Directory.Packages.props</c>
+    /// and <c>.gitattributes</c> went unchecked as a result.
+    /// <para>
+    /// Note what this cannot catch: a citation pointing at a record that exists but is about
+    /// something else entirely. Both of those two citations were of exactly that kind — they
+    /// named real ADRs on unrelated subjects, so an existence check passed them. Semantic
+    /// correctness of a citation is a review matter, not a testable one.
+    /// </para>
+    /// </remarks>
     [Fact]
     public void EveryCitedArchitectureDecisionExists()
     {
@@ -160,14 +172,14 @@ public sealed class DocumentationChecks
         Regex citation = new(@"ADR-(\d{4})", RegexOptions.Compiled);
         List<string> dangling = [];
 
-        foreach (string document in AllMarkdown())
+        foreach (string file in AllMarkdown().Concat(AllCitableSource()))
         {
-            foreach (Match match in citation.Matches(File.ReadAllText(document)))
+            foreach (Match match in citation.Matches(File.ReadAllText(file)))
             {
                 string number = match.Groups[1].Value;
                 if (!existing.Contains(number))
                 {
-                    dangling.Add($"{Relative(document)} cites ADR-{number}, which does not exist.");
+                    dangling.Add($"{Relative(file)} cites ADR-{number}, which does not exist.");
                 }
             }
         }
@@ -228,13 +240,32 @@ public sealed class DocumentationChecks
             : [];
     }
 
+    /// <summary>
+    /// Source and build files that may carry an ADR citation in a comment.
+    /// </summary>
+    private static IEnumerable<string> AllCitableSource()
+    {
+        string[] patterns = ["*.cs", "*.csproj", "*.props", "*.targets", "*.yml", ".gitattributes"];
+
+        return patterns
+            .SelectMany(pattern => Directory.EnumerateFiles(Root, pattern, SearchOption.AllDirectories))
+            .Where(NotGenerated);
+    }
+
     private static IEnumerable<string> AllMarkdown()
     {
         return Directory
             .EnumerateFiles(Root, "*.md", SearchOption.AllDirectories)
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                        && !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                        && !path.Contains($"{Path.DirectorySeparatorChar}.git{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
+            .Where(NotGenerated);
+    }
+
+    private static bool NotGenerated(string path)
+    {
+        char separator = Path.DirectorySeparatorChar;
+
+        return !path.Contains($"{separator}obj{separator}", StringComparison.Ordinal)
+            && !path.Contains($"{separator}bin{separator}", StringComparison.Ordinal)
+            && !path.Contains($"{separator}.git{separator}", StringComparison.Ordinal);
     }
 
     private static string Relative(string path) => Path.GetRelativePath(Root, path).Replace('\\', '/');

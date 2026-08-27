@@ -62,7 +62,7 @@
     <PackageVersion Include="xunit.runner.visualstudio" Version="[4.0.0]" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="[18.9.0]" />
     <PackageVersion Include="Avalonia.Headless.XUnit" Version="[12.1.1]" />
-    <!-- Property-based testing on the kernel. Non-negotiable from M1 — see ADR-0010. -->
+    <!-- Property-based testing on the kernel. Non-negotiable from M1 — see ADR-0018. -->
     <PackageVersion Include="CsCheck" Version="[4.8.0]" />
   </ItemGroup>
 
