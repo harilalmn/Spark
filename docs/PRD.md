@@ -30,12 +30,21 @@ project stubs, a reference graph, build properties, these documents, nineteen AD
 replication specification, a CI workflow, public-API baselines, and four test projects that
 between them run **315 passing checks** against the repository.
 
-**One requirement has moved off `Not started`, and only one.** The geometry kernel's **value
-layer** has landed, been reviewed, repaired and accepted: thirteen types in
+**One requirement has moved off `Not started` by being built, and only one.** The geometry
+kernel's **value layer** has landed, been reviewed, repaired and accepted: thirteen types in
 `src/Spark.Geometry` declaring 387 public members, covered by 304 tests. That is FR-47 in
 part and FR-56 in full. Everything else below is still scaffolding, gates and specification,
 none of which is product — there are **no curves, no surfaces, no meshes and no BRep types**,
 and no graph engine at all.
+
+**A second requirement, FR-81, is new and starts at 11.0%.** The client's instruction —
+*make sure we have all geometry elements and methods and properties what is there in Dynamo* —
+is now a requirement with a register behind it. Measured against the 51 public types and 837
+public members of the `ProtoGeometry.dll` installed with Revit 2026, **92 members are reachable
+in Spark today**, all of them in the value layer. See [DYNAMO-COVERAGE.md](DYNAMO-COVERAGE.md),
+and note what it found: parity on `Solid` and `Surface` commits us to the exact booleans §9
+currently places post-1.0 (**R14**, **Q11**), and T-Splines alone is a fifth of the surface and
+needs its own decision (**Q12**).
 
 Two distinctions are worth stating before the tables use them.
 
@@ -147,9 +156,14 @@ Each of these was chosen over a plausible alternative; the reasoning is preserve
 
 ## 6. Functional requirements
 
-Everything is `Not started` except the two geometry rows that say otherwise — FR-47, in part,
-and FR-56. M0 produced scaffolding, not behaviour; M1's first slice produced the value layer
-of the kernel and nothing above it.
+Everything is `Not started` except the three geometry rows that say otherwise — FR-47, in part,
+FR-56 in full, and FR-81, at 11.0%. M0 produced scaffolding, not behaviour; M1's first slice
+produced the value layer of the kernel and nothing above it.
+
+**FR-81 is new and it is the client's instruction written down as a requirement**, along with
+the register that makes it checkable rather than aspirational:
+[DYNAMO-COVERAGE.md](DYNAMO-COVERAGE.md). It also surfaced two scope questions that were
+previously invisible — **Q11** and **Q12** — and one new risk, **R14**.
 
 ### Graph engine
 
@@ -240,6 +254,7 @@ of the kernel and nothing above it.
 | FR-58 | Interchange: OBJ, STL and PLY read and write; glTF write. | Not started (E2) |
 | FR-59 | STEP AP203/AP214 read and write, scoped to a documented subset. | Not started (E2) |
 | FR-60 | `Spark.Geometry.Planar`: `Point2d`/`Curve2d`, `Region`, and the Clipper2-backed boolean, offset and simplify pipeline, bridged by `Plane.To2d`/`To3d`. Not a peer 2D API. | Not started (E2) |
+| FR-81 | **Capability parity with Dynamo's geometry.** A person who knows Dynamo must never reach for a geometric capability in Spark and find it absent. Parity is of **capability**, not of type names, method names, parameter order, degenerate-case behaviour or tolerances — those are ours to choose, and **D8** removes any obligation to match them. The reference surface is `ProtoGeometry.dll` as installed with Revit 2026: **51 public types, 837 public members**. Progress is tracked member by member in [DYNAMO-COVERAGE.md](DYNAMO-COVERAGE.md) and held true by a two-way diff test against a checked-in manifest, so the register cannot drift from the code (E11-T23). | **92 of 837 reachable — 11.0%** (E2-T40 … E2-T46). 16.0% of the 575 members committed to, once §5's refusals and the undecided T-Spline surface are excluded. All 92 are in the value layer; there are no curves, surfaces, solids, meshes or topology. Two scope questions are open — **Q11** and **Q12** |
 
 ### UI, viewport and tools
 
@@ -399,6 +414,7 @@ retrospectively softened. A failed criterion changes the architecture, which is 
 | R11 | **User C# takes down the process** via `StackOverflowException`, which .NET cannot catch | Data loss | Guard weaving reduces frequency; aggressive autosave and crash recovery limit damage; an out-of-process worker is kept viable by the scheduler seam and deferred past v1 |
 | R12 | **STEP is much bigger than budgeted** | Slips M8 | Scoped to a documented subset, deferred whole to M8, blocks nothing upstream; validated against a public corpus and a third-party viewer, **never our own reader** |
 | R13 | **Clipper2 contradicts "no native dependencies"** if misunderstood | Reputational | Its C# distribution is pure managed and Boost-licensed; pinned exactly, isolated behind one internal file, plus a CI check asserting no native binaries appear in `Spark.Geometry`'s published output. **Not currently referenced at all** — the unused reference was removed and returns with the planar boolean pipeline (`E2-T14`); the architecture test asserts a ceiling rather than an exact set, so it holds on both sides of that |
+| R14 | **Capability parity commits us to exact solid booleans, which are currently out of scope for 1.0.** FR-81's promise is that a Dynamo user never finds a capability absent. **32 members of ProtoGeometry cannot exist without exact BRep booleans, trimming, filleting and sewing** — `Solid.Union`, `UnionAll`, `ByUnion`, `Difference`, `DifferenceAll`, `Fillet`, `Chamfer`, `ThinShell`, `Separate`, `Repair`, `ByJoinedSurfaces`, `ProjectInputOnto`; `Surface.ByUnion`, `Difference`, `SubtractFrom`, `TrimWithEdgeLoops` ×2, `Join` ×2, `Thicken` ×2, `Offset`, `Repair`, `ProjectInputOnto`; `PolySurface.Fillet`, `Chamfer`, `ByJoinedSurfaces`; and `Geometry.Intersect`, `IntersectAll`, `DoesIntersect`, `Split`, `Trim` — with a further 38 modelling and intersection members behind the same `IBrepKernel` seam. **This is R1's problem wearing a requirement's clothes**, and §9 currently puts it post-1.0 in writing | Directly contradicts §9, E12-T15 and the M6 estimate. Left unstated, it surfaces at M6 as a slipped milestone rather than as a decision | **Name the contradiction rather than absorb it.** Recommendation: scope FR-81's promise to *the end of 1.x* rather than *at 1.0*, so 1.0 still ships on mesh booleans (E2-T27) with `Capabilities` greying out what is absent, and R1's mitigation survives intact. The alternatives are to accept exact booleans into 1.0 — which requires retiring R1, not mitigating it — or to promote the OCCT-backed optional package from fallback to a shipped option, which is **Q6**. This is a client decision because it trades the headline promise against the release date. **Q11**, E2-T47, [DYNAMO-COVERAGE §6.1](DYNAMO-COVERAGE.md#61-parity-on-solid-and-surface-commits-us-to-exact-solid-modelling) |
 
 ## 13. Decision log
 
@@ -432,6 +448,8 @@ could have gone differently also gets an ADR under `docs/adr/`; this table is th
 | Q6 | If **R1** forces the OCCT fallback, does an *optional* OCCT-backed package breach the no-native-dependencies promise, or is "the core is pure managed; this package is not, and says so" acceptable? FR-44 already discloses native binaries, which suggests the latter. | M6 |
 | Q7 | Which public STEP corpus is authoritative for validating the AP203/AP214 subset, and which third-party viewer is the reference? | M8 |
 | Q8 | Where does the website live, and who maintains it? | M8 |
+| Q11 | **Does FR-81's parity promise move exact solid booleans into 1.0?** 32 ProtoGeometry members cannot exist without exact BRep booleans, trimming, filleting and sewing, with 38 more behind the same `IBrepKernel` seam — and §9 currently states publicly that those are post-1.0. The recommendation is to scope the promise to the end of 1.x rather than to 1.0, keeping R1's mitigation intact; the alternatives are to accept them into 1.0, or to promote the OCCT-backed optional package, which is **Q6**. **R14**, [DYNAMO-COVERAGE §6.1](DYNAMO-COVERAGE.md#61-parity-on-solid-and-surface-commits-us-to-exact-solid-modelling). | Before M6 is estimated; **E12-T15** cannot be written until it is answered |
+| Q12 | **Is T-Splines in scope at all?** 169 members across 8 types — 20.2% of the whole ProtoGeometry surface, and `TSplineSurface` alone is 94, more than `Curve`. It is a subdivision-surface modeller and its API is a sculpting editor, not a geometry library: a different data structure, different refinement mathematics and different literature from BRep/NURBS, with its own `.tsm`/`.tss` formats and its own topology layer. Recommendation: **exclude it and state it publicly**, the way §9 already handles STEP's scope — ADR-0003's closing note treats a subdivision backend as *a different decision, not a widening of this one*, so nothing is foreclosed by leaving it out. [DYNAMO-COVERAGE §6.2](DYNAMO-COVERAGE.md#62-t-splines-is-a-second-product-not-a-subsystem). | Before any parity figure is quoted publicly — **the answer is the denominator** |
 
 **Q2, Q3 and Q10 are answered and withdrawn, all three by the same correction.** They asked,
 respectively, whether the `Spark.Geometry.Io` package ID was available; whether `Spark.Docs`

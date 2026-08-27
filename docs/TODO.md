@@ -110,6 +110,17 @@ of it is the *order*.
       assertions, not the generators** — a harvested test whose inputs never approach the
       boundary it checks is a test that cannot fail, which is the trap this project has
       already fallen into once.
+- [ ] **Close the three small parity gaps in the value layer** — `E2-T40`. `BoundingBox.Intersection`,
+      `Plane.Offset` and `Plane.ByOriginNormalXAxis` are omissions rather than design
+      differences, found by reading Spark's public surface against ProtoGeometry's member by
+      member ([DYNAMO-COVERAGE §3.1](DYNAMO-COVERAGE.md#31-values-and-frames--6-types-133-members-92-reachable)).
+      Cheap now, and each one is a member somebody will otherwise hit at M3.
+- [ ] **Settle the curve contract against the parity register before writing curves** —
+      `E2-T41`. FR-48 names fifteen members; `Curve` in ProtoGeometry has **82**, and the gap
+      is structural rather than incidental: four parameterisations of every evaluation query
+      and a ten-member division family, all of which fall out of arc-length
+      reparameterisation. Cheap to build in, expensive to retrofit — which is exactly why it
+      belongs in the contract rather than after it.
 - [ ] `spark` writes an OBJ polyline that a third-party viewer opens. That is the M1 demo.
 
 ## After that — M1.5 and M2, the walking skeleton
@@ -168,6 +179,8 @@ the exclusions is what keeps a walking skeleton from becoming a death march.
 | Q6 | If `R1` forces the OCCT fallback, does an *optional* OCCT-backed package breach the no-native-dependencies promise? `E7-T8` already discloses native binaries, which suggests it can be lived with. | M6 |
 | Q7 | Which public STEP corpus is authoritative, and which third-party viewer is the reference? | `E2-T36` |
 | Q8 | Where does the website live, and who maintains it? | `E10-T14` |
+| Q11 | **Does capability parity with Dynamo move exact solid booleans into 1.0?** 32 members — `Solid.Union`, `Difference`, `Fillet`, `Chamfer`, `ThinShell`, `Surface.Trim`, `Join`, `Thicken` and their neighbours — cannot exist without exact BRep booleans, trimming, filleting and sewing, with 38 more behind the same `IBrepKernel` seam. That is exactly the work `ADR-0002` stages last, `R1` calls research-grade and PRD §9 states publicly as post-1.0. Full parity contradicts all three. The recommendation is to scope the parity promise to *the end of 1.x* rather than *at 1.0*, but the trade is headline promise against release date and it belongs to the client. [DYNAMO-COVERAGE §6.1](DYNAMO-COVERAGE.md#61-parity-on-solid-and-surface-commits-us-to-exact-solid-modelling), `E2-T47` | M5 SSI spike, M6 scope, `E12-T15` |
+| Q12 | **Is T-Splines in scope at all?** 169 members across 8 types — **20.2% of the entire ProtoGeometry surface**, with `TSplineSurface` alone at 94, more than `Curve`. It is a subdivision-surface modeller, a different discipline from BRep/NURBS, and its API is a sculpting editor (bevel, bridge, weld, crease, slide, fill hole) with its own file formats and its own topology layer. Recommendation: exclude it and say so publicly, as PRD §9 already does for STEP's scope. `ADR-0003`'s closing note calls a subdivision backend *a different decision, not a widening of this one*, so nothing is foreclosed. **The answer sets the denominator of every coverage figure we quote.** [DYNAMO-COVERAGE §6.2](DYNAMO-COVERAGE.md#62-t-splines-is-a-second-product-not-a-subsystem), `E2-T48` | Every parity figure; M5 planning |
 
 *Q2, Q3 and Q10 — all three about package IDs and which projects would publish — are answered
 and withdrawn together. Nothing publishes: `IsPackable` is `false` for every project and no
@@ -197,6 +210,14 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   very dependency Spark exists to remove. A silently mistranslating importer is worse than
   none. PRD decision **D8**. Corollary: the `By*` names carry **no** compatibility
   obligation; they exist for human recognition only.
+- **Capability parity with Dynamo is tracked, and it does not reopen D8.** The two are about
+  different things and will be confused repeatedly, so: D8 refused `.dyn` because *semantic
+  equivalence* is unprovable without ProtoGeometry, and it stands. Capability parity is about
+  *presence* — whether a Dynamo user reaches for something and finds it absent — which needs
+  no reference implementation to check. [DYNAMO-COVERAGE.md](DYNAMO-COVERAGE.md) is the
+  register: 51 ProtoGeometry types, 837 members, 92 reachable today. `Done` in it means
+  *present and documented*, never *equivalent*, and the test that keeps it honest
+  (`E11-T23`) must say so in its own failure messages.
 - **Coordinates are unitless.** No `UnitSystem`, no unit types, no conversion. Import and
   export assume the file's own units and document that they do. PRD decision **D12**. This
   does **not** remove scale-aware tolerance, which is numerical robustness rather than
