@@ -33,13 +33,13 @@ jobs:
         os: [windows-latest, ubuntu-latest]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # MinVer derives the version from the nearest tag, so a shallow clone
           # would produce a wrong version rather than an obvious failure.
           fetch-depth: 0
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
@@ -65,8 +65,8 @@ jobs:
     name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
@@ -83,7 +83,7 @@ jobs:
     # docs/. The escape hatch is deliberate and deliberately loud: a `docs: none-needed`
     # trailer in a commit message is visible in review, where a silent exemption would not be.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 

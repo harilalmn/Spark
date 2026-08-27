@@ -1,4 +1,8 @@
-* text=auto
+# eol=lf, not bare `text=auto`. Without it, git normalises to LF in the repository but
+# converts to native on checkout - so the same blob is CRLF on Windows and LF on Linux,
+# and a single `dotnet format` gate cannot pass on both. Caught by the ubuntu CI job on
+# its first run, which is precisely what that job exists for.
+* text=auto eol=lf
 
 *.cs        text diff=csharp
 *.csproj    text
