@@ -538,6 +538,11 @@ public static class NodeImporter
             SparkNodeAttribute? memberAttribute = candidate.Member.GetCustomAttribute<SparkNodeAttribute>();
             SparkNodeAttribute? typeAttribute = candidate.DeclaringType.GetCustomAttribute<SparkNodeAttribute>();
 
+            // Member first, then the declaring type, so that a package touching one outside
+            // thing can declare it once on the type. Deleting either half leaves every test in
+            // the suite green unless one asserts this directly, which is why one does
+            // (NodeImporterTests): an impure node imported as pure poisons nothing and therefore
+            // serves a stale result forever without ever looking wrong.
             bool sideEffect = candidate.Member.IsDefined(typeof(NodeSideEffectAttribute), inherit: false)
                 || candidate.DeclaringType.IsDefined(typeof(NodeSideEffectAttribute), inherit: false);
 

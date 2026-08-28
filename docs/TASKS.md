@@ -41,10 +41,14 @@ against the commit messages, which is why ten of them came back **`In progress` 
 `Done`** — and those ten are the useful output of the exercise, because each names a specific
 half that is missing:
 
-- **`E3-T9`** evicts by entry count, not by a byte budget, and not by the native budget
-  ADR-0021 now requires.
-- **`E3-T10`** has the run epoch but **no impure-node declaration at all**, so nothing can mark
-  itself impure.
+- **`E3-T9`** evicted by entry count, not by a byte budget. *Closed*: it now holds both bounds,
+  with the estimator's blind spots written on the estimator. The **native** budget ADR-0021
+  requires stays open and belongs to `E13-T3`, because a provider must report it rather than
+  have one inferred.
+- **`E3-T10`** was recorded as having the run epoch and **no impure-node declaration at all**.
+  *That was wrong.* The attribute, the importer's reading of it, the key mixing and the
+  evaluator's handling were all built; what was missing was a test that went through the
+  attribute rather than around it. Corrected and covered.
 - **`E3-T11`** has two of three schedulers; the **host-thread** one, which is most of why the
   seam exists, is absent.
 - **`E3-T12`** cancels between nodes and between elements, but no kernel operation takes a
@@ -85,8 +89,8 @@ register:
 
 Every `Done` task is verified by reading the repository and running the gates rather than by
 recollection: `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over twenty-one
-projects, the suite runs **1,150 passing tests across eight test projects**
-(`Spark.Geometry.Tests` 445, `Spark.Engine.Tests` 292, `Spark.UI.Tests` 256,
+projects, the suite runs **1,167 passing tests across eight test projects**
+(`Spark.Geometry.Tests` 445, `Spark.Engine.Tests` 309, `Spark.UI.Tests` 256,
 `Spark.Viewport.Tests` 69, `Spark.Geometry.Properties` 60, `Spark.Geometry.Io.Tests` 12,
 `Spark.Architecture.Tests` 8, `Spark.Docs.Verify` 8) — counted by `scripts/run-tests.sh`, because `dotnet test` itself
 reports `Zero tests ran` on SDK 10.0.400 ([NOTES N34](NOTES.md)), and `dotnet format Spark.slnx --verify-no-changes --severity warn` is
@@ -264,8 +268,8 @@ Everything else in this file is a plan, not a claim.
 | E3-T6 | Kahn topological sort over the dirty subgraph, producing levels | Done | **Built in `7ef0919`.** Parallel within a level |
 | E3-T7 | Cycle refusal at wire creation and detection at load | Done | **Built in `7ef0919`.** At creation, flash the closing path. At load, every node in the cycle errors and the rest of the graph still evaluates. **Never hang** |
 | E3-T8 | Content-addressed provenance cache | Done | **Built in `7ef0919`.** `Key(n) = Hash(DefinitionKey, DefinitionVersion, Lacing, Tolerance, RunEpochIfImpure, ∀input: connected ? Key(upstream) : Hash(literal))`. By provenance, **not by value** — hashing a 2M-triangle mesh costs more than recomputing it. Consequence: undo, redo, A/B wire toggling and slider reverts are instant, because the old key is still cached — **and as of `E8-T9` that is measured rather than asserted**: the run after an undo recomputes zero nodes |
-| E3-T9 | LRU eviction against a memory budget | In progress | **Partly built.** Eviction is by last use against an **entry-count ceiling**, not the byte budget this row asks for and not the native-memory budget [ADR-0021](adr/0021-brep-kernel-residency.md) now requires. The implementation says so in its own remarks rather than implying a budget it does not have. By last use and estimated size |
-| E3-T10 | Impure node declaration and run epoch | In progress | **Half built.** The run epoch is plumbed through `EvaluationContext` and mixed into `CacheKey`. **There is no impure-node declaration**: no attribute exists in `Spark.Api`, so nothing can mark itself impure and nothing poisons downstream keys yet. Impure nodes mix a run epoch into their key and poison downstream keys. They must declare themselves; there is no way to detect it |
+| E3-T9 | LRU eviction against a memory budget | Done | **Two bounds, and a result must fit inside both**: an estimated byte budget, 256 MiB by default, and the entry ceiling that was there before. The bytes are the bound that matters — four thousand meshes and four thousand numbers are the same cache by count and are not the same cache — and the count stays beside it because the per-entry cost the estimator cannot see (a dictionary node, a list node, the key) is real and is not proportional to the value. `GraphValueSize` does the estimating and **names its three blind spots on itself rather than leaving them to be found**: it cannot see native memory, it cannot see sharing (the same curve twice is charged twice, and the error is in the safe direction), and it does not walk a curve's tessellation. **The native-memory half is still open and is [E13-T3](#e13--occt-provider)'s**, exactly as [ADR-0021](adr/0021-brep-kernel-residency.md) requires: a provider *reports* its budget and nothing here infers one, so an unrecognised object is charged a flat fee and no more. One decision worth the reading: **a single result larger than the whole budget is kept**, because evicting it empties the cache and then evicts the thing just computed, so the next run recomputes it and the cycle repeats |
+| E3-T10 | Impure node declaration and run epoch | Done | **This row was wrong, and the correction is the finding.** It said no attribute existed in `Spark.Api` and that nothing could mark itself impure. `NodeSideEffectAttribute` has existed all along, the importer reads it from the member and from the declaring type, `NodeDefinition.IsSideEffect` carries it, `CacheKey` mixes the run epoch when it is set, the evaluator neither reads nor writes the cache for such a node, and `SparkSession.Evaluate` advances the epoch every run. **What was actually missing was a test through the attribute**: the one test that existed built a `NodeDefinition` by hand with `isSideEffect: true`, which exercises the engine and skips the only step a node author ever takes — so deleting the importer's attribute check would have left the whole suite green and made every impure node in every package silently pure. Three tests now cover it, including one asserting that nothing in the built-in library declares a side effect, so that the day one does is a deliberate decision rather than a drift |
 | E3-T11 | `IEvaluationScheduler`: parallel, sequential-deterministic, host-thread | In progress | **Two of the three.** `SequentialEvaluationScheduler` and `ParallelEvaluationScheduler` exist behind `IEvaluationScheduler`. The **host-thread** scheduler - the one a CAD host actually needs, and a large part of why the seam exists - does not. Parallel for desktop, sequential for CLI and determinism, host-thread for CAD embedding ([E12-T3](#e12--embedding-and-release)). Evaluation never runs on the UI thread |
 | E3-T12 | Cancellation between nodes, between replication elements, and inside long kernel loops | In progress | **Between nodes and between replication elements, yes.** Not **inside long kernel loops**: no kernel operation takes a token, so a single expensive element cannot be interrupted. Cancelling leaves completed nodes cached |
 | E3-T13 | Run modes: Automatic (debounced ~200 ms), Manual, Periodic | Open | Auto-suggests Manual past a graph-size threshold |

@@ -8,9 +8,9 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,150 tests over eight
+Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,167 tests over eight
 projects**) and `dotnet format` are all clean — though `dotnet test` itself now reports
-`Zero tests ran` on SDK 10.0.400 and the 1,150 are counted by `scripts/run-tests.sh`
+`Zero tests ran` on SDK 10.0.400 and the 1,167 are counted by `scripts/run-tests.sh`
 ([N34](NOTES.md)) — and **CI ran green on Windows and Linux on `53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
 
@@ -61,7 +61,9 @@ for anything else.
       evicts by entry count rather than by bytes, no node can declare itself impure, the
       host-thread scheduler is missing, cancellation does not reach inside a kernel operation,
       the shell has no real docking, the library panel filters without ranking, and three rows
-      wait on the empty `bench/`. Two more are `Open` **with a stated reason** rather than by
+      wait on the empty `bench/`. **Two of those ten have since closed and one of them closed by
+      being disproved**: the cache holds a byte budget now, and the impure-node declaration was
+      never missing — only its test was. Two more are `Open` **with a stated reason** rather than by
       omission, because the importer's two-way diff will not let a public member go unaccounted
       for. Details on the rows and in [EPICS.md](EPICS.md).
 - [x] **Save and load a `.spark` file** — `E3-T17`, `E3-T18`, done. Open and Save are on the
@@ -265,6 +267,25 @@ for anything else.
       about touching while `Intersection` returns a region, and widening a region by a tolerance
       hands back space neither box occupies. Parity in the value layer goes from 92 to
       **95 of 133**.
+- [x] **The cache holds a memory budget, and one row that said something was missing was wrong**
+      — `E3-T9` and `E3-T10`. The cache now evicts against **two bounds**: an estimated byte
+      budget, 256 MiB by default, and the entry ceiling it already had. The bytes are the bound
+      that matters, since four thousand meshes and four thousand numbers are the same cache by
+      count and are not the same cache. `GraphValueSize` estimates, and **names its three blind
+      spots on itself**: no native memory, no sharing (the same curve twice is charged twice, and
+      that error is in the safe direction), and no walking of a curve's tessellation. The
+      **native** half stays open and belongs to `E13-T3`, exactly as ADR-0021 requires — a
+      provider *reports* its budget and nothing here infers one. A single result larger than the
+      whole budget is kept rather than evicted, because evicting it empties the cache and then
+      evicts the thing just computed.
+      **`E3-T10` turned out to be already built**, and the row saying otherwise is the more
+      useful half of this. `NodeSideEffectAttribute` existed, the importer read it, the key mixed
+      the epoch and the evaluator honoured it. What was missing was a **test through the
+      attribute**: the only one that existed built a definition by hand with
+      `isSideEffect: true`, exercising the engine and skipping the one step a node author ever
+      takes — so deleting the importer's check would have left the suite green and made every
+      impure node in every package silently pure. That is the worst failure a provenance cache
+      has, because it poisons nothing and therefore never looks wrong.
 - [x] **The rest of the near-term parity list, and `E2-T16` withdrawn rather than built** —
       `Point3d`/`Vector3d` cylindrical and spherical construction, and
       `Point3d.PruneDuplicates`. That last one is what `E2-T16`'s KD-tree existed for, and the
