@@ -40,14 +40,16 @@ read as 55–70 MB** — but that is a survey, not a build.
 
 ---
 
-## Now — reconcile the register, then persist a graph
+## Now — persist a graph
 
-- [ ] **Walk TASKS.md against E3, E4, E5, E8 and E9.** Those rows still read `Open` and the work
-      is substantially delivered — the graph model, topological evaluation, the full replicator,
-      the reflection importer, the shell, the canvas and the viewport all landed in `7ef0919`,
-      `85e3183` and `35107f0`, and nobody has walked the register against them since. This is
-      first because every estimate below is being made against a register known to be wrong, and
-      because the debt compounds: reconciling three commits is cheaper than reconciling six.
+- [x] **Walk TASKS.md against E3, E4, E5, E8 and E9** — done, and it moved 41 rows. Ten of them
+      came back **`In progress` rather than `Done`**, which is the useful output: the cache
+      evicts by entry count rather than by bytes, no node can declare itself impure, the
+      host-thread scheduler is missing, cancellation does not reach inside a kernel operation,
+      the shell has no real docking, the library panel filters without ranking, and three rows
+      wait on the empty `bench/`. Two more are `Open` **with a stated reason** rather than by
+      omission, because the importer's two-way diff will not let a public member go unaccounted
+      for. Details on the rows and in [EPICS.md](EPICS.md).
 - [ ] **Save and load a `.spark` file** — `E3-T17`, `E3-T18`. **A graph cannot outlive the
       process today**, which makes every other M2 feature a demo rather than a tool. The format
       is settled — plain JSON, [ADR-0017](adr/0017-spark-file-is-plain-json.md) — and the

@@ -7,23 +7,42 @@ order for what to do next is in [TODO.md](TODO.md); the requirements behind them
 **Last updated:** 2026-08-28
 **Legend:** `Done` · `In progress` · `Open` · `Blocked` · `Withdrawn`
 
-**Summary:** 42 done · 8 in progress · 205 open · 9 withdrawn — **264 rows**
+**Summary:** 83 done · 17 in progress · 155 open · 9 withdrawn — **264 rows**
 
 **This revision brings the curve layer in, and corrects four claims below that had become
 false.** `Line`, `Arc`, `Circle`, `EllipseCurve`, `PolyLine` and `PolyCurve` exist, with
 arc-length reparameterisation in the contract from the first commit rather than retrofitted —
 `E2-T7` … `E2-T9`. The four corrections are that **CI has run and is green on Linux as well as
-Windows**, that the **three M1.5 spikes were taken and both architectural bets held**, that
+Windows**, that **two of the three M1.5 spikes were taken and both architectural bets held**, that
 **all eight agent definitions are written**, and that the suite is **873 tests across seven
 projects** rather than 315 across four.
 
-> **This register is not yet reconciled for the walking skeleton.** Commits `7ef0919`,
-> `85e3183` and `35107f0` delivered the graph engine, the replicator, the reflection importer,
-> the Avalonia shell, the node canvas and the GL viewport, and the rows for **E3, E4, E5, E8
-> and E9 still read `Open`.** They are not open; they are substantially delivered and nobody
-> has walked the register against them. That reconciliation is the first item in
-> [TODO.md](TODO.md), and it is called out here rather than partially done, because a register
-> that is half-true in an unmarked way is worse than one that says where it is behind.
+**The walking-skeleton reconciliation is done, and it moved 41 rows.** Commits `7ef0919`,
+`85e3183` and `35107f0` delivered the graph engine, the replicator, the reflection importer, the
+Avalonia shell, the node canvas and the GL viewport while the rows for E3, E4, E5, E8 and E9 all
+still read `Open`. Every one of those rows was checked against the source tree rather than
+against the commit messages, which is why ten of them came back **`In progress` rather than
+`Done`** — and those ten are the useful output of the exercise, because each names a specific
+half that is missing:
+
+- **`E3-T9`** evicts by entry count, not by a byte budget, and not by the native budget
+  ADR-0021 now requires.
+- **`E3-T10`** has the run epoch but **no impure-node declaration at all**, so nothing can mark
+  itself impure.
+- **`E3-T11`** has two of three schedulers; the **host-thread** one, which is most of why the
+  seam exists, is absent.
+- **`E3-T12`** cancels between nodes and between elements, but no kernel operation takes a
+  token, so one expensive element cannot be interrupted.
+- **`E4-T3`**, **`E8-T15`** and the benchmark half of several others all wait on `bench/`, which
+  is still an empty directory.
+- **`E8-T2`** has the layout model and the presets but not the docking, because a companion
+  package was never pinned.
+- **`E8-T6`** is missing group, note and align. **`E8-T8`** has the panel but not the ranking.
+- **`E5-T14`** is 57 nodes, which is a number rather than a finish line.
+
+Two rows are `Open` **with a stated reason rather than by omission** — `E5-T9` and `E5-T10`,
+extension methods and generics — because the importer's two-way diff refuses to let a public
+member be silently unaccounted for. That distinction is the difference between a gap and a bug.
 
 **The largest decision in the project stands unchanged, and is recorded here because this is
 where it lands.** The client chose to take an existing solid-modelling kernel rather than write one:
@@ -70,14 +89,13 @@ deleted, with the reason on each row, because a task that vanishes silently is a
 somebody re-adds. The blocked count is now zero: the one blocked task was `E1-T24`, and it
 was never unblockable — it was unnecessary.
 
-**Eight tasks are `In progress`.** The five CI rows `E1-T14` … `E1-T18` are now `Done`: the
-workflow has run on GitHub, on both operating systems, and was green — which is the standard
-those rows were held to, and the reason they sat at `In progress` while the file merely
+**Seventeen tasks are `In progress`, and `In progress` here means part-delivered with the
+missing part named on the row** — never "started". The five CI rows `E1-T14` … `E1-T18` are now
+`Done`: the workflow has run on GitHub, on both operating systems, and was green, which is the
+standard those rows were held to and the reason they sat at `In progress` while the file merely
 existed. `E11-T14` stays `In progress` because the `docs-freshness` job within it is
-`pull_request`-only and has never run. The rest — `E1-T12`, `E2-T1`, `E2-T33`, `E2-T41`,
-`E10-T8`, `E11-T10` and `E12-T5` — are genuinely part-delivered, and each row says which part
-landed and which did not. `E1-T25` and `E1-T30` are `Done`: all eight agent definitions exist
-under `.claude/agents/`.
+`pull_request`-only and has never run once. `E1-T25` and `E1-T30` are `Done`: all eight agent
+definitions exist under `.claude/agents/`.
 
 **Scope of this reconciliation.** This pass closes the E2 reconciliation the previous pass
 deliberately deferred. The geometry kernel's **first slice — the value layer — has landed,
@@ -218,22 +236,22 @@ Everything else in this file is a plan, not a claim.
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| E3-T1 | The graph data model | Open | `Graph`, `NodeInstance`, `Wire`, `NodeDefinition`, `PortDefinition`. `NodeId` is a `Guid`, stable and **never reused** |
-| E3-T2 | `DefinitionKey` including package identity | Open | Not just a name. Without package identity, version conflicts become silent misbindings |
-| E3-T3 | Expression-tree-compiled `Invoke` delegates | Open | Never `MethodInfo.Invoke`. Under replication over 100k items the reflection path is 50–100× slower, which would make lacing unusable |
-| E3-T4 | Type compatibility rules and wire refusal at creation time | Open | In order: identical/assignable (green) → numeric widening (green) → registered converter (**yellow**, tooltip names it and says if lossy) → reflected user `implicit operator` (yellow) → rank lifting (green) → target is `object` (green) → otherwise **red and refused**, with an "insert `String.ToNumber`" style hint. Widening and upcasts are automatic; narrowing, parsing and lossy conversions never are |
-| E3-T5 | Refuse same-`FullName`, different-assembly wires naming both packages | Open | Turns an incomprehensible runtime *cannot cast Foo to Foo* into a design-time message. Worth its own rule |
-| E3-T6 | Kahn topological sort over the dirty subgraph, producing levels | Open | Parallel within a level |
-| E3-T7 | Cycle refusal at wire creation and detection at load | Open | At creation, flash the closing path. At load, every node in the cycle errors and the rest of the graph still evaluates. **Never hang** |
-| E3-T8 | Content-addressed provenance cache | Open | `Key(n) = Hash(DefinitionKey, DefinitionVersion, Lacing, Tolerance, RunEpochIfImpure, ∀input: connected ? Key(upstream) : Hash(literal))`. By provenance, **not by value** — hashing a 2M-triangle mesh costs more than recomputing it. Consequence: undo, redo, A/B wire toggling and slider reverts are instant, because the old key is still cached |
-| E3-T9 | LRU eviction against a memory budget | Open | By last use and estimated size |
-| E3-T10 | Impure node declaration and run epoch | Open | Impure nodes mix a run epoch into their key and poison downstream keys. They must declare themselves; there is no way to detect it |
-| E3-T11 | `IEvaluationScheduler`: parallel, sequential-deterministic, host-thread | Open | Parallel for desktop, sequential for CLI and determinism, host-thread for CAD embedding ([E12-T3](#e12--embedding-and-release)). Evaluation never runs on the UI thread |
-| E3-T12 | Cancellation between nodes, between replication elements, and inside long kernel loops | Open | Cancelling leaves completed nodes cached |
+| E3-T1 | The graph data model | Done | **Built in `7ef0919`.** `Graph`, `NodeInstance`, `Wire`, `NodeDefinition`, `PortDefinition`. `NodeId` is a `Guid`, stable and **never reused** |
+| E3-T2 | `DefinitionKey` including package identity | Done | **Built in `7ef0919`.** `NodeKey` carries `Package` and hashes it, so two packages publishing the same type name cannot silently misbind. Not just a name. Without package identity, version conflicts become silent misbindings |
+| E3-T3 | Expression-tree-compiled `Invoke` delegates | Done | **Built in `7ef0919`, and the ADR that justified it was corrected in the same commit.** ADR-0012 argued from "50-100x slower than reflection"; measured on .NET 10, which emits its own invoke stub, it is **1.9x** - 2.27 ms against 4.37 ms over 200,000 calls. The decision stands on the shape of the code rather than on the number, and the number is recorded as a dated correction rather than quietly edited. Never `MethodInfo.Invoke`. Under replication over 100k items the reflection path is 50–100× slower, which would make lacing unusable |
+| E3-T4 | Type compatibility rules and wire refusal at creation time | Done | **Built in `7ef0919`.** In order: identical/assignable (green) → numeric widening (green) → registered converter (**yellow**, tooltip names it and says if lossy) → reflected user `implicit operator` (yellow) → rank lifting (green) → target is `object` (green) → otherwise **red and refused**, with an "insert `String.ToNumber`" style hint. Widening and upcasts are automatic; narrowing, parsing and lossy conversions never are |
+| E3-T5 | Refuse same-`FullName`, different-assembly wires naming both packages | Done | **Built in `7ef0919`.** Turns an incomprehensible runtime *cannot cast Foo to Foo* into a design-time message. Worth its own rule |
+| E3-T6 | Kahn topological sort over the dirty subgraph, producing levels | Done | **Built in `7ef0919`.** Parallel within a level |
+| E3-T7 | Cycle refusal at wire creation and detection at load | Done | **Built in `7ef0919`.** At creation, flash the closing path. At load, every node in the cycle errors and the rest of the graph still evaluates. **Never hang** |
+| E3-T8 | Content-addressed provenance cache | Done | **Built in `7ef0919`.** `Key(n) = Hash(DefinitionKey, DefinitionVersion, Lacing, Tolerance, RunEpochIfImpure, ∀input: connected ? Key(upstream) : Hash(literal))`. By provenance, **not by value** — hashing a 2M-triangle mesh costs more than recomputing it. Consequence: undo, redo, A/B wire toggling and slider reverts are instant, because the old key is still cached |
+| E3-T9 | LRU eviction against a memory budget | In progress | **Partly built.** Eviction is by last use against an **entry-count ceiling**, not the byte budget this row asks for and not the native-memory budget [ADR-0021](adr/0021-brep-kernel-residency.md) now requires. The implementation says so in its own remarks rather than implying a budget it does not have. By last use and estimated size |
+| E3-T10 | Impure node declaration and run epoch | In progress | **Half built.** The run epoch is plumbed through `EvaluationContext` and mixed into `CacheKey`. **There is no impure-node declaration**: no attribute exists in `Spark.Api`, so nothing can mark itself impure and nothing poisons downstream keys yet. Impure nodes mix a run epoch into their key and poison downstream keys. They must declare themselves; there is no way to detect it |
+| E3-T11 | `IEvaluationScheduler`: parallel, sequential-deterministic, host-thread | In progress | **Two of the three.** `SequentialEvaluationScheduler` and `ParallelEvaluationScheduler` exist behind `IEvaluationScheduler`. The **host-thread** scheduler - the one a CAD host actually needs, and a large part of why the seam exists - does not. Parallel for desktop, sequential for CLI and determinism, host-thread for CAD embedding ([E12-T3](#e12--embedding-and-release)). Evaluation never runs on the UI thread |
+| E3-T12 | Cancellation between nodes, between replication elements, and inside long kernel loops | In progress | **Between nodes and between replication elements, yes.** Not **inside long kernel loops**: no kernel operation takes a token, so a single expensive element cannot be interrupted. Cancelling leaves completed nodes cached |
 | E3-T13 | Run modes: Automatic (debounced ~200 ms), Manual, Periodic | Open | Auto-suggests Manual past a graph-size threshold |
 | E3-T14 | Progress channel; results marshal back so the canvas animates and geometry streams during a run | Open | |
-| E3-T15 | `SparkDiagnostic` and the `SPK####` code space | Open | `{ Severity, Code, Message, Detail, NodeId, PortIndex, ElementPath, HelpTopicId }` |
-| E3-T16 | Downstream of an error is greyed as *not evaluated*, never cascaded | Open | Cascading turns a one-node problem into a fifty-error wall that hides the cause. Warnings mean output-with-caveats and downstream still evaluates |
+| E3-T15 | `SparkDiagnostic` and the `SPK####` code space | Done | **Built in `7ef0919`.** `{ Severity, Code, Message, Detail, NodeId, PortIndex, ElementPath, HelpTopicId }` |
+| E3-T16 | Downstream of an error is greyed as *not evaluated*, never cascaded | Done | **Built in `7ef0919`.** Cascading turns a one-node problem into a fifty-error wall that hides the cause. Warnings mean output-with-caveats and downstream still evaluates |
 | E3-T17 | `.spark` canonical JSON writer and reader | Open | Stable key order, invariant numbers. Diffable, mergeable graphs matter more for an OSS tool whose users share work on GitHub than container tidiness. Assets over 64 KB go to a sibling folder by content hash |
 | E3-T18 | Byte-identical save/load round-trip test | Open | Also the test that proves [E7-T7](#e7--packages-and-extensibility) |
 | E3-T19 | `graph.formatVersion` and JSON-to-JSON migrations | Open | A single monotonic integer, decoupled from product version. **Never against typed models** — typed models drift and silently change what an old migration means. Migrations are never deleted, and each ships with a golden-file test against a real old graph in the corpus |
@@ -246,37 +264,37 @@ Everything else in this file is a plan, not a claim.
 | ID | Task | Status | Notes |
 |---|---|---|---|
 | E4-T1 | Write `docs/help/concepts/lacing.md` with the full case table | Done | Written 2026-08-27, **before any replication code exists** — the design instrument, not a description. 917 lines, and the case table went well past the 40 rows budgeted. Crosses declared rank (0/1/2) × actual rank (excess −1 to +2) × input count (1–3) × length relationship (equal, shorter, length-1, empty) × mode, plus promotion, empty-list propagation, null passthrough, ragged nesting, multi-output transpose, three-way cross product, and `[NoReplication]`/`[KeepStructure]`. **Case numbers are stable and never reused**, and the document deliberately does not describe itself by a count — the corpus is expected to grow as the engine finds situations the document did not anticipate, which is the point of writing it first. Cite it as *the case table*, never as *the N-case table*. It also settles ten questions the plan left open, as decisions D1–D10 in §2.16 |
-| E4-T2 | `SparkList` as a first-class engine type | Open | Not `List<object>`, not raw `IEnumerable`. Rank must be O(1) and unambiguous: is a `string` a list of chars? Is `Point3d[]` a list or an opaque value the node wants whole? The wrapper answers this once |
-| E4-T3 | `SparkList` marshalling to and from declared collection types, with a standing benchmark | Open | The performance-critical path of the entire engine |
-| E4-T4 | Rank computation | Open | Value rank: scalar 0, list 1, list-of-lists 2. Port declared rank comes from the signature. `excess(i) = rank(actual) − declaredRank(i)`; `depth = max excess` |
-| E4-T5 | Replicate one level and recurse | Open | **Never flatten-then-reshape**, so nested structure is preserved exactly |
-| E4-T6 | The five lacing modes — four algorithms and one sentinel | Open | `Shortest` (zip, truncate, +1), `Longest` (zip, short inputs repeat their last element, +1), `CrossProduct` (all combinations, **+k**), `Disabled` (no replication, 0) — and **`Auto`, which is not a replication algorithm at all**. `Auto` is a sentinel meaning *use this node definition's `DefaultLacing`*, resolved to one of the other four before replication begins; it has no `n`, no pairing rule and no output rank of its own. The plan's "`Auto` = `Longest` but zero-excess inputs never iterate" was **overturned in review**: zero-excess inputs never iterate under *any* mode, so that reading made `Auto` a mode that could provably never differ from `Longest`. See `lacing.md` §2.6, §2.9 and decision **D4**. Consequences the implementation must carry: `Auto` is what a freshly placed node stores, two nodes both on `Auto` may lace differently, `DefaultLacing` may not itself be `Auto`, and a definition declaring no default gets `Longest`. `Disabled` is required for inherently rank-1 nodes like `List.Count` |
-| E4-T7 | `CrossProduct` raises output rank by *k*, not by 1 | Open | The part implementations habitually get wrong: 10 × 10 must yield a 10×10 nested list, not a flat 100 |
-| E4-T8 | Zero-excess broadcast and negative-excess scalar promotion | Open | Inputs with zero excess broadcast unchanged; negative excess promotes a scalar into a one-element list |
-| E4-T9 | Multi-output lockstep replication and transpose | Open | `(area, centroid)` over five items gives two lists of five, **not** one list of five tuples |
-| E4-T10 | Per-element failure isolation | Open | Element 37 of 500 throwing leaves the rest evaluated, slot 37 `null`, and the node emitting a **Warning** naming the failing indices — not an Error. The fast path runs uncaught until the first failure, then restarts with catching enabled, so the happy path pays nothing |
-| E4-T11 | `[NoReplication]` and `[KeepStructure]` | Open | |
-| E4-T12 | Turn the lacing case table into the test corpus | Open | Each row asserts the expected value **and the expected rank separately** — rank bugs are precisely the ones that survive value-only tests |
+| E4-T2 | `SparkList` as a first-class engine type | Done | **Built in `7ef0919`.** Not `List<object>`, not raw `IEnumerable`. Rank must be O(1) and unambiguous: is a `string` a list of chars? Is `Point3d[]` a list or an opaque value the node wants whole? The wrapper answers this once |
+| E4-T3 | `SparkList` marshalling to and from declared collection types, with a standing benchmark | In progress | **Marshalling is built** - `ValueMarshal` and `NumericConversions`, in both directions. **The standing benchmark is not**: `bench/` is still an empty directory, so the performance-critical path of the engine has no guard on it. The performance-critical path of the entire engine |
+| E4-T4 | Rank computation | Done | **Built in `7ef0919`, as a direct transcription of the specification written before it.** Value rank: scalar 0, list 1, list-of-lists 2. Port declared rank comes from the signature. `excess(i) = rank(actual) − declaredRank(i)`; `depth = max excess` |
+| E4-T5 | Replicate one level and recurse | Done | **Built in `7ef0919`, as a direct transcription of the specification written before it.** **Never flatten-then-reshape**, so nested structure is preserved exactly |
+| E4-T6 | The five lacing modes — four algorithms and one sentinel | Done | **Built in `7ef0919`, as a direct transcription of the specification written before it.** `Shortest` (zip, truncate, +1), `Longest` (zip, short inputs repeat their last element, +1), `CrossProduct` (all combinations, **+k**), `Disabled` (no replication, 0) — and **`Auto`, which is not a replication algorithm at all**. `Auto` is a sentinel meaning *use this node definition's `DefaultLacing`*, resolved to one of the other four before replication begins; it has no `n`, no pairing rule and no output rank of its own. The plan's "`Auto` = `Longest` but zero-excess inputs never iterate" was **overturned in review**: zero-excess inputs never iterate under *any* mode, so that reading made `Auto` a mode that could provably never differ from `Longest`. See `lacing.md` §2.6, §2.9 and decision **D4**. Consequences the implementation must carry: `Auto` is what a freshly placed node stores, two nodes both on `Auto` may lace differently, `DefaultLacing` may not itself be `Auto`, and a definition declaring no default gets `Longest`. `Disabled` is required for inherently rank-1 nodes like `List.Count` |
+| E4-T7 | `CrossProduct` raises output rank by *k*, not by 1 | Done | **Built in `7ef0919`, as a direct transcription of the specification written before it.** The part implementations habitually get wrong: 10 × 10 must yield a 10×10 nested list, not a flat 100 |
+| E4-T8 | Zero-excess broadcast and negative-excess scalar promotion | Done | **Built in `7ef0919`, as a direct transcription of the specification written before it.** Inputs with zero excess broadcast unchanged; negative excess promotes a scalar into a one-element list |
+| E4-T9 | Multi-output lockstep replication and transpose | Done | **Built in `7ef0919`, as a direct transcription of the specification written before it.** `(area, centroid)` over five items gives two lists of five, **not** one list of five tuples |
+| E4-T10 | Per-element failure isolation | Done | **Built in `7ef0919`, as a direct transcription of the specification written before it.** Element 37 of 500 throwing leaves the rest evaluated, slot 37 `null`, and the node emitting a **Warning** naming the failing indices — not an Error. The fast path runs uncaught until the first failure, then restarts with catching enabled, so the happy path pays nothing |
+| E4-T11 | `[NoReplication]` and `[KeepStructure]` | Done | **Built in `7ef0919`, as a direct transcription of the specification written before it.** |
+| E4-T12 | Turn the lacing case table into the test corpus | Done | **Built in `7ef0919`, and it earned its keep immediately.** `LacingCorpusCoverageTests` parses the specification's own case numbers and fails if the corpus and the document name different sets in **either** direction. It found two errors in the specification: cases 29 and 30 expected `[11,22,32]` where repeating the short input's last element gives 23, and case 45 and the worked example both already said 23. Each row asserts the expected value **and the expected rank separately** — rank bugs are precisely the ones that survive value-only tests |
 
 ## E5 — Node authoring and library
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| E5-T1 | The authoring attributes | Open | `[SparkNode]`, `[NodePort]`, `[NodeIgnore]` and the replication attributes. For first-party code and willing third parties — never a requirement |
-| E5-T2 | Zero-config reflection importer | Open | Must produce a usable library from an assembly with **no attributes at all**. This is the load-bearing promise of the whole extensibility story |
-| E5-T3 | Member-kind rules | Open | Public static and instance methods included, instance becoming input port 0 and the node named `Type.Method`. Public constructors become `Type.ByParamNames`. Property getters included, **setters excluded** — mutation has no place in dataflow. Static readonly fields and consts become zero-input constant nodes. `out` parameters become extra outputs after the return value. `Task<T>` is awaited and the port type is `T`. `void` with no out/ref is excluded unless explicitly marked a side effect. `op_*` operators are **excluded as nodes** — else dozens of `op_Addition` — and harvested as implicit conversions instead. Generics excluded unless closed instantiations are named, or the method is rank-polymorphic identity-like (`List.Reverse<T>`) and closed over `object`, which works because `SparkList` is object-based |
-| E5-T4 | Overload handling | Open | **One node per overload**, grouped under one library entry with a flyout, disambiguated by *differing parameter names* (`ByCenterRadius` vs `ByCenterRadiusNormal`), never `_2`. Rejected: a dropdown (changing it destroys wires) and runtime resolution (dynamic port sets break cache keys, lacing rank and wire validation) |
-| E5-T5 | `By*` façade dedup | Open | A public static `By*`/`From*`/`Create*` on `T` returning `T` whose *parameter type sequence* matches a constructor's suppresses that constructor. Anything a factory does not cover still emits its constructor, so nothing becomes unreachable |
-| E5-T6 | Two-way node↔member coverage test with an exclusions file | Open | Every public member is reachable as exactly one node or is listed with a reason; every node resolves to a live member. **The DoodleSharp `DocumentationAccuracyTests` lesson applied prophylactically rather than after the damage** |
-| E5-T7 | Descriptions from the sidecar XML documentation file | Open | Any library shipping its `.xml` gets tooltips free |
-| E5-T8 | `Angle` parameters render as degree-valued ports | Open | The typed hook that bare doubles could never provide, and it works for third-party libraries automatically |
-| E5-T9 | Extension methods presented as instance methods on the extended type | Open | So package extensions look native |
-| E5-T10 | Generic method handling | Open | See E5-T3 |
+| E5-T1 | The authoring attributes | Done | **Built in `35107f0`.** `[SparkNode]`, `[NodePort]`, `[NodeIgnore]` and the replication attributes. For first-party code and willing third parties — never a requirement |
+| E5-T2 | Zero-config reflection importer | Done | **Built in `35107f0`.** Must produce a usable library from an assembly with **no attributes at all**. This is the load-bearing promise of the whole extensibility story |
+| E5-T3 | Member-kind rules | Done | **Built in `35107f0`.** Public static and instance methods included, instance becoming input port 0 and the node named `Type.Method`. Public constructors become `Type.ByParamNames`. Property getters included, **setters excluded** — mutation has no place in dataflow. Static readonly fields and consts become zero-input constant nodes. `out` parameters become extra outputs after the return value. `Task<T>` is awaited and the port type is `T`. `void` with no out/ref is excluded unless explicitly marked a side effect. `op_*` operators are **excluded as nodes** — else dozens of `op_Addition` — and harvested as implicit conversions instead. Generics excluded unless closed instantiations are named, or the method is rank-polymorphic identity-like (`List.Reverse<T>`) and closed over `object`, which works because `SparkList` is object-based |
+| E5-T4 | Overload handling | Done | **Built in `35107f0`.** One node per overload, disambiguated by differing parameter names rather than by declaration order, which reflection does not guarantee. **One node per overload**, grouped under one library entry with a flyout, disambiguated by *differing parameter names* (`ByCenterRadius` vs `ByCenterRadiusNormal`), never `_2`. Rejected: a dropdown (changing it destroys wires) and runtime resolution (dynamic port sets break cache keys, lacing rank and wire validation) |
+| E5-T5 | `By*` façade dedup | Done | **Built in `35107f0`.** A public constructor is suppressed when a `By*`/`From*`/`Create*` static on the same type returns that type with the same parameter type sequence, and the suppression is recorded as an exclusion naming the factory that superseded it. A public static `By*`/`From*`/`Create*` on `T` returning `T` whose *parameter type sequence* matches a constructor's suppresses that constructor. Anything a factory does not cover still emits its constructor, so nothing becomes unreachable |
+| E5-T6 | Two-way node↔member coverage test with an exclusions file | Done | **Built in `35107f0`.** Every public member is reachable as exactly one node or is listed with a reason; every node resolves to a live member. **The DoodleSharp `DocumentationAccuracyTests` lesson applied prophylactically rather than after the damage** |
+| E5-T7 | Descriptions from the sidecar XML documentation file | Done | **Built in `35107f0`.** Any library shipping its `.xml` gets tooltips free |
+| E5-T8 | `Angle` parameters render as degree-valued ports | Done | **Built.** The importer types the port from `Angle`, and the properties panel edits it **in degrees** while the kernel holds radians. This is the payoff the convention promised: a bare `double` cannot be told from a length, so no editor could choose the unit a person thinks in. The typed hook that bare doubles could never provide, and it works for third-party libraries automatically |
+| E5-T9 | Extension methods presented as instance methods on the extended type | Open | **Excluded with a stated reason rather than skipped**, which is the importer's rule: *extension methods are not surfaced on their receiver in this slice*. The two-way diff counts it as accounted for, so it cannot rot into a silent gap. So package extensions look native |
+| E5-T10 | Generic method handling | Open | **Excluded with a stated reason**, as above. Generic types and generic methods are named in the importer's own remarks as outside this slice. See E5-T3 |
 | E5-T11 | CI acceptance test: import a well-known third-party NuGet package and assert a sane node count with no crashes | Open | The only honest way to know zero-config actually works |
-| E5-T12 | Category taxonomy and library organisation | Open | |
+| E5-T12 | Category taxonomy and library organisation | Done | **Built in `35107f0`.** |
 | E5-T13 | Curated List, Math, String and Logic node categories | Open | M3. A curated `Math` category serves arithmetic in place of the operator nodes E5-T3 excludes |
-| E5-T14 | Geometry node coverage over `Spark.Geometry` | Open | Reached through the same zero-config importer as everyone else, because `Spark.Nodes.Core` cannot reference `Spark.Engine` |
-| E5-T15 | `Appearance`, `Displayable` and `Display.ByGeometryColor` | Open | These live in `Spark.Api`, **not the kernel**. Unwrapped geometry renders with defaults, so `Spark.Geometry` stays usable entirely on its own, with no notion of colour and no reference to anything above it |
+| E5-T14 | Geometry node coverage over `Spark.Geometry` | In progress | **57 nodes today**, over `Point`, `Vector`, `Plane`, `BoundingBox`, `Number`, `Math`, `Display`, `Colour` and the six curve families - reached through the same zero-config importer any third-party assembly would be. Reached through the same zero-config importer as everyone else, because `Spark.Nodes.Core` cannot reference `Spark.Engine` |
+| E5-T15 | `Appearance`, `Displayable` and `Display.ByGeometryColor` | Done | **Built in `35107f0`.** These live in `Spark.Api`, **not the kernel**. Unwrapped geometry renders with defaults, so `Spark.Geometry` stays usable entirely on its own, with no notion of colour and no reference to anything above it |
 | E5-T16 | Watch and preview node definitions | Open | M3 |
 
 ## E6 — C# code block
@@ -325,21 +343,21 @@ Everything else in this file is a plan, not a claim.
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| E8-T1 | Avalonia application shell, DI and main window | Open | `Spark.Desktop` |
-| E8-T2 | Docking via `Dock.Avalonia`, serialisable layout, reset, workspace presets | Open | **Do not port RCS's from-scratch dock manager.** Port the *idea* of a serialisable, testable layout model |
-| E8-T3 | Port `SceneIndex` from DoodleSharp | Open | Pure managed data-structure code with no WPF in it. Culling and hit-testing come free with it |
-| E8-T4 | Immediate-mode canvas rendering over the retained index | Open | One Avalonia control for the whole canvas. One control per node collapses somewhere between 500 and 2000 nodes because layout and hit-test costs are per-visual. Drawing a few thousand rounded rectangles and beziers through Skia is trivial by comparison. **One Skia backend only** — DoodleSharp's three-backend arbitration with hysteresis is deliberately left behind |
-| E8-T5 | Hybrid overlay for the node under interaction | Open | Only the node currently being interacted with gets a real Avalonia control positioned over the drawing — typically one at a time. This is what preserves input fidelity |
-| E8-T6 | Canvas interaction: pan, zoom, box select, drag, wire, unwire, delete, group, note, align | Open | |
-| E8-T7 | LOD below 40% zoom | Open | |
-| E8-T8 | Node library panel with camel-hump search ranking | Open | exact → prefix → **camel-hump** (`cbcr` → `Circle.ByCenterRadius`) → substring → tag → description. The highest-value search feature across thousands of nodes, and cheap to implement |
+| E8-T1 | Avalonia application shell, DI and main window | Done | **Built in `85e3183`/`35107f0`.** `Spark.Desktop` |
+| E8-T2 | Docking via `Dock.Avalonia`, serialisable layout, reset, workspace presets | In progress | **Workspace presets, reset and a serialisable `WorkspaceLayout` exist; the docking does not.** The shell is a `Grid` with splitters rather than a `DockControl`, because Dock.Avalonia's templates live in a companion package (`Dock.Avalonia.Themes.Fluent`) that was never pinned - and without it a `DockControl` renders nothing at all. Recorded where the next person will hit it. **Do not port RCS's from-scratch dock manager.** Port the *idea* of a serialisable, testable layout model |
+| E8-T3 | Port `SceneIndex` from DoodleSharp | Done | **Built in `85e3183`/`35107f0`.** Pure managed data-structure code with no WPF in it. Culling and hit-testing come free with it |
+| E8-T4 | Immediate-mode canvas rendering over the retained index | Done | **Built in `85e3183`/`35107f0`.** One Avalonia control for the whole canvas. One control per node collapses somewhere between 500 and 2000 nodes because layout and hit-test costs are per-visual. Drawing a few thousand rounded rectangles and beziers through Skia is trivial by comparison. **One Skia backend only** — DoodleSharp's three-backend arbitration with hysteresis is deliberately left behind |
+| E8-T5 | Hybrid overlay for the node under interaction | Open | **Not built, and named as absent in `GraphCanvas`'s own remarks.** Every node is drawn immediate-mode today, including the one under the pointer. Only the node currently being interacted with gets a real Avalonia control positioned over the drawing — typically one at a time. This is what preserves input fidelity |
+| E8-T6 | Canvas interaction: pan, zoom, box select, drag, wire, unwire, delete, group, note, align | In progress | **Pan, zoom, box select, drag, wire, unwire and delete are built**, and driven by headless tests using real pointer gestures - which found a bug vigilance would not have: hit-testing depended on a frame having been painted, because the spatial index was only rebuilt inside `Render`. Group, note and align are not built. |
+| E8-T7 | LOD below 40% zoom | Done | **Built in `85e3183`/`35107f0`.** |
+| E8-T8 | Node library panel with camel-hump search ranking | In progress | **The panel and a filter exist; the ranking does not.** All 57 nodes list and the search box narrows them, but exact → prefix → camel-hump ordering is not implemented, so `cbcr` finds nothing. exact → prefix → **camel-hump** (`cbcr` → `Circle.ByCenterRadius`) → substring → tag → description. The highest-value search feature across thousands of nodes, and cheap to implement |
 | E8-T9 | Undo and redo | Open | Made instant by [E3-T8](#e3--graph-engine): the old cache key is still resident |
 | E8-T10 | Watch panel and preview bubbles | Open | Must show **rank**, not only value — rank is what users get wrong |
-| E8-T11 | MVVM with CommunityToolkit.Mvvm source generators; compiled bindings on by default | Open | Not ReactiveUI: fewer concepts for contributors, no runtime reflection on property change (which matters at 2000 nodes), and Avalonia no longer presumes it. Compiled bindings make binding errors compile errors. **Views never touch `Spark.Engine`** — enforced by [E11-T8](#e11--quality-and-verification) |
+| E8-T11 | MVVM with CommunityToolkit.Mvvm source generators; compiled bindings on by default | Done | **Built in `85e3183`/`35107f0`.** Not ReactiveUI: fewer concepts for contributors, no runtime reflection on property change (which matters at 2000 nodes), and Avalonia no longer presumes it. Compiled bindings make binding errors compile errors. **Views never touch `Spark.Engine`** — enforced by [E11-T8](#e11--quality-and-verification) |
 | E8-T12 | Settings | Open | |
 | E8-T13 | Aggressive autosave and crash recovery | Open | Necessary because [R11](PRD.md#12-risks) means the process can die with no chance to save |
 | E8-T14 | Help panel and F1 | Open | Shows the hand-written topic first; the generated reference is the drill-down |
-| E8-T15 | 2000-node canvas benchmark, nightly from M2 | Open | The standing guard on [R5](PRD.md#12-risks) |
+| E8-T15 | 2000-node canvas benchmark, nightly from M2 | In progress | **The measurement exists; the nightly does not.** `--canvas-benchmark [frames]` drives a fixed pan-and-zoom cycle and prints the frame-time distribution - that is where 0.87 ms median at 2,000 nodes came from - but nothing runs it on a schedule and `bench/` is empty, so nothing will notice the day it regresses. The standing guard on [R5](PRD.md#12-risks) |
 | E8-T16 | Banners: missing package, graph contains script nodes | Open | |
 | E8-T17 | Group and note rendering on the canvas | Open | |
 
@@ -347,16 +365,16 @@ Everything else in this file is a plan, not a claim.
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| E9-T1 | `IViewportRenderer` seam | Open | Everything goes through it; no backend type escapes. This is the mitigation for [R6](PRD.md#12-risks) |
-| E9-T2 | Scene, camera and navigation | Open | |
-| E9-T3 | `RenderPackage` | Open | Immutable: `{ NodeId, PortIndex, ElementPath, Positions, Normals, Indices, EdgeIndices, Appearance }` |
-| E9-T4 | OpenGL 3.3 core backend on Avalonia's `OpenGlControlBase` | Open | Chosen over Silk.NET (adds a dependency without solving surface interop) and Veldrid (effectively unmaintained since around 2023 — a poor bet on a multi-year horizon) |
+| E9-T1 | `IViewportRenderer` seam | Done | **Built in `85e3183`/`35107f0`.** Everything goes through it; no backend type escapes. This is the mitigation for [R6](PRD.md#12-risks) |
+| E9-T2 | Scene, camera and navigation | Done | **Built in `85e3183`/`35107f0`.** |
+| E9-T3 | `RenderPackage` | Done | **Built in `85e3183`/`35107f0`.** Immutable: `{ NodeId, PortIndex, ElementPath, Positions, Normals, Indices, EdgeIndices, Appearance }` |
+| E9-T4 | OpenGL 3.3 core backend on Avalonia's `OpenGlControlBase` | Done | **Built in `85e3183`, with a finding that changes how every shader here is written.** Avalonia on Windows defaults to **ANGLE**, so the surface is OpenGL ES 3.0 over Direct3D 11, never desktop GL 3.3. The first run failed on a missing precision qualifier; shaders are now dialect-adaptive and a test asserts the precision statement precedes any declaration in every dialect - a defect that passes on a Linux desktop-GL machine and fails on the platform we ship to. Chosen over Silk.NET (adds a dependency without solving surface interop) and Veldrid (effectively unmaintained since around 2023 — a poor bet on a multi-year horizon) |
 | E9-T5 | Software renderer | Open | Earns its place three ways: GL-init failures on VMs and RDP, headless thumbnails, and **deterministic `spark render` for CI visual regression**. GPU output is not testable; software output is |
-| E9-T6 | One GPU buffer set per `(NodeId, PortIndex)` | Open | So re-evaluating one node re-uploads one buffer |
+| E9-T6 | One GPU buffer set per `(NodeId, PortIndex)` | Done | **Built in `85e3183`/`35107f0`.** So re-evaluating one node re-uploads one buffer |
 | E9-T7 | Parallel tessellation, streamed during a run | Open | |
 | E9-T8 | Picking through the kernel's BVH ray caster | Open | [E2-T15](#e2--geometry-kernel) serves this and mesh booleans from the same code |
-| E9-T9 | Selection sync between canvas and viewport | Open | **Falls out of node-keyed identity with no extra bookkeeping.** The `(NodeId, PortIndex, ElementPath)` tuple keys viewport buffers, selection, diagnostics and the watch panel alike — better than an object ID because it survives recomputation |
-| E9-T10 | Shaded display, edge display, `Appearance` application | Open | |
+| E9-T9 | Selection sync between canvas and viewport | Open | **The mechanism exists and nothing drives it.** `RenderPackage` carries `IsSelected` and the renderer honours it, but no canvas selection sets it. The row's claim that this falls out of node-keyed identity still holds; it has simply not been wired. **Falls out of node-keyed identity with no extra bookkeeping.** The `(NodeId, PortIndex, ElementPath)` tuple keys viewport buffers, selection, diagnostics and the watch panel alike — better than an object ID because it survives recomputation |
+| E9-T10 | Shaded display, edge display, `Appearance` application | Done | **Built in `85e3183`/`35107f0`.** |
 | E9-T11 | Headless thumbnail rendering | Open | |
 | E9-T12 | CI visual regression through the software renderer | Open | |
 
