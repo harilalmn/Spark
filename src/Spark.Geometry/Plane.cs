@@ -25,7 +25,7 @@ namespace Spark.Geometry;
 /// <para>
 /// The members that throw on <c>default</c> are every geometric query and construction:
 /// <see cref="DistanceTo(in Point3d)"/>, <see cref="ClosestPoint(in Point3d)"/>,
-/// <see cref="Project(in Vector3d)"/>, <see cref="Flip"/>, <see cref="To2d(in Point3d)"/>,
+/// <see cref="Project(in Vector3d)"/>, <see cref="Flipped"/>, <see cref="To2d(in Point3d)"/>,
 /// <see cref="To3d(in Point2d)"/>, <see cref="Contains(in Point3d, in Tolerance)"/> and
 /// <see cref="IsCoplanar(in Plane, in Tolerance)"/>. Equality, hashing, formatting and
 /// <see cref="IsValid"/> work on any value, including <c>default</c>, because their job is
@@ -192,6 +192,70 @@ public readonly struct Plane : IEquatable<Plane>
     }
 
     /// <summary>
+    /// Creates a plane from an origin, a normal, and the in-plane direction the first
+    /// coordinate is measured along.
+    /// </summary>
+    /// <param name="origin">The plane's origin.</param>
+    /// <param name="normal">The plane's normal. Need not be normalised.</param>
+    /// <param name="xAxis">
+    /// The direction the plane's <see cref="XAxis"/> should follow. It does <b>not</b> have
+    /// to be perpendicular to <paramref name="normal"/>: it is projected onto the plane and
+    /// normalised, so the resulting frame is orthonormal and <see cref="XAxis"/> may differ
+    /// from what was passed in.
+    /// </param>
+    /// <returns>The plane.</returns>
+    /// <remarks>
+    /// <b>The reason this exists next to
+    /// <see cref="ByOriginNormal(in Point3d, in Vector3d)"/> is the frame, not the plane.</b>
+    /// Both produce the same infinite surface; they differ in where the plane's 2d coordinate
+    /// system points, and that is what <see cref="To2d(in Point3d)"/>,
+    /// <see cref="To3d(in Point2d)"/> and everything built on them consume.
+    /// <see cref="ByOriginNormal(in Point3d, in Vector3d)"/> chooses the in-plane axes
+    /// arbitrarily — deterministically, but arbitrarily — so a caller who cares which way is
+    /// "along" has no way to say so. This member is that way.
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="normal"/> or <paramref name="xAxis"/> is zero-length or
+    /// non-finite, when <paramref name="origin"/> is not finite, or when the two directions
+    /// are parallel — in which case <paramref name="xAxis"/> has no component in the plane
+    /// and names no direction in it.
+    /// </exception>
+    public static Plane ByOriginNormalXAxis(in Point3d origin, in Vector3d normal, in Vector3d xAxis)
+    {
+        if (!origin.IsValid)
+        {
+            throw new ArgumentException("A plane's origin must be finite.", nameof(origin));
+        }
+
+        if (!normal.TryNormalise(out Vector3d unitNormal))
+        {
+            throw new ArgumentException(
+                "A plane's normal must have non-zero length and finite components.",
+                nameof(normal));
+        }
+
+        if (!xAxis.IsValid)
+        {
+            throw new ArgumentException(
+                "The X axis must have finite components.",
+                nameof(xAxis));
+        }
+
+        // Projecting first and normalising second is what makes a near-parallel xAxis fail
+        // here rather than produce a frame that is orthonormal to within nothing useful: the
+        // projection of a nearly-parallel direction is a very short vector, and TryNormalise
+        // is the same length test every other factory in this type relies on.
+        if (!(xAxis - (unitNormal * xAxis.Dot(unitNormal))).TryNormalise(out Vector3d x))
+        {
+            throw new ArgumentException(
+                "The X axis is parallel to the normal, so it names no direction in the plane.",
+                nameof(xAxis));
+        }
+
+        return new Plane(origin, x, unitNormal.Cross(x), unitNormal);
+    }
+
+    /// <summary>
     /// Creates the plane through three points.
     /// </summary>
     /// <param name="first">
@@ -322,11 +386,51 @@ public readonly struct Plane : IEquatable<Plane>
     /// Thrown when this plane is not valid, which for a <c>readonly struct</c> means a
     /// default-constructed one.
     /// </exception>
-    public Plane Flip()
+    public Plane Flipped()
     {
         ThrowIfInvalid();
 
         return new Plane(Origin, XAxis, -YAxis, -Normal);
+    }
+
+    /// <summary>
+    /// Returns this plane moved along its own normal.
+    /// </summary>
+    /// <param name="distance">
+    /// How far to move, measured along <see cref="Normal"/>. A negative distance moves the
+    /// other way.
+    /// </param>
+    /// <returns>
+    /// A parallel plane whose <see cref="Origin"/> is <paramref name="distance"/> from this
+    /// one along <see cref="Normal"/>. The frame is carried over unrotated, so
+    /// <see cref="To2d(in Point3d)"/> gives the same in-plane coordinates for a point and
+    /// its projection onto the offset plane — which is the property that makes offsetting
+    /// useful for laying out parallel work.
+    /// </returns>
+    /// <remarks>
+    /// <b>A zero offset returns an equal plane rather than the same one</b>, and
+    /// <c>operator ==</c> confirms it, because every component is copied unchanged. There is
+    /// no identity to preserve — a plane is a value.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when this plane is not valid, which for a <c>readonly struct</c> means a
+    /// default-constructed one.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="distance"/> is not finite. The alternative — returning a
+    /// plane with a non-finite origin — would produce a value that fails
+    /// <see cref="IsValid"/> for a reason no later caller could trace back to here.
+    /// </exception>
+    public Plane Offset(double distance)
+    {
+        ThrowIfInvalid();
+
+        if (!double.IsFinite(distance))
+        {
+            throw new ArgumentException("An offset distance must be finite.", nameof(distance));
+        }
+
+        return new Plane(Origin + (Normal * distance), XAxis, YAxis, Normal);
     }
 
     /// <summary>
@@ -415,7 +519,7 @@ public readonly struct Plane : IEquatable<Plane>
     /// <returns>
     /// <see langword="true"/> when the two normals are parallel within the angular tolerance
     /// and the other plane's origin lies on this plane within the linear tolerance.
-    /// <b>Direction is ignored</b>: a plane and its <see cref="Flip"/> are coplanar, and the
+    /// <b>Direction is ignored</b>: a plane and its <see cref="Flipped"/> are coplanar, and the
     /// in-plane axes play no part at all.
     /// </returns>
     /// <exception cref="InvalidOperationException">

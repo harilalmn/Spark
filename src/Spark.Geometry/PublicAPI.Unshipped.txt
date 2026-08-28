@@ -28,8 +28,9 @@ Spark.Geometry.BoundingBox.Corners() -> Spark.Geometry.Point3d[]!
 Spark.Geometry.BoundingBox.Diagonal.get -> Spark.Geometry.Vector3d
 Spark.Geometry.BoundingBox.Equals(Spark.Geometry.BoundingBox other) -> bool
 Spark.Geometry.BoundingBox.EqualsWithin(in Spark.Geometry.BoundingBox other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
-Spark.Geometry.BoundingBox.Inflate(double amount) -> Spark.Geometry.BoundingBox
-Spark.Geometry.BoundingBox.Inflate(double x, double y, double z) -> Spark.Geometry.BoundingBox
+Spark.Geometry.BoundingBox.Inflated(double amount) -> Spark.Geometry.BoundingBox
+Spark.Geometry.BoundingBox.Inflated(double x, double y, double z) -> Spark.Geometry.BoundingBox
+Spark.Geometry.BoundingBox.Intersection(in Spark.Geometry.BoundingBox other) -> Spark.Geometry.BoundingBox
 Spark.Geometry.BoundingBox.Intersects(in Spark.Geometry.BoundingBox other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
 Spark.Geometry.BoundingBox.IsValid.get -> bool
 Spark.Geometry.BoundingBox.Max.get -> Spark.Geometry.Point3d
@@ -83,7 +84,7 @@ Spark.Geometry.Interval.Clamp(double value) -> double
 Spark.Geometry.Interval.Denormalise(double t) -> double
 Spark.Geometry.Interval.Equals(Spark.Geometry.Interval other) -> bool
 Spark.Geometry.Interval.EqualsWithin(in Spark.Geometry.Interval other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
-Spark.Geometry.Interval.Expand(double amount) -> Spark.Geometry.Interval
+Spark.Geometry.Interval.Expanded(double amount) -> Spark.Geometry.Interval
 Spark.Geometry.Interval.Includes(double value, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
 Spark.Geometry.Interval.Intersect(in Spark.Geometry.Interval other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Interval?
 Spark.Geometry.Interval.Interval() -> void
@@ -107,10 +108,11 @@ Spark.Geometry.Plane.Contains(in Spark.Geometry.Point3d point, in Spark.Geometry
 Spark.Geometry.Plane.DistanceTo(in Spark.Geometry.Point3d point) -> double
 Spark.Geometry.Plane.Equals(Spark.Geometry.Plane other) -> bool
 Spark.Geometry.Plane.EqualsWithin(in Spark.Geometry.Plane other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
-Spark.Geometry.Plane.Flip() -> Spark.Geometry.Plane
+Spark.Geometry.Plane.Flipped() -> Spark.Geometry.Plane
 Spark.Geometry.Plane.IsCoplanar(in Spark.Geometry.Plane other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
 Spark.Geometry.Plane.IsValid.get -> bool
 Spark.Geometry.Plane.Normal.get -> Spark.Geometry.Vector3d
+Spark.Geometry.Plane.Offset(double distance) -> Spark.Geometry.Plane
 Spark.Geometry.Plane.Origin.get -> Spark.Geometry.Point3d
 Spark.Geometry.Plane.Plane() -> void
 Spark.Geometry.Plane.Plane(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal) -> void
@@ -155,6 +157,29 @@ Spark.Geometry.PolyLine.Points() -> Spark.Geometry.Point3d[]!
 Spark.Geometry.PolyLine.PolyLine(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> void
 Spark.Geometry.PolyLine.SegmentAt(int index) -> Spark.Geometry.Line!
 Spark.Geometry.PolyLine.SegmentCount.get -> int
+Spark.Geometry.Quaternion
+Spark.Geometry.Quaternion.Angle.get -> Spark.Geometry.Angle
+Spark.Geometry.Quaternion.Axis.get -> Spark.Geometry.Vector3d
+Spark.Geometry.Quaternion.Conjugate() -> Spark.Geometry.Quaternion
+Spark.Geometry.Quaternion.Dot(in Spark.Geometry.Quaternion other) -> double
+Spark.Geometry.Quaternion.Equals(Spark.Geometry.Quaternion other) -> bool
+Spark.Geometry.Quaternion.EqualsWithin(in Spark.Geometry.Quaternion other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Quaternion.Inverse() -> Spark.Geometry.Quaternion
+Spark.Geometry.Quaternion.IsUnit(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Quaternion.IsValid.get -> bool
+Spark.Geometry.Quaternion.Length.get -> double
+Spark.Geometry.Quaternion.LengthSquared.get -> double
+Spark.Geometry.Quaternion.Normalised() -> Spark.Geometry.Quaternion
+Spark.Geometry.Quaternion.Quaternion() -> void
+Spark.Geometry.Quaternion.Quaternion(double x, double y, double z, double w) -> void
+Spark.Geometry.Quaternion.RepresentsSameRotationAs(in Spark.Geometry.Quaternion other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Quaternion.Rotate(in Spark.Geometry.Vector3d vector) -> Spark.Geometry.Vector3d
+Spark.Geometry.Quaternion.ToTransform() -> Spark.Geometry.Transform
+Spark.Geometry.Quaternion.TryNormalise(out Spark.Geometry.Quaternion unit) -> bool
+Spark.Geometry.Quaternion.W.get -> double
+Spark.Geometry.Quaternion.X.get -> double
+Spark.Geometry.Quaternion.Y.get -> double
+Spark.Geometry.Quaternion.Z.get -> double
 Spark.Geometry.Tolerance
 Spark.Geometry.Tolerance.Angular.get -> Spark.Geometry.Angle
 Spark.Geometry.Tolerance.AreEqual(double a, double b) -> bool
@@ -328,6 +353,9 @@ override Spark.Geometry.PolyLine.Tessellate(in Spark.Geometry.Tolerance toleranc
 override Spark.Geometry.PolyLine.ToString() -> string!
 override Spark.Geometry.PolyLine.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
 override Spark.Geometry.PolyLine.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
+override Spark.Geometry.Quaternion.Equals(object? obj) -> bool
+override Spark.Geometry.Quaternion.GetHashCode() -> int
+override Spark.Geometry.Quaternion.ToString() -> string!
 override Spark.Geometry.Tolerance.Equals(object? obj) -> bool
 override Spark.Geometry.Tolerance.GetHashCode() -> int
 override Spark.Geometry.Tolerance.ToString() -> string!
@@ -372,6 +400,7 @@ static Spark.Geometry.Arc.ByThreePoints(in Spark.Geometry.Point3d first, in Spar
 static Spark.Geometry.BoundingBox.Empty.get -> Spark.Geometry.BoundingBox
 static Spark.Geometry.BoundingBox.FromPoints(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> Spark.Geometry.BoundingBox
 static Spark.Geometry.BoundingBox.FromPoints(System.ReadOnlySpan<Spark.Geometry.Point3d> points) -> Spark.Geometry.BoundingBox
+static Spark.Geometry.BoundingBox.Intersection(in Spark.Geometry.BoundingBox a, in Spark.Geometry.BoundingBox b) -> Spark.Geometry.BoundingBox
 static Spark.Geometry.BoundingBox.Union(in Spark.Geometry.BoundingBox a, in Spark.Geometry.BoundingBox b) -> Spark.Geometry.BoundingBox
 static Spark.Geometry.BoundingBox.operator !=(in Spark.Geometry.BoundingBox left, in Spark.Geometry.BoundingBox right) -> bool
 static Spark.Geometry.BoundingBox.operator ==(in Spark.Geometry.BoundingBox left, in Spark.Geometry.BoundingBox right) -> bool
@@ -394,6 +423,7 @@ static Spark.Geometry.Interval.operator ==(in Spark.Geometry.Interval left, in S
 static Spark.Geometry.Line.ByStartPointDirectionLength(in Spark.Geometry.Point3d start, in Spark.Geometry.Vector3d direction, double length) -> Spark.Geometry.Line!
 static Spark.Geometry.Line.ByStartPointEndPoint(in Spark.Geometry.Point3d start, in Spark.Geometry.Point3d end) -> Spark.Geometry.Line!
 static Spark.Geometry.Plane.ByOriginNormal(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal) -> Spark.Geometry.Plane
+static Spark.Geometry.Plane.ByOriginNormalXAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal, in Spark.Geometry.Vector3d xAxis) -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.ByOriginXAxisYAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d xAxis, in Spark.Geometry.Vector3d yAxis) -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.ByThreePoints(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.WorldXY.get -> Spark.Geometry.Plane
@@ -430,6 +460,16 @@ static Spark.Geometry.PolyLine.ByClosedPoints(System.Collections.Generic.IEnumer
 static Spark.Geometry.PolyLine.ByPoints(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> Spark.Geometry.PolyLine!
 static Spark.Geometry.PolyLine.ByRectangle(in Spark.Geometry.Plane plane, double width, double length) -> Spark.Geometry.PolyLine!
 static Spark.Geometry.PolyLine.ByRegularPolygon(in Spark.Geometry.Plane plane, double radius, int sides) -> Spark.Geometry.PolyLine!
+static Spark.Geometry.Quaternion.ByAxisAngle(in Spark.Geometry.Vector3d axis, Spark.Geometry.Angle angle) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.ByRotation(in Spark.Geometry.Transform transform) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.ByTwoVectors(in Spark.Geometry.Vector3d from, in Spark.Geometry.Vector3d to) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.Identity.get -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.Multiply(in Spark.Geometry.Quaternion left, in Spark.Geometry.Quaternion right) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.Slerp(in Spark.Geometry.Quaternion from, in Spark.Geometry.Quaternion to, double t) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.operator !=(in Spark.Geometry.Quaternion left, in Spark.Geometry.Quaternion right) -> bool
+static Spark.Geometry.Quaternion.operator *(in Spark.Geometry.Quaternion left, in Spark.Geometry.Quaternion right) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.operator *(in Spark.Geometry.Quaternion rotation, in Spark.Geometry.Vector3d vector) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Quaternion.operator ==(in Spark.Geometry.Quaternion left, in Spark.Geometry.Quaternion right) -> bool
 static Spark.Geometry.Tolerance.Default.get -> Spark.Geometry.Tolerance
 static Spark.Geometry.Tolerance.ForScale(double characteristicLength) -> Spark.Geometry.Tolerance
 static Spark.Geometry.Tolerance.operator !=(Spark.Geometry.Tolerance left, Spark.Geometry.Tolerance right) -> bool

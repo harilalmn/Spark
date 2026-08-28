@@ -310,6 +310,74 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
     public static BoundingBox Union(in BoundingBox a, in BoundingBox b) => a.Union(b);
 
     /// <summary>
+    /// Returns the box the two boxes have in common.
+    /// </summary>
+    /// <param name="other">The box to intersect with.</param>
+    /// <returns>
+    /// The overlap, or <see cref="Empty"/> when there is none. Two boxes that touch on a
+    /// face, an edge or a corner return the degenerate box of that contact rather than
+    /// <see cref="Empty"/>, because the contact is where they meet and a caller asking for
+    /// the shared region is entitled to be told where it is.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the exact complement of <see cref="Union(in BoundingBox)"/> and it is not
+    /// its mirror image.</b> <see cref="Union(in BoundingBox)"/> can take
+    /// <see cref="Empty"/> in either operand and return the other unchanged, which is what
+    /// makes it a usable accumulation seed. Intersection with <see cref="Empty"/> is
+    /// <see cref="Empty"/>, always, which makes it a usable accumulation seed for the
+    /// opposite reason — and the two facts come from the same definition of
+    /// <see cref="Empty"/> as the box occupying no space.
+    /// </para>
+    /// <para>
+    /// <b>The tolerance-free result is deliberate</b>, and it is why this member does not
+    /// take one. <see cref="Intersects(in BoundingBox, in Tolerance)"/> answers a
+    /// <i>question</i>, and a question about touching is a tolerance question. This member
+    /// returns a <i>region</i>, and widening that region by a tolerance would hand back
+    /// space neither box occupies. A caller who wants the tolerant answer asks
+    /// <see cref="Intersects(in BoundingBox, in Tolerance)"/> first; the two are allowed to
+    /// disagree on a hairline gap and that disagreement is correct in both directions.
+    /// </para>
+    /// </remarks>
+    public BoundingBox Intersection(in BoundingBox other)
+    {
+        if (HasNaN || other.HasNaN)
+        {
+            return Empty;
+        }
+
+        double minX = Math.Max(Min.X, other.Min.X);
+        double minY = Math.Max(Min.Y, other.Min.Y);
+        double minZ = Math.Max(Min.Z, other.Min.Z);
+        double maxX = Math.Min(Max.X, other.Max.X);
+        double maxY = Math.Min(Max.Y, other.Max.Y);
+        double maxZ = Math.Min(Max.Z, other.Max.Z);
+
+        // Any axis on which the boxes do not overlap makes the whole intersection empty, and
+        // Empty is returned rather than the inverted box the bounds above would give: an
+        // inverted box is invalid but it is not canonical, so two disjoint pairs would return
+        // two different "no overlap" answers that are not equal to each other.
+        if (minX > maxX || minY > maxY || minZ > maxZ)
+        {
+            return Empty;
+        }
+
+        return new BoundingBox(minX, minY, minZ, maxX, maxY, maxZ);
+    }
+
+    /// <summary>
+    /// Returns the box two boxes have in common. The static alternate to
+    /// <see cref="Intersection(in BoundingBox)"/>.
+    /// </summary>
+    /// <param name="a">The first box.</param>
+    /// <param name="b">The second box.</param>
+    /// <returns>
+    /// The overlap, which does not depend on the order of the arguments, or
+    /// <see cref="Empty"/> when there is none.
+    /// </returns>
+    public static BoundingBox Intersection(in BoundingBox a, in BoundingBox b) => a.Intersection(b);
+
+    /// <summary>
     /// Grows the box by the same amount on every axis, in both directions.
     /// </summary>
     /// <param name="amount">
@@ -318,7 +386,7 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
     /// rather than throwing.
     /// </param>
     /// <returns>The inflated box.</returns>
-    public BoundingBox Inflate(double amount) => Inflate(amount, amount, amount);
+    public BoundingBox Inflated(double amount) => Inflated(amount, amount, amount);
 
     /// <summary>
     /// Grows the box by a separate amount on each axis, in both directions.
@@ -330,7 +398,7 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
     /// The inflated box. Negative amounts shrink, and shrinking past zero size on an axis
     /// inverts it and makes the box invalid rather than throwing.
     /// </returns>
-    public BoundingBox Inflate(double x, double y, double z) => new(
+    public BoundingBox Inflated(double x, double y, double z) => new(
         Min.X - x,
         Min.Y - y,
         Min.Z - z,

@@ -302,14 +302,160 @@ public sealed class ValueLayerProperties
     }
 
     [Fact]
+    public void AQuaternionRotationAlwaysAgreesWithTheEquivalentTransform()
+    {
+        GeometryGenerators.Scenes.Sample(scene =>
+        {
+            Quaternion rotation = Quaternion.ByAxisAngle(scene.Axis, scene.Turn);
+            Vector3d subject = scene.Second * scene.Scale;
+
+            Assert.True(rotation.Rotate(subject)
+                .EqualsWithin(Transform.Rotation(scene.Axis, scene.Turn).OfVector(subject), scene.PositionTolerance));
+        });
+    }
+
+    [Fact]
+    public void RotatingByAQuaternionNeverChangesALength()
+    {
+        GeometryGenerators.Scenes.Sample(scene =>
+        {
+            Vector3d subject = scene.Second * scene.Scale;
+            Vector3d rotated = Quaternion.ByAxisAngle(scene.Axis, scene.Turn).Rotate(subject);
+
+            Assert.True(scene.PositionTolerance.AreEqual(subject.Length, rotated.Length));
+        });
+    }
+
+    [Fact]
+    public void AQuaternionComposedWithItsOwnInverseIsTheIdentityRotation()
+    {
+        GeometryGenerators.Scenes.Sample(scene =>
+        {
+            Quaternion rotation = Quaternion.ByAxisAngle(scene.Axis, scene.Turn);
+
+            Assert.True((rotation * rotation.Inverse())
+                .RepresentsSameRotationAs(Quaternion.Identity, GeometryGenerators.Dimensionless));
+            Assert.True((rotation.Inverse() * rotation)
+                .RepresentsSameRotationAs(Quaternion.Identity, GeometryGenerators.Dimensionless));
+        });
+    }
+
+    [Fact]
+    public void ARotationSurvivesTheRoundTripThroughATransformAsARotation()
+    {
+        GeometryGenerators.Scenes.Sample(scene =>
+        {
+            Quaternion rotation = Quaternion.ByAxisAngle(scene.Axis, scene.Turn);
+
+            // As a ROTATION, not as a value: ByRotation returns the representative with a
+            // non-negative scalar part, so half of all inputs come back negated. Asserting
+            // componentwise equality here would be asserting a fact about the double cover
+            // that is not true.
+            Assert.True(Quaternion.ByRotation(rotation.ToTransform())
+                .RepresentsSameRotationAs(rotation, GeometryGenerators.Dimensionless));
+        });
+    }
+
+    [Fact]
+    public void AQuaternionAndItsNegationAlwaysRotateEveryVectorIdentically()
+    {
+        GeometryGenerators.Scenes.Sample(scene =>
+        {
+            Quaternion rotation = Quaternion.ByAxisAngle(scene.Axis, scene.Turn);
+            Quaternion negated = new(-rotation.X, -rotation.Y, -rotation.Z, -rotation.W);
+            Vector3d subject = scene.Second * scene.Scale;
+
+            Assert.True(negated.Rotate(subject).EqualsWithin(rotation.Rotate(subject), scene.PositionTolerance));
+            Assert.True(negated.RepresentsSameRotationAs(rotation, GeometryGenerators.Dimensionless));
+        });
+    }
+
+    [Fact]
+    public void AxisAndAngleAlwaysReconstructTheRotationTheyWereReadFrom()
+    {
+        GeometryGenerators.Scenes.Sample(scene =>
+        {
+            Quaternion rotation = Quaternion.ByAxisAngle(scene.Axis, scene.Turn);
+            Vector3d subject = scene.Second * scene.Scale;
+
+            // The angle comes back folded into [0, pi] and the axis flips to match, so this
+            // is a statement about the rotation rather than about the numbers.
+            Vector3d reconstructed = Transform.Rotation(rotation.Axis, rotation.Angle).OfVector(subject);
+
+            Assert.True(reconstructed.EqualsWithin(rotation.Rotate(subject), scene.PositionTolerance));
+        });
+    }
+
+    [Fact]
+    public void ByTwoVectorsAlwaysTakesTheFirstDirectionToTheSecond()
+    {
+        Gen.Select(GeometryGenerators.UnitVectors, GeometryGenerators.UnitVectors)
+            .Sample((from, to) =>
+            {
+                Assert.True(Quaternion.ByTwoVectors(from, to)
+                    .Rotate(from)
+                    .EqualsWithin(to, GeometryGenerators.Dimensionless));
+            });
+    }
+
+    [Fact]
+    public void SlerpStaysOnTheUnitSphereAndEndsWhereItSaysItWill()
+    {
+        Gen.Select(GeometryGenerators.Scenes, GeometryGenerators.UnitVectors, Gen.Double[0.0, 1.0])
+            .Sample((scene, secondAxis, t) =>
+            {
+                Quaternion from = Quaternion.ByAxisAngle(scene.Axis, scene.Turn);
+                Quaternion to = Quaternion.ByAxisAngle(secondAxis, scene.Turn * 0.5);
+
+                Assert.True(Quaternion.Slerp(from, to, t).IsUnit(GeometryGenerators.Dimensionless));
+                Assert.True(Quaternion.Slerp(from, to, 0.0)
+                    .RepresentsSameRotationAs(from, GeometryGenerators.Dimensionless));
+                Assert.True(Quaternion.Slerp(from, to, 1.0)
+                    .RepresentsSameRotationAs(to, GeometryGenerators.Dimensionless));
+            });
+    }
+
+    [Fact]
+    public void AnOffsetPlaneIsAlwaysParallelAtTheDistanceAsked()
+    {
+        Gen.Select(GeometryGenerators.Scenes, Gen.Double[-2.0, 2.0])
+            .Sample((scene, factor) =>
+            {
+                Plane plane = scene.Plane;
+                double distance = factor * scene.Scale;
+                Plane offset = plane.Offset(distance);
+
+                Assert.True(offset.Normal.EqualsWithin(plane.Normal, GeometryGenerators.Dimensionless));
+                Assert.True(scene.PositionTolerance.AreEqual(plane.DistanceTo(offset.Origin), distance));
+                Assert.True(offset.Offset(-distance).EqualsWithin(plane, scene.PositionTolerance));
+            });
+    }
+
+    [Fact]
+    public void TheIntersectionOfTwoBoxesIsContainedInBoth()
+    {
+        Gen.Select(GeometryGenerators.Boxes, GeometryGenerators.Boxes)
+            .Sample((first, second) =>
+            {
+                BoundingBox overlap = first.Intersection(second);
+
+                // Empty is contained in everything, so this holds for disjoint boxes too, and
+                // it is the one statement that covers both branches of the member.
+                Assert.True(first.Contains(overlap));
+                Assert.True(second.Contains(overlap));
+                Assert.Equal(overlap, second.Intersection(first));
+            });
+    }
+
+    [Fact]
     public void APlaneAndItsFlipAreAlwaysCoplanar()
     {
         GeometryGenerators.Scenes.Sample(scene =>
         {
             Plane plane = scene.Plane;
 
-            Assert.True(plane.IsCoplanar(plane.Flip(), scene.PositionTolerance));
-            Assert.True(plane.Flip().Normal.EqualsWithin(-plane.Normal, GeometryGenerators.Dimensionless));
+            Assert.True(plane.IsCoplanar(plane.Flipped(), scene.PositionTolerance));
+            Assert.True(plane.Flipped().Normal.EqualsWithin(-plane.Normal, GeometryGenerators.Dimensionless));
         });
     }
 

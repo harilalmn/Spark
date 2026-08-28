@@ -8,15 +8,15 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**981 tests over seven
+Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,046 tests over seven
 projects**) and `dotnet format` are all clean — though `dotnet test` itself now reports
-`Zero tests ran` on SDK 10.0.400 and the 981 are counted by `scripts/run-tests.sh`
+`Zero tests ran` on SDK 10.0.400 and the 1,046 are counted by `scripts/run-tests.sh`
 ([N34](NOTES.md)) — and **CI ran green on Windows and Linux on `53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
 
 Three distinctions still do the work in what follows:
 
-- **What is built.** The value layer (13 types), the curve layer (`Line`, `Arc`, `Circle`,
+- **What is built.** The value layer (14 types, `Quaternion` included), the curve layer (`Line`, `Arc`, `Circle`,
   `EllipseCurve`, `PolyLine`, `PolyCurve` over a `Curve` base, with arc-length
   reparameterisation), the graph engine and replicator, the reflection importer with its
   two-way diff, the Avalonia shell, the immediate-mode canvas, the GL viewport, 57 nodes in
@@ -164,15 +164,30 @@ for anything else.
 
 **Still to do, in rough order:**
 
-- [ ] `Quaternion` — `E2-T1`. **`Rgba` is settled and no longer in scope here**: it lives beside
-      `Appearance` in `Spark.Api` (`E5`), because the kernel carries no appearance.
-- [ ] **Settle the past-participle naming rule and apply it.**
-      [DYNAMO-COVERAGE §4](DYNAMO-COVERAGE.md#member-names-we-will-not-copy) asked for exactly
-      this *before curves arrived and multiplied the surface by five*, and half of it happened:
-      the curve layer follows the rule — `Reversed`, `Trimmed`, `TransformedBy` — and three older
-      members still do not. `Plane.Flip`, `BoundingBox.Inflate` and `Interval.Expand` all read as
-      imperatives and all return new values. Nineteen call sites; all three are unshipped, so the
-      rename is free today and an ADR-0019 change-control question the day after 1.0.
+- [x] `Quaternion` — `E2-T1`, done, and **the row is closed**. It is there for the two jobs a
+      matrix does badly: composing rotations without drift, and interpolating orientations along
+      the shortest arc. `ToTransform` and `ByRotation` are the only crossings; everything else
+      goes on using `Transform`. Three decisions live on the type rather than waiting to be
+      discovered — `q` and `-q` are one rotation, so equality is componentwise like every other
+      value here and `RepresentsSameRotationAs` is the separately named question;
+      `default(Quaternion)` is **not** the identity, because a default meaning *leave it as it
+      is* is what lets a missing assignment ship; and `Inverse()` is the algebraic inverse, so
+      `q * q.Inverse()` is the identity for any valid `q` rather than the identity scaled.
+      Writing the tests turned up a fourth: **an axis read straight off a negative-scalar
+      quaternion is the opposite axis with a positive angle**, which describes the rotation
+      backwards, and taking the absolute value of the scalar fixes the number without fixing the
+      sign. **`Rgba` is settled and no longer in scope here**: it lives beside `Appearance` in
+      `Spark.Api` (`E5`), because the kernel carries no appearance.
+- [x] **Settle the past-participle naming rule and apply it** — done, and the rule is in
+      `NamespaceDoc` rather than only in
+      [DYNAMO-COVERAGE §4](DYNAMO-COVERAGE.md#member-names-we-will-not-copy), which is where a
+      convention has to live to be applied by anyone who has not read that document.
+      `Plane.Flip`, `BoundingBox.Inflate` and `Interval.Expand` are now `Flipped`, `Inflated`
+      and `Expanded`. The argument that settled it is not aesthetics: `plane.Flip();` as a
+      statement compiles, does nothing, and reads as though it worked. Factories and queries
+      are named as the two deliberate exemptions, and `Interval.MakeIncreasing` keeps its name
+      because `Increased` would mean something else. All three were unshipped, so it was free
+      today and an ADR-0019 change-control question the day after 1.0.
 - [ ] Extract `RayCaster.cs` and its BVH — `E2-T15`. The highest-value file in C2VGeometry, and
       it pays for itself three times over across mesh booleans, viewport picking and intersection
       seeding. **`Curve.ClosestPoint` is now waiting on it too.**
@@ -183,9 +198,16 @@ for anything else.
       argument. **Harvest the assertions, not the generators** — a harvested test whose inputs
       never approach the boundary it checks is a test that cannot fail, which is the trap this
       project has already fallen into twice.
-- [ ] **Close the three small parity gaps in the value layer** — `E2-T40`.
-      `BoundingBox.Intersection`, `Plane.Offset` and `Plane.ByOriginNormalXAxis` are omissions
-      rather than design differences.
+- [x] **Close the three small parity gaps in the value layer** — `E2-T40`, done.
+      `BoundingBox.Intersection`, `Plane.Offset` and `Plane.ByOriginNormalXAxis` were omissions
+      rather than design differences, and **two of the three carried a decision the word
+      "trivial" had hidden**. `Intersection` returns `Empty` for disjoint boxes rather than the
+      inverted box the crossed-over bounds give, because an inverted box is invalid but not
+      *canonical*, so two disjoint pairs would otherwise return two unequal answers that both
+      mean "no overlap"; and it takes **no tolerance**, because `Intersects` answers a question
+      about touching while `Intersection` returns a region, and widening a region by a tolerance
+      hands back space neither box occupies. Parity in the value layer goes from 92 to
+      **95 of 133**.
 - [ ] `spark` writes an OBJ polyline that a third-party viewer opens. That is the M1 demo, and
       `Spark.Geometry.Io` is still an empty project — but the curves it would write now exist.
 
@@ -339,7 +361,7 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   equivalence* is unprovable without ProtoGeometry, and it stands. Capability parity is about
   *presence* — whether a Dynamo user reaches for something and finds it absent — which needs
   no reference implementation to check. [DYNAMO-COVERAGE.md](DYNAMO-COVERAGE.md) is the
-  register: 51 ProtoGeometry types, 837 members, 92 reachable today. `Done` in it means
+  register: 51 ProtoGeometry types, 837 members, 95 reachable today. `Done` in it means
   *present and documented*, never *equivalent*, and the test that keeps it honest
   (`E11-T23`) must say so in its own failure messages.
 - **Six curve types, and the exclusions are named on the types rather than discovered.** There

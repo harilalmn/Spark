@@ -52,15 +52,15 @@ or from this repository; none is an estimate.
 | | Types | Members | Share of 837 |
 |---|---:|---:|---:|
 | ProtoGeometry public surface | 51 | 837 | 100% |
-| Reachable in Spark today | 6 | **92** | **11.0%** |
+| Reachable in Spark today | 6 | **95** | **11.4%** |
 | Deliberately not replicated (§5) | 7 + parts of 2 | 93 | 11.1% |
 | Awaiting a decision — T-Splines (§6.2) | 8 | 169 | 20.2% |
-| **Committed and still to build** | **30** | **483** | **57.7%** |
+| **Committed and still to build** | **30** | **480** | **57.3%** |
 
 Against the scope we have actually committed to — 837 less the 93 we refuse and the 169 that
-need their own decision, so **575 members** — Spark stands at **92 of 575, or 16.0%**.
+need their own decision, so **575 members** — Spark stands at **95 of 575, or 16.5%**.
 
-### What the 92 counts, exactly
+### What the 95 counts, exactly
 
 A ProtoGeometry member counts as **reachable** when a Spark user can obtain the same result
 today through a documented member of `Spark.Geometry`. It does **not** require the same name
@@ -69,16 +69,18 @@ and `Transform.OfVector` between them do the job, and `CoordinateSystem.Translat
 because `Transform.Translation` does. Members that are pure serialisation, native-session
 plumbing, or that operate on types Spark does not yet have, are counted as not reachable.
 
-All 92 sit in one subsystem — values and frames — because that is the only subsystem that
-exists. **There are no curves, surfaces, solids, meshes or topology in `Spark.Geometry`**, and
-nothing in this document should be read as implying otherwise.
+All 95 are counted in one subsystem — values and frames — and that is a statement about the
+count rather than about the code. Six curve types now exist and are **not** in this figure,
+because §3.2's member-by-member recount has not been done and a number nobody derived is how
+this document would start lying. There are still no surfaces, solids, meshes or topology in
+`Spark.Geometry`.
 
 ### Why member counts are not fungible, and must not be read as effort
 
 Two warnings, both of which matter for reading the table above honestly.
 
-**A percentage of members is not a percentage of work.** The 92 reachable members are the
-easiest 92 in the whole inventory: arithmetic on six-double structs, decided by algebra and
+**A percentage of members is not a percentage of work.** The 95 reachable members are the
+easiest 95 in the whole inventory: arithmetic on six-double structs, decided by algebra and
 verified by property tests. `Solid.Difference` is one row of one table and is a multi-year
 research problem (§6.1). Any schedule derived from 16% is wrong by an order of magnitude.
 
@@ -98,20 +100,20 @@ Eight sections in dependency order. Each carries one row per ProtoGeometry type,
 count from the inventory, our equivalent, its status and the milestone from
 [PRD §11](PRD.md#11-release-plan) at which we expect it.
 
-### 3.1 Values and frames — 6 types, 133 members, 92 reachable
+### 3.1 Values and frames — 6 types, 133 members, 95 reachable
 
 | Dynamo type | Members | Spark equivalent | Status | Milestone |
 |---|---:|---|---|---|
 | `Point` | 15 | `Point3d` | Done (11/15) | M1 |
 | `Vector` | 31 | `Vector3d` | Done (29/31) | M1 |
 | `UV` | 6 | `UV` | Done (6/6) | M1 |
-| `Plane` | 16 | `Plane` | Done (12/16) | M1 |
+| `Plane` | 16 | `Plane` | Done (14/16) | M1 |
 | `CoordinateSystem` | 46 | `CoordinateSystem` + `Transform` | Done (27/46) | M1 |
-| `BoundingBox` | 19 | `BoundingBox` | Done (7/19) | M1 |
+| `BoundingBox` | 19 | `BoundingBox` | Done (8/19) | M1 |
 
 `Done` here means the type exists, is reviewed and is accepted — not that every member of the
 Dynamo type is present. The bracketed fraction is the honest number and the prose below covers
-every one of the 41 that are not.
+every one of the 38 that are not.
 
 **`CoordinateSystem` is the largest genuine shape difference in this subsystem, and it is
 deliberate.** Dynamo's `CoordinateSystem` is a general affine frame: it can be scaled, sheared
@@ -131,14 +133,20 @@ with an explicit Z axis (Not planned — Spark derives Z, and an independent Z i
 left-handed or non-orthogonal frame by accident), and `FromJson`/`ToJson` (planned as part of
 FR-57, in Spark's own format).
 
-**`BoundingBox` is the weakest row and it is weak for a good reason.** Twelve of its 19
+**`BoundingBox` is the weakest row and it is weak for a good reason.** Eleven of its 19
 members are uncovered, and nine of those need geometry that does not exist —
 `ByGeometry` ×2, `ByGeometryCoordinateSystem` ×2, `ByMinimumVolume`, `ToCuboid`,
-`ToPolySurface`, plus `FromJson`/`ToJson`. Three are real gaps in a type we have already
-shipped, and they are the useful finding of this section:
+`ToPolySurface`, plus `FromJson`/`ToJson`. Three were real gaps in a type we had already
+shipped, and they were the useful finding of this section. **One of the three is now closed:**
 
-- **`Intersection(BoundingBox)`** — Spark has `Union` but no intersection of two boxes. This
-  is four lines and should be added; it is not a design difference, it is an omission.
+- **`Intersection(BoundingBox)`** — **added.** Spark had `Union` and no intersection of two
+  boxes. It came out longer than the four lines predicted here, and the extra length is the
+  interesting part: disjoint boxes return `Empty` rather than the inverted box the crossed-over
+  bounds give, because an inverted box is invalid but **not canonical**, so two different
+  disjoint pairs would otherwise return two "no overlap" answers unequal to each other. It also
+  takes no tolerance, deliberately — `Intersects` answers a *question* about touching and that
+  is a tolerance question, while `Intersection` returns a *region*, and widening a region by a
+  tolerance hands back space neither box occupies.
 - **`ContextCoordinateSystem` and `ByCornersCoordinateSystem`** — Dynamo's box can be
   expressed in an arbitrary frame, so it is an oriented box in disguise. Spark's
   `BoundingBox` is strictly world-axis-aligned. **Needs a decision**, and the honest question
@@ -153,11 +161,15 @@ construction is a small, real convenience), `Point.PruneDuplicates` (planned, an
 it needs surfaces), and `Vector.FromJson`/`ToJson` (planned under FR-57). Nothing here is a
 design difference.
 
-**`Plane`'s four gaps** are `ByBestFitThroughPoints` (planned — least-squares fitting, and it
-is the same machinery `Circle.ByBestFitThroughPoints` and `Line.ByBestFitThroughPoints` want,
-so it should be written once), `ByLineAndPoint` (planned, M1, once `Line` exists),
-`ByOriginNormalXAxis` (planned — trivial, and worth having because it is the only factory that
-pins the in-plane rotation without a second point), and `Offset(distance)` (planned, trivial).
+**`Plane`'s gaps are down to two, and the two that closed were the two called trivial.**
+`ByOriginNormalXAxis` and `Offset(distance)` are **added**, and the first of them was worth
+having for exactly the reason given here: it is the only factory that pins the in-plane rotation
+without a second point, which matters because `ByOriginNormal` chooses the in-plane axes
+deterministically but *arbitrarily*, and everything built on `To2d`/`To3d` consumes that choice.
+`Offset` keeps the frame unrotated, so a point and its projection onto the offset plane share
+in-plane coordinates. What remains is `ByBestFitThroughPoints` (planned — least-squares fitting,
+and it is the same machinery `Circle.ByBestFitThroughPoints` and `Line.ByBestFitThroughPoints`
+want, so it should be written once) and `ByLineAndPoint` (planned, M1, once `Line` exists).
 
 **Two Dynamo members on these types have no Spark equivalent and should not get one.**
 `Point.ByCartesianCoordinates(cs, x, y, z)` is counted as reachable through
@@ -539,13 +551,21 @@ Dynamo, so the semantics are already right; only the names read as in-place edit
 convention is the past participle or an explicit `Try*`: `Repaired()`, `Reduced(n)`,
 `Smoothed(scale)`.
 
-**And a finding about our own code, since this document had to check it.** `Spark.Geometry`
-is not yet consistent about this. `Vector3d.Normalised()`, `Interval.Reversed()` and
-`Interval.MakeIncreasing()` follow the rule; `Plane.Flip()`, `BoundingBox.Inflate()` and
-`Interval.Expand()` do not — all three read as imperatives and all three return new values.
-This is not a defect and none of them is ambiguous in practice, but the convention should be
-settled and written into `NamespaceDoc` before curves arrive and multiply the surface by five.
-Raised here because this document is the first thing to read both APIs side by side.
+**And a finding about our own code, since this document had to check it — now closed.** When
+this section was written `Spark.Geometry` was not consistent about the rule:
+`Vector3d.Normalised()` and `Interval.Reversed()` followed it while `Plane.Flip()`,
+`BoundingBox.Inflate()` and `Interval.Expand()` did not, all three reading as imperatives and
+all three returning new values. They are now `Flipped()`, `Inflated()` and `Expanded()`, and the
+convention is written into `NamespaceDoc` rather than living only here: **a member that returns
+a new value is named for the result, not for the act**, with factories (`ByThreePoints`,
+`FromPoints`) and queries (`DistanceTo`, `ClosestPoint`) named as the two deliberate exemptions.
+The argument that settled it is not aesthetics — `plane.Flip();` as a statement compiles, does
+nothing, and reads as though it worked. `Interval.MakeIncreasing()` keeps its name, because
+`Increased()` would mean something else entirely.
+
+The rename was free on the day it happened and would not have been later: all three members are
+unshipped, so nothing outside this repository referenced them. **The window for this kind of
+correction closes at 1.0**, after which it is an ADR-0019 change-control question.
 
 ---
 

@@ -188,14 +188,92 @@ public sealed class BoundingBoxTests
     }
 
     [Fact]
+    public void IntersectionIsTheOverlapAndTheOrderOfTheOperandsDoesNotMatter()
+    {
+        BoundingBox one = new(Point3d.Origin, new Point3d(10.0, 10.0, 10.0));
+        BoundingBox other = new(new Point3d(5.0, -5.0, 2.0), new Point3d(20.0, 5.0, 8.0));
+
+        BoundingBox overlap = one.Intersection(other);
+
+        Assert.Equal(new Point3d(5.0, 0.0, 2.0), overlap.Min);
+        Assert.Equal(new Point3d(10.0, 5.0, 8.0), overlap.Max);
+        Assert.Equal(overlap, other.Intersection(one));
+        Assert.Equal(overlap, BoundingBox.Intersection(one, other));
+    }
+
+    [Fact]
+    public void DisjointBoxesIntersectToEmptyRatherThanToAnInvertedBox()
+    {
+        BoundingBox one = new(Point3d.Origin, new Point3d(1.0, 1.0, 1.0));
+        BoundingBox farAway = new(new Point3d(5.0, 5.0, 5.0), new Point3d(6.0, 6.0, 6.0));
+        BoundingBox pastOnOneAxisOnly = new(new Point3d(0.0, 0.0, 5.0), new Point3d(1.0, 1.0, 6.0));
+
+        // Empty is canonical, and that is the whole point: two different disjoint pairs must
+        // give answers that are equal to each other, which an inverted box built from the
+        // crossed-over bounds would not.
+        Assert.Equal(BoundingBox.Empty, one.Intersection(farAway));
+        Assert.Equal(BoundingBox.Empty, one.Intersection(pastOnOneAxisOnly));
+        Assert.Equal(one.Intersection(farAway), one.Intersection(pastOnOneAxisOnly));
+    }
+
+    [Fact]
+    public void BoxesThatTouchIntersectToTheDegenerateBoxOfTheirContact()
+    {
+        BoundingBox one = new(Point3d.Origin, new Point3d(1.0, 1.0, 1.0));
+        BoundingBox faceToFace = new(new Point3d(1.0, 0.0, 0.0), new Point3d(2.0, 1.0, 1.0));
+
+        BoundingBox contact = one.Intersection(faceToFace);
+
+        Assert.Equal(new Point3d(1.0, 0.0, 0.0), contact.Min);
+        Assert.Equal(new Point3d(1.0, 1.0, 1.0), contact.Max);
+        Assert.Equal(0.0, contact.Volume);
+    }
+
+    [Fact]
+    public void IntersectionWithEmptyIsEmptyInEitherOrder()
+    {
+        BoundingBox box = new(Point3d.Origin, new Point3d(1.0, 1.0, 1.0));
+
+        // Union treats Empty as an identity; Intersection treats it as an annihilator. Both
+        // follow from Empty being the box that occupies no space, and the asymmetry is the
+        // thing a reader is most likely to expect the wrong way round.
+        Assert.Equal(BoundingBox.Empty, box.Intersection(BoundingBox.Empty));
+        Assert.Equal(BoundingBox.Empty, BoundingBox.Empty.Intersection(box));
+        Assert.Equal(box, box.Union(BoundingBox.Empty));
+    }
+
+    [Fact]
+    public void ABoxWithANaNCornerIntersectsToEmptyInEitherOperandPosition()
+    {
+        BoundingBox real = new(Point3d.Origin, new Point3d(1.0, 1.0, 1.0));
+        BoundingBox broken = new(Point3d.Unset, new Point3d(1.0, 1.0, 1.0));
+
+        Assert.Equal(BoundingBox.Empty, real.Intersection(broken));
+        Assert.Equal(BoundingBox.Empty, broken.Intersection(real));
+    }
+
+    [Fact]
+    public void IntersectionIsContainedInBothOperandsAndAgreesWithIntersects()
+    {
+        BoundingBox one = new(Point3d.Origin, new Point3d(10.0, 10.0, 10.0));
+        BoundingBox other = new(new Point3d(5.0, -5.0, 2.0), new Point3d(20.0, 5.0, 8.0));
+
+        BoundingBox overlap = one.Intersection(other);
+
+        Assert.True(one.Contains(overlap));
+        Assert.True(other.Contains(overlap));
+        Assert.True(one.Intersects(other));
+    }
+
+    [Fact]
     public void InflateGrowsTheBoxInEveryDirection()
     {
         BoundingBox box = new(Point3d.Origin, new Point3d(1.0, 1.0, 1.0));
-        BoundingBox inflated = box.Inflate(1.0);
+        BoundingBox inflated = box.Inflated(1.0);
 
         Assert.Equal(new Point3d(-1.0, -1.0, -1.0), inflated.Min);
         Assert.Equal(new Point3d(2.0, 2.0, 2.0), inflated.Max);
-        Assert.Equal(new Point3d(0.0, -1.0, 0.0), box.Inflate(0.0, 1.0, 0.0).Min);
+        Assert.Equal(new Point3d(0.0, -1.0, 0.0), box.Inflated(0.0, 1.0, 0.0).Min);
     }
 
     [Fact]
@@ -203,7 +281,7 @@ public sealed class BoundingBoxTests
     {
         BoundingBox box = new(Point3d.Origin, new Point3d(1.0, 1.0, 1.0));
 
-        Assert.False(box.Inflate(-1.0).IsValid);
+        Assert.False(box.Inflated(-1.0).IsValid);
     }
 
     [Fact]

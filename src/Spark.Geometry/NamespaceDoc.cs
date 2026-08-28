@@ -39,6 +39,19 @@ namespace Spark.Geometry;
 /// caller eventually.
 /// </para>
 /// <para>
+/// <b>Naming: a member that returns a new value is named for the result, not for the act.</b>
+/// The past participle is the rule — <c>Reversed()</c>, <c>Normalised()</c>, <c>Flipped()</c>,
+/// <c>Inflated()</c>, <c>Expanded()</c>, <c>Trimmed()</c>, <c>TransformedBy()</c> — because
+/// every one of them leaves its receiver untouched, and an imperative name invites a caller to
+/// write <c>plane.Flip();</c> and discard the answer. That statement compiles, does nothing,
+/// and reads as though it worked. A name in the imperative is a promise of mutation this
+/// namespace cannot keep. Two shapes are deliberately exempt: a <b>factory</b> is named for
+/// what it builds and how (<c>Plane.ByThreePoints</c>, <c>BoundingBox.FromPoints</c>), and a
+/// <b>query</b> is named for the question it answers (<c>DistanceTo</c>, <c>ClosestPoint</c>,
+/// <c>Contains</c>). <c>Interval.MakeIncreasing()</c> is the one member whose name is neither,
+/// and it keeps its name because <c>Increased()</c> would mean something else entirely.
+/// </para>
+/// <para>
 /// <b>Immutability.</b> Every type in this namespace is a <c>readonly struct</c> or a
 /// sealed immutable class. Nothing here carries identity, style, revision numbers or
 /// screen awareness, and constructing geometry never mutates anything.

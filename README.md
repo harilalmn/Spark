@@ -54,7 +54,9 @@ which ships with Spark.
 >
 > What has been run, on Windows, on 2026-08-28:
 > `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen projects;
-> `dotnet test Spark.slnx` runs **981 passing tests** across seven projects; and
+> the suite runs **1,046 passing tests** across seven projects — counted by
+> `scripts/run-tests.sh`, because `dotnet test` reports `Zero tests ran` on SDK 10.0.400
+> ([NOTES N34](docs/NOTES.md)); and
 > `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean. **CI ran all of it on
 > Windows and Linux on commit `53596ab` and was green**, 969 tests on each — so the Linux leg is
 > no longer a claim, and it has now caught something Windows could not.
@@ -230,8 +232,8 @@ exits — the viewport one is a GPU read-back rather than a window grab, so it w
 session and in CI. The first two exist so that opening a particular graph can be checked without
 a human driving a file dialog.
 
-`dotnet test` finds **981 tests** across seven projects. `Spark.Geometry.Tests` (313) and
-`Spark.Geometry.Properties` (38) cover the kernel by example and by CsCheck property
+The suite is **1,046 tests** across seven projects. `Spark.Geometry.Tests` (368) and
+`Spark.Geometry.Properties` (48) cover the kernel by example and by CsCheck property
 respectively; `Spark.Engine.Tests` (292) covers the graph, the replicator and the importer;
 `Spark.UI.Tests` (256) drives the canvas headlessly with real pointer gestures;
 `Spark.Viewport.Tests` (69) covers the scene and the camera; `Spark.Architecture.Tests` (8)

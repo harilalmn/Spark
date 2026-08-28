@@ -530,7 +530,7 @@ public abstract class Curve
     {
         double sag = Math.Max(Length * 1e-6, 1e-12);
         Point3d[] points = Tessellate(new Tolerance(sag, Angle.FromDegrees(0.001), 1e-12));
-        return BoundingBox.FromPoints(points).Inflate(sag);
+        return BoundingBox.FromPoints(points).Inflated(sag);
     }
 
     /// <summary>
