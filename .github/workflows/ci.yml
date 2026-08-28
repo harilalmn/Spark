@@ -65,9 +65,13 @@ jobs:
       # native binaries in the tree. A gate added after the thing it guards against is a
       # gate that never guarded. Run on both operating systems because native assets are
       # per-RID: an output clean on one can carry a .so or a .dylib on the other.
+      # Invoked through bash rather than executed, because this repository is maintained from
+      # Windows with core.filemode=false: a script committed there is mode 100644 and a chmod
+      # never reaches the index. The bit is set on this one, and the invocation makes the next
+      # one impossible to get wrong. See NOTES.md N28.
       - name: No native binaries in Spark.Geometry
         shell: bash
-        run: scripts/check-no-native-binaries.sh
+        run: bash scripts/check-no-native-binaries.sh
 
   format:
     name: Format

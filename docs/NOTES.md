@@ -863,3 +863,27 @@ against — the same conclusion as [N20](NOTES.md), reached the same way.
 
 What survives is a comment saying why the handler is only three lines, so the next person does not
 add the guard back.
+
+---
+
+## N28 — A script committed from Windows is not executable on Linux, and CI is where you find out
+
+`scripts/check-no-native-binaries.sh` was added, run locally, proven to detect what it guards
+against, wired into both CI legs — and failed on the first push with exit 126,
+`Permission denied`, on Linux only.
+
+The cause is one line of local configuration: this repository is maintained from Windows, where
+`core.filemode` is `false`. A `chmod +x` there changes the working tree and **never reaches the
+index**, so the file was committed as mode `100644`. Git Bash on the Windows runner ignores the
+bit and ran the script happily; Linux would not. The Windows leg was green and the Linux leg was
+red, which is precisely the class of difference [ADR-0001](adr/0001-avalonia-not-wpf.md) keeps the
+Linux job for — and the first time it has actually earned its place.
+
+The fix is two things on purpose. `git update-index --chmod=+x` sets the bit in the index, which
+is the correct state for a script in `scripts/`; and CI invokes it as `bash scripts/...` rather
+than executing it, so the *next* script added from Windows cannot fail this way at all.
+
+**The wider lesson is about what "the gate was proven" means.** It had been proven to *detect* —
+pointed at `Spark.Desktop` it fails on Avalonia's Skia and HarfBuzz natives. It had not been
+proven to *run*, and those are different claims. A gate's first execution in CI is part of adding
+it, not a formality afterwards.
