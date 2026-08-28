@@ -8,9 +8,9 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,179 tests over eight
+Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,196 tests over eight
 projects**) and `dotnet format` are all clean — though `dotnet test` itself now reports
-`Zero tests ran` on SDK 10.0.400 and the 1,179 are counted by `scripts/run-tests.sh`
+`Zero tests ran` on SDK 10.0.400 and the 1,196 are counted by `scripts/run-tests.sh`
 ([N34](NOTES.md)) — and **CI ran green on Windows and Linux on `53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
 
@@ -274,6 +274,20 @@ for anything else.
       later suppresses, and because the headless canvas tests drive real pointer gestures and are
       the most timing-sensitive thing in the repository. Next occurrence: keep the whole output,
       not the tail. `scripts/run-tests.sh` already prints the failing test names.
+- [x] **The watch panel** — the open half of `E8-T10`, and the row closes. A pinned pane in
+      the right-hand column showing one node's whole output. **Pinning is the point**: the strip
+      under a node answers for whatever is under the pointer, and a panel that followed the
+      selection would be a wider strip — so a test asserts that moving the selection does not
+      move the panel. It does the three things the strip's own documentation says it will not:
+      every output port rather than the first, every element rather than six, and a long value
+      **in full** rather than clipped, because *if you need the whole value, that is what the
+      watch panel is for* was a promise somebody had to keep. The bound it does keep is on
+      **lines** rather than characters — a list of a million expanded in full is a hang, and a
+      hang is a worse answer than a truncated one — and it says how many it left out. It holds a
+      `NodeId` rather than a canvas slot, because a slot is not stable across an undo
+      ([N23](NOTES.md)), and a pinned node that has been deleted unpins itself rather than
+      reporting stale values. Seventeen tests, and the shell was screenshotted to check the pane
+      is not squeezed against the bottom of the window — which it was, the first time.
 - [x] **The host-thread scheduler** — `E3-T11`, done, and it is most of why
       `IEvaluationScheduler` exists at all. The Revit and AutoCAD APIs are callable from one
       thread and one thread only, and a node touching the host model from anywhere else does not
@@ -378,9 +392,8 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] Every port shows the type it wants — `E8-T18`. Not in the plan; found by opening the
       application and looking at `Circle.ByCentreRadius`, where a port called `centre` gave no way
       to learn that a `Point3d` belongs in it.
-- [x] Preview bubbles and hover tooltips — the built half of `E8-T10`, plus the tooltip design
-      language §7.2 has specified since M0. **The watch panel is still open**, which is why the
-      row stays `In progress`.
+- [x] Preview bubbles and hover tooltips — `E8-T10`, plus the tooltip design language §7.2 has
+      specified since M0. **The watch panel has since landed too**, so the row is `Done`.
 - [x] Port descriptions from `<param>` — `E5-T7`, which had been marked `Done` while reading only
       `<summary>` ([N29](NOTES.md)). Found by building a port tooltip that had nothing to show.
 - [x] Library search with camel-hump ranking — `E8-T8`. `cbcr` finds `Circle.ByCentreRadius`.

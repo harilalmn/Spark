@@ -67,6 +67,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private string _diagnosticsText = "No run yet.";
 
     [ObservableProperty]
+    private string _watchTitle = "Nothing pinned";
+
+    [ObservableProperty]
+    private bool _isWatchPinned;
+
+    [ObservableProperty]
     private LibraryEntryViewModel? _selectedLibraryEntry;
 
     [ObservableProperty]
@@ -95,6 +101,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private CanvasGraph _graph;
     private int _placementOrdinal;
     private bool _disposed;
+
+    // The watch panel holds a NodeId rather than a canvas slot, because a slot is not stable
+    // across an undo - the document is reopened and every node is renumbered into the file's
+    // canonical order (N23). A panel pinned by slot would silently follow a different node.
+    private NodeId? _watched;
+    private int _lastSingleSelection = -1;
+    private EvaluationResult? _lastResult;
 
     /// <summary>Creates the view model with the built-in library imported and the demo loaded.</summary>
     public MainWindowViewModel()
@@ -194,6 +207,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     /// <summary>Raised on the UI thread after a run's results have been applied.</summary>
     public event EventHandler? EvaluationCompleted;
+
+    /// <summary>
+    /// The pinned node's whole output, one line per port and per element.
+    /// </summary>
+    public ObservableCollection<WatchLineViewModel> Watch { get; } = [];
 
     /// <summary>The shell's pane arrangement.</summary>
     public WorkspaceLayout Layout { get; }
@@ -415,9 +433,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         try
         {
+            _lastResult = result;
             _graph.ApplyResult(result);
             PublishGeometry(result);
             RefreshInspector();
+            RefreshWatch();
 
             LastRunNodesEvaluated = result.NodesEvaluated;
             LastRunCacheHits = result.CacheHits;
@@ -484,6 +504,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         if (selection.Count != 1)
         {
+            _lastSingleSelection = -1;
             SelectionTitle = selection.Count == 0 ? "Nothing selected" : $"{selection.Count} nodes selected";
             SelectionDescription = selection.Count == 0
                 ? "Select a node to edit the values typed into its unwired inputs."
@@ -496,6 +517,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             return;
         }
+
+        _lastSingleSelection = slot;
 
         CanvasNode node = _graph.Nodes[slot];
         NodeInstance instance = _graph.Engine.Node(node.Id);
@@ -516,6 +539,105 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 _graph.IsInputWired(slot, index),
                 port.Description,
                 CommitLiteral));
+        }
+    }
+
+    /// <summary>
+    /// Pins the watch panel to a node, so that it keeps reporting that node while the selection
+    /// moves elsewhere.
+    /// </summary>
+    /// <remarks>
+    /// <b>Pinning is what makes this a different tool from the strip under a node.</b> The strip
+    /// answers <i>what did this node just produce</i> for whatever is under the pointer; the
+    /// panel answers <i>what is this one node producing while I work somewhere else</i>. A panel
+    /// that followed the selection would be a wider strip.
+    /// </remarks>
+    /// <param name="slot">The canvas slot to pin. A slot outside the graph clears the panel.</param>
+    public void PinWatch(int slot)
+    {
+        if (slot < 0 || slot >= _graph.Nodes.Count)
+        {
+            ClearWatch();
+            return;
+        }
+
+        _watched = _graph.Nodes[slot].Id;
+        IsWatchPinned = true;
+        RefreshWatch();
+    }
+
+    /// <summary>Unpins the watch panel.</summary>
+    [RelayCommand]
+    public void ClearWatch()
+    {
+        _watched = null;
+        IsWatchPinned = false;
+        WatchTitle = "Nothing pinned";
+        Watch.Clear();
+    }
+
+    /// <summary>Pins the watch panel to the selected node, when exactly one is selected.</summary>
+    [RelayCommand]
+    public void PinSelection() => PinWatch(_lastSingleSelection);
+
+    /// <summary>
+    /// Rebuilds the watch panel from the most recent run.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A pinned node that has been deleted unpins itself rather than reporting stale values.</b>
+    /// The panel holds a <c>NodeId</c> and looks it up on every refresh, so a lookup that fails
+    /// means the node is gone - which is also what happens after an undo that removed it.
+    /// </para>
+    /// <para>
+    /// The report is rebuilt rather than diffed. It is at most a few thousand lines, refreshed at
+    /// the rate a person edits a graph; a diff would be more code for a cost nobody can perceive.
+    /// </para>
+    /// </remarks>
+    public void RefreshWatch()
+    {
+        Watch.Clear();
+
+        if (_watched is not NodeId watched)
+        {
+            return;
+        }
+
+        CanvasNode? node = null;
+
+        foreach (CanvasNode candidate in _graph.Nodes)
+        {
+            if (candidate.Id == watched)
+            {
+                node = candidate;
+                break;
+            }
+        }
+
+        if (node is null)
+        {
+            ClearWatch();
+            return;
+        }
+
+        WatchTitle = node.Title;
+
+        if (_lastResult is not EvaluationResult result)
+        {
+            Watch.Add(new WatchLineViewModel(0, "No run yet."));
+            return;
+        }
+
+        object?[] values = new object?[node.Outputs.Count];
+
+        for (int index = 0; index < values.Length; index++)
+        {
+            values[index] = result.Value(watched, index);
+        }
+
+        foreach (WatchLine line in WatchReport.Describe(node.Outputs, values))
+        {
+            Watch.Add(new WatchLineViewModel(line.Depth, line.Text));
         }
     }
 

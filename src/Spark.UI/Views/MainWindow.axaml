@@ -156,7 +156,7 @@
       <GridSplitter Grid.Column="3" ResizeDirection="Columns" />
 
       <Border Grid.Column="4" Classes="pane" x:Name="InspectorPane">
-        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
+        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,2*">
           <TextBlock Grid.Row="0" Classes="paneTitle" Text="PROPERTIES" />
 
           <TextBlock Grid.Row="1" Margin="10,0,10,4" TextWrapping="Wrap"
@@ -205,6 +205,47 @@
                         HorizontalScrollBarVisibility="Disabled">
             <TextBlock Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
                        Text="{Binding DiagnosticsText}" />
+          </ScrollViewer>
+
+          <!--
+            The watch panel. It is PINNED rather than following the selection, which is the whole
+            reason it is a different tool from the strip under a node: the strip answers "what did
+            this node just produce" for whatever is under the pointer, and the panel answers "what
+            is this one node producing while I work somewhere else".
+          -->
+          <Grid Grid.Row="6" ColumnDefinitions="*,Auto,Auto">
+            <TextBlock Grid.Column="0" Classes="paneTitle" Text="WATCH" />
+            <Button Grid.Column="1" Classes="toolbar" Margin="0,0,6,0" Padding="8,2"
+                    Command="{Binding PinSelectionCommand}"
+                    ToolTip.Tip="Pin the selected node, so the panel keeps reporting it while you work elsewhere"
+                    Content="Pin" />
+            <Button Grid.Column="2" Classes="toolbar" Margin="0,0,10,0" Padding="8,2"
+                    Command="{Binding ClearWatchCommand}"
+                    IsEnabled="{Binding IsWatchPinned}"
+                    ToolTip.Tip="Unpin"
+                    Content="Clear" />
+          </Grid>
+
+          <TextBlock Grid.Row="7" Classes="muted" Margin="10,0,10,4" TextWrapping="Wrap"
+                     Text="{Binding WatchTitle}" />
+
+          <!--
+            Horizontal scrolling rather than wrapping, and a monospaced font. A wrapped list of
+            coordinates loses the one thing a reader is scanning for - the column the numbers line
+            up in - and the panel exists precisely for the values the strip under a node clips.
+          -->
+          <ScrollViewer Grid.Row="8" MinHeight="120" VerticalScrollBarVisibility="Auto"
+                        HorizontalScrollBarVisibility="Auto">
+            <ItemsControl Margin="10,0,10,10" ItemsSource="{Binding Watch}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:WatchLineViewModel">
+                  <TextBlock Classes="muted" FontSize="11"
+                             FontFamily="JetBrains Mono, Cascadia Mono, Consolas, monospace"
+                             Margin="{Binding Margin}"
+                             Text="{Binding Text}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
           </ScrollViewer>
         </Grid>
       </Border>
