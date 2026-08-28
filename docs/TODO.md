@@ -8,9 +8,9 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,100 tests over seven
+Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,115 tests over seven
 projects**) and `dotnet format` are all clean — though `dotnet test` itself now reports
-`Zero tests ran` on SDK 10.0.400 and the 1,100 are counted by `scripts/run-tests.sh`
+`Zero tests ran` on SDK 10.0.400 and the 1,115 are counted by `scripts/run-tests.sh`
 ([N34](NOTES.md)) — and **CI ran green on Windows and Linux on `53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
 
@@ -233,8 +233,23 @@ for anything else.
       needs no derivative ([N36](NOTES.md)). The tolerance is a promise about the answer rather
       than a hint — the search stops when a further step would move the point less than
       `Tolerance.Linear` — so the default resolves to 1e-6 and a caller who needs more asks.
-- [ ] Geometry serialization v1 and the reflection-driven round-trip test — `E2-T29`, `E2-T31`.
-      Get the test in before there are twenty types to retrofit it onto; there are now nineteen.
+- [x] **Geometry serialization v1 and the reflection-driven round-trip test** — `E2-T29`,
+      `E2-T31`, done, and it was written at twenty types rather than at forty, which was the
+      whole point of the row. `GeometryJson.Write` and `Read`, with a **per-type `$v`** rather
+      than a document version, because a `NurbsCurve` at v2 and a `Mesh` at v1 have to coexist
+      and a single version forces every type to move together. **Round-tripping is byte-identical
+      and the format is designed backwards from that**: a `Plane` stores all four of its vectors
+      rather than the two that generate them, because re-deriving a frame on read
+      re-orthonormalises it and a file whose diff is floating-point noise cannot be reviewed.
+      Three types gained an `internal` exact constructor for that reason, and one of the three
+      matters more than it sounds — `BoundingBox.Empty` is an **inverted** box and the public
+      constructor sorts its corners, so a naive reader turns the box containing nothing into the
+      box containing everything, silently. Source generation was **rejected with an argument
+      rather than skipped**: immutable types with no parameterless constructor would each need a
+      mutable DTO and two mappings, which is a second definition of the type and therefore the
+      thing that drifts, and hand-written converters use no reflection at all. The diff runs both
+      ways and **was proven to fire** — a sample was removed and the build went red naming the
+      type — which is the same discipline the node importer's two-way diff already applies.
 - [ ] **The C2VGeometry test harvest, timeboxed to one week with a hard stop** — `E2-T32`.
       Harvest only pure-maths-on-values tests; anything needing a `Shape` is discarded without
       argument. **Harvest the assertions, not the generators** — a harvested test whose inputs

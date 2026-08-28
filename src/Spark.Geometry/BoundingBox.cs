@@ -53,7 +53,11 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
 
     // Builds a box from bounds that are already known to be in the right order, which is the
     // only way to produce the deliberately inverted Empty box.
-    private BoundingBox(double minX, double minY, double minZ, double maxX, double maxY, double maxZ)
+    //
+    // Internal rather than private because serialization needs it: the public constructor sorts
+    // its corners, so reading Empty back through it would return the box containing everything
+    // rather than the box containing nothing - the exact inversion of what the file said.
+    internal BoundingBox(double minX, double minY, double minZ, double maxX, double maxY, double maxZ)
     {
         Min = new Point3d(minX, minY, minZ);
         Max = new Point3d(maxX, maxY, maxZ);

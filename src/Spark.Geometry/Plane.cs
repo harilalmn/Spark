@@ -71,7 +71,15 @@ public readonly struct Plane : IEquatable<Plane>
         YAxis = unitNormal.Cross(XAxis);
     }
 
-    private Plane(in Point3d origin, in Vector3d xAxis, in Vector3d yAxis, in Vector3d normal)
+    // The only way to build a plane from a frame that is ALREADY orthonormal, with no
+    // re-orthonormalisation on the way in. Internal rather than public because a caller who
+    // hands in four vectors that are not a right-handed orthonormal frame gets a Plane that
+    // every other member is entitled to assume is one.
+    //
+    // Serialization is the reason it is internal rather than private: reading a plane back
+    // through a normalising factory changes the last bit of an axis that was already unit
+    // length, and a file that does not round-trip byte for byte is a file whose diff is noise.
+    internal Plane(in Point3d origin, in Vector3d xAxis, in Vector3d yAxis, in Vector3d normal)
     {
         Origin = origin;
         XAxis = xAxis;

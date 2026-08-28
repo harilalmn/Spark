@@ -90,6 +90,7 @@ Spark.Geometry.EllipseCurve.StartAngle.get -> Spark.Geometry.Angle
 Spark.Geometry.EllipseCurve.SweepAngle.get -> Spark.Geometry.Angle
 Spark.Geometry.EllipseCurve.XRadius.get -> double
 Spark.Geometry.EllipseCurve.YRadius.get -> double
+Spark.Geometry.GeometryJson
 Spark.Geometry.Interval
 Spark.Geometry.Interval.Clamp(double value) -> double
 Spark.Geometry.Interval.Denormalise(double t) -> double
@@ -308,6 +309,7 @@ abstract Spark.Geometry.Curve.IsClosed.get -> bool
 abstract Spark.Geometry.Curve.Reversed() -> Spark.Geometry.Curve!
 abstract Spark.Geometry.Curve.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
 abstract Spark.Geometry.Curve.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
+const Spark.Geometry.GeometryJson.SchemaVersion = 1 -> int
 override Spark.Geometry.Angle.Equals(object? obj) -> bool
 override Spark.Geometry.Angle.GetHashCode() -> int
 override Spark.Geometry.Angle.ToString() -> string!
@@ -446,6 +448,8 @@ static Spark.Geometry.CoordinateSystem.operator !=(in Spark.Geometry.CoordinateS
 static Spark.Geometry.CoordinateSystem.operator ==(in Spark.Geometry.CoordinateSystem left, in Spark.Geometry.CoordinateSystem right) -> bool
 static Spark.Geometry.EllipseCurve.ByPlaneRadii(in Spark.Geometry.Plane plane, double xRadius, double yRadius) -> Spark.Geometry.EllipseCurve!
 static Spark.Geometry.EllipseCurve.ByPlaneRadiiAngles(in Spark.Geometry.Plane plane, double xRadius, double yRadius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.EllipseCurve!
+static Spark.Geometry.GeometryJson.Read<T>(string! json) -> T
+static Spark.Geometry.GeometryJson.Write<T>(T value, bool indented = false) -> string!
 static Spark.Geometry.Interval.Unit.get -> Spark.Geometry.Interval
 static Spark.Geometry.Interval.operator !=(in Spark.Geometry.Interval left, in Spark.Geometry.Interval right) -> bool
 static Spark.Geometry.Interval.operator ==(in Spark.Geometry.Interval left, in Spark.Geometry.Interval right) -> bool
