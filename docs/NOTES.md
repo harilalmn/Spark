@@ -915,3 +915,29 @@ wired and constructors, `out` parameters or receiver ports broken.
 
 The general lesson is the one this project keeps relearning from a different direction: a register
 records intent, and only using the thing tells you what the intent missed.
+
+---
+
+## N30 — Character counts size boxes; only measured text may fill them
+
+[N24](NOTES.md) records that a node is sized from character counts because it is built off the
+render thread with no typeface to measure against. The result strip repeated that estimate one
+step too far: it *truncated* its value lines at forty-four characters as well.
+
+A count is a fixed number against a variable width. Forty-four narrow characters fitted; forty-four
+digits did not, so a list like `(5.388942295416207, 0.8793495662309033, 0)` was written straight
+out through the right-hand border of its own box. The strip looked correct on the demo graph,
+whose values are short, and wrong on the first graph with real coordinates in it.
+
+**The rule the two notes make together:** an estimate may decide how big a box is, because nothing
+better is available when the box is made. Only a measurement may decide how much text goes in it,
+because by then the renderer knows. `FormattedText.MaxTextWidth` with `CharacterEllipsis` is the
+measurement, and the strip now also widens to fit its values so that the ellipsis is rare rather
+than routine.
+
+**One implementation detail is worth knowing before changing this.** The fitted runs are cached
+under *width and text together*, not constrained in place. `FormattedText` is mutable and the run
+cache hands the same object to every caller of the same string, so setting `MaxTextWidth` on a
+cached run would leave a port type label ellipsised because a preview headline elsewhere happened
+to read the same. That defect would appear on one node in one graph and in no test — headless
+drawing is a stub and measures nothing — so it is designed out rather than guarded against.

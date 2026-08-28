@@ -8,9 +8,9 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, `dotnet test` (**967 tests over seven
+Ctrl+Z steps back through every edit. `dotnet build`, `dotnet test` (**969 tests over seven
 projects**) and `dotnet format` are all clean, and **CI ran green on Windows and Linux on
-`53596ab`**, 967 tests on each leg — and the Linux leg has now caught something Windows could
+`53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
 
 Three distinctions still do the work in what follows:

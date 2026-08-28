@@ -203,6 +203,21 @@ public sealed class CanvasNode
     /// <summary>The height of one row of the preview: the headline, and each value line.</summary>
     public const double PreviewRow = 15;
 
+    /// <summary>The widest an open preview may grow, as a multiple of the node's own width.</summary>
+    /// <remarks>
+    /// An open preview widens to fit its values, because the values are the reason it was opened —
+    /// a row of coordinates truncated to the node's width shows a user two of the three numbers
+    /// they wanted. It is capped because a single long string must not be able to lay a strip
+    /// across the whole graph, and past the cap the text is ellipsised instead.
+    /// </remarks>
+    public const double PreviewWidestFactor = 2.5;
+
+    /// <summary>Approximate width of one character of a preview value at 10 px Inter.</summary>
+    private const double PreviewCharWidth = 5.6;
+
+    /// <summary>The two 14 px insets a value line is drawn between.</summary>
+    private const double PreviewInset = 28;
+
     /// <summary>
     /// The preview's bounds in world coordinates, or null when there is nothing to show.
     /// </summary>
@@ -221,8 +236,35 @@ public sealed class CanvasNode
             }
 
             int rows = IsPreviewOpen ? 1 + preview.Lines.Count + (preview.Hidden > 0 ? 1 : 0) : 1;
-            return CanvasBounds.FromSize(X, Y + Height + PreviewGap, Width, rows * PreviewRow);
+            return CanvasBounds.FromSize(X, Y + Height + PreviewGap, PreviewWidth(preview), rows * PreviewRow);
         }
+    }
+
+    /// <summary>
+    /// How wide the preview wants to be: the node's width when closed, and enough for its longest
+    /// value when open, up to <see cref="PreviewWidestFactor"/>.
+    /// </summary>
+    /// <remarks>
+    /// Estimated from character counts for the same reason the node's own width is (N24): this is
+    /// asked for outside a render pass, where there is no typeface to measure against. Whatever it
+    /// gets wrong the renderer absorbs, because it ellipsises to the box rather than trusting it.
+    /// </remarks>
+    /// <param name="preview">The preview to size.</param>
+    /// <returns>The width in world units.</returns>
+    private double PreviewWidth(NodePreview preview)
+    {
+        if (!IsPreviewOpen)
+        {
+            return Width;
+        }
+
+        double longest = 0;
+        foreach (string line in preview.Lines)
+        {
+            longest = System.Math.Max(longest, line.Length * PreviewCharWidth);
+        }
+
+        return System.Math.Clamp(longest + PreviewInset, Width, Width * PreviewWidestFactor);
     }
 
     /// <summary>
@@ -759,8 +801,8 @@ public sealed class CanvasGraph
     /// <summary>How many elements of a list the preview shows before it stops.</summary>
     private const int PreviewLineLimit = 6;
 
-    /// <summary>The longest a single preview line is allowed to be.</summary>
-    private const int PreviewLineWidth = 44;
+    /// <summary>A bound on how much of one value is kept, in characters. The renderer decides where it stops on screen.</summary>
+    private const int PreviewLineWidth = 96;
 
     /// <summary>
     /// Renders a node's output for the preview under the node.

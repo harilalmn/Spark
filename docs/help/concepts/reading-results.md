@@ -99,3 +99,6 @@ Open Spark and press *Curves* on the toolbar.
 - **An open strip can be covered by a node below it.** Nodes are drawn over previews on purpose —
   the graph is the document and the strip is a readout of it — so move the node if the strip is
   in the way.
+- **A very long value is cut off with an ellipsis.** An open strip widens to fit what is in it,
+  but only so far: one enormous string is not allowed to lay a strip across the whole graph. If
+  you need the whole value, that is what the watch panel will be for.

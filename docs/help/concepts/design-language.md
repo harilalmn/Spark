@@ -922,6 +922,13 @@ Open, it adds the first six values and then says how many it did not show. **Six
 six and silence**: a preview that stops without saying so makes a list of a hundred read as a list
 of six.
 
+**An open strip widens to fit its values, up to 2.5× the node's width.** The values are the reason
+it was opened, and a coordinate triple cut to the node's width shows two of the three numbers
+somebody wanted. Past the cap — and past whatever the width estimate got wrong — the text is
+ellipsised **to the measured box**, never to a character count: a fixed count against a variable
+width fits forty-four narrow characters and overflows on forty-four digits, which is exactly how
+the first version of this strip wrote a list of decimals out through its own border.
+
 Three consequences are chosen rather than inherited.
 
 - **It sits outside the node's box.** The node's own bounds are what a marquee selects and what

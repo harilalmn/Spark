@@ -124,7 +124,7 @@ public sealed class GraphCanvas : Control
     private readonly Dictionary<string, FormattedText> _labelText = [];
     private readonly Dictionary<string, FormattedText> _glyphText = [];
     private readonly Dictionary<string, FormattedText> _typeText = [];
-    private readonly Dictionary<string, FormattedText> _valueText = [];
+    private readonly Dictionary<string, FormattedText> _fittedText = [];
     private readonly List<WireVisual> _wireVisuals = [];
     private readonly HashSet<int> _selection = [];
     private readonly HashSet<CanvasPort> _connectedPorts = [];
@@ -1057,10 +1057,12 @@ public sealed class GraphCanvas : Control
 
         double y = bounds.MinY;
 
-        FormattedText headline = TypeRun(preview.Headline);
-        context.DrawText(headline, new Point(bounds.MinX + 8, y + ((CanvasNode.PreviewRow - headline.Height) / 2)));
-
+        // The chevron's column is reserved before the headline is laid out, so a long headline
+        // ellipsises rather than running under the glyph.
         FormattedText chevron = TypeRun(node.IsPreviewOpen ? "▾" : "▸");
+        FormattedText headline = TypeRun(preview.Headline, bounds.Width - 24 - chevron.Width);
+
+        context.DrawText(headline, new Point(bounds.MinX + 8, y + ((CanvasNode.PreviewRow - headline.Height) / 2)));
         context.DrawText(
             chevron,
             new Point(bounds.MaxX - 8 - chevron.Width, y + ((CanvasNode.PreviewRow - chevron.Height) / 2)));
@@ -1070,10 +1072,12 @@ public sealed class GraphCanvas : Control
             return;
         }
 
+        double room = bounds.Width - 28;
+
         foreach (string line in preview.Lines)
         {
             y += CanvasNode.PreviewRow;
-            FormattedText run = ValueRun(line);
+            FormattedText run = ValueRun(line, room);
             context.DrawText(run, new Point(bounds.MinX + 14, y + ((CanvasNode.PreviewRow - run.Height) / 2)));
         }
 
@@ -1082,8 +1086,8 @@ public sealed class GraphCanvas : Control
         if (preview.Hidden > 0)
         {
             y += CanvasNode.PreviewRow;
-            FormattedText more = TypeRun(string.Create(
-                CultureInfo.InvariantCulture, $"and {preview.Hidden} more"));
+            FormattedText more = TypeRun(
+                string.Create(CultureInfo.InvariantCulture, $"and {preview.Hidden} more"), room);
             context.DrawText(more, new Point(bounds.MinX + 14, y + ((CanvasNode.PreviewRow - more.Height) / 2)));
         }
     }
@@ -1620,8 +1624,61 @@ public sealed class GraphCanvas : Control
     private FormattedText TypeRun(string text) =>
         Run(_typeText, text, LabelTypeface, TypeFontSize, SparkPalette.TextMutedBrush);
 
-    private FormattedText ValueRun(string text) =>
-        Run(_valueText, text, LabelTypeface, TypeFontSize, SparkPalette.TextSecondaryBrush);
+    /// <summary>
+    /// A run that stops at the edge of the box it is drawn in, with an ellipsis.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Measured, not counted.</b> The first result strip truncated its lines at forty-four
+    /// characters, which is a fixed count against a variable width: forty-four narrow characters
+    /// fitted and forty-four digits did not, so a list of long decimals wrote itself straight out
+    /// through the right-hand border. Character counts size boxes here (N24) because nothing else
+    /// is available off the render thread — inside a render pass the real width is known, and it
+    /// is what decides where text stops.
+    /// </para>
+    /// <para>
+    /// Cached under the width as well as the text, rather than by constraining a shared run in
+    /// place. Setting <c>MaxTextWidth</c> on a cached <c>FormattedText</c> would leave it set for
+    /// every other use of the same string — a port type label inheriting the ellipsis of a preview
+    /// headline that happened to read the same, on one node, in a way no test could see. Keying
+    /// the width in removes the shared state instead of guarding it.
+    /// </para>
+    /// </remarks>
+    /// <param name="text">The text.</param>
+    /// <param name="room">The width available, in world units.</param>
+    /// <param name="brush">The brush to draw it in.</param>
+    /// <returns>The run.</returns>
+    private FormattedText FittedRun(string text, double room, IBrush brush)
+    {
+        double width = System.Math.Max(1, room);
+        string key = string.Create(CultureInfo.InvariantCulture, $"{width:F0}|{text}");
+
+        if (_fittedText.TryGetValue(key, out FormattedText? existing))
+        {
+            return existing;
+        }
+
+        if (_fittedText.Count >= MaximumCachedTextRuns)
+        {
+            _fittedText.Clear();
+        }
+
+        FormattedText run = new(
+            text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, LabelTypeface, TypeFontSize, brush)
+        {
+            MaxTextWidth = width,
+            Trimming = TextTrimming.CharacterEllipsis,
+        };
+
+        _fittedText[key] = run;
+        return run;
+    }
+
+    private FormattedText TypeRun(string text, double room) =>
+        FittedRun(text, room, SparkPalette.TextMutedBrush);
+
+    private FormattedText ValueRun(string text, double room) =>
+        FittedRun(text, room, SparkPalette.TextSecondaryBrush);
 
     private static FormattedText Run(
         Dictionary<string, FormattedText> cache, string text, Typeface typeface, double size, IBrush brush)
@@ -1643,6 +1700,7 @@ public sealed class GraphCanvas : Control
         cache[text] = run;
         return run;
     }
+
 
     private sealed class WireVisual
     {

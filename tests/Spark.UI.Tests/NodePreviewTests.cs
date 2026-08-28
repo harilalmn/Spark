@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Spark.Api;
 using Spark.Geometry;
+using Spark.UI.Canvas;
 using Spark.UI.Graph;
 
 namespace Spark.UI.Tests;
@@ -94,6 +95,57 @@ public sealed class NodePreviewTests
 
         Assert.Equal(6, preview.Lines.Count);
         Assert.Equal(94, preview.Hidden);
+    }
+
+    /// <summary>
+    /// A closed preview is exactly as wide as its node; an open one grows to fit its values.
+    /// </summary>
+    /// <remarks>
+    /// The values are the reason a preview is opened, and a coordinate triple truncated to the
+    /// node's width shows two of the three numbers somebody wanted. Growth is capped so that one
+    /// long string cannot lay a strip across the whole graph.
+    /// </remarks>
+    [Fact]
+    public void AnOpenPreviewGrowsToFitItsValuesAndNoFurther()
+    {
+        CanvasGraph graph = new();
+        graph.Add(TestGraphs.Library.ByName("Number.Value"), 0, 0);
+        CanvasNode node = graph.Nodes[0];
+
+        node.Preview = new NodePreview(
+            "3 items · rank 1",
+            [
+                "(5.388942295416207, 0.8793495662309033, 0)",
+                "(4.389205463295536, 1.363609401591421, 0)",
+                "(3.318146136715008, 1.666330173211755, 0)",
+            ],
+            0);
+
+        CanvasBounds closed = Assert.IsType<CanvasBounds>(node.PreviewBounds);
+        Assert.Equal(node.Width, closed.Width, 6);
+
+        node.IsPreviewOpen = true;
+        CanvasBounds open = Assert.IsType<CanvasBounds>(node.PreviewBounds);
+
+        Assert.True(open.Width > node.Width, $"An open preview stayed at {open.Width}.");
+        Assert.InRange(open.Width, node.Width, node.Width * CanvasNode.PreviewWidestFactor);
+    }
+
+    /// <summary>
+    /// A single very long value cannot stretch the strip past the cap.
+    /// </summary>
+    [Fact]
+    public void OneVeryLongValueCannotStretchTheStripAcrossTheGraph()
+    {
+        CanvasGraph graph = new();
+        graph.Add(TestGraphs.Library.ByName("Number.Value"), 0, 0);
+        CanvasNode node = graph.Nodes[0];
+
+        node.Preview = new NodePreview("text", [new string('x', 400)], 0);
+        node.IsPreviewOpen = true;
+
+        CanvasBounds bounds = Assert.IsType<CanvasBounds>(node.PreviewBounds);
+        Assert.Equal(node.Width * CanvasNode.PreviewWidestFactor, bounds.Width, 6);
     }
 
     /// <summary>A nested element is rendered as its own count and rank, not as a wall of numbers.</summary>
