@@ -6,12 +6,17 @@ the requirements they serve are in [PRD.md](PRD.md).
 
 **Last updated:** 2026-08-28
 
-No product code has yet been reviewed as landed, though the first M1 kernel value types
-began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
-below. Three epics are partly done — foundations, documentation and now
-verification — and everything else is `Not started`. Epics are derived from the milestone
-plan; the milestone each mostly serves is named, but epics and milestones are not the same
-axis and several epics span both.
+**M2 is complete, and four epics moved from `Not started` to `Built` in one pass** — the graph
+engine, replication, node authoring and the shell and viewport. This revision brings the
+statuses level with commit `35107f0`, at which `dotnet test Spark.slnx` runs **821 tests
+across seven projects**. Epics are derived from the milestone plan; the milestone each mostly
+serves is named, but epics and milestones are not the same axis and several epics span both.
+
+**`Built` is not `Finished`, and the distinction is doing real work in the four statuses
+below.** Each of them names what is missing as precisely as what landed: the engine cannot
+save a graph, the canvas has a measured frame-rate cliff, the importer cannot read the
+geometry kernel, and the viewport has no software fallback. An epic whose status is a list of
+achievements is an epic nobody can plan against.
 
 **A criterion is ticked when something demonstrates it, never when code exists that would
 satisfy it.** The CI workflow is the live example: it is written, committed and has never
@@ -22,17 +27,17 @@ prove is ticked.
 | Epic | Title | Milestones | Status |
 |---|---|---|---|
 | [E1](#e1--foundations-build-and-ci) | Foundations, build and CI | M0 | Partly done |
-| [E2](#e2--geometry-kernel) | Geometry kernel | M1, M3, M5, M6, M8 | Not started |
-| [E3](#e3--graph-engine) | Graph engine | M2 | Not started |
-| [E4](#e4--replication-and-lacing) | Replication and lacing | M2 | Not started |
-| [E5](#e5--node-authoring-and-library) | Node authoring and library | M2, M3 | Not started |
+| [E2](#e2--geometry-kernel) | Geometry kernel | M1, M3, M5, M6, M8 | Partly done |
+| [E3](#e3--graph-engine) | Graph engine | M2 | **Built** |
+| [E4](#e4--replication-and-lacing) | Replication and lacing | M2 | **Built** |
+| [E5](#e5--node-authoring-and-library) | Node authoring and library | M2, M3 | **Built** |
 | [E6](#e6--c-code-block) | C# code block | M4 | Not started |
 | [E7](#e7--packages-and-extensibility) | Packages and extensibility | M7 | Not started |
-| [E8](#e8--ui-shell-and-node-canvas) | UI shell and node canvas | M2 | Not started |
-| [E9](#e9--3d-viewport) | 3D viewport | M2, M5 | Not started |
+| [E8](#e8--ui-shell-and-node-canvas) | UI shell and node canvas | M2 | **Built** |
+| [E9](#e9--3d-viewport) | 3D viewport | M2, M5 | **Built** |
 | [E10](#e10--documentation) | Documentation | M0 onwards | Partly done |
 | [E11](#e11--quality-and-verification) | Quality and verification | M0 onwards | Partly done |
-| [E12](#e12--embedding-and-release) | Embedding and release | M8 | Not started |
+| [E12](#e12--embedding-and-release) | Embedding and release | M8 | Barely started |
 | [E13](#e13--occt-provider) | OCCT provider | M1.6, M6, M8 | Not started |
 
 **E13 is new and it is the largest single change to this plan since it was written.** The
@@ -113,21 +118,25 @@ exemption for everything that already exists.
       something else, which is what these two were, is a review matter.*
 - [x] The SDK and the test runner are pinned in `global.json`, so every machine and CI
       agent builds with the same toolchain (**E1-T31**).
-- [ ] The eight agent definitions in `.claude/agents/` exist with disjoint file ownership
-      (**E1-T25**, **E1-T30**). *Five of eight.*
+- [x] The eight agent definitions in `.claude/agents/` exist with disjoint file ownership
+      (**E1-T25**, **E1-T30**). *All eight. The three that were outstanding — `ui-shell`,
+      `viewport` and `reviewer` — landed with the slices that needed them.*
 
 **Status.** Partly done, and further along than the milestone plan expected at this point.
 The solution, the twelve stubs, the reference graph, the build properties, the pinned package
 versions, the licence and the git metadata all exist; the solution builds clean with
 `--no-incremental -warnaserror`; `global.json` pins the toolchain; the public-API baselines
-are live on all four contract projects; **four test projects run 315 checks**; and
-`.github/workflows/ci.yml` and five of the eight agent definitions are written.
+are live on all four contract projects; **seven test projects run 821 checks**; and
+`.github/workflows/ci.yml` and all eight agent definitions are written.
 
-**What is not true: CI has run against this.** It has been green on Windows and Linux for
-earlier commits and has seen nothing of the geometry kernel — which is the half of the
-solution most likely to behave differently on Linux. `bench/` and `scripts/` are still empty
-directories and three of the eight agent definitions are unwritten, `reviewer` among them.
-Until CI is green on GitHub against the current tree, M0 is not finished.
+**What is not true: CI has run against this.** It has been green on Windows and Linux for M0
+commits only and has seen nothing of the kernel, the engine or the UI — which is where a
+platform difference would actually show up. `bench/` and `scripts/` are **still empty
+directories**, and that is now a live problem rather than a tidy one: two measurements this
+project argues from — the 2,000-node canvas timings and the shadow frame-rate cliff — are
+recorded nowhere but a console line ([E8-T15](#e8--ui-shell-and-node-canvas),
+[E11-T16](#e11--quality-and-verification)). Until CI is green on GitHub against the current
+tree, M0 is not finished.
 
 **One trap this epic owns and everybody should know about.** A `dotnet build` that reports
 `0 Warning(s)` may have skipped the analysis entirely: MSBuild's incremental build skips
@@ -288,47 +297,80 @@ is [E5](#e5--node-authoring-and-library). Anything drawn on screen.
 
 **Acceptance criteria**
 
-- [ ] The data model is `Graph`, `NodeInstance`, `Wire`, `NodeDefinition` and
+- [x] The data model is `Graph`, `NodeInstance`, `Wire`, `NodeDefinition` and
       `PortDefinition`, with `NodeId` a stable `Guid` that is never reused (**E3-T1**).
-- [ ] `DefinitionKey` includes **package identity**, not just a name — otherwise version
+- [x] `DefinitionKey` includes **package identity**, not just a name — otherwise version
       conflicts become silent misbindings (**E3-T2**).
-- [ ] `Invoke` is an expression-tree-compiled delegate, never `MethodInfo.Invoke`
+- [x] `Invoke` is an expression-tree-compiled delegate, never `MethodInfo.Invoke`
       (**E3-T3**).
-- [ ] Type compatibility is evaluated in the documented order, and anything unmatched is
-      **refused at wire-creation time**, never at run time (**E3-T4**).
-- [ ] Two ports whose types share a `FullName` but come from different assemblies are
+- [x] Type compatibility is evaluated in the documented order, and anything unmatched is
+      **refused at wire-creation time**, never at run time (**E3-T4**). *Seven rules, and the
+      order is the contract. Half-met in one specific way named on the next line.*
+- [ ] A conversion the wire rules accepted is **applied when the graph runs** (**E3-T23**).
+      *It is not. A registered converter or a reflected `implicit operator` decides whether a
+      wire is allowed, raises the lossy warning `SPK1013`, and is then never applied — the
+      value reaches the leaf unconverted and fails with `SPK1041`. A warning the engine does
+      not honour is worse than a refusal.*
+- [x] Two ports whose types share a `FullName` but come from different assemblies are
       refused with both package identities named — turning an incomprehensible runtime
       *cannot cast Foo to Foo* into a design-time message (**E3-T5**).
-- [ ] Evaluation is a Kahn topological sort over the dirty subgraph only, producing levels,
+- [x] Evaluation is a Kahn topological sort over the dirty subgraph only, producing levels,
       parallel within a level (**E3-T6**).
-- [ ] Cycles are refused at wire creation with the closing path flashed, and detected at
+- [x] Cycles are refused at wire creation with the closing path flashed, and detected at
       load — where every node in the cycle errors and the rest of the graph still
       evaluates. **Evaluation never hangs** (**E3-T7**).
-- [ ] Caching is content-addressed by **provenance**, not by value; hashing a 2M-triangle
+- [x] Caching is content-addressed by **provenance**, not by value; hashing a 2M-triangle
       mesh costs more than recomputing it (**E3-T8**).
 - [ ] Undo, redo, A/B wire toggling and slider reverts are instant, because the old cache
       key is still resident (**E3-T8**).
-- [ ] Impure nodes declare themselves, mix a run epoch into their key, and poison
+- [x] Impure nodes declare themselves, mix a run epoch into their key, and poison
       downstream keys (**E3-T10**).
 - [ ] The cache is LRU against a memory budget, evicted by last use and estimated size
-      (**E3-T9**).
+      (**E3-T9**). *LRU by **entry count**, not bytes. A thousand points and a thousand
+      meshes weigh the same to it. Labelled as crude in the code rather than presented as the
+      design.*
 - [ ] `IEvaluationScheduler` has parallel, sequential-deterministic and host-thread
-      implementations, and evaluation never runs on the UI thread (**E3-T11**).
-- [ ] Cancellation is checked between nodes, between replication elements and inside long
-      kernel loops; cancelling leaves completed nodes cached (**E3-T12**).
+      implementations, and evaluation never runs on the UI thread (**E3-T11**). *Parallel and
+      sequential exist, and evaluation is off the UI thread. **The host-thread implementation —
+      the entire CAD embedding mechanism — does not.***
+- [x] Cancellation is checked between nodes and between replication elements; cancelling
+      leaves completed nodes cached (**E3-T12**). *Inside long kernel loops is a kernel
+      obligation and returns with the operations that have them.*
 - [ ] `.spark` is plain canonically formatted JSON — stable key order, invariant numbers —
       and save/load round-trips **byte-identically** (**E3-T17**, **E3-T18**).
 - [ ] `graph.formatVersion` is a single monotonic integer decoupled from product version;
       migrations are JSON-to-JSON, never against typed models, are never deleted, and each
       ships with a golden-file test against a real old graph (**E3-T19**).
-- [ ] Errors do not cascade: downstream of a failed node is greyed as *not evaluated*
+- [x] Errors do not cascade: downstream of a failed node is greyed as *not evaluated*
       (**E3-T16**).
-- [ ] Every `SPK####` diagnostic code carries a `HelpTopicId` (**E3-T15**).
-- [ ] Document tolerance flows through `EvaluationContext` and is **hashed into every
+- [x] Every `SPK####` diagnostic code carries a `HelpTopicId` (**E3-T15**).
+- [x] Document tolerance flows through `EvaluationContext` and is **hashed into every
       node's cache key**, so changing it invalidates exactly the affected nodes
       (**E3-T22**).
 
-**Status.** Not started.
+**Status.** **Built, and it is the load-bearing epic of M2.** The graph model, wire validation,
+cycle refusal, topological levels, the provenance cache, the diagnostic code space and the
+non-cascading error model all exist and are covered by `Spark.Engine.Tests` (273 tests). The
+epic was accepted on a **33-mutation sweep in which every mutation killed a named test**
+([NOTES.md N23](NOTES.md)).
+
+Three limits are worth reading before planning against this epic, because each is real rather
+than a rounding error:
+
+1. **Conversions are validated but not applied** (`E3-T23`). This is the one place where the
+   design-time promise and the run-time behaviour disagree, and it is reproducible in four
+   lines.
+2. **Eviction counts entries, not bytes** (`E3-T9`), which `ADR-0021` requires and which cannot
+   be honestly built until the OCCT shim can report native size.
+3. **There is no `.spark` file yet** (`E3-T17` … `E3-T20`). **A graph cannot be saved.** That
+   is the largest single gap between what M2 delivered and what a user would call a tool, and
+   it also blocks `spark run`, undo persistence and the migration machinery.
+
+One measured correction to carry forward: `E3-T3` was argued on the reflection path being
+50–100× slower. It is **1.9×** on .NET 10. The decision stands on its other reasons and
+[ADR-0012](adr/0012-rank-based-replication-specified-first.md) carries a dated correction — a
+decision defended by a number that is wrong by an order of magnitude is a decision somebody
+reopens at the worst possible moment.
 
 ---
 
@@ -357,50 +399,68 @@ instrument is deliberate, not a flourish.
       (1–3) × length relationship (equal, shorter, length-1, empty) × mode, plus promotion,
       empty-list propagation, null passthrough, ragged nesting, multi-output transpose,
       three-way cross product, and the two opt-out attributes (**E4-T1**).
-- [ ] Each row asserts the expected value **and the expected rank separately** — rank bugs
+- [x] Each row asserts the expected value **and the expected rank separately** — rank bugs
       are precisely the ones that survive value-only tests (**E4-T12**).
-- [ ] `SparkList` is a first-class engine type, not `List<object>` and not raw
+- [x] `SparkList` is a first-class engine type, not `List<object>` and not raw
       `IEnumerable`, so rank is O(1) and unambiguous (**E4-T2**).
 - [ ] `SparkList` marshalling to and from declared collection types carries a standing
-      benchmark (**E4-T3**).
-- [ ] `excess(i) = rank(actual) − declaredRank(i)`, `depth = max excess`; at `depth > 0`
+      benchmark (**E4-T3**). *`ValueMarshal` exists and every run exercises it. **The
+      benchmark does not** — `bench/` is an empty directory, so the performance-critical path
+      of the whole engine is written but unguarded.*
+- [x] `excess(i) = rank(actual) − declaredRank(i)`, `depth = max excess`; at `depth > 0`
       replicate **one level and recurse**. There is no flatten-then-reshape anywhere
       (**E4-T4**, **E4-T5**).
-- [ ] Inputs with zero excess broadcast unchanged; negative excess promotes a scalar into a
+- [x] Inputs with zero excess broadcast unchanged; negative excess promotes a scalar into a
       one-element list (**E4-T8**).
-- [ ] `Shortest`, `Longest`, `CrossProduct` and `Disabled` all behave as specified, with
+- [x] `Shortest`, `Longest`, `CrossProduct` and `Disabled` all behave as specified, with
       `CrossProduct` raising rank by *k* rather than 1 — 10 × 10 yields a 10×10 nested list,
       not a flat 100 (**E4-T6**, **E4-T7**).
-- [ ] **`Auto` resolves to the node definition's `DefaultLacing` before replication begins**
+- [x] **`Auto` resolves to the node definition's `DefaultLacing` before replication begins**
       and is never itself a replication algorithm. Two nodes both set to `Auto` may lace
       differently; `DefaultLacing` may not itself be `Auto`; a definition declaring no
       default gets `Longest` (**E4-T6**, `lacing.md` §2.9 and its decision **D4**).
-- [ ] `Disabled` is available on every node, and is the default for inherently rank-1 nodes
+- [x] `Disabled` is available on every node, and is the default for inherently rank-1 nodes
       such as `List.Count` (**E4-T6**).
-- [ ] Multi-output nodes replicate in lockstep then transpose: `(area, centroid)` over five
+- [x] Multi-output nodes replicate in lockstep then transpose: `(area, centroid)` over five
       items gives two lists of five, not one list of five tuples (**E4-T9**).
-- [ ] Per-element failure is isolated: element 37 of 500 throwing leaves the other 499
+- [x] Per-element failure is isolated: element 37 of 500 throwing leaves the other 499
       evaluated, slot 37 `null`, and the node emitting a **Warning** naming the failing
       indices — not an Error (**E4-T10**).
-- [ ] The fast path runs uncaught until the first failure and then restarts with catching
+- [x] The fast path runs uncaught until the first failure and then restarts with catching
       enabled, so the happy path pays nothing (**E4-T10**).
-- [ ] Every row of the case table passes (**E4-T12**). *Not a fixed count: case numbers are
+- [x] Every row of the case table passes (**E4-T12**). *Not a fixed count: case numbers are
       stable and never reused, and the table is expected to grow as the engine finds
       situations the document did not anticipate.*
 
-**Status.** Not started, with one exception that matters: **the specification is written.**
-`docs/help/concepts/lacing.md` landed on 2026-08-27, before any replication code exists, and
-the case table went well past the 40 rows budgeted. The engine will now be written to match
-a document rather than the document written to describe an engine — which was the entire
-point of doing it in this order.
+**Status.** **Built, against the specification, and the specification won.**
+`docs/help/concepts/lacing.md` landed on 2026-08-27 before any replication code existed, and
+the engine was written to match it rather than the document written to describe an engine —
+which was the entire point of doing it in that order. The case table is now consumed directly
+as the test corpus by two `[MemberData]` theories, with a coverage test that fails when the
+corpus and the document drift apart.
 
-Writing it has already paid for itself. It settled ten questions the plan left open
-(decisions D1–D10 in its §2.16) and **overturned one answer the plan had wrong**: `Auto` was
-specified as "`Longest`, but inputs with excess 0 never iterate", which under the rank model
-is not a distinction at all — zero-excess inputs never iterate under any mode — so `Auto`
-would have shipped as a menu entry that provably never differed from `Longest`. It is now a
-sentinel resolving to the node definition's `DefaultLacing`. That defect was found by
-writing prose, before a line of engine code existed. No implementation exists.
+**The strategy paid twice, and the second time is the one worth recording.** Writing the
+document first settled ten questions the plan left open (decisions D1–D10 in its §2.16) and
+**overturned one answer the plan had wrong**: `Auto` was specified as "`Longest`, but inputs
+with excess 0 never iterate", which under the rank model is not a distinction at all —
+zero-excess inputs never iterate under any mode — so `Auto` would have shipped as a menu entry
+that provably never differed from `Longest`. It is now a sentinel resolving to the node
+definition's `DefaultLacing`.
+
+Then the implementation corrected the document. **Cases 29 and 30 expected `[11,22,32]` where
+repeating the short input's last element gives 23** — a digit transposition, sitting in the
+corpus that every other test in this epic is written against. It was fixed on the document,
+not accommodated in the engine. A specification that is never contradicted by its
+implementation is a specification nobody checked.
+
+Verified by execution rather than asserted: two ten-value ranges into `Point.ByCoordinates`
+under Cross Product produce a `SparkList` of **rank 2, ten items, each of rank 1 and ten
+items** — not a flat hundred — and the same graph under Longest produces rank 1, ten items.
+Dividing 10 by `[0,1,2,3]` yields four items with `null` at `[0]` and a `SPK1042` **warning**,
+so everything downstream still evaluates.
+
+The one criterion outstanding is `E4-T3`'s standing benchmark, and it is outstanding for the
+same reason as everything else in `bench/`: the directory is empty.
 
 ---
 
@@ -425,7 +485,7 @@ everybody else. This is enforced by `Spark.Architecture.Tests`, not by disciplin
 
 - [ ] Importing a well-known third-party NuGet package with **no Spark attributes at all**
       produces a sane node count with no crashes — acceptance-tested in CI (**E5-T11**).
-- [ ] `[SparkNode]`, `[NodePort]`, `[NodeIgnore]` and the replication attributes refine what
+- [x] `[SparkNode]`, `[NodePort]`, `[NodeIgnore]` and the replication attributes refine what
       reflection infers, for those who want them (**E5-T1**).
 - [ ] Member-kind rules are implemented as specified: setters excluded, `out` parameters
       become extra outputs, `Task<T>` is awaited, `void` is excluded unless marked a side
@@ -435,10 +495,10 @@ everybody else. This is enforced by `Spark.Architecture.Tests`, not by disciplin
 - [ ] **One node per overload**, grouped under one library entry with a flyout,
       disambiguated by differing parameter names (`ByCenterRadius` versus
       `ByCenterRadiusNormal`), never by `_2` (**E5-T4**).
-- [ ] A `By*`/`From*`/`Create*` static on type `T` returning `T` whose parameter type
+- [x] A `By*`/`From*`/`Create*` static on type `T` returning `T` whose parameter type
       sequence matches a constructor's suppresses that constructor. Anything a factory does
       not cover still emits its constructor, so nothing becomes unreachable (**E5-T5**).
-- [ ] A **two-way test**: every public member is reachable as exactly one node or is listed
+- [x] A **two-way test**: every public member is reachable as exactly one node or is listed
       in an exclusions file with a reason, and every node resolves to a live member
       (**E5-T6**).
 - [ ] Descriptions come from the assembly's sidecar XML file, so any library shipping its
@@ -449,12 +509,49 @@ everybody else. This is enforced by `Spark.Architecture.Tests`, not by disciplin
 - [ ] `Spark.Nodes.Core` covers geometry, and adds curated List, Math, String and Logic
       categories; a curated `Math` category serves arithmetic in place of operator nodes
       (**E5-T12**, **E5-T13**, **E5-T14**).
-- [ ] `Appearance` and `Displayable` live in `Spark.Api`, not the kernel, and a
+- [x] `Appearance` and `Displayable` live in `Spark.Api`, not the kernel, and a
       `Display.ByGeometryColor` node wraps. Unwrapped geometry renders with defaults, so
       `Spark.Geometry` stays usable entirely on its own, with no notion of colour and no
       reference to anything above it (**E5-T15**).
 
-**Status.** Not started.
+**Status.** **Built, and it is the epic that makes the extensibility story true rather than
+promised.** `Spark.Nodes.Core` contains **27 nodes** across `Point`, `Vector`, `Plane`,
+`BoundingBox`, `Number`, `Math`, `Colour` and `Display`, and every one of them was discovered
+by the same zero-config importer a stranger's NuGet package goes through. It could not have
+been otherwise: `Spark.Nodes.Core` may not reference `Spark.Engine`
+([NOTES.md N5](NOTES.md)), so it has no way to register anything by hand, which is exactly
+what stops the importer from quietly special-casing first-party code and then failing for
+everyone else.
+
+**Descriptions come from the author's `///` comments and from nowhere else.** There is no
+hand-maintained dictionary anywhere in this repository, which was the whole of
+[ADR-0015](adr/0015-xml-docs-as-single-source-of-truth.md) and the direct answer to
+`DocGenerator`'s 1,478 string-keyed entries drifting until 101 of 108 constructors rendered
+blank. All 27 nodes have a non-empty description at run time, verified by importing the
+assembly rather than by reading the source.
+
+**Three things this pass found by executing the importer rather than reading it**, and the
+first is serious:
+
+1. **`Spark.Geometry` cannot be imported at all** (`E5-T17`). `NodeImporter.Import` throws
+   `NotSupportedException: Cannot create boxed ByRef-like values` on
+   `BoundingBox.FromPoints(ReadOnlySpan<Point3d>)`, because a `ref struct` parameter has no
+   exclusion path and `Activator.CreateInstance` is asked to seed a port literal from it. The
+   other eleven value types import to 176 nodes; `BoundingBox` takes the assembly down with
+   them. This blocks `E5-T14` entirely, and it breaks the importer's own contract — *every
+   public member is either a node or an exclusion carrying a reason* — with a member that is
+   neither.
+2. **`<paramref>` is dropped rather than substituted** (`E5-T18`), so `Number.Range`'s tooltip
+   currently reads *"A list of numbers from up to , stepping by . is included when the step
+   lands on it."* The author wrote a correct sentence and the reader is shown a broken one.
+3. **`<inheritdoc/>` members import with no description** (`E5-T19`) — a visible gap rather
+   than a wrong answer, which is the right failure mode, but a cheap one to close.
+
+**The exclusions are the design, not a shortfall.** Generics, extension methods, operators,
+nested types, indexers, events, `ref` and `in` parameters, write-only properties and
+`void`-with-no-`out` are all excluded **with a stated reason**, never silently — which is why
+the coverage test can run in both directions from a single import. A silent skip passes every
+test written after the fact.
 
 ---
 
@@ -595,21 +692,28 @@ another.
 
 **Acceptance criteria**
 
-- [ ] MVVM through CommunityToolkit.Mvvm source generators, not ReactiveUI — fewer concepts
+- [x] MVVM through CommunityToolkit.Mvvm source generators, not ReactiveUI — fewer concepts
       for contributors and no runtime reflection on property change, which matters at 2000
       nodes (**E8-T11**).
-- [ ] Compiled bindings are on by default, so binding errors are compile errors
+- [x] Compiled bindings are on by default, so binding errors are compile errors
       (**E8-T11**).
-- [ ] The canvas is one control over a retained `SceneIndex`, with a hybrid overlay for the
-      node under interaction (**E8-T3**, **E8-T4**, **E8-T5**).
+- [x] The canvas is one control over a retained `SceneIndex`, with a hybrid overlay for the
+      node under interaction (**E8-T3**, **E8-T4**, **E8-T5**). *A 2,000-item grid —
+      deliberately the worst case for a uniform grid index — considers fewer than 200 items
+      for a one-screen query, asserted with the count in the failure message.*
 - [ ] Pan, zoom, box select, drag, wire, unwire, delete, group, note and align all work
-      (**E8-T6**).
-- [ ] LOD below 40% zoom (**E8-T7**).
+      (**E8-T6**). *All but **group, note and align**, which arrive with `E8-T17`.*
+- [x] LOD below 40% zoom (**E8-T7**).
 - [ ] A 2000-node synthetic graph pans and zooms at 60 fps, benchmarked nightly from M2
-      (**E8-T15**).
+      (**E8-T15**). *Measured at **0.87 ms median / 2.26 ms p95**, comfortably past the
+      target — and **not benchmarked nightly**, so this stays unticked. The number lives in a
+      console line, not in the build. A frame-rate cliff at the 82% shadow threshold
+      (`E8-T18`) is exactly what a nightly guard would have caught.*
 - [ ] Docking via `Dock.Avalonia`, with a serialisable, testable layout model, *reset
       layout* and named workspace presets. RCS's from-scratch dock manager is **not**
-      ported; only the idea is (**E8-T2**).
+      ported; only the idea is (**E8-T2**). *The **layout model** is done — four presets, a
+      reset, a JSON round trip that falls back safely — and it is the part that carries over.
+      The **docking** is not: the shell is a `Grid` with `GridSplitter`s.*
 - [ ] Library search ranks exact → prefix → **camel-hump** → substring → tag → description.
       Camel-hump is the highest-value search feature across thousands of nodes and is cheap
       (**E8-T8**).
@@ -620,9 +724,31 @@ another.
       [R11](PRD.md#12-risks) means the process can die without warning (**E8-T13**).
 - [ ] Banners for a missing package and for a graph containing script nodes (**E8-T16**).
 
-**Status.** Not started. M1.5 spike (b) — 2000 synthetic nodes panning and zooming at
-60 fps — is a go/no-go gate on the whole rendering strategy
-([E11-T20](#e11--quality-and-verification)).
+**Status.** **Built, and [ADR-0013](adr/0013-immediate-mode-node-canvas.md) is confirmed by
+measurement rather than by argument.** The canvas renders **2,000 nodes in 0.87 ms median /
+2.26 ms p95** — later 2.06 ms median with more wires — and the cost tracks what is on screen
+rather than how large the graph is, which is the whole claim the ADR rests on. The shell,
+the spatial index, the six level-of-detail tiers, pan, zoom, marquee select, node drag, wire,
+unwire, delete, the properties panel and the workspace presets all exist, covered by 165
+headless tests.
+
+**One measured defect, scoped rather than fixed** (`E8-T18`): between **81% and 83% zoom, at
+identical node counts, frame rate falls 57 → 40 fps**, exactly where the drop shadow crosses
+its threshold and Avalonia begins running a real Gaussian per node. The design language §3
+already specifies the fix and it is small — nodes have one width and about four heights, so a
+sprite cache keyed on blur radius holds **eight sprites**.
+
+**And the reason that defect reached a document rather than a test is this epic's real
+outstanding item.** `E8-T15`'s benchmark **harness** exists and prints median, p95 and fps;
+the **nightly guard** does not, `bench/` is an empty directory, and both numbers above live in
+a console line and a commit message rather than anywhere the build can see them. Until that
+closes, they are observations rather than properties of the code.
+
+Not built: **save, load, undo and redo** — a graph cannot currently be saved, which is the
+largest gap between this and a tool; the camel-hump **search ranking**, without which the
+library panel does not scale past a few hundred nodes; real **docking**, where the
+serialisable layout model is done and is the part that carries over; groups, notes, settings,
+autosave and the help panel.
 
 ---
 
@@ -645,14 +771,20 @@ unmaintained since around 2023 — a poor bet on a multi-year horizon.
 
 **Acceptance criteria**
 
-- [ ] Everything goes through `IViewportRenderer`; no backend type escapes it (**E9-T1**).
-- [ ] An OpenGL 3.3 core backend on Avalonia's `OpenGlControlBase` (**E9-T4**).
+- [x] Everything goes through `IViewportRenderer`; no backend type escapes it (**E9-T1**).
+- [x] An OpenGL backend on Avalonia's `OpenGlControlBase` (**E9-T4**). *Not 3.3 core, and
+      that correction is the point: on Windows, Avalonia defaults to ANGLE, so the context is
+      **OpenGL ES 3.0 over Direct3D 11**. Shaders are dialect-adaptive across `Es100`,
+      `Es300` and `Core330`, with a test asserting the `precision` statement precedes any
+      declaration in every dialect ([NOTES.md N19](NOTES.md)).*
 - [ ] A software fallback that earns its place three ways: GL-init failures on VMs and RDP,
       headless thumbnails, and **deterministic `spark render` for CI visual regression** —
       GPU output is not testable, software output is (**E9-T5**, **E9-T11**, **E9-T12**).
-- [ ] Geometry reaches the viewport as immutable `RenderPackage` records, one GPU buffer set
+- [x] Geometry reaches the viewport as immutable `RenderPackage` records, one GPU buffer set
       per `(NodeId, PortIndex)`, so re-evaluating one node re-uploads one buffer
-      (**E9-T3**, **E9-T6**).
+      (**E9-T3**, **E9-T6**). *Asserted directly rather than assumed: an unchanged scene
+      uploads nothing, an appearance-only change uploads nothing, and replacing one package
+      re-uploads only that one.*
 - [ ] Tessellation is parallel and streams during a run (**E9-T7**).
 - [ ] Picking uses the kernel's BVH ray caster (**E9-T8**).
 - [ ] **Selection sync falls out of node-keyed identity with no extra bookkeeping** — the
@@ -660,9 +792,39 @@ unmaintained since around 2023 — a poor bet on a multi-year horizon.
       and the watch panel alike, and survives recomputation in a way an object ID would not
       (**E9-T9**).
 
-**Status.** Not started. M1.5 spike (a) — `OpenGlControlBase` rendering a shaded lit
-triangle on Windows **and** Linux — is a go/no-go gate
-([E11-T19](#e11--quality-and-verification)).
+**Status.** **Built for points, vectors, boxes and planes, and
+[ADR-0014](adr/0014-opengl-viewport-with-software-fallback.md) is confirmed the honest way:
+the viewport initialises and draws, verified by **reading the framebuffer back** rather than
+by trusting that the shaders compiled.** Buffer management is per `(NodeId, PortIndex)` and is
+asserted directly — re-rendering an unchanged scene uploads nothing, changing only an
+appearance uploads nothing, replacing one package re-uploads only that one, and removing a
+node releases its buffers.
+
+**The finding worth carrying out of this epic is a platform one, and it belongs in every
+future viewport decision.** Avalonia on Windows defaults to **ANGLE**, so the context is
+**OpenGL ES 3.0 over Direct3D 11 — never desktop GL 3.3**. The first run failed to compile its
+shaders because they assumed desktop GLSL, which requires no `precision` statement. Shaders
+are now dialect-adaptive across `Es100`, `Es300` and `Core330`, with a test asserting the
+`precision` statement precedes any declaration in every dialect — **a defect that passes on a
+Linux desktop-GL machine and fails on the platform we ship to**. ADR-0014's decision is
+unchanged; what changes is what *an OpenGL viewport* means in practice.
+[NOTES.md N19](NOTES.md).
+
+Two limits are named rather than left to be found:
+
+- **A point renders as a solid octahedron, not a screen-space disc** (`E9-T13`). It reads as a
+  dot from any direction, but it is world-space, so points shrink as you zoom out. The design
+  language §8.3 asks for a 5 px disc; the mesh path carries no per-vertex orientation, so a
+  billboard needs a geometry stage or a dedicated point shader.
+- **One `Appearance` per `RenderPackage`, so per-element selection is inexpressible**
+  (`E9-T14`). A diagnostic can already name element `[3][1]`; the viewport cannot highlight
+  it. That is the gap between the `(NodeId, PortIndex, ElementPath)` identity the design
+  promises and the two-thirds of it the renderer keys on.
+
+Not built: the **software renderer**, and with it headless thumbnails and deterministic CI
+visual regression; picking; selection sync; parallel tessellation. **There are no curves,
+surfaces, meshes or solids to render**, so the tessellation half of this epic has nothing to
+act on yet.
 
 ---
 
@@ -727,7 +889,10 @@ user needs. XML doc = what this member does.*
       [E11-T2](#e11--quality-and-verification)).
 - [ ] Worked example graphs live in `docs/examples/` and are openable from the help panel
       (**E10-T7**).
-- [ ] Every `SPK####` code has a help topic (**E10-T11**).
+- [x] Every `SPK####` code has a help topic (**E10-T11**). *All twelve resolve: `SPK1010`–
+      `SPK1014` to `concepts.evaluation`, `SPK1040`–`SPK1046` to `concepts.lacing`, and both
+      topics exist. **True by inspection, which is the standard `DocGenerator` was held to** —
+      `E11-T26` is the check that would make it true by construction, and it does not exist.*
 - [ ] Per-PR changelog fragments, so a single changelog file never becomes a merge-conflict
       magnet (**E10-T12**).
 - [ ] An in-product Markdown help renderer lives in `Spark.Api`, free of UI dependencies so
@@ -735,30 +900,50 @@ user needs. XML doc = what this member does.*
 - [ ] `docs/NOTES.md` uses stable numbers that are never renumbered and never reused, with
       gaps left on deletion (**E10-T1**).
 
-**Status.** Partly done. As of 2026-08-27: the eight project documents exist and have been
+**Status.** Partly done. As of **2026-08-28**: the eight project documents exist and have been
 reconciled against the repository, twenty-one ADRs exist with an index — one of them, ADR-0009,
-superseded by ADR-0019 — and **three help topics exist**: `concepts/lacing.md`,
-`concepts/geometry-basics.md` (the first topic about the kernel) and
-`concepts/design-language.md`, the last of which is owned by `spark-ui`, landed alongside
-this reconciliation, and is recorded here rather than reviewed here.
+superseded by ADR-0019 — and **five help topics exist**: `concepts/lacing.md`,
+`concepts/geometry-basics.md`, `concepts/design-language.md`, and the two added in this pass,
+`concepts/evaluation.md` and `concepts/nodes-and-wires.md`. The last two close the dangling
+`related` references `lacing.md` has carried since it was written, and give `SPK1010`–`SPK1014`
+somewhere to resolve to.
 
-**XML doc comments have started, and started where they are enforced.** All 387 public
-members of `Spark.Geometry` carry them — CS1591-as-error makes that structural rather than
-diligent — together with an internal `NamespaceDoc` that states the namespace-wide
-conventions once instead of thirteen times. They are not minimal: they state units, edge
-behaviour at zero, `NaN` and `default`, and in several places why a member behaves as it
-does. `Spark.Api`, `Spark.Geometry.Io` and `Spark.Nodes.Core` are still empty projects.
+**XML doc comments are complete on three of the four contract projects.** All 387 public
+members of `Spark.Geometry`, all 104 of `Spark.Api` and all 36 of `Spark.Nodes.Core` carry
+them — CS1591-as-error makes that structural rather than diligent — together with an internal
+`NamespaceDoc` per assembly stating the namespace-wide conventions once instead of on every
+type. They are not minimal: they state units, edge behaviour at zero, `NaN` and `default`, and
+in several places why a member behaves as it does. `Spark.Geometry.Io` is still an empty
+project.
 
-The rest of the help skeleton, the generated reference and the changelog fragments do not
-exist, and `docs/examples/` is an empty directory.
+**`Spark.Nodes.Core`'s comments are now load-bearing in a second way**, which is the
+[ADR-0015](adr/0015-xml-docs-as-single-source-of-truth.md) payoff arriving: they are the node
+tooltips. All 27 nodes have a non-empty description at run time — and one of them renders
+badly, because `<paramref>` is dropped rather than substituted (`E5-T18`). That is a defect in
+the reader, not a missing comment, and it was found by importing the assembly rather than by
+reading it.
 
-**A caution the geometry topic had to observe, and every future topic must.** Its worked
-examples were run against the compiled assembly, not written from the signatures. Two of them
-came back wrong — `Angle.FullTurn / 3.0` is `119.99999999999999°`, not `120°`, and
-`Tolerance.Default.Scaled(10.0).Linear` is `9.999999999999999e-6`, not `1e-5`. Both would
-have read as perfectly plausible and both would have been false. Until
-[E11-T2](#e11--quality-and-verification) compiles and runs the fences automatically, running
-them by hand is the only thing standing between a help topic and a confident lie.
+The generated reference and the changelog fragments do not exist, and **`docs/examples/` is
+still an empty directory** — now the largest gap in the strategy, because for a node-graph
+tool an executed graph is the strongest anti-rot mechanism there is.
+
+**A caution the geometry topic had to observe, and every future topic must — it has now paid
+off twice.** Its worked examples were run against the compiled assembly, not written from the
+signatures, and two came back wrong: `Angle.FullTurn / 3.0` is `119.99999999999999°`, not
+`120°`, and `Tolerance.Default.Scaled(10.0).Linear` is `9.999999999999999e-6`, not `1e-5`.
+Both would have read as perfectly plausible and both would have been false.
+
+**The two topics added in this pass were held to the same standard, and executing them found
+four defects rather than confirming four claims:** the importer crash on `Spark.Geometry`
+(`E5-T17`), the mangled `Number.Range` tooltip (`E5-T18`), the converter that is validated but
+never applied (`E3-T23`), and `SPK1046` resolving to the lacing topic when it is the code an
+ordinary node failure produces (`E10-T15`). It also caught a claim about to be written
+wrongly: `Point3d` into an `object` port reports rule **Direct**, not `ObjectTarget`, because
+every value is assignable to `object` and the earlier rule wins.
+
+Until [E11-T24](#e11--quality-and-verification) compiles and runs the fences automatically,
+running them by hand is the only thing standing between a help topic and a confident lie — and
+that check is now **overdue rather than premature**, because the API it needs exists.
 
 **One defect closed, and it is worth recording how.** Two ADR citations in build files
 pointed at real records about unrelated subjects — `Directory.Packages.props` cited the
@@ -837,28 +1022,48 @@ nothing.
       here:** judge a property by its generator, not its assertion — one that cannot reach the
       boundary it tests cannot fail, and reports identically to one that can.*
 - [ ] Golden-file geometry tests print readable diff tables on failure (**E11-T11**).
-- [ ] The lacing case table asserts value and rank separately (**E11-T12**).
-- [ ] The node↔member two-way diff passes in both directions (**E11-T13**).
+- [x] The lacing case table asserts value and rank separately (**E11-T12**). *Two
+      `[MemberData]` theories over `LacingCaseTable`, plus a coverage test that fails when the
+      corpus and the document drift apart. **The corpus was wrong and the implementation found
+      it:** cases 29 and 30 expected `[11,22,32]` where repeating the short input's last
+      element gives 23.*
+- [x] The node↔member two-way diff passes in both directions (**E11-T13**). *Scoped to
+      `Spark.Nodes.Core` today; `Spark.Geometry` cannot be imported at all until
+      [E5-T17](TASKS.md) is fixed.*
 - [ ] The `docs-freshness` job fails a diff that changes a public-API baseline or touches
       `src/Spark.Nodes.*` without touching `docs/`, overridable only by an explicit
       `docs: none-needed` commit trailer that is **visible in review**. A silent exemption
       is worthless; a loud one is fine (**E11-T14**). *Written in `ci.yml`; being
       `pull_request`-only it cannot have run, and has not.*
-- [ ] A headless UI smoke test runs in CI (**E11-T15**).
+- [x] A headless UI smoke test runs (**E11-T15**). *165 tests, driving
+      `HeadlessUnitTestSession` directly under a plain `[Fact]` because `[AvaloniaFact]` fails
+      at discovery under xunit.v3 4.0.0 ([NOTES.md N21](NOTES.md)). It runs on `dotnet test`;
+      it has not run in CI, because CI has not run.*
 - [ ] Benchmarks run nightly with results committed as a git time series (**E11-T16**).
 - [ ] `tests/corpus/` grows with every bug found (**E11-T17**).
 - [ ] The three M1.5 spikes have **pass/fail criteria written down before the spike starts**
-      and are deleted afterwards (**E11-T19**, **E11-T20**, **E11-T21**). *None of the three
-      criteria is written. This is the next thing this epic owes, and it must land before M1
-      ends, not before M1.5 begins.*
+      and are deleted afterwards (**E11-T19**, **E11-T20**, **E11-T21**). *Overtaken by events
+      for two of the three, and the honest reading is that the discipline was not applied
+      rather than that it succeeded. The GL viewport and the immediate-mode canvas were both
+      built for real and both work — the viewport draws, verified by framebuffer readback; the
+      canvas holds 2,000 nodes at 0.87 ms median / 2.26 ms p95 — but **no criterion was
+      written down beforehand**, so neither is a passed gate. It is a good outcome reached
+      without the mechanism that would have made a bad outcome visible. The third,
+      **AvaloniaEdit plus a Roslyn completion popup**, is untouched and still gates M4; write
+      its criterion before `E6` starts.*
 
-**Status.** Partly done, and materially further along than at the last pass. **Four test
-projects exist and `dotnet test Spark.slnx` runs 315 tests**, all passing locally on
-2026-08-27: `Spark.Geometry.Tests` (276 example-based), `Spark.Geometry.Properties` (28
-CsCheck properties), `Spark.Architecture.Tests` (6, enforcing the reference graph) and
-`Spark.Docs.Verify` (5, checking the documents against the repository). The two older ones
-were stood up **before the code they now guard**, which was the whole argument for putting
-them in M0.
+**Status.** Partly done, and materially further along than at the last pass. **Seven test
+projects exist and `dotnet test Spark.slnx` runs 821 tests**, all passing locally at commit
+`35107f0` on 2026-08-28: `Spark.Geometry.Tests` (276 example-based),
+`Spark.Engine.Tests` (273), `Spark.UI.Tests` (165), `Spark.Viewport.Tests` (66),
+`Spark.Geometry.Properties` (28 CsCheck properties), `Spark.Architecture.Tests` (8, enforcing
+the reference graph and the view layer) and `Spark.Docs.Verify` (5, checking the documents
+against the repository). The two oldest were stood up **before the code they now guard**,
+which was the whole argument for putting them in M0.
+
+**One project is missing and it is the one holding the concurrency.** `Spark.Host` has no test
+project; `SparkSession`'s edit gate, in-flight cancellation and run semaphore are exercised
+only transitively through `Spark.UI.Tests` ([E11-T27](#e11--quality-and-verification)).
 
 The harness has already earned its keep rather than merely existing: extending its
 ADR-citation check to scan build files turned up two citations pointing at records nobody had
@@ -947,9 +1152,24 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
       **E12-T8**, which was written before the constraint existed. Nothing here is legal
       advice; six questions are with counsel — **Q13**.*
 
-**Status.** Not started.
+**Status.** Barely started, and the one piece that exists is worth naming precisely.
+`Spark.Host` holds `SparkSession`: it owns the library, the graph and the evaluation context,
+imports the core nodes on construction, runs evaluation **off the calling thread**, and carries
+an **edit gate** with **in-flight cancellation** — an edit does not wait for a long run to
+finish, it stops it, because a graph mutated mid-traversal produces a crash inside the
+topological sort that looks nothing like the edit that caused it. A superseded run returns
+`null` rather than throwing.
 
----
+Two things about that are uncomfortable and are recorded rather than smoothed over:
+
+- **No test project references `Spark.Host`** (`E11-T27`). The three pieces of genuinely
+  concurrent code in the product are covered only by whatever `Spark.UI.Tests` happens to
+  exercise through the view model.
+- **The host-thread `IEvaluationScheduler` does not exist** (`E3-T11`), and it is *the entire
+  embedding mechanism*. Everything else in this epic depends on it.
+
+`Spark.Cli` builds `spark.exe` and its `Program.cs` does nothing (`E12-T19`). Nothing of the
+installer, the release pipeline, the licence obligations or the embedding proof exists.
 
 ## E13 — OCCT provider
 

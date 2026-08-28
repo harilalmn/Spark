@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-27
+**Last updated:** 2026-08-28
 
 ---
 
@@ -614,3 +614,143 @@ The general moral — *gates are necessary and not sufficient* — was already b
 this note adds is that the project now has its own evidence for it, at a cost of one rejected
 slice, and that the cheapest available check on a test suite is to ask of each test **how it
 would fail**.
+
+---
+
+## N19 — Avalonia on Windows is ANGLE, so the viewport gets OpenGL **ES**, never desktop GL 3.3
+
+**Write shaders for GLSL ES first. A desktop-GL-only shader compiles on a Linux development
+machine and fails on the platform Spark ships to.**
+
+Avalonia's default rendering mode on Windows is **ANGLE**, which presents an OpenGL **ES**
+context implemented over Direct3D 11. It does not present desktop OpenGL. So the context the
+viewport actually gets on the platform of record is **OpenGL ES 3.0 / GLSL ES 3.00**, and
+`#version 330 core` is the dialect it will never see there.
+
+This was not deduced, it was hit. The first run of the GL viewport on Windows **failed to
+compile its shaders**, because they were written against desktop GLSL and GLSL ES requires a
+`precision` statement before any declaration that uses a floating-point type. The failure is
+nastier than an ordinary one for two reasons: it is invisible on a Linux desktop-GL machine,
+and a shader that fails to compile produces a blank viewport rather than an error anyone
+associates with a shader.
+
+The shape that resolves it, and the shape to keep:
+
+- `GlDialect` has three members — `Es100`, `Es300`, `Core330` — and the shader bodies are
+  written **once**, with only the preamble varying. `SPARK_IN`, `SPARK_VARY_OUT`,
+  `SPARK_VARY_IN` and `SPARK_FRAG` are `#define`d per dialect so that `attribute`/`varying`/
+  `gl_FragColor` and `in`/`out`/an explicit output variable are the same source.
+- **The `precision` statement is emitted immediately after `#version`, inside the per-dialect
+  preamble** — not appended after a shared block, because appending it puts it after a
+  declaration and that is the bug.
+- Dialect detection is in `Spark.UI`, not `Spark.Viewport`, because the viewport may not
+  reference Avalonia (`N6`). The viewport only reads `IGlApi.Dialect`.
+- The floor when nothing better is reported is `Es100`, which a GL 2.1 context also accepts.
+
+**The guard is a test, not a convention.**
+`EveryDialectCompilesToSourceWithItsVersionFirstAndPrecisionBeforeAnyDeclaration` iterates every
+member of `GlDialect`, asserts each shader source begins with `#version `, and asserts that the
+`precision` statement precedes any declaration. It is a test that fails on a defect **which
+passes every gate on a Linux desktop-GL machine**, which is the only reason it is worth
+having.
+
+None of this changes ADR-0014's decision — GL with a software fallback stands, and the GPU path
+initialises and draws, verified by reading the framebuffer back rather than by trusting that it
+compiled. What it changes is what "an OpenGL viewport" means in practice on Windows: ES 3.0
+over D3D11.
+
+---
+
+## N20 — `Dock.Avalonia` without `Dock.Avalonia.Themes.Fluent` renders **nothing at all**
+
+`Dock.Avalonia` ships its control **templates** in a separate companion package. Reference the
+first without the second and a `DockControl` has no template, so it draws nothing — no error, no
+exception, no warning, an empty rectangle where the docking layout should be.
+
+That failure mode is the whole reason the version is pinned in `Directory.Packages.props`
+before anything references it: the next person to add docking should find the decision already
+made rather than spend an afternoon on a blank panel.
+
+**The shell does not use `DockControl` yet.** It is a `Grid` with `GridSplitter`s, driven by a
+serialisable `WorkspaceLayout` that carries four named presets and survives a round trip
+through JSON. That layout model is the part that carries over when docking lands, which is why
+the interim shape is not throwaway.
+
+---
+
+## N21 — `[AvaloniaFact]` fails at **discovery** under xunit.v3 4.0.0, so headless tests use `[Fact]`
+
+`Avalonia.Headless.XUnit` 12.1.1's `[AvaloniaFact]` attribute is compiled against xunit.v3
+**3.2.2**. It calls `TestIntrospectionHelper.GetTestCaseDetails` with a signature that no longer
+exists in **4.0.0**, so every test carrying the attribute throws `MissingMethodException`
+**during discovery** — before any test body runs.
+
+Discovery-time failure is worth calling out separately from a run-time one. A test that fails
+while running is reported as a failing test; a test that cannot be discovered is reported as
+part of a broken assembly, and in the worst arrangement is reported as *no tests found*, which
+reads as "nothing to do" rather than "something is wrong". Compare `N12`.
+
+The resolution takes no xunit coupling at all: headless UI tests drive
+`HeadlessUnitTestSession` **directly**, under a plain `[Fact]`. The package stays referenced and
+pinned for that session type alone. There are consequently **zero** `[AvaloniaFact]` attributes
+in the repository, and the two occurrences a grep finds are inside a doc comment explaining
+this.
+
+Do not "fix" the tests by adding the attribute back when a later Avalonia release makes it
+work. The direct-session shape is better independently of the bug: it makes the Avalonia
+lifetime explicit in the test rather than hidden in an attribute.
+
+---
+
+## N22 — "Zero tests ran" is build contention, not a broken suite
+
+Two separate agents have reported `dotnet test Spark.slnx` returning **"Zero tests ran"**, and
+it looks alarming, because a suite that reports nothing is indistinguishable from a suite that
+has been silently disabled — which is precisely the failure `N12` and `N21` describe for real.
+
+**It is not that.** The suite was re-run repeatedly at the same commit and ran correctly every
+time, and CI has been green throughout. The cause is **contention**: a second build running
+concurrently in the same tree holds a lock on an output file, one or more test assemblies fail
+to copy or load, and the run reports no tests instead of reporting the copy failure.
+
+What to do about it, in order:
+
+1. **Check nothing else is building.** Another agent, a background `dotnet build`, an IDE
+   restoring, a file watcher. This is the cause nearly every time.
+2. **Re-run it.** If it passes, it was contention. A genuinely disabled suite does not
+   intermittently pass.
+3. **Only then** look for a real cause — a test project with no tests in it (`N12`), or a
+   discovery-time exception (`N21`). Both of those are deterministic, and neither goes away on
+   a re-run.
+
+Recorded because it will be seen again, and because the correct response to it is "run it
+again" rather than "start deleting things".
+
+---
+
+## N23 — A new subsystem is accepted on a mutation sweep, not on a green suite
+
+**The standard now in force: for each new subsystem, deliberately break the implementation in
+a set of small, individually plausible ways, and name the test that goes red for every one of
+them.** A mutation that no test notices is a hole in the suite, and it is found while the
+subsystem is being written rather than by the defect that eventually walks through it.
+
+Two sweeps have been run. The graph engine was accepted on **33 mutations, all 33 killed by a
+named test**; the walking skeleton on **30 mutations, all 30 killed by a named test**.
+
+This exists because of `N18`, and it is the generalisation of that note's first practice. `N18`
+requires that a *fix* be regression-proven by reverting it and naming the test that goes red.
+A mutation sweep applies the same test to code that has no known defect: if you cannot break it
+and get a red test, then the green suite was telling you nothing about that behaviour.
+
+Three rules that make a sweep worth the time rather than a ritual:
+
+1. **Mutate behaviour, not syntax.** Flip a comparison, drop a clamp, return the wrong one of
+   two branches, skip a guard, reverse an ordering. Renaming a local is not a mutation.
+2. **Name the specific test that dies**, having watched it die. "The suite went red" is not a
+   result; a suite of 821 tests going red tells you nothing about which behaviour was covered.
+3. **A survivor is a missing test, and it is written before the sweep is finished.** The
+   deliverable of a sweep is the tests it caused, not the number.
+
+The count is not the point and should not be treated as a target. Thirty mutations that each
+probe a different decision are worth more than a hundred that all probe the same loop.

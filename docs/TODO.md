@@ -5,102 +5,96 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 
 **Last updated:** 2026-08-28
 
-M0 has essentially landed and **M1 has started**. The solution, twelve project stubs, the
-reference graph, the build properties, these documents, twenty-one ADRs, the lacing
-specification, the CI workflow, the public-API baselines, and four test projects that pass all
-exist. So does the first slice of the geometry kernel: `src/Spark.Geometry` holds thirteen
-value types, declares 387 public members, and is covered by 304 of the 315 tests in the
-solution.
+**M2 is complete.** There is an application: launch it and you get a shell with a library, a
+node canvas, a 3D viewport and a properties panel, a demo graph that laces two ranges into a
+hundred points and draws them, and a node deliberately given a divisor of zero so you can watch
+an error stay where it belongs. That was the milestone at which anything became usable, and it
+has arrived **before** M1 finished — the walking skeleton did not need curves, and waiting for
+them would have deferred the five architectural questions M2 answers.
 
 Three distinctions do the work in what follows, and all three are easy to blur:
 
-- **The three gates genuinely pass, locally, on Windows, on 2026-08-27.**
-  `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen projects;
-  `dotnet test Spark.slnx` runs **315 tests** across four projects; `dotnet format Spark.slnx
+- **The three gates genuinely pass, at commit `35107f0`, locally, on Windows, on 2026-08-28.**
+  `dotnet build Spark.slnx --no-incremental -warnaserror` is clean with zero warnings;
+  `dotnet test Spark.slnx` runs **821 tests across seven projects**; `dotnet format Spark.slnx
   --verify-no-changes --severity warn` is clean.
-- **CI has not run on this commit.** `.github/workflows/ci.yml` has been green on Windows and
-  Linux for earlier commits, and has seen nothing of the geometry kernel. Linux is where the
-  surprises live, and none of the above is a Linux result.
-- **Gates are not review, and this project now has its own proof.** The first attempt at the
-  kernel's value layer passed all three gates and was **rejected**: an independent review
-  found three of its eight claims false, including a `default(Plane)` on which every point in
-  space silently lay. The two tests guarding that type were structurally incapable of failing.
-  See *Known and deliberately accepted* below, and [NOTES.md N18](NOTES.md).
+- **CI has still not run on any of it.** `.github/workflows/ci.yml` has been green on Windows
+  and Linux for M0 commits and has seen neither the kernel nor the engine nor the UI. Linux is
+  where the surprises live — and [NOTES.md N19](NOTES.md) is a reminder that they run in the
+  other direction too: the shader defect that broke the first Windows run would have passed on
+  Linux.
+- **Gates are not review, and this project has its own proof.** The kernel's first slice
+  passed all three and was **rejected**, with three of its eight claims false and both guarding
+  tests structurally incapable of failing. What came out of it is now standing policy: every new
+  subsystem is accepted on a **mutation sweep** — break it in small plausible ways and name the
+  test that goes red for each. The graph engine was accepted on 33, the walking skeleton on 30,
+  all killed ([NOTES.md N18](NOTES.md), [N23](NOTES.md)).
 
-**The kernel is values only.** There are no curves, surfaces, meshes or BRep types, and
-nothing below should be read as implying otherwise.
+**The kernel is still values only.** There are no curves, surfaces, meshes or BRep types, and
+nothing below should be read as implying otherwise. **Nothing of OCCT is built** — no `native/`
+directory, no `Spark.Geometry.Occt` project, no OCCT anywhere in the tree — and the decision
+recorded in [ADR-0020](adr/0020-occt-via-c-abi-shim.md) and
+[ADR-0021](adr/0021-brep-kernel-residency.md) is unchanged.
 
-**One decision has landed since the last revision, and it is the largest in the project.** The
-client chose to take an existing solid-modelling kernel rather than write one:
-**OpenCascade, reached through a C-ABI shim we own**
-([ADR-0020](adr/0020-occt-via-c-abi-shim.md),
-[ADR-0021](adr/0021-brep-kernel-residency.md), PRD **D2** and **D15**). It retires **R1** and
-**R12**, adds **R15 … R22**, adds a new two-week spike **M1.6**, adds a new epic
-[E13](EPICS.md#e13--occt-provider) of roughly 24 weeks, and costs **+7 to +11 weeks against the
-plan as written while saving years against what was actually asked for**. **Nothing of it is
-built** — there is no `native/` directory, no `Spark.Geometry.Occt` project and no OCCT
-anywhere in the tree — and nothing below should be read as implying otherwise either.
+## Now — the four things that are wrong, and the gate that would have caught them
 
----
+Every item in this section was found by **executing** code that three green gates had already
+passed. That is the shape of the section, and it is deliberate.
 
-## Now — get the gates in front of real code
+- [ ] **Fix the importer crash on `Spark.Geometry`** — `E5-T17`. `NodeImporter.Import` throws
+      `NotSupportedException: Cannot create boxed ByRef-like values` on
+      `BoundingBox.FromPoints(ReadOnlySpan<Point3d>)`, so **the geometry kernel cannot be
+      imported as nodes at all** — the other eleven value types produce 176 nodes and
+      `BoundingBox` takes the assembly down with them. It also breaks the importer's own
+      contract, *every public member is either a node or an exclusion carrying a reason*, with a
+      member that is neither. This blocks `E5-T14`, which is the whole point of having a kernel.
+      **Fix it by adding a `ref struct` exclusion**, not by deleting the overload.
+- [ ] **Fix the mangled node tooltips** — `E5-T18`. `<paramref>` is dropped rather than
+      substituted, so `Number.Range` currently reads *"A list of numbers from up to , stepping
+      by . is included when the step lands on it."* The author wrote a correct sentence and the
+      reader is shown a broken one, which is worse than showing nothing. One node today; every
+      node author who writes a `<paramref>` tomorrow.
+- [ ] **Apply registered converters at run time** — `E3-T23`. A wire accepted through a
+      registered converter or a reflected `implicit operator` is validated at design time,
+      warned about if lossy, and then **fails at the leaf with `SPK1041`**. A warning the engine
+      does not honour is worse than a refusal. Reproduced end to end.
+- [ ] **Build the shadow sprite cache** — `E8-T18`. Between 81% and 83% zoom, at identical node
+      counts, frame rate falls **57 → 40 fps**, exactly where the drop shadow crosses its
+      threshold and Avalonia starts running a real Gaussian per node. The design language §3
+      already specifies the fix and it is small: nodes have one width and about four heights, so
+      **the cache holds eight sprites**.
+- [ ] **Make the canvas benchmark a nightly gate** — `E8-T15`, `E11-T16`. This is the item that
+      makes the previous one impossible to reintroduce. The harness exists and prints median,
+      p95 and fps; nothing records a threshold, `bench/` is still an empty directory, and
+      BenchmarkDotNet is still pinned and unreferenced. **The two numbers this project now
+      argues from — the 2,000-node timings and the shadow cliff — live in a console line and a
+      commit message.**
 
-M0 is *foundations*, and its whole value is that the gates exist before the code does. There
-is now real code for them to be in front of, which makes the first item below more urgent
-than it was, not less.
+## Next — close the documentation gates that are now overdue
 
-- [ ] **Get CI green on GitHub against the kernel** — `E1-T14` … `E1-T18`. Push, open a pull
-      request, watch all three jobs. **The Linux leg has seen none of the geometry kernel**,
-      and floating-point results, culture-dependent formatting and case-sensitive paths are
-      exactly the things that differ. Everything verified so far was verified on Windows. The
-      Linux job is a rot-guard, not a release target — see **D14**. `docs-freshness` is
-      `pull_request`-only and cannot run until there is a PR, so opening one closes two items
-      at once.
-- [ ] **Write the three remaining agent definitions** — `E1-T30`. `ui-shell`, `viewport` and
-      `reviewer`. Needed by M2, which is the first milestone to touch any of the three areas
-      they own. File ownership must stay disjoint, so parallel agents never conflict.
-      **`reviewer` has stopped being a formality:** the kernel's first slice passed all three
-      gates and was rejected on review, and nothing in the repository currently describes how
-      that review is meant to be conducted.
-- [ ] **Add the no-native-binaries CI check** — `E1-T20`. It was blocked on there being a
-      published output to inspect. `Spark.Geometry` now builds a real assembly and, having
-      shed its unused Clipper2 reference (`E2-T39`), references nothing but the BCL — so the
-      check is trivially satisfiable today, which is precisely when a gate should be added.
-- [ ] **Create `bench/Spark.Benchmarks`** — `E1-T13`. `bench/` and `scripts/` are still empty
-      directories. BenchmarkDotNet is pinned and unreferenced.
+All three were deliberately not stubbed, on the grounds that a test which passes by doing
+nothing is worse than no test. The things they check now exist, so the grounds have gone.
 
-**Two items left this section rather than being done**, and both were about publishing to
-nuget.org: *settle whether `Spark.Host` publishes* (`E12-T17`, `Q10`) and *reserve the NuGet
-IDs* (`E1-T24`, which was the only M0 item with an outside clock on it). Both are
-**withdrawn**. Spark consumes NuGet packages and publishes none — PRD decision **D11** — so
-`IsPackable` is now `false` for every project and there is nothing to reserve, rename or
-reconcile. M0 lost a blocker rather than gaining one.
+- [ ] **Compile every fenced sample in `docs/help/`** — `E11-T24`. Until this exists, *every
+      example was run against the assembly* is a claim held up by whoever last wrote it. It has
+      been true twice; it will not stay true by itself.
+- [ ] **Write worked example graphs into `docs/examples/`** — `E10-T7`. Still an empty
+      directory, and now the largest gap in the documentation strategy: for a node-graph tool an
+      executed graph is the strongest anti-rot mechanism available, and none is executed.
+- [ ] **Assert every `SPK####` code resolves to a topic that exists** — `E11-T26`. Twelve codes
+      and two topics, so it is cheap **now**, which is exactly when to add it.
+- [ ] **Fail the build for a node family with no help topic** — `E11-T25`. Eight families, none
+      documented.
+- [ ] **Get CI green on GitHub** — `E1-T14` … `E1-T18`. Push, open a pull request, watch all
+      three jobs. Everything verified so far was verified on Windows, and `docs-freshness` is
+      `pull_request`-only so it cannot run until there is a PR.
+- [ ] **Give `Spark.Host` a test project** — `E11-T27`. `SparkSession` holds the edit gate,
+      in-flight cancellation and the run semaphore — the three pieces of genuinely concurrent
+      code in the product — and no test project references it.
 
-## Next — name the M1.5 **and M1.6** criteria, before M1 starts
+## Then — finish M1, the geometry core
 
-Small, and deliberately its own step rather than a bullet inside M0, because the whole value
-of it is the *order*.
-
-- [ ] **Write the three M1.5 pass/fail criteria into TASKS.md** — `E11-T19`, `E11-T20`,
-      `E11-T21`. What counts as a pass for a shaded lit triangle on Windows *and* Linux; what
-      counts as 60 fps over 2000 synthetic nodes and for how long; what counts as an
-      acceptable AvaloniaEdit completion popup. Written down in advance is what makes the
-      gate honest; written down afterwards is what makes it a rationalisation. A failed
-      criterion changes the architecture, which is the entire point of spending the week.
-- [ ] **Write the M1.6 pass/fail criteria into TASKS.md** — `E13-T1`. **M1.6 gates ADR-0020
-      the way M1.5 gates ADR-0001**, and the same rule applies: written down in advance or it
-      is a rationalisation. At minimum — OCCT builds from a pinned tag through a vcpkg
-      manifest on Windows *and* Linux; one boolean runs end to end through a minimal
-      `spark_occt` and `LibraryImport`; the per-RID binary footprint is **measured** rather
-      than left at its 40–160 MB bracket; a `Materialise` on a realistic shape is timed,
-      because ADR-0021's whole rule rests on it being paid once; and a first read is taken on
-      OCCT's threading envelope (`Q14`) and on whether `ShapeFix` can be constrained to a
-      policy we choose. What a *failure* would mean is the part that needs deciding before the
-      spike, not after it.
-
-## Then — M1, the geometry core
-
-**Done, and the reason this section is shorter than it was:**
+**Done:**
 
 - [x] Value types, `Transform`, `Plane`, `CoordinateSystem`, `Tolerance`, `Angle` — `E2-T2`
       … `E2-T6`, with `E2-T1` short only its `Quaternion`. Thirteen types, 387
@@ -112,14 +106,14 @@ of it is the *order*.
 
 **Still to do, in rough order:**
 
-- [ ] `Quaternion` — `E2-T1`. **`Rgba` is settled and no longer in scope here:** the kernel
-      carries no styling, no screen awareness and no appearance, so a colour type belongs
-      beside `Appearance` in `Spark.Api` (`E5`). It was listed as a geometry value type in
-      the original plan, on the same page as the rule forbidding exactly that.
+- [ ] `Quaternion` — `E2-T1`. **`Rgba` is settled and is no longer in scope here:** it now
+      lives in `Spark.Api` beside `Appearance` and `Displayable`, which is where a type that
+      knows about colour belongs. The kernel carries no styling and no screen awareness.
 - [ ] `Line`, `Arc`, `Circle`, `EllipseCurve`, `PolyLine`, `PolyCurve` — `E2-T7` …
       `E2-T9`. Harvest `VArc`'s eight construction algorithms; they are fiddly, correct
-      and costly to recreate. The value layer they sit on is now settled, which is what
-      makes this the next thing rather than a parallel thing.
+      and costly to recreate. The value layer they sit on is settled, and **the graph engine
+      and viewport that will consume them now exist**, which turns this from a leap into a
+      next step.
 - [ ] Extract `RayCaster.cs` and its BVH — `E2-T15`. The highest-value file in
       C2VGeometry, and it pays for itself three times over: mesh booleans, viewport
       picking, intersection seeding.
@@ -142,39 +136,34 @@ of it is the *order*.
       and a ten-member division family, all of which fall out of arc-length
       reparameterisation. Cheap to build in, expensive to retrofit — which is exactly why it
       belongs in the contract rather than after it.
-- [ ] `spark` writes an OBJ polyline that a third-party viewer opens. That is the M1 demo.
+- [ ] `spark run` writes an OBJ polyline that a third-party viewer opens — `E12-T5`,
+      `E12-T19`. That is the M1 demo, and `Spark.Cli` currently has no behaviour at all.
 
-## After that — M1.5, M1.6 and M2, the walking skeleton
+## After that — M2's tail, then M1.6
 
-M1.5 is a week of throwaway spikes, deleted afterwards. **M1.6 is two weeks and is not
-throwaway in the same sense** — its scaffolding goes, but the vcpkg manifest and the build
-recipe are kept. M2 is the highest-information milestone in the project: it simultaneously
-validates Avalonia GL, the canvas rendering strategy, the reflection importer, the lacing
-engine and the layering split — the five things that could still force an architectural change.
+M2 is complete in the sense that matters — the walking skeleton walks — but three things it was
+scoped to include are not built, and they are the difference between a demo and a tool.
 
-- [ ] The three M1.5 spikes, against criteria written down beforehand — `E11-T19`,
-      `E11-T20`, `E11-T21`.
+- [ ] **Save, load, undo and redo** — `E3-T17`, `E3-T18`, `E8-T9`. **A graph cannot currently
+      be saved.** Undo is the one that is nearly free: the provenance cache already makes
+      reverting an edit cost nothing, verified by execution, so what is missing is the command
+      stack rather than any performance work.
+- [ ] **Library search ranking** — `E8-T8`. The panel filters; the camel-hump ranking that
+      makes it usable across thousands of nodes does not exist.
+- [ ] **Real docking** — `E8-T2`. The serialisable layout model is done and is the part that
+      carries over; the `Grid` and `GridSplitter`s are not.
 - [ ] **The M1.6 OCCT spike, against criteria written down beforehand** — `E13-T1`. It answers
       four of the seven things [ADR-0020](adr/0020-occt-via-c-abi-shim.md) records as open, and
       **it is the only place they can be answered** — the rest of that list needs counsel or a
       publisher, not a build.
-- [ ] Graph model, topological evaluation, provenance cache — `E3-T1` … `E3-T8`.
-- [ ] **The full replication engine against the lacing specification** — `E4-T2` …
-      `E4-T12`. Lacing is folded into M2 rather than deferred, because a graph engine
-      without replication is a toy to an AEC user, and retrofitting rank semantics into a
-      shipped evaluator is far more expensive than building them in.
-- [ ] The zero-config reflection importer over `Spark.Geometry` — `E5-T2` … `E5-T5`.
-- [ ] Avalonia shell, docking, `GraphCanvas` with drag, wire, pan, zoom, select, delete —
-      `E8-T1` … `E8-T6`.
-- [ ] Library search with camel-hump ranking — `E8-T8`.
-- [ ] GL viewport for points, lines and curves — `E9-T1` … `E9-T6`.
-- [ ] Save, load, undo, redo — `E3-T17`, `E3-T18`, `E8-T9`.
-- [ ] `spark run` — `E12-T5`.
-- [ ] **Manual acceptance: launch it, drag two nodes, wire them, see geometry in the
-      viewport — and watch it lace over lists.** That is the whole point, end to end.
 
-**Deliberately excluded from M2:** code blocks, packages, surfaces, custom nodes. Naming
-the exclusions is what keeps a walking skeleton from becoming a death march.
+**M1.5 is withdrawn as a milestone, and that is a result rather than a cancellation.** Its three
+spikes existed to answer three questions before committing to an architecture. Two are now
+answered by shipped code rather than by throwaway code: the **GL viewport initialises and draws**
+(`E11-T19`), and the **immediate-mode canvas holds 2,000 nodes at 0.87 ms median / 2.26 ms p95**
+(`E11-T20`). The third — **AvaloniaEdit with a Roslyn completion popup** (`E11-T21`) — is
+unanswered and still gates M4. It should be spiked before `E6` starts, rather than before a
+milestone that has already happened.
 
 ## Later — M3 onward
 
@@ -206,7 +195,7 @@ the exclusions is what keeps a walking skeleton from becoming a death march.
 
 | # | Question | Blocks |
 |---|---|---|
-| Q1 | Do the three M1.5 spikes pass? A failure changes the architecture, which is what they are for. | M2 design |
+| **Q1** | **Two-thirds answered, and both answers are yes.** The GL viewport initialises and draws, verified by reading the framebuffer back; the immediate-mode canvas holds 2,000 nodes at 0.87 ms median / 2.26 ms p95. Neither needed a throwaway spike in the end — both were answered by the shipped code, which is a better outcome than the plan asked for. **The third is untouched:** is AvaloniaEdit plus a Roslyn completion popup acceptable to use? Completion-popup placement and focus are where AvalonEdit and AvaloniaEdit diverge most, and nothing in this repository has tested it. | `E11-T21`, and M4 |
 | Q4 | `Directory.Build.props` promotes CS1591 to an error on **four** projects; the plan named three. Is `Spark.Geometry.Io` deliberately included? | `E10-T8` scope |
 | Q5 | Revit or AutoCAD as the M8 embedding proof host? The scheduler is the same either way; the add-in shell, licensing and test loop are not. | `E12-T4` |
 | **Q13** | **The six licensing questions for counsel, and this is the item on this page with an outside clock on it.** The central one: **is a thin shim whose entire purpose is to expose OCCT a *work that uses the Library* under the Open CASCADE exception, or a derivative work under LGPL §5?** Then — whether single-file, trimmed or AOT publishing is compatible with the relink obligation; whether **vcpkg's port declaring `LGPL-2.1-only`, omitting the exception**, creates exposure; what *prominent notice in supporting documentation* requires concretely; what obligations attach to a user embedding `Spark.Host` in a commercial add-in (`D5`); and whether the source offer is satisfied by a tag reference or needs a hosted archive. **None of this is legal advice and no amount of further reading settles it** — it is a question for a lawyer, and it is on this page for that reason. [ADR-0020](adr/0020-occt-via-c-abi-shim.md) | **Items 1 and 3 before M6.** The rest before 1.0 |
@@ -241,15 +230,21 @@ and withdrawn together. Nothing publishes: `IsPackable` is `false` for every pro
 `IsPackable=true` was an oversight now removed. PRD decision **D11**,
 [NOTES.md N14](NOTES.md).*
 
-*Q9 — whether xunit v3 was viable — is withdrawn. All four test projects consume it and 315
-tests run green; the 2.9.x fallback turned out to be moot rather than costless, because the
-.NET 10 SDK has removed the VSTest bridge entirely. See [NOTES.md N11](NOTES.md).*
+*Q9 — whether xunit v3 was viable — is withdrawn. All **seven** test projects consume it and
+**821** tests run green; the 2.9.x fallback turned out to be moot rather than costless, because
+the .NET 10 SDK has removed the VSTest bridge entirely. The one real cost has surfaced since
+and is not xunit's fault: `Avalonia.Headless.XUnit`'s `[AvaloniaFact]` is built against
+xunit.v3 3.2.2 and fails at **discovery** under 4.0.0, so headless UI tests drive the session
+directly. See [NOTES.md N11](NOTES.md) and [N21](NOTES.md).*
 
 *Q4 — whether `Spark.Geometry.Io`'s inclusion in the CS1591 promotion was deliberate — is
 **answered by precedent rather than by decision, and stays open until somebody says so.**
-`Directory.Build.props` now applies the public-API baselines to the same four projects, which
-means two independent mechanisms have converged on the same list. That is evidence the list is
-right; it is not a record that anyone chose it.*
+`Directory.Build.props` applies the public-API baselines to the same four **contract** projects
+— `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io` and `Spark.Nodes.Core` — so two independent
+mechanisms have converged on the same list. That is evidence the list is right; it is not a
+record that anyone chose it. Two of the four now carry real surface: `Spark.Api` declares 104
+public members and `Spark.Nodes.Core` 36, both fully documented because CS1591-as-error leaves
+no alternative.*
 
 ## Known and deliberately accepted
 
@@ -422,6 +417,55 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   match wins. It sits beside the same rule for private `static readonly` fields, and the pair
   makes the underscore itself informative: it marks something that can change.
   [NOTES.md N16](NOTES.md).
+- **The importer excludes nine categories of member, each with a stated reason, and that is
+  the design rather than a shortfall.** Generics, extension methods, operators, nested types,
+  indexers, events, `ref` and `in` parameters, write-only properties, and `void` methods with
+  no `out` parameter are all named on the exclusion they produce. **The importer never skips a
+  member silently**, because a silent skip passes every test written after the fact — which is
+  why the coverage test can run in both directions from one import. Adding a category is a
+  design decision of its own (how does a user pick a type argument on a canvas?), not a gap to
+  be quietly closed. `E5-T3`.
+- **Preview policy is terminal ports only.** Geometry appears in the viewport for nodes whose
+  output feeds nothing else. A node in the middle of a chain does not draw and there is no
+  per-node preview toggle. Do not read a mid-chain node showing nothing as a bug.
+- **A point renders as a solid octahedron, not a screen-space disc.** Eight faces, sized at
+  1.2% of the scene diagonal, so it reads as a dot from any direction — but it is world-space,
+  and points shrink as you zoom out. The design language §8.3 asks for a 5 px disc; the reason
+  it was not built is that the mesh path carries no per-vertex orientation, so a billboard
+  needs a geometry stage or a dedicated point shader. `E9-T13`.
+- **Literal editing is in the properties panel, not on the node.** Select a node and its
+  unwired input ports appear as editable rows; a wired port is not editable, because the wire
+  wins. In-canvas editing is a later slice, not an omission.
+- **One `Appearance` per `RenderPackage`, so per-element selection is not expressible.** A
+  diagnostic can already name element `[3][1]` and the viewport has no way to highlight it.
+  This is the gap between the identity tuple the design promises — `(NodeId, PortIndex,
+  ElementPath)` — and the two-thirds of it the renderer keys on. `E9-T14`.
+- **The evaluation cache evicts by entry count, not by bytes**, and `ADR-0021` requires bytes.
+  A thousand points and a thousand meshes weigh the same to it. The count is a bound that
+  stops the cache growing without pretending to be a memory budget, and it is labelled as
+  crude in the code rather than presented as the design. When OCCT arrives the estimate must
+  come **from the shim**, because a managed estimator cannot see OCCT's heap. `E3-T9`.
+- **Avalonia on Windows is ANGLE, so the viewport runs on OpenGL ES 3.0 over Direct3D 11 —
+  never desktop GL 3.3.** Write shaders for GLSL ES first. A desktop-GL-only shader compiles
+  on a Linux development machine and fails on the platform Spark ships to, and a shader that
+  fails to compile produces a blank viewport rather than an error anyone associates with a
+  shader. This does not change `ADR-0014`; it changes what *an OpenGL viewport* means in
+  practice. [NOTES.md N19](NOTES.md).
+- **`[AvaloniaFact]` is not used and adding it back would break the build.** It is compiled
+  against xunit.v3 3.2.2 and fails at **discovery** under 4.0.0. Headless UI tests drive
+  `HeadlessUnitTestSession` directly under a plain `[Fact]`, which is the better shape
+  independently of the bug: it makes the Avalonia lifetime explicit in the test rather than
+  hidden in an attribute. [NOTES.md N21](NOTES.md).
+- **`dotnet test` reporting "Zero tests ran" is build contention, not a broken suite.** Two
+  agents have hit it; the suite runs correctly at the same commit every time and CI has been
+  green throughout. The cause is a concurrent build holding a lock on an output file. Check
+  nothing else is building, then re-run. A genuinely disabled suite does not intermittently
+  pass. [NOTES.md N22](NOTES.md).
+- **A new subsystem is accepted on a mutation sweep, not on a green suite.** Break the
+  implementation in small, individually plausible ways and name the test that goes red for
+  each one. A survivor is a missing test and it is written before the sweep is finished. The
+  count is not a target: thirty mutations that each probe a different decision are worth more
+  than a hundred that probe the same loop. [NOTES.md N23](NOTES.md).
 - **A fix to the kernel is not finished until it is regression-proven by reverting it and
   naming the test that goes red.** Not "a test exists nearby", not "the suite is green" — the
   specific test, identified by having watched it fail. A fix with no test that notices its

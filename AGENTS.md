@@ -87,19 +87,27 @@ XML doc = what this member does.*
    build error (RS0016), not an oversight somebody spots later.
 7. **A bug fix has been reverted once, to watch a named test go red.** If nothing failed, the
    regression test is not written yet.
-8. Commit message says what changed and why, and **names the task IDs it advances**.
-9. Sign off with DCO: `git commit -s`. See [CONTRIBUTING.md](CONTRIBUTING.md).
+8. **A new subsystem has been through a mutation sweep.** Break the implementation in small,
+   individually plausible ways — flip a comparison, drop a clamp, return the wrong branch,
+   skip a guard — and **name the test that goes red for each one**, having watched it die.
+   A survivor is a missing test and it is written before the sweep is finished. This is step 7
+   applied to code with no known defect, and it is what the graph engine (33 mutations) and
+   the walking skeleton (30) were accepted on. [NOTES.md N23](docs/NOTES.md).
+9. Commit message says what changed and why, and **names the task IDs it advances**.
+10. Sign off with DCO: `git commit -s`. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-All three commands above have been verified to work as written, on Windows, on 2026-08-27.
+All three commands above have been verified to work as written, on Windows, on 2026-08-28.
 Steps 1 through 3 are gates. A red docs harness is a broken build, including when the only
 thing broken is a dangling ADR citation in a build-file comment — that is precisely the point
 of it, and it has already caught exactly that (`E1-T29`).
 
 **Everything verified for the current tree was verified on Windows.** CI has been green on
-Windows and Linux for **earlier commits**, and it has seen nothing of the geometry kernel —
-which is the half of the solution where a Linux difference would actually show up, in
-floating-point results, culture-dependent formatting and case-sensitive paths. Say which
-commit a green CI run was green on.
+Windows and Linux for **M0 commits only**, and it has seen nothing of the kernel, the engine or
+the UI — which is where a platform difference would actually show up, in floating-point
+results, culture-dependent formatting, case-sensitive paths and GL dialects. Say which commit a
+green CI run was green on. Note that the platform risk runs **both ways**: the shader defect
+that broke the first Windows run would have passed on Linux
+([NOTES.md N19](docs/NOTES.md)).
 
 ## Things that will bite you
 
@@ -123,6 +131,26 @@ analyzer, because that is exactly when the analyzer is new and the code is not. 
 a fresh runner has no `obj/` — which is why this is a local trap and why nobody else will
 catch it for you. **Do not write "the build is clean" into a document, a review or a commit
 message on the strength of an incremental build.** [NOTES.md N15](docs/NOTES.md).
+
+**`dotnet test` reporting "Zero tests ran" is build contention, not a broken suite.**
+
+Two agents have hit this and it looks alarming, because a suite reporting nothing is
+indistinguishable from a suite that has been silently disabled — which is a real failure mode
+here ([NOTES.md N12](docs/NOTES.md), [N21](docs/NOTES.md)). It is not that. The cause is a
+second build running concurrently in the same tree holding a lock on an output file. **Check
+nothing else is building, then run it again.** A genuinely disabled suite does not
+intermittently pass. Only after a re-run passes cleanly should you go looking for a real
+cause. [NOTES.md N22](docs/NOTES.md).
+
+**Avalonia on Windows is ANGLE, so the viewport gets OpenGL ES — never desktop GL 3.3.**
+
+Write shaders for GLSL ES first, and put the `precision` statement immediately after
+`#version`, before any declaration that uses a float. The first Windows run of the viewport
+failed to compile its shaders for exactly this reason, and the failure has the worst possible
+shape: **it passes on a Linux desktop-GL machine**, and a shader that fails to compile produces
+a blank viewport rather than an error anyone associates with a shader. There is a test that
+asserts the ordering across every dialect; do not weaken it.
+[NOTES.md N19](docs/NOTES.md).
 
 **A fix is not finished until it is regression-proven by reverting it.**
 
@@ -378,12 +406,14 @@ scripts/                 repository helper scripts                    (not creat
 
 Two of those lines are intent rather than description, and are marked. Everything else
 matches disk, with one qualification worth knowing before you add a project: `tests/` holds
-four projects — `Spark.Architecture.Tests`, `Spark.Docs.Verify`, `Spark.Geometry.Tests` and
-`Spark.Geometry.Properties` — and nothing else. `tests/corpus/` does not exist yet. The
-remaining test projects arrive **with the code they test**, not ahead of it, because a test
-project containing no tests fails the run outright — [NOTES.md N12](docs/NOTES.md). The two
-geometry projects are the only ones granted `InternalsVisibleTo` on the kernel, and that is a
-deliberate ceiling of two — [NOTES.md N10](docs/NOTES.md). `tests/` has its
+**seven** projects — `Spark.Architecture.Tests`, `Spark.Docs.Verify`, `Spark.Engine.Tests`,
+`Spark.Geometry.Properties`, `Spark.Geometry.Tests`, `Spark.UI.Tests` and
+`Spark.Viewport.Tests` — and nothing else. `tests/corpus/` does not exist yet. The remaining
+test projects arrive **with the code they test**, not ahead of it, because a test project
+containing no tests fails the run outright — [NOTES.md N12](docs/NOTES.md). **`Spark.Host` has
+no test project and holds real concurrent code**, which is a gap rather than a policy
+(`E11-T27`). The two geometry projects are the only ones granted `InternalsVisibleTo` on the
+kernel, and that is a deliberate ceiling of two — [NOTES.md N10](docs/NOTES.md). `tests/` has its
 own `Directory.Build.props` carrying `OutputType=Exe`, the xunit v3 reference and the global
 `using Xunit`, so a new test project is a near-empty `.csproj` plus a line in `Spark.slnx`.
 
@@ -441,22 +471,34 @@ left out, and what it could not verify.**
 
 ## What has and has not been proven
 
-As of 2026-08-27, in three tiers. The tiers are the point; collapsing them is the failure.
+As of **2026-08-28, at commit `35107f0`**, in three tiers. The tiers are the point; collapsing
+them is the failure.
 
 **Confirmed working, on Windows, by running it.**
 
-- `dotnet build Spark.slnx --no-incremental -warnaserror` — **sixteen** projects, zero
-  warnings, zero errors. Use the flag: without it the warning count can come from a cached
+- `dotnet build Spark.slnx --no-incremental -warnaserror` — zero warnings, zero errors over
+  the whole solution. Use the flag: without it the warning count can come from a cached
   analysis (see *Things that will bite you*).
-- `dotnet test Spark.slnx` — **315 tests across four projects**, all passing.
+- `dotnet test Spark.slnx` — **821 tests across seven projects**, all passing.
+  If it reports **"Zero tests ran"**, that is build contention, not a broken suite: check
+  nothing else is building and run it again ([NOTES.md N22](docs/NOTES.md)).
   `Spark.Geometry.Tests` (276) covers the kernel's value layer by example;
-  `Spark.Geometry.Properties` (28) covers it with CsCheck properties over generators spanning
-  1e-9 to 1e9; `Spark.Architecture.Tests` (6) enforces the reference-graph rules by reading
-  `.csproj` files as XML; `Spark.Docs.Verify` (5) checks front matter, worked examples,
-  relative links, ADR citations and `Last updated` lines.
+  `Spark.Engine.Tests` (273) covers the graph, wiring, evaluation, replication and the
+  importer, with the lacing case table executing as a `[Theory]` corpus; `Spark.UI.Tests`
+  (165) covers the canvas transform, culling, level of detail, palette contrast and the shell;
+  `Spark.Viewport.Tests` (66) covers camera, meshes, scene building and the GL renderer against
+  a fake context; `Spark.Geometry.Properties` (28) covers the value layer with CsCheck
+  properties over generators spanning 1e-9 to 1e9; `Spark.Architecture.Tests` (8) enforces the
+  reference-graph rules by reading `.csproj` files as XML; `Spark.Docs.Verify` (5) checks front
+  matter, worked examples, relative links, ADR citations and `Last updated` lines.
 - `dotnet format Spark.slnx --verify-no-changes --severity warn` — clean over the whole
-  solution, geometry value layer included. The IDE1006 failures reported here previously are
-  closed: private `const` fields are PascalCase by rule now ([NOTES.md N16](docs/NOTES.md)).
+  solution. The IDE1006 failures reported here previously are closed: private `const` fields
+  are PascalCase by rule now ([NOTES.md N16](docs/NOTES.md)).
+- **The application launches and draws.** `dotnet run --project src/Spark.Desktop` opens the
+  shell on a demo graph that evaluates a hundred points into the viewport. The **GPU viewport
+  initialises and draws, verified by reading the framebuffer back** rather than by trusting
+  that the shaders compiled — which matters, because the first Windows run failed to compile
+  them ([NOTES.md N19](docs/NOTES.md)).
 
 **Reviewed, repaired and accepted.** The geometry kernel's **value layer** — thirteen types
 in `src/Spark.Geometry`, 387 public members, all documented, all in the public-API baseline.
@@ -466,13 +508,26 @@ claims false and both of its guarding tests structurally incapable of failing. E
 the repaired version is regression-proven by reverting it and naming the test that goes red.
 [NOTES.md N18](docs/NOTES.md).
 
+**Accepted on a mutation sweep**, which is the generalisation of that standard and is now
+required for every new subsystem: the **graph engine on 33 mutations** and the **walking
+skeleton on 30**, every one of them killed by a named test. A mutation nothing notices is a
+hole in the suite, and the deliverable of a sweep is the tests it caused rather than the count
+([NOTES.md N23](docs/NOTES.md)).
+
 **Written, and not executed against the current tree.** `.github/workflows/ci.yml`, in full:
 the windows-plus-ubuntu build matrix, the `format` job and the `docs-freshness` job. It has
-been green on both platforms for **earlier commits** and has seen nothing of the geometry
-kernel — the half of the solution where floating-point results, culture-dependent formatting
-and case-sensitive paths could actually differ. The `docs-freshness` job is
-`pull_request`-only, so it cannot run until a PR exists. **Do not describe CI as green
+been green on both platforms for **M0 commits only** and has seen nothing of the geometry
+kernel, the engine or the UI — the parts where floating-point results, culture-dependent
+formatting, case-sensitive paths and GL dialects could actually differ. The `docs-freshness`
+job is `pull_request`-only, so it cannot run until a PR exists. **Do not describe CI as green
 without saying which commit it was green on.**
+
+**Measured once, and guarded by nothing.** The canvas renders **2,000 nodes in 0.87 ms median
+/ 2.26 ms p95**, and frame rate falls **57 → 40 fps between 81% and 83% zoom** where the drop
+shadow returns. Both came from `--canvas-benchmark`, both are load-bearing — the first
+confirms ADR-0013, the second is a registered defect (`E8-T18`) — and **neither is recorded or
+asserted anywhere in the repository.** Until `E8-T15` runs nightly against a threshold, treat
+both as observations rather than as properties of the code.
 
 **Not built at all.** Almost every line of product code. Eleven of the twelve `src/` projects
 are empty stubs that compile. The geometry kernel has **values only** — no curves, no

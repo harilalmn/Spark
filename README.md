@@ -11,46 +11,63 @@ which ships with Spark.
 
 **Last updated:** 2026-08-28
 
-> ## Status: M1 has started — there is still nothing to run
+> ## Status: M2 is complete — it runs, and it puts geometry on screen
 >
-> **This repository is scaffolding, gates, specification, and the first slice of the
-> geometry kernel.** It contains a solution, twelve project stubs, a reference graph, build
-> properties, the project documents, twenty-one ADRs, the lacing specification, a CI workflow,
-> public-API baselines, and four test projects.
+> **There is now an application.** Launch it and you get a shell with a library, a node
+> canvas, a 3D viewport and a properties panel; a demo graph that evaluates two ranges into a
+> hundred points under Cross Product lacing and draws them in the viewport; and a node that
+> has been given a divisor of zero on purpose, so you can watch an error stay where it
+> belongs instead of cascading.
 >
-> **The one piece of product code that exists** is `Spark.Geometry`'s **value layer**:
-> thirteen types — `Angle`, `Tolerance`, `Point3d`, `Vector3d`, `Point2d`, `Vector2d`, `UV`,
-> `Interval`, `BoundingBox`, `Plane`, `Transform`, `CoordinateSystem` and an internal
-> `NamespaceDoc` — declaring 387 public members, all documented, landed and **reviewed,
-> repaired and accepted**. There are **no curves, no surfaces, no meshes and no solids**, and
-> no graph engine, UI or viewport at all.
+> **What exists, honestly:**
 >
-> What has been run, on Windows, on 2026-08-27:
-> `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen projects;
-> `dotnet test Spark.slnx` runs **315 passing tests** across four projects; and
+> - **`Spark.Geometry`'s value layer** — thirteen types declaring 387 public members, reviewed,
+>   repaired and accepted. There are still **no curves, no surfaces, no meshes and no solids**.
+> - **The graph engine** — `Graph`, `NodeInstance`, `Wire`, node and port definitions,
+>   design-time wire validation, topological evaluation in parallel levels, a provenance cache,
+>   the full replication engine against [the lacing specification](docs/help/concepts/lacing.md),
+>   and an expression-tree-compiled invoker.
+> - **The zero-config reflection importer**, which turns a plain assembly into nodes with no
+>   attributes, no manifest and no registration — and accounts for every public member it does
+>   *not* import with a stated reason.
+> - **`Spark.Nodes.Core`** — 27 nodes across `Point`, `Vector`, `Plane`, `BoundingBox`,
+>   `Number`, `Math`, `Colour` and `Display`.
+> - **The shell, the immediate-mode node canvas and the GPU viewport.**
+>
+> **What does not exist:** code blocks, packages, save and load, undo and redo, curves,
+> surfaces, solids, meshes, and every one of the exact solid operations. See
+> [docs/TODO.md](docs/TODO.md) for what happens next.
+>
+> **Both architectural bets are confirmed by measurement, not by argument.** The
+> immediate-mode canvas ([ADR-0013](docs/adr/0013-immediate-mode-node-canvas.md)) renders
+> **2,000 nodes in 0.87 ms median / 2.26 ms p95** — cost tracks what is on screen, not how
+> large the graph is. The GPU viewport ([ADR-0014](docs/adr/0014-opengl-viewport-with-software-fallback.md))
+> initialises and draws, verified by **reading the framebuffer back** rather than by trusting
+> that the shaders compiled.
+>
+> What has been run at commit `35107f0`, on Windows, on 2026-08-28:
+> `dotnet build Spark.slnx --no-incremental -warnaserror` is clean;
+> `dotnet test Spark.slnx` runs **821 passing tests** across seven projects; and
 > `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean. What has **not**
-> been run: CI against this tree. The workflow has been green on Windows and Linux for
-> earlier commits and has seen none of the kernel.
+> been run: CI against this tree, on either platform.
 >
-> **Worth knowing about how that slice was accepted.** Its first version passed all three
-> gates and was rejected on review, with three of its eight claims false — most visibly a
-> default-constructed `Plane` on which every point in space silently lay. Both tests written
-> to guard it were structurally incapable of failing. Every fix in the accepted version is
-> regression-proven by reverting it and naming the test that goes red.
+> **Two things worth knowing about how this code was accepted.** The kernel's first slice
+> passed all three gates and was **rejected on review**, with three of its eight claims false
+> — most visibly a default-constructed `Plane` on which every point in space silently lay, and
+> both tests guarding it structurally incapable of failing. Since then every new subsystem is
+> accepted on a **mutation sweep**: break the implementation in small plausible ways and name
+> the test that goes red for each. The graph engine was accepted on 33 mutations and the
+> walking skeleton on 30, all of them killed by a named test
+> ([NOTES.md N18](docs/NOTES.md), [N23](docs/NOTES.md)).
 >
-> **One decision has landed since that slice, and it is the largest in the project.** Spark
-> will use **OpenCascade** as its solid-modelling kernel, reached through a C-ABI shim we own,
-> rather than writing its own exact BRep kernel — so exact booleans, fillet, chamfer, shell,
-> trim and STEP are **in 1.0** rather than post-1.0. **None of it is built:** there is no
-> `native/` directory, no `Spark.Geometry.Occt` project and no OpenCascade anywhere in this
-> tree. See [ADR-0020](docs/adr/0020-occt-via-c-abi-shim.md) and
+> **The largest decision in the project is recorded and not built.** Spark will use
+> **OpenCascade** as its solid-modelling kernel, reached through a C-ABI shim we own, rather
+> than writing its own exact BRep kernel — so exact booleans, fillet, chamfer, shell, trim and
+> STEP are **in 1.0** rather than post-1.0. There is no `native/` directory, no
+> `Spark.Geometry.Occt` project and no OpenCascade anywhere in this tree. See
+> [ADR-0020](docs/adr/0020-occt-via-c-abi-shim.md) and
 > [ADR-0021](docs/adr/0021-brep-kernel-residency.md), and the paragraph below on what that
 > means for a project whose whole premise is not depending on somebody else's CAD component.
->
-> The rest of M1 is curves; M2 is the first milestone at which anything is usable — drag two
-> nodes, wire them, see geometry. See
-> [docs/PRD.md §11](docs/PRD.md#11-release-plan) for the plan and
-> [docs/TODO.md](docs/TODO.md) for what happens next.
 
 ---
 
@@ -182,13 +199,32 @@ Linux and macOS. Warnings are errors in CI only, never in the project files —
 solution format, which needs a recent SDK and a recent Visual Studio
 ([N1](docs/NOTES.md)).
 
-There is still nothing to *run* — no application, no CLI behaviour. `dotnet test` finds **315
-tests** across four projects. `Spark.Geometry.Tests` (276) and `Spark.Geometry.Properties`
-(28) cover the kernel's value layer by example and by CsCheck property respectively;
-`Spark.Architecture.Tests` (6) enforces the reference graph below by reading `.csproj` files
-as XML; `Spark.Docs.Verify` (5) checks these documents against the repository. The last two
-were deliberately stood up before the code they now guard: a gate added later is a gate that
-gets an exemption for everything already there.
+### Running it
+
+```bash
+dotnet run --project src/Spark.Desktop
+```
+
+The window opens on the demo graph. `Run` evaluates it, `Demo graph` reloads it, `2000 nodes`
+loads the synthetic benchmark graph, and the four workspace buttons rearrange the panels.
+`Spark.Cli` builds `spark.exe` but has no behaviour yet.
+
+### The tests
+
+`dotnet test Spark.slnx` finds **821 tests** across seven projects:
+
+| Project | Tests | What it covers |
+|---|---:|---|
+| `Spark.Geometry.Tests` | 276 | the kernel's value layer, by example |
+| `Spark.Engine.Tests` | 273 | graph, wiring, evaluation, replication, the importer |
+| `Spark.UI.Tests` | 165 | canvas transform and culling, level of detail, palette contrast, the shell |
+| `Spark.Viewport.Tests` | 66 | camera, meshes, scene building, the GL renderer against a fake context |
+| `Spark.Geometry.Properties` | 28 | the value layer again, by CsCheck property |
+| `Spark.Architecture.Tests` | 8 | the reference graph below, by reading `.csproj` files as XML |
+| `Spark.Docs.Verify` | 5 | these documents, against the repository |
+
+The last two were deliberately stood up **before** the code they now guard: a gate added later
+is a gate that gets an exemption for everything already there.
 
 ## Repository layout
 
@@ -272,28 +308,39 @@ is not a dotnet global tool. (**D11**)
 | [AGENTS.md](AGENTS.md) | The working agreement. Read before committing |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | MIT, DCO sign-off, how to build, what a PR needs |
 | [docs/adr/](docs/adr/README.md) | Twenty-one architecture decision records: what was decided, what was rejected, and what it costs |
-| [docs/help/concepts/lacing.md](docs/help/concepts/lacing.md) | How lists, ranks and lacing work — **written before the engine, and the engine will be written to match it** |
+| [docs/DYNAMO-COVERAGE.md](docs/DYNAMO-COVERAGE.md) | The capability parity register against ProtoGeometry — presence, never equivalence |
+| [docs/help/concepts/lacing.md](docs/help/concepts/lacing.md) | How lists, ranks and lacing work — **written before the engine, and the engine was written to match it** |
+| [docs/help/concepts/evaluation.md](docs/help/concepts/evaluation.md) | How a graph runs: dependency order, dirt, caching, and why the node after an error goes grey rather than red |
+| [docs/help/concepts/nodes-and-wires.md](docs/help/concepts/nodes-and-wires.md) | Nodes, ports and wires; why a wire is refused, accepted, or accepted-but-lossy; where node names come from |
 | [docs/help/concepts/geometry-basics.md](docs/help/concepts/geometry-basics.md) | Points, vectors, planes, right-handedness, unitless coordinates, `Angle`, and tolerance — aimed at a designer, with every example run against the assembly |
-| [docs/help/concepts/design-language.md](docs/help/concepts/design-language.md) | Spark's visual design language — **written before any UI code exists, and the UI is written to match it** |
+| [docs/help/concepts/design-language.md](docs/help/concepts/design-language.md) | Spark's visual design language — **written before any UI code existed, and the UI was written to match it** |
 
-Still to come: the rest of `docs/help/`, the generated API reference, and `docs/examples/`
-for worked example graphs that CI executes.
+Still to come: the rest of `docs/help/` — one topic per node family — the generated API
+reference, and `docs/examples/` for worked example graphs that CI executes. **`docs/examples/`
+is still an empty directory**, which is the largest remaining gap in the documentation
+strategy: an executed graph is the strongest anti-rot mechanism available to a node-graph
+tool, and none is executed yet.
 
 **Documentation here is a build gate, not a chore.** Undocumented public API on a contract
 project does not compile — that one works today. Every help topic must contain a worked
-example, every relative link must resolve, and every cited ADR must exist — those work today
-too, checked by `tests/Spark.Docs.Verify` on every `dotnet test`. Executing example graphs
-and failing the build for a node with no help topic arrive with the milestones that create
-nodes and graphs; they are not stubbed in advance, because a test that passes by doing
-nothing is worse than no test. The reasoning, and the mechanisms, are in
-[AGENTS.md](AGENTS.md).
+example, every relative link must resolve, every cited ADR must exist, and every core document
+must carry a `Last updated` date — those work today too, checked by `tests/Spark.Docs.Verify`
+on every `dotnet test`.
+
+**Three checks are now overdue rather than premature**, and they are the honest gap in this
+paragraph: compiling every fenced sample, failing the build for a node family with no help
+topic, and asserting that every diagnostic code resolves to a topic that exists. All three
+were deliberately not stubbed, because a test that passes by doing nothing is worse than no
+test — but the things they check now exist, so the reason to wait has gone. They are tracked
+as `E11-T24` … `E11-T26`. The reasoning, and the mechanisms, are in [AGENTS.md](AGENTS.md).
 
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). MIT, DCO sign-off (`git commit -s`), no CLA, one
 maintainer.
 
-At M0 the most valuable contribution is argument: if one of the decisions in the
+The most valuable contribution now that there is something to run is a **bug report against
+the demo graph**, and after that argument: if one of the decisions in the
 [decision log](docs/PRD.md#13-decision-log) is wrong, it is far cheaper to find out now.
 
 ## Licence

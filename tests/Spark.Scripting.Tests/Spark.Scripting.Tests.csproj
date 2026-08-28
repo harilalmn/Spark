@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tests for the C# code block. Several of them run user code, so a test that hangs is a real
+    possibility rather than a theoretical one - every such test goes through
+    CodeBlockTestHarness.RunWithHardTimeout, which fails rather than waits.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Spark.Scripting/Spark.Scripting.csproj" />
+  </ItemGroup>
+
+</Project>
