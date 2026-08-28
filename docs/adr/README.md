@@ -1,7 +1,7 @@
 # Architecture Decision Records
 
 **Last updated:** 2026-08-28
-**Records:** twenty-two
+**Records:** twenty-three
 
 This directory holds Spark's architecture decision records. An ADR captures a decision that
 could have gone differently: what forced it, what we chose, what we rejected and why, and what
@@ -38,6 +38,7 @@ withdrawn, and the gap stays.
 | [0020](0020-occt-via-c-abi-shim.md) | OpenCascade as the solid-modelling kernel, reached through a C-ABI shim we own | Accepted | 2026-08-27 |
 | [0021](0021-brep-kernel-residency.md) | Kernel residency is canonical, not cached | Accepted | 2026-08-27 |
 | [0022](0022-undo-by-document-snapshot.md) | Undo is a stack of document snapshots, not a stack of inverse commands | Accepted | 2026-08-28 |
+| [0023](0023-benchmarks-gate-allocation-not-time.md) | The nightly benchmark gates bytes allocated, not elapsed time | Accepted | 2026-08-28 |
 
 Statuses are *Proposed*, *Accepted*, *Superseded by ADR-NNNN*, *Amended by ADR-NNNN* or
 *Withdrawn*. Every record numbered 0001 to 0019 was accepted at M0, before implementation,

@@ -1,0 +1,30 @@
+{
+  "_what": "Allocation ceilings for the nightly benchmark job. Bytes allocated per operation, which is a property of the code rather than of the machine - so a shared runner measures the same figure this file was written from. See ADR-0023.",
+  "_gated": "Allocation only. Timings are recorded to the job's artifacts and gated by nothing, because a timing threshold on a hosted runner fails for reasons nobody can act on.",
+  "_measuredWith": "dotnet run --project bench/Spark.Benchmarks --configuration Release -- --filter '*' --exporters json --job short",
+  "_measuredOn": "2026-08-28, .NET 10, win-x64. Regenerate with the same --job short the nightly uses. That is for consistency, not to correct a known difference: the four EvaluationBenchmarks cases were measured under both the default and short configs and came back byte-identical.",
+  "_addingABenchmark": "Add its entry here in the same change. The nightly FAILS on a benchmark with no baseline entry, deliberately: one running unguarded is a number nobody is watching.",
+  "_zeroIsAGuard": "SceneIndexBenchmarks.Cull and HitTest are 0 and a 5% tolerance of 0 is 0, so any allocation at all on the cull path fails the job. That is intended - ADR-0013's bet is that culling a few thousand rectangles per frame is cheap, and an allocation per frame is how that stops being true.",
+  "allocationTolerance": 0.05,
+  "allocatedBytes": {
+    "EvaluationBenchmarks.Cold(Nodes=50&Elements=100)": 1593696,
+    "EvaluationBenchmarks.Cold(Nodes=500&Elements=100)": 16155032,
+    "EvaluationBenchmarks.Warm(Nodes=50&Elements=100)": 103296,
+    "EvaluationBenchmarks.Warm(Nodes=500&Elements=100)": 1045544,
+    "MarshallingBenchmarks.NumbersFromClr(Count=10)": 736,
+    "MarshallingBenchmarks.NumbersFromClr(Count=1000)": 48688,
+    "MarshallingBenchmarks.NumbersFromClr(Count=100000)": 5297836,
+    "MarshallingBenchmarks.NumbersToClr(Count=10)": 136,
+    "MarshallingBenchmarks.NumbersToClr(Count=1000)": 8056,
+    "MarshallingBenchmarks.NumbersToClr(Count=100000)": 800144,
+    "MarshallingBenchmarks.PointsFromClr(Count=10)": 896,
+    "MarshallingBenchmarks.PointsFromClr(Count=1000)": 64688,
+    "MarshallingBenchmarks.PointsFromClr(Count=100000)": 6897723,
+    "MarshallingBenchmarks.PointsToClr(Count=10)": 296,
+    "MarshallingBenchmarks.PointsToClr(Count=1000)": 24056,
+    "MarshallingBenchmarks.PointsToClr(Count=100000)": 2400146,
+    "SceneIndexBenchmarks.Cull(Nodes=2000)": 0,
+    "SceneIndexBenchmarks.HitTest(Nodes=2000)": 0,
+    "SceneIndexBenchmarks.Rebuild(Nodes=2000)": 2328
+  }
+}

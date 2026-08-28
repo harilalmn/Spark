@@ -92,8 +92,13 @@ exemption for everything that already exists.
       `scripts/check-no-native-binaries.sh`, run on both operating systems, and **proven to
       fire**: pointed at `Spark.Desktop` it fails on the Skia and HarfBuzz natives Avalonia
       brings.
-- [ ] Benchmarks run nightly, not per-PR, with results committed as a git time series
-      (**E1-T21**).
+- [ ] Benchmarks run nightly, not per-PR, **gating bytes allocated per operation against a
+      committed `bench/baseline.json`** (**E1-T21**). *Written; it has never run, so it is not
+      ticked.* **The criterion as originally worded — "results committed as a git time series" —
+      is deliberately not met**: that needs `contents: write` on a scheduled job and a permanent
+      automated writer on `main`, where 90-day artifacts carry the same numbers and a
+      human-updated baseline carries the durable part
+      ([ADR-0023](adr/0023-benchmarks-gate-allocation-not-time.md)).
 - [ ] The release workflow refuses to publish when the computed version and the tag
       disagree (**E1-T22**).
 - [x] Public-API baselines for `Spark.Api` and `Spark.Geometry` are checked in, so every
@@ -436,9 +441,12 @@ repeating the short input's last element gives 23, and case 45 and the worked ex
 already said 23. A digit transposition sitting in the corpus that everything downstream would
 have been tested against.
 
-**One row is short:** `E4-T3` has the marshalling and not the standing benchmark, because
-`bench/` is still an empty directory — so the engine's most performance-critical path has no
-guard on it.
+**One row is short:** `E4-T3` has the marshalling, the benchmark and now a nightly that runs it,
+and is short only because that nightly **has never run**. What guards this path is its *allocation*
+ceiling rather than its time, which suits the row exactly: the finding that made it a standing
+guard was that the return path allocates roughly six times the argument path at 100 000 elements,
+and that figure is now a ceiling in `bench/baseline.json`
+([ADR-0023](adr/0023-benchmarks-gate-allocation-not-time.md)).
 
 Writing it has already paid for itself. It settled ten questions the plan left open
 (decisions D1–D10 in its §2.16) and **overturned one answer the plan had wrong**: `Auto` was
@@ -669,7 +677,9 @@ another.
       (**E8-T6**).
 - [x] LOD below 40% zoom (**E8-T7**).
 - [ ] A 2000-node synthetic graph pans and zooms at 60 fps, benchmarked nightly from M2
-      (**E8-T15**).
+      (**E8-T15**). *The nightly runs it and publishes the figures; it deliberately cannot fail on
+      them, because a runner has no GPU and nobody yet knows the spread of a software-rendered
+      frame time on that hardware. Setting the threshold from observed data is* **E1-T34**.
 - [ ] Docking via `Dock.Avalonia`, with a serialisable, testable layout model, *reset
       layout* and named workspace presets. RCS's from-scratch dock manager is **not**
       ported; only the idea is (**E8-T2**).
@@ -701,6 +711,13 @@ another.
 (b) measured 2,000 nodes at 0.87 ms median and 2.26 ms p95 for the whole render pass, with cost
 tracking what is on screen rather than graph size ([E11-T20](#e11--quality-and-verification)).
 
+**Those two figures are not trustworthy as figures, and the conclusion they support is
+unaffected.** They were taken over a 120-frame window while the run reported five hundred frames,
+so they describe the tail of the zoom sweep rather than the whole of it ([N31](NOTES.md), fixed in
+`E8-T21`). The gate was never close: the budget is 16.7 ms and the correction moves a number
+around one millisecond by a fraction of a millisecond. Re-quote them from a nightly run rather
+than re-deriving them by hand — that is `E1-T34`.
+
 The shell, the immediate-mode canvas over a retained spatial index, level-of-detail below 40%
 zoom, and pan/zoom/box-select/drag/wire/unwire/delete are all in, driven by headless tests using
 real pointer gestures — which found a bug vigilance would not have: hit-testing depended on a
@@ -717,9 +734,12 @@ setting a flag on the first move, and a test drags a node out and back to where 
 **Three rows are short.** The shell is a `Grid` with splitters rather than a `DockControl`,
 because Dock.Avalonia's templates live in a companion package that was never pinned and without
 it a `DockControl` renders nothing at all (`E8-T2`). Group, note and align are not built
-(`E8-T6`). And one measured number has a harness now but no schedule: `bench/Spark.Benchmarks`
-and `--canvas-benchmark` both produce figures, and nothing runs either of them nightly
-(`E8-T15`).
+(`E8-T6`). The third has closed since it was written: `bench/Spark.Benchmarks` and
+`--canvas-benchmark` now both run nightly (`E1-T21`). `E8-T15` stays short for a narrower reason —
+the canvas figures are **recorded and not gated**, because a runner has no GPU and nobody yet
+knows the spread of a software-rendered frame time on that hardware. Setting the threshold from
+observed data is `E1-T34`. The managed suites are gated from the first run, on bytes allocated
+rather than on time.
 
 **The hybrid overlay has its first inhabitant** (`E8-T5`). Nothing is edited in place on a node
 yet, but the canvas creation box is a real Avalonia control positioned in screen space over the
@@ -968,7 +988,9 @@ nothing.
       is worthless; a loud one is fine (**E11-T14**). *Written in `ci.yml`; being
       `pull_request`-only it cannot have run, and has not.*
 - [ ] A headless UI smoke test runs in CI (**E11-T15**).
-- [ ] Benchmarks run nightly with results committed as a git time series (**E11-T16**).
+- [ ] Benchmarks run nightly, gating allocation rather than time (**E11-T16**). *Written and
+      never run; the committed time series was deliberately not built, see* **E1-T21** *and*
+      [ADR-0023](adr/0023-benchmarks-gate-allocation-not-time.md).
 - [ ] `tests/corpus/` grows with every bug found (**E11-T17**).
 - [ ] The three M1.5 spikes have **pass/fail criteria written down before the spike starts**
       and are deleted afterwards (**E11-T19**, **E11-T20**, **E11-T21**). *None of the three

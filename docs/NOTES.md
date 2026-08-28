@@ -941,3 +941,63 @@ cache hands the same object to every caller of the same string, so setting `MaxT
 cached run would leave a port type label ellipsised because a preview headline elsewhere happened
 to read the same. That defect would appear on one node in one graph and in no test — headless
 drawing is a stub and measures nothing — so it is designed out rather than guarded against.
+
+---
+
+## N31 — A benchmark printed a sample size it had not measured over
+
+`--canvas-benchmark 600` discards a sixth as warm-up and prints `frames=500`. The distribution
+printed on the line beneath it — median, p95 and the implied frame rate — came from
+`GraphCanvas.Frames`, which is a `FrameTimer` built with its **default 120-frame window** because
+that is what the on-screen readout wants.
+
+So the header said 500 and the statistics described the last 120. The two numbers had never
+agreed, and nothing said so: a ring buffer does not complain about being overrun, it just forgets.
+That is the whole failure — not a wrong formula, but a right formula over a silently smaller
+sample than the line above it claimed.
+
+**It is not a rounding difference.** The zoom sweep is deterministic and the tail of it is not
+representative of the middle: on the run that found this, the tail-only window read **1.70 ms
+median** where the whole 500 frames read **1.15 ms**. Which direction the bias runs is a property
+of the sweep rather than a constant, and that is the point — the tail is *a* part of the run, and
+the header promised *the* run.
+
+`FrameTimer.Resize` fixes it, and `StartBenchmark` sizes the window to the frames the run will
+measure. The printed line now names the window it actually used — `over 500 frames` — so the claim
+and the sample are the same number in the same sentence and cannot drift apart again in silence.
+
+**Two things this changes for anyone setting a threshold on these numbers.** First, figures quoted
+before this note are not comparable to figures after it; the 0.87 ms median recorded against
+`E8-T15` was measured the old way. Second, the median is the noisier statistic: four consecutive
+runs on one quiet machine gave medians of 1.04–1.25 ms (±20%) against p95s of 3.04–3.24 ms (±6%).
+Guard the p95. It is also the number [ADR-0013](adr/0013-immediate-mode-node-canvas.md) is actually
+about, which the `FrameTimer` documentation already said and the benchmark had not been reading.
+
+---
+
+## N32 — Allocation is what a shared runner cannot move, and it is not a consolation prize
+
+The nightly benchmark gates bytes allocated per operation and gates nothing else
+([ADR-0023](adr/0023-benchmarks-gate-allocation-not-time.md)). The reasoning is in the record; two
+measurements behind it belong here, because both are the kind of thing the next reader would
+otherwise assume rather than check.
+
+**Allocation did not move between BenchmarkDotNet job configs.** The worry that justified pinning
+the baseline to `--job short` was that bytes-per-operation is total bytes over operation count, so
+a short run might amortise one-time allocations over far fewer operations and read high. The four
+`EvaluationBenchmarks` cases were measured under the default config and under `--job short`, and
+came back byte-identical: 1 593 696 and 103 296 at fifty nodes, 16 155 032 and 1 045 544 at five
+hundred. Keep the two configs matched anyway, because it costs nothing — but if they ever disagree
+that is a finding, not a nuisance to widen the tolerance around.
+
+**Two ceilings are zero, and that is the sharpest guard in the file.**
+`SceneIndexBenchmarks.Cull` and `HitTest` allocate nothing at two thousand nodes. Five per cent of
+zero is zero, so *any* allocation on the cull path fails the job. ADR-0013's whole bet is that
+culling a few thousand rectangles by hand each frame is cheaper than the framework's per-visual
+costs, and an allocation per frame — a closure, a lambda capture, a `ToList()` added in passing —
+is precisely how that stops being true while every test stays green.
+
+**The figure that made `E4-T3` a standing guard is now a ceiling rather than an observation.** At
+100 000 elements the return path allocates 5 297 836 B against the argument path's 800 144 B, a
+factor of 6.6, because `FromClr` boxes every element through a `List<object?>`. That was recorded
+as a number to act on later. Later has not come, and it now cannot get worse unnoticed.

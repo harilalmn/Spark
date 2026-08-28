@@ -33,6 +33,7 @@ public sealed partial class MainWindow : Window
 {
     private readonly Stopwatch _wallClock = new();
     private int _benchmarkFrames;
+    private int _benchmarkWarmUpFrames;
     private int _framesRun;
     private bool _benchmarkStarted;
     private int _peakVisibleNodes;
@@ -622,6 +623,7 @@ public sealed partial class MainWindow : Window
 
         _benchmarkStarted = true;
         _benchmarkFrames = Math.Max(60, frames);
+        _benchmarkWarmUpFrames = _benchmarkFrames / 6;
         _framesRun = 0;
         _peakVisibleNodes = 0;
 
@@ -633,6 +635,13 @@ public sealed partial class MainWindow : Window
         Viewport.IsVisible = false;
         ShellColumns.ColumnDefinitions = new ColumnDefinitions("0,0,*,0,0");
         CentreRows.RowDefinitions = new RowDefinitions("*,0,0");
+
+        // Size the frame window to the frames this run will actually measure. The default window
+        // is 120, which is what the on-screen readout wants and is far short of a benchmark run:
+        // leaving it there makes the summary describe the last 120 frames while the line above it
+        // prints the count of all of them. The tail of the zoom sweep is not the sweep - measured
+        // once, tail-only read 1.70 ms median where the whole run read 1.15. See NOTES.md N31.
+        Canvas.Frames.Resize(_benchmarkFrames - _benchmarkWarmUpFrames);
 
         _benchmarkBounds = Canvas.Graph.ComputeBounds();
         _wallClock.Restart();
@@ -659,8 +668,7 @@ public sealed partial class MainWindow : Window
         Canvas.Transform.OffsetY = centreY - (Canvas.Bounds.Height / (2 * zoom));
         Canvas.InvalidateVisual();
 
-        int warmUp = _benchmarkFrames / 6;
-        if (_framesRun == warmUp)
+        if (_framesRun == _benchmarkWarmUpFrames)
         {
             // Discard the warm-up: it contains JIT, the first text layout of every distinct node
             // title and the first spatial-index build, none of which recur.
@@ -677,7 +685,7 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        int measured = _benchmarkFrames - warmUp;
+        int measured = _benchmarkFrames - _benchmarkWarmUpFrames;
         double wallMilliseconds = _wallClock.Elapsed.TotalMilliseconds;
 
         Console.WriteLine(string.Create(
@@ -686,7 +694,7 @@ public sealed partial class MainWindow : Window
             $"frames={measured} surface={Canvas.Bounds.Width:F0}x{Canvas.Bounds.Height:F0}"));
         Console.WriteLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"  render pass: {Canvas.Frames.Summary()}"));
+            $"  render pass: {Canvas.Frames.Summary()} over {Canvas.Frames.Count} frames"));
         Console.WriteLine(string.Create(
             CultureInfo.InvariantCulture,
             $"  wall clock:  {wallMilliseconds / measured:F2} ms per frame, " +

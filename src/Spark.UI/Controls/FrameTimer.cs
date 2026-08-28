@@ -21,8 +21,8 @@ namespace Spark.UI.Controls;
 /// </remarks>
 public sealed class FrameTimer
 {
-    private readonly double[] _samples;
-    private readonly double[] _sorted;
+    private double[] _samples;
+    private double[] _sorted;
     private int _next;
     private int _filled;
 
@@ -52,6 +52,30 @@ public sealed class FrameTimer
         {
             _filled++;
         }
+    }
+
+    /// <summary>
+    /// Resizes the window and empties it.
+    /// </summary>
+    /// <param name="capacity">How many frames to keep. Clamped to at least eight.</param>
+    /// <remarks>
+    /// <b>A benchmark must size this to the run it is about to measure.</b> The default window is
+    /// 120 frames because that is what the on-screen readout wants; a 500-frame benchmark reporting
+    /// a median over the default window quotes its last 120 frames while printing the count of all
+    /// 500. The tail of a sweep is not the sweep, and which way it is unrepresentative is a
+    /// property of the sweep rather than a constant to correct for.
+    /// See [N31](../../../docs/NOTES.md).
+    /// </remarks>
+    public void Resize(int capacity)
+    {
+        capacity = Math.Max(8, capacity);
+        if (capacity != _samples.Length)
+        {
+            _samples = new double[capacity];
+            _sorted = new double[capacity];
+        }
+
+        Reset();
     }
 
     /// <summary>Empties the window, which is what a benchmark does after its warm-up.</summary>
