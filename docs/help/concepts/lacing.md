@@ -2,7 +2,7 @@
 id: concepts.lacing
 title: Lists, ranks and lacing
 nodes: []
-related: [concepts.lists, concepts.evaluation]
+related: [concepts.evaluation, concepts.geometry-basics]
 since: "0.1"
 ---
 

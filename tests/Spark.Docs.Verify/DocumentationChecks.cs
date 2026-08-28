@@ -188,6 +188,134 @@ public sealed class DocumentationChecks
     }
 
     /// <summary>
+    /// Every help topic id named in the source resolves to a topic that exists.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This check exists because it was missing.</b> Five diagnostic codes resolved to
+    /// <c>concepts.evaluation</c> from M0 onwards and <c>docs/help/concepts/evaluation.md</c>
+    /// did not exist, so a user following an <c>SPK101x</c> code landed nowhere. Nothing was
+    /// broken in any way a test could see: the id was a well-formed string, the codes were
+    /// registered, the topics that did exist all passed their front-matter check. The gap was
+    /// between two things nobody was comparing.
+    /// </para>
+    /// <para>
+    /// It reads the source as text rather than referencing <c>Spark.Engine</c>, which is this
+    /// harness's whole charter (see the remarks on the class). The cost is that a topic id
+    /// assembled at run time from pieces would not be seen — and that is worth saying out loud,
+    /// because it is the way this check could be defeated. Topic ids are constants and should
+    /// stay constants.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void EveryHelpTopicIdInTheSourceNamesATopicThatExists()
+    {
+        HashSet<string> topics = TopicIds();
+        Regex reference = new(@"""(concepts\.[a-z][a-z0-9-]*)""", RegexOptions.Compiled);
+        List<string> dangling = [];
+
+        foreach (string file in Directory.EnumerateFiles(
+                     Path.Combine(Root, "src"), "*.cs", SearchOption.AllDirectories))
+        {
+            if (file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                || file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            foreach (Match match in reference.Matches(File.ReadAllText(file)))
+            {
+                string id = match.Groups[1].Value;
+
+                if (!topics.Contains(id))
+                {
+                    dangling.Add($"{Relative(file)} names '{id}', which no topic declares.");
+                }
+            }
+        }
+
+        Assert.True(
+            dangling.Count == 0,
+            "Help topic ids in the source with no topic behind them:\n" + string.Join("\n", dangling));
+    }
+
+    /// <summary>
+    /// Every <c>related</c> id in a topic's front matter resolves to a topic that exists.
+    /// </summary>
+    /// <remarks>
+    /// The same fault in the other direction, and it had also happened: <c>concepts.lacing</c>
+    /// listed <c>concepts.lists</c> as related, and there is no such topic — lacing is the
+    /// topic that covers lists. A dangling cross-reference is worse than a missing one, because
+    /// it reads as a promise that something more is written down somewhere.
+    /// </remarks>
+    [Fact]
+    public void EveryRelatedTopicIdResolves()
+    {
+        HashSet<string> topics = TopicIds();
+        List<string> dangling = [];
+
+        foreach (string topic in HelpTopics())
+        {
+            Match related = Regex.Match(File.ReadAllText(topic), @"^related:\s*\[(.*?)\]", RegexOptions.Multiline);
+
+            if (!related.Success)
+            {
+                continue;
+            }
+
+            foreach (string raw in related.Groups[1].Value.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                string id = raw.Trim();
+
+                if (id.Length > 0 && !topics.Contains(id))
+                {
+                    dangling.Add($"{Relative(topic)} relates to '{id}', which no topic declares.");
+                }
+            }
+        }
+
+        Assert.True(
+            dangling.Count == 0,
+            "Related ids with no topic behind them:\n" + string.Join("\n", dangling));
+    }
+
+    /// <summary>
+    /// Every topic's <c>id</c> is unique, and matches nothing else's.
+    /// </summary>
+    /// <remarks>
+    /// Two topics sharing an id is a help panel that shows one of them and never the other,
+    /// with nothing anywhere reporting a problem. It is also what would quietly make the two
+    /// checks above pass while the wrong page was served.
+    /// </remarks>
+    [Fact]
+    public void NoTwoTopicsShareAnId()
+    {
+        Dictionary<string, string> seen = [];
+        List<string> clashes = [];
+
+        foreach (string topic in HelpTopics())
+        {
+            Match id = Regex.Match(File.ReadAllText(topic), @"^id:\s*(\S+)", RegexOptions.Multiline);
+
+            if (!id.Success)
+            {
+                clashes.Add($"{Relative(topic)} declares no id.");
+                continue;
+            }
+
+            if (seen.TryGetValue(id.Groups[1].Value, out string? other))
+            {
+                clashes.Add($"{Relative(topic)} and {other} both declare '{id.Groups[1].Value}'.");
+                continue;
+            }
+
+            seen[id.Groups[1].Value] = Relative(topic);
+        }
+
+        Assert.True(clashes.Count == 0, string.Join("\n", clashes));
+    }
+
+    /// <summary>
     /// The core project documents each carry a <c>Last updated</c> date. It is how a reader
     /// judges whether to trust a document, and the one piece of metadata that reliably reveals
     /// a document nobody has revisited.
@@ -261,6 +389,23 @@ public sealed class DocumentationChecks
         // for a node-graph tool, an example graph is often the better illustration.
         return text.Contains("```", StringComparison.Ordinal)
             || text.Contains(".spark", StringComparison.Ordinal);
+    }
+
+    private static HashSet<string> TopicIds()
+    {
+        HashSet<string> ids = [];
+
+        foreach (string topic in HelpTopics())
+        {
+            Match id = Regex.Match(File.ReadAllText(topic), @"^id:\s*(\S+)", RegexOptions.Multiline);
+
+            if (id.Success)
+            {
+                ids.Add(id.Groups[1].Value);
+            }
+        }
+
+        return ids;
     }
 
     private static IEnumerable<string> HelpTopics()

@@ -8,9 +8,9 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,127 tests over eight
+Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,130 tests over eight
 projects**) and `dotnet format` are all clean — though `dotnet test` itself now reports
-`Zero tests ran` on SDK 10.0.400 and the 1,127 are counted by `scripts/run-tests.sh`
+`Zero tests ran` on SDK 10.0.400 and the 1,130 are counted by `scripts/run-tests.sh`
 ([N34](NOTES.md)) — and **CI ran green on Windows and Linux on `53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
 
@@ -466,11 +466,15 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   drop shadow crosses its threshold, costing 57→40 fps at 2,000 nodes. The design language
   already specifies the fix — a sprite cache keyed on a fixed set of blur radii, eight sprites
   in total. Scoped, specified, and not yet built (`E8`).
-- **`concepts.evaluation` is a help topic id with no file behind it.** Five diagnostic codes
-  resolve to it and `docs/help/concepts/evaluation.md` does not exist, so a user following an
-  `SPK101x` code has nowhere to land. The docs harness does not currently check that a topic id
-  names a real topic, which is why nobody noticed; both halves are worth fixing together
-  (`E10`, `E11-T14`).
+- **`concepts.evaluation` had no file behind it, and the harness could not have known.**
+  *Fixed.* Five diagnostic codes resolved to it from M0 and the topic did not exist, so a user
+  following an `SPK101x` code landed nowhere. **Nothing was broken in any way a test could
+  see** — the id was a well-formed string, the codes were registered, and every topic that did
+  exist passed its front-matter check; the gap was between two things nobody was comparing. The
+  topic is written, and the harness gained three checks: a topic id in the source must name a
+  real topic, a `related` id must too, and no two topics may share an id. All three were proven
+  to fire. The second found a second dangling reference immediately — `concepts.lacing` related
+  to `concepts.lists`, and lacing *is* the topic that covers lists.
 - **Coordinates are unitless.** No `UnitSystem`, no unit types, no conversion. Import and
   export assume the file's own units and document that they do. PRD decision **D12**. This
   does **not** remove scale-aware tolerance, which is numerical robustness rather than
