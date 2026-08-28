@@ -1,1 +1,4 @@
 #nullable enable
+Spark.Geometry.Io.ObjWriter
+static Spark.Geometry.Io.ObjWriter.Write(System.IO.TextWriter! writer, System.Collections.Generic.IEnumerable<Spark.Geometry.Curve!>! curves, System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>? points = null, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> void
+static Spark.Geometry.Io.ObjWriter.WriteFile(string! path, System.Collections.Generic.IEnumerable<Spark.Geometry.Curve!>! curves, System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>? points = null, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> void

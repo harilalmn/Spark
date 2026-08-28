@@ -8,9 +8,9 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,115 tests over seven
+Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,127 tests over eight
 projects**) and `dotnet format` are all clean — though `dotnet test` itself now reports
-`Zero tests ran` on SDK 10.0.400 and the 1,115 are counted by `scripts/run-tests.sh`
+`Zero tests ran` on SDK 10.0.400 and the 1,127 are counted by `scripts/run-tests.sh`
 ([N34](NOTES.md)) — and **CI ran green on Windows and Linux on `53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
 
@@ -23,7 +23,7 @@ Three distinctions still do the work in what follows:
   two-way diff, the Avalonia shell, the immediate-mode canvas, the GL viewport, 57 nodes in
   `Spark.Nodes.Core`, a `.spark` file a graph survives a round trip through byte for byte, and a
   64-step undo stack over that same file format.
-- **What is not.** No surfaces, meshes, BRep or solids. No `NurbsCurve`. No `spark run`. No
+- **What is not.** No surfaces, meshes, BRep or solids. No `NurbsCurve`. No
   packages and no code block. And **no OCCT**: there is no `native/` directory and no
   `Spark.Geometry.Occt` project.
 - **Gates are not review, and this project now has its own proof three times over.** The
@@ -265,8 +265,26 @@ for anything else.
       about touching while `Intersection` returns a region, and widening a region by a tolerance
       hands back space neither box occupies. Parity in the value layer goes from 92 to
       **95 of 133**.
-- [ ] `spark` writes an OBJ polyline that a third-party viewer opens. That is the M1 demo, and
-      `Spark.Geometry.Io` is still an empty project — but the curves it would write now exist.
+- [x] **`spark` writes an OBJ polyline** — `E2-T34`'s writer half and `E12-T5`'s `run`.
+      `Spark.Geometry.Io` stops being an empty project and `Spark.Cli` stops being a stub:
+      `spark run docs/examples/curves.spark --export curves.obj` evaluates the demo graph
+      headlessly through the same `SparkSession`, node library and `SparkFile` reader the
+      desktop application uses, and writes 20 polylines and 59 points. **The last clause of
+      this row is not ticked**: *a third-party viewer opens it* is a manual acceptance nobody
+      has performed, and it is the only part of the M1 demo that a test in this repository
+      cannot stand in for. What is done instead is the strongest proxy available — the OBJ is
+      read back by a deliberately naive parser written in the test project, which refuses any
+      directive it does not know, because a writer verified by its own reader agrees with
+      itself and with nobody.
+      Three decisions are recorded on the writer rather than left to be found: OBJ has **no
+      curve entity**, so curves are tessellated and the chord tolerance goes into the header;
+      **nothing is welded**, because welding is a tolerance decision belonging to whoever knows
+      what the model is; and numbers are invariant-culture with `
+` endings on every platform,
+      since a comma decimal separator turns `1,5` into two fields that no reader complains
+      about. **Running it found a real defect**: `--tolerance` meant a *characteristic length*,
+      so asking for a coarser export with a bigger number produced a file eight times larger —
+      649,105 vertices against 79,361. It now means the linear tolerance itself.
 
 ## After that — finishing M2, and M1.6
 

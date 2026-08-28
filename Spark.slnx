@@ -21,6 +21,7 @@
     <Project Path="tests/Spark.Docs.Verify/Spark.Docs.Verify.csproj" />
     <Project Path="tests/Spark.Engine.Tests/Spark.Engine.Tests.csproj" />
     <Project Path="tests/Spark.Geometry.Properties/Spark.Geometry.Properties.csproj" />
+    <Project Path="tests/Spark.Geometry.Io.Tests/Spark.Geometry.Io.Tests.csproj" />
     <Project Path="tests/Spark.Geometry.Tests/Spark.Geometry.Tests.csproj" />
     <Project Path="tests/Spark.UI.Tests/Spark.UI.Tests.csproj" />
     <Project Path="tests/Spark.Viewport.Tests/Spark.Viewport.Tests.csproj" />
