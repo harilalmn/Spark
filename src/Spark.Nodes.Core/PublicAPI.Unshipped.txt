@@ -1,17 +1,49 @@
 #nullable enable
+Spark.Nodes.Core.Arc
 Spark.Nodes.Core.BoundingBox
+Spark.Nodes.Core.Circle
 Spark.Nodes.Core.Colour
+Spark.Nodes.Core.Curve
 Spark.Nodes.Core.Display
+Spark.Nodes.Core.Ellipse
+Spark.Nodes.Core.Line
 Spark.Nodes.Core.Math
 Spark.Nodes.Core.Number
 Spark.Nodes.Core.Plane
 Spark.Nodes.Core.Point
+Spark.Nodes.Core.PolyCurve
+Spark.Nodes.Core.PolyLine
 Spark.Nodes.Core.Vector
 const Spark.Nodes.Core.Number.MaximumRangeCount = 1000000 -> int
+static Spark.Nodes.Core.Arc.ByCentreStartPointSweepAngle(Spark.Geometry.Point3d centre, Spark.Geometry.Point3d startPoint, Spark.Geometry.Vector3d normal, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Arc!
+static Spark.Nodes.Core.Arc.ByPlaneRadiusAngles(Spark.Geometry.Plane plane, double radius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Arc!
+static Spark.Nodes.Core.Arc.ByThreePoints(Spark.Geometry.Point3d first, Spark.Geometry.Point3d second, Spark.Geometry.Point3d third) -> Spark.Geometry.Arc!
 static Spark.Nodes.Core.BoundingBox.ByCorners(Spark.Geometry.Point3d corner, Spark.Geometry.Point3d oppositeCorner) -> Spark.Geometry.BoundingBox
 static Spark.Nodes.Core.BoundingBox.Centre(Spark.Geometry.BoundingBox box) -> Spark.Geometry.Point3d
+static Spark.Nodes.Core.Circle.ByCentreNormalRadius(Spark.Geometry.Point3d centre, Spark.Geometry.Vector3d normal, double radius = 1) -> Spark.Geometry.Circle!
+static Spark.Nodes.Core.Circle.ByCentreRadius(Spark.Geometry.Point3d centre, double radius = 1) -> Spark.Geometry.Circle!
+static Spark.Nodes.Core.Circle.ByPlaneRadius(Spark.Geometry.Plane plane, double radius = 1) -> Spark.Geometry.Circle!
+static Spark.Nodes.Core.Circle.ByThreePoints(Spark.Geometry.Point3d first, Spark.Geometry.Point3d second, Spark.Geometry.Point3d third) -> Spark.Geometry.Circle!
 static Spark.Nodes.Core.Colour.ByRgb(double red = 255, double green = 255, double blue = 255) -> Spark.Api.Rgba
+static Spark.Nodes.Core.Curve.CoordinateSystemAtParameter(Spark.Geometry.Curve! curve, double parameter = 0.5) -> Spark.Geometry.CoordinateSystem
+static Spark.Nodes.Core.Curve.DivideByLength(Spark.Geometry.Curve! curve, double length = 1) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
+static Spark.Nodes.Core.Curve.DivideEqually(Spark.Geometry.Curve! curve, int divisions = 10) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
+static Spark.Nodes.Core.Curve.EndPoint(Spark.Geometry.Curve! curve) -> Spark.Geometry.Point3d
+static Spark.Nodes.Core.Curve.IsClosed(Spark.Geometry.Curve! curve) -> bool
+static Spark.Nodes.Core.Curve.Length(Spark.Geometry.Curve! curve) -> double
+static Spark.Nodes.Core.Curve.PointAtLength(Spark.Geometry.Curve! curve, double distance = 0) -> Spark.Geometry.Point3d
+static Spark.Nodes.Core.Curve.PointAtParameter(Spark.Geometry.Curve! curve, double parameter = 0.5) -> Spark.Geometry.Point3d
+static Spark.Nodes.Core.Curve.Reverse(Spark.Geometry.Curve! curve) -> Spark.Geometry.Curve!
+static Spark.Nodes.Core.Curve.StartPoint(Spark.Geometry.Curve! curve) -> Spark.Geometry.Point3d
+static Spark.Nodes.Core.Curve.TangentAtParameter(Spark.Geometry.Curve! curve, double parameter = 0.5) -> Spark.Geometry.Vector3d
+static Spark.Nodes.Core.Curve.Tessellate(Spark.Geometry.Curve! curve, double tolerance = 0.001) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
+static Spark.Nodes.Core.Curve.Translate(Spark.Geometry.Curve! curve, Spark.Geometry.Vector3d direction, double distance = 1) -> Spark.Geometry.Curve!
+static Spark.Nodes.Core.Curve.TrimByParameter(Spark.Geometry.Curve! curve, double start = 0, double end = 1) -> Spark.Geometry.Curve!
 static Spark.Nodes.Core.Display.ByGeometryColour(object! geometry, Spark.Api.Rgba colour = default(Spark.Api.Rgba), double lineWeight = 1) -> Spark.Api.Displayable!
+static Spark.Nodes.Core.Ellipse.ByPlaneRadii(Spark.Geometry.Plane plane, double xRadius = 2, double yRadius = 1) -> Spark.Geometry.EllipseCurve!
+static Spark.Nodes.Core.Ellipse.ByPlaneRadiiAngles(Spark.Geometry.Plane plane, double xRadius, double yRadius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.EllipseCurve!
+static Spark.Nodes.Core.Line.ByStartPointDirectionLength(Spark.Geometry.Point3d start, Spark.Geometry.Vector3d direction, double length = 1) -> Spark.Geometry.Line!
+static Spark.Nodes.Core.Line.ByStartPointEndPoint(Spark.Geometry.Point3d start, Spark.Geometry.Point3d end) -> Spark.Geometry.Line!
 static Spark.Nodes.Core.Math.Add(double a = 0, double b = 0) -> double
 static Spark.Nodes.Core.Math.Cos(double degrees = 0) -> double
 static Spark.Nodes.Core.Math.Divide(double a = 0, double b = 1) -> double
@@ -28,6 +60,11 @@ static Spark.Nodes.Core.Point.Coordinates(Spark.Geometry.Point3d point, out doub
 static Spark.Nodes.Core.Point.Distance(Spark.Geometry.Point3d start, Spark.Geometry.Point3d end) -> double
 static Spark.Nodes.Core.Point.Origin() -> Spark.Geometry.Point3d
 static Spark.Nodes.Core.Point.Translate(Spark.Geometry.Point3d point, Spark.Geometry.Vector3d direction, double distance = 1) -> Spark.Geometry.Point3d
+static Spark.Nodes.Core.PolyCurve.ByJoinedCurves(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>! curves, double tolerance = 1E-06) -> Spark.Geometry.PolyCurve!
+static Spark.Nodes.Core.PolyLine.ByClosedPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.PolyLine!
+static Spark.Nodes.Core.PolyLine.ByPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.PolyLine!
+static Spark.Nodes.Core.PolyLine.ByRectangle(Spark.Geometry.Plane plane, double width = 1, double length = 1) -> Spark.Geometry.PolyLine!
+static Spark.Nodes.Core.PolyLine.ByRegularPolygon(Spark.Geometry.Plane plane, double radius = 1, int sides = 6) -> Spark.Geometry.PolyLine!
 static Spark.Nodes.Core.Vector.ByCoordinates(double x = 0, double y = 0, double z = 0) -> Spark.Geometry.Vector3d
 static Spark.Nodes.Core.Vector.ByTwoPoints(Spark.Geometry.Point3d start, Spark.Geometry.Point3d end) -> Spark.Geometry.Vector3d
 static Spark.Nodes.Core.Vector.Length(Spark.Geometry.Vector3d vector) -> double

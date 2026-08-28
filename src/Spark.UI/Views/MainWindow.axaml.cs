@@ -321,6 +321,8 @@ public sealed partial class MainWindow : Window
 
     private void OnLoadDemo(object? sender, RoutedEventArgs e) => Model?.LoadDemo();
 
+    private void OnLoadCurves(object? sender, RoutedEventArgs e) => Model?.LoadCurves();
+
     private void LoadSynthetic(int nodeCount) => Model?.LoadSynthetic(nodeCount);
 
     private void UpdateStatus()

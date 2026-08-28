@@ -75,6 +75,24 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     /// <summary>Creates the view model with the built-in library imported and the demo loaded.</summary>
     public MainWindowViewModel()
+        : this(null)
+    {
+    }
+
+    /// <summary>
+    /// Creates the view model with a named seeded graph loaded.
+    /// </summary>
+    /// <param name="startupGraph">
+    /// <c>curves</c> for the curve demo, anything else — including null — for the point grid.
+    /// </param>
+    /// <remarks>
+    /// The choice is made here rather than by calling a load command once the window is open, and
+    /// the difference is not stylistic. Adopting a graph starts an evaluation; loading a second
+    /// graph afterwards leaves two runs in flight against one session, and the screenshot path then
+    /// captures whichever finished last. That was not a theory — it produced a window showing the
+    /// curve graph, the point demo's diagnostics, and an empty viewport.
+    /// </remarks>
+    public MainWindowViewModel(string? startupGraph)
     {
         Layout = WorkspaceLayout.Default;
 
@@ -86,7 +104,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         LibraryEntries = [.. AllLibraryEntries];
         Inspector = [];
 
-        _graph = DemoGraphs.Demo(_session.Library);
+        _graph = string.Equals(startupGraph, "curves", StringComparison.OrdinalIgnoreCase)
+            ? DemoGraphs.Curves(_session.Library)
+            : DemoGraphs.Demo(_session.Library);
         AdoptGraph(_graph);
     }
 
@@ -125,6 +145,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public void LoadDemo()
     {
         AdoptGraph(DemoGraphs.Demo(_session.Library));
+        GraphReplaced?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Replaces the document with the curve demo graph.</summary>
+    [RelayCommand]
+    public void LoadCurves()
+    {
+        AdoptGraph(DemoGraphs.Curves(_session.Library));
         GraphReplaced?.Invoke(this, EventArgs.Empty);
     }
 

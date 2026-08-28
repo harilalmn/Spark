@@ -243,19 +243,29 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       third-party viewer, **never our own reader**.
 - [ ] No drafting or annotation types exist anywhere in the kernel (**D13**).
 
-**Status.** Started, and the **first slice — the value layer — is landed, reviewed, repaired
-and accepted.** `src/Spark.Geometry` holds `Angle`, `Tolerance`, `Point3d`, `Vector3d`,
-`Point2d`, `Vector2d`, `UV`, `Interval`, `BoundingBox`, `Plane`, `Transform` and
-`CoordinateSystem`, plus an internal `NamespaceDoc` carrying the conventions the whole
-namespace obeys. Together they declare **387 public members**, all documented — CS1591 is an
-error here — and all recorded in `PublicAPI.Unshipped.txt`. They are covered by
-`tests/Spark.Geometry.Tests` (276 example-based tests) and `tests/Spark.Geometry.Properties`
-(28 CsCheck properties), both green.
+**Status.** Two slices are landed. The **value layer** — `Angle`, `Tolerance`, `Point3d`,
+`Vector3d`, `Point2d`, `Vector2d`, `UV`, `Interval`, `BoundingBox`, `Plane`, `Transform` and
+`CoordinateSystem`, plus an internal `NamespaceDoc` carrying the conventions the whole namespace
+obeys — was reviewed, repaired and accepted. The **curve layer** followed: a `Curve` base whose
+constructor is `private protected`, so the set of curve types is closed to the assembly, with
+`Line`, `Arc`, `Circle`, `EllipseCurve`, `PolyLine` and `PolyCurve` over it. Everything is
+documented, because CS1591 is an error here, and everything is recorded in
+`PublicAPI.Unshipped.txt`. Coverage is `tests/Spark.Geometry.Tests` (313 example-based tests)
+and `tests/Spark.Geometry.Properties` (38 CsCheck properties), both green.
 
-**Nothing else in this epic has started.** There are no curves, no surfaces, no meshes, no
-BRep topology, no `IBrepKernel`, no serialization and no interchange. `Spark.Geometry.Io` is
-still an empty project. Four criteria above are ticked; the rest describe work that does not
-exist.
+**What the curve layer settled, and it was settled before it was written.** The contract came
+from [DYNAMO-COVERAGE §3.2](DYNAMO-COVERAGE.md#32-curves--11-types-187-members-partially-reachable)
+rather than from FR-48, because that section had found the gap between them to be structural
+rather than incidental: **arc-length reparameterisation is in the contract**, so *divide this
+curve into twelve equal lengths* is a first-class operation rather than a retrofit. It is
+analytic on the five constant-speed types and a ten-point Gauss–Legendre integral with a Newton
+inverse on the ellipse — which is also the only curve here whose tests can tell an arc-length
+division from a parameter division, since every other one travels at a constant speed.
+
+**Still not started in this epic.** No surfaces, no meshes, no BRep topology, no `IBrepKernel`,
+no serialization and no interchange. `Spark.Geometry.Io` is still an empty project. No
+`NurbsCurve`, and no closest-point, split, offset or intersection on the curves that exist —
+each named on its type rather than left to be discovered.
 
 **How the slice was accepted matters more than that it was.** The first attempt passed
 `build -warnaserror`, `test` and `format`, and was **rejected**: an independent review found
@@ -742,7 +752,7 @@ superseded by ADR-0019 — and **three help topics exist**: `concepts/lacing.md`
 `concepts/design-language.md`, the last of which is owned by `spark-ui`, landed alongside
 this reconciliation, and is recorded here rather than reviewed here.
 
-**XML doc comments have started, and started where they are enforced.** All 387 public
+**XML doc comments have started, and started where they are enforced.** All 487 public
 members of `Spark.Geometry` carry them — CS1591-as-error makes that structural rather than
 diligent — together with an internal `NamespaceDoc` that states the namespace-wide
 conventions once instead of thirteen times. They are not minimal: they state units, edge

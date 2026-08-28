@@ -11,46 +11,52 @@ which ships with Spark.
 
 **Last updated:** 2026-08-28
 
-> ## Status: M1 has started — there is still nothing to run
+> ## Status: it runs, and it draws curves
 >
-> **This repository is scaffolding, gates, specification, and the first slice of the
-> geometry kernel.** It contains a solution, twelve project stubs, a reference graph, build
-> properties, the project documents, twenty-one ADRs, the lacing specification, a CI workflow,
-> public-API baselines, and four test projects.
+> **There is an application now.** `dotnet run --project src/Spark.Desktop` opens the shell,
+> evaluates a graph and puts geometry in a GPU viewport. The seeded curve demo draws an ellipse
+> divided into twenty-four equal *lengths*, eight circles produced by a single node fed a list of
+> centres, and a pentagon — three curve families, one of them laced.
 >
-> **The one piece of product code that exists** is `Spark.Geometry`'s **value layer**:
-> thirteen types — `Angle`, `Tolerance`, `Point3d`, `Vector3d`, `Point2d`, `Vector2d`, `UV`,
-> `Interval`, `BoundingBox`, `Plane`, `Transform`, `CoordinateSystem` and an internal
-> `NamespaceDoc` — declaring 387 public members, all documented, landed and **reviewed,
-> repaired and accepted**. There are **no curves, no surfaces, no meshes and no solids**, and
-> no graph engine, UI or viewport at all.
+> **What exists.** `Spark.Geometry`'s **value layer** (thirteen types) and its **curve layer**
+> (`Line`, `Arc`, `Circle`, `EllipseCurve`, `PolyLine` and `PolyCurve` over a `Curve` base, with
+> arc-length reparameterisation in the contract rather than bolted on). A graph engine with
+> topological evaluation, a provenance cache and the full replication engine. A reflection
+> importer that turns 57 first-party nodes out of plain static methods, with a two-way diff that
+> makes an unreachable public member a red build. An Avalonia shell, an immediate-mode node
+> canvas, and an OpenGL viewport.
 >
-> What has been run, on Windows, on 2026-08-27:
+> **What does not exist.** No surfaces, meshes, BRep or solids. No `NurbsCurve`. **No save and
+> no load** — a graph cannot yet outlive the process, which is the largest gap. No undo, no
+> `spark run`, no packages, no code block. And **no OpenCascade**: there is no `native/`
+> directory and no `Spark.Geometry.Occt` project.
+>
+> What has been run, on Windows, on 2026-08-28:
 > `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen projects;
-> `dotnet test Spark.slnx` runs **315 passing tests** across four projects; and
-> `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean. What has **not**
-> been run: CI against this tree. The workflow has been green on Windows and Linux for
-> earlier commits and has seen none of the kernel.
+> `dotnet test Spark.slnx` runs **873 passing tests** across seven projects; and
+> `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean. **CI ran all of it on
+> Windows and Linux on commit `35107f0` and was green**, so the Linux leg is no longer a claim.
 >
-> **Worth knowing about how that slice was accepted.** Its first version passed all three
+> **Worth knowing about how this code is accepted.** The kernel's first slice passed all three
 > gates and was rejected on review, with three of its eight claims false — most visibly a
-> default-constructed `Plane` on which every point in space silently lay. Both tests written
-> to guard it were structurally incapable of failing. Every fix in the accepted version is
-> regression-proven by reverting it and naming the test that goes red.
+> default-constructed `Plane` on which every point in space silently lay, guarded by two tests
+> that were structurally incapable of failing. Every fix since is regression-proven by reverting
+> it and naming the test that goes red, and every slice gets a mutation sweep. The curve layer's
+> sweep found a test that could not fail and a branch that could not be reached, both in code
+> that was green ([N19](docs/NOTES.md), [N20](docs/NOTES.md)).
 >
-> **One decision has landed since that slice, and it is the largest in the project.** Spark
-> will use **OpenCascade** as its solid-modelling kernel, reached through a C-ABI shim we own,
-> rather than writing its own exact BRep kernel — so exact booleans, fillet, chamfer, shell,
-> trim and STEP are **in 1.0** rather than post-1.0. **None of it is built:** there is no
-> `native/` directory, no `Spark.Geometry.Occt` project and no OpenCascade anywhere in this
-> tree. See [ADR-0020](docs/adr/0020-occt-via-c-abi-shim.md) and
-> [ADR-0021](docs/adr/0021-brep-kernel-residency.md), and the paragraph below on what that
-> means for a project whose whole premise is not depending on somebody else's CAD component.
+> **One decision dominates everything below, and it is unbuilt.** Spark will use **OpenCascade**
+> as its solid-modelling kernel, reached through a C-ABI shim we own, rather than writing its own
+> exact BRep kernel — so exact booleans, fillet, chamfer, shell, trim and STEP are **in 1.0**
+> rather than post-1.0.
 >
-> The rest of M1 is curves; M2 is the first milestone at which anything is usable — drag two
-> nodes, wire them, see geometry. See
-> [docs/PRD.md §11](docs/PRD.md#11-release-plan) for the plan and
-> [docs/TODO.md](docs/TODO.md) for what happens next.
+> See [ADR-0020](docs/adr/0020-occt-via-c-abi-shim.md) and
+> [ADR-0021](docs/adr/0021-brep-kernel-residency.md), and the paragraph below on what that means
+> for a project whose whole premise is not depending on somebody else's CAD component.
+>
+> What is left of M2 is persistence — save, load, undo, redo — after which a graph outlives the
+> process and this stops being a demo. See [docs/PRD.md §11](docs/PRD.md#11-release-plan) for the
+> plan and [docs/TODO.md](docs/TODO.md) for what happens next.
 
 ---
 
@@ -182,13 +188,20 @@ Linux and macOS. Warnings are errors in CI only, never in the project files —
 solution format, which needs a recent SDK and a recent Visual Studio
 ([N1](docs/NOTES.md)).
 
-There is still nothing to *run* — no application, no CLI behaviour. `dotnet test` finds **315
-tests** across four projects. `Spark.Geometry.Tests` (276) and `Spark.Geometry.Properties`
-(28) cover the kernel's value layer by example and by CsCheck property respectively;
-`Spark.Architecture.Tests` (6) enforces the reference graph below by reading `.csproj` files
-as XML; `Spark.Docs.Verify` (5) checks these documents against the repository. The last two
-were deliberately stood up before the code they now guard: a gate added later is a gate that
-gets an exemption for everything already there.
+`dotnet run --project src/Spark.Desktop` opens the application. Two switches are worth knowing:
+`--graph curves` opens the curve demo instead of the point grid, and `--screenshot PREFIX`
+writes a picture of the shell and a picture of the viewport and exits — the viewport one is a
+GPU read-back rather than a window grab, so it works over a locked session and in CI.
+
+`dotnet test` finds **873 tests** across seven projects. `Spark.Geometry.Tests` (313) and
+`Spark.Geometry.Properties` (38) cover the kernel by example and by CsCheck property
+respectively; `Spark.Engine.Tests` (273) covers the graph, the replicator and the importer;
+`Spark.UI.Tests` (167) drives the canvas headlessly with real pointer gestures;
+`Spark.Viewport.Tests` (69) covers the scene and the camera; `Spark.Architecture.Tests` (8)
+enforces the reference graph below by reading `.csproj` files as XML; and `Spark.Docs.Verify`
+(5) checks these documents against the repository. The last two were deliberately stood up
+before the code they now guard: a gate added later is a gate that gets an exemption for
+everything already there.
 
 ## Repository layout
 

@@ -5,176 +5,165 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 
 **Last updated:** 2026-08-28
 
-M0 has essentially landed and **M1 has started**. The solution, twelve project stubs, the
-reference graph, the build properties, these documents, twenty-one ADRs, the lacing
-specification, the CI workflow, the public-API baselines, and four test projects that pass all
-exist. So does the first slice of the geometry kernel: `src/Spark.Geometry` holds thirteen
-value types, declares 387 public members, and is covered by 304 of the 315 tests in the
-solution.
+**M0 and most of M1.5 have landed, M2's walking skeleton runs, and M1's geometry core now has
+curves.** The application opens, a graph evaluates, and an ellipse, eight circles and a polygon
+appear in the GPU viewport. `dotnet build`, `dotnet test` (**873 tests over seven projects**)
+and `dotnet format` are all clean, and **CI ran green on Windows and Linux on `35107f0`** — the
+Linux leg is no longer unproven.
 
-Three distinctions do the work in what follows, and all three are easy to blur:
+Three distinctions still do the work in what follows:
 
-- **The three gates genuinely pass, locally, on Windows, on 2026-08-27.**
-  `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen projects;
-  `dotnet test Spark.slnx` runs **315 tests** across four projects; `dotnet format Spark.slnx
-  --verify-no-changes --severity warn` is clean.
-- **CI has not run on this commit.** `.github/workflows/ci.yml` has been green on Windows and
-  Linux for earlier commits, and has seen nothing of the geometry kernel. Linux is where the
-  surprises live, and none of the above is a Linux result.
-- **Gates are not review, and this project now has its own proof.** The first attempt at the
-  kernel's value layer passed all three gates and was **rejected**: an independent review
-  found three of its eight claims false, including a `default(Plane)` on which every point in
-  space silently lay. The two tests guarding that type were structurally incapable of failing.
-  See *Known and deliberately accepted* below, and [NOTES.md N18](NOTES.md).
+- **What is built.** The value layer (13 types), the curve layer (`Line`, `Arc`, `Circle`,
+  `EllipseCurve`, `PolyLine`, `PolyCurve` over a `Curve` base, with arc-length
+  reparameterisation), the graph engine and replicator, the reflection importer with its
+  two-way diff, the Avalonia shell, the immediate-mode canvas, the GL viewport, and 57 nodes in
+  `Spark.Nodes.Core`.
+- **What is not.** No surfaces, meshes, BRep or solids. No `NurbsCurve`. No save, load, undo or
+  redo — **a graph still cannot outlive the process**, which is the largest gap in M2. No
+  `spark run`. No packages and no code block. And **no OCCT**: there is no `native/` directory
+  and no `Spark.Geometry.Occt` project.
+- **Gates are not review, and this project now has its own proof twice over.** The kernel's
+  first slice passed all three gates and was rejected on review ([NOTES N18](NOTES.md)). The
+  curve layer's mutation sweep then found a test that could not fail and a branch that could
+  not be reached ([N19](NOTES.md), [N20](NOTES.md)) — both in code that was green.
 
-**The kernel is values only.** There are no curves, surfaces, meshes or BRep types, and
-nothing below should be read as implying otherwise.
-
-**One decision has landed since the last revision, and it is the largest in the project.** The
-client chose to take an existing solid-modelling kernel rather than write one:
-**OpenCascade, reached through a C-ABI shim we own**
-([ADR-0020](adr/0020-occt-via-c-abi-shim.md),
+**The largest decision in the project is unchanged and unbuilt.** The client chose to take an
+existing solid-modelling kernel rather than write one: **OpenCascade, reached through a C-ABI
+shim we own** ([ADR-0020](adr/0020-occt-via-c-abi-shim.md),
 [ADR-0021](adr/0021-brep-kernel-residency.md), PRD **D2** and **D15**). It retires **R1** and
-**R12**, adds **R15 … R22**, adds a new two-week spike **M1.6**, adds a new epic
+**R12**, adds **R15 … R22**, adds a two-week spike **M1.6**, adds epic
 [E13](EPICS.md#e13--occt-provider) of roughly 24 weeks, and costs **+7 to +11 weeks against the
-plan as written while saving years against what was actually asked for**. **Nothing of it is
-built** — there is no `native/` directory, no `Spark.Geometry.Occt` project and no OCCT
-anywhere in the tree — and nothing below should be read as implying otherwise either.
+plan as written while saving years against what was actually asked for**. `50a9935` measured
+what comparable projects actually ship: a full win-x64 OCCT build is 52.1 MiB across 47
+toolkits plus 9.9 MiB of optional third-party libraries, so **R15's 40–160 MB bracket should be
+read as 55–70 MB** — but that is a survey, not a build.
 
 ---
 
-## Now — get the gates in front of real code
+## Now — reconcile the register, then persist a graph
 
-M0 is *foundations*, and its whole value is that the gates exist before the code does. There
-is now real code for them to be in front of, which makes the first item below more urgent
-than it was, not less.
-
-- [ ] **Get CI green on GitHub against the kernel** — `E1-T14` … `E1-T18`. Push, open a pull
-      request, watch all three jobs. **The Linux leg has seen none of the geometry kernel**,
-      and floating-point results, culture-dependent formatting and case-sensitive paths are
-      exactly the things that differ. Everything verified so far was verified on Windows. The
-      Linux job is a rot-guard, not a release target — see **D14**. `docs-freshness` is
-      `pull_request`-only and cannot run until there is a PR, so opening one closes two items
-      at once.
-- [ ] **Write the three remaining agent definitions** — `E1-T30`. `ui-shell`, `viewport` and
-      `reviewer`. Needed by M2, which is the first milestone to touch any of the three areas
-      they own. File ownership must stay disjoint, so parallel agents never conflict.
-      **`reviewer` has stopped being a formality:** the kernel's first slice passed all three
-      gates and was rejected on review, and nothing in the repository currently describes how
-      that review is meant to be conducted.
-- [ ] **Add the no-native-binaries CI check** — `E1-T20`. It was blocked on there being a
-      published output to inspect. `Spark.Geometry` now builds a real assembly and, having
-      shed its unused Clipper2 reference (`E2-T39`), references nothing but the BCL — so the
-      check is trivially satisfiable today, which is precisely when a gate should be added.
+- [ ] **Walk TASKS.md against E3, E4, E5, E8 and E9.** Those rows still read `Open` and the work
+      is substantially delivered — the graph model, topological evaluation, the full replicator,
+      the reflection importer, the shell, the canvas and the viewport all landed in `7ef0919`,
+      `85e3183` and `35107f0`, and nobody has walked the register against them since. This is
+      first because every estimate below is being made against a register known to be wrong, and
+      because the debt compounds: reconciling three commits is cheaper than reconciling six.
+- [ ] **Save and load a `.spark` file** — `E3-T17`, `E3-T18`. **A graph cannot outlive the
+      process today**, which makes every other M2 feature a demo rather than a tool. The format
+      is settled — plain JSON, [ADR-0017](adr/0017-spark-file-is-plain-json.md) — and the
+      reflection importer already gives every node a stable name to serialise against.
+- [ ] **Undo and redo** — `E8-T9`. The canvas already edits the graph through the session's
+      mutation gate, so the seam an undo stack needs exists; nothing records into it.
 - [ ] **Create `bench/Spark.Benchmarks`** — `E1-T13`. `bench/` and `scripts/` are still empty
-      directories. BenchmarkDotNet is pinned and unreferenced.
+      directories and BenchmarkDotNet is pinned and unreferenced. The canvas numbers quoted in
+      `85e3183` came from the app's own `--canvas-benchmark` switch, which is a real measurement
+      but not a committed harness — so nothing will notice the day it gets slower.
+- [ ] **Add the no-native-binaries CI check** — `E1-T20`. Still trivially satisfiable, and **the
+      window closes at M1.6**, which is the commit that first puts native binaries in the tree.
+      A gate added after the thing it guards against is a gate that never guarded.
 
-**Two items left this section rather than being done**, and both were about publishing to
-nuget.org: *settle whether `Spark.Host` publishes* (`E12-T17`, `Q10`) and *reserve the NuGet
-IDs* (`E1-T24`, which was the only M0 item with an outside clock on it). Both are
-**withdrawn**. Spark consumes NuGet packages and publishes none — PRD decision **D11** — so
-`IsPackable` is now `false` for every project and there is nothing to reserve, rename or
-reconcile. M0 lost a blocker rather than gaining one.
+## Next — name the M1.6 criteria, before the spike
 
-## Next — name the M1.5 **and M1.6** criteria, before M1 starts
+- [ ] **Write the M1.6 pass/fail criteria into TASKS.md** — `E13-T1`. **M1.6 gates ADR-0020 the
+      way M1.5 gated ADR-0001**, and M1.5 is now evidence that the rule works: its criteria were
+      written first, one of the three measurements failed, and the failure was diagnosed — a
+      drop-shadow blur threshold — rather than argued away. At minimum: OCCT builds from a
+      pinned tag through a vcpkg manifest on Windows *and* Linux; one boolean runs end to end
+      through a minimal `spark_occt` and `LibraryImport`; the per-RID binary footprint is
+      **measured** against `50a9935`'s 55–70 MB expectation; a `Materialise` on a realistic
+      shape is timed, because ADR-0021's whole rule rests on it being paid once; and a first
+      read is taken on OCCT's threading envelope (`Q14`) and on whether `ShapeFix` can be
+      constrained to a policy we choose. What a *failure* would mean is the part that needs
+      deciding before the spike, not after it.
+- [ ] **The third M1.5 spike is still outstanding** — `E11-T21`. AvaloniaEdit plus a Roslyn
+      completion popup. It gates the M4 code block rather than anything M2 needs, which is why
+      the other two were taken first, but it is the last unproven part of M1.5.
 
-Small, and deliberately its own step rather than a bullet inside M0, because the whole value
-of it is the *order*.
+## Then — the rest of M1, the geometry core
 
-- [ ] **Write the three M1.5 pass/fail criteria into TASKS.md** — `E11-T19`, `E11-T20`,
-      `E11-T21`. What counts as a pass for a shaded lit triangle on Windows *and* Linux; what
-      counts as 60 fps over 2000 synthetic nodes and for how long; what counts as an
-      acceptable AvaloniaEdit completion popup. Written down in advance is what makes the
-      gate honest; written down afterwards is what makes it a rationalisation. A failed
-      criterion changes the architecture, which is the entire point of spending the week.
-- [ ] **Write the M1.6 pass/fail criteria into TASKS.md** — `E13-T1`. **M1.6 gates ADR-0020
-      the way M1.5 gates ADR-0001**, and the same rule applies: written down in advance or it
-      is a rationalisation. At minimum — OCCT builds from a pinned tag through a vcpkg
-      manifest on Windows *and* Linux; one boolean runs end to end through a minimal
-      `spark_occt` and `LibraryImport`; the per-RID binary footprint is **measured** rather
-      than left at its 40–160 MB bracket; a `Materialise` on a realistic shape is timed,
-      because ADR-0021's whole rule rests on it being paid once; and a first read is taken on
-      OCCT's threading envelope (`Q14`) and on whether `ShapeFix` can be constrained to a
-      policy we choose. What a *failure* would mean is the part that needs deciding before the
-      spike, not after it.
+**Done since the last revision:**
 
-## Then — M1, the geometry core
-
-**Done, and the reason this section is shorter than it was:**
-
-- [x] Value types, `Transform`, `Plane`, `CoordinateSystem`, `Tolerance`, `Angle` — `E2-T2`
-      … `E2-T6`, with `E2-T1` short only its `Quaternion`. Thirteen types, 387
-      public members, reviewed and repaired. Scale-aware tolerance was built in from the
-      first commit rather than retrofitted, which is the whole mitigation for `R3`.
-- [x] Property-based tests with CsCheck on the value layer — 28 properties, generators
-      spanning 1e-9 to 1e9 per **ADR-0018**. `E2-T33` stays open for the criteria that need
-      curves and meshes.
+- [x] `Line`, `Arc`, `Circle`, `EllipseCurve`, `PolyLine` and `PolyCurve` over a `Curve` base —
+      `E2-T7` … `E2-T9`. The contract was settled against the parity register **before** the
+      types were written (`E2-T41`), so the `AtLength` family and arc-length division are in it
+      rather than retrofitted onto it. Exclusions are named on the types rather than left to be
+      discovered: no closest point, no split, no curvature, no NURBS conversion, and no value
+      equality on curves.
+- [x] Value types, `Transform`, `Plane`, `CoordinateSystem`, `Tolerance`, `Angle` — `E2-T2` …
+      `E2-T6`, with `E2-T1` short only its `Quaternion`.
+- [x] Property-based tests with CsCheck — now 38 properties, generators spanning 1e-9 to 1e9 per
+      **ADR-0018**, covering curves as well as values.
 
 **Still to do, in rough order:**
 
-- [ ] `Quaternion` — `E2-T1`. **`Rgba` is settled and no longer in scope here:** the kernel
-      carries no styling, no screen awareness and no appearance, so a colour type belongs
-      beside `Appearance` in `Spark.Api` (`E5`). It was listed as a geometry value type in
-      the original plan, on the same page as the rule forbidding exactly that.
-- [ ] `Line`, `Arc`, `Circle`, `EllipseCurve`, `PolyLine`, `PolyCurve` — `E2-T7` …
-      `E2-T9`. Harvest `VArc`'s eight construction algorithms; they are fiddly, correct
-      and costly to recreate. The value layer they sit on is now settled, which is what
-      makes this the next thing rather than a parallel thing.
-- [ ] Extract `RayCaster.cs` and its BVH — `E2-T15`. The highest-value file in
-      C2VGeometry, and it pays for itself three times over: mesh booleans, viewport
-      picking, intersection seeding.
-- [ ] Geometry serialization v1 and the reflection-driven round-trip test — `E2-T29`,
-      `E2-T31`. Get the test in before there are twenty types to retrofit it onto.
+- [ ] `Quaternion` — `E2-T1`. **`Rgba` is settled and no longer in scope here**: it lives beside
+      `Appearance` in `Spark.Api` (`E5`), because the kernel carries no appearance.
+- [ ] **Settle the past-participle naming rule and apply it.**
+      [DYNAMO-COVERAGE §4](DYNAMO-COVERAGE.md#member-names-we-will-not-copy) asked for exactly
+      this *before curves arrived and multiplied the surface by five*, and half of it happened:
+      the curve layer follows the rule — `Reversed`, `Trimmed`, `TransformedBy` — and three older
+      members still do not. `Plane.Flip`, `BoundingBox.Inflate` and `Interval.Expand` all read as
+      imperatives and all return new values. Nineteen call sites; all three are unshipped, so the
+      rename is free today and an ADR-0019 change-control question the day after 1.0.
+- [ ] Extract `RayCaster.cs` and its BVH — `E2-T15`. The highest-value file in C2VGeometry, and
+      it pays for itself three times over across mesh booleans, viewport picking and intersection
+      seeding. **`Curve.ClosestPoint` is now waiting on it too.**
+- [ ] Geometry serialization v1 and the reflection-driven round-trip test — `E2-T29`, `E2-T31`.
+      Get the test in before there are twenty types to retrofit it onto; there are now nineteen.
 - [ ] **The C2VGeometry test harvest, timeboxed to one week with a hard stop** — `E2-T32`.
-      `R10` is that this sprawls into a multi-week rewrite. Harvest only pure-maths-on-values
-      tests; anything needing a `Shape` is discarded without argument. **Harvest the
-      assertions, not the generators** — a harvested test whose inputs never approach the
-      boundary it checks is a test that cannot fail, which is the trap this project has
-      already fallen into once.
-- [ ] **Close the three small parity gaps in the value layer** — `E2-T40`. `BoundingBox.Intersection`,
-      `Plane.Offset` and `Plane.ByOriginNormalXAxis` are omissions rather than design
-      differences, found by reading Spark's public surface against ProtoGeometry's member by
-      member ([DYNAMO-COVERAGE §3.1](DYNAMO-COVERAGE.md#31-values-and-frames--6-types-133-members-92-reachable)).
-      Cheap now, and each one is a member somebody will otherwise hit at M3.
-- [ ] **Settle the curve contract against the parity register before writing curves** —
-      `E2-T41`. FR-48 names fifteen members; `Curve` in ProtoGeometry has **82**, and the gap
-      is structural rather than incidental: four parameterisations of every evaluation query
-      and a ten-member division family, all of which fall out of arc-length
-      reparameterisation. Cheap to build in, expensive to retrofit — which is exactly why it
-      belongs in the contract rather than after it.
-- [ ] `spark` writes an OBJ polyline that a third-party viewer opens. That is the M1 demo.
+      Harvest only pure-maths-on-values tests; anything needing a `Shape` is discarded without
+      argument. **Harvest the assertions, not the generators** — a harvested test whose inputs
+      never approach the boundary it checks is a test that cannot fail, which is the trap this
+      project has already fallen into twice.
+- [ ] **Close the three small parity gaps in the value layer** — `E2-T40`.
+      `BoundingBox.Intersection`, `Plane.Offset` and `Plane.ByOriginNormalXAxis` are omissions
+      rather than design differences.
+- [ ] `spark` writes an OBJ polyline that a third-party viewer opens. That is the M1 demo, and
+      `Spark.Geometry.Io` is still an empty project — but the curves it would write now exist.
 
-## After that — M1.5, M1.6 and M2, the walking skeleton
+## After that — finishing M2, and M1.6
 
-M1.5 is a week of throwaway spikes, deleted afterwards. **M1.6 is two weeks and is not
-throwaway in the same sense** — its scaffolding goes, but the vcpkg manifest and the build
-recipe are kept. M2 is the highest-information milestone in the project: it simultaneously
-validates Avalonia GL, the canvas rendering strategy, the reflection importer, the lacing
-engine and the layering split — the five things that could still force an architectural change.
+M2 was the highest-information milestone in the project: it simultaneously validated Avalonia
+GL, the canvas rendering strategy, the reflection importer, the lacing engine and the layering
+split — the five things that could still have forced an architectural change. **All five held.**
+What is left of it is the part that makes the skeleton usable rather than demonstrable.
 
-- [ ] The three M1.5 spikes, against criteria written down beforehand — `E11-T19`,
-      `E11-T20`, `E11-T21`.
+**Done:**
+
+- [x] The two M1.5 spikes that gate M2 — `E11-T19`, `E11-T20`. Both bets held, and the GL one
+      returned a finding that changes how every shader is written: Avalonia on Windows defaults
+      to ANGLE, so the surface is OpenGL ES 3.0 over Direct3D 11, never desktop GL 3.3.
+- [x] Graph model, topological evaluation, provenance cache — `E3-T1` … `E3-T8`.
+- [x] **The full replication engine against the lacing specification** — `E4-T2` … `E4-T12`,
+      with a corpus test that diffs the corpus against the specification document in both
+      directions, and which found two errors in the specification itself.
+- [x] The zero-config reflection importer over `Spark.Geometry` — `E5-T2` … `E5-T5`, with the
+      two-way diff that makes an unreachable public member a red build.
+- [x] Avalonia shell, docking, `GraphCanvas` with drag, wire, pan, zoom, select, delete —
+      `E8-T1` … `E8-T6`.
+- [x] GL viewport for points, lines and curves — `E9-T1` … `E9-T6`. Curves arrived with the
+      curve layer and are drawn from their own tessellation at a display tolerance derived from
+      the curve's size, not from the kernel's default.
+- [x] **Manual acceptance, run and captured:** the application opens, the graph evaluates, and
+      an ellipse divided by arc length, eight circles laced from one node, and a pentagon appear
+      in the viewport. `--graph curves --screenshot PREFIX` reproduces it without a human.
+
+**Still to do:**
+
+- [ ] Save, load, undo, redo — `E3-T17`, `E3-T18`, `E8-T9`. **The largest remaining gap in M2**,
+      and the reason it sits in *Now* above rather than here.
+- [ ] Library search with camel-hump ranking — `E8-T8`. The library lists all 57 nodes and the
+      search box filters them; the ranking is not the specified one.
+- [ ] `spark run` — `E12-T5`. `Spark.Cli` is still a stub, and it has nothing to run until a
+      graph can be loaded from a file.
 - [ ] **The M1.6 OCCT spike, against criteria written down beforehand** — `E13-T1`. It answers
       four of the seven things [ADR-0020](adr/0020-occt-via-c-abi-shim.md) records as open, and
       **it is the only place they can be answered** — the rest of that list needs counsel or a
-      publisher, not a build.
-- [ ] Graph model, topological evaluation, provenance cache — `E3-T1` … `E3-T8`.
-- [ ] **The full replication engine against the lacing specification** — `E4-T2` …
-      `E4-T12`. Lacing is folded into M2 rather than deferred, because a graph engine
-      without replication is a toy to an AEC user, and retrofitting rank semantics into a
-      shipped evaluator is far more expensive than building them in.
-- [ ] The zero-config reflection importer over `Spark.Geometry` — `E5-T2` … `E5-T5`.
-- [ ] Avalonia shell, docking, `GraphCanvas` with drag, wire, pan, zoom, select, delete —
-      `E8-T1` … `E8-T6`.
-- [ ] Library search with camel-hump ranking — `E8-T8`.
-- [ ] GL viewport for points, lines and curves — `E9-T1` … `E9-T6`.
-- [ ] Save, load, undo, redo — `E3-T17`, `E3-T18`, `E8-T9`.
-- [ ] `spark run` — `E12-T5`.
-- [ ] **Manual acceptance: launch it, drag two nodes, wire them, see geometry in the
-      viewport — and watch it lace over lists.** That is the whole point, end to end.
+      publisher, not a build. Its scaffolding is throwaway in the M1.5 sense, but the vcpkg
+      manifest and the build recipe are kept.
 
-**Deliberately excluded from M2:** code blocks, packages, surfaces, custom nodes. Naming
-the exclusions is what keeps a walking skeleton from becoming a death march.
+**Deliberately excluded from M2:** code blocks, packages, surfaces, custom nodes. Naming the
+exclusions is what keeps a walking skeleton from becoming a death march.
 
 ## Later — M3 onward
 
@@ -206,7 +195,7 @@ the exclusions is what keeps a walking skeleton from becoming a death march.
 
 | # | Question | Blocks |
 |---|---|---|
-| Q1 | Do the three M1.5 spikes pass? A failure changes the architecture, which is what they are for. | M2 design |
+| Q1 | **Two of the three M1.5 spikes are answered and both bets held** (`85e3183`): the GL viewport initialises and draws on the platform we ship to, and the immediate-mode canvas holds 2,000 nodes at 0.87 ms median. The third — AvaloniaEdit plus a Roslyn completion popup, `E11-T21` — is not taken; it gates the M4 code block. | M4 design |
 | Q4 | `Directory.Build.props` promotes CS1591 to an error on **four** projects; the plan named three. Is `Spark.Geometry.Io` deliberately included? | `E10-T8` scope |
 | Q5 | Revit or AutoCAD as the M8 embedding proof host? The scheduler is the same either way; the add-in shell, licensing and test loop are not. | `E12-T4` |
 | **Q13** | **The six licensing questions for counsel, and this is the item on this page with an outside clock on it.** The central one: **is a thin shim whose entire purpose is to expose OCCT a *work that uses the Library* under the Open CASCADE exception, or a derivative work under LGPL §5?** Then — whether single-file, trimmed or AOT publishing is compatible with the relink obligation; whether **vcpkg's port declaring `LGPL-2.1-only`, omitting the exception**, creates exposure; what *prominent notice in supporting documentation* requires concretely; what obligations attach to a user embedding `Spark.Host` in a commercial add-in (`D5`); and whether the source offer is satisfied by a tag reference or needs a hosted archive. **None of this is legal advice and no amount of further reading settles it** — it is a question for a lawyer, and it is on this page for that reason. [ADR-0020](adr/0020-occt-via-c-abi-shim.md) | **Items 1 and 3 before M6.** The rest before 1.0 |
@@ -270,6 +259,22 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   register: 51 ProtoGeometry types, 837 members, 92 reachable today. `Done` in it means
   *present and documented*, never *equivalent*, and the test that keeps it honest
   (`E11-T23`) must say so in its own failure messages.
+- **Six curve types, and the exclusions are named on the types rather than discovered.** There
+  is no `NurbsCurve` and no `Helix`; no closest-point query, split, curvature, planarity test
+  or NURBS conversion on the curve contract; no offset, projection or pull; and **no value
+  equality on curves**, because two curves drawing the same path through different
+  parameterisations are a tolerance question rather than an `Equals` question, and answering it
+  wrongly by default is worse than not answering it. `Curve.ClosestPoint` in particular waits on
+  the ray caster and its BVH (`E2-T15`) rather than getting a second implementation.
+- **A general affine transform of an ellipse is refused, not approximated.** `TransformedBy`
+  accepts similarities. A shear does take an ellipse to an ellipse, but recovering the new axes
+  from the mapped conjugate pair is Rytz's construction, and doing it approximately would return
+  a curve that is quietly the wrong shape. A non-uniform scale on a `Circle` is refused for the
+  same reason — the answer is an ellipse, and a `Circle` cannot hold one.
+- **The node canvas runs a real Gaussian blur per node between 81% and 83% zoom**, where the
+  drop shadow crosses its threshold, costing 57→40 fps at 2,000 nodes. The design language
+  already specifies the fix — a sprite cache keyed on a fixed set of blur radii, eight sprites
+  in total. Scoped, specified, and not yet built (`E8`).
 - **Coordinates are unitless.** No `UnitSystem`, no unit types, no conversion. Import and
   export assume the file's own units and document that they do. PRD decision **D12**. This
   does **not** remove scale-aware tolerance, which is numerical robustness rather than

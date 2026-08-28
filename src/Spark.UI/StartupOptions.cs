@@ -18,16 +18,27 @@ namespace Spark.UI;
 /// A file path prefix to write <c>-shell.png</c> and <c>-viewport.png</c> to before exiting, or
 /// null to run normally.
 /// </param>
+/// <param name="Graph">
+/// Which seeded graph to open: <c>demo</c> for the point grid, <c>curves</c> for the curve demo.
+/// </param>
 /// <param name="BenchmarkZoom">
 /// A zoom to pin the benchmark at, or zero to sweep. Pinning is what separates "how much does the
 /// graph cost" from "how much does what is on screen cost", which is the claim ADR-0013 actually
 /// makes.
 /// </param>
 public readonly record struct StartupOptions(
-    int SyntheticNodeCount, int BenchmarkFrames, double BenchmarkZoom, string? ScreenshotPrefix)
+    int SyntheticNodeCount,
+    int BenchmarkFrames,
+    double BenchmarkZoom,
+    string? ScreenshotPrefix,
+    string? Graph)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
-    public static StartupOptions Default => new(0, 0, 0, null);
+    public static StartupOptions Default => new(0, 0, 0, null, null);
+
+    /// <summary>True when the window should open the curve demo rather than the point grid.</summary>
+    public bool IsCurveGraph =>
+        string.Equals(Graph, "curves", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>True when the window should run the canvas benchmark and then exit.</summary>
     public bool IsBenchmark => BenchmarkFrames > 0;
@@ -70,6 +81,7 @@ public readonly record struct StartupOptions(
         int frames = 0;
         double zoom = 0;
         string? screenshot = null;
+        string? graph = null;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -99,6 +111,10 @@ public readonly record struct StartupOptions(
                     screenshot = args[++i];
                     break;
 
+                case "--graph" when i + 1 < args.Length:
+                    graph = args[++i];
+                    break;
+
                 default:
                     break;
             }
@@ -109,7 +125,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph);
     }
 
     private static int ParseCount(string text, int fallback) =>

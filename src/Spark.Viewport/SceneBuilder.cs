@@ -25,8 +25,9 @@ namespace Spark.Viewport;
 /// </para>
 /// <para>
 /// <b>What it understands.</b> <c>Point3d</c>, <c>Vector3d</c> (drawn from the origin),
-/// <c>BoundingBox</c>, <c>Plane</c> (drawn as a patch), <see cref="Displayable"/> (unwrapped, and
-/// its colour applied) and <see cref="SparkList"/> at any rank. Anything else — a number, a string,
+/// <c>BoundingBox</c>, <c>Plane</c> (drawn as a patch), any <c>Curve</c> (tessellated),
+/// <see cref="Displayable"/> (unwrapped, and its colour applied) and <see cref="SparkList"/> at any
+/// rank. Anything else — a number, a string,
 /// a value from a package Spark has never seen — is counted as unrenderable and contributes
 /// nothing, which is how a graph full of arithmetic produces an empty viewport rather than an
 /// error.
@@ -162,6 +163,10 @@ public sealed class SceneBuilder
                 Record(key, new PlanePatch(plane), colour, wrapped);
                 return;
 
+            case Curve curve:
+                Record(key, new CurveDrawable(curve), colour, wrapped);
+                return;
+
             default:
                 UnrenderableCount++;
                 return;
@@ -260,6 +265,41 @@ public sealed class SceneBuilder
         internal override Bounds3 Extend(Bounds3 bounds) => bounds.Union(min).Union(max);
 
         internal override void Emit(MeshAccumulator mesh, float marker) => mesh.AddBox(min, max);
+    }
+
+    /// <summary>
+    /// A curve, drawn as the polyline its own tessellator produces.
+    /// </summary>
+    /// <remarks>
+    /// <b>The display tolerance is derived from the curve, not taken from the kernel default.</b>
+    /// The kernel's default linear tolerance is 1e-6, and tessellating a one-unit circle to that
+    /// would emit about 2,200 segments for something a few hundred pixels across. A sag of a
+    /// thousandth of the curve's own length is invisible at any sane zoom and costs two orders of
+    /// magnitude fewer segments. A viewport is allowed to be approximate; it is not allowed to be
+    /// slow, and it must never be the thing that decides what the kernel's tolerance means.
+    /// </remarks>
+    private sealed class CurveDrawable : Drawable
+    {
+        private readonly Point3d[] _points;
+        private readonly Spark.Geometry.BoundingBox _bounds;
+
+        internal CurveDrawable(Curve curve)
+        {
+            double sag = Math.Max(curve.Length * 0.001, 1e-12);
+            _points = curve.Tessellate(new Tolerance(sag, Angle.FromDegrees(0.001), 1e-12));
+            _bounds = curve.BoundingBox;
+        }
+
+        internal override Bounds3 Extend(Bounds3 bounds) =>
+            bounds.Union(ToVector(_bounds.Min)).Union(ToVector(_bounds.Max));
+
+        internal override void Emit(MeshAccumulator mesh, float marker)
+        {
+            for (int index = 1; index < _points.Length; index++)
+            {
+                mesh.AddEdge(ToVector(_points[index - 1]), ToVector(_points[index]));
+            }
+        }
     }
 
     private sealed class PlanePatch(Spark.Geometry.Plane plane) : Drawable

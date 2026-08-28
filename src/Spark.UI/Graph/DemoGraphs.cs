@@ -5,8 +5,9 @@ using Spark.Engine;
 namespace Spark.UI.Graph;
 
 /// <summary>
-/// Graphs built from the real node library: a seeded demo that draws a grid of points, and a
-/// synthetic one at whatever size a measurement calls for.
+/// Graphs built from the real node library: a seeded demo that draws a grid of points, a curve demo
+/// that draws an ellipse, circles and a polygon, and a synthetic one at whatever size a measurement
+/// calls for.
 /// </summary>
 public static class DemoGraphs
 {
@@ -84,6 +85,108 @@ public static class DemoGraphs
         // Cross Product is what turns two ten-value ranges into a hundred points rather than ten.
         // Declaring it here rather than leaving it to Auto is the whole demonstration.
         graph.Engine.SetLacing(graph.Nodes[points].Id, LacingMode.CrossProduct);
+
+        return graph;
+    }
+
+    /// <summary>
+    /// The curve demo: an ellipse divided by arc length, a row of circles produced by one node, and
+    /// a regular polygon — three curve families on screen at once.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The ellipse is the point of it.</b> Dividing it into twenty-four equal <i>lengths</i>
+    /// places points that crowd nowhere; dividing it by parameter, which is what a kernel without
+    /// arc-length reparameterisation would have to do, bunches them at the ends of the long axis.
+    /// The difference is visible from across the room, and it is why the ellipse rather than the
+    /// circle is the curve the demo divides.
+    /// </para>
+    /// <para>
+    /// The row of circles is one <c>Circle.ByCentreRadius</c> node fed a list of eight centres — the
+    /// same replication the point grid demonstrates, now producing curves rather than points, which
+    /// is the thing worth seeing twice.
+    /// </para>
+    /// </remarks>
+    /// <param name="library">The imported node library.</param>
+    /// <returns>The graph, ready to evaluate.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="library"/> is null.</exception>
+    public static CanvasGraph Curves(NodeLibrary library)
+    {
+        ArgumentNullException.ThrowIfNull(library);
+
+        CanvasGraph graph = new();
+
+        int plane = graph.Add(library.ByName("Plane.XY"), 30, 30);
+        int ellipse = graph.Add(library.ByName("Ellipse.ByPlaneRadii"), 250, 30);
+        int divide = graph.Add(library.ByName("Curve.DivideEqually"), 520, 140);
+        int ellipseColour = graph.Add(library.ByName("Colour.ByRgb"), 250, 180);
+        int pointColour = graph.Add(library.ByName("Colour.ByRgb"), 520, 300);
+        int ellipseDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 820, 30);
+        int pointDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 820, 160);
+
+        int range = graph.Add(library.ByName("Number.Range"), 30, 440);
+        int centres = graph.Add(library.ByName("Point.ByCoordinates"), 250, 440);
+        int circles = graph.Add(library.ByName("Circle.ByCentreRadius"), 520, 440);
+        int circleColour = graph.Add(library.ByName("Colour.ByRgb"), 520, 580);
+        int circleDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 820, 440);
+
+        int base3 = graph.Add(library.ByName("Point.ByCoordinates"), 30, 700);
+        int axis = graph.Add(library.ByName("Vector.ZAxis"), 30, 830);
+        int polygonPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 250, 700);
+        int polygon = graph.Add(library.ByName("PolyLine.ByRegularPolygon"), 520, 700);
+        int polygonColour = graph.Add(library.ByName("Colour.ByRgb"), 520, 840);
+        int polygonDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 820, 700);
+
+        Literal(graph, ellipse, 1, 6.0);
+        Literal(graph, ellipse, 2, 2.0);
+        Literal(graph, divide, 1, 24);
+
+        Literal(graph, ellipseColour, 0, 168.0);
+        Literal(graph, ellipseColour, 1, 130.0);
+        Literal(graph, ellipseColour, 2, 255.0);
+
+        Literal(graph, pointColour, 0, 255.0);
+        Literal(graph, pointColour, 1, 214.0);
+        Literal(graph, pointColour, 2, 120.0);
+
+        Literal(graph, range, 0, -7.0);
+        Literal(graph, range, 1, 7.0);
+        Literal(graph, range, 2, 2.0);
+        Literal(graph, centres, 1, 7.0);
+        Literal(graph, centres, 2, 0.0);
+        Literal(graph, circles, 1, 0.9);
+
+        Literal(graph, circleColour, 0, 120.0);
+        Literal(graph, circleColour, 1, 220.0);
+        Literal(graph, circleColour, 2, 255.0);
+
+        Literal(graph, base3, 0, 0.0);
+        Literal(graph, base3, 1, -6.0);
+        Literal(graph, base3, 2, 0.0);
+        Literal(graph, polygon, 1, 3.0);
+        Literal(graph, polygon, 2, 5);
+
+        Literal(graph, polygonColour, 0, 140.0);
+        Literal(graph, polygonColour, 1, 255.0);
+        Literal(graph, polygonColour, 2, 170.0);
+
+        graph.TryConnect(Output(plane, 0), Input(ellipse, 0));
+        graph.TryConnect(Output(ellipse, 0), Input(divide, 0));
+        graph.TryConnect(Output(ellipse, 0), Input(ellipseDisplay, 0));
+        graph.TryConnect(Output(ellipseColour, 0), Input(ellipseDisplay, 1));
+        graph.TryConnect(Output(divide, 0), Input(pointDisplay, 0));
+        graph.TryConnect(Output(pointColour, 0), Input(pointDisplay, 1));
+
+        graph.TryConnect(Output(range, 0), Input(centres, 0));
+        graph.TryConnect(Output(centres, 0), Input(circles, 0));
+        graph.TryConnect(Output(circles, 0), Input(circleDisplay, 0));
+        graph.TryConnect(Output(circleColour, 0), Input(circleDisplay, 1));
+
+        graph.TryConnect(Output(base3, 0), Input(polygonPlane, 0));
+        graph.TryConnect(Output(axis, 0), Input(polygonPlane, 1));
+        graph.TryConnect(Output(polygonPlane, 0), Input(polygon, 0));
+        graph.TryConnect(Output(polygon, 0), Input(polygonDisplay, 0));
+        graph.TryConnect(Output(polygonColour, 0), Input(polygonDisplay, 1));
 
         return graph;
     }

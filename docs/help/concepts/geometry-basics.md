@@ -2,19 +2,19 @@
 id: concepts.geometry-basics
 title: Points, vectors, planes and tolerance
 nodes: []
-related: [concepts.lacing]
+related: [concepts.lacing, concepts.curves]
 since: "0.1"
 ---
 
 **Status:** Current. Describes `Spark.Geometry`'s value layer, which exists and is tested.
 **Owner:** `geometry-kernel`
-**Last updated:** 2026-08-27
+**Last updated:** 2026-08-28
 
-> **Scope.** Spark's geometry kernel currently contains **values only** — points, vectors,
-> planes, transforms, intervals, boxes, angles and tolerances. There are no curves, no
-> surfaces, no meshes and no solids yet; those arrive at M3 and M5. Everything on this page
-> is real today, and every example below was run against the assembly rather than written
-> from memory.
+> **Scope.** This page covers `Spark.Geometry`'s **value layer** — points, vectors, planes,
+> transforms, intervals, boxes, angles and tolerances. Curves now exist too and have a page of
+> their own: [Curves, parameters and arc length](curves.md). There are still no surfaces, no
+> meshes and no solids; those arrive at M5 and M6. Everything on this page is real today, and
+> every example below was run against the assembly rather than written from memory.
 
 ---
 

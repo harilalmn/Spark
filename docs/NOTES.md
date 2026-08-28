@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-27
+**Last updated:** 2026-08-28
 
 ---
 
@@ -614,3 +614,80 @@ The general moral — *gates are necessary and not sufficient* — was already b
 this note adds is that the project now has its own evidence for it, at a cost of one rejected
 slice, and that the cheapest available check on a test suite is to ask of each test **how it
 would fail**.
+
+---
+
+## N19 — A test that normalises a quantity cannot see an error in that quantity's scale
+
+`PolyCurve` maps one unit of its own parameter onto the whole of a segment's domain, so the
+chain rule requires its derivative to be the segment's derivative multiplied by that domain's
+length. A test called `APolyCurveTangentIsUnitLengthDespiteTheChainRule` was written to guard
+exactly this. **Deleting the factor left all 312 tests passing.**
+
+The reason is obvious once seen and invisible before: every public route to a curve's
+derivative — `TangentAt`, `NormalAt`, `PlaneAt`, `CoordinateSystemAt` — normalises, and
+normalising divides out precisely the factor under test. The test's name described the defect
+it could not detect. `Length` could not catch it either, because `PolyCurve` overrides
+`ComputeLength` to sum its segments and never integrates its own speed.
+
+Two things follow, and the second is the reusable one:
+
+1. The replacement test reaches through an internal seam — `Curve.DerivativeWithin` — and
+   asserts the derivative's **magnitude** against the rate of change of arc length measured
+   through the public `LengthAt`. It also pins two closed-form values, 4 and π/2, which is
+   what makes the failure message say what is wrong rather than merely that something is.
+   The seam exists because C# does not let a derived type reach a `protected` member through a
+   base-class reference, so a polycurve cannot call its segments' `EvaluateDerivative`.
+2. **Ask what a test divides out.** A normalised vector, a ratio, a unit direction and a
+   percentage all discard magnitude, and an assertion made after that discarding cannot see a
+   magnitude error. This is the same class of defect as [N18](#n18--three-green-gates-are-not-a-review-and-a-passing-test-is-not-evidence-a-test-can-fail)'s
+   decorative property, arrived at from a different direction: there the generator never
+   reached the condition, here the assertion threw the evidence away before looking.
+
+The mutation sweep that found it was five deliberate mutations run against the curve layer.
+Four were killed by named tests. This one survived, and so did a sixth — see [N20](#n20--a-branch-that-cannot-be-reached-is-a-claim-that-was-never-true).
+
+---
+
+## N20 — A branch that cannot be reached is a claim that was never true
+
+`Arc.ByThreePoints` originally tested whether the second point was reached before the third
+when sweeping anticlockwise, and swept the other way if not. Mutating that test to a constant
+`true` **killed no test**, and the reason turned out to be that the branch was unreachable.
+
+The circumcircle's normal is built from `(second − first) × (third − first)`, which is the
+right-handed normal of the triangle *in the order the caller gave its corners*. In that frame,
+sweeping anticlockwise from the first point always reaches the second before the third. The
+middle point therefore steers the method through the plane's orientation, and the branch was
+re-deciding something the frame had already decided.
+
+The branch is gone. What replaced it is a property test that samples three points in order
+around a circle at nine decades of scale and asserts the arc passes through all three —
+because the invariant that actually needed pinning was the **orientation**, and a sign error
+in that cross product still produces an arc through the first and third points by a
+completely different path. Only the middle point can see it. Flipping the cross product's
+operands now fails three named tests; before, it failed none.
+
+The general form: when a mutation survives, the first question is not *which test should have
+caught this* but *can this code path be reached at all*. Dead code that looks like a decision
+is worse than no decision, because it reads as one.
+
+---
+
+## N21 — A curve's closed-ness must not wrap the end of its own domain
+
+`Curve.CheckParameter` wraps out-of-range parameters on a closed curve, which is right: on a
+circle, a parameter of 2.5π means the same place as π/2. The first version wrapped
+unconditionally, and that broke the **end** of the domain: `PointAt(2π)` and `PointAt(0)` are
+indeed the same point, but `LengthAt(2π)` is the full circumference and `LengthAt(0)` is zero.
+
+Wrapping the domain's own maximum turned the last step of every division on a closed curve
+into a negative length, which is how it was found — `DivideEqually` on an ellipse reported a
+final segment of −12.5 against an expected 0.835. A parameter is only wrapped when it is
+genuinely outside `[Domain.Min, Domain.Max]`; the ends are left alone.
+
+The lesson generalises past curves: **two parameters that evaluate to the same position are
+not therefore interchangeable**, because position is not the only question the parameter is
+asked. Anything that accumulates along a curve — length, a running index, a sweep — can tell
+the seam's two sides apart even when the geometry cannot.
+

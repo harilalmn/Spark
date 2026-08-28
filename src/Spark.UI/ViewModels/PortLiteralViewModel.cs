@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Spark.Geometry;
 
 namespace Spark.UI.ViewModels;
 
@@ -156,12 +157,27 @@ public sealed partial class PortLiteralViewModel : ObservableObject
             return true;
         }
 
+        if (_valueType == typeof(Angle))
+        {
+            // Typed in degrees, held in radians. The kernel takes an Angle in every angular
+            // signature precisely so that the editor knows a number is an angle and can choose the
+            // unit a person thinks in; a bare double could not be told apart from a length.
+            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double degrees))
+            {
+                return false;
+            }
+
+            value = Angle.FromDegrees(degrees);
+            return true;
+        }
+
         return false;
     }
 
     private static string Format(object? value) => value switch
     {
         null => string.Empty,
+        Angle angle => angle.Degrees.ToString(CultureInfo.InvariantCulture),
         IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
         _ => value.ToString() ?? string.Empty,
     };
@@ -172,7 +188,8 @@ public sealed partial class PortLiteralViewModel : ObservableObject
         || type == typeof(int)
         || type == typeof(long)
         || type == typeof(bool)
-        || type == typeof(string);
+        || type == typeof(string)
+        || type == typeof(Angle);
 
     private static string FriendlyName(Type type)
     {
@@ -194,6 +211,11 @@ public sealed partial class PortLiteralViewModel : ObservableObject
         if (type == typeof(string))
         {
             return "text";
+        }
+
+        if (type == typeof(Angle))
+        {
+            return "angle in degrees";
         }
 
         return type.Name;

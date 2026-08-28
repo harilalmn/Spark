@@ -44,6 +44,7 @@
         <Button Classes="toolbar" Content="Frame viewport" Click="OnFrameViewport" />
         <Button Classes="toolbar" Content="2000 nodes" Click="OnLoadSynthetic" />
         <Button Classes="toolbar" Content="Demo graph" Click="OnLoadDemo" />
+        <Button Classes="toolbar" Content="Curves" Click="OnLoadCurves" />
         <Button Classes="toolbar" Content="Run" Click="OnRun" />
       </StackPanel>
     </Border>

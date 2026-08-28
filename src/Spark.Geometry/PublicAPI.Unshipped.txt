@@ -9,6 +9,13 @@ Spark.Geometry.Angle.EqualsWithin(Spark.Geometry.Angle other, in Spark.Geometry.
 Spark.Geometry.Angle.Normalised() -> Spark.Geometry.Angle
 Spark.Geometry.Angle.NormalisedSigned() -> Spark.Geometry.Angle
 Spark.Geometry.Angle.Radians.get -> double
+Spark.Geometry.Arc
+Spark.Geometry.Arc.Centre.get -> Spark.Geometry.Point3d
+Spark.Geometry.Arc.MidPoint.get -> Spark.Geometry.Point3d
+Spark.Geometry.Arc.Plane.get -> Spark.Geometry.Plane
+Spark.Geometry.Arc.Radius.get -> double
+Spark.Geometry.Arc.StartAngle.get -> Spark.Geometry.Angle
+Spark.Geometry.Arc.SweepAngle.get -> Spark.Geometry.Angle
 Spark.Geometry.BoundingBox
 Spark.Geometry.BoundingBox.Area.get -> double
 Spark.Geometry.BoundingBox.BoundingBox() -> void
@@ -30,6 +37,11 @@ Spark.Geometry.BoundingBox.Min.get -> Spark.Geometry.Point3d
 Spark.Geometry.BoundingBox.Union(in Spark.Geometry.BoundingBox other) -> Spark.Geometry.BoundingBox
 Spark.Geometry.BoundingBox.Union(in Spark.Geometry.Point3d point) -> Spark.Geometry.BoundingBox
 Spark.Geometry.BoundingBox.Volume.get -> double
+Spark.Geometry.Circle
+Spark.Geometry.Circle.Centre.get -> Spark.Geometry.Point3d
+Spark.Geometry.Circle.Circle(in Spark.Geometry.Plane plane, double radius) -> void
+Spark.Geometry.Circle.Plane.get -> Spark.Geometry.Plane
+Spark.Geometry.Circle.Radius.get -> double
 Spark.Geometry.CoordinateSystem
 Spark.Geometry.CoordinateSystem.CoordinateSystem() -> void
 Spark.Geometry.CoordinateSystem.CoordinateSystem(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d xAxis, in Spark.Geometry.Vector3d yAxis) -> void
@@ -46,6 +58,26 @@ Spark.Geometry.CoordinateSystem.ToWorld(in Spark.Geometry.Vector3d localVector) 
 Spark.Geometry.CoordinateSystem.XAxis.get -> Spark.Geometry.Vector3d
 Spark.Geometry.CoordinateSystem.YAxis.get -> Spark.Geometry.Vector3d
 Spark.Geometry.CoordinateSystem.ZAxis.get -> Spark.Geometry.Vector3d
+Spark.Geometry.Curve
+Spark.Geometry.Curve.BoundingBox.get -> Spark.Geometry.BoundingBox
+Spark.Geometry.Curve.CoordinateSystemAt(double parameter) -> Spark.Geometry.CoordinateSystem
+Spark.Geometry.Curve.DivideByLength(double length) -> Spark.Geometry.Point3d[]!
+Spark.Geometry.Curve.DivideEqually(int segments) -> Spark.Geometry.Point3d[]!
+Spark.Geometry.Curve.EndPoint.get -> Spark.Geometry.Point3d
+Spark.Geometry.Curve.Length.get -> double
+Spark.Geometry.Curve.NormalAt(double parameter) -> Spark.Geometry.Vector3d
+Spark.Geometry.Curve.PlaneAt(double parameter) -> Spark.Geometry.Plane
+Spark.Geometry.Curve.PointAt(double parameter) -> Spark.Geometry.Point3d
+Spark.Geometry.Curve.PointAtLength(double distance) -> Spark.Geometry.Point3d
+Spark.Geometry.Curve.StartPoint.get -> Spark.Geometry.Point3d
+Spark.Geometry.Curve.TangentAt(double parameter) -> Spark.Geometry.Vector3d
+Spark.Geometry.EllipseCurve
+Spark.Geometry.EllipseCurve.Centre.get -> Spark.Geometry.Point3d
+Spark.Geometry.EllipseCurve.Plane.get -> Spark.Geometry.Plane
+Spark.Geometry.EllipseCurve.StartAngle.get -> Spark.Geometry.Angle
+Spark.Geometry.EllipseCurve.SweepAngle.get -> Spark.Geometry.Angle
+Spark.Geometry.EllipseCurve.XRadius.get -> double
+Spark.Geometry.EllipseCurve.YRadius.get -> double
 Spark.Geometry.Interval
 Spark.Geometry.Interval.Clamp(double value) -> double
 Spark.Geometry.Interval.Denormalise(double t) -> double
@@ -66,6 +98,9 @@ Spark.Geometry.Interval.Min.get -> double
 Spark.Geometry.Interval.Normalise(double value) -> double
 Spark.Geometry.Interval.Reversed() -> Spark.Geometry.Interval
 Spark.Geometry.Interval.Union(in Spark.Geometry.Interval other) -> Spark.Geometry.Interval
+Spark.Geometry.Line
+Spark.Geometry.Line.Direction.get -> Spark.Geometry.Vector3d
+Spark.Geometry.Line.Line(in Spark.Geometry.Point3d start, in Spark.Geometry.Point3d end) -> void
 Spark.Geometry.Plane
 Spark.Geometry.Plane.ClosestPoint(in Spark.Geometry.Point3d point) -> Spark.Geometry.Point3d
 Spark.Geometry.Plane.Contains(in Spark.Geometry.Point3d point, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
@@ -109,6 +144,17 @@ Spark.Geometry.Point3d.ToVector3d() -> Spark.Geometry.Vector3d
 Spark.Geometry.Point3d.X.get -> double
 Spark.Geometry.Point3d.Y.get -> double
 Spark.Geometry.Point3d.Z.get -> double
+Spark.Geometry.PolyCurve
+Spark.Geometry.PolyCurve.SegmentAt(int index) -> Spark.Geometry.Curve!
+Spark.Geometry.PolyCurve.SegmentCount.get -> int
+Spark.Geometry.PolyCurve.Segments() -> Spark.Geometry.Curve![]!
+Spark.Geometry.PolyLine
+Spark.Geometry.PolyLine.PointAtIndex(int index) -> Spark.Geometry.Point3d
+Spark.Geometry.PolyLine.PointCount.get -> int
+Spark.Geometry.PolyLine.Points() -> Spark.Geometry.Point3d[]!
+Spark.Geometry.PolyLine.PolyLine(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> void
+Spark.Geometry.PolyLine.SegmentAt(int index) -> Spark.Geometry.Line!
+Spark.Geometry.PolyLine.SegmentCount.get -> int
 Spark.Geometry.Tolerance
 Spark.Geometry.Tolerance.Angular.get -> Spark.Geometry.Angle
 Spark.Geometry.Tolerance.AreEqual(double a, double b) -> bool
@@ -207,18 +253,54 @@ Spark.Geometry.Vector3d.Vector3d(double x, double y, double z) -> void
 Spark.Geometry.Vector3d.X.get -> double
 Spark.Geometry.Vector3d.Y.get -> double
 Spark.Geometry.Vector3d.Z.get -> double
+abstract Spark.Geometry.Curve.Domain.get -> Spark.Geometry.Interval
+abstract Spark.Geometry.Curve.IsClosed.get -> bool
+abstract Spark.Geometry.Curve.Reversed() -> Spark.Geometry.Curve!
+abstract Spark.Geometry.Curve.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
+abstract Spark.Geometry.Curve.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
 override Spark.Geometry.Angle.Equals(object? obj) -> bool
 override Spark.Geometry.Angle.GetHashCode() -> int
 override Spark.Geometry.Angle.ToString() -> string!
+override Spark.Geometry.Arc.Domain.get -> Spark.Geometry.Interval
+override Spark.Geometry.Arc.IsClosed.get -> bool
+override Spark.Geometry.Arc.LengthAt(double parameter) -> double
+override Spark.Geometry.Arc.ParameterAtLength(double distance) -> double
+override Spark.Geometry.Arc.Reversed() -> Spark.Geometry.Curve!
+override Spark.Geometry.Arc.ToString() -> string!
+override Spark.Geometry.Arc.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
+override Spark.Geometry.Arc.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
 override Spark.Geometry.BoundingBox.Equals(object? obj) -> bool
 override Spark.Geometry.BoundingBox.GetHashCode() -> int
 override Spark.Geometry.BoundingBox.ToString() -> string!
+override Spark.Geometry.Circle.Domain.get -> Spark.Geometry.Interval
+override Spark.Geometry.Circle.IsClosed.get -> bool
+override Spark.Geometry.Circle.LengthAt(double parameter) -> double
+override Spark.Geometry.Circle.ParameterAtLength(double distance) -> double
+override Spark.Geometry.Circle.Reversed() -> Spark.Geometry.Curve!
+override Spark.Geometry.Circle.ToString() -> string!
+override Spark.Geometry.Circle.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
+override Spark.Geometry.Circle.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
 override Spark.Geometry.CoordinateSystem.Equals(object? obj) -> bool
 override Spark.Geometry.CoordinateSystem.GetHashCode() -> int
 override Spark.Geometry.CoordinateSystem.ToString() -> string!
+override Spark.Geometry.EllipseCurve.Domain.get -> Spark.Geometry.Interval
+override Spark.Geometry.EllipseCurve.IsClosed.get -> bool
+override Spark.Geometry.EllipseCurve.Reversed() -> Spark.Geometry.Curve!
+override Spark.Geometry.EllipseCurve.ToString() -> string!
+override Spark.Geometry.EllipseCurve.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
+override Spark.Geometry.EllipseCurve.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
 override Spark.Geometry.Interval.Equals(object? obj) -> bool
 override Spark.Geometry.Interval.GetHashCode() -> int
 override Spark.Geometry.Interval.ToString() -> string!
+override Spark.Geometry.Line.Domain.get -> Spark.Geometry.Interval
+override Spark.Geometry.Line.IsClosed.get -> bool
+override Spark.Geometry.Line.LengthAt(double parameter) -> double
+override Spark.Geometry.Line.ParameterAtLength(double distance) -> double
+override Spark.Geometry.Line.Reversed() -> Spark.Geometry.Curve!
+override Spark.Geometry.Line.Tessellate(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Point3d[]!
+override Spark.Geometry.Line.ToString() -> string!
+override Spark.Geometry.Line.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
+override Spark.Geometry.Line.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
 override Spark.Geometry.Plane.Equals(object? obj) -> bool
 override Spark.Geometry.Plane.GetHashCode() -> int
 override Spark.Geometry.Plane.ToString() -> string!
@@ -228,6 +310,24 @@ override Spark.Geometry.Point2d.ToString() -> string!
 override Spark.Geometry.Point3d.Equals(object? obj) -> bool
 override Spark.Geometry.Point3d.GetHashCode() -> int
 override Spark.Geometry.Point3d.ToString() -> string!
+override Spark.Geometry.PolyCurve.Domain.get -> Spark.Geometry.Interval
+override Spark.Geometry.PolyCurve.IsClosed.get -> bool
+override Spark.Geometry.PolyCurve.LengthAt(double parameter) -> double
+override Spark.Geometry.PolyCurve.ParameterAtLength(double distance) -> double
+override Spark.Geometry.PolyCurve.Reversed() -> Spark.Geometry.Curve!
+override Spark.Geometry.PolyCurve.Tessellate(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Point3d[]!
+override Spark.Geometry.PolyCurve.ToString() -> string!
+override Spark.Geometry.PolyCurve.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
+override Spark.Geometry.PolyCurve.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
+override Spark.Geometry.PolyLine.Domain.get -> Spark.Geometry.Interval
+override Spark.Geometry.PolyLine.IsClosed.get -> bool
+override Spark.Geometry.PolyLine.LengthAt(double parameter) -> double
+override Spark.Geometry.PolyLine.ParameterAtLength(double distance) -> double
+override Spark.Geometry.PolyLine.Reversed() -> Spark.Geometry.Curve!
+override Spark.Geometry.PolyLine.Tessellate(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Point3d[]!
+override Spark.Geometry.PolyLine.ToString() -> string!
+override Spark.Geometry.PolyLine.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
+override Spark.Geometry.PolyLine.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
 override Spark.Geometry.Tolerance.Equals(object? obj) -> bool
 override Spark.Geometry.Tolerance.GetHashCode() -> int
 override Spark.Geometry.Tolerance.ToString() -> string!
@@ -266,12 +366,19 @@ static Spark.Geometry.Angle.operator <=(Spark.Geometry.Angle left, Spark.Geometr
 static Spark.Geometry.Angle.operator ==(Spark.Geometry.Angle left, Spark.Geometry.Angle right) -> bool
 static Spark.Geometry.Angle.operator >(Spark.Geometry.Angle left, Spark.Geometry.Angle right) -> bool
 static Spark.Geometry.Angle.operator >=(Spark.Geometry.Angle left, Spark.Geometry.Angle right) -> bool
+static Spark.Geometry.Arc.ByCentreStartPointSweepAngle(in Spark.Geometry.Point3d centre, in Spark.Geometry.Point3d startPoint, in Spark.Geometry.Vector3d normal, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Arc!
+static Spark.Geometry.Arc.ByPlaneRadiusAngles(in Spark.Geometry.Plane plane, double radius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Arc!
+static Spark.Geometry.Arc.ByThreePoints(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> Spark.Geometry.Arc!
 static Spark.Geometry.BoundingBox.Empty.get -> Spark.Geometry.BoundingBox
 static Spark.Geometry.BoundingBox.FromPoints(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> Spark.Geometry.BoundingBox
 static Spark.Geometry.BoundingBox.FromPoints(System.ReadOnlySpan<Spark.Geometry.Point3d> points) -> Spark.Geometry.BoundingBox
 static Spark.Geometry.BoundingBox.Union(in Spark.Geometry.BoundingBox a, in Spark.Geometry.BoundingBox b) -> Spark.Geometry.BoundingBox
 static Spark.Geometry.BoundingBox.operator !=(in Spark.Geometry.BoundingBox left, in Spark.Geometry.BoundingBox right) -> bool
 static Spark.Geometry.BoundingBox.operator ==(in Spark.Geometry.BoundingBox left, in Spark.Geometry.BoundingBox right) -> bool
+static Spark.Geometry.Circle.ByCentreNormalRadius(in Spark.Geometry.Point3d centre, in Spark.Geometry.Vector3d normal, double radius) -> Spark.Geometry.Circle!
+static Spark.Geometry.Circle.ByCentreRadius(in Spark.Geometry.Point3d centre, double radius) -> Spark.Geometry.Circle!
+static Spark.Geometry.Circle.ByPlaneRadius(in Spark.Geometry.Plane plane, double radius) -> Spark.Geometry.Circle!
+static Spark.Geometry.Circle.ByThreePoints(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> Spark.Geometry.Circle!
 static Spark.Geometry.CoordinateSystem.ByOrigin(in Spark.Geometry.Point3d origin) -> Spark.Geometry.CoordinateSystem
 static Spark.Geometry.CoordinateSystem.ByOriginXAxisYAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d xAxis, in Spark.Geometry.Vector3d yAxis) -> Spark.Geometry.CoordinateSystem
 static Spark.Geometry.CoordinateSystem.ByOriginZAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d zAxis) -> Spark.Geometry.CoordinateSystem
@@ -279,9 +386,13 @@ static Spark.Geometry.CoordinateSystem.ByPlane(in Spark.Geometry.Plane plane) ->
 static Spark.Geometry.CoordinateSystem.Identity.get -> Spark.Geometry.CoordinateSystem
 static Spark.Geometry.CoordinateSystem.operator !=(in Spark.Geometry.CoordinateSystem left, in Spark.Geometry.CoordinateSystem right) -> bool
 static Spark.Geometry.CoordinateSystem.operator ==(in Spark.Geometry.CoordinateSystem left, in Spark.Geometry.CoordinateSystem right) -> bool
+static Spark.Geometry.EllipseCurve.ByPlaneRadii(in Spark.Geometry.Plane plane, double xRadius, double yRadius) -> Spark.Geometry.EllipseCurve!
+static Spark.Geometry.EllipseCurve.ByPlaneRadiiAngles(in Spark.Geometry.Plane plane, double xRadius, double yRadius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.EllipseCurve!
 static Spark.Geometry.Interval.Unit.get -> Spark.Geometry.Interval
 static Spark.Geometry.Interval.operator !=(in Spark.Geometry.Interval left, in Spark.Geometry.Interval right) -> bool
 static Spark.Geometry.Interval.operator ==(in Spark.Geometry.Interval left, in Spark.Geometry.Interval right) -> bool
+static Spark.Geometry.Line.ByStartPointDirectionLength(in Spark.Geometry.Point3d start, in Spark.Geometry.Vector3d direction, double length) -> Spark.Geometry.Line!
+static Spark.Geometry.Line.ByStartPointEndPoint(in Spark.Geometry.Point3d start, in Spark.Geometry.Point3d end) -> Spark.Geometry.Line!
 static Spark.Geometry.Plane.ByOriginNormal(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal) -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.ByOriginXAxisYAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d xAxis, in Spark.Geometry.Vector3d yAxis) -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.ByThreePoints(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> Spark.Geometry.Plane
@@ -314,6 +425,11 @@ static Spark.Geometry.Point3d.operator +(in Spark.Geometry.Point3d point, in Spa
 static Spark.Geometry.Point3d.operator -(in Spark.Geometry.Point3d left, in Spark.Geometry.Point3d right) -> Spark.Geometry.Vector3d
 static Spark.Geometry.Point3d.operator -(in Spark.Geometry.Point3d point, in Spark.Geometry.Vector3d offset) -> Spark.Geometry.Point3d
 static Spark.Geometry.Point3d.operator ==(in Spark.Geometry.Point3d left, in Spark.Geometry.Point3d right) -> bool
+static Spark.Geometry.PolyCurve.ByJoinedCurves(System.Collections.Generic.IEnumerable<Spark.Geometry.Curve!>! curves, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.PolyCurve!
+static Spark.Geometry.PolyLine.ByClosedPoints(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> Spark.Geometry.PolyLine!
+static Spark.Geometry.PolyLine.ByPoints(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> Spark.Geometry.PolyLine!
+static Spark.Geometry.PolyLine.ByRectangle(in Spark.Geometry.Plane plane, double width, double length) -> Spark.Geometry.PolyLine!
+static Spark.Geometry.PolyLine.ByRegularPolygon(in Spark.Geometry.Plane plane, double radius, int sides) -> Spark.Geometry.PolyLine!
 static Spark.Geometry.Tolerance.Default.get -> Spark.Geometry.Tolerance
 static Spark.Geometry.Tolerance.ForScale(double characteristicLength) -> Spark.Geometry.Tolerance
 static Spark.Geometry.Tolerance.operator !=(Spark.Geometry.Tolerance left, Spark.Geometry.Tolerance right) -> bool
@@ -386,3 +502,6 @@ static Spark.Geometry.Vector3d.operator -(in Spark.Geometry.Vector3d left, in Sp
 static Spark.Geometry.Vector3d.operator -(in Spark.Geometry.Vector3d value) -> Spark.Geometry.Vector3d
 static Spark.Geometry.Vector3d.operator /(in Spark.Geometry.Vector3d vector, double divisor) -> Spark.Geometry.Vector3d
 static Spark.Geometry.Vector3d.operator ==(in Spark.Geometry.Vector3d left, in Spark.Geometry.Vector3d right) -> bool
+virtual Spark.Geometry.Curve.LengthAt(double parameter) -> double
+virtual Spark.Geometry.Curve.ParameterAtLength(double distance) -> double
+virtual Spark.Geometry.Curve.Tessellate(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Point3d[]!

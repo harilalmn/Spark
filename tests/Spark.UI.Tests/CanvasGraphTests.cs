@@ -221,6 +221,69 @@ public sealed class CanvasGraphTests
     }
 
     /// <summary>
+    /// The curve demo evaluates without a diagnostic and produces all three curve families.
+    /// </summary>
+    [Fact]
+    public void TheCurveDemoProducesAnEllipseAndARowOfCirclesAndAPolygon()
+    {
+        CanvasGraph graph = DemoGraphs.Curves(TestGraphs.Library);
+        EvaluationResult result = GraphEvaluator.Evaluate(graph.Engine, new EvaluationContext(), TestContext.Current.CancellationToken);
+        graph.ApplyResult(result);
+
+        Assert.DoesNotContain(graph.Nodes, node => node.State.HasFlag(CanvasNodeState.Error));
+
+        Spark.Geometry.EllipseCurve ellipse =
+            Assert.IsType<Spark.Geometry.EllipseCurve>(result.Value(Node(graph, "Ellipse.ByPlaneRadii").Id));
+        Assert.Equal(6.0, ellipse.XRadius);
+        Assert.Equal(2.0, ellipse.YRadius);
+
+        // One node, eight circles: replication over the list of centres, producing curves.
+        SparkList circles = Assert.IsType<SparkList>(result.Value(Node(graph, "Circle.ByCentreRadius").Id));
+        Assert.Equal(8, circles.Count);
+        Assert.IsType<Spark.Geometry.Circle>(circles[0]);
+
+        Spark.Geometry.PolyLine polygon =
+            Assert.IsType<Spark.Geometry.PolyLine>(result.Value(Node(graph, "PolyLine.ByRegularPolygon").Id));
+        Assert.Equal(5, polygon.SegmentCount);
+        Assert.True(polygon.IsClosed);
+    }
+
+    /// <summary>
+    /// The division in the curve demo is by arc length, which on an ellipse is a different set of
+    /// points from a division by parameter — and the difference is what the demo is showing.
+    /// </summary>
+    [Fact]
+    public void TheCurveDemoDividesItsEllipseByLengthRatherThanByParameter()
+    {
+        CanvasGraph graph = DemoGraphs.Curves(TestGraphs.Library);
+        EvaluationResult result = GraphEvaluator.Evaluate(graph.Engine, new EvaluationContext(), TestContext.Current.CancellationToken);
+
+        SparkList points = Assert.IsType<SparkList>(result.Value(Node(graph, "Curve.DivideEqually").Id));
+        Assert.Equal(25, points.Count);
+
+        Spark.Geometry.EllipseCurve ellipse =
+            Assert.IsType<Spark.Geometry.EllipseCurve>(result.Value(Node(graph, "Ellipse.ByPlaneRadii").Id));
+
+        // Consecutive chords of an equal-length division of an ellipse differ by a few percent at
+        // most; an equal-parameter division of these radii differs by a factor of about three.
+        double shortest = double.MaxValue;
+        double longest = 0.0;
+        for (int index = 1; index < points.Count; index++)
+        {
+            Spark.Geometry.Point3d previous = Assert.IsType<Spark.Geometry.Point3d>(points[index - 1]);
+            Spark.Geometry.Point3d current = Assert.IsType<Spark.Geometry.Point3d>(points[index]);
+            double chord = previous.DistanceTo(current);
+            shortest = Math.Min(shortest, chord);
+            longest = Math.Max(longest, chord);
+        }
+
+        Assert.True(
+            longest / shortest < 1.1,
+            $"Chords ran from {shortest} to {longest}, which is not an equal-length division.");
+        Assert.Equal(ellipse.Length / 24.0, longest, ellipse.Length / 24.0 * 0.05);
+    }
+
+    /// <summary>
     /// The same graph under Longest laces to a ten-point diagonal. This is the comparison the demo
     /// exists to make, and it fails if lacing is ever quietly ignored.
     /// </summary>

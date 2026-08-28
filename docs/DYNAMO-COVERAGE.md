@@ -166,21 +166,47 @@ separate concerns and Spark keeps them separate. Similarly `Vector.Scale(x, y, z
 through `Transform.Scale(x, y, z).OfVector(v)`; a non-uniform scale is a transformation, and
 putting it on the vector implies a frame the vector does not carry.
 
-### 3.2 Curves — 11 types, 187 members, 0 reachable
+### 3.2 Curves — 11 types, 187 members, partially reachable
 
 | Dynamo type | Members | Spark equivalent | Status | Milestone |
 |---|---:|---|---|---|
-| `Curve` (base) | 82 | `Curve` — the FR-48 contract | Planned | M1, M3 |
-| `Line` | 6 | `Line` | Planned | M1 |
-| `Arc` | 14 | `Arc` | Planned | M1 |
-| `Circle` | 8 | `Circle` | Planned | M1 |
-| `Ellipse` | 8 | `EllipseCurve` | Planned | M1 |
-| `EllipseArc` | 9 | `EllipseCurve` over a sub-domain | Planned | M1 |
+| `Curve` (base) | 82 | `Curve` — the contract, settled against this section | **Partial** | M1 ✓, M3 |
+| `Line` | 6 | `Line` | **Exists** | M1 ✓ |
+| `Arc` | 14 | `Arc` | **Partial** | M1 ✓ |
+| `Circle` | 8 | `Circle` | **Exists** | M1 ✓ |
+| `Ellipse` | 8 | `EllipseCurve` | **Exists** | M1 ✓ |
+| `EllipseArc` | 9 | `EllipseCurve` over a sub-domain | **Exists** | M1 ✓ |
 | `Helix` | 7 | `Helix` | Needs a decision | M3 |
 | `NurbsCurve` | 15 | `NurbsCurve` | Planned | M3 |
-| `PolyCurve` | 21 | `PolyCurve` | Planned | M1 |
-| `Polygon` | 9 | `PolyLine`, closed | Planned | M1 |
-| `Rectangle` | 8 | A `PolyLine` factory, not a type | Planned | M1 |
+| `PolyCurve` | 21 | `PolyCurve` | **Partial** | M1 ✓ |
+| `Polygon` | 9 | `PolyLine`, closed | **Partial** | M1 ✓ |
+| `Rectangle` | 8 | A `PolyLine` factory, not a type | **Exists** | M1 ✓ |
+
+> **The member-by-member recount for this section has not been done, and the headline figure in
+> §2 has therefore not moved.** Six of the eleven types now exist and the contract below was
+> built from this section rather than from FR-48 — the `AtLength` family and arc-length division
+> are in, which is the structural half of the gap closing. But *exists* is not *counted*, and
+> writing a number here that nobody derived is precisely how this document would start lying.
+> `E2-T41` carries the recount, and until it is done §2's 92 stands as the last figure anyone
+> actually counted.
+
+**What was built from this section, and what was not.** The four parameterisations are now
+two: **by parameter and by length**, both present on the contract. `AtSegmentLength` and
+`AtChordLength` are not built and are not forgotten — they are the same reparameterisation with
+a different measure, and they cost a member each once someone asks. Of the trimming and
+splitting family, `Trimmed` exists and `Split` does not. None of the modelling members
+(`Extrude`, `Sweep`, `Patch`) exists, as expected — they are M5/M6 and sit behind `IBrepKernel`.
+Of the offset, projection and pull group, none exists; `Offset` is E2-T12 and E2-T14, and
+projection needs SSI.
+
+**The one prediction in this section that was tested, and held.** It said a Spark contract
+offering only *by parameter* would feel missing to every Dynamo user, because *divide a curve
+into equal lengths* is the single most common thing anyone does to a curve — and that building
+it in at M1 was cheap while retrofitting it was not. It was cheap: arc-length division is
+analytic on five of the six types and a Gauss–Legendre integral with a Newton inverse on the
+sixth. It also turned out to be the only part of the curve layer whose tests can distinguish a
+right answer from a plausible one, because every curve except the ellipse travels at a constant
+speed and would pass a division test that was quietly wrong.
 
 **`Curve` alone is 82 members — the largest non-T-Spline type in the inventory, and larger
 than every Spark value type put together bar `Transform`.** FR-48 names fifteen members for

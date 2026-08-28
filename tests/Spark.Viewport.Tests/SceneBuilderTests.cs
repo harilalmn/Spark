@@ -160,6 +160,78 @@ public sealed class SceneBuilderTests
     }
 
     /// <summary>
+    /// A curve arrives as the polyline its own tessellator produces: edges, no triangles, and every
+    /// vertex on the curve.
+    /// </summary>
+    [Fact]
+    public void ACurveIsDrawnAsItsOwnTessellation()
+    {
+        SceneBuilder builder = new();
+        Circle circle = Circle.ByCentreRadius(Point3d.Origin, 10.0);
+        builder.Add(Key, circle);
+
+        RenderPackage package = Assert.Single(builder.Build());
+
+        Assert.Equal(0, package.TriangleCount);
+        Assert.True(package.EdgeCount > 8, $"A circle produced {package.EdgeCount} edges.");
+
+        // Every vertex is on the circle to within the display sag, which is what makes this a test
+        // of the curve being drawn rather than of some geometry having been emitted.
+        float[] positions = package.Positions.ToArray();
+        for (int index = 0; index + 2 < positions.Length; index += 3)
+        {
+            double radius = Math.Sqrt(
+                (positions[index] * positions[index]) + (positions[index + 1] * positions[index + 1]));
+            Assert.True(Math.Abs(radius - 10.0) < 0.05, $"A vertex sits at radius {radius}.");
+            Assert.Equal(0f, positions[index + 2]);
+        }
+    }
+
+    /// <summary>
+    /// The display tolerance is derived from the curve's size rather than taken from the kernel
+    /// default, so a curve a thousand units across costs about as many segments as one a unit
+    /// across. At the kernel's own default of 1e-6 the large one would cost tens of thousands.
+    /// </summary>
+    [Fact]
+    public void ALargeCurveDoesNotCostMoreSegmentsThanASmallOne()
+    {
+        SceneBuilder small = new();
+        small.Add(Key, Circle.ByCentreRadius(Point3d.Origin, 1.0));
+
+        SceneBuilder large = new();
+        large.Add(Key, Circle.ByCentreRadius(Point3d.Origin, 1000.0));
+
+        int smallEdges = Assert.Single(small.Build()).EdgeCount;
+        int largeEdges = Assert.Single(large.Build()).EdgeCount;
+
+        Assert.Equal(smallEdges, largeEdges);
+        Assert.True(largeEdges < 512, $"A large circle cost {largeEdges} segments.");
+    }
+
+    /// <summary>
+    /// A curve inside a list, wrapped for display, is both walked and coloured — the path the curve
+    /// demo actually takes from the graph to the screen.
+    /// </summary>
+    [Fact]
+    public void ListsOfDisplayedCurvesAreWalkedAndColoured()
+    {
+        SceneBuilder builder = new();
+        SparkList curves = new(
+        [
+            new Displayable(Circle.ByCentreRadius(Point3d.Origin, 1.0), new Spark.Api.Appearance(new Rgba(10, 20, 30))),
+            new Displayable(new Line(Point3d.Origin, new Point3d(5, 0, 0)), new Spark.Api.Appearance(new Rgba(10, 20, 30))),
+        ],
+            1);
+        builder.Add(Key, curves);
+
+        RenderPackage package = Assert.Single(builder.Build());
+
+        Assert.Equal(2, builder.RenderableCount);
+        Assert.Equal(0, builder.UnrenderableCount);
+        Assert.Equal(10 / 255f, package.Appearance.Edge.R, 3);
+    }
+
+    /// <summary>
     /// A bounding box arrives as six shaded faces, each drawing its own four-edge outline — so
     /// twenty-four edge segments, not twelve. The faces do not share vertices, because a box with
     /// shared corner vertices has one normal where it needs three and shades as a rounded lump.

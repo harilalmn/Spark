@@ -35,11 +35,12 @@ enforces is a preference:
    overridable only by an explicit `docs: none-needed` commit trailer, which is **visible in
    review**. A silent exemption is worthless; a loud one is fine.
 
-Mechanism 1 works, and has now been exercised in anger: all 387 public members of
-`Spark.Geometry` carry XML doc comments because the build refused to produce an assembly
-without them. Mechanism 2 exists and runs, in the reduced form described above. Mechanism 3
-is **written and has never run** — it is `pull_request`-only and no PR exists (`E1-T14`,
-`E11-T14`), so for the moment that third rule rests entirely on you.
+Mechanism 1 works, and has been exercised in anger repeatedly: every public member of
+`Spark.Geometry` and `Spark.Nodes.Core` carries an XML doc comment because the build refuses to
+produce an assembly without one. Mechanism 2 exists and runs, in the reduced form described
+above. Mechanism 3 is **written and has never run** — it is `pull_request`-only and every commit
+so far has been a push to `main` (`E11-T14`), so for the moment that third rule rests entirely
+on you.
 
 There is a **fourth** mechanism that is not on this list because it is not automatable, and
 the geometry kernel's first slice is the reason it gets named at all: **somebody reads it.**
@@ -90,16 +91,22 @@ XML doc = what this member does.*
 8. Commit message says what changed and why, and **names the task IDs it advances**.
 9. Sign off with DCO: `git commit -s`. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-All three commands above have been verified to work as written, on Windows, on 2026-08-27.
+All three commands above have been verified to work as written, on Windows, on 2026-08-28.
 Steps 1 through 3 are gates. A red docs harness is a broken build, including when the only
 thing broken is a dangling ADR citation in a build-file comment — that is precisely the point
 of it, and it has already caught exactly that (`E1-T29`).
 
-**Everything verified for the current tree was verified on Windows.** CI has been green on
-Windows and Linux for **earlier commits**, and it has seen nothing of the geometry kernel —
-which is the half of the solution where a Linux difference would actually show up, in
-floating-point results, culture-dependent formatting and case-sensitive paths. Say which
+**Everything verified for the current tree was verified on Windows.** CI ran the same three
+gates on Windows and Linux and was green on **`35107f0`** — which contains the engine, the shell
+and the viewport but **not** the curve layer, the half of the solution where a Linux difference
+would actually show up in floating-point results and culture-dependent formatting. Say which
 commit a green CI run was green on.
+
+**A tenth step, for anything with real behaviour: run it.** `dotnet run --project
+src/Spark.Desktop --  --graph curves --screenshot PREFIX` opens the application, evaluates,
+writes a picture of the shell and a GPU read-back of the viewport, and exits. The curve layer
+passed 873 tests and its first screenshot still showed an empty viewport, because three
+evaluations were racing at startup — a defect no test in the suite was positioned to see.
 
 ## Things that will bite you
 
@@ -376,14 +383,15 @@ scripts/                 repository helper scripts                    (not creat
 .github/workflows/       CI
 ```
 
-Two of those lines are intent rather than description, and are marked. Everything else
-matches disk, with one qualification worth knowing before you add a project: `tests/` holds
-four projects — `Spark.Architecture.Tests`, `Spark.Docs.Verify`, `Spark.Geometry.Tests` and
-`Spark.Geometry.Properties` — and nothing else. `tests/corpus/` does not exist yet. The
-remaining test projects arrive **with the code they test**, not ahead of it, because a test
-project containing no tests fails the run outright — [NOTES.md N12](docs/NOTES.md). The two
-geometry projects are the only ones granted `InternalsVisibleTo` on the kernel, and that is a
-deliberate ceiling of two — [NOTES.md N10](docs/NOTES.md). `tests/` has its
+Two of those lines are intent rather than description, and are marked. Everything else matches
+disk, with one qualification worth knowing before you add a project: `tests/` holds **seven**
+projects — `Spark.Architecture.Tests`, `Spark.Docs.Verify`, `Spark.Geometry.Tests`,
+`Spark.Geometry.Properties`, `Spark.Engine.Tests`, `Spark.UI.Tests` and `Spark.Viewport.Tests`
+— and nothing else. `tests/corpus/` does not exist yet. Each of the last three arrived **with
+the code it tests**, not ahead of it, because a test project containing no tests fails the run
+outright — [NOTES.md N12](docs/NOTES.md). The two geometry projects remain the only ones granted
+`InternalsVisibleTo` on the kernel, and that is a deliberate ceiling of two —
+[NOTES.md N10](docs/NOTES.md). `tests/` has its
 own `Directory.Build.props` carrying `OutputType=Exe`, the xunit v3 reference and the global
 `using Xunit`, so a new test project is a near-empty `.csproj` plus a line in `Spark.slnx`.
 
@@ -412,8 +420,8 @@ because it would be part of the problem. If you add a project, it is checked wit
 your part; if you add a reference the graph forbids, `dotnet test` tells you before review
 does.
 
-One related rule is **not** yet enforced: *views never touch `Spark.Engine`*. There is no
-`Spark.UI` code to check. It returns to the test at M2 (`E8-T11`); until then it is on you.
+One related rule was not enforceable while there was no `Spark.UI` code to check: *views never
+touch `Spark.Engine`*. There is now, and `Spark.Architecture.Tests` checks it (`E8-T11`).
 
 ## Agent ownership
 
@@ -432,58 +440,70 @@ agents. At most two or three agents run concurrently.
 | `test-engineer` | `tests/`, `bench/`, `.github/workflows/` | `src/` implementation |
 | `reviewer` | Nothing — reviews only | — |
 
-The definitions live in `.claude/agents/`. **Five of the eight are written** —
-`geometry-kernel`, `graph-engine`, `scripting`, `docs-author` and `test-engineer` (`E1-T25`).
-The three that are not — `ui-shell`, `viewport` and `reviewer` — cover work that has not
-started, and they are needed by M2, which is the first milestone to touch any of those areas
-(`E1-T30`). Every agent's task ends with a report naming **what it did, what it deliberately
-left out, and what it could not verify.**
+The definitions live in `.claude/agents/`, and **all eight are written** (`E1-T25`, `E1-T30`).
+Every agent's task ends with a report naming **what it did, what it deliberately left out, and
+what it could not verify.**
 
 ## What has and has not been proven
 
-As of 2026-08-27, in three tiers. The tiers are the point; collapsing them is the failure.
+As of 2026-08-28, in three tiers. The tiers are the point; collapsing them is the failure.
 
 **Confirmed working, on Windows, by running it.**
 
 - `dotnet build Spark.slnx --no-incremental -warnaserror` — **sixteen** projects, zero
   warnings, zero errors. Use the flag: without it the warning count can come from a cached
   analysis (see *Things that will bite you*).
-- `dotnet test Spark.slnx` — **315 tests across four projects**, all passing.
-  `Spark.Geometry.Tests` (276) covers the kernel's value layer by example;
-  `Spark.Geometry.Properties` (28) covers it with CsCheck properties over generators spanning
-  1e-9 to 1e9; `Spark.Architecture.Tests` (6) enforces the reference-graph rules by reading
-  `.csproj` files as XML; `Spark.Docs.Verify` (5) checks front matter, worked examples,
+- `dotnet test Spark.slnx` — **873 tests across seven projects**, all passing.
+  `Spark.Geometry.Tests` (313) covers the kernel by example; `Spark.Geometry.Properties` (38)
+  covers it with CsCheck properties over generators spanning 1e-9 to 1e9; `Spark.Engine.Tests`
+  (273) covers the graph, the replicator and the importer, including a two-way diff against the
+  lacing specification and another against `Spark.Nodes.Core`; `Spark.UI.Tests` (167) drives the
+  canvas headlessly with real pointer gestures; `Spark.Viewport.Tests` (69) covers the scene
+  builder and the camera; `Spark.Architecture.Tests` (8) enforces the reference-graph rules by
+  reading `.csproj` files as XML; `Spark.Docs.Verify` (5) checks front matter, worked examples,
   relative links, ADR citations and `Last updated` lines.
 - `dotnet format Spark.slnx --verify-no-changes --severity warn` — clean over the whole
-  solution, geometry value layer included. The IDE1006 failures reported here previously are
-  closed: private `const` fields are PascalCase by rule now ([NOTES.md N16](docs/NOTES.md)).
+  solution.
+- **The application.** `dotnet run --project src/Spark.Desktop` opens the shell, evaluates the
+  seeded graph and draws geometry through OpenGL. `--graph curves --screenshot PREFIX` captures
+  the shell and a GPU read-back of the viewport and exits, which is how the curve demo was
+  checked rather than assumed.
 
-**Reviewed, repaired and accepted.** The geometry kernel's **value layer** — thirteen types
-in `src/Spark.Geometry`, 387 public members, all documented, all in the public-API baseline.
-It is a stronger claim than the tier above, and it was earned rather than assumed: the first
-attempt at this slice passed all three gates and was **rejected**, with three of its eight
-claims false and both of its guarding tests structurally incapable of failing. Every fix in
-the repaired version is regression-proven by reverting it and naming the test that goes red.
-[NOTES.md N18](docs/NOTES.md).
+**Confirmed working on Linux, by CI, on a named commit.** The build matrix, the test run and
+the format check were green on **`35107f0`** on `windows-latest` and `ubuntu-latest` (run
+33111751158). That commit contains the graph engine, the importer, the shell and the viewport,
+but **not** the curve layer. **Do not describe CI as green without saying which commit it was
+green on.**
 
-**Written, and not executed against the current tree.** `.github/workflows/ci.yml`, in full:
-the windows-plus-ubuntu build matrix, the `format` job and the `docs-freshness` job. It has
-been green on both platforms for **earlier commits** and has seen nothing of the geometry
-kernel — the half of the solution where floating-point results, culture-dependent formatting
-and case-sensitive paths could actually differ. The `docs-freshness` job is
-`pull_request`-only, so it cannot run until a PR exists. **Do not describe CI as green
-without saying which commit it was green on.**
+**Reviewed, repaired and accepted.** The geometry kernel's **value layer** — thirteen types in
+`src/Spark.Geometry` declaring 387 public members, all documented, all in the public-API
+baseline. With the curve layer the project now declares **487 members over 19 types**. It is
+a stronger claim than the tiers above, and it was earned rather than assumed: the first attempt
+passed all three gates and was **rejected**, with three of its eight claims false and both of
+its guarding tests structurally incapable of failing ([NOTES.md N18](docs/NOTES.md)). Every fix
+since is regression-proven by reverting it and naming the test that goes red.
 
-**Not built at all.** Almost every line of product code. Eleven of the twelve `src/` projects
-are empty stubs that compile. The geometry kernel has **values only** — no curves, no
-surfaces, no meshes, no BRep, and `Quaternion` and `Rgba` are unwritten. There is no graph
-engine, no UI, no viewport, no benchmark project, and `docs/examples/` is empty.
+The **curve layer** was held to the same standard and adds one practice to it: a mutation sweep
+per slice. Six deliberate mutations, four killed by named tests, and the two survivors were the
+valuable part — a test that asserted a normalised quantity and so could not see an error in that
+quantity's scale ([N19](docs/NOTES.md)), and a branch that no input could reach
+([N20](docs/NOTES.md)). Both were in code that was green.
 
-Keep the distinction honest in anything you write here. CADScript's experience is the
-argument for taking it seriously: compile verification was green the entire time, and the
-first live run still found three defects it could never have caught — a BCL version
-conflict, a Roslyn identity collision with the host's own copy, and a crash on shutdown. All
-three were about *what else is already loaded in the process*, which no compiler can see.
+**Written, and not executed at all.** The `docs-freshness` CI job. It is `pull_request`-only
+and every commit so far has been a push to `main`, so it has never run once.
+
+**Not built at all.** No surfaces, meshes, BRep or solids; no `NurbsCurve`; no `Quaternion`. No
+save, load, undo or redo — a graph cannot outlive the process. `Spark.Geometry.Io`,
+`Spark.Scripting`, `Spark.Packages` and `Spark.Cli` are empty or stubs. There is no benchmark
+project, `docs/examples/` is empty, and there is no OpenCascade anywhere in the tree.
+
+Keep the distinction honest in anything you write here. CADScript's experience is the argument
+for taking it seriously: compile verification was green the entire time, and the first live run
+still found three defects it could never have caught — a BCL version conflict, a Roslyn identity
+collision with the host's own copy, and a crash on shutdown. All three were about *what else is
+already loaded in the process*, which no compiler can see. This project has now paid the same
+lesson twice more: the screenshot that was supposed to confirm the curve demo instead showed
+three overlapping evaluations racing at startup, which every test in the suite had passed over.
 
 **"Compile-verified" and "confirmed working" are not the same claim.** Say which one you
 mean, every time. A green build is evidence that the code is well-formed, and nothing more.
