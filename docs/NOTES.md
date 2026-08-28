@@ -1196,3 +1196,52 @@ plane-and-angle argument on `Circle`, and a general search for the rest is three
 that must agree at their boundaries — and a `PolyCurve` of a line and an arc is a boundary,
 probed from either side, in the same query. The general path is exact on a line anyway, because
 a straight span's box is exact and the search has one minimum to find.
+
+## N37 — The canvas figures, re-measured after N31 withdrew them, and what the spread argues for
+
+[N31](#n31--a-benchmark-printed-a-sample-size-it-had-not-measured-over) withdrew every canvas
+figure this repository had quoted, because they were computed over a 120-frame window while the
+run reported 500 frames. `E8-T21` fixed the window. These are the replacements, measured after
+that fix, on a machine that is named rather than implied.
+
+**Hardware.** Windows 11, 16 logical cores, 16 GB. Avalonia on ANGLE, so the surface is
+OpenGL ES 3.0 over Direct3D 11 on an **Intel UHD Graphics** integrated GPU. `Release`,
+`--graph demo --canvas-benchmark 600`, which measures 500 frames after discarding 100 of warm-up.
+2,000 nodes, 1,677 wires, a 1477×834 surface.
+
+Five consecutive runs, render pass only:
+
+| Run | Median | p95 |
+|---|---:|---:|
+| 1 | 0.97 ms | 3.12 ms |
+| 2 | 1.06 ms | 3.20 ms |
+| 3 | 1.14 ms | 3.23 ms |
+| 4 | 1.00 ms | 3.27 ms |
+| 5 | 1.05 ms | 3.10 ms |
+| **Spread** | **0.97–1.14, 17%** | **3.10–3.27, 5.5%** |
+
+Three things follow.
+
+**The bet ADR-0013 made holds with room.** The budget is 16.7 ms for a 60 fps frame and the p95
+of the render pass is about 3.2 ms, so the canvas is using around a fifth of it at 2,000 nodes on
+an integrated GPU. That is the claim `E11-T20` was taken to test, restated on a measurement that
+covers the run it reports.
+
+**The spread confirms, independently, why `E1-T34` gates on p95 and not the median.** N31 asserted
+that four consecutive local runs move the median about 20% and the p95 about 6%. Five runs here
+give 17% and 5.5% — close enough to be the same observation twice, on different code and a
+different day. A threshold on the median would be a threshold on a statistic that moves by a
+sixth for no reason anyone can act on.
+
+**These numbers are not the ones `E1-T34` needs, and quoting them as if they were would repeat
+the mistake N31 records.** They come from a developer machine with a real GPU. The nightly runs
+on a hosted runner with none, where the render pass falls back to software and the figures are
+not comparable. `E1-T34` still waits on that hardware's own distribution over several nights.
+What has changed is only that this repository is no longer quoting a withdrawn number: it is
+quoting a measured one, next to the machine it came from and next to a statement of which
+question it does not answer.
+
+**The wall clock is a different figure and is not the one to compare.** The same runs report
+28–35 fps wall clock, which includes the GL viewport's own frame, the compositor and the
+dispatcher. The render pass is what ADR-0013 is about; the wall clock is what the whole
+application costs, and confusing the two would make the canvas look twenty times slower than it is.

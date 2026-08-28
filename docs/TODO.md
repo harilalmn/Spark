@@ -101,14 +101,18 @@ for anything else.
       putting an automated writer on `main`. Two things follow rather than finish here — the
       workflow **has never run**, and the canvas threshold is `E1-T34`, waiting on data rather
       than on effort.
-- [ ] **Preparing that gate found the number it was going to gate was wrong** — `E8-T21`, done,
-      and it is the reason the row above is not simply ticked. `--canvas-benchmark 600` printed
-      `frames=500` over a 120-frame window, so its median described the tail of the zoom sweep
-      rather than the run: 1.70 ms against the 1.15 ms the whole run gives. **Every canvas figure
-      quoted in these documents before today was measured that way**, including the 0.87 ms this
-      page and `E8-T15` both cited, and they are withdrawn rather than restated ([N31](NOTES.md)).
-      What is left here is only to re-measure and re-quote once the nightly has run on hardware
-      worth quoting.
+- [x] **Preparing that gate found the number it was going to gate was wrong, and the numbers are
+      now re-measured** — `E8-T21`, done. `--canvas-benchmark 600` printed `frames=500` over a
+      120-frame window, so its median described the tail of the zoom sweep rather than the run:
+      1.70 ms against the 1.15 ms the whole run gives, and every canvas figure quoted before that
+      was measured the same way ([N31](NOTES.md)). **The replacements are measured rather than
+      withdrawn**: on an Intel UHD integrated GPU through ANGLE, five consecutive runs give
+      **0.97–1.14 ms median and 3.10–3.27 ms p95** for the render pass at 2,000 nodes — about a
+      fifth of a 60 fps budget, so ADR-0013's bet holds with room ([N37](NOTES.md)). The spread
+      independently confirms why `E1-T34` gates on p95: 17% on the median against 5.5% on the
+      p95, which is N31's observation repeated on different code and a different day.
+      **These are not the numbers `E1-T34` needs**, and saying so is the point — they come from a
+      machine with a GPU, and the nightly runs where there is none.
 
 - [x] **`dotnet test` stopped reporting the suite, and the suite was never the problem** —
       unplanned, found on the first gate run of this session. On SDK 10.0.400 every one of the
@@ -445,7 +449,7 @@ exclusions is what keeps a walking skeleton from becoming a death march.
 
 | # | Question | Blocks |
 |---|---|---|
-| Q1 | **Two of the three M1.5 spikes are answered and both bets held** (`85e3183`): the GL viewport initialises and draws on the platform we ship to, and the immediate-mode canvas holds 2,000 nodes at 0.87 ms median. The third — AvaloniaEdit plus a Roslyn completion popup, `E11-T21` — is not taken; it gates the M4 code block. | M4 design |
+| Q1 | **Two of the three M1.5 spikes are answered and both bets held** (`85e3183`): the GL viewport initialises and draws on the platform we ship to, and the immediate-mode canvas holds 2,000 nodes at **0.97–1.14 ms median and 3.10–3.27 ms p95**, re-measured after N31 withdrew the original 0.87 ms ([N37](NOTES.md)). The third — AvaloniaEdit plus a Roslyn completion popup, `E11-T21` — is not taken; it gates the M4 code block. | M4 design |
 | Q4 | `Directory.Build.props` promotes CS1591 to an error on **four** projects; the plan named three. Is `Spark.Geometry.Io` deliberately included? | `E10-T8` scope |
 | Q5 | Revit or AutoCAD as the M8 embedding proof host? The scheduler is the same either way; the add-in shell, licensing and test loop are not. | `E12-T4` |
 | **Q13** | **The six licensing questions for counsel, and this is the item on this page with an outside clock on it.** The central one: **is a thin shim whose entire purpose is to expose OCCT a *work that uses the Library* under the Open CASCADE exception, or a derivative work under LGPL §5?** Then — whether single-file, trimmed or AOT publishing is compatible with the relink obligation; whether **vcpkg's port declaring `LGPL-2.1-only`, omitting the exception**, creates exposure; what *prominent notice in supporting documentation* requires concretely; what obligations attach to a user embedding `Spark.Host` in a commercial add-in (`D5`); and whether the source offer is satisfied by a tag reference or needs a hosted archive. **None of this is legal advice and no amount of further reading settles it** — it is a question for a lawyer, and it is on this page for that reason. [ADR-0020](adr/0020-occt-via-c-abi-shim.md) | **Items 1 and 3 before M6.** The rest before 1.0 |
