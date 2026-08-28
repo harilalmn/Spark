@@ -56,7 +56,8 @@ which ships with Spark.
 > `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen projects;
 > `dotnet test Spark.slnx` runs **952 passing tests** across seven projects; and
 > `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean. **CI ran all of it on
-> Windows and Linux on commit `35107f0` and was green**, so the Linux leg is no longer a claim.
+> Windows and Linux on commit `53596ab` and was green**, 952 tests on each — so the Linux leg is
+> no longer a claim, and it has now caught something Windows could not.
 >
 > **Worth knowing about how this code is accepted.** The kernel's first slice passed all three
 > gates and was rejected on review, with three of its eight claims false — most visibly a

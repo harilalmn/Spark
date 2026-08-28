@@ -10,7 +10,8 @@ a graph can be saved and opened, and every edit can be undone.** The application
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
 Ctrl+Z steps back through every edit. `dotnet build`, `dotnet test` (**952 tests over seven
 projects**) and `dotnet format` are all clean, and **CI ran green on Windows and Linux on
-`35107f0`** — the Linux leg is no longer unproven.
+`53596ab`**, 952 tests on each leg — and the Linux leg has now caught something Windows could
+not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
 
 Three distinctions still do the work in what follows:
 

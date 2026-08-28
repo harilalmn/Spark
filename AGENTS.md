@@ -102,10 +102,15 @@ thing broken is a dangling ADR citation in a build-file comment — that is prec
 of it, and it has already caught exactly that (`E1-T29`).
 
 **Everything verified for the current tree was verified on Windows.** CI ran the same three
-gates on Windows and Linux and was green on **`35107f0`** — which contains the engine, the shell
-and the viewport but **not** the curve layer, the half of the solution where a Linux difference
-would actually show up in floating-point results and culture-dependent formatting. Say which
-commit a green CI run was green on.
+gates on Windows and Linux and was green on **`53596ab`**, with 952 tests passing on each leg —
+which now contains the curve layer, save and load, undo, port types, the creation gesture and the
+benchmark project. **The Linux leg has stopped being free insurance and started finding things**:
+it caught a script committed without its executable bit, which Git Bash on the Windows runner ran
+without complaint ([N28](docs/NOTES.md)). The previous green was **`35107f0`**, which did not
+contain the curve layer — the half of the solution where a Linux difference actually shows up, in
+floating-point results and culture-dependent formatting. **Say which commit a green CI run was
+green on**, and do not carry the sentence forward unchanged: an out-of-date commit hash reads as
+a stronger claim than it is.
 
 **A tenth step, and it is not optional for anything with real behaviour: run it.** `dotnet run --project
 src/Spark.Desktop --  --graph curves --screenshot PREFIX` opens the application, evaluates,
@@ -474,11 +479,12 @@ As of 2026-08-28, in three tiers. The tiers are the point; collapsing them is th
   the shell and a GPU read-back of the viewport and exits, which is how the curve demo was
   checked rather than assumed.
 
-**Confirmed working on Linux, by CI, on a named commit.** The build matrix, the test run and
-the format check were green on **`35107f0`** on `windows-latest` and `ubuntu-latest` (run
-33111751158). That commit contains the graph engine, the importer, the shell and the viewport,
-but **not** the curve layer. **Do not describe CI as green without saying which commit it was
-green on.**
+**Confirmed working on Linux, by CI, on a named commit.** The build matrix, the test run, the
+format check and the no-native-binaries check were green on **`53596ab`** on `windows-latest` and
+`ubuntu-latest` (run 33153282431), 952 tests on each. That commit contains everything through the
+canvas creation gesture. **Do not describe CI as green without saying which commit it was green
+on** — and update the hash when you push, because a stale one reads as a stronger claim than it
+is.
 
 **Reviewed, repaired and accepted.** The geometry kernel's **value layer** — thirteen types in
 `src/Spark.Geometry` declaring 387 public members, all documented, all in the public-API
