@@ -94,6 +94,20 @@ public static class CanvasLevelOfDetail
     /// <returns>True at <see cref="CanvasDetail.Lip"/> and above.</returns>
     public static bool DrawsPortLabels(CanvasDetail detail) => detail >= CanvasDetail.Lip;
 
+    /// <summary>
+    /// Whether the type each port wants is drawn beside its name at this level.
+    /// </summary>
+    /// <remarks>
+    /// One level above the names, and by the same arithmetic that placed every other threshold in
+    /// §7.3: the type is set at 10 px, and 10 px × 0.82 is 8.2 device pixels, so 82% is the last
+    /// zoom at which it is still text rather than texture. Below it the name survives alone, which
+    /// is the right thing to lose first — at that zoom a user is looking for a node, not wiring
+    /// one.
+    /// </remarks>
+    /// <param name="detail">The level.</param>
+    /// <returns>True at <see cref="CanvasDetail.Shadow"/> and above.</returns>
+    public static bool DrawsPortTypes(CanvasDetail detail) => detail >= CanvasDetail.Shadow;
+
     /// <summary>Whether the node's 1 px <c>border.control</c> outline is drawn.</summary>
     /// <param name="detail">The level.</param>
     /// <returns>

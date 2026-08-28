@@ -67,12 +67,16 @@ public sealed partial class MainWindow : Window
         }
 
         Viewport.Scene = model.Scene;
-        model.GraphReplaced += (_, _) => BindGraph();
+        model.GraphReplaced += (_, _) => BindGraph(frame: true);
+
+        // Undo rebinds without reframing. A canvas that re-zooms on every Ctrl+Z makes a step
+        // backwards feel like a document load, and the user loses their place in their own graph.
+        model.DocumentRestored += (_, _) => BindGraph(frame: false);
         model.EvaluationCompleted += OnEvaluationCompleted;
-        BindGraph();
+        BindGraph(frame: true);
     }
 
-    private void BindGraph()
+    private void BindGraph(bool frame)
     {
         if (Model is not { } model)
         {
@@ -80,7 +84,12 @@ public sealed partial class MainWindow : Window
         }
 
         Canvas.Graph = model.Graph;
-        Canvas.ZoomToFit();
+
+        if (frame)
+        {
+            Canvas.ZoomToFit();
+        }
+
         model.ShowSelection(Canvas.Selection);
     }
 
@@ -91,9 +100,27 @@ public sealed partial class MainWindow : Window
         UpdateStatus();
     }
 
-    private void OnCanvasGraphChanged(object? sender, EventArgs e)
+    /// <summary>
+    /// Records what the canvas did on the undo stack, and runs the graph when the edit could have
+    /// changed an answer.
+    /// </summary>
+    /// <remarks>
+    /// Moving a node reaches here with <c>AffectsEvaluation</c> false. It is a document change and
+    /// it goes on the stack; it is not a reason to evaluate, because a position is not in a node's
+    /// provenance and cannot change what the node produces.
+    /// </remarks>
+    /// <param name="sender">The canvas.</param>
+    /// <param name="e">What the gesture did.</param>
+    private void OnCanvasGraphChanged(object? sender, GraphEditedEventArgs e)
     {
-        if (Model is { } model)
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        model.RecordEdit(e.Label);
+
+        if (e.AffectsEvaluation)
         {
             _ = model.EvaluateAsync();
         }
@@ -318,8 +345,11 @@ public sealed partial class MainWindow : Window
     {
         if (Options.BenchmarkZoom > 0)
         {
+            // Centre on the graph after zooming. Setting the zoom alone scales about the world
+            // origin, which at any zoom above the fit takes every node off screen — and a
+            // screenshot switch that reliably photographs empty canvas is worse than none.
             Canvas.Transform.Zoom = Options.BenchmarkZoom;
-            Canvas.InvalidateVisual();
+            Canvas.CentreOn(Canvas.Graph.ComputeBounds());
         }
 
         Viewport.RequestCapture();

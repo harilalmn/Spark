@@ -30,13 +30,24 @@ which ships with Spark.
 > like code: opening one and saving it again produces no diff at all, which is asserted by a test
 > rather than hoped for. `docs/examples/curves.spark` is one.
 >
-> **What does not exist.** No surfaces, meshes, BRep or solids. No `NurbsCurve`. **No undo and no
-> redo**, which is now the largest gap. No `spark run`, no packages, no code block. And **no
-> OpenCascade**: there is no `native/` directory and no `Spark.Geometry.Occt` project.
+> **A port says what it wants.** Beside each port name is the type it takes — `centre  Point3d`,
+> `radius  number`, `sweepAngle  degrees` — in the words you type it in rather than in CLR type
+> names, on the node and in the properties panel. A port name alone is a word; a port name and a
+> type is an instruction.
+>
+> **Edits are undoable.** Ctrl+Z steps back through the last sixty-four edits and Ctrl+Y forward
+> again — nodes, wires, values and positions alike, because a step is a snapshot of the same
+> `.spark` document the save button writes. It is instant for a reason worth knowing: results are
+> cached by *provenance* rather than by document, so a former state asks for keys that are still
+> resident and the run after an undo recomputes nothing at all.
+>
+> **What does not exist.** No surfaces, meshes, BRep or solids. No `NurbsCurve`. No `spark run`,
+> no packages, no code block. And **no OpenCascade**: there is no `native/` directory and no
+> `Spark.Geometry.Occt` project.
 >
 > What has been run, on Windows, on 2026-08-28:
 > `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen projects;
-> `dotnet test Spark.slnx` runs **893 passing tests** across seven projects; and
+> `dotnet test Spark.slnx` runs **934 passing tests** across seven projects; and
 > `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean. **CI ran all of it on
 > Windows and Linux on commit `35107f0` and was green**, so the Linux leg is no longer a claim.
 >
@@ -46,7 +57,9 @@ which ships with Spark.
 > that were structurally incapable of failing. Every fix since is regression-proven by reverting
 > it and naming the test that goes red, and every slice gets a mutation sweep. The curve layer's
 > sweep found a test that could not fail and a branch that could not be reached, both in code
-> that was green ([N19](docs/NOTES.md), [N20](docs/NOTES.md)).
+> that was green ([N19](docs/NOTES.md), [N20](docs/NOTES.md)), and the undo sweep found the same
+> shape a third time: a test that could not fail because the gesture it drove never reached the
+> guard it was written for.
 >
 > **One decision dominates everything below, and it is unbuilt.** Spark will use **OpenCascade**
 > as its solid-modelling kernel, reached through a C-ABI shim we own, rather than writing its own
@@ -57,9 +70,10 @@ which ships with Spark.
 > [ADR-0021](docs/adr/0021-brep-kernel-residency.md), and the paragraph below on what that means
 > for a project whose whole premise is not depending on somebody else's CAD component.
 >
-> What is left of M2 is persistence — save, load, undo, redo — after which a graph outlives the
-> process and this stops being a demo. See [docs/PRD.md §11](docs/PRD.md#11-release-plan) for the
-> plan and [docs/TODO.md](docs/TODO.md) for what happens next.
+> M2's persistence is in — save, load, undo, redo — so a graph outlives the process and an edit
+> can be taken back. What is left of M2 is the polish: camel-hump library search, real docking,
+> watch nodes and `spark run`. See [docs/PRD.md §11](docs/PRD.md#11-release-plan) for the plan and
+> [docs/TODO.md](docs/TODO.md) for what happens next.
 
 ---
 

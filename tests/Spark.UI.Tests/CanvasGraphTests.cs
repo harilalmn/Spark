@@ -529,6 +529,61 @@ public sealed class CanvasGraphTests
     public void ASyntheticGraphOfZeroNodesStillProducesOne() =>
         Assert.Single(DemoGraphs.Synthetic(TestGraphs.Library, 0).Nodes);
 
+    /// <summary>
+    /// A port carries the type it wants, taken from the real definition and phrased for a reader.
+    /// </summary>
+    /// <remarks>
+    /// This is the seam the canvas draws from. <c>Circle.ByCentreRadius</c> is the node that
+    /// prompted it: a port called <c>centre</c> gave a user no way to know a <c>Point3d</c> was
+    /// wanted, and the two places that would have said so — the library signature and the
+    /// wire-drag preview — are both somewhere other than the node.
+    /// </remarks>
+    [Fact]
+    public void APortCarriesTheTypeItWants()
+    {
+        CanvasGraph graph = new();
+        graph.Add(TestGraphs.Library.ByName("Circle.ByCentreRadius"), 0, 0);
+
+        CanvasNode circle = Node(graph, "Circle.ByCentreRadius");
+
+        Assert.Equal("centre", circle.Inputs[0].Name);
+        Assert.Equal("Point3d", circle.Inputs[0].TypeName);
+        Assert.Equal("radius", circle.Inputs[1].Name);
+        Assert.Equal("number", circle.Inputs[1].TypeName);
+
+        // The output is called `circle` and returns a `Circle`, so the type is not said twice.
+        Assert.Equal("circle", circle.Outputs[0].Name);
+        Assert.Null(circle.Outputs[0].TypeName);
+    }
+
+    /// <summary>
+    /// A node is wide enough for its widest port row, not only for its title.
+    /// </summary>
+    /// <remarks>
+    /// <c>BoundingBox.ByCorners</c> is the case: its title fits inside the minimum width, and its
+    /// first row — <c>corner Point3d</c> against <c>BoundingBox box</c> — does not. Before the row
+    /// was measured, the two halves of that row met in the middle.
+    /// </remarks>
+    [Fact]
+    public void ANodeIsWideEnoughForItsWidestPortRow()
+    {
+        CanvasGraph graph = new();
+        graph.Add(TestGraphs.Library.ByName("BoundingBox.ByCorners"), 0, 0);
+        graph.Add(TestGraphs.Library.ByName("Point.Origin"), 0, 0);
+
+        // A node with one short row and no inputs stays at the minimum.
+        Assert.Equal(CanvasNode.MinimumWidth, Node(graph, "Point.Origin").Width);
+
+        // And one whose rows are wider than its title grows past what the title asks for. The
+        // bound is deliberately above the title's own estimate — 34 + 21 characters x 6.8 is
+        // 176.8 — because "wider than the minimum" would also be true of a node sized from its
+        // title alone, and a test that passes for the wrong reason is the trap this project has
+        // fallen into three times ([N18](../../docs/NOTES.md), [N19](../../docs/NOTES.md)).
+        Assert.True(
+            Node(graph, "BoundingBox.ByCorners").Width > 190,
+            "The row 'corner Point3d' against 'BoundingBox box' did not widen the node.");
+    }
+
     private static CanvasNode Node(CanvasGraph graph, string title) =>
         graph.Nodes.First(node => string.Equals(node.Title, title, StringComparison.Ordinal));
 

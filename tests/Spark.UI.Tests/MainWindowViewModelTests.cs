@@ -103,6 +103,27 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(100 * 8, model.Scene.Snapshot().Single().TriangleCount);
     }
 
+    /// <summary>
+    /// Every row in the properties panel says what type it wants, in words rather than in a
+    /// tooltip.
+    /// </summary>
+    /// <remarks>
+    /// A box labelled <c>end</c> does not tell somebody what belongs in it, and the answer used to
+    /// be reachable only by hovering — which answers a question the user has to have thought to
+    /// ask. The words come from the same place the canvas gets them, so the two cannot drift.
+    /// </remarks>
+    [Fact]
+    public void EveryInspectorRowNamesTheTypeItWants()
+    {
+        using MainWindowViewModel model = new();
+
+        model.ShowSelection([SlotOf(model, "Number.Range")]);
+
+        Assert.NotEmpty(model.Inspector);
+        Assert.All(model.Inspector, port => Assert.False(string.IsNullOrWhiteSpace(port.TypeName)));
+        Assert.Equal("number", model.Inspector.Single(port => port.Name == "end").TypeName);
+    }
+
     /// <summary>A port fed by a wire is not editable, because the wire wins.</summary>
     [Fact]
     public void AWiredPortIsNotEditable()

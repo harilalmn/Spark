@@ -721,3 +721,86 @@ view model directly, which is the correct thing for a test to do and is precisel
 observe a defect that lives in the window's startup sequence. Both were found by running the
 application and looking at the picture.
 
+
+---
+
+## N23 — An undo reopens the document, so canvas slots and node objects do not survive it
+
+Undo restores a `.spark` snapshot through `CanvasDocument.Open`
+([ADR-0022](adr/0022-undo-by-document-snapshot.md)), which is the same path a file takes. That is
+the point of it — there is one definition of what a document is, and undo cannot drift from it —
+but it has a consequence that will bite anybody holding a reference across the step.
+
+**Node identities survive. Everything else about a canvas node does not.**
+
+- `CanvasNode` instances are **new objects**. A variable holding one from before the undo now
+  refers to a node that is not in the graph, and writing to its `X` changes nothing anybody can
+  see. Find the node again by `NodeId`, through `CanvasGraph.SlotOf`.
+- **Slots renumber.** `CanvasDocument.Open` adopts nodes in the document's order, which is sorted
+  by identity so that the file has a stable diff. The canvas draw order after an undo is
+  therefore the canonical order, not the order the nodes were created in. For non-overlapping
+  nodes this is invisible; for overlapping ones the z-order can change.
+- **Selection is dropped**, because `GraphCanvas.Graph`'s setter clears it, and a slot held from
+  before the undo would otherwise point at whichever node now occupies that index.
+
+The first version of the test for "undo puts a node back where it was" asserted on
+`Nodes[0]` before and after, and failed with `Expected: 30, Actual: 270` — not because the
+position was wrong but because slot 0 was a different node. It now looks the node up by
+identity, which is what any code crossing an undo has to do.
+
+The cache does not care about any of this. A cache key is built from a node's definition, its
+lacing, the document tolerance and the keys of everything upstream — never from its identity and
+never from its slot — so a reopened document re-derives the same keys and the run after an undo
+hits every one of them.
+
+---
+
+## N24 — A node is sized before any of its text has been measured
+
+`CanvasNode` computes its width in its constructor, from character counts and a per-character
+estimate: 6.8 px for the 12 px header title, 6.2 px for an 11 px port name, 5.6 px for a 10 px type
+label. It is not laziness and it is not a placeholder for a measurement to be added later. A node
+is built off the render thread, from a `NodeDefinition`, with no `DrawingContext`, no typeface and
+no font manager — Avalonia's `FormattedText` needs all three, and the node has to have a size
+before the first frame so the spatial index can be built and the graph can be hit-tested.
+
+**The consequence is that width is a preference, not a guarantee**, and the drawing must survive
+the estimate being wrong. It does: each type label is drawn only if the row still has room for it
+with a gap to spare, and skipped otherwise. An estimate that runs narrow therefore loses a type
+label on one row of one node, rather than printing an input's type on top of its output's name.
+
+**No test in the suite can check the estimate.** The headless Avalonia platform draws through a
+stub, so `FormattedText.Width` there is the stub's metric and not Inter's — a test measuring it
+looks rigorous and is checking nothing about the running application. One was written and deleted
+for exactly that reason: it reported an eleven-character type label as 104 px wider than the node
+that comfortably fits it on screen. What checks this is
+`dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX --zoom 1.15`, and
+looking at the picture.
+
+`--zoom` recentres the canvas on the graph as part of the same fix, because setting a zoom scales
+about the world origin and every zoom above the fit had been taking the nodes off screen — a
+screenshot switch that reliably photographs empty canvas is worse than none.
+
+---
+
+## N25 — The view model applies one run's results at a time, and may not rely on a dispatcher
+
+`MainWindowViewModel.EvaluateAsync` runs the graph off the calling thread and then applies the
+result: node states onto the canvas, geometry into the scene, literals into the inspector. The
+run is superseded-if-superseded; **the apply is serialised behind a semaphore**, and the two are
+deliberately not the same span.
+
+- The gate is taken **after** `SparkSession.EvaluateAsync` returns, never before. Taking it first
+  would make a new edit queue behind a long evaluation instead of cancelling it, which is the one
+  property `SparkSession` exists to provide.
+- The gate exists at all because **the view model must not assume a UI dispatcher**. In the
+  application every continuation lands back on the UI thread, so applies are serialised for free.
+  In a headless host — a test, `spark run`, an embedder that supplies its own scheduler — they are
+  not, and `Inspector` and the published-key set are ordinary collections that do not survive two
+  writers.
+
+The symptom, before the gate, was an intermittent failure in an undo test with no assertion
+message: two fire-and-forget runs, started by an undo and the redo after it, applying at once.
+`ViewportScene` is genuinely thread-safe and was never the problem, which is what made it look
+like a flake rather than a defect. Undo is what made it reachable — it is the first feature that
+replaces the whole document twice in a row at a user's typing speed.

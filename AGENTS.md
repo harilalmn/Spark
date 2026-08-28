@@ -453,7 +453,7 @@ As of 2026-08-28, in three tiers. The tiers are the point; collapsing them is th
 - `dotnet build Spark.slnx --no-incremental -warnaserror` — **sixteen** projects, zero
   warnings, zero errors. Use the flag: without it the warning count can come from a cached
   analysis (see *Things that will bite you*).
-- `dotnet test Spark.slnx` — **893 tests across seven projects**, all passing.
+- `dotnet test Spark.slnx` — **934 tests across seven projects**, all passing.
   `Spark.Geometry.Tests` (313) covers the kernel by example; `Spark.Geometry.Properties` (38)
   covers it with CsCheck properties over generators spanning 1e-9 to 1e9; `Spark.Engine.Tests`
   (289) covers the graph, the replicator, the importer and the `.spark` format, including a two-way diff against the
@@ -489,11 +489,26 @@ valuable part — a test that asserted a normalised quantity and so could not se
 quantity's scale ([N19](docs/NOTES.md)), and a branch that no input could reach
 ([N20](docs/NOTES.md)). Both were in code that was green.
 
+**Undo and redo** were swept the same way and produced a third instance of the same shape. Three
+mutations, two killed, and the survivor was a test asserting that clicking a node is not an edit:
+it passed under a mutation that recorded *every* drag, because a click raises no pointer-move
+event and so never reached the guard the test existed to check. It was green, it was about the
+right behaviour, and it could not fail. The repair was both halves — the guard became a **net**
+displacement rather than a flag set on the first move, and a second test drags a node out and
+back to where it started. **Write the mutation before you believe the test.**
+
+**Port type labels** were swept next: four mutations, three killed, and the survivor was the same
+lesson a fourth time. A test asserting that a node grows wide enough for its widest port row passed
+under a mutation that removed the row measurement entirely — because the node it chose has a long
+enough *title* to clear the minimum width on its own, so the assertion "wider than the minimum" was
+true either way. The bound is now above what the title alone asks for, and the arithmetic is in the
+test. **An assertion that would also hold with the feature removed is not an assertion.**
+
 **Written, and not executed at all.** The `docs-freshness` CI job. It is `pull_request`-only
 and every commit so far has been a push to `main`, so it has never run once.
 
-**Not built at all.** No surfaces, meshes, BRep or solids; no `NurbsCurve`; no `Quaternion`. No
-undo or redo. `Spark.Geometry.Io`, `Spark.Scripting`, `Spark.Packages` and `Spark.Cli` are empty
+**Not built at all.** No surfaces, meshes, BRep or solids; no `NurbsCurve`; no `Quaternion`.
+`Spark.Geometry.Io`, `Spark.Scripting`, `Spark.Packages` and `Spark.Cli` are empty
 or stubs. There is no benchmark project, and there is no OpenCascade anywhere in the tree.
 
 Keep the distinction honest in anything you write here. CADScript's experience is the argument

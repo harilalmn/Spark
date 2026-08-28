@@ -269,7 +269,12 @@ public sealed class GraphCanvasInputTests
     {
         (Window window, GraphCanvas canvas) = Open(TwoNodes());
         int changes = 0;
-        canvas.GraphChanged += (_, _) => changes++;
+        GraphEditedEventArgs? edit = null;
+        canvas.GraphChanged += (_, e) =>
+        {
+            changes++;
+            edit = e;
+        };
 
         DragWire(window, canvas, 0, 1);
 
@@ -277,6 +282,76 @@ public sealed class GraphCanvasInputTests
         // which is the single most confusing failure this shell can have.
         Assert.Equal(1, changes);
         Assert.Single(canvas.Graph.Wires);
+        Assert.NotNull(edit);
+        Assert.True(edit.AffectsEvaluation);
+    });
+
+    /// <summary>
+    /// A drag reports the move as an edit, and says it does not need a run.
+    /// </summary>
+    /// <remarks>
+    /// Both halves matter. The edit is what puts a move on the undo stack; the flag is what stops
+    /// the shell evaluating a graph whose every answer it already has, because a position is not in
+    /// a node's provenance and cannot change what the node produces.
+    /// </remarks>
+    [Fact]
+    public void MovingNodesReportsAnEditThatDoesNotNeedARun() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        GraphEditedEventArgs? edit = null;
+        canvas.GraphChanged += (_, e) => edit = e;
+
+        window.MouseDown(new Point(60, 30), MouseButton.Left, RawInputModifiers.None);
+        window.MouseMove(new Point(160, 80), RawInputModifiers.None);
+        window.MouseUp(new Point(160, 80), MouseButton.Left, RawInputModifiers.None);
+
+        Assert.NotNull(edit);
+        Assert.Equal("Move node", edit.Label);
+        Assert.False(edit.AffectsEvaluation);
+    });
+
+    /// <summary>
+    /// Pressing a node and releasing without moving it is not an edit.
+    /// </summary>
+    /// <remarks>
+    /// Selecting a node is a click, and every click ends in the drag branch. Recording one would put
+    /// a step on the undo stack for every selection, and the user's first Ctrl+Z would do nothing
+    /// visible.
+    /// </remarks>
+    [Fact]
+    public void ClickingANodeWithoutMovingItIsNotAnEdit() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        int changes = 0;
+        canvas.GraphChanged += (_, _) => changes++;
+
+        Click(window, 60, 30);
+
+        Assert.Equal(0, changes);
+    });
+
+    /// <summary>
+    /// A drag that comes back to where it started is not an edit either.
+    /// </summary>
+    /// <remarks>
+    /// This is the case that separates "the pointer moved" from "the node moved", and it is why the
+    /// canvas accumulates a net displacement rather than setting a flag on the first move event. A
+    /// flag would record a step whose undo puts every node back exactly where it already is.
+    /// </remarks>
+    [Fact]
+    public void ADragThatEndsWhereItStartedIsNotAnEdit() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        int changes = 0;
+        canvas.GraphChanged += (_, _) => changes++;
+
+        window.MouseDown(new Point(60, 30), MouseButton.Left, RawInputModifiers.None);
+        window.MouseMove(new Point(200, 140), RawInputModifiers.None);
+        window.MouseMove(new Point(60, 30), RawInputModifiers.None);
+        window.MouseUp(new Point(60, 30), MouseButton.Left, RawInputModifiers.None);
+
+        Assert.Equal(0, canvas.Graph.Nodes[0].X, 6);
+        Assert.Equal(0, changes);
     });
 
     /// <summary>

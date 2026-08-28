@@ -105,6 +105,31 @@ public sealed class CanvasLevelOfDetailTests
         Assert.Equal(1, CanvasLevelOfDetail.CategoryFillBlend(0.20));
     }
 
+    /// <summary>
+    /// Port types are dropped one level before port names, and both survive to their own floor.
+    /// </summary>
+    /// <remarks>
+    /// The arithmetic is the same one every other threshold in §7.3 was placed by. A port name is
+    /// 11 px and is dropped below 73%, where it would fall under eight device pixels; the type
+    /// beside it is 10 px and is dropped below 82% for exactly the same reason. Losing the type
+    /// first is also the right order: at that zoom a user is finding a node, not wiring one.
+    /// </remarks>
+    [Fact]
+    public void PortTypesAreDroppedOneLevelBeforePortNames()
+    {
+        Assert.True(CanvasLevelOfDetail.DrawsPortTypes(CanvasLevelOfDetail.For(1.00)));
+        Assert.True(CanvasLevelOfDetail.DrawsPortTypes(CanvasLevelOfDetail.For(0.82)));
+
+        // 10 px x 0.81 is 8.1 px, but the level below is where the type stops being drawn: the
+        // thresholds are the levels, not a second set of numbers beside them.
+        Assert.False(CanvasLevelOfDetail.DrawsPortTypes(CanvasLevelOfDetail.For(0.81)));
+        Assert.False(CanvasLevelOfDetail.DrawsPortTypes(CanvasLevelOfDetail.For(0.73)));
+
+        // And the name outlives the type by a level, rather than the two going together.
+        Assert.True(CanvasLevelOfDetail.DrawsPortLabels(CanvasLevelOfDetail.For(0.73)));
+        Assert.False(CanvasLevelOfDetail.DrawsPortLabels(CanvasLevelOfDetail.For(0.72)));
+    }
+
     [Fact]
     public void AnimationIsSwitchedOffWhenEitherTheZoomOrTheNodeCountLeavesBudget()
     {

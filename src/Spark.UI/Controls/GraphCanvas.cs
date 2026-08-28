@@ -14,6 +14,28 @@ using Spark.UI.Theming;
 namespace Spark.UI.Controls;
 
 /// <summary>
+/// What one gesture did to the graph: a phrase for the undo menu, and whether the change is one
+/// the evaluator has to see.
+/// </summary>
+/// <remarks>
+/// The two are genuinely independent, and moving a node is the case that proves it. A move changes
+/// the document — it is saved, and a user expects to be able to undo it — but it cannot change any
+/// value, because a position is not in a node's provenance and never enters a cache key. Reporting
+/// both facts in one event is what lets the shell record a step without also starting a run that
+/// could only produce the answer it already has.
+/// </remarks>
+/// <param name="label">What the edit did, in the words the menu shows: <c>Move node</c>.</param>
+/// <param name="affectsEvaluation">Whether the graph has to be run again.</param>
+public sealed class GraphEditedEventArgs(string label, bool affectsEvaluation) : EventArgs
+{
+    /// <summary>What the edit did, phrased for an undo menu.</summary>
+    public string Label { get; } = label;
+
+    /// <summary>Whether the change requires the graph to be evaluated again.</summary>
+    public bool AffectsEvaluation { get; } = affectsEvaluation;
+}
+
+/// <summary>
 /// The node canvas: <b>one</b> Avalonia control that draws the entire graph in immediate mode
 /// over a retained <see cref="SceneIndex"/> (ADR-0013). Nodes, ports and wires are drawn, not
 /// instantiated.
@@ -55,6 +77,10 @@ public sealed class GraphCanvas : Control
     private const double GlyphFontSize = 12;
     private const double HeaderFontSize = 12;
     private const double PortFontSize = 11;
+    private const double TypeFontSize = 10;
+    private const double TypeGap = 6;
+    private const double PortLabelInset = 9;
+    private const double MinimumRowGap = 8;
     private const int MaximumCachedTextRuns = 4096;
 
     private static readonly Typeface HeaderTypeface =
@@ -68,6 +94,7 @@ public sealed class GraphCanvas : Control
     private readonly Dictionary<string, FormattedText> _headerText = [];
     private readonly Dictionary<string, FormattedText> _labelText = [];
     private readonly Dictionary<string, FormattedText> _glyphText = [];
+    private readonly Dictionary<string, FormattedText> _typeText = [];
     private readonly List<WireVisual> _wireVisuals = [];
     private readonly HashSet<int> _selection = [];
     private readonly HashSet<CanvasPort> _connectedPorts = [];
@@ -87,6 +114,8 @@ public sealed class GraphCanvas : Control
     private WireOutcome _dragOutcome = WireOutcome.Refused;
     private Point _marqueeStartWorld;
     private Point _marqueeEndWorld;
+    private double _dragTotalX;
+    private double _dragTotalY;
 
     /// <summary>Creates an empty canvas.</summary>
     public GraphCanvas()
@@ -102,15 +131,16 @@ public sealed class GraphCanvas : Control
     }
 
     /// <summary>
-    /// Raised whenever a gesture changed the graph's structure — a wire drawn or removed, a node
-    /// deleted. The shell listens for this and starts an evaluation.
+    /// Raised whenever a gesture changed the document — a wire drawn or removed, a node deleted, a
+    /// selection moved. The shell listens for this, records an undo step, and starts an evaluation
+    /// when <see cref="GraphEditedEventArgs.AffectsEvaluation"/> says one is needed.
     /// </summary>
     /// <remarks>
     /// The canvas reports intent and never evaluates anything itself. Evaluation is off the UI
     /// thread and belongs to the view model; a control that started a run would be doing it on the
     /// thread it is drawing on.
     /// </remarks>
-    public event EventHandler? GraphChanged;
+    public event EventHandler<GraphEditedEventArgs>? GraphChanged;
 
     /// <summary>Raised when the selected nodes change, so the inspector can follow.</summary>
     public event EventHandler? SelectionChanged;
@@ -237,6 +267,16 @@ public sealed class GraphCanvas : Control
         }
     }
 
+    /// <summary>Puts a world region in the middle of the control without changing the zoom.</summary>
+    /// <param name="bounds">The region to centre on.</param>
+    public void CentreOn(CanvasBounds bounds)
+    {
+        double zoom = _transform.Zoom;
+        _transform.OffsetX = ((bounds.MinX + bounds.MaxX) / 2) - (Bounds.Width / (2 * zoom));
+        _transform.OffsetY = ((bounds.MinY + bounds.MaxY) / 2) - (Bounds.Height / (2 * zoom));
+        InvalidateVisual();
+    }
+
     /// <summary>Frames the whole graph in the control, with a margin.</summary>
     public void ZoomToFit()
     {
@@ -309,6 +349,8 @@ public sealed class GraphCanvas : Control
             _selectedWire = null;
             _focusNode = node;
             _mode = InteractionMode.DraggingNodes;
+            _dragTotalX = 0;
+            _dragTotalY = 0;
             _dragStartWorld = world;
             e.Pointer.Capture(this);
             e.Handled = true;
@@ -407,6 +449,15 @@ public sealed class GraphCanvas : Control
 
             case InteractionMode.DraggingWire when _dragSourcePort is { } source && _hoverPort is { } target:
                 TryConnect(source, target);
+                break;
+
+            // A move is reported as an edit but not as a reason to run: a position is not in a
+            // node's provenance, so nothing it feeds can produce a different answer.
+            case InteractionMode.DraggingNodes when _dragTotalX != 0 || _dragTotalY != 0:
+                _dragTotalX = 0;
+                _dragTotalY = 0;
+                GraphChanged?.Invoke(
+                    this, new GraphEditedEventArgs(Plural("Move", _selection.Count), affectsEvaluation: false));
                 break;
 
             default:
@@ -675,7 +726,7 @@ public sealed class GraphCanvas : Control
 
             if (drawsPortLabels)
             {
-                DrawPortLabels(context, node);
+                DrawPortLabels(context, node, CanvasLevelOfDetail.DrawsPortTypes(detail));
             }
 
             DrawStateRings(context, pens, node, nodeRect, selected);
@@ -737,20 +788,81 @@ public sealed class GraphCanvas : Control
         }
     }
 
-    private void DrawPortLabels(DrawingContext context, CanvasNode node)
+    /// <summary>
+    /// Draws the port names, and beside each one the type it wants.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The type is what turns a port from a word into an instruction: <c>centre</c> says where the
+    /// value goes and <c>Point</c> says what to go and find. It is drawn in <c>text.muted</c> at
+    /// 10 px so the name still wins the row, and it is dropped a level of detail earlier than the
+    /// name for the reason every threshold in §7.3 exists — 10 px below 82% zoom is under eight
+    /// device pixels, and the design language drops text there rather than clamping it.
+    /// </para>
+    /// <para>
+    /// Nothing here says whether the port wants a list. The ring around the port disc already does
+    /// (§7.6), and saying it twice would cost width on every node in the graph.
+    /// </para>
+    /// </remarks>
+    /// <param name="context">The drawing context.</param>
+    /// <param name="node">The node being drawn.</param>
+    /// <param name="types">Whether the zoom is high enough for the type labels.</param>
+    private void DrawPortLabels(DrawingContext context, CanvasNode node, bool types)
     {
-        for (int i = 0; i < node.Inputs.Count; i++)
-        {
-            node.InputPortCentre(i, out _, out double y);
-            FormattedText label = LabelRun(node.Inputs[i].Name);
-            context.DrawText(label, new Point(node.X + 9, y - (label.Height / 2)));
-        }
+        int rows = Math.Max(node.Inputs.Count, node.Outputs.Count);
 
-        for (int i = 0; i < node.Outputs.Count; i++)
+        for (int row = 0; row < rows; row++)
         {
-            node.OutputPortCentre(i, out _, out double y);
-            FormattedText label = LabelRun(node.Outputs[i].Name);
-            context.DrawText(label, new Point(node.X + node.Width - 9 - label.Width, y - (label.Height / 2)));
+            double y = node.Y + CanvasNode.HeaderHeight + (CanvasNode.PortPitch * (row + 0.5));
+            double leftEnd = node.X + PortLabelInset;
+            double rightStart = node.X + node.Width - PortLabelInset;
+
+            if (row < node.Inputs.Count)
+            {
+                FormattedText name = LabelRun(node.Inputs[row].Name);
+                context.DrawText(name, new Point(leftEnd, y - (name.Height / 2)));
+                leftEnd += name.Width;
+            }
+
+            if (row < node.Outputs.Count)
+            {
+                FormattedText name = LabelRun(node.Outputs[row].Name);
+                rightStart -= name.Width;
+                context.DrawText(name, new Point(rightStart, y - (name.Height / 2)));
+            }
+
+            if (!types)
+            {
+                continue;
+            }
+
+            // The two type labels compete for the space between the two names, and the node was
+            // sized from an estimate rather than from measured text (N24). So each one is drawn
+            // only if it fits with a gap to spare — which makes an overlap impossible whatever the
+            // font turns out to measure, rather than merely unlikely.
+            double free = rightStart - leftEnd;
+
+            if (row < node.Inputs.Count && node.Inputs[row].TypeName is { } inputType)
+            {
+                FormattedText run = TypeRun(inputType);
+                if (free >= TypeGap + run.Width + MinimumRowGap)
+                {
+                    context.DrawText(run, new Point(leftEnd + TypeGap, y - (run.Height / 2)));
+                    free -= TypeGap + run.Width;
+                }
+            }
+
+            // An output name is right-aligned, so its type goes to its left. The input's type wins
+            // a contested row: the question a port label answers is what to plug in.
+            if (row < node.Outputs.Count && node.Outputs[row].TypeName is { } outputType)
+            {
+                FormattedText run = TypeRun(outputType);
+                if (free >= TypeGap + run.Width + MinimumRowGap)
+                {
+                    context.DrawText(
+                        run, new Point(rightStart - TypeGap - run.Width, y - (run.Height / 2)));
+                }
+            }
         }
     }
 
@@ -991,6 +1103,12 @@ public sealed class GraphCanvas : Control
 
     private void MoveSelection(double dx, double dy)
     {
+        // The net displacement, not whether the pointer moved. A drag that goes out and comes back
+        // to where it started leaves every node where it was, and recording it would put a step on
+        // the undo stack whose undo moves nothing — which reads as undo being broken.
+        _dragTotalX += dx;
+        _dragTotalY += dy;
+
         foreach (int slot in _selection)
         {
             if (slot < 0 || slot >= _graph.Nodes.Count)
@@ -1033,8 +1151,16 @@ public sealed class GraphCanvas : Control
 
         _wireVisuals.Clear();
         _selectedWire = null;
-        GraphChanged?.Invoke(this, EventArgs.Empty);
+        GraphChanged?.Invoke(this, new GraphEditedEventArgs("Connect", affectsEvaluation: true));
     }
+
+    /// <summary>An edit label naming how many nodes it touched: <c>Move node</c>, <c>Move 3 nodes</c>.</summary>
+    /// <param name="verb">The verb the label starts with.</param>
+    /// <param name="count">How many nodes the edit touched.</param>
+    /// <returns>The label.</returns>
+    private static string Plural(string verb, int count) => count == 1
+        ? verb + " node"
+        : string.Create(CultureInfo.InvariantCulture, $"{verb} {count} nodes");
 
     private WireOutcome EvaluateDrag(CanvasPort? source, CanvasPort? target)
     {
@@ -1070,7 +1196,7 @@ public sealed class GraphCanvas : Control
 
             _wireVisuals.Clear();
             InvalidateVisual();
-            GraphChanged?.Invoke(this, EventArgs.Empty);
+            GraphChanged?.Invoke(this, new GraphEditedEventArgs("Delete wire", affectsEvaluation: true));
             return true;
         }
 
@@ -1098,7 +1224,7 @@ public sealed class GraphCanvas : Control
 
         InvalidateVisual();
         SelectionChanged?.Invoke(this, EventArgs.Empty);
-        GraphChanged?.Invoke(this, EventArgs.Empty);
+        GraphChanged?.Invoke(this, new GraphEditedEventArgs(Plural("Delete", doomed.Count), affectsEvaluation: true));
         return true;
     }
 
@@ -1242,6 +1368,9 @@ public sealed class GraphCanvas : Control
 
     private FormattedText LabelRun(string text) =>
         Run(_labelText, text, LabelTypeface, PortFontSize, SparkPalette.TextSecondaryBrush);
+
+    private FormattedText TypeRun(string text) =>
+        Run(_typeText, text, LabelTypeface, TypeFontSize, SparkPalette.TextMutedBrush);
 
     private static FormattedText Run(
         Dictionary<string, FormattedText> cache, string text, Typeface typeface, double size, IBrush brush)

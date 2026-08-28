@@ -7,10 +7,24 @@ order for what to do next is in [TODO.md](TODO.md); the requirements behind them
 **Last updated:** 2026-08-28
 **Legend:** `Done` · `In progress` · `Open` · `Blocked` · `Withdrawn`
 
-**Summary:** 85 done · 18 in progress · 152 open · 9 withdrawn — **264 rows**
+**Summary:** 87 done · 18 in progress · 151 open · 9 withdrawn — **265 rows**
 
-**This revision brings the curve layer in, and corrects four claims below that had become
-false.** `Line`, `Arc`, `Circle`, `EllipseCurve`, `PolyLine` and `PolyCurve` exist, with
+**This revision adds undo and redo — `E8-T9`, the last structural gap in M2 — and with it the
+first test of a claim this register has repeated since M0.** The provenance cache's whole
+justification is that returning to a former state costs nothing; nothing exercised it until there
+was an undo stack, and now the run after an undo is asserted to recompute zero nodes. The
+decision behind the shape of the stack is [ADR-0022](adr/0022-undo-by-document-snapshot.md), and
+it was taken on **coverage rather than memory**: a node's position never passes through the
+engine, so an inverse-command stack would have missed moves.
+
+**It also adds one row that came from running the application rather than from reading this
+file** — `E8-T18`, port type labels. A user opened `Circle.ByCentreRadius`, saw a port called
+`centre`, and had no way to find out what belonged in it. That is the kind of row a plan does not
+produce, and it is worth naming as such: the register is a record of intent, and using the thing
+is still the only way to find out what intent missed.
+
+**The revision before it brought the curve layer in, and corrected four claims below that had
+become false.** `Line`, `Arc`, `Circle`, `EllipseCurve`, `PolyLine` and `PolyCurve` exist, with
 arc-length reparameterisation in the contract from the first commit rather than retrofitted —
 `E2-T7` … `E2-T9`. The four corrections are that **CI has run and is green on Linux as well as
 Windows**, that **two of the three M1.5 spikes were taken and both architectural bets held**, that
@@ -69,11 +83,11 @@ register:
 
 Every `Done` task is verified by reading the repository and running the gates rather than by
 recollection: `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen
-projects, `dotnet test Spark.slnx` runs **873 passing tests across seven test projects**
-(`Spark.Geometry.Tests` 313, `Spark.UI.Tests` 167, `Spark.Engine.Tests` 273,
+projects, `dotnet test Spark.slnx` runs **934 passing tests across seven test projects**
+(`Spark.Geometry.Tests` 313, `Spark.Engine.Tests` 289, `Spark.UI.Tests` 212,
 `Spark.Viewport.Tests` 69, `Spark.Geometry.Properties` 38, `Spark.Architecture.Tests` 8,
 `Spark.Docs.Verify` 5), and `dotnet format Spark.slnx --verify-no-changes --severity warn` is
-clean. Twenty-one ADRs are written and indexed, and the lacing specification exists. All three
+clean. Twenty-two ADRs are written and indexed, and the lacing specification exists. All three
 gates were run on Windows on 2026-08-28, and **CI ran them on Windows and Linux on `35107f0`
 and was green** (run 33111751158). The `docs-freshness` job is `pull_request`-only and has
 still never run, because every commit so far has been a push to `main`.
@@ -243,7 +257,7 @@ Everything else in this file is a plan, not a claim.
 | E3-T5 | Refuse same-`FullName`, different-assembly wires naming both packages | Done | **Built in `7ef0919`.** Turns an incomprehensible runtime *cannot cast Foo to Foo* into a design-time message. Worth its own rule |
 | E3-T6 | Kahn topological sort over the dirty subgraph, producing levels | Done | **Built in `7ef0919`.** Parallel within a level |
 | E3-T7 | Cycle refusal at wire creation and detection at load | Done | **Built in `7ef0919`.** At creation, flash the closing path. At load, every node in the cycle errors and the rest of the graph still evaluates. **Never hang** |
-| E3-T8 | Content-addressed provenance cache | Done | **Built in `7ef0919`.** `Key(n) = Hash(DefinitionKey, DefinitionVersion, Lacing, Tolerance, RunEpochIfImpure, ∀input: connected ? Key(upstream) : Hash(literal))`. By provenance, **not by value** — hashing a 2M-triangle mesh costs more than recomputing it. Consequence: undo, redo, A/B wire toggling and slider reverts are instant, because the old key is still cached |
+| E3-T8 | Content-addressed provenance cache | Done | **Built in `7ef0919`.** `Key(n) = Hash(DefinitionKey, DefinitionVersion, Lacing, Tolerance, RunEpochIfImpure, ∀input: connected ? Key(upstream) : Hash(literal))`. By provenance, **not by value** — hashing a 2M-triangle mesh costs more than recomputing it. Consequence: undo, redo, A/B wire toggling and slider reverts are instant, because the old key is still cached — **and as of `E8-T9` that is measured rather than asserted**: the run after an undo recomputes zero nodes |
 | E3-T9 | LRU eviction against a memory budget | In progress | **Partly built.** Eviction is by last use against an **entry-count ceiling**, not the byte budget this row asks for and not the native-memory budget [ADR-0021](adr/0021-brep-kernel-residency.md) now requires. The implementation says so in its own remarks rather than implying a budget it does not have. By last use and estimated size |
 | E3-T10 | Impure node declaration and run epoch | In progress | **Half built.** The run epoch is plumbed through `EvaluationContext` and mixed into `CacheKey`. **There is no impure-node declaration**: no attribute exists in `Spark.Api`, so nothing can mark itself impure and nothing poisons downstream keys yet. Impure nodes mix a run epoch into their key and poison downstream keys. They must declare themselves; there is no way to detect it |
 | E3-T11 | `IEvaluationScheduler`: parallel, sequential-deterministic, host-thread | In progress | **Two of the three.** `SequentialEvaluationScheduler` and `ParallelEvaluationScheduler` exist behind `IEvaluationScheduler`. The **host-thread** scheduler - the one a CAD host actually needs, and a large part of why the seam exists - does not. Parallel for desktop, sequential for CLI and determinism, host-thread for CAD embedding ([E12-T3](#e12--embedding-and-release)). Evaluation never runs on the UI thread |
@@ -351,7 +365,7 @@ Everything else in this file is a plan, not a claim.
 | E8-T6 | Canvas interaction: pan, zoom, box select, drag, wire, unwire, delete, group, note, align | In progress | **Pan, zoom, box select, drag, wire, unwire and delete are built**, and driven by headless tests using real pointer gestures - which found a bug vigilance would not have: hit-testing depended on a frame having been painted, because the spatial index was only rebuilt inside `Render`. Group, note and align are not built. |
 | E8-T7 | LOD below 40% zoom | Done | **Built in `85e3183`/`35107f0`.** |
 | E8-T8 | Node library panel with camel-hump search ranking | In progress | **The panel and a filter exist; the ranking does not.** All 57 nodes list and the search box narrows them, but exact → prefix → camel-hump ordering is not implemented, so `cbcr` finds nothing. exact → prefix → **camel-hump** (`cbcr` → `Circle.ByCenterRadius`) → substring → tag → description. The highest-value search feature across thousands of nodes, and cheap to implement |
-| E8-T9 | Undo and redo | Open | Made instant by [E3-T8](#e3--graph-engine): the old cache key is still resident |
+| E8-T9 | Undo and redo | Done | **A bounded stack of whole-document `.spark` snapshots ([ADR-0022](adr/0022-undo-by-document-snapshot.md)), 64 steps, on Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z and the toolbar.** Snapshot rather than inverse commands **for coverage, not for simplicity**: a node's position never enters the engine graph, so a command stack over the engine's own mutations would have missed moves and would go on missing every future canvas-side edit. Three rules earn their place — an edit that changed nothing is not a step, an edit whose document cannot be written clears the history rather than letting a later undo jump over it, and replacing the document starts a new history. Made instant by [E3-T8](#e3--graph-engine), and this is the row that finally **exercises** that claim rather than repeating it: after an undo the run recomputes zero nodes and serves every one from the cache, asserted in `UndoRedoTests`. Consequence to know: an undo reopens the document, so canvas slots renumber and `CanvasNode` objects are new ([N23](NOTES.md)) |
 | E8-T10 | Watch panel and preview bubbles | Open | Must show **rank**, not only value — rank is what users get wrong |
 | E8-T11 | MVVM with CommunityToolkit.Mvvm source generators; compiled bindings on by default | Done | **Built in `85e3183`/`35107f0`.** Not ReactiveUI: fewer concepts for contributors, no runtime reflection on property change (which matters at 2000 nodes), and Avalonia no longer presumes it. Compiled bindings make binding errors compile errors. **Views never touch `Spark.Engine`** — enforced by [E11-T8](#e11--quality-and-verification) |
 | E8-T12 | Settings | Open | |
@@ -360,6 +374,7 @@ Everything else in this file is a plan, not a claim.
 | E8-T15 | 2000-node canvas benchmark, nightly from M2 | In progress | **The measurement exists; the nightly does not.** `--canvas-benchmark [frames]` drives a fixed pan-and-zoom cycle and prints the frame-time distribution - that is where 0.87 ms median at 2,000 nodes came from - but nothing runs it on a schedule and `bench/` is empty, so nothing will notice the day it regresses. The standing guard on [R5](PRD.md#12-risks) |
 | E8-T16 | Banners: missing package, graph contains script nodes | Open | |
 | E8-T17 | Group and note rendering on the canvas | Open | |
+| E8-T18 | Every port shows the type it wants, on the node and in the properties panel | Done | **Found by using the application, not by reading the plan.** A port called `centre` told a user nothing about what to plug into it, and the two things that would have — the library entry's signature and the colour of a wire being dragged at it — are both somewhere other than the node. `PortTypeName` is the single source both the canvas and the inspector take the words from, phrased for the person typing the value (`number`, not `Double`; `degrees`, not `Angle`). Three rules keep it from becoming noise: the name wins the row, a name that already says its type does not say it twice (`circle` returning a `Circle`), and listness stays with the port's ring rather than being repeated in text. Drawn at 82% zoom and above, by the same eight-pixel arithmetic as every other threshold in design language §7.3 — and **only when the row has room**, because a node is sized from an estimate before any text exists to measure ([N24](NOTES.md)) |
 
 ## E9 — 3D viewport
 

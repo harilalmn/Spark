@@ -6,10 +6,11 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **Last updated:** 2026-08-28
 
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
-and a graph can be saved and opened.** The application opens, a graph evaluates, and an ellipse,
-eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file. `dotnet build`, `dotnet test` (**873 tests over seven projects**)
-and `dotnet format` are all clean, and **CI ran green on Windows and Linux on `35107f0`** — the
-Linux leg is no longer unproven.
+a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
+eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
+Ctrl+Z steps back through every edit. `dotnet build`, `dotnet test` (**934 tests over seven
+projects**) and `dotnet format` are all clean, and **CI ran green on Windows and Linux on
+`35107f0`** — the Linux leg is no longer unproven.
 
 Three distinctions still do the work in what follows:
 
@@ -17,14 +18,18 @@ Three distinctions still do the work in what follows:
   `EllipseCurve`, `PolyLine`, `PolyCurve` over a `Curve` base, with arc-length
   reparameterisation), the graph engine and replicator, the reflection importer with its
   two-way diff, the Avalonia shell, the immediate-mode canvas, the GL viewport, 57 nodes in
-  `Spark.Nodes.Core`, and a `.spark` file a graph survives a round trip through byte for byte.
-- **What is not.** No surfaces, meshes, BRep or solids. No `NurbsCurve`. **No undo and no
-  redo**, which is now the largest gap in M2. No `spark run`. No packages and no code block. And
-  **no OCCT**: there is no `native/` directory and no `Spark.Geometry.Occt` project.
-- **Gates are not review, and this project now has its own proof twice over.** The kernel's
-  first slice passed all three gates and was rejected on review ([NOTES N18](NOTES.md)). The
-  curve layer's mutation sweep then found a test that could not fail and a branch that could
-  not be reached ([N19](NOTES.md), [N20](NOTES.md)) — both in code that was green.
+  `Spark.Nodes.Core`, a `.spark` file a graph survives a round trip through byte for byte, and a
+  64-step undo stack over that same file format.
+- **What is not.** No surfaces, meshes, BRep or solids. No `NurbsCurve`. No `spark run`. No
+  packages and no code block. And **no OCCT**: there is no `native/` directory and no
+  `Spark.Geometry.Occt` project.
+- **Gates are not review, and this project now has its own proof three times over.** The
+  kernel's first slice passed all three gates and was rejected on review ([NOTES N18](NOTES.md)).
+  The curve layer's mutation sweep then found a test that could not fail and a branch that could
+  not be reached ([N19](NOTES.md), [N20](NOTES.md)). The undo sweep found the same shape a third
+  time: a test asserting that clicking a node is not an edit passed under a mutation that recorded
+  *every* drag, because a click raises no pointer-move event and never reached the guard the test
+  was written for. All of it in code that was green.
 
 **The largest decision in the project is unchanged and unbuilt.** The client chose to take an
 existing solid-modelling kernel rather than write one: **OpenCascade, reached through a C-ABI
@@ -37,9 +42,16 @@ what comparable projects actually ship: a full win-x64 OCCT build is 52.1 MiB ac
 toolkits plus 9.9 MiB of optional third-party libraries, so **R15's 40–160 MB bracket should be
 read as 55–70 MB** — but that is a survey, not a build.
 
+**One row on this page came from using the product rather than from planning it**, and it is worth
+saying so where the plan lives: `E8-T18`, port type labels. Nothing in the PRD asked for them and
+nothing in EPICS was short without them. Somebody opened the application, put down a
+`Circle.ByCentreRadius`, and could not tell what `centre` wanted. The requirement was written
+afterwards (**FR-82**), which is the right order for a defect nobody predicted and the wrong order
+for anything else.
+
 ---
 
-## Now — undo, and the guards that are still missing
+## Now — the guards that are still missing
 
 - [x] **Walk TASKS.md against E3, E4, E5, E8 and E9** — done, and it moved 41 rows. Ten of them
       came back **`In progress` rather than `Done`**, which is the useful output: the cache
@@ -53,10 +65,14 @@ read as 55–70 MB** — but that is a survey, not a build.
       toolbar, `--open PATH` opens one at startup, and `docs/examples/curves.spark` is committed
       as a golden file that the suite re-derives from the seeded demo. Read-then-write is
       byte-identical, and so is the longer path the application takes.
-- [ ] **Undo and redo** — `E8-T9`. **Now the largest gap in M2**, and the cheapest it will ever
-      be: the canvas already edits through the session's mutation gate, so the seam an undo stack
-      needs exists and nothing records into it. The provenance cache makes an undo instant once
-      something does.
+- [x] **Undo and redo** — `E8-T9`, done. A 64-step stack of whole-document `.spark` snapshots
+      on Ctrl+Z, Ctrl+Y and Ctrl+Shift+Z, and on the toolbar with the step named in the tooltip
+      ([ADR-0022](adr/0022-undo-by-document-snapshot.md)). The choice of a snapshot over an
+      inverse-command stack was made on **coverage**: a node's position never enters the engine
+      graph, so a command stack over the engine's own mutations would have missed moves and would
+      go on missing every future canvas-side edit. **It also closes a claim that had been repeated
+      since M0 without a test behind it** — the run after an undo now recomputes zero nodes and
+      serves every one from the provenance cache, measured rather than claimed (`E3-T8`).
 - [ ] **Create `bench/Spark.Benchmarks`** — `E1-T13`. `bench/` and `scripts/` are still empty
       directories and BenchmarkDotNet is pinned and unreferenced. The canvas numbers quoted in
       `85e3183` came from the app's own `--canvas-benchmark` switch, which is a real measurement
@@ -154,8 +170,11 @@ What is left of it is the part that makes the skeleton usable rather than demons
 **Still to do:**
 
 - [x] Save and load — `E3-T17`, `E3-T18`. A graph now outlives the process.
-- [ ] Undo and redo — `E8-T9`. The largest remaining gap in M2, and the reason it sits in *Now*
-      above rather than here.
+- [x] Undo and redo — `E8-T9`. Over the same file format, which is what makes it cover a node
+      position as readily as a wire.
+- [x] Every port shows the type it wants — `E8-T18`. Not in the plan; found by opening the
+      application and looking at `Circle.ByCentreRadius`, where a port called `centre` gave no way
+      to learn that a `Point3d` belongs in it.
 - [ ] Library search with camel-hump ranking — `E8-T8`. The library lists all 57 nodes and the
       search box filters them; the ranking is not the specified one.
 - [ ] `spark run` — `E12-T5`. `Spark.Cli` is still a stub, and it has nothing to run until a
@@ -275,6 +294,12 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   from the mapped conjugate pair is Rytz's construction, and doing it approximately would return
   a curve that is quietly the wrong shape. A non-uniform scale on a `Circle` is refused for the
   same reason — the answer is an ellipse, and a `Circle` cannot hold one.
+- **An undo reopens the document, so nothing about a canvas node survives it except its
+  identity.** `CanvasNode` objects are new, slots renumber into the file's canonical order, and
+  the selection is dropped ([N23](NOTES.md)). This is the price of undo being defined by the same
+  writer that saves the file rather than by a second definition of what a document is, and the
+  price is worth paying: the alternative drifts. Code that crosses an undo looks a node up by
+  `NodeId`, never by slot.
 - **The node canvas runs a real Gaussian blur per node between 81% and 83% zoom**, where the
   drop shadow crosses its threshold, costing 57→40 fps at 2,000 nodes. The design language
   already specifies the fix — a sprite cache keyed on a fixed set of blur radii, eight sprites

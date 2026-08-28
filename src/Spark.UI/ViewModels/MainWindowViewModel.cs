@@ -44,6 +44,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     private readonly SparkSession _session = new();
     private readonly HashSet<GeometryKey> _published = [];
+    private readonly DocumentHistory _history = new();
+    private readonly System.Threading.SemaphoreSlim _applying = new(1, 1);
 
     [ObservableProperty]
     private string _statusText = "Ready.";
@@ -69,6 +71,20 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string _librarySearch = string.Empty;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(UndoCommand))]
+    private bool _canUndo;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RedoCommand))]
+    private bool _canRedo;
+
+    [ObservableProperty]
+    private string _undoDescription = "Nothing to undo";
+
+    [ObservableProperty]
+    private string _redoDescription = "Nothing to redo";
 
     private CanvasGraph _graph;
     private int _placementOrdinal;
@@ -159,6 +175,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <summary>Raised when the whole document was replaced, so the canvas can rebind.</summary>
     public event EventHandler? GraphReplaced;
 
+    /// <summary>
+    /// Raised after undo or redo put a different document in place.
+    /// </summary>
+    /// <remarks>
+    /// Distinct from <see cref="GraphReplaced"/> because the two want different things from the
+    /// view. Opening a document frames it; undoing an edit must leave the view exactly where it
+    /// was, since a canvas that jumps and re-zooms every time a user presses Ctrl+Z makes undo
+    /// feel like a document load rather than a step backwards.
+    /// </remarks>
+    public event EventHandler? DocumentRestored;
+
     /// <summary>Raised on the UI thread after a run's results have been applied.</summary>
     public event EventHandler? EvaluationCompleted;
 
@@ -186,6 +213,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <summary>How many nodes the library imported, for the status line.</summary>
     public int LibraryCount => AllLibraryEntries.Count;
 
+    /// <summary>
+    /// How many nodes the last run computed rather than took from the cache.
+    /// </summary>
+    /// <remarks>
+    /// Reported in the status line, and the number that makes the provenance cache's central claim
+    /// checkable rather than asserted: after an undo this is zero, because the keys of the state
+    /// being returned to are still resident (<c>E3-T8</c>).
+    /// </remarks>
+    public int LastRunNodesEvaluated { get; private set; }
+
+    /// <summary>How many nodes the last run served from the cache.</summary>
+    public int LastRunCacheHits { get; private set; }
+
     /// <summary>Replaces the document with the seeded demo graph.</summary>
     [RelayCommand]
     public void LoadDemo()
@@ -201,6 +241,49 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         AdoptGraph(DemoGraphs.Curves(_session.Library));
         GraphReplaced?.Invoke(this, EventArgs.Empty);
     }
+
+    /// <summary>
+    /// Records an edit on the undo stack, as a snapshot of the document it produced.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Called by the shell after every gesture that changed the document — the canvas reports what
+    /// it did, the inspector reports a literal, the library reports a placement. An edit that
+    /// changed nothing is not recorded, so pressing Enter twice in a value box does not put a step
+    /// on the stack whose undo does nothing visible.
+    /// </para>
+    /// <para>
+    /// <b>An edit whose document cannot be written clears the history rather than skipping a
+    /// step.</b> Keeping the stack across an unrecordable edit would make undo jump over that edit
+    /// to a state before it, silently discarding work the user could see on screen — a far worse
+    /// outcome than an undo button that has gone grey and a diagnostic saying why.
+    /// </para>
+    /// </remarks>
+    /// <param name="label">What the edit did, in the words the menu shows: <c>Move node</c>.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="label"/> is <see langword="null"/>.</exception>
+    public void RecordEdit(string label)
+    {
+        ArgumentNullException.ThrowIfNull(label);
+
+        if (TrySaveDocument() is not { } snapshot)
+        {
+            _history.Reset(null);
+        }
+        else
+        {
+            _history.Record(label, snapshot);
+        }
+
+        RefreshHistory();
+    }
+
+    /// <summary>Steps the document back one edit.</summary>
+    [RelayCommand(CanExecute = nameof(CanUndo))]
+    public void Undo() => Restore(_history.Undo());
+
+    /// <summary>Reapplies the last undone edit.</summary>
+    [RelayCommand(CanExecute = nameof(CanRedo))]
+    public void Redo() => Restore(_history.Redo());
 
     /// <summary>
     /// The current document as the text of a `.spark` file, or <see langword="null"/> when it
@@ -303,20 +386,42 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        _graph.ApplyResult(result);
-        PublishGeometry(result);
-        RefreshInspector();
+        // Applying a result is serialised; running is not. The gate goes here and no earlier
+        // because a run must still be able to supersede the one before it — taking the gate first
+        // would make a new edit queue behind a long evaluation instead of cancelling it, which is
+        // the property SparkSession exists to provide.
+        //
+        // It is needed at all because the view model must not depend on there being a UI
+        // dispatcher. In the application every continuation lands back on the UI thread and this
+        // costs nothing; in a headless host — a test, `spark run`, an embedder without one — two
+        // results applied concurrently would tear `Inspector` and `_published`, which are ordinary
+        // collections. See N24.
+        await _applying.WaitAsync().ConfigureAwait(true);
 
-        double elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
-        DiagnosticsText = Summarise(result);
-        StatusText = string.Create(
-            CultureInfo.InvariantCulture,
-            $"{_graph.Nodes.Count} nodes, {_graph.Wires.Count} wires. " +
-            $"Ran {result.NodesEvaluated} ({result.CacheHits} cached) in {elapsed:F0} ms; " +
-            $"{Scene.Count} buffer sets, {_lastRenderableCount} objects. " +
-            $"Library: {LibraryCount} nodes.");
+        try
+        {
+            _graph.ApplyResult(result);
+            PublishGeometry(result);
+            RefreshInspector();
 
-        EvaluationCompleted?.Invoke(this, EventArgs.Empty);
+            LastRunNodesEvaluated = result.NodesEvaluated;
+            LastRunCacheHits = result.CacheHits;
+
+            double elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+            DiagnosticsText = Summarise(result);
+            StatusText = string.Create(
+                CultureInfo.InvariantCulture,
+                $"{_graph.Nodes.Count} nodes, {_graph.Wires.Count} wires. " +
+                $"Ran {result.NodesEvaluated} ({result.CacheHits} cached) in {elapsed:F0} ms; " +
+                $"{Scene.Count} buffer sets, {_lastRenderableCount} objects. " +
+                $"Library: {LibraryCount} nodes.");
+
+            EvaluationCompleted?.Invoke(this, EventArgs.Empty);
+        }
+        finally
+        {
+            _applying.Release();
+        }
     }
 
     /// <summary>
@@ -333,7 +438,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         _placementOrdinal++;
-        return _graph.Add(entry.Definition, x, y);
+        int slot = _graph.Add(entry.Definition, x, y);
+        RecordEdit("Add " + entry.DisplayName);
+        return slot;
     }
 
     /// <summary>How many nodes have been placed from the library this session.</summary>
@@ -416,6 +523,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         _disposed = true;
         _session.Dispose();
+
+        // _applying is deliberately not disposed. A run may still be waiting on it or about to
+        // release it when the window closes, and disposing a SemaphoreSlim out from under that
+        // turns an orderly shutdown into an ObjectDisposedException on a thread pool thread.
+        // SemaphoreSlim only needs disposal when its AvailableWaitHandle has been taken, and it
+        // never is here.
     }
 
     partial void OnLibrarySearchChanged(string value)
@@ -435,7 +548,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private int _lastRenderableCount;
 
-    private void AdoptGraph(CanvasGraph graph, bool evaluate = true)
+    private void AdoptGraph(CanvasGraph graph, bool evaluate = true, bool resetHistory = true)
     {
         _graph = graph;
 
@@ -450,6 +563,16 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         _published.Clear();
         Inspector.Clear();
 
+        // A new document starts a new history: undoing across the boundary would bring back a
+        // graph the user had closed, which is a different operation from the one Ctrl+Z promises.
+        // A restore keeps the history it is stepping through, which is why this is conditional.
+        if (resetHistory)
+        {
+            _history.Reset(TrySaveDocument());
+        }
+
+        RefreshHistory();
+
         if (evaluate)
         {
             _ = EvaluateGraphAsync();
@@ -461,6 +584,48 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 CultureInfo.InvariantCulture,
                 $"{graph.Nodes.Count} nodes, {graph.Wires.Count} wires (not evaluated).");
         }
+    }
+
+    /// <summary>
+    /// Puts a snapshot back in place as the document, and tells the view it happened.
+    /// </summary>
+    /// <remarks>
+    /// The snapshot is reopened through <see cref="CanvasDocument"/> — the same path a file takes —
+    /// so undo restores exactly what saving would have written, including node positions, and there
+    /// is no second definition of what a document is for it to drift from.
+    /// </remarks>
+    /// <param name="snapshot">The document to restore, or null when there was no step to take.</param>
+    private void Restore(string? snapshot)
+    {
+        if (snapshot is null)
+        {
+            return;
+        }
+
+        try
+        {
+            AdoptGraph(CanvasDocument.Open(snapshot, _session.Library), evaluate: true, resetHistory: false);
+        }
+        catch (SparkFileException error)
+        {
+            // A snapshot this session wrote and cannot read back is a defect in the reader or the
+            // writer, not in the user's graph. Say so, and stop offering a history that is lying.
+            DiagnosticsText = Describe(error.Diagnostic);
+            _history.Reset(null);
+            RefreshHistory();
+            return;
+        }
+
+        DocumentRestored?.Invoke(this, EventArgs.Empty);
+        RefreshHistory();
+    }
+
+    private void RefreshHistory()
+    {
+        CanUndo = _history.CanUndo;
+        CanRedo = _history.CanRedo;
+        UndoDescription = _history.UndoLabel is { } undo ? "Undo " + undo : "Nothing to undo";
+        RedoDescription = _history.RedoLabel is { } redo ? "Redo " + redo : "Nothing to redo";
     }
 
     private async Task EvaluateGraphAsync()
@@ -478,6 +643,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private void CommitLiteral(PortLiteralViewModel editor, object? value)
     {
         _graph.SetLiteral(editor.Slot, editor.PortIndex, value);
+        RecordEdit("Change " + editor.Name);
         _ = EvaluateGraphAsync();
     }
 

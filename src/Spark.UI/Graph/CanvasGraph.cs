@@ -59,7 +59,13 @@ public readonly record struct CanvasWire(CanvasPort From, CanvasPort To);
 /// opening anything.
 /// </param>
 /// <param name="Description">One line describing the port, or null.</param>
-public readonly record struct CanvasPortInfo(string Name, int DeclaredRank, string? Description);
+/// <param name="TypeName">
+/// What the port wants, in the words a user types it in — <c>number</c>, <c>degrees</c>,
+/// <c>Point</c>. Null when the port's own name already says it, which is why an output called
+/// <c>circle</c> is not drawn as "circle Circle" (<see cref="PortTypeName.Beside"/>).
+/// </param>
+public readonly record struct CanvasPortInfo(
+    string Name, int DeclaredRank, string? Description, string? TypeName);
 
 /// <summary>
 /// One node as the canvas draws it: a position, a size derived from its ports, a category colour
@@ -84,6 +90,21 @@ public sealed class CanvasNode
     /// <summary>Padding below the last port row.</summary>
     public const double BodyPadding = 10;
 
+    /// <summary>The horizontal inset a port label starts at, on either side.</summary>
+    private const double PortInset = 9;
+
+    /// <summary>The gap between a port name and its type, and between the two sides of a row.</summary>
+    private const double PortGap = 6;
+
+    /// <summary>The least space left between the two sides of a row, so they never read as one.</summary>
+    private const double RowGutter = 18;
+
+    /// <summary>Approximate width of one character of a port name at 11 px Inter.</summary>
+    private const double PortCharWidth = 6.2;
+
+    /// <summary>Approximate width of one character of a type label at 10 px Inter.</summary>
+    private const double TypeCharWidth = 5.6;
+
     internal CanvasNode(
         NodeId id,
         string title,
@@ -105,7 +126,11 @@ public sealed class CanvasNode
 
         // Roughly 6.6 px per character at 12 px semibold, plus the two 8 px header insets and room
         // for a state glyph. A title that overflows is clipped by the header, which reads as a bug.
-        Width = System.Math.Max(MinimumWidth, 34 + (title.Length * 6.8));
+        // The port rows are measured too, because a row carries a name and the type beside it and
+        // the two sides of a row must not meet in the middle.
+        Width = System.Math.Max(
+            System.Math.Max(MinimumWidth, 34 + (title.Length * 6.8)),
+            WidestRow(inputs, outputs));
     }
 
     /// <summary>The engine identity of the node instance this draws.</summary>
@@ -153,6 +178,52 @@ public sealed class CanvasNode
 
     /// <summary>The node's bounds in world coordinates.</summary>
     public CanvasBounds Bounds => CanvasBounds.FromSize(X, Y, Width, Height);
+
+    /// <summary>
+    /// How wide the widest port row wants to be: two names, up to two types, and a gutter.
+    /// </summary>
+    /// <remarks>
+    /// Estimated from character counts rather than measured, for the same reason the title is:
+    /// this runs when a node is created, off the render thread, with no drawing context and no
+    /// typeface to measure against. It errs generous — an over-wide node is untidy, an under-wide
+    /// one puts an input's type on top of an output's name.
+    /// </remarks>
+    /// <param name="inputs">The input ports.</param>
+    /// <param name="outputs">The output ports.</param>
+    /// <returns>The width in world units, or zero when the node has no ports.</returns>
+    private static double WidestRow(
+        IReadOnlyList<CanvasPortInfo> inputs, IReadOnlyList<CanvasPortInfo> outputs)
+    {
+        int rows = System.Math.Max(inputs.Count, outputs.Count);
+        if (rows == 0)
+        {
+            return 0;
+        }
+
+        double widest = 0;
+        for (int row = 0; row < rows; row++)
+        {
+            double width = 0;
+
+            if (row < inputs.Count)
+            {
+                width += SideWidth(inputs[row]);
+            }
+
+            if (row < outputs.Count)
+            {
+                width += SideWidth(outputs[row]);
+            }
+
+            widest = System.Math.Max(widest, width);
+        }
+
+        return widest + (2 * PortInset) + RowGutter;
+    }
+
+    private static double SideWidth(in CanvasPortInfo port) =>
+        (port.Name.Length * PortCharWidth)
+        + (port.TypeName is { } type ? PortGap + (type.Length * TypeCharWidth) : 0);
 
     /// <summary>The world position of an input port's centre.</summary>
     /// <param name="index">The zero-based port index.</param>
@@ -633,7 +704,8 @@ public sealed class CanvasGraph
             described[index] = new CanvasPortInfo(
                 ports[index].Name,
                 ports[index].KeepStructure ? -1 : ports[index].DeclaredRank,
-                ports[index].Description);
+                ports[index].Description,
+                PortTypeName.Beside(ports[index].Name, ports[index].ValueType));
         }
 
         return described;

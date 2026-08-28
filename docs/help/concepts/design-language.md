@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Specification. Written before any UI code exists, and the UI is written to match it.
 **Owner:** `spark-ui`
-**Last updated:** 2026-08-27
+**Last updated:** 2026-08-28
 
 > This topic is both an end-user reference — *why does Spark look like this?* — and the
 > executable specification for the shell, the node canvas renderer and the viewport. Every
@@ -730,14 +730,19 @@ paying for itself, and something cheaper takes over its job.
 
 | Zoom | Depth | Text | Ports | Boundary | What carries identity |
 |---|---|---|---|---|---|
-| **≥100%** | Full E2: shadow, highlight, lip | header 12 px, ports 11 px, preview label | shaped, 5–7 px, rank glyphs | 1 px `border.control` | Header colour + title + glyph |
+| **≥100%** | Full E2: shadow, highlight, lip | header 12 px, ports 11 px, port types 10 px, preview label | shaped, 5–7 px, rank glyphs | 1 px `border.control` | Header colour + title + glyph |
 | **82–100%** | Highlight half dropped (6 px blur → under 5 px device) | all | all | 1 px | as above |
-| **73–82%** | Shadow dropped entirely; lip retained | all | shapes → plain discs | 1 px | Header colour + title |
+| **73–82%** | Shadow dropped entirely; lip retained | **port types dropped** (10 px × 0.82 = 8.2 px); names stay | shapes → plain discs | 1 px | Header colour + title |
 | **67–73%** | Lip dropped; E0 flat | port labels dropped (11 px × 0.73 = 8.03 px) | 4 px discs | 1 px | Header colour + title |
 | **40–67%** | E0 flat | **all text dropped** (12 px × 0.67 = 8.04 px); body fill begins lerping toward the category colour at 60% | 2 px screen-space dots | 1 px | Header colour, growing |
 | **<40%** (ADR-0013 LOD) | E0 flat | none | none; wires terminate at the node edge | none — the fill is ≥5.39:1 on its own | **Category colour alone** |
 
-Two ordering details matter more than they look.
+Three ordering details matter more than they look.
+
+**A port's type goes one step before its name.** The name is 11 px and survives to 73%; the type
+beside it is 10 px and survives to 82%, by the same eight-pixel arithmetic. Losing the type first
+is also the right order for what a user is doing at each zoom: below 82% they are finding a node,
+and at 100% they are wiring one.
 
 **Body text is dropped at the same zoom the body fill starts to brighten, and not one step later.**
 Between 67% and 40% the body lerps from `node.body` towards its category colour so that the LOD
@@ -857,6 +862,29 @@ port rather than stopping next to it.
 
 The **hit target is 14 × 14 px regardless of the drawn size**, and it does not shrink below 10 px
 of screen space as you zoom out. Ports are the smallest thing anyone has to aim at in the product.
+
+**Beside the port name, in `text.muted` at 10 px, is the type the port wants.** `centre  Point3d`.
+`radius  number`. `sweepAngle  degrees`. Without it a port is a word and not an instruction: a user
+looking at `Circle.ByCentreRadius` for the first time has no way to learn from the node that
+`centre` wants a point, and the two places that would have told them — the library entry's
+signature and the colour of a wire being dragged at it — are both somewhere other than where the
+question is asked. `text.muted` reads 6.28:1 on `node.body`, and it is the token this design
+language already reserves for units and counts, which is the register a type annotation belongs to.
+
+Three rules keep it from becoming noise.
+
+- **The name wins the row.** The type is a step smaller and a step dimmer, and it is dropped a
+  level of detail before the name ([§7.3](#73-how-depth-degrades-with-zoom)).
+- **A name that already says the type does not say it twice.** An output called `circle` returning
+  a `Circle` is drawn as `circle`, and so is a `curves` input taking a list of `Curve`. The
+  suppression is on the words, so `points` returning `Point3d` still shows the type — the kernel
+  type really is `Point3d`, and somebody hunting the library for one is better off knowing.
+- **Listness is not repeated.** Whether a port wants one value or many is the ring in the table
+  above, and the type names the element. A node that said both would be spending width to say the
+  same thing twice.
+
+The type is drawn **only when the row has room for it** — a node is sized before any text has been
+measured, so what a row cannot fit it does without, rather than overlapping the port name opposite.
 
 ### 7.7 Frozen, preview off, and not evaluated
 

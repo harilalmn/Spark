@@ -198,7 +198,7 @@ previously invisible — **Q11** and **Q12** — and one new risk, **R14**.
 | FR-4 | Two ports whose types share a `FullName` but come from different assemblies are refused, with both package identities named. | Not started (E3) |
 | FR-5 | Evaluation is a Kahn topological sort over the **dirty subgraph only**, producing levels, parallel within a level. | Not started (E3) |
 | FR-6 | Cycles are refused at wire creation with the closing path shown, and detected at load — where every node in the cycle errors and the rest of the graph still evaluates. Evaluation never hangs. | Not started (E3) |
-| FR-7 | Results are cached content-addressed **by provenance**, not by value, so undo, A/B wire toggling and slider reverts hit the cache. | Not started (E3) |
+| FR-7 | Results are cached content-addressed **by provenance**, not by value, so undo, A/B wire toggling and slider reverts hit the cache. | **Done** — `Spark.Engine.CacheKey` (E3-T8), and the "hit the cache" half is **measured** as of E8-T9: the run after an undo recomputes zero nodes |
 | FR-8 | Impure nodes declare themselves and mix a run epoch into their cache key, poisoning downstream keys. | Not started (E3) |
 | FR-9 | Run modes: Automatic (debounced ~200 ms), Manual and Periodic, with Manual auto-suggested past a graph-size threshold. | Not started (E3) |
 | FR-10 | A run can be cancelled between nodes, between replication elements and inside long kernel loops; completed nodes stay cached. | Not started (E3) |
@@ -286,8 +286,9 @@ previously invisible — **Q11** and **Q12** — and one new risk, **R14**.
 |---|---|---|
 | FR-61 | The node canvas is **immediate-mode rendering over a retained `SceneIndex`, one Avalonia control for the whole canvas**, with a hybrid overlay giving a real control to the node currently being interacted with. | Not started (E8) |
 | FR-62 | Pan, zoom, box select, drag, wire, delete, group, note and align, with LOD below 40% zoom. | Not started (E8) |
-| FR-63 | Undo and redo across every graph edit. | Not started (E8) |
+| FR-63 | Undo and redo across every graph edit. | **Done** — a 64-step stack of whole-document `.spark` snapshots on Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z ([ADR-0022](adr/0022-undo-by-document-snapshot.md)). *Every* edit is meant literally: a node position never enters the engine graph, so a snapshot is what covers it |
 | FR-64 | Docking via `Dock.Avalonia` with a serialisable layout model, *reset layout* and named workspace presets. | Not started (E8) |
+| FR-82 | **A port states the type it wants**, on the node and in the properties panel, in the words a user types it in — `number`, `degrees`, `Point3d` — rather than in CLR type names. Added after using the application: a port called `centre` gives no way to learn what belongs in it, and the library signature and the wire-drag preview both answer somewhere other than where the question is asked. | **Done** (E8-T18) |
 | FR-65 | Watch nodes and preview bubbles showing a node's output, including its rank. | Not started (E8) |
 | FR-66 | A 3D viewport behind `IViewportRenderer`, with an OpenGL 3.3 core backend on Avalonia's `OpenGlControlBase` and a **software fallback**. | Not started (E9) |
 | FR-67 | Geometry reaches the viewport as immutable `RenderPackage { NodeId, PortIndex, ElementPath, Positions, Normals, Indices, EdgeIndices, Appearance }`, one GPU buffer set per `(NodeId, PortIndex)`, tessellated in parallel and streamed during a run. | Not started (E9) |

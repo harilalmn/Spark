@@ -22,14 +22,14 @@ prove is ticked.
 | Epic | Title | Milestones | Status |
 |---|---|---|---|
 | [E1](#e1--foundations-build-and-ci) | Foundations, build and CI | M0 | Partly done |
-| [E2](#e2--geometry-kernel) | Geometry kernel | M1, M3, M5, M6, M8 | Not started |
-| [E3](#e3--graph-engine) | Graph engine | M2 | Not started |
-| [E4](#e4--replication-and-lacing) | Replication and lacing | M2 | Not started |
-| [E5](#e5--node-authoring-and-library) | Node authoring and library | M2, M3 | Not started |
+| [E2](#e2--geometry-kernel) | Geometry kernel | M1, M3, M5, M6, M8 | Partly done |
+| [E3](#e3--graph-engine) | Graph engine | M2 | Partly done |
+| [E4](#e4--replication-and-lacing) | Replication and lacing | M2 | Partly done |
+| [E5](#e5--node-authoring-and-library) | Node authoring and library | M2, M3 | Partly done |
 | [E6](#e6--c-code-block) | C# code block | M4 | Not started |
 | [E7](#e7--packages-and-extensibility) | Packages and extensibility | M7 | Not started |
-| [E8](#e8--ui-shell-and-node-canvas) | UI shell and node canvas | M2 | Not started |
-| [E9](#e9--3d-viewport) | 3D viewport | M2, M5 | Not started |
+| [E8](#e8--ui-shell-and-node-canvas) | UI shell and node canvas | M2 | Partly done |
+| [E9](#e9--3d-viewport) | 3D viewport | M2, M5 | Partly done |
 | [E10](#e10--documentation) | Documentation | M0 onwards | Partly done |
 | [E11](#e11--quality-and-verification) | Quality and verification | M0 onwards | Partly done |
 | [E12](#e12--embedding-and-release) | Embedding and release | M8 | Not started |
@@ -316,8 +316,10 @@ is [E5](#e5--node-authoring-and-library). Anything drawn on screen.
       evaluates. **Evaluation never hangs** (**E3-T7**).
 - [x] Caching is content-addressed by **provenance**, not by value; hashing a 2M-triangle
       mesh costs more than recomputing it (**E3-T8**).
-- [ ] Undo, redo, A/B wire toggling and slider reverts are instant, because the old cache
-      key is still resident (**E3-T8**). **Not met: there is no undo stack (`E8-T9`), so nothing exercises the residency this claims.**
+- [x] Undo, redo, A/B wire toggling and slider reverts are instant, because the old cache
+      key is still resident (**E3-T8**). **Met, and measured rather than asserted:** the undo
+      stack (`E8-T9`) now exercises it, and the run that follows an undo recomputes **zero**
+      nodes and serves every one of them from the cache.
 - [ ] Impure nodes declare themselves, mix a run epoch into their key, and poison
       downstream keys (**E3-T10**).
 - [ ] The cache is LRU against a memory budget, evicted by last use and estimated size
@@ -671,8 +673,14 @@ another.
 - [ ] Library search ranks exact → prefix → **camel-hump** → substring → tag → description.
       Camel-hump is the highest-value search feature across thousands of nodes and is cheap
       (**E8-T8**).
-- [ ] Undo and redo across every graph edit, made instant by the provenance cache
-      (**E8-T9**).
+- [x] Undo and redo across every graph edit, made instant by the provenance cache
+      (**E8-T9**). A bounded stack of whole-document `.spark` snapshots
+      ([ADR-0022](adr/0022-undo-by-document-snapshot.md)), which is what makes *every* edit
+      undoable — including moving a node, whose position never enters the engine graph and
+      which an inverse-command stack over the engine would therefore have missed.
+- [x] Every port shows the type it wants, on the node and in the properties panel, in the words a
+      user types it in rather than in CLR type names (**E8-T18**). Found by using the application:
+      a port called `centre` is a word, not an instruction.
 - [ ] Watch nodes and preview bubbles show a node's output **and its rank** (**E8-T10**).
 - [ ] Aggressive autosave and crash recovery, because
       [R11](PRD.md#12-risks) means the process can die without warning (**E8-T13**).
@@ -686,6 +694,14 @@ The shell, the immediate-mode canvas over a retained spatial index, level-of-det
 zoom, and pan/zoom/box-select/drag/wire/unwire/delete are all in, driven by headless tests using
 real pointer gestures — which found a bug vigilance would not have: hit-testing depended on a
 frame having been painted, because the spatial index was only rebuilt inside `Render`.
+
+**Undo and redo landed next (`E8-T9`), and the mutation sweep on them repeated the lesson.** Of
+three deliberate mutations, two were killed by named tests and the third survived: the test for
+"clicking a node without moving it is not an edit" passed under a mutation that recorded *every*
+drag, because a click never raises a pointer-move event and so never reached the guard at all. It
+was a test that could not fail, in the shape [N18](NOTES.md) and [N19](NOTES.md) already describe.
+The repair was both halves — the canvas now accumulates a **net** displacement rather than
+setting a flag on the first move, and a test drags a node out and back to where it started.
 
 **Four rows are short.** The shell is a `Grid` with splitters rather than a `DockControl`,
 because Dock.Avalonia's templates live in a companion package that was never pinned and without

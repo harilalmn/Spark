@@ -12,6 +12,18 @@
         MinHeight="480">
 
   <!--
+    Undo is on the window rather than on the canvas because it is a document operation, not a
+    canvas gesture: a literal typed in the properties pane is as undoable as a wire drawn on the
+    canvas, and a binding on the canvas would only reach the second. Ctrl+Y and Ctrl+Shift+Z both
+    redo, because users arrive from editors that disagree about which one it is.
+  -->
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
+    <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RedoCommand}" />
+  </Window.KeyBindings>
+
+  <!--
     The shell is a Grid with splitters rather than a DockControl. Dock.Avalonia is referenced and
     is the intended home for this layout, but its control templates ship in a separate package
     (Dock.Avalonia.Themes.Fluent) that is not in Directory.Packages.props, and without them a
@@ -45,6 +57,15 @@
         <Button Classes="toolbar" Content="2000 nodes" Click="OnLoadSynthetic" />
         <Button Classes="toolbar" Content="Open…" Click="OnOpenGraph" />
         <Button Classes="toolbar" Content="Save as…" Click="OnSaveGraph" />
+
+        <Border Width="1" Margin="6,2" Background="{DynamicResource SparkBorderHairlineBrush}" />
+
+        <!-- The tooltip names the step, so a user can see what Ctrl+Z is about to reverse before
+             pressing it rather than after. -->
+        <Button Classes="toolbar" Content="Undo" Command="{Binding UndoCommand}"
+                ToolTip.Tip="{Binding UndoDescription}" />
+        <Button Classes="toolbar" Content="Redo" Command="{Binding RedoCommand}"
+                ToolTip.Tip="{Binding RedoDescription}" />
         <Button Classes="toolbar" Content="Demo graph" Click="OnLoadDemo" />
         <Button Classes="toolbar" Content="Curves" Click="OnLoadCurves" />
         <Button Classes="toolbar" Content="Run" Click="OnRun" />
@@ -112,8 +133,14 @@
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:PortLiteralViewModel">
                 <Grid ColumnDefinitions="90,*" Margin="0,0,0,6">
-                  <TextBlock Grid.Column="0" Classes="muted" VerticalAlignment="Center"
-                             Text="{Binding Label}" ToolTip.Tip="{Binding TypeName}" />
+                  <!-- The type is on the row, not only in the tooltip. A box labelled "radius"
+                       does not tell anybody what belongs in it, and a tooltip answers a question
+                       the user has to have thought to ask. -->
+                  <StackPanel Grid.Column="0" VerticalAlignment="Center"
+                              ToolTip.Tip="{Binding Description}">
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding Label}" />
+                    <TextBlock Classes="muted" FontSize="10" Opacity="0.8" Text="{Binding TypeName}" />
+                  </StackPanel>
                   <TextBox Grid.Column="1" IsEnabled="{Binding IsEditable}"
                            Text="{Binding Text, Mode=TwoWay}"
                            LostFocus="OnLiteralCommitted"

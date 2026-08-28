@@ -48,7 +48,7 @@ public sealed partial class PortLiteralViewModel : ObservableObject
         _commit = commit;
         IsWired = isWired;
         Description = description;
-        TypeName = FriendlyName(valueType);
+        TypeName = Spark.UI.Graph.PortTypeName.Describe(valueType);
         IsEditable = !isWired && IsSupported(valueType);
 
         // Assigned through the backing field rather than the property, so the generated change
@@ -65,7 +65,16 @@ public sealed partial class PortLiteralViewModel : ObservableObject
     /// <summary>The port's display name.</summary>
     public string Name { get; }
 
-    /// <summary>The port's declared type, in a form a user reads.</summary>
+    /// <summary>
+    /// The port's declared type, in the words a user types it in — <c>number</c>, <c>degrees</c>.
+    /// </summary>
+    /// <remarks>
+    /// Shown in the panel rather than only in a tooltip. A box labelled <c>radius</c> with nothing
+    /// else on the row does not tell somebody what belongs in it, and a tooltip only answers a
+    /// question the user has to already have. It comes from
+    /// <see cref="Spark.UI.Graph.PortTypeName"/>, which is also where the canvas gets it, so the
+    /// two cannot drift.
+    /// </remarks>
     public string TypeName { get; }
 
     /// <summary>One line describing the port, or null.</summary>
@@ -104,7 +113,7 @@ public sealed partial class PortLiteralViewModel : ObservableObject
 
         if (!TryParse(Text, out object? value))
         {
-            Error = $"Not a {TypeName}.";
+            Error = $"Not a valid {TypeName}.";
             return;
         }
 
@@ -190,34 +199,4 @@ public sealed partial class PortLiteralViewModel : ObservableObject
         || type == typeof(bool)
         || type == typeof(string)
         || type == typeof(Angle);
-
-    private static string FriendlyName(Type type)
-    {
-        if (type == typeof(double) || type == typeof(float))
-        {
-            return "number";
-        }
-
-        if (type == typeof(int) || type == typeof(long))
-        {
-            return "integer";
-        }
-
-        if (type == typeof(bool))
-        {
-            return "true or false";
-        }
-
-        if (type == typeof(string))
-        {
-            return "text";
-        }
-
-        if (type == typeof(Angle))
-        {
-            return "angle in degrees";
-        }
-
-        return type.Name;
-    }
 }
