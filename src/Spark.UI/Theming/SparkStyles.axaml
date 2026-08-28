@@ -104,6 +104,20 @@
   </Style>
 
   <!-- Splitters are dock gutters and sit on bg.void, which carries no elevation of its own. -->
+  <!--
+    surface.float is the elevation this design language reserves for menus, popups, dialogs,
+    tooltips and autocomplete (section 4). The creation box is an autocomplete popup, so it uses
+    the token rather than a new one, and it carries a border because it floats over a canvas whose
+    background is only 1.2:1 away from it.
+  -->
+  <Style Selector="Border.float">
+    <Setter Property="Background" Value="{DynamicResource SparkSurfaceFloatBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SparkBorderControlBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="BoxShadow" Value="0 8 24 0 #66000000" />
+  </Style>
+
   <Style Selector="GridSplitter">
     <Setter Property="Background" Value="{DynamicResource SparkBackgroundVoidBrush}" />
     <Setter Property="MinWidth" Value="0" />

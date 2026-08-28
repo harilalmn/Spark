@@ -30,6 +30,13 @@ which ships with Spark.
 > like code: opening one and saving it again produces no diff at all, which is asserted by a test
 > rather than hoped for. `docs/examples/curves.spark` is one.
 >
+> **Nodes are found by typing.** Double-click empty canvas and a search box opens there; type
+> `cbcr`, press Enter, and `Circle.ByCentreRadius` lands at that point. The same ranking runs the
+> library panel — exact, prefix, camel-hump, substring, category, description — because a library
+> of thousands, which is what packages make, cannot be skimmed. **Dynamo's double-click makes a
+> code block and Spark's does not**: the code block is a later milestone, and the gesture will gain
+> it rather than be replaced by it.
+>
 > **A port says what it wants.** Beside each port name is the type it takes — `centre  Point3d`,
 > `radius  number`, `sweepAngle  degrees` — in the words you type it in rather than in CLR type
 > names, on the node and in the properties panel. A port name alone is a word; a port name and a
@@ -47,7 +54,7 @@ which ships with Spark.
 >
 > What has been run, on Windows, on 2026-08-28:
 > `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen projects;
-> `dotnet test Spark.slnx` runs **934 passing tests** across seven projects; and
+> `dotnet test Spark.slnx` runs **952 passing tests** across seven projects; and
 > `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean. **CI ran all of it on
 > Windows and Linux on commit `35107f0` and was green**, so the Linux leg is no longer a claim.
 >

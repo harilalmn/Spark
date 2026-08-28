@@ -2,7 +2,7 @@
 id: concepts.undo
 title: Undo and redo
 nodes: []
-related: [concepts.files, concepts.lacing]
+related: [concepts.files, concepts.lacing, concepts.finding-nodes]
 since: "0.1"
 ---
 

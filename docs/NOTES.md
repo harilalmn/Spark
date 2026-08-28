@@ -841,3 +841,25 @@ What the corrected pair says is worth keeping: a 500-node chain over 100 element
 cold and 0.32 ms warm**, a 27-fold difference, which is the provenance cache's central claim
 ([ADR-0010](adr/0010-explicit-scale-aware-tolerance.md), `E3-T8`) as a number rather than a
 sentence.
+
+---
+
+## N27 — `DoubleTapped` arrives after the release that completes it, so nothing needs standing down
+
+The canvas's double-click handler began with a defensive reset — cancel the marquee the first
+click started, drop the pointer capture, repaint — and a test asserting that a double-click leaves
+no rubber band behind. **All of it was unreachable, and the test could not fail.**
+
+Avalonia raises `DoubleTapped` from the gesture recogniser on the *second* pointer release, and
+`GraphCanvas.OnPointerReleased` already clears `_mode` and the capture unconditionally at the end
+of every release. So by the time the handler runs, there is nothing to stand down; and the test
+passed whether or not the reset was there, because the release handler had done the work either
+way.
+
+It was caught by a mutation, in the shape this repository has now met four times: deleting the
+reset changed no test. The repair was to delete the reset and the test rather than to strengthen
+the test, because there is no input sequence that reaches the state the code was defending
+against — the same conclusion as [N20](NOTES.md), reached the same way.
+
+What survives is a comment saying why the handler is only three lines, so the next person does not
+add the guard back.

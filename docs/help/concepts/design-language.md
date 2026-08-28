@@ -886,6 +886,25 @@ Three rules keep it from becoming noise.
 The type is drawn **only when the row has room for it** — a node is sized before any text has been
 measured, so what a row cannot fit it does without, rather than overlapping the port name opposite.
 
+### 7.6.1 The creation box
+
+Double-clicking empty canvas opens a search box at the pointer
+([`concepts.finding-nodes`](finding-nodes.md)). It is `surface.float` with a 1 px
+`border.control` frame and a soft drop shadow — the elevation [§4](#4-elevation-and-depth)
+reserves for menus, popups and autocomplete — because it floats over a canvas that sits only
+1.2:1 away from it and needs an edge to be readable at all.
+
+**It is a real Avalonia control, and it is the first one.** Every node on this canvas is drawn
+rather than instantiated (ADR-0013), and the exception the decision always allowed for is the thing
+currently being interacted with: one control, in screen space, over the drawing. The in-place node
+editor belongs in the same layer when it arrives.
+
+Two behaviours are part of the design rather than of the implementation. The box is **clamped
+inside the canvas**, so a double-click near an edge does not open something half unreachable. And
+the node lands at the point that was **double-clicked**, not at the pointer's position when Enter
+was pressed — the wheel can pan and zoom while the box is open, and a node arriving somewhere other
+than where it was asked for is the kind of small betrayal that makes a gesture feel unreliable.
+
 ### 7.7 Frozen, preview off, and not evaluated
 
 Three states that all mean "this node is not currently contributing", and all three are easy to

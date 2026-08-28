@@ -673,7 +673,7 @@ another.
 - [ ] Docking via `Dock.Avalonia`, with a serialisable, testable layout model, *reset
       layout* and named workspace presets. RCS's from-scratch dock manager is **not**
       ported; only the idea is (**E8-T2**).
-- [ ] Library search ranks exact → prefix → **camel-hump** → substring → tag → description.
+- [x] Library search ranks exact → prefix → **camel-hump** → substring → tag → description.
       Camel-hump is the highest-value search feature across thousands of nodes and is cheap
       (**E8-T8**).
 - [x] Undo and redo across every graph edit, made instant by the provenance cache
@@ -684,6 +684,9 @@ another.
 - [x] Every port shows the type it wants, on the node and in the properties panel, in the words a
       user types it in rather than in CLR type names (**E8-T18**). Found by using the application:
       a port called `centre` is a word, not an instruction.
+- [x] Double-clicking empty canvas opens a ranked search box there, and Enter places the node at
+      that point (**E8-T19**). Dynamo's gesture, with the difference stated where a user will meet
+      it: Dynamo makes a code block, and Spark's code block is [E6](#e6--c-code-block), M4.
 - [ ] Watch nodes and preview bubbles show a node's output **and its rank** (**E8-T10**).
 - [ ] Aggressive autosave and crash recovery, because
       [R11](PRD.md#12-risks) means the process can die without warning (**E8-T13**).
@@ -706,13 +709,17 @@ was a test that could not fail, in the shape [N18](NOTES.md) and [N19](NOTES.md)
 The repair was both halves — the canvas now accumulates a **net** displacement rather than
 setting a flag on the first move, and a test drags a node out and back to where it started.
 
-**Four rows are short.** The shell is a `Grid` with splitters rather than a `DockControl`,
+**Three rows are short.** The shell is a `Grid` with splitters rather than a `DockControl`,
 because Dock.Avalonia's templates live in a companion package that was never pinned and without
-it a `DockControl` renders nothing at all (`E8-T2`). The hybrid overlay for the node under
-interaction is not built (`E8-T5`). Group, note and align are not built (`E8-T6`). The library
-panel filters but does not rank, so camel-hump search does not work (`E8-T8`). And one measured
-number has no harness behind it: `--canvas-benchmark` produced the figures above, but nothing
-runs it on a schedule (`E8-T15`).
+it a `DockControl` renders nothing at all (`E8-T2`). Group, note and align are not built
+(`E8-T6`). And one measured number has a harness now but no schedule: `bench/Spark.Benchmarks`
+and `--canvas-benchmark` both produce figures, and nothing runs either of them nightly
+(`E8-T15`).
+
+**The hybrid overlay has its first inhabitant** (`E8-T5`). Nothing is edited in place on a node
+yet, but the canvas creation box is a real Avalonia control positioned in screen space over the
+immediate-mode drawing, which is the shape that row describes — so the row is a control per
+gesture rather than a layer that does not exist.
 
 **One accepted defect, scoped and specified:** between 81% and 83% zoom the drop shadow crosses
 its blur threshold, Avalonia runs a real Gaussian per node, and the frame rate falls from 57 to

@@ -212,6 +212,73 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(all, model.LibraryEntries.Count);
     }
 
+    /// <summary>
+    /// The library panel ranks rather than filters: typing the capitals finds the node.
+    /// </summary>
+    /// <remarks>
+    /// `cbcr` finding `Circle.ByCentreRadius` is the specified behaviour (`E8-T8`) and the reason
+    /// the search is a ranking rather than a `Contains`. The old filter returned nothing for this
+    /// query, which is the failure a library of thousands makes unbearable.
+    /// </remarks>
+    [Fact]
+    public void TheLibrarySearchRanksCamelHumpsFirst()
+    {
+        using MainWindowViewModel model = new();
+
+        model.LibrarySearch = "cbcr";
+
+        Assert.NotEmpty(model.LibraryEntries);
+        Assert.Equal("Circle.ByCentreRadius", model.LibraryEntries[0].DisplayName);
+    }
+
+    /// <summary>
+    /// The canvas creation box offers a short ranked list, and nothing at all until asked.
+    /// </summary>
+    /// <remarks>
+    /// Empty means empty rather than "the whole library": a list of fifty-seven nodes under the
+    /// pointer is a menu, and the box exists to turn three keystrokes into a node.
+    /// </remarks>
+    [Fact]
+    public void TheCreationBoxOffersAShortRankedListAndNothingUntilAsked()
+    {
+        using MainWindowViewModel model = new();
+
+        Assert.Empty(model.CreateResults);
+
+        model.CreateSearch = "circle";
+
+        Assert.NotEmpty(model.CreateResults);
+        Assert.True(model.CreateResults.Count <= 8, $"{model.CreateResults.Count} results is a menu.");
+        Assert.StartsWith("Circle.", model.CreateResults[0].DisplayName, StringComparison.Ordinal);
+
+        // The first result is pre-selected, so Enter commits without touching the arrow keys.
+        Assert.Same(model.CreateResults[0], model.SelectedCreateResult);
+    }
+
+    /// <summary>
+    /// A node created from the box lands where it was asked for, and is one undo step.
+    /// </summary>
+    [Fact]
+    public async Task ANodeCreatedFromTheBoxLandsWhereItWasAskedFor()
+    {
+        using MainWindowViewModel model = new();
+
+        model.CreateSearch = "cbcr";
+        LibraryEntryViewModel entry = model.CreateResults[0];
+
+        int slot = model.PlaceEntryAt(entry, 420, 240);
+
+        Assert.Equal("Circle.ByCentreRadius", model.Graph.Nodes[slot].Title);
+        Assert.Equal(420, model.Graph.Nodes[slot].X, 6);
+        Assert.Equal(240, model.Graph.Nodes[slot].Y, 6);
+        Assert.Equal("Undo Add Circle.ByCentreRadius", model.UndoDescription);
+
+        model.Undo();
+        Assert.DoesNotContain(model.Graph.Nodes, node => node.Title == "Circle.ByCentreRadius");
+
+        await model.EvaluateAsync();
+    }
+
     private static int SlotOf(MainWindowViewModel model, string title)
     {
         for (int slot = 0; slot < model.Graph.Nodes.Count; slot++)

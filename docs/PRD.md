@@ -228,7 +228,8 @@ previously invisible — **Q11** and **Q12** — and one new risk, **R14**.
 | FR-24 | A public static `By*`/`From*`/`Create*` returning its own type suppresses the matching constructor, so `new Circle(c, r)` and `Circle.ByCenterRadius(c, r)` collapse to one node. Anything a factory does not cover still emits its constructor. | Not started (E5) |
 | FR-25 | Node and port descriptions come from the assembly's sidecar XML documentation file, so any library shipping its `.xml` gets tooltips with no extra work. | Not started (E5) |
 | FR-26 | An `Angle` parameter renders as a degree-valued port automatically, for first-party and third-party libraries alike. | Not started (E2, E5) |
-| FR-27 | Library search ranks exact → prefix → **camel-hump** (`cbcr` finds `Circle.ByCenterRadius`) → substring → tag → description. | Not started (E8) |
+| FR-27 | Library search ranks exact → prefix → **camel-hump** (`cbcr` finds `Circle.ByCenterRadius`) → substring → tag → description. | **Done** (E8-T8) — `NodeSearch`, used by the library panel and by the canvas creation box, so the two cannot rank differently |
+| FR-83 | **Double-clicking empty canvas creates a node there**: a search box opens at the pointer, ranked by FR-27, and Enter places the highlighted node at that point. Dynamo's gesture. **Dynamo's gesture makes a code block; Spark's makes whatever you name**, until the code block exists (E6, M4). | **Done** (E8-T19) |
 
 ### C# code block
 

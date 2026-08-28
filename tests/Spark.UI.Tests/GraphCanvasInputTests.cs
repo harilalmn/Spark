@@ -454,6 +454,59 @@ public sealed class GraphCanvasInputTests
         Assert.True(changes >= 1);
     });
 
+    /// <summary>
+    /// Double-clicking empty canvas asks for a node there, at the point that was clicked.
+    /// </summary>
+    /// <remarks>
+    /// The world coordinates are the assertion that matters. A gesture that opens a box but then
+    /// places the node somewhere else is worse than no gesture, because the user has to find and
+    /// move it every time.
+    /// </remarks>
+    [Fact]
+    public void DoubleClickingEmptyCanvasAsksForANodeThere() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        CanvasCreateRequestedEventArgs? request = null;
+        canvas.CreateRequested += (_, e) => request = e;
+
+        Point empty = new(640, 460);
+        DoubleClick(window, empty);
+
+        Assert.NotNull(request);
+        Assert.Equal(canvas.Transform.ToWorldX(empty.X), request.WorldX, 3);
+        Assert.Equal(canvas.Transform.ToWorldY(empty.Y), request.WorldY, 3);
+        Assert.Equal(empty.X, request.ScreenX, 3);
+        Assert.Equal(empty.Y, request.ScreenY, 3);
+    });
+
+    /// <summary>
+    /// Double-clicking a node asks for nothing, because that gesture belongs to the node.
+    /// </summary>
+    /// <remarks>
+    /// It is the in-place editor's gesture (`E8-T5`), which is not built. Creating a node on top
+    /// of the one that was double-clicked would be a worse answer than doing nothing, and it would
+    /// have to be untaught later.
+    /// </remarks>
+    [Fact]
+    public void DoubleClickingANodeAsksForNothing() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        int requests = 0;
+        canvas.CreateRequested += (_, _) => requests++;
+
+        DoubleClick(window, new Point(60, 30));
+
+        Assert.Equal(0, requests);
+    });
+
+    private static void DoubleClick(Window window, Point point)
+    {
+        window.MouseDown(point, MouseButton.Left, RawInputModifiers.None);
+        window.MouseUp(point, MouseButton.Left, RawInputModifiers.None);
+        window.MouseDown(point, MouseButton.Left, RawInputModifiers.None);
+        window.MouseUp(point, MouseButton.Left, RawInputModifiers.None);
+    }
+
     /// <summary>Runs a test body on the headless UI thread, rethrowing anything it threw.</summary>
     /// <param name="body">The gesture sequence and its assertions.</param>
     private static void OnUiThread(Action body) =>

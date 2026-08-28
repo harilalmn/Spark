@@ -36,6 +36,34 @@ public sealed class GraphEditedEventArgs(string label, bool affectsEvaluation) :
 }
 
 /// <summary>
+/// A request to create a node at a point on the canvas, raised by double-clicking empty space.
+/// </summary>
+/// <remarks>
+/// The canvas reports where and never what. It has no library, cannot construct a node instance
+/// without naming an engine type, and would break the seam ADR-0005 draws if it tried — so it says
+/// "here", and the shell decides what "here" gets.
+/// </remarks>
+/// <param name="worldX">Where the node's left edge goes, in world coordinates.</param>
+/// <param name="worldY">Where the node's top edge goes, in world coordinates.</param>
+/// <param name="screenX">The same point in control coordinates, for placing a popup over it.</param>
+/// <param name="screenY">The same point in control coordinates.</param>
+public sealed class CanvasCreateRequestedEventArgs(
+    double worldX, double worldY, double screenX, double screenY) : EventArgs
+{
+    /// <summary>Where the node's left edge goes, in world coordinates.</summary>
+    public double WorldX { get; } = worldX;
+
+    /// <summary>Where the node's top edge goes, in world coordinates.</summary>
+    public double WorldY { get; } = worldY;
+
+    /// <summary>The same point in control coordinates.</summary>
+    public double ScreenX { get; } = screenX;
+
+    /// <summary>The same point in control coordinates.</summary>
+    public double ScreenY { get; } = screenY;
+}
+
+/// <summary>
 /// The node canvas: <b>one</b> Avalonia control that draws the entire graph in immediate mode
 /// over a retained <see cref="SceneIndex"/> (ADR-0013). Nodes, ports and wires are drawn, not
 /// instantiated.
@@ -144,6 +172,16 @@ public sealed class GraphCanvas : Control
 
     /// <summary>Raised when the selected nodes change, so the inspector can follow.</summary>
     public event EventHandler? SelectionChanged;
+
+    /// <summary>
+    /// Raised when empty canvas is double-clicked, which is a request to create a node there.
+    /// </summary>
+    /// <remarks>
+    /// Dynamo's gesture, and the reason to copy it is that it is the one interaction a graph
+    /// author repeats more than any other. Hunting a tree for a node you can already name is the
+    /// slowest part of building a graph, and it gets slower with every package installed.
+    /// </remarks>
+    public event EventHandler<CanvasCreateRequestedEventArgs>? CreateRequested;
 
     private enum InteractionMode
     {
@@ -468,6 +506,35 @@ public sealed class GraphCanvas : Control
         _dragSourcePort = null;
         e.Pointer.Capture(null);
         InvalidateVisual();
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Double-clicking empty canvas asks the shell to create a node there. On a node, a port or a
+    /// wire it does nothing yet — those are the in-place editors the hybrid overlay will carry
+    /// (`E8-T5`), and doing something arbitrary in the meantime would teach a gesture that has to
+    /// be untaught.
+    /// </remarks>
+    protected override void OnDoubleTapped(Avalonia.Input.TappedEventArgs e)
+    {
+        base.OnDoubleTapped(e);
+
+        Point screen = e.GetPosition(this);
+        Point world = ToWorld(screen);
+
+        if (HitTestPort(world) is not null || HitTestNode(world) >= 0 || HitTestWire(world) is not null)
+        {
+            return;
+        }
+
+        // Nothing is stood down here, and that is worth saying rather than leaving to be
+        // rediscovered. The first click of the double starts a marquee and the second ends it:
+        // OnPointerReleased runs for both, and it clears the mode and the capture unconditionally.
+        // A defensive reset here looked prudent and was unreachable — no input sequence could
+        // arrive with a mode still set — so it went, along with the test that could not fail
+        // ([N27](../../../docs/NOTES.md)).
+        e.Handled = true;
+        CreateRequested?.Invoke(this, new CanvasCreateRequestedEventArgs(world.X, world.Y, screen.X, screen.Y));
     }
 
     /// <inheritdoc/>

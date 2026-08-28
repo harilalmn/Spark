@@ -86,6 +86,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _redoDescription = "Nothing to redo";
 
+    [ObservableProperty]
+    private string _createSearch = string.Empty;
+
+    [ObservableProperty]
+    private LibraryEntryViewModel? _selectedCreateResult;
+
     private CanvasGraph _graph;
     private int _placementOrdinal;
     private bool _disposed;
@@ -198,8 +204,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <summary>Every node in the library, unfiltered.</summary>
     public IReadOnlyList<LibraryEntryViewModel> AllLibraryEntries { get; }
 
-    /// <summary>The library entries matching <see cref="LibrarySearch"/>.</summary>
+    /// <summary>The library entries matching <see cref="LibrarySearch"/>, best first.</summary>
     public ObservableCollection<LibraryEntryViewModel> LibraryEntries { get; }
+
+    /// <summary>
+    /// The handful of entries the canvas creation box offers for <see cref="CreateSearch"/>.
+    /// </summary>
+    /// <remarks>
+    /// Short on purpose. The box exists to turn three keystrokes into a node, and a list long
+    /// enough to browse is a list somebody will browse.
+    /// </remarks>
+    public ObservableCollection<LibraryEntryViewModel> CreateResults { get; } = [];
 
     /// <summary>The literals of the selected node.</summary>
     public ObservableCollection<PortLiteralViewModel> Inspector { get; }
@@ -430,21 +445,34 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <param name="x">The left edge in world coordinates.</param>
     /// <param name="y">The top edge in world coordinates.</param>
     /// <returns>The new node's slot, or −1 when nothing was selected.</returns>
-    public int PlaceSelectedLibraryEntry(double x, double y)
+    public int PlaceSelectedLibraryEntry(double x, double y) =>
+        SelectedLibraryEntry is { } entry ? PlaceEntryAt(entry, x, y) : -1;
+
+    /// <summary>How many nodes have been placed from the library this session.</summary>
+    public int PlacementOrdinal => _placementOrdinal;
+
+    /// <summary>
+    /// Places a specific library entry at a world position, and records it as an undo step.
+    /// </summary>
+    /// <remarks>
+    /// This is what the canvas creation box commits through. It takes the entry rather than
+    /// reading a selection, because the box's answer is whatever the user typed and pressed Enter
+    /// on, which is not the same thing as whatever the library panel happens to have highlighted.
+    /// </remarks>
+    /// <param name="entry">The definition to place.</param>
+    /// <param name="x">The left edge in world coordinates.</param>
+    /// <param name="y">The top edge in world coordinates.</param>
+    /// <returns>The new node's slot.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
+    public int PlaceEntryAt(LibraryEntryViewModel entry, double x, double y)
     {
-        if (SelectedLibraryEntry is not { } entry)
-        {
-            return -1;
-        }
+        ArgumentNullException.ThrowIfNull(entry);
 
         _placementOrdinal++;
         int slot = _graph.Add(entry.Definition, x, y);
         RecordEdit("Add " + entry.DisplayName);
         return slot;
     }
-
-    /// <summary>How many nodes have been placed from the library this session.</summary>
-    public int PlacementOrdinal => _placementOrdinal;
 
     /// <summary>Rebuilds the inspector for the current canvas selection.</summary>
     /// <param name="selection">The selected slots.</param>
@@ -531,18 +559,70 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         // never is here.
     }
 
-    partial void OnLibrarySearchChanged(string value)
+    partial void OnLibrarySearchChanged(string value) => Rank(value, LibraryEntries, limit: int.MaxValue);
+
+    partial void OnCreateSearchChanged(string value)
     {
-        LibraryEntries.Clear();
+        // Eight is what fits above the canvas without covering the graph the node is going into.
+        Rank(value, CreateResults, limit: 8);
+        SelectedCreateResult = CreateResults.Count > 0 ? CreateResults[0] : null;
+    }
+
+    /// <summary>
+    /// Fills a collection with the library, ranked against a query.
+    /// </summary>
+    /// <remarks>
+    /// Both the library panel and the canvas creation box come through here, which is the point:
+    /// two search boxes ranking by different rules is how a user learns that one of them is the
+    /// one that works.
+    /// </remarks>
+    /// <param name="query">What the user typed.</param>
+    /// <param name="into">The collection to fill.</param>
+    /// <param name="limit">The greatest number of results to keep.</param>
+    private void Rank(string query, ObservableCollection<LibraryEntryViewModel> into, int limit)
+    {
+        into.Clear();
+
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            // No query is not a failed search. The panel shows everything in library order; the
+            // creation box shows nothing, because a list of the whole library under the pointer is
+            // a menu rather than an answer.
+            if (limit == int.MaxValue)
+            {
+                foreach (LibraryEntryViewModel entry in AllLibraryEntries)
+                {
+                    into.Add(entry);
+                }
+            }
+
+            return;
+        }
+
+        List<(LibraryEntryViewModel Entry, NodeSearchResult Result)> matches = [];
 
         foreach (LibraryEntryViewModel entry in AllLibraryEntries)
         {
-            if (string.IsNullOrWhiteSpace(value)
-                || entry.DisplayName.Contains(value, StringComparison.OrdinalIgnoreCase)
-                || entry.Category.Contains(value, StringComparison.OrdinalIgnoreCase))
+            NodeSearchResult result = NodeSearch.Score(
+                entry.DisplayName, entry.Category, entry.Description, query);
+
+            if (result.IsMatch)
             {
-                LibraryEntries.Add(entry);
+                matches.Add((entry, result));
             }
+        }
+
+        matches.Sort((left, right) =>
+            NodeSearch.Compare(left.Result, left.Entry.DisplayName, right.Result, right.Entry.DisplayName));
+
+        foreach ((LibraryEntryViewModel entry, _) in matches)
+        {
+            if (into.Count >= limit)
+            {
+                break;
+            }
+
+            into.Add(entry);
         }
     }
 

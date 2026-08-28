@@ -8,7 +8,7 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, `dotnet test` (**934 tests over seven
+Ctrl+Z steps back through every edit. `dotnet build`, `dotnet test` (**952 tests over seven
 projects**) and `dotnet format` are all clean, and **CI ran green on Windows and Linux on
 `35107f0`** — the Linux leg is no longer unproven.
 
@@ -180,8 +180,14 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] Every port shows the type it wants — `E8-T18`. Not in the plan; found by opening the
       application and looking at `Circle.ByCentreRadius`, where a port called `centre` gave no way
       to learn that a `Point3d` belongs in it.
-- [ ] Library search with camel-hump ranking — `E8-T8`. The library lists all 57 nodes and the
-      search box filters them; the ranking is not the specified one.
+- [x] Library search with camel-hump ranking — `E8-T8`. `cbcr` finds `Circle.ByCentreRadius`.
+- [x] Double-click empty canvas to create a node there — `E8-T19`. Asked for as *"let
+      double-clicking a blank space add the code block, as in Dynamo"*, and delivered as the half
+      that is not blocked: the gesture, and a ranked search box at the pointer. **The code block
+      itself is M4** — `Spark.Scripting` is empty, the engine has no per-instance node definitions
+      and the file format has nowhere to put script text. When it lands, the same box gains "if
+      what you typed is an expression rather than a name, make one of those", which is exactly
+      what Dynamo does.
 - [ ] `spark run` — `E12-T5`. `Spark.Cli` is still a stub, and it has nothing to run until a
       graph can be loaded from a file.
 - [ ] **The M1.6 OCCT spike, against criteria written down beforehand** — `E13-T1`. It answers
