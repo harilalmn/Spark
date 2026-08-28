@@ -477,8 +477,12 @@ static Spark.Geometry.Point2d.operator -(in Spark.Geometry.Point2d left, in Spar
 static Spark.Geometry.Point2d.operator -(in Spark.Geometry.Point2d point, in Spark.Geometry.Vector2d offset) -> Spark.Geometry.Point2d
 static Spark.Geometry.Point2d.operator ==(in Spark.Geometry.Point2d left, in Spark.Geometry.Point2d right) -> bool
 static Spark.Geometry.Point3d.Add(in Spark.Geometry.Point3d point, in Spark.Geometry.Vector3d offset) -> Spark.Geometry.Point3d
+static Spark.Geometry.Point3d.ByCylindricalCoordinates(in Spark.Geometry.Plane plane, double radius, Spark.Geometry.Angle angle, double height) -> Spark.Geometry.Point3d
+static Spark.Geometry.Point3d.BySphericalCoordinates(in Spark.Geometry.Plane plane, double radius, Spark.Geometry.Angle azimuth, Spark.Geometry.Angle inclination) -> Spark.Geometry.Point3d
 static Spark.Geometry.Point3d.Lerp(in Spark.Geometry.Point3d start, in Spark.Geometry.Point3d end, double t) -> Spark.Geometry.Point3d
 static Spark.Geometry.Point3d.Origin.get -> Spark.Geometry.Point3d
+static Spark.Geometry.Point3d.PruneDuplicates(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Point3d[]!
+static Spark.Geometry.Point3d.PruneDuplicates(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, out int[]! map, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Point3d[]!
 static Spark.Geometry.Point3d.Subtract(in Spark.Geometry.Point3d left, in Spark.Geometry.Point3d right) -> Spark.Geometry.Vector3d
 static Spark.Geometry.Point3d.Unset.get -> Spark.Geometry.Point3d
 static Spark.Geometry.Point3d.explicit operator Spark.Geometry.Point3d(in Spark.Geometry.Vector3d vector) -> Spark.Geometry.Point3d
@@ -559,6 +563,8 @@ static Spark.Geometry.Vector2d.operator -(in Spark.Geometry.Vector2d value) -> S
 static Spark.Geometry.Vector2d.operator /(in Spark.Geometry.Vector2d vector, double divisor) -> Spark.Geometry.Vector2d
 static Spark.Geometry.Vector2d.operator ==(in Spark.Geometry.Vector2d left, in Spark.Geometry.Vector2d right) -> bool
 static Spark.Geometry.Vector3d.Add(in Spark.Geometry.Vector3d left, in Spark.Geometry.Vector3d right) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.ByCylindricalCoordinates(in Spark.Geometry.Plane plane, double radius, Spark.Geometry.Angle angle, double height) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.BySphericalCoordinates(in Spark.Geometry.Plane plane, double radius, Spark.Geometry.Angle azimuth, Spark.Geometry.Angle inclination) -> Spark.Geometry.Vector3d
 static Spark.Geometry.Vector3d.Cross(in Spark.Geometry.Vector3d a, in Spark.Geometry.Vector3d b) -> Spark.Geometry.Vector3d
 static Spark.Geometry.Vector3d.Divide(in Spark.Geometry.Vector3d vector, double divisor) -> Spark.Geometry.Vector3d
 static Spark.Geometry.Vector3d.Dot(in Spark.Geometry.Vector3d a, in Spark.Geometry.Vector3d b) -> double

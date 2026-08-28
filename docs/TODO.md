@@ -8,9 +8,9 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,130 tests over eight
+Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,150 tests over eight
 projects**) and `dotnet format` are all clean — though `dotnet test` itself now reports
-`Zero tests ran` on SDK 10.0.400 and the 1,130 are counted by `scripts/run-tests.sh`
+`Zero tests ran` on SDK 10.0.400 and the 1,150 are counted by `scripts/run-tests.sh`
 ([N34](NOTES.md)) — and **CI ran green on Windows and Linux on `53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
 
@@ -265,6 +265,21 @@ for anything else.
       about touching while `Intersection` returns a region, and widening a region by a tolerance
       hands back space neither box occupies. Parity in the value layer goes from 92 to
       **95 of 133**.
+- [x] **The rest of the near-term parity list, and `E2-T16` withdrawn rather than built** —
+      `Point3d`/`Vector3d` cylindrical and spherical construction, and
+      `Point3d.PruneDuplicates`. That last one is what `E2-T16`'s KD-tree existed for, and the
+      KD-tree is **not built**: `E2-T15`'s hierarchy answers welding, dedup and point queries
+      alike, and a second spatial index is a second thing to get right, to test and to keep
+      true. It should be revived on a **measurement** — pure point sets at scale — and not on
+      an opinion. Two decisions came out of writing these and both are on the members: spherical
+      **inclination is measured from the normal rather than from the plane**, because that is the
+      convention under which a sphere sweeps half a turn and the alternative differs by a sign
+      as well as an offset; and pruning compares a point only against points that were **kept**,
+      never following a dropped one through to its own survivor. The second was got wrong first
+      and a test caught it: following the chain makes coincidence transitive, a chain has no
+      length limit, and a point can end up merged into a representative arbitrarily far away.
+      As built, **no point moves by more than one tolerance**, and a property asserts it.
+      Parity in the value layer reaches **98 of 133**.
 - [x] **`spark` writes an OBJ polyline** — `E2-T34`'s writer half and `E12-T5`'s `run`.
       `Spark.Geometry.Io` stops being an empty project and `Spark.Cli` stops being a stub:
       `spark run docs/examples/curves.spark --export curves.obj` evaluates the demo graph
@@ -436,7 +451,7 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   equivalence* is unprovable without ProtoGeometry, and it stands. Capability parity is about
   *presence* — whether a Dynamo user reaches for something and finds it absent — which needs
   no reference implementation to check. [DYNAMO-COVERAGE.md](DYNAMO-COVERAGE.md) is the
-  register: 51 ProtoGeometry types, 837 members, 95 reachable today. `Done` in it means
+  register: 51 ProtoGeometry types, 837 members, 98 reachable today. `Done` in it means
   *present and documented*, never *equivalent*, and the test that keeps it honest
   (`E11-T23`) must say so in its own failure messages.
 - **Six curve types, and the exclusions are named on the types rather than discovered.** There

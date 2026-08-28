@@ -595,6 +595,81 @@ public sealed class ValueLayerProperties
     }
 
     [Fact]
+    public void ASphericalPointIsAlwaysItsRadiusFromThePlanesOrigin()
+    {
+        Gen.Select(GeometryGenerators.Scenes, GeometryGenerators.Angles, GeometryGenerators.Angles)
+            .Sample((scene, azimuth, inclination) =>
+            {
+                Point3d point = Point3d.BySphericalCoordinates(
+                    scene.Plane,
+                    scene.Scale,
+                    azimuth,
+                    inclination);
+
+                Assert.True(scene.PositionTolerance.AreEqual(
+                    point.DistanceTo(scene.Plane.Origin),
+                    scene.Scale));
+            });
+    }
+
+    [Fact]
+    public void ACylindricalPointIsAlwaysItsRadiusFromThePlanesAxisAndItsHeightAboveThePlane()
+    {
+        Gen.Select(GeometryGenerators.Scenes, GeometryGenerators.Angles, Gen.Double[-3.0, 3.0])
+            .Sample((scene, angle, factor) =>
+            {
+                double height = factor * scene.Scale;
+                Point3d point = Point3d.ByCylindricalCoordinates(scene.Plane, scene.Scale, angle, height);
+
+                // The two coordinates the construction promised, read back independently: the
+                // signed distance from the plane is the height, and the in-plane distance from
+                // the origin is the radius.
+                Assert.True(scene.PositionTolerance.AreEqual(scene.Plane.DistanceTo(point), height));
+                Assert.True(scene.PositionTolerance.AreEqual(
+                    scene.Plane.To2d(point).DistanceTo(Point2d.Origin),
+                    Math.Abs(scene.Scale)));
+            });
+    }
+
+    [Fact]
+    public void PruningNeverMovesAPointFartherThanOneTolerance()
+    {
+        Gen.Select(GeometryGenerators.Scenes, Gen.Int[1, 80])
+            .Sample((scene, count) =>
+            {
+                Point3d[] points = ClusteredPoints(scene, count);
+                Tolerance tolerance = Tolerance.ForScale(scene.Scale);
+
+                Point3d[] pruned = Point3d.PruneDuplicates(points, out int[] map, tolerance);
+
+                // The property the greedy rule exists to guarantee. A rule that followed a
+                // dropped point through to its own survivor would satisfy every other assertion
+                // here and break this one, on a long enough chain.
+                for (int index = 0; index < points.Length; index++)
+                {
+                    Assert.True(map[index] >= 0);
+                    Assert.True(points[index].DistanceTo(pruned[map[index]]) <= tolerance.Linear);
+                }
+            });
+    }
+
+    [Fact]
+    public void PruningIsIdempotent()
+    {
+        Gen.Select(GeometryGenerators.Scenes, Gen.Int[1, 80])
+            .Sample((scene, count) =>
+            {
+                Tolerance tolerance = Tolerance.ForScale(scene.Scale);
+                Point3d[] once = Point3d.PruneDuplicates(ClusteredPoints(scene, count), tolerance);
+                Point3d[] twice = Point3d.PruneDuplicates(once, tolerance);
+
+                // Nothing left in the result coincides with anything else in it, so a second
+                // pass has nothing to do. If it did, the first pass had missed a pair.
+                Assert.Equal(once.Length, twice.Length);
+            });
+    }
+
+    [Fact]
     public void APlaneAndItsFlipAreAlwaysCoplanar()
     {
         GeometryGenerators.Scenes.Sample(scene =>
@@ -741,5 +816,29 @@ public sealed class ValueLayerProperties
         }
 
         return boxes;
+    }
+
+    // Points in tight clusters at the scene's scale, so that pruning has something to prune.
+    // Built from the scene's own numbers rather than a fresh Random, so a failing sample
+    // reproduces from its seed.
+    private static Point3d[] ClusteredPoints(in Scene scene, int count)
+    {
+        Point3d[] points = new Point3d[count];
+        Vector3d along = scene.Axis;
+        Vector3d across = scene.Plane.XAxis;
+
+        for (int index = 0; index < count; index++)
+        {
+            // Every third point is a near-duplicate of the one before it, a thousandth of the
+            // default tolerance away, so the coincident case is present rather than hoped for.
+            double step = index / 3 * 0.5 * scene.Scale;
+            Vector3d jitter = index % 3 == 0
+                ? Vector3d.Zero
+                : across * (1e-9 * scene.Scale * (index % 3));
+
+            points[index] = scene.FirstPoint + (along * step) + jitter;
+        }
+
+        return points;
     }
 }

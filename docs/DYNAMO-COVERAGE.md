@@ -52,15 +52,15 @@ or from this repository; none is an estimate.
 | | Types | Members | Share of 837 |
 |---|---:|---:|---:|
 | ProtoGeometry public surface | 51 | 837 | 100% |
-| Reachable in Spark today | 6 | **95** | **11.4%** |
+| Reachable in Spark today | 6 | **98** | **11.7%** |
 | Deliberately not replicated (§5) | 7 + parts of 2 | 93 | 11.1% |
 | Awaiting a decision — T-Splines (§6.2) | 8 | 169 | 20.2% |
-| **Committed and still to build** | **30** | **480** | **57.3%** |
+| **Committed and still to build** | **30** | **477** | **57.0%** |
 
 Against the scope we have actually committed to — 837 less the 93 we refuse and the 169 that
-need their own decision, so **575 members** — Spark stands at **95 of 575, or 16.5%**.
+need their own decision, so **575 members** — Spark stands at **98 of 575, or 17.0%**.
 
-### What the 95 counts, exactly
+### What the 98 counts, exactly
 
 A ProtoGeometry member counts as **reachable** when a Spark user can obtain the same result
 today through a documented member of `Spark.Geometry`. It does **not** require the same name
@@ -69,7 +69,7 @@ and `Transform.OfVector` between them do the job, and `CoordinateSystem.Translat
 because `Transform.Translation` does. Members that are pure serialisation, native-session
 plumbing, or that operate on types Spark does not yet have, are counted as not reachable.
 
-All 95 are counted in one subsystem — values and frames — and that is a statement about the
+All 98 are counted in one subsystem — values and frames — and that is a statement about the
 count rather than about the code. Six curve types now exist and are **not** in this figure,
 because §3.2's member-by-member recount has not been done and a number nobody derived is how
 this document would start lying. There are still no surfaces, solids, meshes or topology in
@@ -79,8 +79,8 @@ this document would start lying. There are still no surfaces, solids, meshes or 
 
 Two warnings, both of which matter for reading the table above honestly.
 
-**A percentage of members is not a percentage of work.** The 95 reachable members are the
-easiest 95 in the whole inventory: arithmetic on six-double structs, decided by algebra and
+**A percentage of members is not a percentage of work.** The 98 reachable members are the
+easiest 98 in the whole inventory: arithmetic on six-double structs, decided by algebra and
 verified by property tests. `Solid.Difference` is one row of one table and is a multi-year
 research problem (§6.1). Any schedule derived from 16% is wrong by an order of magnitude.
 
@@ -100,11 +100,11 @@ Eight sections in dependency order. Each carries one row per ProtoGeometry type,
 count from the inventory, our equivalent, its status and the milestone from
 [PRD §11](PRD.md#11-release-plan) at which we expect it.
 
-### 3.1 Values and frames — 6 types, 133 members, 95 reachable
+### 3.1 Values and frames — 6 types, 133 members, 98 reachable
 
 | Dynamo type | Members | Spark equivalent | Status | Milestone |
 |---|---:|---|---|---|
-| `Point` | 15 | `Point3d` | Done (11/15) | M1 |
+| `Point` | 15 | `Point3d` | Done (14/15) | M1 |
 | `Vector` | 31 | `Vector3d` | Done (29/31) | M1 |
 | `UV` | 6 | `UV` | Done (6/6) | M1 |
 | `Plane` | 16 | `Plane` | Done (14/16) | M1 |
@@ -113,7 +113,7 @@ count from the inventory, our equivalent, its status and the milestone from
 
 `Done` here means the type exists, is reviewed and is accepted — not that every member of the
 Dynamo type is present. The bracketed fraction is the honest number and the prose below covers
-every one of the 38 that are not.
+every one of the 35 that are not.
 
 **`CoordinateSystem` is the largest genuine shape difference in this subsystem, and it is
 deliberate.** Dynamo's `CoordinateSystem` is a general affine frame: it can be scaled, sheared
@@ -154,12 +154,19 @@ shipped, and they were the useful finding of this section. **One of the three is
   `OrientedBox` type. `Geometry.OrientedBoundingBox` and `BoundingBox.ByMinimumVolume` push
   the same way. Recorded as an open question rather than silently absorbed.
 
-**`Point` and `Vector` are nearly complete.** The six uncovered members are
-`ByCylindricalCoordinates` and `BySphericalCoordinates` on both types (planned — polar
-construction is a small, real convenience), `Point.PruneDuplicates` (planned, and it wants the
-`KDTree` of E2-T16 rather than an O(n²) loop), `Point.Project` onto geometry (planned, M5 —
-it needs surfaces), and `Vector.FromJson`/`ToJson` (planned under FR-57). Nothing here is a
-design difference.
+**`Point` and `Vector` are all but complete, and three of the six gaps have closed.**
+`ByCylindricalCoordinates` and `BySphericalCoordinates` exist on both types, and
+`Point.PruneDuplicates` exists — over `E2-T15`'s bounding-volume hierarchy rather than over the
+`KDTree` this paragraph originally expected, because a second spatial index is a second thing to
+get right and the first one answers the question. Two decisions came out of writing them that
+are recorded on the members rather than here: spherical **inclination is measured from the
+normal, not from the plane**, because that is the convention under which a full sphere sweeps
+half a turn and the alternative differs by a sign as well as an offset; and pruning compares a
+point only against points that were **kept**, never following a dropped one through to its own
+survivor, because the latter makes coincidence transitive along a chain and a chain has no
+length limit — the rule as built moves no point by more than one tolerance. What remains is
+`Point.Project` onto geometry (planned, M5 — it needs surfaces) and `Vector.FromJson`/`ToJson`
+(planned under FR-57). Neither is a design difference.
 
 **`Plane`'s gaps are down to two, and the two that closed were the two called trivial.**
 `ByOriginNormalXAxis` and `Offset(distance)` are **added**, and the first of them was worth
