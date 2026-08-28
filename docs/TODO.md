@@ -8,15 +8,16 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,046 tests over seven
+Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,082 tests over seven
 projects**) and `dotnet format` are all clean — though `dotnet test` itself now reports
-`Zero tests ran` on SDK 10.0.400 and the 1,046 are counted by `scripts/run-tests.sh`
+`Zero tests ran` on SDK 10.0.400 and the 1,082 are counted by `scripts/run-tests.sh`
 ([N34](NOTES.md)) — and **CI ran green on Windows and Linux on `53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
 
 Three distinctions still do the work in what follows:
 
-- **What is built.** The value layer (14 types, `Quaternion` included), the curve layer (`Line`, `Arc`, `Circle`,
+- **What is built.** The value layer (16 types, `Quaternion`, `Ray` and a generic `Bvh<T>`
+  included), the curve layer (`Line`, `Arc`, `Circle`,
   `EllipseCurve`, `PolyLine`, `PolyCurve` over a `Curve` base, with arc-length
   reparameterisation), the graph engine and replicator, the reflection importer with its
   two-way diff, the Avalonia shell, the immediate-mode canvas, the GL viewport, 57 nodes in
@@ -188,9 +189,34 @@ for anything else.
       are named as the two deliberate exemptions, and `Interval.MakeIncreasing` keeps its name
       because `Increased` would mean something else. All three were unshipped, so it was free
       today and an ADR-0019 change-control question the day after 1.0.
-- [ ] Extract `RayCaster.cs` and its BVH — `E2-T15`. The highest-value file in C2VGeometry, and
-      it pays for itself three times over across mesh booleans, viewport picking and intersection
-      seeding. **`Curve.ClosestPoint` is now waiting on it too.**
+- [x] **A property test was asserting through a boundary, and it would have been blamed on
+      something else for years** — found while running the gates for the row below.
+      `TheSignedAngleBetweenTwoVectorsDoesNotDependOnTheirLengths` failed twice in about
+      twenty-five runs, different seed each time, no kernel change between them. At
+      `CsCheck_Iter=50000` it fails on every run and the shrunk case says why: at a turn of
+      9e-56 degrees the two angles agree to fifty digits, so `EqualsWithin` passes, while one is
+      exactly zero and the other a denormal above it, so `Math.Sign` returns 0 against 1. **The
+      sign of a quantity at the noise floor is not a fact about the geometry.** The property was
+      right; a second and false claim had been smuggled in beside it. One in twenty-five thousand
+      samples is a red build every few weeks on an unrelated commit, which is the exact profile
+      of a test that eventually gets suppressed ([N35](NOTES.md)).
+- [x] **The ray caster and its BVH** — `E2-T15`, done, and **written rather than extracted**.
+      The C2VGeometry original casts against triangles and Spark has no mesh to cast against, so
+      what landed is the part every consumer shares: a `Ray`, and a generic `Bvh<T>` over
+      anything that can be given a box. It is a **broad phase and says so on the type**, because
+      a broad phase quietly taken for an exact answer is a picking bug that reproduces only at
+      certain camera angles. Three things are worth knowing about it. Splitting is a binned
+      surface-area heuristic that **falls back to a median split rather than to a leaf**, since
+      the SAH honestly loses to a leaf on coincident boxes and an oversized leaf is scanned
+      linearly by every query thereafter. Nothing is written after `Build` and every traversal
+      keeps its stack local, so **many threads may query one tree** — asserted rather than
+      assumed. And the slab test **branches on a zero direction component rather than dividing
+      through it**: the branchless form makes `0 × ∞` when the origin lies exactly on a slab
+      plane, which is `NaN`, which reports a miss on precisely the alignments axis-aligned work
+      produces most often. Checked against the linear scan it replaces, by example and by
+      property, and the shape test asserts a **lower** bound on depth as well as an upper one —
+      a tree collapsed to one leaf would pass every other test in the file.
+      **`Curve.ClosestPoint` is next, and now has what it was waiting for.**
 - [ ] Geometry serialization v1 and the reflection-driven round-trip test — `E2-T29`, `E2-T31`.
       Get the test in before there are twenty types to retrofit it onto; there are now nineteen.
 - [ ] **The C2VGeometry test harvest, timeboxed to one week with a hard stop** — `E2-T32`.

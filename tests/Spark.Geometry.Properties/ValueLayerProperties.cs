@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using CsCheck;
 using Spark.Geometry;
 
@@ -271,7 +273,22 @@ public sealed class ValueLayerProperties
                 Angle atOtherLengths = (a * firstScale).SignedAngleTo(b * secondScale, reference);
 
                 Assert.True(atUnitLength.EqualsWithin(atOtherLengths));
-                Assert.Equal(Math.Sign(atUnitLength.Radians), Math.Sign(atOtherLengths.Radians));
+
+                // The sign is only a fact away from the two angles at which it carries no
+                // information. At zero and at a half turn the true answer sits on the boundary
+                // between +eps and -eps, and scaling either vector moves the result across it
+                // by rounding alone - Math.Sign then reports 0 against 1 for two angles that
+                // agree to fifty digits. This test asserted through that boundary and failed
+                // about once in twenty-five thousand samples, which at a hundred samples a run
+                // is a red build every few weeks with a different seed each time. NOTES N35.
+                double fromBoundary = Math.Min(
+                    Math.Abs(atUnitLength.Radians),
+                    Math.Abs(Math.PI - Math.Abs(atUnitLength.Radians)));
+
+                if (fromBoundary > 1e-9)
+                {
+                    Assert.Equal(Math.Sign(atUnitLength.Radians), Math.Sign(atOtherLengths.Radians));
+                }
             });
     }
 
@@ -448,6 +465,136 @@ public sealed class ValueLayerProperties
     }
 
     [Fact]
+    public void ARayAlwaysHitsABoxItsOwnPointsAreInside()
+    {
+        Gen.Select(GeometryGenerators.Scenes, Gen.Double[0.0, 10.0])
+            .Sample((scene, along) =>
+            {
+                Ray ray = new(scene.FirstPoint, scene.Axis);
+                Point3d ahead = ray.PointAt(along * scene.Scale);
+
+                // A box built around a point ON the ray must be hit by it. This is the one
+                // statement about the slab test that cannot be satisfied by a version that
+                // reports NaN as a miss, because the box is axis-aligned around a point the
+                // ray passes exactly through.
+                BoundingBox around = new BoundingBox(ahead, ahead).Inflated(0.01 * scene.Scale);
+
+                Assert.True(ray.Intersects(around));
+            });
+    }
+
+    [Fact]
+    public void ARayIntersectionSpanAlwaysStaysInsideTheBox()
+    {
+        Gen.Select(GeometryGenerators.Scenes, GeometryGenerators.Boxes)
+            .Sample((scene, box) =>
+            {
+                Ray ray = new(scene.FirstPoint, scene.Axis);
+
+                if (!ray.TryIntersect(box, out Interval span))
+                {
+                    return;
+                }
+
+                Assert.True(span.Min >= 0.0);
+                Assert.True(span.Min <= span.Max);
+
+                // Scale-aware, because the entry point is computed at the ray's scale and the
+                // box at its own; a fixed epsilon here would fail at 1e9 and pass at 1e-9.
+                Tolerance tolerance = Tolerance.ForScale(Math.Max(scene.Scale, box.Diagonal.Length));
+
+                Assert.True(box.Contains(ray.PointAt(span.Min), tolerance));
+                Assert.True(box.Contains(ray.PointAt(0.5 * (span.Min + span.Max)), tolerance));
+            });
+    }
+
+    [Fact]
+    public void TheNearestPointOnARayIsNeverBehindItsOrigin()
+    {
+        GeometryGenerators.Scenes.Sample(scene =>
+        {
+            Ray ray = new(scene.FirstPoint, scene.Axis);
+            Point3d closest = ray.ClosestPoint(scene.SecondPoint);
+
+            Assert.True((closest - ray.Origin).Dot(ray.Direction) >= -scene.PositionTolerance.Linear);
+            Assert.True(ray.DistanceTo(scene.SecondPoint)
+                <= ray.Origin.DistanceTo(scene.SecondPoint) + scene.PositionTolerance.Linear);
+        });
+    }
+
+    [Fact]
+    public void ABvhRaySweepAlwaysReturnsExactlyWhatTheLinearScanReturns()
+    {
+        Gen.Select(GeometryGenerators.Scenes, Gen.Int[1, 60])
+            .Sample((scene, count) =>
+            {
+                BoundingBox[] boxes = ScatteredBoxes(scene, count);
+                Bvh<int> tree = Bvh<int>.Build([.. Enumerable.Range(0, boxes.Length)], index => boxes[index]);
+                Ray ray = new(scene.FirstPoint, scene.Axis);
+
+                List<int> found = [];
+                tree.Hit(ray, found);
+
+                // The linear scan is the reference implementation, and it is the only one that
+                // is obviously right. Set equality rather than sequence equality, because the
+                // tree returns items in its own order and says so.
+                //
+                // Checked non-vacuous before being trusted: over a default CsCheck run, 60 of
+                // the samples find more than one hit. A property that compared two empty sets
+                // every time would pass exactly as loudly as this one, which is the trap this
+                // repository has already fallen into twice.
+                HashSet<int> expected = [.. Enumerable.Range(0, boxes.Length).Where(index => ray.Intersects(boxes[index]))];
+
+                Assert.True(expected.SetEquals(found));
+            });
+    }
+
+    [Fact]
+    public void ABvhBoxSweepAlwaysReturnsExactlyWhatTheLinearScanReturns()
+    {
+        Gen.Select(GeometryGenerators.Scenes, Gen.Int[1, 60])
+            .Sample((scene, count) =>
+            {
+                BoundingBox[] boxes = ScatteredBoxes(scene, count);
+                Bvh<int> tree = Bvh<int>.Build([.. Enumerable.Range(0, boxes.Length)], index => boxes[index]);
+                BoundingBox query = new BoundingBox(scene.SecondPoint, scene.SecondPoint).Inflated(0.3 * scene.Scale);
+
+                List<int> found = [];
+                tree.Overlapping(query, found);
+
+                // Also checked non-vacuous: about a quarter of the samples find an overlap.
+                HashSet<int> expected =
+                    [.. Enumerable.Range(0, boxes.Length).Where(index => boxes[index].Intersects(query))];
+
+                Assert.True(expected.SetEquals(found));
+            });
+    }
+
+    [Fact]
+    public void ABvhNearestSearchAlwaysFindsTheDistanceTheLinearScanFinds()
+    {
+        Gen.Select(GeometryGenerators.Scenes, Gen.Int[1, 60])
+            .Sample((scene, count) =>
+            {
+                BoundingBox[] boxes = ScatteredBoxes(scene, count);
+                Bvh<int> tree = Bvh<int>.Build([.. Enumerable.Range(0, boxes.Length)], index => boxes[index]);
+                Point3d from = scene.SecondPoint;
+
+                Assert.True(tree.TryFindNearest(
+                    from,
+                    index => boxes[index].ClosestPoint(from).DistanceTo(from),
+                    out int _,
+                    out double distance));
+
+                double best = boxes.Min(box => box.ClosestPoint(from).DistanceTo(from));
+
+                // Exactly, not within a tolerance: the pruning either preserves the minimum or
+                // it does not, and a tolerance here would hide a bound that is slightly unsound.
+                Assert.Equal(best, distance);
+            });
+    }
+
+    [Fact]
     public void APlaneAndItsFlipAreAlwaysCoplanar()
     {
         GeometryGenerators.Scenes.Sample(scene =>
@@ -568,5 +715,31 @@ public sealed class ValueLayerProperties
         }
 
         Assert.Equal(1, trueCount);
+    }
+
+    // A handful of unit-ish boxes scattered around the scene's working scale. Built from the
+    // scene's own numbers rather than from a fresh Random, so a failing sample reproduces.
+    private static BoundingBox[] ScatteredBoxes(in Scene scene, int count)
+    {
+        BoundingBox[] boxes = new BoundingBox[count];
+        double step = 0.37 * scene.Scale;
+
+        // Axis and the plane's X axis, never Second: the generator is entitled to produce the
+        // zero vector for Second, and building the scatter out of it made this helper throw on
+        // roughly one run in eight. Both of these are unit by construction.
+        Vector3d along = scene.Axis;
+        Vector3d across = scene.Plane.XAxis;
+        Vector3d size = new(0.2 * scene.Scale, 0.2 * scene.Scale, 0.2 * scene.Scale);
+
+        for (int index = 0; index < count; index++)
+        {
+            Point3d min = scene.FirstPoint
+                + (along * (index * step))
+                + (across * ((index % 5) * step));
+
+            boxes[index] = new BoundingBox(min, min + size);
+        }
+
+        return boxes;
     }
 }

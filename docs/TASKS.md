@@ -85,9 +85,9 @@ register:
 
 Every `Done` task is verified by reading the repository and running the gates rather than by
 recollection: `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen
-projects, the suite runs **1,046 passing tests across seven test projects**
-(`Spark.Geometry.Tests` 368, `Spark.Engine.Tests` 292, `Spark.UI.Tests` 256,
-`Spark.Viewport.Tests` 69, `Spark.Geometry.Properties` 48, `Spark.Architecture.Tests` 8,
+projects, the suite runs **1,082 passing tests across seven test projects**
+(`Spark.Geometry.Tests` 398, `Spark.Engine.Tests` 292, `Spark.UI.Tests` 256,
+`Spark.Viewport.Tests` 69, `Spark.Geometry.Properties` 54, `Spark.Architecture.Tests` 8,
 `Spark.Docs.Verify` 5) — counted by `scripts/run-tests.sh`, because `dotnet test` itself
 reports `Zero tests ran` on SDK 10.0.400 ([NOTES N34](NOTES.md)), and `dotnet format Spark.slnx --verify-no-changes --severity warn` is
 clean. Twenty-two ADRs are written and indexed, and the lacing specification exists. All three
@@ -216,7 +216,7 @@ Everything else in this file is a plan, not a claim.
 | E2-T12 | Curve offset and fillet | Open | M3 |
 | E2-T13 | `Spark.Geometry.Planar`: `Point2d`, `Curve2d`, `Region` | Open | A supporting layer, **not a peer 2D API**. `Curve2d` is required for BRep trim curves in UV space. Bridged by `Plane.To2d`/`To3d`. Shipping an XY-only `VCircle` beside a 3D `Circle` would double the library and split the type system |
 | E2-T14 | Extract the Clipper2-backed boolean, offset and simplify pipeline | Open | Working and tested already, and Clipper2 is already isolated in one file in C2VGeometry. Keep it that way — [E1-T20](#e1--foundations-build-and-ci) depends on it. Harvest `VPolygon`, `VPolyline` and `Region`'s area, centroid, containment and offset into `Planar`. **This task is what re-adds the Clipper2 `PackageReference`** that [E2-T39](#e2--geometry-kernel) removed; the version stays pinned in `Directory.Packages.props` meanwhile |
-| E2-T15 | Extract and promote `RayCaster.cs` and its BVH | Open | **The highest-value file in C2VGeometry.** Serves mesh booleans, viewport picking and intersection seeding alike. Parallel queries already work |
+| E2-T15 | Extract and promote `RayCaster.cs` and its BVH | **Done** | **Written rather than extracted**, and the difference is worth recording: the C2VGeometry original casts against *triangles*, and Spark has no mesh to cast against yet. What landed is `Ray` and a generic `Bvh<T>` over anything that can be given a box — the broad phase, which is the part every consumer shares. **It is documented as a broad phase on the type**, because a broad phase silently taken for an exact answer is a picking bug that reproduces only at certain camera angles. Splitting is a binned surface-area heuristic over 12 bins, falling back to a **median split rather than to a leaf**: the SAH legitimately loses to a leaf on coincident boxes, and an oversized leaf is scanned linearly by every query for the life of the tree. Immutable after `Build` and every traversal keeps its stack local, so parallel queries need no lock — asserted, not assumed. **The whole structure is tested against the linear scan it replaces**, by example and by CsCheck, because that is the only reference implementation that is obviously correct; and the shape test asserts a **lower** bound on depth as well as an upper one, since a tree collapsed to one leaf would answer every other test correctly. Serves [E9-T8](#e9--3d-viewport) picking, `Curve.ClosestPoint`, mesh booleans and intersection seeding |
 | E2-T16 | Extract and generalise `KDTree` | Open | Needed for welding, dedup and point queries |
 | E2-T17 | The surface contract | Open | `DomainU/V`, `PointAt(u,v)`, `NormalAt`, `DerivativeAt`, `PrincipalCurvatures`, `ClosestPoint`, `IsoCurve`, `Trim`, `Area`, `ToNurbsSurface` |
 | E2-T18 | Analytic surfaces: `PlaneSurface`, `SphericalSurface`, `CylindricalSurface`, `ConicalSurface`, `ToroidalSurface`, `ExtrusionSurface`, `RevolutionSurface`, `RuledSurface` | Open | **First-class, not NURBS in disguise.** Required for exact analytic-analytic booleans, and for memory |

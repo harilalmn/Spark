@@ -1085,3 +1085,58 @@ diverges from CI is how a repository grows two definitions of green. The script'
 one question the SDK's message cannot: **is this red the code, or the toolchain?** If the two
 disagree, the disagreement itself is the finding, and no claim about the suite should be made until
 it is resolved.
+
+## N35 — A property test that asserted through a boundary, and the run that would have found it years later
+
+`TheSignedAngleBetweenTwoVectorsDoesNotDependOnTheirLengths` failed twice in about twenty-five
+consecutive runs of the property suite, with a different CsCheck seed each time and no change to
+the kernel between them. Raising the sample count found the shape of it immediately: at 50,000
+samples it fails on **every** run, and the shrunk case says why in one number.
+
+```
+Turn = 9.015E-56°
+Expected: 0
+Actual:   1
+```
+
+The property scaled two vectors and asserted that the signed angle between them is unchanged.
+It made two assertions, and only the first is true:
+
+```csharp
+Assert.True(atUnitLength.EqualsWithin(atOtherLengths));
+Assert.Equal(Math.Sign(atUnitLength.Radians), Math.Sign(atOtherLengths.Radians));
+```
+
+At a turn of 9e-56 degrees the two angles agree to fifty digits, so `EqualsWithin` passes. One of
+them is **exactly** zero and the other is a denormal above it, so `Math.Sign` returns `0` against
+`1` and the second assertion fails. **The sign of a quantity at the noise floor is not a fact
+about the geometry.** It is a fact about which of two equally correct roundings happened, and
+`Math.Sign` makes it worse than a coin toss by having a third outcome at exactly zero that
+neither branch of a real disagreement produces.
+
+The same argument applies at a half turn, where `atan2` may return `+π` or `−π` for inputs that
+differ by a rounding, so the fix guards both boundaries and asserts the sign only where it means
+something.
+
+Three things are worth keeping.
+
+**The failure rate is the interesting number, not the failure.** One sample in roughly
+twenty-five thousand, at a hundred samples per run, is a red build every few weeks — always on a
+different seed, never reproducible from the previous failure's information, and always on a
+commit that has nothing to do with it. That is the exact profile of a test that gets an
+`[Ignore]` and an apologetic comment. It was found here only because the suite was run twenty
+times in a row while chasing something else, and then confirmed by turning the sample count up
+rather than by running it more times.
+
+**`CsCheck_Iter` is the tool for this and it is worth remembering it exists.**
+`CsCheck_Iter=50000` turns a one-in-twenty-five-thousand event from unreproducible into
+certain, and the whole suite still runs in half a minute. Any property suspected of flaking
+should be put under it before anything else is tried; **running the same 100 samples again is
+not more evidence, it is the same evidence.**
+
+**The property was right and the assertion was wrong, and the distinction matters.** Signed
+angle is genuinely independent of the operands' lengths; that is what the first assertion says
+and it holds at 150,000 samples. What did not hold was a second claim smuggled in beside it —
+that the *sign* is also independent — which is false wherever the angle is close enough to a
+boundary that the sign is noise. A property test is a statement about the code, and a statement
+that is nearly true is not a weaker statement, it is a different and false one.
