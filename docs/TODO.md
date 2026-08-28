@@ -8,9 +8,9 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,167 tests over eight
+Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,179 tests over eight
 projects**) and `dotnet format` are all clean — though `dotnet test` itself now reports
-`Zero tests ran` on SDK 10.0.400 and the 1,167 are counted by `scripts/run-tests.sh`
+`Zero tests ran` on SDK 10.0.400 and the 1,179 are counted by `scripts/run-tests.sh`
 ([N34](NOTES.md)) — and **CI ran green on Windows and Linux on `53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
 
@@ -61,7 +61,7 @@ for anything else.
       evicts by entry count rather than by bytes, no node can declare itself impure, the
       host-thread scheduler is missing, cancellation does not reach inside a kernel operation,
       the shell has no real docking, the library panel filters without ranking, and three rows
-      wait on the empty `bench/`. **Two of those ten have since closed and one of them closed by
+      wait on the empty `bench/`. **Three of those ten have since closed and one of them closed by
       being disproved**: the cache holds a byte budget now, and the impure-node declaration was
       never missing — only its test was. Two more are `Open` **with a stated reason** rather than by
       omission, because the importer's two-way diff will not let a public member go unaccounted
@@ -267,6 +267,27 @@ for anything else.
       about touching while `Intersection` returns a region, and widening a region by a tolerance
       hands back space neither box occupies. Parity in the value layer goes from 92 to
       **95 of 133**.
+- [ ] **One unreproduced flake in `Spark.UI.Tests`, recorded rather than shrugged at.** A single
+      full-suite run reported one UI test failing; the name was lost to a truncated tail, and
+      **twenty-five subsequent runs — sixteen of that project alone and nine of the whole suite —
+      were clean**. It is written down because a flake nobody wrote down is a flake somebody
+      later suppresses, and because the headless canvas tests drive real pointer gestures and are
+      the most timing-sensitive thing in the repository. Next occurrence: keep the whole output,
+      not the tail. `scripts/run-tests.sh` already prints the failing test names.
+- [x] **The host-thread scheduler** — `E3-T11`, done, and it is most of why
+      `IEvaluationScheduler` exists at all. The Revit and AutoCAD APIs are callable from one
+      thread and one thread only, and a node touching the host model from anywhere else does not
+      fail cleanly — it corrupts or crashes. `HostThreadEvaluationScheduler` takes the host's own
+      blocking marshalling primitive and carries each **level** across in **one hop**, because a
+      round trip is a queued message and a wait while a node is microseconds of arithmetic.
+      Operations run sequentially, and that is the point rather than a limitation: fanning out
+      inside the marshalled callback would put host API calls back off the host thread.
+      **The re-entrancy deadlock is handled rather than warned about** — a host calling Spark
+      from its own command handler would otherwise block that thread waiting for itself, so an
+      optional `isOnHostThread` predicate makes such a call run inline. An exception is carried
+      back with `ExceptionDispatchInfo` rather than escaping into the host's dispatcher, which
+      would take a message box or the process. Twelve tests, including one that evaluates a whole
+      graph and asserts the hops equal the levels.
 - [x] **The cache holds a memory budget, and one row that said something was missing was wrong**
       — `E3-T9` and `E3-T10`. The cache now evicts against **two bounds**: an estimated byte
       budget, 256 MiB by default, and the entry ceiling it already had. The bytes are the bound
