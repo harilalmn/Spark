@@ -1001,3 +1001,39 @@ is precisely how that stops being true while every test stays green.
 100 000 elements the return path allocates 5 297 836 B against the argument path's 800 144 B, a
 factor of 6.6, because `FromClr` boxes every element through a `List<object?>`. That was recorded
 as a number to act on later. Later has not come, and it now cannot get worse unnoticed.
+
+---
+
+## N33 — A splash cannot report its own progress, because the thread it would report on is blocked
+
+The splash exists to cover the second or so it takes to build the shell. Almost all of that second
+is one synchronous call: constructing `MainWindowViewModel` imports the node library by reflection
+and evaluates the seeded graph, on the UI thread.
+
+Two consequences follow, and both are counter-intuitive enough to be worth writing down.
+
+**The splash must be built from a posted continuation, not inline.** Show the splash and then
+construct the shell in the next statement, and the splash is created, shown, and never painted:
+the render pass cannot run because the thread is inside the constructor. What the user sees is an
+empty rectangle for the whole wait, which is worse than no splash at all. `App.StartWithSplash`
+posts the shell construction at `DispatcherPriority.Background`, which lets the render pass go
+first.
+
+**A status line cannot be updated during the wait, so it is set once.** The obvious design — set
+"Importing the node library", then "Evaluating the graph", then "Ready" — cannot work for the same
+reason. Each assignment invalidates a visual that will not be redrawn until the blocking call
+returns, by which time the splash is closing. Every step would be assigned and none would appear.
+The window states what the whole wait is for, once, and the only moving thing is the indeterminate
+bar, which the compositor animates without needing this thread. **The first draft of this window
+had the sequence of steps**, and it read "Starting" for the entire run.
+
+**The shell is shown before the splash is closed**, in that order, because the desktop lifetime
+shuts down when the last window closes. Reversed, the application exits between the two
+statements.
+
+**A fourth thing, and it cost a startup crash.** `SplashWindow` declared its own
+`InitializeComponent` rather than using the one Avalonia's name generator emits. The hand-written
+one loads the XAML but does not assign the `x:Name` fields, so `VersionText` was null and the
+constructor threw. `MainWindow` already carried a comment warning about exactly this. A comment on
+one file does not protect another: what would have protected this one is that both windows are
+constructed by the same code path, and nothing constructs them in a test.

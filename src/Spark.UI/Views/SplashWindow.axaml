@@ -1,0 +1,88 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Spark.UI.Views.SplashWindow"
+        Width="520" Height="300"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        WindowDecorations="None"
+        WindowStartupLocation="CenterScreen"
+        Background="#12151A"
+        Title="Spark">
+
+  <!--
+    Deliberately rectangular. A rounded splash needs window transparency, and where the platform
+    declines to grant it Avalonia paints the window's own background into the corners - so the
+    rounded version degrades to black notches on exactly the machines least able to report it.
+    A crisp bordered panel is robust everywhere and reads no worse.
+
+    The indeterminate bar is the one moving thing here, and it is a deliberate exception to
+    design-language Principle 6 ("nothing moves that the user did not move"): the user did move
+    this - they launched the application - and a splash that shows no sign of life is
+    indistinguishable from one that has hung. Everything else is still.
+  -->
+
+  <Border BorderBrush="#343A45" BorderThickness="1">
+    <Border.Background>
+      <LinearGradientBrush StartPoint="0%,0%" EndPoint="30%,100%">
+        <GradientStop Offset="0"   Color="#20242C"/>
+        <GradientStop Offset="0.55" Color="#171B21"/>
+        <GradientStop Offset="1"   Color="#12151A"/>
+      </LinearGradientBrush>
+    </Border.Background>
+
+    <Grid RowDefinitions="*,Auto">
+
+      <StackPanel Grid.Row="0"
+                  Orientation="Horizontal"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  Spacing="26">
+
+        <Image Source="{StaticResource SparkLogoImage}"
+               Width="96" Height="96"
+               Stretch="Uniform"
+               VerticalAlignment="Center"/>
+
+        <StackPanel VerticalAlignment="Center" Spacing="7">
+          <TextBlock Text="SPARK"
+                     FontSize="38"
+                     FontWeight="SemiBold"
+                     LetterSpacing="7"
+                     Foreground="#F2F5FA"/>
+          <TextBlock Text="Node-based visual programming for .NET"
+                     FontSize="12.5"
+                     Foreground="#A4ADBB"/>
+        </StackPanel>
+      </StackPanel>
+
+      <StackPanel Grid.Row="1" Margin="28,0,28,24" Spacing="12">
+        <Grid ColumnDefinitions="*,Auto">
+          <!--
+            Stated once and never updated. The shell is built by one blocking call on this thread,
+            so a status set just before it would be assigned and then never painted - the window
+            cannot redraw until the work finishes, by which time the splash is closing. A label
+            that describes the whole wait is honest; a sequence of steps that never appear is not.
+          -->
+          <TextBlock x:Name="StatusText"
+                     Grid.Column="0"
+                     Text="Importing the node library and evaluating the graph"
+                     FontSize="11.5"
+                     Foreground="#A4ADBB"/>
+          <TextBlock x:Name="VersionText"
+                     Grid.Column="1"
+                     Text=""
+                     FontSize="11.5"
+                     Foreground="#949DAC"/>
+        </Grid>
+
+        <ProgressBar IsIndeterminate="True"
+                     Height="2"
+                     MinHeight="2"
+                     Background="#1A1E24"
+                     Foreground="#A98BFF"
+                     CornerRadius="1"/>
+      </StackPanel>
+    </Grid>
+  </Border>
+</Window>

@@ -54,6 +54,18 @@ public readonly record struct StartupOptions(
     public bool IsScreenshot => !string.IsNullOrWhiteSpace(ScreenshotPrefix);
 
     /// <summary>
+    /// True when a splash window should be shown while the shell is built.
+    /// </summary>
+    /// <remarks>
+    /// <b>Never during a measurement mode</b>, and the two reasons are different. A splash in
+    /// front of <c>--screenshot</c> is a second window in the capture, so the picture stops being
+    /// of the thing under test. A splash in front of <c>--canvas-benchmark</c> is a second window
+    /// being composited while the compositor is the thing being measured — it would not merely add
+    /// noise, it would bias the number the run exists to produce.
+    /// </remarks>
+    public bool ShowSplash => !IsBenchmark && !IsScreenshot;
+
+    /// <summary>
     /// Parses the command line.
     /// </summary>
     /// <param name="args">The raw arguments.</param>

@@ -8,7 +8,7 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, `dotnet test` (**973 tests over seven
+Ctrl+Z steps back through every edit. `dotnet build`, `dotnet test` (**981 tests over seven
 projects**) and `dotnet format` are all clean, and **CI ran green on Windows and Linux on
 `53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
@@ -105,6 +105,15 @@ for anything else.
       page and `E8-T15` both cited, and they are withdrawn rather than restated ([N31](NOTES.md)).
       What is left here is only to re-measure and re-quote once the nightly has run on hardware
       worth quoting.
+
+- [x] **The application has a mark, and shows it while it loads** — `E8-T22`, asked for rather
+      than planned. `assets/spark-icon.svg` is the master; the shell draws the same geometry from
+      `Theming/SparkLogo.axaml`, which carries that file's path strings verbatim, and the window
+      icon is rendered from that drawing at startup so **no `.ico` exists in the tree to fall out
+      of date**. A test fails if the two ever disagree. The splash covers the second or so the
+      shell takes to build, and is suppressed for both measurement modes. Three non-obvious
+      startup facts came out of it ([N33](NOTES.md)), the sharpest being that a splash **cannot**
+      report step-by-step progress: the thread it would report on is the one that is blocked.
 
 ## Next — name the M1.6 criteria, before the spike
 
