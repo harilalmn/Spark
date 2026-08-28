@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Spark.Api;
 using Spark.Engine;
@@ -218,6 +219,125 @@ public sealed class CanvasGraphTests
         Spark.Geometry.Point3d second = Assert.IsType<Spark.Geometry.Point3d>(row[1]);
         Assert.Equal(first.X, second.X);
         Assert.NotEqual(first.Y, second.Y);
+    }
+
+    /// <summary>
+    /// `docs/examples/curves.spark` is exactly what this build saves, so the example in the
+    /// repository cannot drift from the format that reads it.
+    /// </summary>
+    /// <remarks>
+    /// A golden file rather than a description of one. If this fails, either the format changed —
+    /// in which case the example is regenerated and the change is visible in the diff, which is the
+    /// entire point of ADR-0017 — or the demo changed, which is the same conversation.
+    /// </remarks>
+    [Fact]
+    public void TheCheckedInCurvesExampleMatchesWhatThisBuildWrites()
+    {
+        string path = ExamplePath("curves.spark");
+
+        // Regenerating is a deliberate act with an environment variable, not something a failing
+        // test does on its own. A golden file that rewrites itself when it disagrees is not a
+        // golden file; it is a very slow way of asserting true.
+        if (Environment.GetEnvironmentVariable("SPARK_UPDATE_EXAMPLES") == "1")
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, CanvasDocument.Save(DemoGraphs.Curves(TestGraphs.Library)));
+        }
+
+        Assert.True(File.Exists(path), $"The example graph is missing: {path}");
+
+        // Line endings are normalised on both sides: the file is committed with LF by
+        // .gitattributes, and a Windows checkout that converted it would fail this test for a
+        // reason that has nothing to do with the format.
+        string expected = File.ReadAllText(path).ReplaceLineEndings(LineFeed);
+        string actual = CanvasDocument.Save(DemoGraphs.Curves(TestGraphs.Library))
+            .ReplaceLineEndings(LineFeed);
+
+        Assert.Equal(expected, actual);
+    }
+
+    /// <summary>The checked-in example opens into the graph it was written from.</summary>
+    [Fact]
+    public void TheCheckedInCurvesExampleOpensAndEvaluates()
+    {
+        CanvasGraph opened = CanvasDocument.Open(
+            File.ReadAllText(ExamplePath("curves.spark")), TestGraphs.Library);
+
+        EvaluationResult result = GraphEvaluator.Evaluate(
+            opened.Engine, new EvaluationContext(), TestContext.Current.CancellationToken);
+        opened.ApplyResult(result);
+
+        Assert.DoesNotContain(opened.Nodes, node => node.State.HasFlag(CanvasNodeState.Error));
+        Assert.Equal(18, opened.Nodes.Count);
+    }
+
+    /// <summary>
+    /// The line ending the golden comparison normalises to. Named rather than inline because
+    /// `.gitattributes` commits `.spark` files as LF, and a Windows checkout that converted them
+    /// would otherwise fail the comparison for a reason that has nothing to do with the format.
+    /// </summary>
+    private const string LineFeed = "\n";
+
+    private static string ExamplePath(string name)
+    {
+        // Walks up from the test binary to the repository root. A relative path from the working
+        // directory would depend on which directory the runner was started in, which is how a test
+        // like this passes locally and fails in CI.
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+        while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, "docs")))
+        {
+            directory = directory.Parent;
+        }
+
+        Assert.NotNull(directory);
+        return Path.Combine(directory.FullName, "docs", "examples", name);
+    }
+
+    /// <summary>
+    /// A graph survives a trip through a `.spark` file with its layout intact — which is what makes
+    /// the file a document rather than a description of one.
+    /// </summary>
+    [Fact]
+    public void ACanvasGraphRoundTripsThroughAFileWithItsLayout()
+    {
+        CanvasGraph original = DemoGraphs.Curves(TestGraphs.Library);
+        original.Nodes[0].X = 123.5;
+        original.Nodes[0].Y = -45.25;
+
+        string text = CanvasDocument.Save(original);
+        CanvasGraph reopened = CanvasDocument.Open(text, TestGraphs.Library);
+
+        Assert.Equal(original.Nodes.Count, reopened.Nodes.Count);
+        Assert.Equal(original.Wires.Count, reopened.Wires.Count);
+
+        CanvasNode moved = reopened.Nodes.Single(node => node.Id == original.Nodes[0].Id);
+        Assert.Equal(123.5, moved.X);
+        Assert.Equal(-45.25, moved.Y);
+        Assert.Equal(original.Nodes[0].Title, moved.Title);
+
+        // And it still evaluates to the same thing, which is the claim that matters: the file
+        // carried a graph, not a picture of one.
+        EvaluationResult result = GraphEvaluator.Evaluate(
+            reopened.Engine, new EvaluationContext(), TestContext.Current.CancellationToken);
+        reopened.ApplyResult(result);
+
+        Assert.DoesNotContain(reopened.Nodes, node => node.State.HasFlag(CanvasNodeState.Error));
+        SparkList circles = Assert.IsType<SparkList>(
+            result.Value(Node(reopened, "Circle.ByCentreRadius").Id));
+        Assert.Equal(8, circles.Count);
+    }
+
+    /// <summary>
+    /// Saving a reopened graph reproduces the file byte for byte, so an untouched graph produces no
+    /// diff at all. That is the whole reason ADR-0017 chose text over a container.
+    /// </summary>
+    [Fact]
+    public void ReopeningAndResavingAGraphChangesNoBytes()
+    {
+        string first = CanvasDocument.Save(DemoGraphs.Curves(TestGraphs.Library));
+        string second = CanvasDocument.Save(CanvasDocument.Open(first, TestGraphs.Library));
+
+        Assert.Equal(first, second);
     }
 
     /// <summary>

@@ -31,7 +31,7 @@ public sealed class App : Application
         {
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel(Options.Graph),
+                DataContext = new MainWindowViewModel(Options.Graph, Options.OpenPath),
                 Options = Options,
             };
         }

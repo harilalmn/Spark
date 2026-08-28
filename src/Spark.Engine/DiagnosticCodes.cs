@@ -89,6 +89,10 @@ public static class DiagnosticCodes
         [DuplicateReplicationGuide] = LacingTopic,
         [LongestEmptyPropagated] = LacingTopic,
         [NodeThrewAtDepthZero] = LacingTopic,
+        [MalformedGraphFile] = FileTopic,
+        [UnreadableFormatVersion] = FileTopic,
+        [UnknownNodeDefinition] = FileTopic,
+        [UnwritableLiteral] = FileTopic,
     };
 
     /// <summary>Every code this assembly can raise.</summary>
@@ -118,4 +122,32 @@ public static class DiagnosticCodes
         int? portIndex = null,
         IReadOnlyList<int>? elementPath = null) =>
         new(severity, code, message, TopicFor(code), detail, null, portIndex, elementPath);
+
+    /// <summary>
+    /// The help topic for anything about saving and opening a graph.
+    /// </summary>
+    public const string FileTopic = "concepts.files";
+
+    /// <summary>
+    /// A `.spark` file is not valid JSON, is not a graph, or is missing something it must have.
+    /// </summary>
+    public const string MalformedGraphFile = "SPK1060";
+
+    /// <summary>
+    /// A `.spark` file names a format version newer than this build can read. Refused whole rather
+    /// than partly read, because guessing at an unknown format is how a graph silently loses work.
+    /// </summary>
+    public const string UnreadableFormatVersion = "SPK1061";
+
+    /// <summary>
+    /// A `.spark` file names a node definition that is not loaded — a package that is not
+    /// installed, or a node that has been renamed since the graph was saved.
+    /// </summary>
+    public const string UnknownNodeDefinition = "SPK1062";
+
+    /// <summary>
+    /// A port holds a value no `.spark` file can represent, so saving would lose it. Refused at
+    /// save time, where the user still has the value, rather than at load time when it is gone.
+    /// </summary>
+    public const string UnwritableLiteral = "SPK1063";
 }

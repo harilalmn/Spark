@@ -1,4 +1,6 @@
 using System;
+using System.Security.Cryptography;
+using System.Text;
 using Spark.Api;
 using Spark.Engine;
 
@@ -116,26 +118,26 @@ public static class DemoGraphs
 
         CanvasGraph graph = new();
 
-        int plane = graph.Add(library.ByName("Plane.XY"), 30, 30);
-        int ellipse = graph.Add(library.ByName("Ellipse.ByPlaneRadii"), 250, 30);
-        int divide = graph.Add(library.ByName("Curve.DivideEqually"), 520, 140);
-        int ellipseColour = graph.Add(library.ByName("Colour.ByRgb"), 250, 180);
-        int pointColour = graph.Add(library.ByName("Colour.ByRgb"), 520, 300);
-        int ellipseDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 820, 30);
-        int pointDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 820, 160);
+        int plane = graph.Add(library.ByName("Plane.XY"), 30, 30, Seeded("curves", "plane"));
+        int ellipse = graph.Add(library.ByName("Ellipse.ByPlaneRadii"), 250, 30, Seeded("curves", "ellipse"));
+        int divide = graph.Add(library.ByName("Curve.DivideEqually"), 520, 140, Seeded("curves", "divide"));
+        int ellipseColour = graph.Add(library.ByName("Colour.ByRgb"), 250, 180, Seeded("curves", "ellipseColour"));
+        int pointColour = graph.Add(library.ByName("Colour.ByRgb"), 520, 300, Seeded("curves", "pointColour"));
+        int ellipseDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 820, 30, Seeded("curves", "ellipseDisplay"));
+        int pointDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 820, 160, Seeded("curves", "pointDisplay"));
 
-        int range = graph.Add(library.ByName("Number.Range"), 30, 440);
-        int centres = graph.Add(library.ByName("Point.ByCoordinates"), 250, 440);
-        int circles = graph.Add(library.ByName("Circle.ByCentreRadius"), 520, 440);
-        int circleColour = graph.Add(library.ByName("Colour.ByRgb"), 520, 580);
-        int circleDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 820, 440);
+        int range = graph.Add(library.ByName("Number.Range"), 30, 440, Seeded("curves", "range"));
+        int centres = graph.Add(library.ByName("Point.ByCoordinates"), 250, 440, Seeded("curves", "centres"));
+        int circles = graph.Add(library.ByName("Circle.ByCentreRadius"), 520, 440, Seeded("curves", "circles"));
+        int circleColour = graph.Add(library.ByName("Colour.ByRgb"), 520, 580, Seeded("curves", "circleColour"));
+        int circleDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 820, 440, Seeded("curves", "circleDisplay"));
 
-        int base3 = graph.Add(library.ByName("Point.ByCoordinates"), 30, 700);
-        int axis = graph.Add(library.ByName("Vector.ZAxis"), 30, 830);
-        int polygonPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 250, 700);
-        int polygon = graph.Add(library.ByName("PolyLine.ByRegularPolygon"), 520, 700);
-        int polygonColour = graph.Add(library.ByName("Colour.ByRgb"), 520, 840);
-        int polygonDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 820, 700);
+        int base3 = graph.Add(library.ByName("Point.ByCoordinates"), 30, 700, Seeded("curves", "base3"));
+        int axis = graph.Add(library.ByName("Vector.ZAxis"), 30, 830, Seeded("curves", "axis"));
+        int polygonPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 250, 700, Seeded("curves", "polygonPlane"));
+        int polygon = graph.Add(library.ByName("PolyLine.ByRegularPolygon"), 520, 700, Seeded("curves", "polygon"));
+        int polygonColour = graph.Add(library.ByName("Colour.ByRgb"), 520, 840, Seeded("curves", "polygonColour"));
+        int polygonDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 820, 700, Seeded("curves", "polygonDisplay"));
 
         Literal(graph, ellipse, 1, 6.0);
         Literal(graph, ellipse, 2, 2.0);
@@ -283,6 +285,31 @@ public static class DemoGraphs
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// A deterministic identity for a seeded node, derived from the graph's name and the node's
+    /// own name in this file.
+    /// </summary>
+    /// <remarks>
+    /// <b>A seeded graph has to be reproducible, and a fresh <c>Guid</c> per run is not.</b>
+    /// `docs/examples/curves.spark` is this graph written to a file and committed; with random
+    /// identities, regenerating it after changing one literal would rewrite all eighteen node ids
+    /// and all fifteen wires, and the diff would say nothing. Deriving the identity from a name
+    /// makes the regenerated file differ by exactly what changed.
+    /// <para>
+    /// The bytes come from SHA-256 rather than from a version-4 generator, so these are not RFC
+    /// 4122 random UUIDs and are not pretending to be. Nothing here requires that: a
+    /// <see cref="NodeId"/> is an identity, and what it needs is to be unique and stable.
+    /// </para>
+    /// </remarks>
+    /// <param name="graph">The seeded graph's name.</param>
+    /// <param name="node">The node's name within it.</param>
+    /// <returns>The identity, the same on every run and on every machine.</returns>
+    private static NodeId Seeded(string graph, string node)
+    {
+        byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes($"{graph}/{node}"));
+        return new NodeId(new Guid(hash.AsSpan(0, 16)));
     }
 
     private static void Literal(CanvasGraph graph, int slot, int portIndex, object? value) =>

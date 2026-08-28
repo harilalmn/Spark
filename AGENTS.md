@@ -102,7 +102,7 @@ and the viewport but **not** the curve layer, the half of the solution where a L
 would actually show up in floating-point results and culture-dependent formatting. Say which
 commit a green CI run was green on.
 
-**A tenth step, for anything with real behaviour: run it.** `dotnet run --project
+**A tenth step, and it is not optional for anything with real behaviour: run it.** `dotnet run --project
 src/Spark.Desktop --  --graph curves --screenshot PREFIX` opens the application, evaluates,
 writes a picture of the shell and a GPU read-back of the viewport, and exits. The curve layer
 passed 873 tests and its first screenshot still showed an empty viewport, because three
@@ -453,11 +453,11 @@ As of 2026-08-28, in three tiers. The tiers are the point; collapsing them is th
 - `dotnet build Spark.slnx --no-incremental -warnaserror` — **sixteen** projects, zero
   warnings, zero errors. Use the flag: without it the warning count can come from a cached
   analysis (see *Things that will bite you*).
-- `dotnet test Spark.slnx` — **873 tests across seven projects**, all passing.
+- `dotnet test Spark.slnx` — **893 tests across seven projects**, all passing.
   `Spark.Geometry.Tests` (313) covers the kernel by example; `Spark.Geometry.Properties` (38)
   covers it with CsCheck properties over generators spanning 1e-9 to 1e9; `Spark.Engine.Tests`
-  (273) covers the graph, the replicator and the importer, including a two-way diff against the
-  lacing specification and another against `Spark.Nodes.Core`; `Spark.UI.Tests` (167) drives the
+  (289) covers the graph, the replicator, the importer and the `.spark` format, including a two-way diff against the
+  lacing specification and another against `Spark.Nodes.Core`; `Spark.UI.Tests` (171) drives the
   canvas headlessly with real pointer gestures; `Spark.Viewport.Tests` (69) covers the scene
   builder and the camera; `Spark.Architecture.Tests` (8) enforces the reference-graph rules by
   reading `.csproj` files as XML; `Spark.Docs.Verify` (5) checks front matter, worked examples,
@@ -493,9 +493,8 @@ quantity's scale ([N19](docs/NOTES.md)), and a branch that no input could reach
 and every commit so far has been a push to `main`, so it has never run once.
 
 **Not built at all.** No surfaces, meshes, BRep or solids; no `NurbsCurve`; no `Quaternion`. No
-save, load, undo or redo — a graph cannot outlive the process. `Spark.Geometry.Io`,
-`Spark.Scripting`, `Spark.Packages` and `Spark.Cli` are empty or stubs. There is no benchmark
-project, `docs/examples/` is empty, and there is no OpenCascade anywhere in the tree.
+undo or redo. `Spark.Geometry.Io`, `Spark.Scripting`, `Spark.Packages` and `Spark.Cli` are empty
+or stubs. There is no benchmark project, and there is no OpenCascade anywhere in the tree.
 
 Keep the distinction honest in anything you write here. CADScript's experience is the argument
 for taking it seriously: compile verification was green the entire time, and the first live run

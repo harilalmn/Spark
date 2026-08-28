@@ -691,3 +691,33 @@ not therefore interchangeable**, because position is not the only question the p
 asked. Anything that accumulates along a curve — length, a running index, a sweep — can tell
 the seam's two sides apart even when the geometry cannot.
 
+---
+
+## N22 — A window must adopt exactly one graph at startup, and "synchronously" does not help
+
+Adopting a graph starts an evaluation. The shell's view model adopts one in its constructor, so
+**anything that adopts a second one afterwards leaves two runs in flight against a single
+session**, and the one that finishes last wins. What that looks like is not a crash: it is a
+window showing the right graph on the canvas, the *previous* graph's diagnostics, and an empty
+viewport, with a status line reading `Ran 7` for a graph of eighteen nodes.
+
+This has now happened twice, and the second time is the reason the note exists.
+
+- **`--graph curves`** called `LoadCurves()` from the window's `Opened` handler. Fixed by making
+  the startup graph a constructor parameter, so only one graph is ever adopted.
+- **`--open PATH`** then did the same thing again, from the same handler, with a comment
+  explaining that doing it *synchronously* made it safe. It did not. Synchronous or not, it is
+  still a second adoption, and `AdoptGraph` fires its evaluation with `_ = EvaluateGraphAsync()`
+  either way. The comment was confidently wrong, which is worse than no comment.
+
+The rule is therefore about the count, not the timing: **the constructor decides what is open,
+and nothing else adopts a graph before the first evaluation completes.** The file path is a
+constructor parameter for the same reason the seeded graph's name is.
+
+Two supporting facts worth keeping. The session cancels a run in flight when a graph is replaced,
+which is why this *looks* fine most of the time and fails under the exact timing a screenshot
+happens to catch. And **no test in the suite could see either failure**: every test drives the
+view model directly, which is the correct thing for a test to do and is precisely why it cannot
+observe a defect that lives in the window's startup sequence. Both were found by running the
+application and looking at the picture.
+

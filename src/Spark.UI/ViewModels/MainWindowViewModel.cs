@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -75,24 +76,41 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     /// <summary>Creates the view model with the built-in library imported and the demo loaded.</summary>
     public MainWindowViewModel()
-        : this(null)
+        : this(null, null)
+    {
+    }
+
+    /// <summary>Creates the view model with a named seeded graph loaded.</summary>
+    /// <param name="startupGraph">
+    /// <c>curves</c> for the curve demo, anything else — including null — for the point grid.
+    /// </param>
+    public MainWindowViewModel(string? startupGraph)
+        : this(startupGraph, null)
     {
     }
 
     /// <summary>
-    /// Creates the view model with a named seeded graph loaded.
+    /// Creates the view model with either a named seeded graph or a file loaded.
     /// </summary>
     /// <param name="startupGraph">
     /// <c>curves</c> for the curve demo, anything else — including null — for the point grid.
     /// </param>
+    /// <param name="startupDocumentPath">
+    /// A `.spark` file to open instead, or null. A file that cannot be read falls back to the
+    /// seeded graph with the reason in the diagnostics pane, because a shell that refuses to open
+    /// is worse than one that opens and says why.
+    /// </param>
     /// <remarks>
-    /// The choice is made here rather than by calling a load command once the window is open, and
-    /// the difference is not stylistic. Adopting a graph starts an evaluation; loading a second
-    /// graph afterwards leaves two runs in flight against one session, and the screenshot path then
-    /// captures whichever finished last. That was not a theory — it produced a window showing the
-    /// curve graph, the point demo's diagnostics, and an empty viewport.
+    /// <b>Exactly one graph is adopted here, and that is the whole point of this constructor.</b>
+    /// Adopting a graph starts an evaluation; adopting a second one afterwards — from a load
+    /// command fired once the window is open — leaves two runs in flight against one session, and
+    /// whichever finishes last wins. That is not a theory. It has now produced a window showing the
+    /// right graph, the previous graph's diagnostics and an empty viewport **twice**: once for
+    /// <c>--graph curves</c>, and again for <c>--open</c> after a comment in the window claimed
+    /// that doing it synchronously was enough. It was not: synchronous or not, it is still a second
+    /// adoption.
     /// </remarks>
-    public MainWindowViewModel(string? startupGraph)
+    public MainWindowViewModel(string? startupGraph, string? startupDocumentPath)
     {
         Layout = WorkspaceLayout.Default;
 
@@ -104,10 +122,38 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         LibraryEntries = [.. AllLibraryEntries];
         Inspector = [];
 
-        _graph = string.Equals(startupGraph, "curves", StringComparison.OrdinalIgnoreCase)
-            ? DemoGraphs.Curves(_session.Library)
-            : DemoGraphs.Demo(_session.Library);
+        string? failure = null;
+        CanvasGraph? opened = null;
+        if (!string.IsNullOrWhiteSpace(startupDocumentPath))
+        {
+            try
+            {
+                opened = CanvasDocument.Open(File.ReadAllText(startupDocumentPath), _session.Library);
+            }
+            catch (SparkFileException error)
+            {
+                failure = Describe(error.Diagnostic);
+            }
+            catch (IOException error)
+            {
+                failure = $"That file could not be read: {error.Message}";
+            }
+            catch (UnauthorizedAccessException error)
+            {
+                failure = $"That file could not be read: {error.Message}";
+            }
+        }
+
+        _graph = opened
+            ?? (string.Equals(startupGraph, "curves", StringComparison.OrdinalIgnoreCase)
+                ? DemoGraphs.Curves(_session.Library)
+                : DemoGraphs.Demo(_session.Library));
         AdoptGraph(_graph);
+
+        if (failure is not null)
+        {
+            DiagnosticsText = failure;
+        }
     }
 
     /// <summary>Raised when the whole document was replaced, so the canvas can rebind.</summary>
@@ -154,6 +200,77 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         AdoptGraph(DemoGraphs.Curves(_session.Library));
         GraphReplaced?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// The current document as the text of a `.spark` file, or <see langword="null"/> when it
+    /// cannot be written.
+    /// </summary>
+    /// <remarks>
+    /// A refusal is reported into the diagnostics pane rather than thrown at the view, because the
+    /// view layer is not allowed to name an engine type (`E8-T11`) — and because a file Spark
+    /// declines to write is a diagnostic like any other, carrying an `SPK` code the help panel can
+    /// look up.
+    /// </remarks>
+    /// <returns>Canonically formatted JSON, or <see langword="null"/> after reporting why not.</returns>
+    public string? TrySaveDocument()
+    {
+        try
+        {
+            return CanvasDocument.Save(_graph);
+        }
+        catch (SparkFileException error)
+        {
+            DiagnosticsText = Describe(error.Diagnostic);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Replaces the document with one read from the text of a `.spark` file.
+    /// </summary>
+    /// <remarks>
+    /// The graph is adopted and evaluated exactly as a seeded graph is, so opening a file and
+    /// opening a demo take the same path — which is what stops one of them acquiring a startup
+    /// race the other does not have.
+    /// </remarks>
+    /// <param name="text">The file's text.</param>
+    /// <returns><see langword="true"/> when it opened; otherwise the reason is in the diagnostics pane.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> is <see langword="null"/>.</exception>
+    public bool TryOpenDocument(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        try
+        {
+            AdoptGraph(CanvasDocument.Open(text, _session.Library));
+            GraphReplaced?.Invoke(this, EventArgs.Empty);
+            return true;
+        }
+        catch (SparkFileException error)
+        {
+            DiagnosticsText = Describe(error.Diagnostic);
+            return false;
+        }
+    }
+
+    /// <summary>Puts a message in the diagnostics pane, for a failure the view detected.</summary>
+    /// <param name="message">The message.</param>
+    public void ReportFailure(string message) => DiagnosticsText = message;
+
+    private static string Describe(SparkDiagnostic diagnostic)
+    {
+        StringBuilder text = new();
+        text.Append(CultureInfo.InvariantCulture, $"{diagnostic.Severity} {diagnostic.Code}  ");
+        text.Append(diagnostic.Message);
+
+        if (diagnostic.Detail is { } detail)
+        {
+            text.AppendLine();
+            text.Append(detail);
+        }
+
+        return text.ToString();
     }
 
     /// <summary>

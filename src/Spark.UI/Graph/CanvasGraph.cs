@@ -269,12 +269,30 @@ public sealed class CanvasGraph
     /// <param name="y">The top edge in world coordinates.</param>
     /// <returns>The new node's slot.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="definition"/> is null.</exception>
-    public int Add(NodeDefinition definition, double x, double y)
+    public int Add(NodeDefinition definition, double x, double y) =>
+        Add(definition, x, y, null);
+
+    /// <summary>Places a node instance with a chosen identity, and gives it a position.</summary>
+    /// <remarks>
+    /// The identity overload exists for graphs that have to be reproducible — a seeded demo, a
+    /// checked-in example, a test fixture. A graph whose node identities are freshly generated
+    /// every time cannot be committed to a repository usefully: regenerating it rewrites every id
+    /// and every wire, so a one-literal change arrives as a diff of the whole file, which is
+    /// exactly what [ADR-0017](../../../docs/adr/0017-spark-file-is-plain-json.md) chose text to
+    /// avoid.
+    /// </remarks>
+    /// <param name="definition">The definition to instantiate.</param>
+    /// <param name="x">The left edge in world coordinates.</param>
+    /// <param name="y">The top edge in world coordinates.</param>
+    /// <param name="id">The identity to give it, or null for a fresh one.</param>
+    /// <returns>The new node's slot.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="definition"/> is null.</exception>
+    public int Add(NodeDefinition definition, double x, double y, NodeId? id)
     {
         ArgumentNullException.ThrowIfNull(definition);
 
         NodeInstance instance = null!;
-        Edit(() => instance = Engine.AddNode(definition));
+        Edit(() => instance = Engine.AddNode(definition, id));
         return Adopt(instance, x, y);
     }
 

@@ -5,9 +5,9 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 
 **Last updated:** 2026-08-28
 
-**M0 and most of M1.5 have landed, M2's walking skeleton runs, and M1's geometry core now has
-curves.** The application opens, a graph evaluates, and an ellipse, eight circles and a polygon
-appear in the GPU viewport. `dotnet build`, `dotnet test` (**873 tests over seven projects**)
+**M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
+and a graph can be saved and opened.** The application opens, a graph evaluates, and an ellipse,
+eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file. `dotnet build`, `dotnet test` (**873 tests over seven projects**)
 and `dotnet format` are all clean, and **CI ran green on Windows and Linux on `35107f0`** — the
 Linux leg is no longer unproven.
 
@@ -16,12 +16,11 @@ Three distinctions still do the work in what follows:
 - **What is built.** The value layer (13 types), the curve layer (`Line`, `Arc`, `Circle`,
   `EllipseCurve`, `PolyLine`, `PolyCurve` over a `Curve` base, with arc-length
   reparameterisation), the graph engine and replicator, the reflection importer with its
-  two-way diff, the Avalonia shell, the immediate-mode canvas, the GL viewport, and 57 nodes in
-  `Spark.Nodes.Core`.
-- **What is not.** No surfaces, meshes, BRep or solids. No `NurbsCurve`. No save, load, undo or
-  redo — **a graph still cannot outlive the process**, which is the largest gap in M2. No
-  `spark run`. No packages and no code block. And **no OCCT**: there is no `native/` directory
-  and no `Spark.Geometry.Occt` project.
+  two-way diff, the Avalonia shell, the immediate-mode canvas, the GL viewport, 57 nodes in
+  `Spark.Nodes.Core`, and a `.spark` file a graph survives a round trip through byte for byte.
+- **What is not.** No surfaces, meshes, BRep or solids. No `NurbsCurve`. **No undo and no
+  redo**, which is now the largest gap in M2. No `spark run`. No packages and no code block. And
+  **no OCCT**: there is no `native/` directory and no `Spark.Geometry.Occt` project.
 - **Gates are not review, and this project now has its own proof twice over.** The kernel's
   first slice passed all three gates and was rejected on review ([NOTES N18](NOTES.md)). The
   curve layer's mutation sweep then found a test that could not fail and a branch that could
@@ -40,7 +39,7 @@ read as 55–70 MB** — but that is a survey, not a build.
 
 ---
 
-## Now — persist a graph
+## Now — undo, and the guards that are still missing
 
 - [x] **Walk TASKS.md against E3, E4, E5, E8 and E9** — done, and it moved 41 rows. Ten of them
       came back **`In progress` rather than `Done`**, which is the useful output: the cache
@@ -50,12 +49,14 @@ read as 55–70 MB** — but that is a survey, not a build.
       wait on the empty `bench/`. Two more are `Open` **with a stated reason** rather than by
       omission, because the importer's two-way diff will not let a public member go unaccounted
       for. Details on the rows and in [EPICS.md](EPICS.md).
-- [ ] **Save and load a `.spark` file** — `E3-T17`, `E3-T18`. **A graph cannot outlive the
-      process today**, which makes every other M2 feature a demo rather than a tool. The format
-      is settled — plain JSON, [ADR-0017](adr/0017-spark-file-is-plain-json.md) — and the
-      reflection importer already gives every node a stable name to serialise against.
-- [ ] **Undo and redo** — `E8-T9`. The canvas already edits the graph through the session's
-      mutation gate, so the seam an undo stack needs exists; nothing records into it.
+- [x] **Save and load a `.spark` file** — `E3-T17`, `E3-T18`, done. Open and Save are on the
+      toolbar, `--open PATH` opens one at startup, and `docs/examples/curves.spark` is committed
+      as a golden file that the suite re-derives from the seeded demo. Read-then-write is
+      byte-identical, and so is the longer path the application takes.
+- [ ] **Undo and redo** — `E8-T9`. **Now the largest gap in M2**, and the cheapest it will ever
+      be: the canvas already edits through the session's mutation gate, so the seam an undo stack
+      needs exists and nothing records into it. The provenance cache makes an undo instant once
+      something does.
 - [ ] **Create `bench/Spark.Benchmarks`** — `E1-T13`. `bench/` and `scripts/` are still empty
       directories and BenchmarkDotNet is pinned and unreferenced. The canvas numbers quoted in
       `85e3183` came from the app's own `--canvas-benchmark` switch, which is a real measurement
@@ -152,8 +153,9 @@ What is left of it is the part that makes the skeleton usable rather than demons
 
 **Still to do:**
 
-- [ ] Save, load, undo, redo — `E3-T17`, `E3-T18`, `E8-T9`. **The largest remaining gap in M2**,
-      and the reason it sits in *Now* above rather than here.
+- [x] Save and load — `E3-T17`, `E3-T18`. A graph now outlives the process.
+- [ ] Undo and redo — `E8-T9`. The largest remaining gap in M2, and the reason it sits in *Now*
+      above rather than here.
 - [ ] Library search with camel-hump ranking — `E8-T8`. The library lists all 57 nodes and the
       search box filters them; the ranking is not the specified one.
 - [ ] `spark run` — `E12-T5`. `Spark.Cli` is still a stub, and it has nothing to run until a
@@ -277,6 +279,11 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   drop shadow crosses its threshold, costing 57→40 fps at 2,000 nodes. The design language
   already specifies the fix — a sprite cache keyed on a fixed set of blur radii, eight sprites
   in total. Scoped, specified, and not yet built (`E8`).
+- **`concepts.evaluation` is a help topic id with no file behind it.** Five diagnostic codes
+  resolve to it and `docs/help/concepts/evaluation.md` does not exist, so a user following an
+  `SPK101x` code has nowhere to land. The docs harness does not currently check that a topic id
+  names a real topic, which is why nobody noticed; both halves are worth fixing together
+  (`E10`, `E11-T14`).
 - **Coordinates are unitless.** No `UnitSystem`, no unit types, no conversion. Import and
   export assume the file's own units and document that they do. PRD decision **D12**. This
   does **not** remove scale-aware tolerance, which is numerical robustness rather than

@@ -43,6 +43,8 @@
         <Button Classes="toolbar" Content="Zoom to fit" Click="OnZoomToFit" />
         <Button Classes="toolbar" Content="Frame viewport" Click="OnFrameViewport" />
         <Button Classes="toolbar" Content="2000 nodes" Click="OnLoadSynthetic" />
+        <Button Classes="toolbar" Content="Open…" Click="OnOpenGraph" />
+        <Button Classes="toolbar" Content="Save as…" Click="OnSaveGraph" />
         <Button Classes="toolbar" Content="Demo graph" Click="OnLoadDemo" />
         <Button Classes="toolbar" Content="Curves" Click="OnLoadCurves" />
         <Button Classes="toolbar" Content="Run" Click="OnRun" />

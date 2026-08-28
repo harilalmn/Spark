@@ -326,7 +326,7 @@ is [E5](#e5--node-authoring-and-library). Anything drawn on screen.
       implementations, and evaluation never runs on the UI thread (**E3-T11**).
 - [ ] Cancellation is checked between nodes, between replication elements and inside long
       kernel loops; cancelling leaves completed nodes cached (**E3-T12**).
-- [ ] `.spark` is plain canonically formatted JSON — stable key order, invariant numbers —
+- [x] `.spark` is plain canonically formatted JSON — stable key order, invariant numbers —
       and save/load round-trips **byte-identically** (**E3-T17**, **E3-T18**).
 - [ ] `graph.formatVersion` is a single monotonic integer decoupled from product version;
       migrations are JSON-to-JSON, never against typed models, are never deleted, and each
@@ -350,8 +350,15 @@ epoch is plumbed but **no node can declare itself impure**, because the attribut
 (`E3-T10`); two of the three schedulers exist and the **host-thread** one — most of the reason
 the seam exists — does not (`E3-T11`); and cancellation reaches between nodes and between
 replication elements but **not inside a kernel operation**, none of which takes a token
-(`E3-T12`). Run modes, the progress channel and everything about persistence are untouched: a
-graph still cannot outlive the process.
+(`E3-T12`). Run modes and the progress channel are untouched.
+
+**Persistence landed after this paragraph was first written.** A graph is saved and opened as
+canonical JSON — `SparkFile` for the text, `GraphDocument` for the seam between the file and a
+live `Graph` — and read-then-write is asserted byte-identical, which is the property
+[ADR-0017](adr/0017-spark-file-is-plain-json.md) chose text in order to have.
+`docs/examples/curves.spark` is committed as a golden file. `graph.formatVersion` exists and a
+newer file is refused whole; the JSON-to-JSON migration path is not written, because there is one
+version and nothing to migrate from (`E3-T19`).
 
 ---
 

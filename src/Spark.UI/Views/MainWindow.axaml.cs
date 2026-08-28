@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
@@ -9,6 +11,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Spark.UI.Controls;
 using Spark.UI.Graph;
@@ -107,6 +110,101 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// The file type the open and save dialogs offer. Declared once because two dialogs disagreeing
+    /// about an extension is exactly the kind of thing nobody notices until a user cannot find their
+    /// own graph.
+    /// </summary>
+    private static FilePickerFileType GraphFileType => new("Spark graph")
+    {
+        Patterns = ["*.spark"],
+    };
+
+    private async void OnOpenGraph(object? sender, RoutedEventArgs e)
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        IReadOnlyList<IStorageFile> chosen = await StorageProvider.OpenFilePickerAsync(
+            new FilePickerOpenOptions
+            {
+                Title = "Open graph",
+                AllowMultiple = false,
+                FileTypeFilter = [GraphFileType],
+            }).ConfigureAwait(true);
+
+        if (chosen.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await using Stream stream = await chosen[0].OpenReadAsync().ConfigureAwait(true);
+            using StreamReader reader = new(stream);
+            string text = await reader.ReadToEndAsync().ConfigureAwait(true);
+
+            // The view model reports its own refusals into the diagnostics pane. A refused file is
+            // a diagnostic like any other, and the view is not allowed to name the engine type that
+            // would carry it (E8-T11).
+            if (model.TryOpenDocument(text))
+            {
+                _documentPath = chosen[0].TryGetLocalPath();
+                Canvas.ZoomToFit();
+                Viewport.ZoomToFit();
+            }
+        }
+        catch (IOException error)
+        {
+            model.ReportFailure($"That file could not be read: {error.Message}");
+        }
+
+        UpdateStatus();
+    }
+
+    private async void OnSaveGraph(object? sender, RoutedEventArgs e)
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        if (model.TrySaveDocument() is not { } text)
+        {
+            return;
+        }
+
+        IStorageFile? target = await StorageProvider.SaveFilePickerAsync(
+            new FilePickerSaveOptions
+            {
+                Title = "Save graph",
+                DefaultExtension = "spark",
+                SuggestedFileName = Path.GetFileName(_documentPath) ?? "graph.spark",
+                FileTypeChoices = [GraphFileType],
+            }).ConfigureAwait(true);
+
+        if (target is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await using Stream stream = await target.OpenWriteAsync().ConfigureAwait(true);
+            await using StreamWriter writer = new(stream);
+            await writer.WriteAsync(text).ConfigureAwait(true);
+            _documentPath = target.TryGetLocalPath();
+        }
+        catch (IOException error)
+        {
+            model.ReportFailure($"That file could not be written: {error.Message}");
+        }
+
+        UpdateStatus();
+    }
+
     private void OnPlaceNode(object? sender, RoutedEventArgs e) => PlaceSelectedLibraryEntry();
 
     private void OnLibraryDoubleTapped(object? sender, TappedEventArgs e) => PlaceSelectedLibraryEntry();
@@ -154,6 +252,8 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private string? _documentPath;
+
     /// <summary>Command-line options, chiefly the benchmark switches.</summary>
     public StartupOptions Options { get; set; } = StartupOptions.Default;
 
@@ -165,6 +265,8 @@ public sealed partial class MainWindow : Window
         }
         else
         {
+            // A file named on the command line was already opened by the view model's
+            // constructor, so there is exactly one graph adoption and one evaluation.
             Canvas.ZoomToFit();
         }
 

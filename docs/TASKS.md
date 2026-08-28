@@ -7,7 +7,7 @@ order for what to do next is in [TODO.md](TODO.md); the requirements behind them
 **Last updated:** 2026-08-28
 **Legend:** `Done` · `In progress` · `Open` · `Blocked` · `Withdrawn`
 
-**Summary:** 83 done · 17 in progress · 155 open · 9 withdrawn — **264 rows**
+**Summary:** 85 done · 18 in progress · 152 open · 9 withdrawn — **264 rows**
 
 **This revision brings the curve layer in, and corrects four claims below that had become
 false.** `Line`, `Arc`, `Circle`, `EllipseCurve`, `PolyLine` and `PolyCurve` exist, with
@@ -89,7 +89,7 @@ deleted, with the reason on each row, because a task that vanishes silently is a
 somebody re-adds. The blocked count is now zero: the one blocked task was `E1-T24`, and it
 was never unblockable — it was unnecessary.
 
-**Seventeen tasks are `In progress`, and `In progress` here means part-delivered with the
+**Eighteen tasks are `In progress`, and `In progress` here means part-delivered with the
 missing part named on the row** — never "started". The five CI rows `E1-T14` … `E1-T18` are now
 `Done`: the workflow has run on GitHub, on both operating systems, and was green, which is the
 standard those rows were held to and the reason they sat at `In progress` while the file merely
@@ -252,9 +252,9 @@ Everything else in this file is a plan, not a claim.
 | E3-T14 | Progress channel; results marshal back so the canvas animates and geometry streams during a run | Open | |
 | E3-T15 | `SparkDiagnostic` and the `SPK####` code space | Done | **Built in `7ef0919`.** `{ Severity, Code, Message, Detail, NodeId, PortIndex, ElementPath, HelpTopicId }` |
 | E3-T16 | Downstream of an error is greyed as *not evaluated*, never cascaded | Done | **Built in `7ef0919`.** Cascading turns a one-node problem into a fifty-error wall that hides the cause. Warnings mean output-with-caveats and downstream still evaluates |
-| E3-T17 | `.spark` canonical JSON writer and reader | Open | Stable key order, invariant numbers. Diffable, mergeable graphs matter more for an OSS tool whose users share work on GitHub than container tidiness. Assets over 64 KB go to a sibling folder by content hash |
-| E3-T18 | Byte-identical save/load round-trip test | Open | Also the test that proves [E7-T7](#e7--packages-and-extensibility) |
-| E3-T19 | `graph.formatVersion` and JSON-to-JSON migrations | Open | A single monotonic integer, decoupled from product version. **Never against typed models** — typed models drift and silently change what an old migration means. Migrations are never deleted, and each ships with a golden-file test against a real old graph in the corpus |
+| E3-T17 | `.spark` canonical JSON writer and reader | Done | **Built.** `SparkFile` writes and reads it; `GraphDocument` moves between the file and a live `Graph`. Keys are written in a fixed order by hand rather than by a serialiser, nodes are sorted by identity and wires by their endpoints, numbers use the shortest round-trippable form, and each literal carries its kind because JSON cannot tell 1 from 1.0 and Spark's ports are typed. A port still holding its declared default is not written at all: the default is reproducible from the definition, so writing it would be diff noise — and it would drag in types that are not literals, since a port declared `Plane` is seeded with one whether or not anybody typed anything. Stable key order, invariant numbers. Diffable, mergeable graphs matter more for an OSS tool whose users share work on GitHub than container tidiness. Assets over 64 KB go to a sibling folder by content hash |
+| E3-T18 | Byte-identical save/load round-trip test | Done | **Built, and it is the load-bearing test of the format.** Read-then-write is asserted byte-identical, and so is the longer path the application actually takes: open a file, rebuild the canvas, save it again. `docs/examples/curves.spark` is committed as a golden file and re-derived from the seeded demo on every run. Also the test that proves [E7-T7](#e7--packages-and-extensibility) |
+| E3-T19 | `graph.formatVersion` and JSON-to-JSON migrations | In progress | **Half built.** `graph.formatVersion` exists, is a single monotonic integer decoupled from the product version, and a file from a newer version is refused whole rather than partly read (`SPK1061`). **The JSON-to-JSON migration path does not exist**, because there is exactly one format version and nothing to migrate from — it is written when version 2 is, and not speculatively before. A single monotonic integer, decoupled from product version. **Never against typed models** — typed models drift and silently change what an old migration means. Migrations are never deleted, and each ships with a golden-file test against a real old graph in the corpus |
 | E3-T20 | `.sparkz` container | Open | Zips graph plus assets for sharing |
 | E3-T21 | Public graph-construction API | Open | Needed by the CLI, by tests, and by collapse-to-custom-node. One of the four graph-model properties that survive **D8** on their own merits |
 | E3-T22 | Document tolerance flowing through `EvaluationContext` into every cache key | Open | Changing document tolerance must invalidate exactly the affected nodes — the decisive argument against an ambient tolerance |

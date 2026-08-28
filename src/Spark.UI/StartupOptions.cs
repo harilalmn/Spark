@@ -21,6 +21,9 @@ namespace Spark.UI;
 /// <param name="Graph">
 /// Which seeded graph to open: <c>demo</c> for the point grid, <c>curves</c> for the curve demo.
 /// </param>
+/// <param name="OpenPath">
+/// A `.spark` file to open instead of a seeded graph, or null.
+/// </param>
 /// <param name="BenchmarkZoom">
 /// A zoom to pin the benchmark at, or zero to sweep. Pinning is what separates "how much does the
 /// graph cost" from "how much does what is on screen cost", which is the claim ADR-0013 actually
@@ -31,10 +34,14 @@ public readonly record struct StartupOptions(
     int BenchmarkFrames,
     double BenchmarkZoom,
     string? ScreenshotPrefix,
-    string? Graph)
+    string? Graph,
+    string? OpenPath)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
-    public static StartupOptions Default => new(0, 0, 0, null, null);
+    public static StartupOptions Default => new(0, 0, 0, null, null, null);
+
+    /// <summary>True when the window should open a file rather than a seeded graph.</summary>
+    public bool IsFileOpen => !string.IsNullOrWhiteSpace(OpenPath);
 
     /// <summary>True when the window should open the curve demo rather than the point grid.</summary>
     public bool IsCurveGraph =>
@@ -82,6 +89,7 @@ public readonly record struct StartupOptions(
         double zoom = 0;
         string? screenshot = null;
         string? graph = null;
+        string? open = null;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -115,6 +123,10 @@ public readonly record struct StartupOptions(
                     graph = args[++i];
                     break;
 
+                case "--open" when i + 1 < args.Length:
+                    open = args[++i];
+                    break;
+
                 default:
                     break;
             }
@@ -125,7 +137,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open);
     }
 
     private static int ParseCount(string text, int fallback) =>
