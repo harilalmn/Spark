@@ -31,3 +31,9 @@ Thumbs.db
 
 # Local NuGet package cache for graph-scoped packages
 packages/
+
+# BenchmarkDotNet writes its reports beside the working directory it was run from, which is
+# usually the repository root. They are a measurement of one machine on one day, so they are
+# output rather than a record - the numbers worth keeping go in docs/NOTES.md with their
+# conditions stated.
+BenchmarkDotNet.Artifacts/

@@ -804,3 +804,40 @@ message: two fire-and-forget runs, started by an undo and the redo after it, app
 `ViewportScene` is genuinely thread-safe and was never the problem, which is what made it look
 like a flake rather than a defect. Undo is what made it reachable — it is the first feature that
 replaces the whole document twice in a row at a user's typing speed.
+
+---
+
+## N26 — Two benchmarks were wrong before they were right, and the numbers said so both times
+
+`bench/Spark.Benchmarks` was written, run, and found to be measuring the wrong thing twice. Both
+mistakes are the benchmark equivalent of a test that cannot fail, and both were caught by reading
+the numbers rather than by reviewing the code — which is the reason to run a benchmark before
+ticking the row that says it exists.
+
+**A benchmark that could not regress.** `ValueMarshal.FromClr(array, declaredRank: 0)` returns its
+argument untouched: rank 0 means the port does not declare a list, so there is nothing to convert.
+It measured 0.6 ns at 10 elements, at 1 000 and at 100 000 — flat across four orders of magnitude,
+allocating nothing. **The tell was the flatness**, which is exactly what the three sizes are there
+for. A port returning `IReadOnlyList<double>` declares rank **1**, and at rank 1 the same call
+costs 8.1 ms and 5.3 MB at 100 000 elements.
+
+**A benchmark that measured something else entirely.** The first evaluation benchmark built a
+`SparkSession` inside the timed region, so every iteration reflected over `Spark.Nodes.Core` to
+import fifty-seven nodes. It reported **fifty nodes as slower than five hundred** — 43.9 ms against
+30.0 ms — because the importer's fixed cost swamped the evaluation and the noise did the rest. The
+library is now imported in `[GlobalSetup]`, and coldness comes from a fresh `EvaluationContext`,
+which brings a fresh cache with it, rather than from a fresh session.
+
+The same benchmark also revealed that **`DemoGraphs.Synthetic` cannot be evaluated meaningfully**.
+It wires whatever ports will accept each other and is deliberately never run — `LoadSynthetic`
+says so — so a good fraction of its nodes error on their default literals. Benchmarking it
+measured `throw`: BenchmarkDotNet reported dozens of exceptions per iteration. `BenchmarkGraphs`
+builds a chain of replicating nodes instead, and `[GlobalSetup]` now **fails the run** if the graph
+produces any diagnostic or leaves a node unevaluated. A benchmark that guards itself is worth the
+six lines; a benchmark quietly measuring exception handling is worse than none, because it will be
+quoted.
+
+What the corrected pair says is worth keeping: a 500-node chain over 100 elements costs **8.5 ms
+cold and 0.32 ms warm**, a 27-fold difference, which is the provenance cache's central claim
+([ADR-0010](adr/0010-explicit-scale-aware-tolerance.md), `E3-T8`) as a number rather than a
+sentence.

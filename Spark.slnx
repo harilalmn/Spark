@@ -13,6 +13,9 @@
     <Project Path="src/Spark.UI/Spark.UI.csproj" />
     <Project Path="src/Spark.Viewport/Spark.Viewport.csproj" />
   </Folder>
+  <Folder Name="/bench/">
+    <Project Path="bench/Spark.Benchmarks/Spark.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Spark.Architecture.Tests/Spark.Architecture.Tests.csproj" />
     <Project Path="tests/Spark.Docs.Verify/Spark.Docs.Verify.csproj" />

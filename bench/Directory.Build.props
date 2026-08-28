@@ -1,0 +1,28 @@
+<Project>
+
+  <!-- Inherit the repository-wide settings, then add what every benchmark project needs. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+
+    <!--
+      A benchmark is not a public API surface, so undocumented members are fine here - the
+      same exemption test projects get, and for the same reason.
+    -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!--
+      BenchmarkDotNet refuses to produce numbers from a Debug build, and it is right to:
+      an unoptimised measurement is not a slower measurement, it is a different program.
+      Run it in Release. `dotnet build Spark.slnx` still compiles this project in whatever
+      configuration it was asked for, so a benchmark that stops compiling is a red build
+      like anything else.
+    -->
+    <Configurations>Debug;Release</Configurations>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+  </PropertyGroup>
+
+</Project>

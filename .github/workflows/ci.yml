@@ -61,6 +61,14 @@ jobs:
       - name: Test
         run: dotnet test Spark.slnx --configuration Release --no-build
 
+      # NFR-5, and the window for adding it closes at M1.6 — the commit that first puts
+      # native binaries in the tree. A gate added after the thing it guards against is a
+      # gate that never guarded. Run on both operating systems because native assets are
+      # per-RID: an output clean on one can carry a .so or a .dylib on the other.
+      - name: No native binaries in Spark.Geometry
+        shell: bash
+        run: scripts/check-no-native-binaries.sh
+
   format:
     name: Format
     runs-on: ubuntu-latest

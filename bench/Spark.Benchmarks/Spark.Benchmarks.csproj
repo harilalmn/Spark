@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Standing performance guards: the engine's marshalling and evaluation paths, and the canvas spatial index.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+  </ItemGroup>
+
+  <!--
+    Spark.Host brings the engine, the node library and the geometry kernel in one reference,
+    which is the same door the application and the CLI come through. Spark.UI is here for
+    SceneIndex alone - the canvas's retained spatial index is pure managed data-structure
+    code, and it is the substrate ADR-0013's whole claim rests on.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Spark.Host\Spark.Host.csproj" />
+    <ProjectReference Include="..\..\src\Spark.UI\Spark.UI.csproj" />
+  </ItemGroup>
+
+</Project>

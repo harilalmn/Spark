@@ -240,8 +240,8 @@ src/Spark.Desktop/       the application
 tests/  bench/  docs/  scripts/  .github/workflows/
 ```
 
-Twelve projects, all `net10.0`, with a reference graph that a test enforces rather than a
-convention:
+Twelve source projects, all `net10.0`, with a reference graph that a test enforces rather than
+a convention:
 
 ```text
 Geometry ─┬─> Geometry.Io
@@ -297,7 +297,7 @@ is not a dotnet global tool. (**D11**)
 | Document | What it is |
 |---|---|
 | [docs/PRD.md](docs/PRD.md) | Requirements, principles, constraints, risks, and the **decision log** — every decision with the alternative it beat and why |
-| [docs/EPICS.md](docs/EPICS.md) | Twelve epics with acceptance criteria |
+| [docs/EPICS.md](docs/EPICS.md) | Thirteen epics with acceptance criteria |
 | [docs/TASKS.md](docs/TASKS.md) | The full task register, `E<n>-T<m>`, with statuses |
 | [docs/TODO.md](docs/TODO.md) | What to do next, in priority order — and what is **deliberately accepted** rather than fixed |
 | [docs/NOTES.md](docs/NOTES.md) | Numbered implementation notes: the non-obvious facts |

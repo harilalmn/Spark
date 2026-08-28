@@ -81,6 +81,11 @@ XML doc = what this member does.*
 3. `dotnet format Spark.slnx --verify-no-changes --severity warn` — clean. Use exactly this
    form: it is what the `format` CI job runs, and a shorter one can pass locally where the
    gate fails.
+   Two further checks are CI's and are runnable locally when you have touched what they guard:
+   `scripts/check-no-native-binaries.sh` (NFR-5, and it is in the build job), and
+   `dotnet run --project bench/Spark.Benchmarks --configuration Release --filter '*'` when you
+   have changed marshalling, evaluation or the canvas spatial index. **Benchmarks are not yet
+   scheduled**, so they measure rather than guard — read them, do not assume them.
 4. Documents updated per the table above, including their **Last updated** dates.
 5. New user-facing behaviour has a help topic **with a worked example**.
 6. New public API on a contract project has an XML doc comment and a public-API baseline
@@ -377,9 +382,9 @@ src/Spark.UI/            Avalonia controls and view models
 src/Spark.Desktop/       the application: DI, main window, settings, crash recovery
 tests/                   one flat project per source project, plus Docs.Verify,
                          Geometry.Properties, Architecture.Tests and corpus/
-bench/Spark.Benchmarks/  nightly, not per-PR                          (not created yet)
+bench/Spark.Benchmarks/  BenchmarkDotNet: marshalling, evaluation, the canvas spatial index
 docs/                    PRD, EPICS, TASKS, TODO, NOTES, adr/, help/, examples/
-scripts/                 repository helper scripts                    (not created yet)
+scripts/                 repository helper scripts
 .github/workflows/       CI
 ```
 

@@ -87,8 +87,11 @@ exemption for everything that already exists.
       headless UI smoke (**E1-T15** … **E1-T19**). *Four of the six are written — the docs
       harness needs no job of its own, since it is a test project the `test` step already
       runs. The headless UI smoke has nothing to smoke until `Spark.UI` exists. None has run.*
-- [ ] A CI check asserts no native binaries appear in `Spark.Geometry`'s published output
+- [x] A CI check asserts no native binaries appear in `Spark.Geometry`'s published output
       (**E1-T20**). *`dotnet publish` output — nothing here is packaged for nuget.org.*
+      `scripts/check-no-native-binaries.sh`, run on both operating systems, and **proven to
+      fire**: pointed at `Spark.Desktop` it fails on the Skia and HarfBuzz natives Avalonia
+      brings.
 - [ ] Benchmarks run nightly, not per-PR, with results committed as a git time series
       (**E1-T21**).
 - [ ] The release workflow refuses to publish when the computed version and the tag

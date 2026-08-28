@@ -51,7 +51,7 @@ for anything else.
 
 ---
 
-## Now — the guards that are still missing
+## Now — schedule the guards, and name the M1.6 criteria
 
 - [x] **Walk TASKS.md against E3, E4, E5, E8 and E9** — done, and it moved 41 rows. Ten of them
       came back **`In progress` rather than `Done`**, which is the useful output: the cache
@@ -73,13 +73,18 @@ for anything else.
       go on missing every future canvas-side edit. **It also closes a claim that had been repeated
       since M0 without a test behind it** — the run after an undo now recomputes zero nodes and
       serves every one from the provenance cache, measured rather than claimed (`E3-T8`).
-- [ ] **Create `bench/Spark.Benchmarks`** — `E1-T13`. `bench/` and `scripts/` are still empty
-      directories and BenchmarkDotNet is pinned and unreferenced. The canvas numbers quoted in
-      `85e3183` came from the app's own `--canvas-benchmark` switch, which is a real measurement
-      but not a committed harness — so nothing will notice the day it gets slower.
-- [ ] **Add the no-native-binaries CI check** — `E1-T20`. Still trivially satisfiable, and **the
-      window closes at M1.6**, which is the commit that first puts native binaries in the tree.
-      A gate added after the thing it guards against is a gate that never guarded.
+- [x] **Create `bench/Spark.Benchmarks`** — `E1-T13`, done. Three suites: marshalling (`E4-T3`'s
+      standing guard), evaluation cold against warm, and the canvas spatial index at 2 000 nodes.
+      Every one was run before the row was ticked, and **two of the three were measuring the wrong
+      thing** until the numbers gave them away ([N26](NOTES.md)).
+- [x] **Add the no-native-binaries CI check** — `E1-T20`, done, and **inside the window**.
+      `scripts/check-no-native-binaries.sh` runs in the CI build job on both operating systems and
+      was proven to fire before being trusted: pointed at `Spark.Desktop` it fails on the Skia and
+      HarfBuzz natives Avalonia brings.
+- [ ] **Run the benchmarks on a schedule** — `E8-T15`, and the half of `E4-T3` that is still open.
+      The harness exists and nothing runs it, so it measures rather than guards. A nightly job
+      against `bench/` plus the application's own `--canvas-benchmark` is what turns three numbers
+      into three guards.
 
 ## Next — name the M1.6 criteria, before the spike
 
