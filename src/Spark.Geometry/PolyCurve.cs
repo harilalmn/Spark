@@ -290,6 +290,17 @@ public sealed class PolyCurve : Curve
         return curve.SecondDerivativeWithin(curve.Domain.Denormalise(local)) * (length * length);
     }
 
+    /// <summary>
+    /// One seed span per segment, because a join is where this curve's derivative may jump.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Tessellate(in Tolerance)"/> does not consult this — a polycurve tessellates by
+    /// asking each segment. It is here for everything else that subdivides a curve and needs its
+    /// pieces to stay inside one segment, and the proximity search behind
+    /// <see cref="Curve.ClosestPoint(in Point3d, in Tolerance)"/> is the first of those.
+    /// </remarks>
+    protected override int TessellationSeedSpans => SegmentCount;
+
     private static Curve TrimSegment(Curve segment, double fromLocal, double toLocal) =>
         fromLocal <= 0.0 && toLocal >= 1.0
             ? segment

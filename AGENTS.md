@@ -480,10 +480,10 @@ As of 2026-08-28, in three tiers. The tiers are the point; collapsing them is th
 - `dotnet build Spark.slnx --no-incremental -warnaserror` — **sixteen** projects, zero
   warnings, zero errors. Use the flag: without it the warning count can come from a cached
   analysis (see *Things that will bite you*).
-- `dotnet test Spark.slnx` — **1,082 tests across seven projects**, all passing. The same
-  1,082 are reported by `scripts/run-tests.sh`, which runs each project as the executable
+- `dotnet test Spark.slnx` — **1,100 tests across seven projects**, all passing. The same
+  1,100 are reported by `scripts/run-tests.sh`, which runs each project as the executable
   Microsoft.Testing.Platform makes it; the two must agree ([NOTES.md N34](docs/NOTES.md)).
-  `Spark.Geometry.Tests` (398) covers the kernel by example; `Spark.Geometry.Properties` (54)
+  `Spark.Geometry.Tests` (414) covers the kernel by example; `Spark.Geometry.Properties` (56)
   covers it with CsCheck properties over generators spanning 1e-9 to 1e9; `Spark.Engine.Tests`
   (292) covers the graph, the replicator, the importer and the `.spark` format, including a two-way diff against the
   lacing specification and another against `Spark.Nodes.Core`; `Spark.UI.Tests` (256) drives the

@@ -8,9 +8,9 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,082 tests over seven
+Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,100 tests over seven
 projects**) and `dotnet format` are all clean — though `dotnet test` itself now reports
-`Zero tests ran` on SDK 10.0.400 and the 1,082 are counted by `scripts/run-tests.sh`
+`Zero tests ran` on SDK 10.0.400 and the 1,100 are counted by `scripts/run-tests.sh`
 ([N34](NOTES.md)) — and **CI ran green on Windows and Linux on `53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
 
@@ -217,6 +217,22 @@ for anything else.
       property, and the shape test asserts a **lower** bound on depth as well as an upper one —
       a tree collapsed to one leaf would pass every other test in the file.
       **`Curve.ClosestPoint` is next, and now has what it was waiting for.**
+- [x] **`Curve.ClosestPoint`, on that hierarchy** — the member the curve contract named as an
+      exclusion and said was waiting for the ray caster. `ClosestPoint`,
+      `ParameterAtClosestPoint` and `DistanceTo`, one implementation for every curve type: an
+      exact projection on `Line`, a plane-and-angle argument on `Circle` and a general search
+      for the rest is three pieces of code that must agree at their boundaries, and a
+      `PolyCurve` of a line and an arc is such a boundary, probed from either side, in one
+      query. **Newton's method was written first and is wrong at a corner** — the derivative at
+      a vertex belongs to the segment after it, so for a target just before the vertex the
+      gradient is a backward offset dotted with a perpendicular direction, which is zero;
+      Newton declines to move and the query returns the corner. Found by a test that compares
+      the query against a 4,001-sample scan that cannot beat a real minimiser and therefore
+      should never win. Fixed twice over: spans are now cut on the curve's own seed boundaries
+      so none straddles a corner, and the narrow phase is a **golden-section search** that
+      needs no derivative ([N36](NOTES.md)). The tolerance is a promise about the answer rather
+      than a hint — the search stops when a further step would move the point less than
+      `Tolerance.Linear` — so the default resolves to 1e-6 and a caller who needs more asks.
 - [ ] Geometry serialization v1 and the reflection-driven round-trip test — `E2-T29`, `E2-T31`.
       Get the test in before there are twenty types to retrofit it onto; there are now nineteen.
 - [ ] **The C2VGeometry test harvest, timeboxed to one week with a hard stop** — `E2-T32`.
@@ -395,8 +411,9 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   or NURBS conversion on the curve contract; no offset, projection or pull; and **no value
   equality on curves**, because two curves drawing the same path through different
   parameterisations are a tolerance question rather than an `Equals` question, and answering it
-  wrongly by default is worse than not answering it. `Curve.ClosestPoint` in particular waits on
-  the ray caster and its BVH (`E2-T15`) rather than getting a second implementation.
+  wrongly by default is worse than not answering it. **`Curve.ClosestPoint` is no longer among
+  them**: it waited for the ray caster and its BVH rather than getting a second implementation,
+  and now that `E2-T15` exists it has arrived on top of it.
 - **A general affine transform of an ellipse is refused, not approximated.** `TransformedBy`
   accepts similarities. A shear does take an ellipse to an ellipse, but recovering the new axes
   from the mapped conjugate pair is Rytz's construction, and doing it approximately would return

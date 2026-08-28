@@ -69,12 +69,15 @@ Spark.Geometry.CoordinateSystem.YAxis.get -> Spark.Geometry.Vector3d
 Spark.Geometry.CoordinateSystem.ZAxis.get -> Spark.Geometry.Vector3d
 Spark.Geometry.Curve
 Spark.Geometry.Curve.BoundingBox.get -> Spark.Geometry.BoundingBox
+Spark.Geometry.Curve.ClosestPoint(in Spark.Geometry.Point3d point, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Point3d
 Spark.Geometry.Curve.CoordinateSystemAt(double parameter) -> Spark.Geometry.CoordinateSystem
+Spark.Geometry.Curve.DistanceTo(in Spark.Geometry.Point3d point, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> double
 Spark.Geometry.Curve.DivideByLength(double length) -> Spark.Geometry.Point3d[]!
 Spark.Geometry.Curve.DivideEqually(int segments) -> Spark.Geometry.Point3d[]!
 Spark.Geometry.Curve.EndPoint.get -> Spark.Geometry.Point3d
 Spark.Geometry.Curve.Length.get -> double
 Spark.Geometry.Curve.NormalAt(double parameter) -> Spark.Geometry.Vector3d
+Spark.Geometry.Curve.ParameterAtClosestPoint(in Spark.Geometry.Point3d point, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> double
 Spark.Geometry.Curve.PlaneAt(double parameter) -> Spark.Geometry.Plane
 Spark.Geometry.Curve.PointAt(double parameter) -> Spark.Geometry.Point3d
 Spark.Geometry.Curve.PointAtLength(double distance) -> Spark.Geometry.Point3d

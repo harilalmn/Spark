@@ -1140,3 +1140,59 @@ and it holds at 150,000 samples. What did not hold was a second claim smuggled i
 that the *sign* is also independent — which is false wherever the angle is close enough to a
 boundary that the sign is noise. A property test is a statement about the code, and a statement
 that is nearly true is not a weaker statement, it is a different and false one.
+
+## N36 — Newton's method is wrong at a corner, and the corner is where a polyline lives
+
+`Curve.ClosestPoint` searches a bounding-volume hierarchy of parameter spans for the span
+nearest the target, then finds the nearest point inside that span. The second half was written
+first as Newton's method on the derivative of the squared distance, which is the textbook answer
+and is what every reference implementation does. It is wrong on a polyline, and the wrongness is
+invisible in the arithmetic.
+
+For a target lying just *before* a vertex, the nearest of the span's samples is the vertex
+itself. The derivative evaluated **at** a vertex belongs to the segment *after* it —
+`PolyLine.EvaluateDerivative` takes the segment index from `floor(parameter)`, and it has no
+better option, because the derivative genuinely does not exist there. So the gradient is the
+offset, which points back along the *previous* segment, dotted with a direction perpendicular to
+it. That is zero. Newton concludes it is standing at a stationary point, declines to move, and
+the query returns the corner.
+
+The error is half a sample spacing, always in the same direction, and only ever near a join. It
+was found by a test that compares the query against a dense scan of the curve — 4,001 samples,
+which cannot beat a real minimiser and therefore should never win:
+
+```
+PolyLine: query 168.64933339995744 against dense 168.6180358133806.
+```
+
+Two repairs, and both were needed.
+
+**Spans are cut on the curve's own seed boundaries.** The span count is now a *multiple* of
+`TessellationSeedSpans` rather than a clamped constant, and `PolyLine` and `PolyCurve` override
+that property to their segment count. A span therefore never straddles a corner. This matters
+beyond the narrow phase: a span that straddles one holds two branches of a piecewise function,
+the span's reported distance comes back too large, and **every other span is then pruned against
+a bound that is not the real minimum** — so the failure is not a slightly wrong parameter, it is
+a silently wrong *point*, somewhere else on the curve entirely.
+
+**The narrow phase is a golden-section search, not Newton.** Aligned spans fix the straddling
+case and not the endpoint case: a span's own upper end is still a vertex when the next span
+starts a new segment. Golden section needs no derivative and so cannot be fooled by one that
+jumps. It costs more evaluations than a Newton step that works and buys the property the
+hierarchy actually depends on — **the answer for a span is never worse than the best point the
+coarse scan already found.**
+
+Two smaller facts fall out of it.
+
+**The tolerance is a promise about the answer, not a hint.** The search stops when a further
+step would move the *point* by less than `Tolerance.Linear`, converted to a parameter through
+the curve's average speed. So the same call resolves to the same place on a curve a metre long
+and one a micron long — and a caller who passes the default gets 1e-6, not machine precision. A
+test asserting an error below 1e-9 while passing the default tolerance is asserting something
+the contract does not offer.
+
+**There is one implementation and every curve type uses it.** An exact projection on `Line`, a
+plane-and-angle argument on `Circle`, and a general search for the rest is three pieces of code
+that must agree at their boundaries — and a `PolyCurve` of a line and an arc is a boundary,
+probed from either side, in the same query. The general path is exact on a line anyway, because
+a straight span's box is exact and the search has one minimum to find.
