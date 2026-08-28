@@ -1037,3 +1037,51 @@ one loads the XAML but does not assign the `x:Name` fields, so `VersionText` was
 constructor threw. `MainWindow` already carried a comment warning about exactly this. A comment on
 one file does not protect another: what would have protected this one is that both windows are
 constructed by the same code path, and nothing constructs them in a test.
+
+## N34 — `dotnet test` reported zero tests over a suite that runs clean, and the suite was never the problem
+
+On SDK **10.0.400** — which `global.json`'s `rollForward: latestFeature` accepts against its
+`10.0.100` pin — `dotnet test Spark.slnx` reports **`Zero tests ran`** and exit code 5 for all
+seven test projects, in about 130 ms per project. The same binaries, executed directly, discover
+and pass **981 tests**. Nothing about the projects, the packages or the code differs between the
+two runs.
+
+The diagnostic log names the difference in one line:
+
+```
+Command line arguments: '--server dotnettestcli --dotnet-test-pipe testingplatform.pipe.<guid>'
+```
+
+`dotnet test` does not run a Microsoft.Testing.Platform project the way the platform's own
+documentation describes running one. It launches it in **server mode** and talks to it over a
+named pipe. The log then stops mid-initialisation: the handshake never completes, the host exits,
+and the SDK reports the only thing it can see from outside — that no tests were reported to it.
+**Zero tests ran is true and useless.** It describes the SDK's inbox, not the suite.
+
+Three things are worth keeping from this.
+
+**The failure mode is the dangerous one.** A test command that reports a *failure* gets
+investigated. A test command that reports *nothing to run* looks, at a glance, like a project
+configuration that has not finished being wired up — which is exactly the state a young repository
+is often in, and exactly the state this one is not. Exit code 5 is what saved it: CI would have
+gone red rather than green-and-empty. **A runner that could report zero tests as success would have
+hidden a 981-test suite for as long as nobody looked.** The value of that non-zero exit is worth
+more than the inconvenience of the bug.
+
+**Neither package is stale, so there was no upgrade to reach for.** `xunit.v3` is at 4.0.0 and
+`Microsoft.Testing.Platform` at 2.3.3, and both are the newest versions published. The mismatch is
+between the SDK's feature band and the platform, not between the platform and the repository, so
+pinning harder is the only lever the repository actually holds — and `rollForward: latestFeature`
+is what handed the choice of band away. Tightening it is a real option and is **deliberately not
+taken yet**: 10.0.100 is not installed on the machine that found this, so the pin would trade a
+misleading test run for a build that does not start, which is worse. It becomes the right change
+the moment CI is observed to drift onto a band where this reproduces.
+
+**`scripts/run-tests.sh` is a second opinion, not a replacement.** It runs each test project as
+the executable Microsoft.Testing.Platform makes it (N11), parses the platform's own summary line
+rather than re-deriving counts, and totals them. `dotnet test Spark.slnx` remains the documented
+gate in AGENTS.md and CONTRIBUTING.md, because it is what CI runs and a local convenience that
+diverges from CI is how a repository grows two definitions of green. The script's job is to answer
+one question the SDK's message cannot: **is this red the code, or the toolchain?** If the two
+disagree, the disagreement itself is the finding, and no claim about the suite should be made until
+it is resolved.

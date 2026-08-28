@@ -86,6 +86,13 @@ shorter one can pass locally where the gate fails. Run all three; they are gates
 third is the one people forget. `dotnet test` runs the documentation
 harness and the architecture tests — there is no separate command for either.
 
+**If `dotnet test` reports `Zero tests ran` for every project, do not go looking at your
+change.** On some SDK feature bands the server protocol `dotnet test` uses to drive a
+Microsoft.Testing.Platform project fails its handshake, and the SDK truthfully reports that
+nothing was reported to it. `scripts/run-tests.sh` runs each test project directly and totals
+the platform's own summary lines. It is a second opinion rather than a replacement — the two
+must agree, and a disagreement is itself the finding ([NOTES.md N34](docs/NOTES.md)).
+
 **Warnings are errors in CI only, never in the project files.** Local development stays
 pleasant; the gate stays absolute. Do not add `TreatWarningsAsErrors` to a csproj to "help"
 — [NOTES.md N3](docs/NOTES.md) explains what that breaks. Nullable warnings are the one

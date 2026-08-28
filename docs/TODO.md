@@ -8,9 +8,10 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, `dotnet test` (**981 tests over seven
-projects**) and `dotnet format` are all clean, and **CI ran green on Windows and Linux on
-`53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
+Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**981 tests over seven
+projects**) and `dotnet format` are all clean — though `dotnet test` itself now reports
+`Zero tests ran` on SDK 10.0.400 and the 981 are counted by `scripts/run-tests.sh`
+([N34](NOTES.md)) — and **CI ran green on Windows and Linux on `53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
 
 Three distinctions still do the work in what follows:
@@ -106,6 +107,18 @@ for anything else.
       What is left here is only to re-measure and re-quote once the nightly has run on hardware
       worth quoting.
 
+- [x] **`dotnet test` stopped reporting the suite, and the suite was never the problem** —
+      unplanned, found on the first gate run of this session. On SDK 10.0.400 every one of the
+      seven projects reports `Zero tests ran` and exit code 5 in about 130 ms; run directly, the
+      same binaries discover and pass 981. `dotnet test` drives a Microsoft.Testing.Platform
+      project over a named-pipe server protocol and the handshake never completes, so the SDK
+      reports its own empty inbox. **Neither package is stale** — `xunit.v3` 4.0.0 and
+      `Microsoft.Testing.Platform` 2.3.3 are both the newest published — so there was no upgrade
+      to reach for, and tightening `rollForward` is the real lever but is **deliberately not
+      pulled yet**, because 10.0.100 is not installed here and the pin would trade a misleading
+      run for a build that does not start. `scripts/run-tests.sh` is a **second opinion, not a
+      replacement**: `dotnet test Spark.slnx` stays the documented gate because it is what CI
+      runs, and the two must agree ([N34](NOTES.md)).
 - [x] **The application has a mark, and shows it while it loads** — `E8-T22`, asked for rather
       than planned. `assets/spark-icon.svg` is the master; the shell draws the same geometry from
       `Theming/SparkLogo.axaml`, which carries that file's path strings verbatim, and the window
@@ -115,19 +128,21 @@ for anything else.
       startup facts came out of it ([N33](NOTES.md)), the sharpest being that a splash **cannot**
       report step-by-step progress: the thread it would report on is the one that is blocked.
 
-## Next — name the M1.6 criteria, before the spike
+## Next — the criteria are named; the spike is not taken
 
-- [ ] **Write the M1.6 pass/fail criteria into TASKS.md** — `E13-T1`. **M1.6 gates ADR-0020 the
-      way M1.5 gated ADR-0001**, and M1.5 is now evidence that the rule works: its criteria were
-      written first, one of the three measurements failed, and the failure was diagnosed — a
-      drop-shadow blur threshold — rather than argued away. At minimum: OCCT builds from a
-      pinned tag through a vcpkg manifest on Windows *and* Linux; one boolean runs end to end
-      through a minimal `spark_occt` and `LibraryImport`; the per-RID binary footprint is
-      **measured** against `50a9935`'s 55–70 MB expectation; a `Materialise` on a realistic
-      shape is timed, because ADR-0021's whole rule rests on it being paid once; and a first
-      read is taken on OCCT's threading envelope (`Q14`) and on whether `ShapeFix` can be
-      constrained to a policy we choose. What a *failure* would mean is the part that needs
-      deciding before the spike, not after it.
+- [x] **Write the M1.6 pass/fail criteria into TASKS.md** — `E13-T1`, done. Seven criteria in
+      [TASKS.md](TASKS.md#e13--occt-provider), fixed before any OCCT source is fetched. **C1 and
+      C2 are hard gates** — the pinned-tag vcpkg build on both platforms, and one boolean end to
+      end through the shim with its volume checked analytically; failing either falsifies
+      ADR-0020 as written. **C3 … C7 are measurements**, and the part that needed deciding
+      beforehand was not what they measure but what a bad number *does*: above 100 MB per RID,
+      `E13-T17` stops being a distribution row and becomes a design one; above ~250 ms for a
+      200-face `Materialise`, lazy materialisation becomes load-bearing for interactivity and
+      `E13-T3` inherits partial materialisation; an inconclusive threading read means
+      single-writer **by default and recorded as conservative**, because the failure to avoid is
+      neither answer but a shrug. **The two-week box is real** — if C1 and C2 are not both met
+      inside it the spike stops and reports *ADR-0020 is not cheap to prove*, which is itself a
+      result.
 - [ ] **The third M1.5 spike is still outstanding** — `E11-T21`. AvaloniaEdit plus a Roslyn
       completion popup. It gates the M4 code block rather than anything M2 needs, which is why
       the other two were taken first, but it is the last unproven part of M1.5.

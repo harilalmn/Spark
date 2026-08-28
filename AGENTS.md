@@ -77,7 +77,9 @@ XML doc = what this member does.*
    exactly this form. `--no-incremental` is not optional caution: without it the warning
    count can be a cached result from a compilation that never ran, and it will read as clean.
 2. `dotnet test Spark.slnx` — green. This runs the docs harness and the architecture tests;
-   there is no separate command for either.
+   there is no separate command for either. **If it reports `Zero tests ran` for every project,
+   that is a toolchain fault and not your change** — run `scripts/run-tests.sh` for a second
+   opinion before believing either result ([NOTES.md N34](docs/NOTES.md)).
 3. `dotnet format Spark.slnx --verify-no-changes --severity warn` — clean. Use exactly this
    form: it is what the `format` CI job runs, and a shorter one can pass locally where the
    gate fails.
@@ -478,7 +480,9 @@ As of 2026-08-28, in three tiers. The tiers are the point; collapsing them is th
 - `dotnet build Spark.slnx --no-incremental -warnaserror` — **sixteen** projects, zero
   warnings, zero errors. Use the flag: without it the warning count can come from a cached
   analysis (see *Things that will bite you*).
-- `dotnet test Spark.slnx` — **981 tests across seven projects**, all passing.
+- `dotnet test Spark.slnx` — **981 tests across seven projects**, all passing. The same 981 are
+  reported by `scripts/run-tests.sh`, which runs each project as the executable
+  Microsoft.Testing.Platform makes it; the two must agree ([NOTES.md N34](docs/NOTES.md)).
   `Spark.Geometry.Tests` (313) covers the kernel by example; `Spark.Geometry.Properties` (38)
   covers it with CsCheck properties over generators spanning 1e-9 to 1e9; `Spark.Engine.Tests`
   (292) covers the graph, the replicator, the importer and the `.spark` format, including a two-way diff against the
