@@ -162,12 +162,23 @@
           <TextBlock Grid.Row="1" Margin="10,0,10,4" TextWrapping="Wrap"
                      Text="{Binding SelectionTitle}" />
 
-          <TextBlock Grid.Row="2" Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
-                     Text="{Binding SelectionDescription}" />
+          <!--
+            The description is a node author's paragraph and the diagnostics are however many
+            errors a run produced: both are content of unknown length in a pane of fixed width, so
+            both scroll rather than being clipped by the pane and lost. Auto, so the bar appears
+            only when there is something it cannot show.
+          -->
+          <ScrollViewer Grid.Row="2" MaxHeight="160" VerticalScrollBarVisibility="Auto"
+                        HorizontalScrollBarVisibility="Disabled">
+            <TextBlock Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
+                       Text="{Binding SelectionDescription}" />
+          </ScrollViewer>
 
           <!-- Editing a value here writes the literal through the engine graph, which marks the
                node and everything downstream dirty, and starts a run off the UI thread. -->
-          <ItemsControl Grid.Row="3" Margin="10,0,10,10" ItemsSource="{Binding Inspector}">
+          <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto"
+                        HorizontalScrollBarVisibility="Disabled">
+          <ItemsControl Margin="10,0,10,10" ItemsSource="{Binding Inspector}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:PortLiteralViewModel">
                 <Grid ColumnDefinitions="90,*" Margin="0,0,0,6">
@@ -187,10 +198,14 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
+          </ScrollViewer>
 
           <TextBlock Grid.Row="4" Classes="paneTitle" Text="DIAGNOSTICS" />
-          <TextBlock Grid.Row="5" Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
-                     Text="{Binding DiagnosticsText}" />
+          <ScrollViewer Grid.Row="5" MaxHeight="220" VerticalScrollBarVisibility="Auto"
+                        HorizontalScrollBarVisibility="Disabled">
+            <TextBlock Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
+                       Text="{Binding DiagnosticsText}" />
+          </ScrollViewer>
         </Grid>
       </Border>
     </Grid>

@@ -499,6 +499,110 @@ public sealed class GraphCanvasInputTests
         Assert.Equal(0, requests);
     });
 
+    /// <summary>
+    /// Clicking a node's preview opens it, and clicking again closes it — without selecting the
+    /// node underneath.
+    /// </summary>
+    /// <remarks>
+    /// The strip sits outside the node's own bounds, so the spatial index knows nothing about it
+    /// and the click has to be routed by hand. Selecting the node as well would make every glance
+    /// at a value destroy whatever the user had selected.
+    /// </remarks>
+    [Fact]
+    public void ClickingAPreviewOpensItAndLeavesTheSelectionAlone() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        CanvasNode node = canvas.Graph.Nodes[0];
+        node.Preview = new NodePreview("2 items · rank 1", ["1", "2"], 0);
+        canvas.RefreshStructure();
+
+        Assert.False(node.IsPreviewOpen);
+
+        // Selected first, because "the selection is left alone" is only checkable against a
+        // selection that exists. Asserting it stays empty would pass with the click falling
+        // through to the empty-canvas branch, which clears it.
+        Click(window, Screen(canvas, node.X + 20, node.Y + 10));
+        Assert.Equal([0], canvas.Selection);
+
+        Click(window, Screen(canvas, node.X + 20, node.Y + node.Height + CanvasNode.PreviewGap + 6));
+        Assert.True(node.IsPreviewOpen);
+        Assert.Equal([0], canvas.Selection);
+
+        Click(window, Screen(canvas, node.X + 20, node.Y + node.Height + CanvasNode.PreviewGap + 6));
+        Assert.False(node.IsPreviewOpen);
+    });
+
+    /// <summary>A node with no preview has nothing under it to click.</summary>
+    [Fact]
+    public void ANodeWithoutAPreviewHasNothingUnderIt() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        CanvasNode node = canvas.Graph.Nodes[0];
+
+        // Empty canvas below the node: this must clear the selection like any other empty click,
+        // not toggle something invisible.
+        Click(window, Screen(canvas, node.X + 20, node.Y + node.Height + 8));
+
+        Assert.Empty(canvas.Selection);
+        Assert.False(node.IsPreviewOpen);
+    });
+
+    /// <summary>
+    /// Hovering a port names it, types it and describes it, which is the tooltip §7.2 asks for.
+    /// </summary>
+    [Fact]
+    public void HoveringAPortDescribesIt() => OnUiThread(() =>
+    {
+        CanvasGraph graph = new();
+        graph.Add(TestGraphs.Library.ByName("Circle.ByCentreRadius"), 0, 0);
+        (Window window, GraphCanvas canvas) = Open(graph);
+
+        canvas.Graph.Nodes[0].InputPortCentre(0, out double x, out double y);
+        window.MouseMove(Screen(canvas, x, y), RawInputModifiers.None);
+
+        string tip = Assert.IsType<string>(ToolTip.GetTip(canvas));
+        Assert.StartsWith("centre — Point3d", tip, StringComparison.Ordinal);
+
+        // The description comes from the node author's XML comment (FR-25), so a port that has one
+        // says more than its type.
+        Assert.Contains("\n\n", tip, StringComparison.Ordinal);
+    });
+
+    /// <summary>
+    /// Hovering a node names it at any zoom, including below the level-of-detail threshold.
+    /// </summary>
+    /// <remarks>
+    /// §7.2 requires this specifically. Below 40% a node is a plain coloured rectangle with no
+    /// text on it at all, so the tooltip is the only thing left carrying identity — which makes it
+    /// the one piece of canvas text that must not be gated on a detail level.
+    /// </remarks>
+    [Fact]
+    public void HoveringANodeNamesItEvenBelowTheDetailThreshold() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        canvas.Transform.Zoom = 0.2;
+        canvas.InvalidateVisual();
+
+        CanvasNode node = canvas.Graph.Nodes[0];
+        window.MouseMove(Screen(canvas, node.X + (node.Width / 2), node.Y + 10), RawInputModifiers.None);
+
+        string tip = Assert.IsType<string>(ToolTip.GetTip(canvas));
+        Assert.StartsWith(node.Title, tip, StringComparison.Ordinal);
+    });
+
+    /// <summary>Hovering nothing says nothing.</summary>
+    [Fact]
+    public void HoveringEmptyCanvasClearsTheTooltip() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+
+        window.MouseMove(new Point(60, 30), RawInputModifiers.None);
+        Assert.NotNull(ToolTip.GetTip(canvas));
+
+        window.MouseMove(new Point(700, 520), RawInputModifiers.None);
+        Assert.Null(ToolTip.GetTip(canvas));
+    });
+
     private static void DoubleClick(Window window, Point point)
     {
         window.MouseDown(point, MouseButton.Left, RawInputModifiers.None);

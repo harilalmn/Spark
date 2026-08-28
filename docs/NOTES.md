@@ -887,3 +887,117 @@ than executing it, so the *next* script added from Windows cannot fail this way 
 pointed at `Spark.Desktop` it fails on Avalonia's Skia and HarfBuzz natives. It had not been
 proven to *run*, and those are different claims. A gate's first execution in CI is part of adding
 it, not a formality afterwards.
+
+---
+
+## N29 — A row can be `Done` and half built, and only using the feature finds the other half
+
+`E5-T7`, *descriptions from the sidecar XML documentation file*, was marked `Done` with the note
+"any library shipping its `.xml` gets tooltips free". It read `<summary>` and nothing else.
+`XmlDocumentation` had **no `<param>` support at all**, so a port's description could only ever
+come from an explicit `[NodePort(Description = …)]` attribute — and almost nothing carries one,
+because the XML comment is already compulsory on `Spark.Nodes.Core` under CS1591 and an author who
+has written `<param name="centre">The centre.</param>` reasonably assumes that is the description.
+
+Every one of those tags was written, shipped in the `.xml` beside the assembly, and ignored.
+
+**Nothing in the repository could have caught it.** The row was ticked, `FR-25` was written in the
+PRD, a test asserted that `Point.Origin` had a description — and it did, from `<summary>`. A
+half-built feature and a built one look identical from the outside if the only thing you check is
+the half that works. What found it was building the port tooltip §7.2 asks for and watching it
+render `centre — Point3d` with nothing after it.
+
+The fix reads `<param>` and `<returns>`, keeps the attribute winning where an author wrote one —
+that text is aimed at a graph author, where the XML comment is aimed at a C# caller — and covers
+constructors on the same path. The tests that keep it honest assert a **proportion** of the
+library's ports rather than one node's, because a single-port assertion would pass with methods
+wired and constructors, `out` parameters or receiver ports broken.
+
+The general lesson is the one this project keeps relearning from a different direction: a register
+records intent, and only using the thing tells you what the intent missed.
+
+---
+
+## N30 — Character counts size boxes; only measured text may fill them
+
+[N24](NOTES.md) records that a node is sized from character counts because it is built off the
+render thread with no typeface to measure against. The result strip repeated that estimate one
+step too far: it *truncated* its value lines at forty-four characters as well.
+
+A count is a fixed number against a variable width. Forty-four narrow characters fitted; forty-four
+digits did not, so a list like `(5.388942295416207, 0.8793495662309033, 0)` was written straight
+out through the right-hand border of its own box. The strip looked correct on the demo graph,
+whose values are short, and wrong on the first graph with real coordinates in it.
+
+**The rule the two notes make together:** an estimate may decide how big a box is, because nothing
+better is available when the box is made. Only a measurement may decide how much text goes in it,
+because by then the renderer knows. `FormattedText.MaxTextWidth` with `CharacterEllipsis` is the
+measurement, and the strip now also widens to fit its values so that the ellipsis is rare rather
+than routine.
+
+**One implementation detail is worth knowing before changing this.** The fitted runs are cached
+under *width and text together*, not constrained in place. `FormattedText` is mutable and the run
+cache hands the same object to every caller of the same string, so setting `MaxTextWidth` on a
+cached run would leave a port type label ellipsised because a preview headline elsewhere happened
+to read the same. That defect would appear on one node in one graph and in no test — headless
+drawing is a stub and measures nothing — so it is designed out rather than guarded against.
+
+---
+
+## N31 — A benchmark printed a sample size it had not measured over
+
+`--canvas-benchmark 600` discards a sixth as warm-up and prints `frames=500`. The distribution
+printed on the line beneath it — median, p95 and the implied frame rate — came from
+`GraphCanvas.Frames`, which is a `FrameTimer` built with its **default 120-frame window** because
+that is what the on-screen readout wants.
+
+So the header said 500 and the statistics described the last 120. The two numbers had never
+agreed, and nothing said so: a ring buffer does not complain about being overrun, it just forgets.
+That is the whole failure — not a wrong formula, but a right formula over a silently smaller
+sample than the line above it claimed.
+
+**It is not a rounding difference.** The zoom sweep is deterministic and the tail of it is not
+representative of the middle: on the run that found this, the tail-only window read **1.70 ms
+median** where the whole 500 frames read **1.15 ms**. Which direction the bias runs is a property
+of the sweep rather than a constant, and that is the point — the tail is *a* part of the run, and
+the header promised *the* run.
+
+`FrameTimer.Resize` fixes it, and `StartBenchmark` sizes the window to the frames the run will
+measure. The printed line now names the window it actually used — `over 500 frames` — so the claim
+and the sample are the same number in the same sentence and cannot drift apart again in silence.
+
+**Two things this changes for anyone setting a threshold on these numbers.** First, figures quoted
+before this note are not comparable to figures after it; the 0.87 ms median recorded against
+`E8-T15` was measured the old way. Second, the median is the noisier statistic: four consecutive
+runs on one quiet machine gave medians of 1.04–1.25 ms (±20%) against p95s of 3.04–3.24 ms (±6%).
+Guard the p95. It is also the number [ADR-0013](adr/0013-immediate-mode-node-canvas.md) is actually
+about, which the `FrameTimer` documentation already said and the benchmark had not been reading.
+
+---
+
+## N32 — Allocation is what a shared runner cannot move, and it is not a consolation prize
+
+The nightly benchmark gates bytes allocated per operation and gates nothing else
+([ADR-0023](adr/0023-benchmarks-gate-allocation-not-time.md)). The reasoning is in the record; two
+measurements behind it belong here, because both are the kind of thing the next reader would
+otherwise assume rather than check.
+
+**Allocation did not move between BenchmarkDotNet job configs.** The worry that justified pinning
+the baseline to `--job short` was that bytes-per-operation is total bytes over operation count, so
+a short run might amortise one-time allocations over far fewer operations and read high. The four
+`EvaluationBenchmarks` cases were measured under the default config and under `--job short`, and
+came back byte-identical: 1 593 696 and 103 296 at fifty nodes, 16 155 032 and 1 045 544 at five
+hundred. Keep the two configs matched anyway, because it costs nothing — but if they ever disagree
+that is a finding, not a nuisance to widen the tolerance around.
+
+**Two ceilings are zero, and that is the sharpest guard in the file.**
+`SceneIndexBenchmarks.Cull` and `HitTest` allocate nothing at two thousand nodes. Five per cent of
+zero is zero, so *any* allocation on the cull path fails the job. ADR-0013's whole bet is that
+culling a few thousand rectangles by hand each frame is cheaper than the framework's per-visual
+costs, and an allocation per frame — a closure, a lambda capture, a `ToList()` added in passing —
+is precisely how that stops being true while every test stays green.
+
+**The figure that made `E4-T3` a standing guard is now a ceiling rather than an observation.** At
+100 000 elements the return path allocates 5 297 836 B against the argument path's 800 144 B, a
+factor of 6.6, because `FromClr` boxes every element through a `List<object?>`. That was recorded
+as a number to act on later. Later has not come, and it now cannot get worse unnoticed.

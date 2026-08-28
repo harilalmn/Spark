@@ -54,9 +54,9 @@ which ships with Spark.
 >
 > What has been run, on Windows, on 2026-08-28:
 > `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen projects;
-> `dotnet test Spark.slnx` runs **952 passing tests** across seven projects; and
+> `dotnet test Spark.slnx` runs **973 passing tests** across seven projects; and
 > `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean. **CI ran all of it on
-> Windows and Linux on commit `53596ab` and was green**, 952 tests on each — so the Linux leg is
+> Windows and Linux on commit `53596ab` and was green**, 969 tests on each — so the Linux leg is
 > no longer a claim, and it has now caught something Windows could not.
 >
 > **Worth knowing about how this code is accepted.** The kernel's first slice passed all three
@@ -220,15 +220,45 @@ exits — the viewport one is a GPU read-back rather than a window grab, so it w
 session and in CI. The first two exist so that opening a particular graph can be checked without
 a human driving a file dialog.
 
-`dotnet test` finds **893 tests** across seven projects. `Spark.Geometry.Tests` (313) and
+`dotnet test` finds **973 tests** across seven projects. `Spark.Geometry.Tests` (313) and
 `Spark.Geometry.Properties` (38) cover the kernel by example and by CsCheck property
-respectively; `Spark.Engine.Tests` (289) covers the graph, the replicator and the importer;
-`Spark.UI.Tests` (171) drives the canvas headlessly with real pointer gestures;
+respectively; `Spark.Engine.Tests` (292) covers the graph, the replicator and the importer;
+`Spark.UI.Tests` (248) drives the canvas headlessly with real pointer gestures;
 `Spark.Viewport.Tests` (69) covers the scene and the camera; `Spark.Architecture.Tests` (8)
 enforces the reference graph below by reading `.csproj` files as XML; and `Spark.Docs.Verify`
 (5) checks these documents against the repository. The last two were deliberately stood up
 before the code they now guard: a gate added later is a gate that gets an exemption for
 everything already there.
+
+### Benchmarks
+
+```bash
+dotnet run --project bench/Spark.Benchmarks --configuration Release -- --filter '*'
+dotnet run --project src/Spark.Desktop --configuration Release -- --canvas-benchmark 600
+```
+
+Release is not optional and BenchmarkDotNet will say so: an unoptimised measurement is not a
+slower measurement, it is a different program. The first command covers `SparkList` marshalling,
+graph evaluation cold against warm, and the canvas spatial index at 2,000 nodes. The second drives
+a deterministic pan-and-zoom cycle through the real compositor and prints the frame-time
+distribution.
+
+`.github/workflows/benchmarks.yml` runs both nightly, and **what it gates is bytes allocated per
+operation — not time.** Allocation is a property of the code rather than of the machine, so the
+same build allocates the same bytes on a laptop and on a shared runner; a timing threshold on a
+datacentre VM fails for reasons nobody can act on, and a gate that cries wolf is worse than no
+gate because it discredits the ones that mean something. Timings are recorded to the run summary
+and to 90-day artifacts, and are read rather than enforced.
+
+The ceilings live in `bench/baseline.json` and are updated by a person on purpose.
+`scripts/check-benchmark-regression.py` compares a run against them, and **fails on a benchmark
+that has no baseline entry** as well as on one that regressed — a benchmark running unguarded is a
+number nobody is watching, which is the thing the job exists to prevent.
+
+One figure is recorded and deliberately not gated: the canvas frame time. A runner has no GPU, so
+the render pass falls back to software rendering and its numbers are not comparable to a developer
+machine's. The threshold gets set once a few weeks of runs say what that hardware's spread
+actually is.
 
 ## Repository layout
 

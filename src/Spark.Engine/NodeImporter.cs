@@ -256,18 +256,18 @@ public static class NodeImporter
         List<PortDefinition> outputs = [];
         if (method.ReturnType != typeof(void))
         {
-            outputs.Add(ReturnPort(method));
+            outputs.Add(ReturnPort(method, docs));
         }
 
         foreach (ParameterInfo parameter in parameters)
         {
             if (parameter.IsOut)
             {
-                outputs.Add(OutPort(parameter));
+                outputs.Add(OutPort(parameter, method, docs));
             }
             else
             {
-                inputs.Add(InputPort(parameter));
+                inputs.Add(InputPort(parameter, method, docs));
             }
         }
 
@@ -313,7 +313,9 @@ public static class NodeImporter
             return;
         }
 
-        List<PortDefinition> inputs = [.. parameters.Select(InputPort)];
+        // A constructor's parameters are documented exactly as a method's are, and the XML key
+        // for one is the same shape, so this path gets port descriptions for free.
+        List<PortDefinition> inputs = [.. parameters.Select(parameter => InputPort(parameter, constructor, docs))];
 
         candidates.Add(new Candidate(
             $"{type.Name}.{ConstructorSuffix(parameters)}",
@@ -408,7 +410,24 @@ public static class NodeImporter
     private static PortDefinition ReceiverPort(Type type) =>
         new(CamelCase(type.Name), type, PortDefinition.RankOfType(type));
 
-    private static PortDefinition InputPort(ParameterInfo parameter)
+    /// <summary>
+    /// A port's description, from the attribute if the author wrote one and from the assembly's
+    /// XML documentation otherwise.
+    /// </summary>
+    /// <remarks>
+    /// FR-25's promise is that any library shipping its <c>.xml</c> gets tooltips with no extra
+    /// work, and that is only true if <c>param</c> and <c>returns</c> are read as well as
+    /// <c>summary</c>. The attribute still wins where it is present: an author who wrote
+    /// <c>[NodePort(Description = …)]</c> was being deliberate, and the XML comment they also
+    /// wrote is aimed at a C# caller rather than at a graph author.
+    /// </remarks>
+    /// <param name="attribute">The port attribute, if any.</param>
+    /// <param name="documented">The XML text for this parameter, if any.</param>
+    /// <returns>The description, or null.</returns>
+    private static string? DescriptionOf(NodePortAttribute? attribute, string? documented) =>
+        attribute?.Description is { Length: > 0 } explicitly ? explicitly : documented;
+
+    private static PortDefinition InputPort(ParameterInfo parameter, MemberInfo member, XmlDocumentation docs)
     {
         Type type = parameter.ParameterType;
         if (type.IsByRef)
@@ -423,7 +442,7 @@ public static class NodeImporter
             port?.Name ?? parameter.Name ?? $"arg{parameter.Position}",
             type,
             PortDefinition.RankOfType(type),
-            port?.Description,
+            DescriptionOf(port, parameter.Name is { } name ? docs.ParameterOf(member, name) : null),
             parameter.GetCustomAttribute<KeepStructureAttribute>() is not null,
             parameter.GetCustomAttribute<NoReplicationAttribute>() is not null,
             guide?.Guide,
@@ -451,17 +470,17 @@ public static class NodeImporter
             : null;
     }
 
-    private static PortDefinition ReturnPort(MethodInfo method)
+    private static PortDefinition ReturnPort(MethodInfo method, XmlDocumentation docs)
     {
         NodePortAttribute? port = method.ReturnParameter.GetCustomAttribute<NodePortAttribute>();
         return new PortDefinition(
             port?.Name ?? DefaultOutputPortName,
             method.ReturnType,
             PortDefinition.RankOfType(method.ReturnType),
-            port?.Description);
+            DescriptionOf(port, docs.ReturnsOf(method)));
     }
 
-    private static PortDefinition OutPort(ParameterInfo parameter)
+    private static PortDefinition OutPort(ParameterInfo parameter, MemberInfo member, XmlDocumentation docs)
     {
         Type type = parameter.ParameterType.GetElementType()!;
         NodePortAttribute? port = parameter.GetCustomAttribute<NodePortAttribute>();
@@ -470,7 +489,7 @@ public static class NodeImporter
             port?.Name ?? parameter.Name ?? $"out{parameter.Position}",
             type,
             PortDefinition.RankOfType(type),
-            port?.Description);
+            DescriptionOf(port, parameter.Name is { } name ? docs.ParameterOf(member, name) : null));
     }
 
     private static string ConstructorSuffix(ParameterInfo[] parameters)

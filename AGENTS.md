@@ -83,9 +83,24 @@ XML doc = what this member does.*
    gate fails.
    Two further checks are CI's and are runnable locally when you have touched what they guard:
    `scripts/check-no-native-binaries.sh` (NFR-5, and it is in the build job), and
-   `dotnet run --project bench/Spark.Benchmarks --configuration Release --filter '*'` when you
-   have changed marshalling, evaluation or the canvas spatial index. **Benchmarks are not yet
-   scheduled**, so they measure rather than guard — read them, do not assume them.
+   `dotnet run --project bench/Spark.Benchmarks --configuration Release -- --filter '*'` when you
+   have changed marshalling, evaluation or the canvas spatial index. **The benchmarks now run
+   nightly** (`.github/workflows/benchmarks.yml`), and what that job gates is **bytes allocated per
+   operation and nothing else**: allocation is a property of the code rather than of the host, so
+   it is the one figure a shared runner cannot move. Timings are recorded and never gated — read
+   them, do not assume them, and do not put a threshold on one.
+   If you add a benchmark, **add its allocation ceiling to `bench/baseline.json` in the same
+   change**. The nightly fails on a benchmark with no baseline entry, on purpose: one running
+   unguarded is a number nobody is watching. Get the figure from
+   `BenchmarkDotNet.Artifacts/results/*-report-full-compressed.json`, or from the job's artifacts,
+   and check it locally with
+   `python scripts/check-benchmark-regression.py BenchmarkDotNet.Artifacts/results bench/baseline.json`.
+   **Measure it with `--job short`, which is what the nightly uses.** That is for consistency
+   rather than to correct a known difference: the four `EvaluationBenchmarks` cases were measured
+   under both job configs and the allocation figures came back byte-identical, so allocation here
+   appears genuinely per-operation. `--job short` is what the nightly runs because a full-fidelity
+   run takes over an hour; use the full run when you want to read timings
+   ([ADR-0023](docs/adr/0023-benchmarks-gate-allocation-not-time.md)).
 4. Documents updated per the table above, including their **Last updated** dates.
 5. New user-facing behaviour has a help topic **with a worked example**.
 6. New public API on a contract project has an XML doc comment and a public-API baseline
@@ -102,7 +117,7 @@ thing broken is a dangling ADR citation in a build-file comment — that is prec
 of it, and it has already caught exactly that (`E1-T29`).
 
 **Everything verified for the current tree was verified on Windows.** CI ran the same three
-gates on Windows and Linux and was green on **`53596ab`**, with 952 tests passing on each leg —
+gates on Windows and Linux and was green on **`53596ab`**, with 969 tests passing on each leg —
 which now contains the curve layer, save and load, undo, port types, the creation gesture and the
 benchmark project. **The Linux leg has stopped being free insurance and started finding things**:
 it caught a script committed without its executable bit, which Git Bash on the Windows runner ran
@@ -463,11 +478,11 @@ As of 2026-08-28, in three tiers. The tiers are the point; collapsing them is th
 - `dotnet build Spark.slnx --no-incremental -warnaserror` — **sixteen** projects, zero
   warnings, zero errors. Use the flag: without it the warning count can come from a cached
   analysis (see *Things that will bite you*).
-- `dotnet test Spark.slnx` — **952 tests across seven projects**, all passing.
+- `dotnet test Spark.slnx` — **973 tests across seven projects**, all passing.
   `Spark.Geometry.Tests` (313) covers the kernel by example; `Spark.Geometry.Properties` (38)
   covers it with CsCheck properties over generators spanning 1e-9 to 1e9; `Spark.Engine.Tests`
-  (289) covers the graph, the replicator, the importer and the `.spark` format, including a two-way diff against the
-  lacing specification and another against `Spark.Nodes.Core`; `Spark.UI.Tests` (171) drives the
+  (292) covers the graph, the replicator, the importer and the `.spark` format, including a two-way diff against the
+  lacing specification and another against `Spark.Nodes.Core`; `Spark.UI.Tests` (248) drives the
   canvas headlessly with real pointer gestures; `Spark.Viewport.Tests` (69) covers the scene
   builder and the camera; `Spark.Architecture.Tests` (8) enforces the reference-graph rules by
   reading `.csproj` files as XML; `Spark.Docs.Verify` (5) checks front matter, worked examples,
@@ -481,7 +496,7 @@ As of 2026-08-28, in three tiers. The tiers are the point; collapsing them is th
 
 **Confirmed working on Linux, by CI, on a named commit.** The build matrix, the test run, the
 format check and the no-native-binaries check were green on **`53596ab`** on `windows-latest` and
-`ubuntu-latest` (run 33153282431), 952 tests on each. That commit contains everything through the
+`ubuntu-latest` (run 33153282431), 969 tests on each. That commit contains everything through the
 canvas creation gesture. **Do not describe CI as green without saying which commit it was green
 on** — and update the hash when you push, because a stale one reads as a stronger claim than it
 is.

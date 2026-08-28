@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -123,6 +124,7 @@ public sealed class GraphCanvas : Control
     private readonly Dictionary<string, FormattedText> _labelText = [];
     private readonly Dictionary<string, FormattedText> _glyphText = [];
     private readonly Dictionary<string, FormattedText> _typeText = [];
+    private readonly Dictionary<string, FormattedText> _fittedText = [];
     private readonly List<WireVisual> _wireVisuals = [];
     private readonly HashSet<int> _selection = [];
     private readonly HashSet<CanvasPort> _connectedPorts = [];
@@ -151,6 +153,11 @@ public sealed class GraphCanvas : Control
         ClipToBounds = true;
         Focusable = true;
         Background = SparkPalette.CanvasBackgroundBrush;
+
+        // Follows the pointer rather than the control, because the control is the whole canvas and
+        // a tooltip anchored to it would appear nowhere near the port it describes.
+        ToolTip.SetPlacement(this, PlacementMode.Pointer);
+        ToolTip.SetShowDelay(this, 350);
 
         // The focus sandwich is drawn by this control rather than by the framework (ADR-0013), so
         // the control has to repaint when focus arrives or leaves. Nothing else notices.
@@ -351,6 +358,17 @@ public sealed class GraphCanvas : Control
             return;
         }
 
+        // Previews are tested before ports and nodes because they sit below a node, in the space
+        // the next node down would otherwise own. Nothing overlaps, so the order only decides
+        // which one answers first, and the strip is the smaller target.
+        if (HitTestPreview(world) is int previewSlot && previewSlot >= 0)
+        {
+            _graph.Nodes[previewSlot].IsPreviewOpen = !_graph.Nodes[previewSlot].IsPreviewOpen;
+            e.Handled = true;
+            InvalidateVisual();
+            return;
+        }
+
         CanvasPort? port = HitTestPort(world);
         if (port is not null)
         {
@@ -470,8 +488,81 @@ public sealed class GraphCanvas : Control
         {
             _hoverNode = node;
             _hoverPort = port;
+            UpdateTip();
             InvalidateVisual();
         }
+    }
+
+    /// <summary>
+    /// Puts what is under the pointer into the control's tooltip.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// §7.2 of the design language asks for a screen-space tooltip naming the node on hover **at
+    /// any zoom, including LOD** — and means it: below 40% a node is a coloured rectangle with no
+    /// text at all, so the tooltip is the only thing carrying identity. It is therefore not gated
+    /// on a detail level, unlike everything else drawn here.
+    /// </para>
+    /// <para>
+    /// One tooltip on one control, retargeted as the hover moves, rather than a control per port.
+    /// Ports are drawn rather than instantiated (ADR-0013) and there is nothing to attach a
+    /// tooltip to; the framework's own timing, placement and dismissal come free this way, and a
+    /// hand-drawn tooltip would have had to reimplement all three.
+    /// </para>
+    /// </remarks>
+    private void UpdateTip()
+    {
+        string? tip = Describe(_hoverPort) ?? DescribeNode(_hoverNode);
+
+        if (string.Equals(ToolTip.GetTip(this) as string, tip, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        ToolTip.SetTip(this, tip);
+    }
+
+    private string? Describe(CanvasPort? hovered)
+    {
+        if (hovered is not { } port || port.NodeIndex < 0 || port.NodeIndex >= _graph.Nodes.Count)
+        {
+            return null;
+        }
+
+        CanvasNode node = _graph.Nodes[port.NodeIndex];
+        IReadOnlyList<CanvasPortInfo> side = port.IsOutput ? node.Outputs : node.Inputs;
+
+        if (port.PortIndex < 0 || port.PortIndex >= side.Count)
+        {
+            return null;
+        }
+
+        CanvasPortInfo info = side[port.PortIndex];
+
+        // The name and the type on one line even when the node is already showing both, because a
+        // tooltip that omits what it is about makes the reader look away to find out.
+        StringBuilder text = new();
+        text.Append(info.Name).Append(" — ").Append(info.TypeName ?? info.Name);
+
+        if (info.Description is { Length: > 0 } description)
+        {
+            text.Append("\n\n").Append(description);
+        }
+
+        return text.ToString();
+    }
+
+    private string? DescribeNode(int slot)
+    {
+        if (slot < 0 || slot >= _graph.Nodes.Count)
+        {
+            return null;
+        }
+
+        CanvasNode node = _graph.Nodes[slot];
+        return node.Description is { Length: > 0 } description
+            ? node.Title + "\n\n" + description
+            : node.Title;
     }
 
     /// <inheritdoc/>
@@ -558,6 +649,7 @@ public sealed class GraphCanvas : Control
         {
             _hoverNode = -1;
             _hoverPort = null;
+            UpdateTip();
             InvalidateVisual();
         }
     }
@@ -794,6 +886,7 @@ public sealed class GraphCanvas : Control
             if (drawsPortLabels)
             {
                 DrawPortLabels(context, node, CanvasLevelOfDetail.DrawsPortTypes(detail));
+                DrawPreview(context, pens, node);
             }
 
             DrawStateRings(context, pens, node, nodeRect, selected);
@@ -930,6 +1023,72 @@ public sealed class GraphCanvas : Control
                         run, new Point(rightStart - TypeGap - run.Width, y - (run.Height / 2)));
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Draws what a node produced, in a strip under it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Collapsed it is one line and closed with a <c>▸</c>; open it adds the first few values and
+    /// turns the glyph to <c>▾</c>. The headline is always visible because it carries the rank,
+    /// and rank is the thing a graph author gets wrong — a hundred points at rank 1 and a hundred
+    /// at rank 2 draw identically and lace completely differently.
+    /// </para>
+    /// <para>
+    /// It sits outside the node's own box on purpose, so what a marquee selects does not depend on
+    /// what the last run produced.
+    /// </para>
+    /// </remarks>
+    /// <param name="context">The drawing context.</param>
+    /// <param name="pens">The frame's pens.</param>
+    /// <param name="node">The node being drawn.</param>
+    private void DrawPreview(DrawingContext context, in FramePens pens, CanvasNode node)
+    {
+        if (node.Preview is not { } preview || node.PreviewBounds is not { } bounds)
+        {
+            return;
+        }
+
+        RoundedRect strip = new(
+            new Rect(bounds.MinX, bounds.MinY, bounds.Width, bounds.Height), 4);
+        context.DrawRectangle(SparkPalette.SurfaceSunkenBrush, pens.NodeOutline, strip);
+
+        double y = bounds.MinY;
+
+        // The chevron's column is reserved before the headline is laid out, so a long headline
+        // ellipsises rather than running under the glyph.
+        FormattedText chevron = TypeRun(node.IsPreviewOpen ? "▾" : "▸");
+        FormattedText headline = TypeRun(preview.Headline, bounds.Width - 24 - chevron.Width);
+
+        context.DrawText(headline, new Point(bounds.MinX + 8, y + ((CanvasNode.PreviewRow - headline.Height) / 2)));
+        context.DrawText(
+            chevron,
+            new Point(bounds.MaxX - 8 - chevron.Width, y + ((CanvasNode.PreviewRow - chevron.Height) / 2)));
+
+        if (!node.IsPreviewOpen)
+        {
+            return;
+        }
+
+        double room = bounds.Width - 28;
+
+        foreach (string line in preview.Lines)
+        {
+            y += CanvasNode.PreviewRow;
+            FormattedText run = ValueRun(line, room);
+            context.DrawText(run, new Point(bounds.MinX + 14, y + ((CanvasNode.PreviewRow - run.Height) / 2)));
+        }
+
+        // The count of what is not shown, rather than silence. A preview that stops at six and says
+        // nothing reads as a list of six.
+        if (preview.Hidden > 0)
+        {
+            y += CanvasNode.PreviewRow;
+            FormattedText more = TypeRun(
+                string.Create(CultureInfo.InvariantCulture, $"and {preview.Hidden} more"), room);
+            context.DrawText(more, new Point(bounds.MinX + 14, y + ((CanvasNode.PreviewRow - more.Height) / 2)));
         }
     }
 
@@ -1229,6 +1388,32 @@ public sealed class GraphCanvas : Control
         ? verb + " node"
         : string.Create(CultureInfo.InvariantCulture, $"{verb} {count} nodes");
 
+    /// <summary>
+    /// The node whose preview strip covers a world point, or −1.
+    /// </summary>
+    /// <remarks>
+    /// Walked over the nodes the last frame found visible rather than over the spatial index,
+    /// because a preview is deliberately outside its node's bounds and the index therefore knows
+    /// nothing about it. That is cheap for the same reason the cull is: the list is what is on
+    /// screen, not what is in the graph.
+    /// </remarks>
+    /// <param name="world">The point in world coordinates.</param>
+    /// <returns>The node's slot, or −1.</returns>
+    private int HitTestPreview(Point world)
+    {
+        for (int slot = 0; slot < _graph.Nodes.Count; slot++)
+        {
+            if (_graph.Nodes[slot].PreviewBounds is { } bounds
+                && world.X >= bounds.MinX && world.X <= bounds.MaxX
+                && world.Y >= bounds.MinY && world.Y <= bounds.MaxY)
+            {
+                return slot;
+            }
+        }
+
+        return -1;
+    }
+
     private WireOutcome EvaluateDrag(CanvasPort? source, CanvasPort? target)
     {
         // The answer is the engine's own type check, reached through the canvas graph — never a
@@ -1439,6 +1624,62 @@ public sealed class GraphCanvas : Control
     private FormattedText TypeRun(string text) =>
         Run(_typeText, text, LabelTypeface, TypeFontSize, SparkPalette.TextMutedBrush);
 
+    /// <summary>
+    /// A run that stops at the edge of the box it is drawn in, with an ellipsis.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Measured, not counted.</b> The first result strip truncated its lines at forty-four
+    /// characters, which is a fixed count against a variable width: forty-four narrow characters
+    /// fitted and forty-four digits did not, so a list of long decimals wrote itself straight out
+    /// through the right-hand border. Character counts size boxes here (N24) because nothing else
+    /// is available off the render thread — inside a render pass the real width is known, and it
+    /// is what decides where text stops.
+    /// </para>
+    /// <para>
+    /// Cached under the width as well as the text, rather than by constraining a shared run in
+    /// place. Setting <c>MaxTextWidth</c> on a cached <c>FormattedText</c> would leave it set for
+    /// every other use of the same string — a port type label inheriting the ellipsis of a preview
+    /// headline that happened to read the same, on one node, in a way no test could see. Keying
+    /// the width in removes the shared state instead of guarding it.
+    /// </para>
+    /// </remarks>
+    /// <param name="text">The text.</param>
+    /// <param name="room">The width available, in world units.</param>
+    /// <param name="brush">The brush to draw it in.</param>
+    /// <returns>The run.</returns>
+    private FormattedText FittedRun(string text, double room, IBrush brush)
+    {
+        double width = System.Math.Max(1, room);
+        string key = string.Create(CultureInfo.InvariantCulture, $"{width:F0}|{text}");
+
+        if (_fittedText.TryGetValue(key, out FormattedText? existing))
+        {
+            return existing;
+        }
+
+        if (_fittedText.Count >= MaximumCachedTextRuns)
+        {
+            _fittedText.Clear();
+        }
+
+        FormattedText run = new(
+            text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, LabelTypeface, TypeFontSize, brush)
+        {
+            MaxTextWidth = width,
+            Trimming = TextTrimming.CharacterEllipsis,
+        };
+
+        _fittedText[key] = run;
+        return run;
+    }
+
+    private FormattedText TypeRun(string text, double room) =>
+        FittedRun(text, room, SparkPalette.TextMutedBrush);
+
+    private FormattedText ValueRun(string text, double room) =>
+        FittedRun(text, room, SparkPalette.TextSecondaryBrush);
+
     private static FormattedText Run(
         Dictionary<string, FormattedText> cache, string text, Typeface typeface, double size, IBrush brush)
     {
@@ -1459,6 +1700,7 @@ public sealed class GraphCanvas : Control
         cache[text] = run;
         return run;
     }
+
 
     private sealed class WireVisual
     {

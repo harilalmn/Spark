@@ -1,0 +1,165 @@
+name: Nightly benchmarks
+
+# The harness in bench/ and the application's own --canvas-benchmark both produce figures, and
+# until this workflow existed nothing ran either of them on a schedule. A benchmark nobody runs
+# measures rather than guards: it tells you a number the day you ask, and stays silent on the day
+# somebody makes it worse. This is E1-T21 and the standing half of E4-T3 and E8-T15.
+#
+# Nightly rather than per-PR, deliberately. Shared runners are too noisy to compare two adjacent
+# commits on, and a gate that fails because the host was busy is a gate people learn to ignore.
+#
+# The decision, with the alternatives it beat, is ADR-0023.
+#
+# WHAT IS GATED AND WHAT IS ONLY RECORDED - the important distinction in this file:
+#
+#   * Bytes allocated per operation ARE gated, tightly. Allocation is a property of the code and
+#     not of the machine, so the same build allocates the same bytes on any runner. That makes it
+#     the one figure a shared VM cannot move, and therefore the only one worth failing on.
+#   * Timings are RECORDED and never gated. They are in the artifacts for a human to read.
+#   * The canvas benchmark is recorded and never gated, for a further reason of its own: it drives
+#     the real compositor, and a runner has no GPU, so it falls back to software rendering. Its
+#     numbers are not comparable to a developer machine's and their spread on this hardware is
+#     not yet known. Once a few weeks of nightly runs say what that spread is, a p95 threshold can
+#     be set from evidence - that is E1-T34, the remaining half of E8-T15. Guessing one now would
+#     produce exactly the gate-nobody-trusts this file is written to avoid.
+
+on:
+  schedule:
+    # 03:00 UTC. Nothing depends on the hour beyond it being outside the working day.
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  managed:
+    name: Managed benchmarks (allocation is gated)
+    runs-on: ubuntu-latest
+    # Generous relative to what --job short should cost, because a run killed halfway produces no
+    # reports - which the check step correctly treats as a failed run rather than a clean one, and
+    # a nightly that reports "no reports" tells you nothing about the code.
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # MinVer derives the version from the nearest tag, so a shallow clone would produce a
+          # wrong version rather than an obvious failure.
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-ubuntu-latest-${{ hashFiles('**/Directory.Packages.props') }}
+          restore-keys: nuget-ubuntu-latest-
+
+      - name: Restore
+        run: dotnet restore Spark.slnx
+
+      # Release is not optional and BenchmarkDotNet will refuse to run without it: an unoptimised
+      # measurement is not a slower measurement, it is a different program.
+      #
+      # --job short, because a full-fidelity run over these three suites takes over an hour on a
+      # developer machine - the marshalling suite's 100 000-element cases dominate it - and a
+      # hosted runner is slower again. The precision a full run buys is precision in the TIMINGS,
+      # which this job does not gate (ADR-0023).
+      #
+      # bench/baseline.json is measured with the same switch, for consistency rather than to
+      # correct a known difference: the four EvaluationBenchmarks cases were measured under both
+      # configs and came back byte-identical, so allocation here is genuinely per-operation.
+      - name: Run the benchmarks
+        run: >
+          dotnet run --project bench/Spark.Benchmarks --configuration Release
+          -- --filter '*' --exporters json --job short
+
+      # Invoked through the interpreter rather than executed, for the reason in NOTES.md N28:
+      # this repository is maintained from Windows with core.filemode=false, so the executable
+      # bit on a script cannot be relied on to survive. The bit is set on this one and the
+      # invocation makes it not matter.
+      - name: Check for allocation regressions
+        run: >
+          python3 scripts/check-benchmark-regression.py
+          BenchmarkDotNet.Artifacts/results
+          bench/baseline.json
+
+      # always(), because a failed run's numbers are the ones you most want to read.
+      - name: Publish the results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: managed-benchmarks-${{ github.run_number }}
+          path: BenchmarkDotNet.Artifacts/
+          retention-days: 90
+
+  canvas:
+    name: Canvas benchmark (recorded, not gated)
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    # The whole job is best-effort. It measures the render pass through the real compositor on a
+    # machine with no GPU, and until we have seen it behave on this hardware a failure here says
+    # more about the runner than about the code. It must not be able to fail the workflow.
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-windows-latest-${{ hashFiles('**/Directory.Packages.props') }}
+          restore-keys: nuget-windows-latest-
+
+      - name: Restore
+        run: dotnet restore Spark.slnx
+
+      # 2,000 nodes is the number ADR-0013 names, and --canvas-benchmark defaults to it.
+      - name: Run the canvas benchmark
+        shell: bash
+        run: |
+          mkdir -p canvas-results
+          dotnet run --project src/Spark.Desktop --configuration Release \
+            -- --canvas-benchmark 600 2>&1 | tee canvas-results/canvas-benchmark.txt
+
+      # Put the figures in the run summary so reading them costs no downloads. This is the whole
+      # point of the job today: build a history on this hardware so a threshold can be chosen from
+      # evidence rather than guessed.
+      - name: Record the figures in the run summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '### Canvas benchmark'
+            echo
+            echo 'Recorded, not gated - see the header of this workflow for why.'
+            echo
+            echo '```'
+            cat canvas-results/canvas-benchmark.txt 2>/dev/null || echo 'The run produced no output.'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish the results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: canvas-benchmark-${{ github.run_number }}
+          path: canvas-results/
+          retention-days: 90
