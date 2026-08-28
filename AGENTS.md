@@ -102,7 +102,7 @@ thing broken is a dangling ADR citation in a build-file comment — that is prec
 of it, and it has already caught exactly that (`E1-T29`).
 
 **Everything verified for the current tree was verified on Windows.** CI ran the same three
-gates on Windows and Linux and was green on **`53596ab`**, with 952 tests passing on each leg —
+gates on Windows and Linux and was green on **`53596ab`**, with 967 tests passing on each leg —
 which now contains the curve layer, save and load, undo, port types, the creation gesture and the
 benchmark project. **The Linux leg has stopped being free insurance and started finding things**:
 it caught a script committed without its executable bit, which Git Bash on the Windows runner ran
@@ -463,7 +463,7 @@ As of 2026-08-28, in three tiers. The tiers are the point; collapsing them is th
 - `dotnet build Spark.slnx --no-incremental -warnaserror` — **sixteen** projects, zero
   warnings, zero errors. Use the flag: without it the warning count can come from a cached
   analysis (see *Things that will bite you*).
-- `dotnet test Spark.slnx` — **952 tests across seven projects**, all passing.
+- `dotnet test Spark.slnx` — **967 tests across seven projects**, all passing.
   `Spark.Geometry.Tests` (313) covers the kernel by example; `Spark.Geometry.Properties` (38)
   covers it with CsCheck properties over generators spanning 1e-9 to 1e9; `Spark.Engine.Tests`
   (289) covers the graph, the replicator, the importer and the `.spark` format, including a two-way diff against the
@@ -481,7 +481,7 @@ As of 2026-08-28, in three tiers. The tiers are the point; collapsing them is th
 
 **Confirmed working on Linux, by CI, on a named commit.** The build matrix, the test run, the
 format check and the no-native-binaries check were green on **`53596ab`** on `windows-latest` and
-`ubuntu-latest` (run 33153282431), 952 tests on each. That commit contains everything through the
+`ubuntu-latest` (run 33153282431), 967 tests on each. That commit contains everything through the
 canvas creation gesture. **Do not describe CI as green without saying which commit it was green
 on** — and update the hash when you push, because a stale one reads as a stronger claim than it
 is.

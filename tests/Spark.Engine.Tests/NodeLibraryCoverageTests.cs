@@ -271,6 +271,71 @@ public sealed class NodeLibraryCoverageTests
         Assert.Contains("origin", description!, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// **Ports** are described from the XML documentation too, not only nodes.
+    /// </summary>
+    /// <remarks>
+    /// FR-25 promises that any library shipping its `.xml` gets tooltips with no extra work, and
+    /// that promise is about node *and port* descriptions. Only `summary` was being read, so every
+    /// `param` tag in `Spark.Nodes.Core` — which CS1591 makes compulsory there — was written,
+    /// shipped and ignored. A port tooltip had nothing to say.
+    /// </remarks>
+    [Fact]
+    public void PortDescriptionsComeFromTheXmlDocumentationToo()
+    {
+        NodeDefinition circle = Definition("Circle.ByCentreRadius");
+
+        Assert.Equal("centre", circle.Inputs[0].Name);
+        Assert.False(
+            string.IsNullOrWhiteSpace(circle.Inputs[0].Description),
+            "The centre port has no description: <param> is not reaching the port definition.");
+
+        Assert.Contains("radius", circle.Inputs[1].Description!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>An output port is described from the method's `returns` tag.</summary>
+    [Fact]
+    public void AnOutputPortIsDescribedFromTheReturnsTag()
+    {
+        NodeDefinition circle = Definition("Circle.ByCentreRadius");
+
+        Assert.Equal("circle", circle.Outputs[0].Name);
+        Assert.Contains("circle", circle.Outputs[0].Description!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Most of the library carries port descriptions, rather than one node that happened to be
+    /// checked.
+    /// </summary>
+    /// <remarks>
+    /// A single-node assertion would pass with the wiring correct for methods and broken for
+    /// constructors, or for `out` parameters, or for the receiver port of an instance method. The
+    /// bar is deliberately below 100%: a port named by `[NodePort]` on a member whose author wrote
+    /// no `param` tag legitimately has nothing to say.
+    /// </remarks>
+    [Fact]
+    public void MostPortsInTheLibraryAreDescribed()
+    {
+        int described = 0;
+        int total = 0;
+
+        foreach (ImportedNode node in Report.Nodes)
+        {
+            foreach (PortDefinition port in node.Definition.Inputs)
+            {
+                total++;
+                if (!string.IsNullOrWhiteSpace(port.Description))
+                {
+                    described++;
+                }
+            }
+        }
+
+        Assert.True(
+            described > total * 0.9,
+            $"Only {described} of {total} input ports carry a description.");
+    }
+
     /// <summary>Every imported node can actually be invoked, which a compile does not establish.</summary>
     [Fact]
     public void EveryNodeCompilesToAWorkingInvoker()

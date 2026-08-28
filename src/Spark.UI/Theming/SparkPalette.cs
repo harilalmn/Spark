@@ -167,6 +167,9 @@ public static class SparkPalette
     /// <summary>A frozen brush for <see cref="BackgroundVoid"/>.</summary>
     public static IBrush BackgroundVoidBrush { get; } = Frozen(BackgroundVoid);
 
+    /// <summary>A frozen brush for <see cref="SurfaceSunken"/>.</summary>
+    public static IBrush SurfaceSunkenBrush { get; } = Frozen(SurfaceSunken);
+
     /// <summary>A frozen brush for <see cref="SurfaceBase"/>.</summary>
     public static IBrush SurfaceBaseBrush { get; } = Frozen(SurfaceBase);
 

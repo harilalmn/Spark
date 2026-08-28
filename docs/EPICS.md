@@ -687,7 +687,12 @@ another.
 - [x] Double-clicking empty canvas opens a ranked search box there, and Enter places the node at
       that point (**E8-T19**). Dynamo's gesture, with the difference stated where a user will meet
       it: Dynamo makes a code block, and Spark's code block is [E6](#e6--c-code-block), M4.
-- [ ] Watch nodes and preview bubbles show a node's output **and its rank** (**E8-T10**).
+- [ ] Watch nodes and preview bubbles show a node's output **and its rank** (**E8-T10**). *The
+      **bubbles** are built: a collapsible strip under every node whose closed line is
+      `8 items · rank 1`. The **watch panel** is not.*
+- [x] Node **and port** descriptions come from the assembly's sidecar XML documentation, so any
+      library shipping its `.xml` gets tooltips with no extra work (**E5-T7**, FR-25). The port
+      half was missing for three commits while the row read `Done` ([N29](NOTES.md)).
 - [ ] Aggressive autosave and crash recovery, because
       [R11](PRD.md#12-risks) means the process can die without warning (**E8-T13**).
 - [ ] Banners for a missing package and for a graph containing script nodes (**E8-T16**).

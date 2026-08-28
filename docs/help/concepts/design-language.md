@@ -730,9 +730,9 @@ paying for itself, and something cheaper takes over its job.
 
 | Zoom | Depth | Text | Ports | Boundary | What carries identity |
 |---|---|---|---|---|---|
-| **≥100%** | Full E2: shadow, highlight, lip | header 12 px, ports 11 px, port types 10 px, preview label | shaped, 5–7 px, rank glyphs | 1 px `border.control` | Header colour + title + glyph |
+| **≥100%** | Full E2: shadow, highlight, lip | header 12 px, ports 11 px, port types 10 px, result strip | shaped, 5–7 px, rank glyphs | 1 px `border.control` | Header colour + title + glyph |
 | **82–100%** | Highlight half dropped (6 px blur → under 5 px device) | all | all | 1 px | as above |
-| **73–82%** | Shadow dropped entirely; lip retained | **port types dropped** (10 px × 0.82 = 8.2 px); names stay | shapes → plain discs | 1 px | Header colour + title |
+| **73–82%** | Shadow dropped entirely; lip retained | **port types dropped** (10 px × 0.82 = 8.2 px); names and the result strip stay | shapes → plain discs | 1 px | Header colour + title |
 | **67–73%** | Lip dropped; E0 flat | port labels dropped (11 px × 0.73 = 8.03 px) | 4 px discs | 1 px | Header colour + title |
 | **40–67%** | E0 flat | **all text dropped** (12 px × 0.67 = 8.04 px); body fill begins lerping toward the category colour at 60% | 2 px screen-space dots | 1 px | Header colour, growing |
 | **<40%** (ADR-0013 LOD) | E0 flat | none | none; wires terminate at the node edge | none — the fill is ≥5.39:1 on its own | **Category colour alone** |
@@ -904,6 +904,35 @@ inside the canvas**, so a double-click near an edge does not open something half
 the node lands at the point that was **double-clicked**, not at the pointer's position when Enter
 was pressed — the wheel can pan and zoom while the box is open, and a node arriving somewhere other
 than where it was asked for is the kind of small betrayal that makes a gesture feel unreliable.
+
+### 7.6.2 The result strip
+
+Under every node that produced something is a strip showing what it produced: `surface.sunken`
+with the node's own 1 px `border.control` outline and a 4 px radius, one 15 px row when closed and
+one row per value when open, `text.muted` for the headline and `text.secondary` for the values.
+
+**The headline carries the rank, and that is the requirement rather than a detail.** `8 items ·
+rank 1`. A hundred points at rank 1 and a hundred at rank 2 draw identically in the viewport and
+lace completely differently ([`concepts.lacing`](lacing.md) §2.2), so rank is the fact a graph
+author most often has wrong and it goes in the line that cannot be closed. A single value is
+headlined by its type instead — `Circle`, `number` — which is the same question answered for a
+thing there is only one of.
+
+Open, it adds the first six values and then says how many it did not show. **Six and a count, not
+six and silence**: a preview that stops without saying so makes a list of a hundred read as a list
+of six.
+
+Three consequences are chosen rather than inherited.
+
+- **It sits outside the node's box.** The node's own bounds are what a marquee selects and what
+  the spatial index culls on, and growing them by whatever the last run produced would make
+  selection depend on evaluation results.
+- **A node drawn later covers an open preview.** Nodes win over previews, which is the right
+  priority when they collide — the graph is the document and the preview is a readout of it.
+  Moving the node apart is the remedy, and the alternative, previews floating over nodes, would
+  hide the thing being worked on to show a readout of it.
+- **Open or closed is not saved.** It is what you are looking at rather than what you have made,
+  so it is not in the `.spark` file and undo does not touch it, exactly like pan and zoom.
 
 ### 7.7 Frozen, preview off, and not evaluated
 

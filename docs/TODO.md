@@ -8,9 +8,9 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, `dotnet test` (**952 tests over seven
+Ctrl+Z steps back through every edit. `dotnet build`, `dotnet test` (**967 tests over seven
 projects**) and `dotnet format` are all clean, and **CI ran green on Windows and Linux on
-`53596ab`**, 952 tests on each leg — and the Linux leg has now caught something Windows could
+`53596ab`**, 967 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
 
 Three distinctions still do the work in what follows:
@@ -181,6 +181,11 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] Every port shows the type it wants — `E8-T18`. Not in the plan; found by opening the
       application and looking at `Circle.ByCentreRadius`, where a port called `centre` gave no way
       to learn that a `Point3d` belongs in it.
+- [x] Preview bubbles and hover tooltips — the built half of `E8-T10`, plus the tooltip design
+      language §7.2 has specified since M0. **The watch panel is still open**, which is why the
+      row stays `In progress`.
+- [x] Port descriptions from `<param>` — `E5-T7`, which had been marked `Done` while reading only
+      `<summary>` ([N29](NOTES.md)). Found by building a port tooltip that had nothing to show.
 - [x] Library search with camel-hump ranking — `E8-T8`. `cbcr` finds `Circle.ByCentreRadius`.
 - [x] Double-click empty canvas to create a node there — `E8-T19`. Asked for as *"let
       double-clicking a blank space add the code block, as in Dynamo"*, and delivered as the half
@@ -306,6 +311,10 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   from the mapped conjugate pair is Rytz's construction, and doing it approximately would return
   a curve that is quietly the wrong shape. A non-uniform scale on a `Circle` is refused for the
   same reason — the answer is an ellipse, and a `Circle` cannot hold one.
+- **A node drawn later covers an open result strip.** Nodes win over previews when they overlap,
+  because the graph is the document and the strip is a readout of it. The alternative — previews
+  floating over nodes — hides the thing being worked on in order to show a readout of it. Move
+  the node if the strip is in the way. Design language §7.6.2.
 - **An undo reopens the document, so nothing about a canvas node survives it except its
   identity.** `CanvasNode` objects are new, slots renumber into the file's canonical order, and
   the selection is dropped ([N23](NOTES.md)). This is the price of undo being defined by the same

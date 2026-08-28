@@ -28,11 +28,17 @@ namespace Spark.Engine;
 /// </remarks>
 public sealed class XmlDocumentation
 {
-    private static readonly XmlDocumentation EmptyInstance = new([]);
+    private static readonly XmlDocumentation EmptyInstance = new([], []);
 
     private readonly Dictionary<string, string> _summaries;
+    private readonly Dictionary<string, string> _parameters;
 
-    private XmlDocumentation(Dictionary<string, string> summaries) => _summaries = summaries;
+    private XmlDocumentation(
+        Dictionary<string, string> summaries, Dictionary<string, string> parameters)
+    {
+        _summaries = summaries;
+        _parameters = parameters;
+    }
 
     /// <summary>Documentation that knows nothing, which is what a missing file produces.</summary>
     public static XmlDocumentation Empty => EmptyInstance;
@@ -69,6 +75,7 @@ public sealed class XmlDocumentation
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         Dictionary<string, string> summaries = new(StringComparer.Ordinal);
+        Dictionary<string, string> parameters = new(StringComparer.Ordinal);
 
         try
         {
@@ -90,9 +97,40 @@ public sealed class XmlDocumentation
                     continue;
                 }
 
-                if (reader.NodeType != XmlNodeType.Element
-                    || reader.Name != "summary"
-                    || currentMember is null)
+                if (reader.NodeType != XmlNodeType.Element || currentMember is null)
+                {
+                    continue;
+                }
+
+                // `param` and `returns` are what make FR-25's promise true for *ports* rather than
+                // only for nodes. Every node in Spark.Nodes.Core already writes them, because
+                // CS1591 is an error there — so the text a user needs is already in the file and
+                // was simply not being read.
+                if (reader.Name == "param")
+                {
+                    string? parameter = reader.GetAttribute("name");
+                    string text = Collapse(reader.ReadInnerXml());
+
+                    if (parameter is { Length: > 0 } && text.Length > 0)
+                    {
+                        parameters[ParameterKey(currentMember, parameter)] = text;
+                    }
+
+                    continue;
+                }
+
+                if (reader.Name == "returns")
+                {
+                    string text = Collapse(reader.ReadInnerXml());
+                    if (text.Length > 0)
+                    {
+                        parameters[ParameterKey(currentMember, ReturnsName)] = text;
+                    }
+
+                    continue;
+                }
+
+                if (reader.Name != "summary")
                 {
                     continue;
                 }
@@ -113,8 +151,42 @@ public sealed class XmlDocumentation
             return Empty;
         }
 
-        return new XmlDocumentation(summaries);
+        return new XmlDocumentation(summaries, parameters);
     }
+
+    /// <summary>The documented description of one parameter of a member, or <see langword="null"/>.</summary>
+    /// <param name="member">The method the parameter belongs to.</param>
+    /// <param name="parameterName">The parameter's name.</param>
+    /// <returns>The <c>param</c> text as one line of plain text.</returns>
+    /// <exception cref="ArgumentNullException">Either argument is <see langword="null"/>.</exception>
+    public string? ParameterOf(MemberInfo member, string parameterName)
+    {
+        ArgumentNullException.ThrowIfNull(member);
+        ArgumentNullException.ThrowIfNull(parameterName);
+
+        return _parameters.TryGetValue(ParameterKey(KeyOf(member), parameterName), out string? text)
+            ? text
+            : null;
+    }
+
+    /// <summary>The documented description of what a member returns, or <see langword="null"/>.</summary>
+    /// <param name="member">The method.</param>
+    /// <returns>The <c>returns</c> text as one line of plain text.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="member"/> is <see langword="null"/>.</exception>
+    public string? ReturnsOf(MemberInfo member)
+    {
+        ArgumentNullException.ThrowIfNull(member);
+
+        return _parameters.TryGetValue(ParameterKey(KeyOf(member), ReturnsName), out string? text)
+            ? text
+            : null;
+    }
+
+    // A name no parameter can have, so the return description shares one dictionary with them
+    // without a second lookup path to keep in step.
+    private const string ReturnsName = " returns";
+
+    private static string ParameterKey(string member, string parameter) => member + "/" + parameter;
 
     /// <summary>The summary for a member, or <see langword="null"/>.</summary>
     /// <param name="member">The member.</param>

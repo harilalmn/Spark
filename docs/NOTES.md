@@ -887,3 +887,31 @@ than executing it, so the *next* script added from Windows cannot fail this way 
 pointed at `Spark.Desktop` it fails on Avalonia's Skia and HarfBuzz natives. It had not been
 proven to *run*, and those are different claims. A gate's first execution in CI is part of adding
 it, not a formality afterwards.
+
+---
+
+## N29 — A row can be `Done` and half built, and only using the feature finds the other half
+
+`E5-T7`, *descriptions from the sidecar XML documentation file*, was marked `Done` with the note
+"any library shipping its `.xml` gets tooltips free". It read `<summary>` and nothing else.
+`XmlDocumentation` had **no `<param>` support at all**, so a port's description could only ever
+come from an explicit `[NodePort(Description = …)]` attribute — and almost nothing carries one,
+because the XML comment is already compulsory on `Spark.Nodes.Core` under CS1591 and an author who
+has written `<param name="centre">The centre.</param>` reasonably assumes that is the description.
+
+Every one of those tags was written, shipped in the `.xml` beside the assembly, and ignored.
+
+**Nothing in the repository could have caught it.** The row was ticked, `FR-25` was written in the
+PRD, a test asserted that `Point.Origin` had a description — and it did, from `<summary>`. A
+half-built feature and a built one look identical from the outside if the only thing you check is
+the half that works. What found it was building the port tooltip §7.2 asks for and watching it
+render `centre — Point3d` with nothing after it.
+
+The fix reads `<param>` and `<returns>`, keeps the attribute winning where an author wrote one —
+that text is aimed at a graph author, where the XML comment is aimed at a C# caller — and covers
+constructors on the same path. The tests that keep it honest assert a **proportion** of the
+library's ports rather than one node's, because a single-port assertion would pass with methods
+wired and constructors, `out` parameters or receiver ports broken.
+
+The general lesson is the one this project keeps relearning from a different direction: a register
+records intent, and only using the thing tells you what the intent missed.

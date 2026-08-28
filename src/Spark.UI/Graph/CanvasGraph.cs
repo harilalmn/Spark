@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Spark.Api;
 using Spark.Engine;
 using Spark.UI.Canvas;
@@ -66,6 +67,19 @@ public readonly record struct CanvasWire(CanvasPort From, CanvasPort To);
 /// </param>
 public readonly record struct CanvasPortInfo(
     string Name, int DeclaredRank, string? Description, string? TypeName);
+
+/// <summary>
+/// What a node produced, as the canvas shows it under the node.
+/// </summary>
+/// <param name="Headline">
+/// One line that is always shown: the type for a single value, and <b>the count and the rank</b>
+/// for a list. Rank is the half that is not optional — it is the thing users get wrong about a
+/// graph, and a preview that shows a hundred points without saying whether they are one list or
+/// ten is showing the easy half (<c>E8-T10</c>).
+/// </param>
+/// <param name="Lines">The first few elements, rendered, shown only while the preview is open.</param>
+/// <param name="Hidden">How many elements were left out of <paramref name="Lines"/>.</param>
+public sealed record NodePreview(string Headline, IReadOnlyList<string> Lines, int Hidden);
 
 /// <summary>
 /// One node as the canvas draws it: a position, a size derived from its ports, a category colour
@@ -168,6 +182,48 @@ public sealed class CanvasNode
 
     /// <summary>A one-line summary of the value on output port 0, or null.</summary>
     public string? ResultSummary { get; set; }
+
+    /// <summary>What the node produced on output port 0, or null when it produced nothing.</summary>
+    public NodePreview? Preview { get; set; }
+
+    /// <summary>
+    /// Whether the preview is showing its values as well as its headline.
+    /// </summary>
+    /// <remarks>
+    /// <b>Session state, not document state.</b> It is not written to the `.spark` file and undo
+    /// does not touch it, for the same reason pan and zoom are not: it is what you are looking at,
+    /// not what you have made. A file that reopened with eleven previews expanded because somebody
+    /// once opened them would be recording the wrong thing.
+    /// </remarks>
+    public bool IsPreviewOpen { get; set; }
+
+    /// <summary>The gap between the node's bottom edge and its preview.</summary>
+    public const double PreviewGap = 4;
+
+    /// <summary>The height of one row of the preview: the headline, and each value line.</summary>
+    public const double PreviewRow = 15;
+
+    /// <summary>
+    /// The preview's bounds in world coordinates, or null when there is nothing to show.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately outside <see cref="Bounds"/>. The node's own box is what a marquee selects and
+    /// what the spatial index culls on, and growing it by whatever the last run happened to
+    /// produce would make selection depend on evaluation results.
+    /// </remarks>
+    public CanvasBounds? PreviewBounds
+    {
+        get
+        {
+            if (Preview is not { } preview)
+            {
+                return null;
+            }
+
+            int rows = IsPreviewOpen ? 1 + preview.Lines.Count + (preview.Hidden > 0 ? 1 : 0) : 1;
+            return CanvasBounds.FromSize(X, Y + Height + PreviewGap, Width, rows * PreviewRow);
+        }
+    }
 
     /// <summary>
     /// The node's height, derived from its port count. A node is as tall as its content and no
@@ -627,6 +683,7 @@ public sealed class CanvasGraph
                 node.State = kept;
                 node.Message = null;
                 node.ResultSummary = null;
+                node.Preview = null;
                 continue;
             }
 
@@ -640,7 +697,10 @@ public sealed class CanvasGraph
 
             IReadOnlyList<SparkDiagnostic> diagnostics = result.DiagnosticsFor(node.Id);
             node.Message = diagnostics.Count > 0 ? diagnostics[0].Message : null;
-            node.ResultSummary = Summarise(result.Value(node.Id));
+
+            object? value = result.Value(node.Id);
+            node.ResultSummary = Summarise(value);
+            node.Preview = PreviewOf(value);
         }
     }
 
@@ -695,6 +755,67 @@ public sealed class CanvasGraph
                 return plain.Length > 60 ? plain[..57] + "…" : plain;
         }
     }
+
+    /// <summary>How many elements of a list the preview shows before it stops.</summary>
+    private const int PreviewLineLimit = 6;
+
+    /// <summary>The longest a single preview line is allowed to be.</summary>
+    private const int PreviewLineWidth = 44;
+
+    /// <summary>
+    /// Renders a node's output for the preview under the node.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The headline carries <b>rank</b> for a list and the type for a single value, because those
+    /// are the two questions a preview is opened to answer: <i>what is this</i> and <i>how many
+    /// deep</i>. A hundred points at rank 1 and a hundred points at rank 2 look identical in the
+    /// viewport and lace completely differently, which is why rank is in the collapsed line rather
+    /// than behind the toggle.
+    /// </para>
+    /// <para>
+    /// Only the first few elements are rendered. The preview exists to tell a user what came out,
+    /// not to be a data grid — that is the watch panel, which is a different row.
+    /// </para>
+    /// </remarks>
+    /// <param name="value">The value on output port 0.</param>
+    /// <returns>The preview, or null when the node produced nothing.</returns>
+    public static NodePreview? PreviewOf(object? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        if (value is SparkList list)
+        {
+            List<string> lines = [];
+            for (int index = 0; index < list.Count && index < PreviewLineLimit; index++)
+            {
+                lines.Add(Clip(Render(list[index])));
+            }
+
+            string headline = string.Create(
+                CultureInfo.InvariantCulture,
+                $"{list.Count} {(list.Count == 1 ? "item" : "items")} · rank {list.Rank}");
+
+            return new NodePreview(headline, lines, System.Math.Max(0, list.Count - lines.Count));
+        }
+
+        return new NodePreview(PortTypeName.Describe(value.GetType()), [Clip(Render(value))], 0);
+    }
+
+    private static string Render(object? value) => value switch
+    {
+        null => "null",
+        SparkList nested => string.Create(
+            CultureInfo.InvariantCulture, $"{nested.Count} items · rank {nested.Rank}"),
+        IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
+        _ => value.ToString() ?? string.Empty,
+    };
+
+    private static string Clip(string text) =>
+        text.Length > PreviewLineWidth ? text[..(PreviewLineWidth - 1)] + "…" : text;
 
     private static IReadOnlyList<CanvasPortInfo> Describe(IReadOnlyList<PortDefinition> ports)
     {
