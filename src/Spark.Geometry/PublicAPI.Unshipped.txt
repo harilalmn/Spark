@@ -28,8 +28,8 @@ Spark.Geometry.BoundingBox.Corners() -> Spark.Geometry.Point3d[]!
 Spark.Geometry.BoundingBox.Diagonal.get -> Spark.Geometry.Vector3d
 Spark.Geometry.BoundingBox.Equals(Spark.Geometry.BoundingBox other) -> bool
 Spark.Geometry.BoundingBox.EqualsWithin(in Spark.Geometry.BoundingBox other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
-Spark.Geometry.BoundingBox.Inflate(double amount) -> Spark.Geometry.BoundingBox
-Spark.Geometry.BoundingBox.Inflate(double x, double y, double z) -> Spark.Geometry.BoundingBox
+Spark.Geometry.BoundingBox.Inflated(double amount) -> Spark.Geometry.BoundingBox
+Spark.Geometry.BoundingBox.Inflated(double x, double y, double z) -> Spark.Geometry.BoundingBox
 Spark.Geometry.BoundingBox.Intersects(in Spark.Geometry.BoundingBox other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
 Spark.Geometry.BoundingBox.IsValid.get -> bool
 Spark.Geometry.BoundingBox.Max.get -> Spark.Geometry.Point3d
@@ -83,7 +83,7 @@ Spark.Geometry.Interval.Clamp(double value) -> double
 Spark.Geometry.Interval.Denormalise(double t) -> double
 Spark.Geometry.Interval.Equals(Spark.Geometry.Interval other) -> bool
 Spark.Geometry.Interval.EqualsWithin(in Spark.Geometry.Interval other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
-Spark.Geometry.Interval.Expand(double amount) -> Spark.Geometry.Interval
+Spark.Geometry.Interval.Expanded(double amount) -> Spark.Geometry.Interval
 Spark.Geometry.Interval.Includes(double value, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
 Spark.Geometry.Interval.Intersect(in Spark.Geometry.Interval other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Interval?
 Spark.Geometry.Interval.Interval() -> void
@@ -107,7 +107,7 @@ Spark.Geometry.Plane.Contains(in Spark.Geometry.Point3d point, in Spark.Geometry
 Spark.Geometry.Plane.DistanceTo(in Spark.Geometry.Point3d point) -> double
 Spark.Geometry.Plane.Equals(Spark.Geometry.Plane other) -> bool
 Spark.Geometry.Plane.EqualsWithin(in Spark.Geometry.Plane other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
-Spark.Geometry.Plane.Flip() -> Spark.Geometry.Plane
+Spark.Geometry.Plane.Flipped() -> Spark.Geometry.Plane
 Spark.Geometry.Plane.IsCoplanar(in Spark.Geometry.Plane other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
 Spark.Geometry.Plane.IsValid.get -> bool
 Spark.Geometry.Plane.Normal.get -> Spark.Geometry.Vector3d

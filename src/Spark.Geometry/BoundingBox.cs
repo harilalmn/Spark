@@ -310,7 +310,7 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
     public static BoundingBox Union(in BoundingBox a, in BoundingBox b) => a.Union(b);
 
     /// <summary>
-    /// Grows the box by the same amount on every axis, in both directions.
+    /// Returns the box grown by the same amount on every axis, in both directions.
     /// </summary>
     /// <param name="amount">
     /// The distance to move each face outwards. A negative amount shrinks the box, and
@@ -318,10 +318,10 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
     /// rather than throwing.
     /// </param>
     /// <returns>The inflated box.</returns>
-    public BoundingBox Inflate(double amount) => Inflate(amount, amount, amount);
+    public BoundingBox Inflated(double amount) => Inflated(amount, amount, amount);
 
     /// <summary>
-    /// Grows the box by a separate amount on each axis, in both directions.
+    /// Returns the box grown by a separate amount on each axis, in both directions.
     /// </summary>
     /// <param name="x">The distance to move the two X faces outwards.</param>
     /// <param name="y">The distance to move the two Y faces outwards.</param>
@@ -330,7 +330,7 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
     /// The inflated box. Negative amounts shrink, and shrinking past zero size on an axis
     /// inverts it and makes the box invalid rather than throwing.
     /// </returns>
-    public BoundingBox Inflate(double x, double y, double z) => new(
+    public BoundingBox Inflated(double x, double y, double z) => new(
         Min.X - x,
         Min.Y - y,
         Min.Z - z,

@@ -39,6 +39,17 @@ namespace Spark.Geometry;
 /// caller eventually.
 /// </para>
 /// <para>
+/// <b>Naming.</b> A member that returns a new value is named for the <b>result</b>, not for
+/// the act: <c>Flipped</c>, <c>Reversed</c>, <c>Inflated</c>, <c>Expanded</c>,
+/// <c>Normalised</c>, <c>Trimmed</c>, <c>TransformedBy</c>. Never <c>Flip</c>,
+/// <c>Inflate</c> or <c>Expand</c> — an imperative reads as a command to change something
+/// in place, and nothing in this assembly can be changed in place. The rule is a
+/// consequence of the immutability rule below rather than a taste, and it is applied even
+/// where the shorter name would be unambiguous, because a convention with exceptions is
+/// one nobody can rely on. A member that can fail to produce a result is
+/// <c>Try&lt;Result&gt;</c> instead.
+/// </para>
+/// <para>
 /// <b>Immutability.</b> Every type in this namespace is a <c>readonly struct</c> or a
 /// sealed immutable class. Nothing here carries identity, style, revision numbers or
 /// screen awareness, and constructing geometry never mutates anything.

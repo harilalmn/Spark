@@ -191,11 +191,11 @@ public sealed class BoundingBoxTests
     public void InflateGrowsTheBoxInEveryDirection()
     {
         BoundingBox box = new(Point3d.Origin, new Point3d(1.0, 1.0, 1.0));
-        BoundingBox inflated = box.Inflate(1.0);
+        BoundingBox inflated = box.Inflated(1.0);
 
         Assert.Equal(new Point3d(-1.0, -1.0, -1.0), inflated.Min);
         Assert.Equal(new Point3d(2.0, 2.0, 2.0), inflated.Max);
-        Assert.Equal(new Point3d(0.0, -1.0, 0.0), box.Inflate(0.0, 1.0, 0.0).Min);
+        Assert.Equal(new Point3d(0.0, -1.0, 0.0), box.Inflated(0.0, 1.0, 0.0).Min);
     }
 
     [Fact]
@@ -203,7 +203,7 @@ public sealed class BoundingBoxTests
     {
         BoundingBox box = new(Point3d.Origin, new Point3d(1.0, 1.0, 1.0));
 
-        Assert.False(box.Inflate(-1.0).IsValid);
+        Assert.False(box.Inflated(-1.0).IsValid);
     }
 
     [Fact]

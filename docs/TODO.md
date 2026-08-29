@@ -161,13 +161,13 @@ for anything else.
 
 - [ ] `Quaternion` — `E2-T1`. **`Rgba` is settled and no longer in scope here**: it lives beside
       `Appearance` in `Spark.Api` (`E5`), because the kernel carries no appearance.
-- [ ] **Settle the past-participle naming rule and apply it.**
-      [DYNAMO-COVERAGE §4](DYNAMO-COVERAGE.md#member-names-we-will-not-copy) asked for exactly
-      this *before curves arrived and multiplied the surface by five*, and half of it happened:
-      the curve layer follows the rule — `Reversed`, `Trimmed`, `TransformedBy` — and three older
-      members still do not. `Plane.Flip`, `BoundingBox.Inflate` and `Interval.Expand` all read as
-      imperatives and all return new values. Nineteen call sites; all three are unshipped, so the
-      rename is free today and an ADR-0019 change-control question the day after 1.0.
+- [x] **Settle the past-participle naming rule and apply it** — `E2-T49`, done 2026-08-29.
+      `Plane.Flip` → `Flipped`, `BoundingBox.Inflate` → `Inflated`, `Interval.Expand` → `Expanded`,
+      across twelve call sites, the public-API baseline and a worked example in `docs/help/`. **The
+      rule now lives in `NamespaceDoc.cs` rather than in a survey document**, so it binds every type
+      added after it instead of having to be remembered — which is the half of this item that was
+      worth more than the rename. Free today because nothing is shipped and the compiler finds every
+      call site; an ADR-0019 change-control question the day after 1.0.
 - [ ] Extract `RayCaster.cs` and its BVH — `E2-T15`. The highest-value file in C2VGeometry, and
       it pays for itself three times over across mesh booleans, viewport picking and intersection
       seeding. **`Curve.ClosestPoint` is now waiting on it too.**

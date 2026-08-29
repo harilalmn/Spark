@@ -308,8 +308,8 @@ public sealed class ValueLayerProperties
         {
             Plane plane = scene.Plane;
 
-            Assert.True(plane.IsCoplanar(plane.Flip(), scene.PositionTolerance));
-            Assert.True(plane.Flip().Normal.EqualsWithin(-plane.Normal, GeometryGenerators.Dimensionless));
+            Assert.True(plane.IsCoplanar(plane.Flipped(), scene.PositionTolerance));
+            Assert.True(plane.Flipped().Normal.EqualsWithin(-plane.Normal, GeometryGenerators.Dimensionless));
         });
     }
 

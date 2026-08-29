@@ -25,7 +25,7 @@ namespace Spark.Geometry;
 /// <para>
 /// The members that throw on <c>default</c> are every geometric query and construction:
 /// <see cref="DistanceTo(in Point3d)"/>, <see cref="ClosestPoint(in Point3d)"/>,
-/// <see cref="Project(in Vector3d)"/>, <see cref="Flip"/>, <see cref="To2d(in Point3d)"/>,
+/// <see cref="Project(in Vector3d)"/>, <see cref="Flipped"/>, <see cref="To2d(in Point3d)"/>,
 /// <see cref="To3d(in Point2d)"/>, <see cref="Contains(in Point3d, in Tolerance)"/> and
 /// <see cref="IsCoplanar(in Plane, in Tolerance)"/>. Equality, hashing, formatting and
 /// <see cref="IsValid"/> work on any value, including <c>default</c>, because their job is
@@ -322,7 +322,7 @@ public readonly struct Plane : IEquatable<Plane>
     /// Thrown when this plane is not valid, which for a <c>readonly struct</c> means a
     /// default-constructed one.
     /// </exception>
-    public Plane Flip()
+    public Plane Flipped()
     {
         ThrowIfInvalid();
 
@@ -415,7 +415,7 @@ public readonly struct Plane : IEquatable<Plane>
     /// <returns>
     /// <see langword="true"/> when the two normals are parallel within the angular tolerance
     /// and the other plane's origin lies on this plane within the linear tolerance.
-    /// <b>Direction is ignored</b>: a plane and its <see cref="Flip"/> are coplanar, and the
+    /// <b>Direction is ignored</b>: a plane and its <see cref="Flipped"/> are coplanar, and the
     /// in-plane axes play no part at all.
     /// </returns>
     /// <exception cref="InvalidOperationException">

@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes `Spark.Geometry`'s value layer, which exists and is tested.
 **Owner:** `geometry-kernel`
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 
 > **Scope.** This page covers `Spark.Geometry`'s **value layer** — points, vectors, planes,
 > transforms, intervals, boxes, angles and tolerances. Curves now exist too and have a page of
@@ -159,7 +159,7 @@ Plane wall = Plane.ByThreePoints(
 
 Vector3d facing = wall.Normal;                          // (0, −1, 0)
 double side = wall.DistanceTo(new Point3d(0.0, 1.0, 0.0)); // −1: one unit behind the wall
-Plane turned = wall.Flip();                             // same plane, normal reversed
+Plane turned = wall.Flipped();                          // same plane, normal reversed
 ```
 
 Three collinear or coincident points define no unique plane, and `ByThreePoints` throws

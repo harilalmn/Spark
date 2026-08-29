@@ -257,7 +257,7 @@ public readonly struct Interval : IEquatable<Interval>
     }
 
     /// <summary>
-    /// Grows the interval by the same amount at each end.
+    /// Returns the interval grown by the same amount at each end.
     /// </summary>
     /// <param name="amount">
     /// The amount to move each bound outwards. A negative amount shrinks the interval, and
@@ -268,7 +268,7 @@ public readonly struct Interval : IEquatable<Interval>
     /// The expanded interval, based on this interval's increasing form and therefore always
     /// returned in increasing order unless the shrink was large enough to invert it.
     /// </returns>
-    public Interval Expand(double amount)
+    public Interval Expanded(double amount)
     {
         Interval increasing = MakeIncreasing();
 

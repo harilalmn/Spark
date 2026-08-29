@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-29 18:05 +0530
+**Last updated:** 2026-08-29 18:40 +0530
 **Protocol version:** 1
 
 ---
@@ -17,13 +17,13 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | M1 — geometry core, finishing it |
-| **Working on** | Nothing. Between steps, **awaiting the go-ahead to start the run.** |
+| **Working on** | Nothing. Between steps. |
 | **Step status** | `CLEAN` |
-| **Last commit** | `96c3e99` — Make an interrupted session cheap: a write-ahead development journal |
+| **Last commit** | *(this step's commit — see `git log -1`)* |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | Take queue item **1**, the past-participle rename. **It has been scouted, so do not re-grep:** `Plane.Flip()` is defined at `src/Spark.Geometry/Plane.cs:325` and referenced in its own XML docs at lines 28 and 418; `BoundingBox.Inflate` is two overloads at `BoundingBox.cs:321` and `:333`; `Interval.Expand` is at `Interval.cs:271`. Call sites outside the definitions: `Curve.cs:533`, and eleven in `Spark.Geometry.Tests` and `Spark.Geometry.Properties`. Four lines in `PublicAPI.Unshipped.txt` (31, 32, 86, 110). **`Rect.Inflate` in `Spark.UI/Controls/GraphCanvas.cs` is Avalonia's and must not be touched.** Documents to follow: [DYNAMO-COVERAGE §4](DYNAMO-COVERAGE.md#member-names-we-will-not-copy) (which also asks for the convention to be written into `NamespaceDoc.cs`), the `E2-T3` and `E2-T6` rows in [TASKS.md](TASKS.md), and the item in [TODO.md](TODO.md). |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror` must be clean — a missed call site is a compile error, which is what makes this rename safe; then the per-project test executables (952) and `dotnet format`. |
-| **Blocked on** | Nothing technical. Paused deliberately: the marathon was set up and reported before starting, at the user's request. |
+| **Next action** | Take queue item **2**, `E2-T40`'s three value-layer parity gaps: `BoundingBox.Intersection` (the nullable box-against-box counterpart to `Interval.Intersect`, which already exists and is the shape to copy), `Plane.Offset(double)` and `Plane.ByOriginNormalXAxis(...)`. All three are omissions rather than design differences — [DYNAMO-COVERAGE §3.1](DYNAMO-COVERAGE.md#31-values-and-frames--6-types-133-members-92-reachable) enumerates them with the 38 others that are *not* being added. Each needs an XML doc comment, a `PublicAPI.Unshipped.txt` line, example-based tests, and a look at whether a CsCheck property is warranted. **Follow `Interval.Intersect`'s existing nullable-return convention rather than inventing one.** |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project test executables (952 before this step), `dotnet format`. A new public member with no baseline line is an RS0016 build error, so the baseline cannot be forgotten. |
+| **Blocked on** | Nothing. |
 
 **Step status vocabulary**, and it means exactly this:
 
@@ -105,8 +105,8 @@ the two disagree.**
 
 | # | Item | Rows | Size | State |
 |---|---|---|---|---|
-| 1 | **The past-participle naming rule**, applied. `Plane.Flip` → `Flipped`, `BoundingBox.Inflate` → `Inflated`, `Interval.Expand` → `Expanded`, ~19 call sites | `E2-T40`-adjacent, [DYNAMO-COVERAGE §4](DYNAMO-COVERAGE.md#member-names-we-will-not-copy) | S | **Next** |
-| 2 | **The three value-layer parity gaps** — `BoundingBox.Intersection`, `Plane.Offset`, `Plane.ByOriginNormalXAxis` | `E2-T40` | S | Open |
+| 1 | ~~The past-participle naming rule, applied~~ | `E2-T49` | S | **Done** 2026-08-29 |
+| 2 | **The three value-layer parity gaps** — `BoundingBox.Intersection`, `Plane.Offset`, `Plane.ByOriginNormalXAxis` | `E2-T40` | S | **Next** |
 | 3 | **`Quaternion`** — the last piece of the value layer | `E2-T1` | M | Open |
 | 4 | **`RayCaster` and its BVH** — pays for itself across mesh booleans, viewport picking, intersection seeding, and `Curve.ClosestPoint` waits on it | `E2-T15` | L | Open |
 | 5 | **Geometry serialization v1 and the reflection-driven round-trip test** — get it in before there are twenty types to retrofit it onto; there are nineteen | `E2-T29`, `E2-T31` | M | Open |
@@ -155,3 +155,37 @@ action — and then the run was paused before any code changed. Rolling *Current
 `CLEAN` was a two-line edit, and the scouting the write-ahead had already produced was kept in
 *Next action* rather than thrown away, so the next session starts item 1 without repeating the
 search. That is the shape a real interruption should have.
+
+### 2026-08-29 — Queue 1: the past-participle naming rule (`E2-T49`)
+
+**What.** `Plane.Flip` → `Flipped`, `BoundingBox.Inflate` → `Inflated` (both overloads),
+`Interval.Expand` → `Expanded`. Twelve call sites across `Spark.Geometry`,
+`Spark.Geometry.Tests` and `Spark.Geometry.Properties`; four lines in
+`PublicAPI.Unshipped.txt`; and — the one a grep of `src/` would have missed — **a worked
+example in `docs/help/concepts/geometry-basics.md`**, which the standing documentation
+instruction is precisely there to catch.
+
+**The part worth more than the rename.** The rule is now a paragraph in `NamespaceDoc.cs`: a
+member that returns a new value is named for the **result**, never for the act. It was living in
+[DYNAMO-COVERAGE §4](DYNAMO-COVERAGE.md#member-names-we-will-not-copy), which is a survey of
+somebody else's API and not where anybody looks before adding a member. In `NamespaceDoc` it
+binds every type added afterwards.
+
+**Verified.** `dotnet build Spark.slnx --no-incremental -warnaserror` clean; **952 tests, 0
+failures** across seven projects, unchanged from before, which is the correct result for a rename;
+`dotnet format` clean; the docs harness green. **The compiler is the verification here** — a
+missed call site is a build error — and AGENTS.md step 7, revert-and-watch-a-test-go-red, does
+not apply because nothing behavioural changed. Saying so beats silently skipping it.
+
+**Cost.** Under an hour, and the reason to spend it now rather than later is that it is the one
+piece of work in the queue that gets strictly more expensive with every type added, and free while
+nothing is shipped.
+
+**Two things noticed in passing, neither acted on.** `Interval.MakeIncreasing()` reads as an
+imperative too; DYNAMO-COVERAGE §4 explicitly counts it as following the rule, so it was left
+alone rather than quietly widening the step. And `Rect.Inflate` in
+`src/Spark.UI/Controls/GraphCanvas.cs` is **Avalonia's**, not ours, and must never be swept up in
+a rename like this one — it is called six times there.
+
+**Run parameters, decided by the user before the run started:** report at the end of each **queue
+item** rather than each step; **M1.6 stays deferred** while this machine has no C++ toolchain.

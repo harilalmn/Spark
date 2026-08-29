@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -539,13 +539,17 @@ Dynamo, so the semantics are already right; only the names read as in-place edit
 convention is the past participle or an explicit `Try*`: `Repaired()`, `Reduced(n)`,
 `Smoothed(scale)`.
 
-**And a finding about our own code, since this document had to check it.** `Spark.Geometry`
-is not yet consistent about this. `Vector3d.Normalised()`, `Interval.Reversed()` and
-`Interval.MakeIncreasing()` follow the rule; `Plane.Flip()`, `BoundingBox.Inflate()` and
-`Interval.Expand()` do not — all three read as imperatives and all three return new values.
-This is not a defect and none of them is ambiguous in practice, but the convention should be
-settled and written into `NamespaceDoc` before curves arrive and multiply the surface by five.
-Raised here because this document is the first thing to read both APIs side by side.
+**And a finding about our own code, since this document had to check it — now closed.** When
+this section was written, `Vector3d.Normalised()`, `Interval.Reversed()` and
+`Interval.MakeIncreasing()` followed the rule while `Plane.Flip()`, `BoundingBox.Inflate()` and
+`Interval.Expand()` did not: all three read as imperatives and all three returned new values.
+**They are now `Flipped()`, `Inflated()` and `Expanded()`** (`E2-T49`, 2026-08-29), and the
+convention itself is written into `NamespaceDoc` where it binds every type added afterwards
+rather than living in a survey document. It asked to be settled *before curves arrived and
+multiplied the surface by five*; that timing was missed — the curve layer landed first and
+followed the rule anyway — but the rename was still free, because nothing is shipped and the
+compiler finds every call site. **The day after 1.0 it would have been an
+[ADR-0019](adr/0019-deliberate-public-api-change-control.md) change-control question instead.**
 
 ---
 

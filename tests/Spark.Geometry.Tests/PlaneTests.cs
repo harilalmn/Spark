@@ -183,7 +183,7 @@ public sealed class PlaneTests
     [Fact]
     public void FlippingReversesTheNormalAndKeepsTheFrameRightHanded()
     {
-        Plane flipped = Plane.WorldXY.Flip();
+        Plane flipped = Plane.WorldXY.Flipped();
 
         Assert.True(flipped.Normal.EqualsWithin(-Vector3d.ZAxis));
         AssertRightHanded(flipped);
@@ -223,7 +223,7 @@ public sealed class PlaneTests
         Plane shifted = Plane.ByOriginNormal(new Point3d(50.0, -20.0, 0.0), Vector3d.ZAxis);
 
         Assert.True(plane.IsCoplanar(shifted));
-        Assert.True(plane.IsCoplanar(plane.Flip()));
+        Assert.True(plane.IsCoplanar(plane.Flipped()));
         Assert.False(plane.IsCoplanar(Plane.ByOriginNormal(new Point3d(0.0, 0.0, 1.0), Vector3d.ZAxis)));
         Assert.False(plane.IsCoplanar(Plane.WorldYZ));
     }
