@@ -5,7 +5,7 @@ now*; **Log** is how it got there. Everything else in `docs/` says what the prod
 this file says what is happening.
 
 **Last updated:** 2026-08-29 18:40 +0530
-**Protocol version:** 1
+**Protocol version:** 2
 
 ---
 
@@ -19,7 +19,7 @@ this file says what is happening.
 | **Milestone** | M1 — geometry core, finishing it |
 | **Working on** | Nothing. Between steps. |
 | **Step status** | `CLEAN` |
-| **Last commit** | *(this step's commit — see `git log -1`)* |
+| **Last completed step** | Queue **1** — the past-participle naming rule (`E2-T49`). Its commit is whatever `git log -1` says; this file does not record its own hash, for the reason in the log entry below. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
 | **Next action** | Take queue item **2**, `E2-T40`'s three value-layer parity gaps: `BoundingBox.Intersection` (the nullable box-against-box counterpart to `Interval.Intersect`, which already exists and is the shape to copy), `Plane.Offset(double)` and `Plane.ByOriginNormalXAxis(...)`. All three are omissions rather than design differences — [DYNAMO-COVERAGE §3.1](DYNAMO-COVERAGE.md#31-values-and-frames--6-types-133-members-92-reachable) enumerates them with the 38 others that are *not* being added. Each needs an XML doc comment, a `PublicAPI.Unshipped.txt` line, example-based tests, and a look at whether a CsCheck property is warranted. **Follow `Interval.Intersect`'s existing nullable-return convention rather than inventing one.** |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project test executables (952 before this step), `dotnet format`. A new public member with no baseline line is an RS0016 build error, so the baseline cannot be forgotten. |
@@ -60,6 +60,11 @@ hurried session skips.
    committing, so the commit contains a journal that is already true.
 9. **Commit and push.** `git commit -s`, work and documents and journal together, message naming
    the task IDs. Push, so the checkpoint survives the machine.
+
+**The journal never records its own commit hash.** *Last completed step* names the step, and
+`git log -1` supplies the hash — a journal committed *with* the work cannot contain the hash of
+the commit that contains it. Protocol v1 tried, and the correction is v2. Naming the step is
+also the more useful half: a hash tells a resumer where, a step name tells them what.
 
 **The invariant:** at any instant, either the tree is clean and the journal says `CLEAN`, or the
 journal names exactly what is half-done. There is no third state, and producing one is the only
@@ -189,3 +194,20 @@ a rename like this one — it is called six times there.
 
 **Run parameters, decided by the user before the run started:** report at the end of each **queue
 item** rather than each step; **M1.6 stays deferred** while this machine has no C++ toolchain.
+
+### 2026-08-29 — Protocol v2: a journal cannot record its own hash
+
+**What.** *Current state* recorded a **Last commit** hash, and the first real step showed that it
+cannot: the journal is committed together with the work, so the hash of that commit does not exist
+until after the journal is written. Filling it afterwards needs a second commit or an amend, and an
+amend changes the hash again.
+
+**Fixed by deleting the requirement rather than working around it.** The row is now **Last
+completed step**, which names the step; `git log -1` supplies the hash, and a resuming session runs
+that anyway as protocol step 1. The step name is the more useful half in any case — a hash says
+where the work stopped, a name says what it was.
+
+**Worth noticing about how it was found.** The protocol survived being written, reviewed and
+committed, and failed on its first genuine use. That is the same lesson N28 records about the
+native-binary check: proven to detect is not proven to run, and a procedure's first real execution
+is part of adding it.
