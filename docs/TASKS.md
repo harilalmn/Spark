@@ -10,6 +10,13 @@ order for what to do next is in [TODO.md](TODO.md); the requirements behind them
 **Summary:** 92 done · 17 in progress · 148 open · 9 withdrawn — **266 rows**
 *(the previous revision's open count was 147 by arithmetic and 148 by the register; the register was right, and the four columns now add up to the total again.)*
 
+**This revision also writes M1.6's pass/fail criteria, which is the one part of the largest
+unstarted piece of work that could be done before starting it.** Nine criteria,
+[below](#m16--the-passfail-criteria-written-before-the-spike) under `E13`, each carrying **what a
+failure would mean** — settled now, while nobody has a result to defend. No row changes status for
+it: `E13-T1` is still `Open`, because the spike has not been taken and writing down how it will be
+judged is not the same as taking it.
+
 **This revision turns three measurements into three guards.** `bench/Spark.Benchmarks` and the
 application's `--canvas-benchmark` have produced numbers since `ab2f37e`, and nothing compared them to
 anything, so nothing could go red. A nightly workflow now runs both against budgets committed in
@@ -488,6 +495,77 @@ context is [EPICS.md E13](EPICS.md#e13--occt-provider); the decisions are
 [ADR-0020](adr/0020-occt-via-c-abi-shim.md) and
 [ADR-0021](adr/0021-brep-kernel-residency.md).
 
+### M1.6 — the pass/fail criteria, written before the spike
+
+**M1.6 gates [ADR-0020](adr/0020-occt-via-c-abi-shim.md) the way M1.5 gated
+[ADR-0001](adr/0001-avalonia-not-wpf.md).** Two weeks, throwaway scaffolding, and its job is to
+build OCCT from a pinned tag on both operating systems, drive one boolean end to end through a
+minimal shim, and **measure the things nobody has measured**. It is written here rather than in
+[EPICS](EPICS.md#e13--occt-provider) because a criterion is a task-register fact: it has a date, an
+owner and an outcome.
+
+**The part that actually needs deciding beforehand is what a *failure* means**, and it is the part
+a spike run without criteria never gets. M1.5 is this project's own evidence that the rule works:
+its bets were stated first, one of spike (b)'s three measurements failed, and the failure was
+**diagnosed** — a drop-shadow blur threshold between 81% and 83% zoom — rather than argued away or
+quietly rounded into a pass. Nobody had to decide in the moment whether 57 fps counted, because
+that had been settled while nobody had a result to defend.
+
+**The bars below are judgements, not measurements, and the moment to argue with them is now.**
+Several are round numbers chosen for being defensible rather than derived, and each says which it
+is. Arguing one down after the spike has produced a number against it is the failure mode this
+whole section exists to prevent.
+
+**What the spike builds.** A vcpkg manifest pinning OCCT 8.0.1 and a baseline; a `native/spark_occt/`
+containing the smallest shim that can carry one boolean and one materialisation; a
+`Spark.Geometry.Occt` with nothing in it but `LibraryImport` declarations and enough marshalling to
+call them; and a harness that runs the measurements below. **The manifest and the build recipe are
+kept. Everything else is deleted**, in the M1.5 sense — the shim written here is a probe, not the
+first 2% of `E13-T2`.
+
+| # | The criterion | How it is measured | Pass | What a failure means |
+|---|---|---|---|---|
+| **M1.6-C1** | **OCCT builds from a pinned tag through a vcpkg manifest, from clean, on Windows *and* Linux** | Two from-clean builds, wall-clock recorded, with the exact `(occt-tag, vcpkg-baseline, triplet)` written down and the resulting artefact weighed | Both succeed and are reproducible from the recorded key alone | **Reopens the *packaging* half of ADR-0020 and nothing else.** The fallbacks are CMake from source without vcpkg, or prebuilt upstream binaries; both cost `E13-T15` its cache design and neither touches the choice of engine. **Budget it at two days of effort per operating system** — beyond that the vcpkg route is the wrong route, which is a finding rather than a defeat |
+| **M1.6-C2** | **One boolean runs end to end**: managed call → `LibraryImport` → `spark_occt` → OCCT → shape back | A box minus a cylinder, on both operating systems, with the result's volume compared against the analytic value; and **a deliberate `throw` inside the entry point, to watch `catch(...)` hold** | Volume matches analytically to a relative 1e-9, on both; the deliberate throw returns an error code rather than crossing into managed frames | **This is the one criterion whose failure reopens ADR-0020 itself** — specifically the binding half. The alternatives it would send us back to are C++/CLI, which is Windows-only and reverses **D1**, and a third-party binding, which was rejected on auditability. Neither is attractive, which is exactly why this is measured in week one and not week two |
+| **M1.6-C3** | **The per-RID binary footprint is measured rather than bracketed** | Weigh the shipped payload for `win-x64` and `linux-x64`: full build, and again with Visualization excluded. Uncompressed, counting only what the installer would actually carry | **Measured and recorded, replacing [R15](PRD.md#12-risks)'s 40–160 MB bracket.** A number cannot fail this row — not taking it can | **A number over 100 MB uncompressed on `win-x64` reopens "OCCT ships in the default install"**, which is currently forced by **FR-81** and is a client-facing trade rather than an engineering one. `50a9935` expects **55–70 MB** ([the packaging survey](reference/occt-packaging-practice.md)); a measurement far outside that means the survey's per-toolkit arithmetic is wrong and `E13-T17` inherits a bigger problem than it is scoped for |
+| **M1.6-C4** | **What a `Materialise` costs on a realistic shape** — [ADR-0021](adr/0021-brep-kernel-residency.md)'s entire rule rests on it being paid once | Build a ten-operation chain ending in a fillet or a shell, on a shape of **500–1 000 faces**; time the chain, then time one materialisation of its result. Report **both the absolute cost and the ratio** | Ratio **≤ 1** and absolute **≤ 250 ms**. The ratio is the honest half — it survives a change of machine, exactly as [N29](NOTES.md) argues — and 250 ms is a judgement about what feels interactive, not a measurement | **Between 1x and 5x: ADR-0021 is right and load-bearing**, and the lazy rule is the only thing making a chain affordable — record it and move on. **Above 5x, or above one second absolute: ADR-0021 is revisited**, because a rule whose cost is paid once is no comfort when once is too expensive. That revisit is caching the materialised model, or materialising partially, and it is a decision rather than a tweak |
+| **M1.6-C5** | **A first read on OCCT's thread-safety envelope** ([Q14](PRD.md#14-open-questions), [R20](PRD.md#12-risks)) | Read the upstream source of the specific packages the shim calls, **and** stress the shim from `ParallelEvaluationScheduler` at the machine's real thread count on a replication-shaped workload | **A written rule with evidence behind it** — what may be called concurrently, at what granularity, and how we know. Not a verdict of "safe" | **Only "we did not look" fails this row.** A bad answer is a finding: the fallback is the conservative single-writer policy ADR-0020 names, and **that fallback does not exist today** — `ParallelEvaluationScheduler` sets no `MaxDegreeOfParallelism` at all, so a cap is unbuilt work that would land on `E3-T11`. A crash under concurrency is a result, not a failure of the spike |
+| **M1.6-C6** | **Whether `ShapeFix` can be constrained to a policy we choose** | Configure it against a shape that needs healing and see what it refuses to leave alone; read the upstream source where configuration is unclear | A yes or a no, with the evidence | **Either answer passes; only not asking fails.** If it *can* be constrained, ADR-0021's drift argument weakens and **that record's framing should be revisited**, which its own Notes already anticipate. If it cannot, the framing is right and `E13-T10`'s policy row is the substance it claims to be |
+| **M1.6-C7** | **Whether excluding the Visualization module drops the FreeType dependency** — ADR-0020's open item 2 | Configure a build with Visualization off and inspect the resulting link | Answered from the link, not from documentation | A finding either way. It feeds **C3**'s trimmed measurement and `E13-T17`; nothing is reopened by either answer |
+| **M1.6-C8** | **Whether STEP can be used without pulling in XCAF** — ADR-0020's open item 3 | Attempt a `STEPControl`-only read and write and see what the linker demands | Answered from the linker | A finding either way, and it feeds **C3** and `E13-T12`. If XCAF is unavoidable, the payload grows and the AP242 assembly/colour/name story gets *better*, which is an odd shape for a bad answer to have |
+| **M1.6-C9** | **`E13-T3` re-estimated on evidence** — shape lifetime, the handle table and the native memory budget | Whatever C2 and C4 forced the spike to learn about handles and lifetime, converted into an estimate with its basis stated | The 2–4 week bracket is replaced by a number with a reason, or is **explicitly reaffirmed as still unknown** | Reaffirming the bracket is a pass. Quietly leaving it at 2–4 weeks while having learnt something is the failure, because the next person reads a stale bracket as a considered one |
+
+**The three kinds of failure, so they are not treated alike.** **C2** reopens a decision — it is the
+only row that can, and it reopens the binding rather than the engine. **C1, C3 and C4** change the
+plan without changing the decision: a different build route, a different distribution shape, a
+different residency rule. **C5 through C9** cannot fail on their answers at all, only on not being
+attempted; they are the rows where the spike is buying information rather than confirming a bet.
+
+**What must not count as a failure**, because ADR-0020 has already accepted it and paid for it:
+that OCCT is hard to debug across the boundary (**R16**), that upgrades are slow (**R17**), that its
+booleans have numerical failure modes (**R18**), or that it is poor at mesh booleans. Discovering
+any of those again at M1.6 is a rediscovery, not a result, and none of them reopens anything.
+
+**What M1.6 explicitly does not answer.** Two of ADR-0020's seven open items are not build
+questions and cannot be settled by a spike: **the counsel question** — whether `spark_occt` is a
+work that uses the Library or a derivative work under §5 — and **whether `OcctNet.Wrapper` has a
+source repository at all**. The first goes to counsel ([Q13](PRD.md#14-open-questions), items 1 and
+3 before M6); the second goes to a publisher. Neither belongs on a spike's critical path, and
+neither should be reported as "not done" afterwards.
+
+**The stop rule, and the priority order if two weeks runs out.** **C1, C2 and C3 are the gate** and
+must land; **C5's first read** matters most of what remains, because `R20` is a top-three risk and
+`M6` needs the answer rather than the reading. C4, C6, C7, C8 and C9 are next, in that order. **A
+spike that overruns is stopped and reported at whatever it reached**, with the unanswered rows named
+— extending it converts a de-risk exercise into the beginning of the implementation, which is the
+one thing a throwaway spike must not become.
+
+**Who decides.** The engineering outcomes are settled by the measurements above. **A failure that
+moves scope or cost — C2's binding, or C3 forcing OCCT out of the default install — is the client's
+decision, not the spike's**, and the spike's job is to hand over a measured number and the named
+alternatives rather than a recommendation dressed as a result.
+
+
 **About the estimates.** The column below totals **24.5 weeks at the low end of every range**,
 which is where the epic's headline figure of *roughly 24 weeks* comes from. `E13-T3` is the one
 row carrying a genuine range rather than an estimate and `E13-T14` carries an explicit unknown,
@@ -499,7 +577,7 @@ measurements.**
 
 | ID | Task | Est | Status | Notes |
 |---|---|---|---|---|
-| E13-T1 | **M1.6 de-risk spike: OCCT built and driven end to end** | 2 wk | Open | **The gate on ADR-0020, and it gates it the way M1.5 gates ADR-0001.** Build OCCT 8.0.1 from a pinned tag through a vcpkg manifest on Windows **and** Linux; expose one boolean through a minimal `spark_occt`; call it from `LibraryImport` and get a shape back. **Four of the seven open questions are answered here or nowhere:** the real per-RID binary footprint (currently bracketed **40–160 MB uncompressed and unmeasured**, [R15](PRD.md#12-risks)); whether excluding the Visualization module drops FreeType; whether STEP can be used without pulling in XCAF; and the first honest read on OCCT's threading envelope ([Q14](PRD.md#14-open-questions), [R20](PRD.md#12-risks)). Also measure what a `Materialise` costs on a realistic shape, since ADR-0021's whole rule rests on it being paid once, and find out whether `ShapeFix` can be constrained to a policy we choose. **Throwaway in the M1.5 sense only for the spike scaffolding** — the vcpkg manifest and the build recipe are kept |
+| E13-T1 | **M1.6 de-risk spike: OCCT built and driven end to end** | 2 wk | Open | **Its pass/fail criteria are written — [above](#m16--the-passfail-criteria-written-before-the-spike), nine of them, `M1.6-C1` … `M1.6-C9`, each with what a failure would mean decided in advance.** That was the half of this row that could be done before the spike, and it landed on 2026-08-29; the spike itself has not been taken. **The gate on ADR-0020, and it gates it the way M1.5 gates ADR-0001.** Build OCCT 8.0.1 from a pinned tag through a vcpkg manifest on Windows **and** Linux; expose one boolean through a minimal `spark_occt`; call it from `LibraryImport` and get a shape back. **Four of the seven open questions are answered here or nowhere:** the real per-RID binary footprint (currently bracketed **40–160 MB uncompressed and unmeasured**, [R15](PRD.md#12-risks)); whether excluding the Visualization module drops FreeType; whether STEP can be used without pulling in XCAF; and the first honest read on OCCT's threading envelope ([Q14](PRD.md#14-open-questions), [R20](PRD.md#12-risks)). Also measure what a `Materialise` costs on a realistic shape, since ADR-0021's whole rule rests on it being paid once, and find out whether `ShapeFix` can be constrained to a policy we choose. **Throwaway in the M1.5 sense only for the spike scaffolding** — the vcpkg manifest and the build recipe are kept |
 | E13-T2 | `native/spark_occt` skeleton: C ABI conventions, error model, entry-point discipline | 2 wk | Open | C++, **MIT, ours**, in `native/spark_occt/`. The shape of every entry point decided once and applied uniformly: opaque handles, out-parameters, an integer status, no C++ types in the signature, no exceptions crossing. **`catch(...)` in every single entry point** and `OSD::SetSignal(false)` at initialisation, because a C++ exception unwinding into a managed frame is undefined behaviour and OCCT installs signal handlers that fight the CLR's ([R19](PRD.md#12-risks)). Target an order of **350–500 exported entry points** over roughly 2–3% of OCCT's class surface — calibrated against `opencascade-rs`, which declares 538 for a comparable job. **The small surface is the upgrade strategy**, not an aesthetic preference ([R17](PRD.md#12-risks)) |
 | E13-T3 | Shape lifetime, the handle table, and the native memory budget | 2–4 wk | Open | **The row whose real cost nobody knows, and it is recorded as a range rather than an estimate.** A `Brep` stops being a pure value and carries a finalizable native resource: lifetime, disposal, finaliser ordering, and shapes outliving the provider that made them. The budget half is a requirement rather than a nicety — **[NFR-4](PRD.md#7-non-functional-requirements) is wrong as originally specified**, because an LRU evicting by estimated *managed* size cannot see native bytes, so a graph holding 200 cached `Brep`s may hold gigabytes of OCCT heap while reporting megabytes. The shim **reports** a native budget; nothing infers one. M1.6 produces the first estimate worth trusting |
 | E13-T4 | `Spark.Geometry.Occt`, the `LibraryImport` layer, and the two architecture tests that bound it | 1 wk | Open | A new managed project implementing `IBrepKernel`. **Two build-policy conflicts, both real, both small, and both resolved by adding rather than relaxing.** (1) `AllowUnsafeBlocks=false` is repository policy ([NFR-15](PRD.md#7-non-functional-requirements)) and the `LibraryImport` source generator *emits* unsafe code and requires it true: keep the default `false`, opt in **for this project only** with a comment naming ADR-0020, and add an architecture test asserting it is the **only** project doing so. (2) `SparkGeometryTakesNoThirdPartyDependencyBeyondClipper` **stays exactly as it is** and gains a **companion** rule asserting `Spark.Geometry.Occt` is referenced only by composition roots. **Relaxing either test would be the wrong repair** ([NFR-5b](PRD.md#7-non-functional-requirements)) |

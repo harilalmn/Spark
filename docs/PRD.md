@@ -429,7 +429,7 @@ is what makes a multi-year effort directed by one person survivable. Sizes are e
 | **M0** | Foundations and docs | CI green on GitHub over an empty solution; the architecture and documentation gates passing; `docs/` renders | 1–2 wk |
 | **M1** | Geometry core | ~500 passing tests; `spark` writes an OBJ polyline a third-party viewer opens | 3–4 wk |
 | **M1.5** | De-risk spike — **throwaway, deleted afterwards** | A go/no-go on three architectural bets | 1 wk |
-| **M1.6** | **OCCT de-risk spike** — new, and it gates ADR-0020 the way M1.5 gates ADR-0001 | OCCT built from a pinned tag via vcpkg on Windows **and** Linux; one boolean driven through a minimal `spark_occt` and `LibraryImport`; **the per-RID binary footprint measured rather than bracketed** | 2 wk |
+| **M1.6** | **OCCT de-risk spike** — new, and it gates ADR-0020 the way M1.5 gates ADR-0001 | OCCT built from a pinned tag via vcpkg on Windows **and** Linux; one boolean driven through a minimal `spark_occt` and `LibraryImport`; **the per-RID binary footprint measured rather than bracketed**. Judged against nine criteria written **before** the spike — `M1.6-C1` … `M1.6-C9` in [TASKS.md](TASKS.md#m16--the-passfail-criteria-written-before-the-spike) — each carrying what a failure would mean, and only one of which can reopen [ADR-0020](adr/0020-occt-via-c-abi-shim.md) | 2 wk |
 | **M2** | Walking skeleton and lacing | **Drag two nodes, wire them, see geometry in the viewport — and it laces over lists** | 10–12 wk |
 | **M3** | NURBS curves | A real parametric curve graph | 6 wk |
 | **M4** | C# code block | **Type C# in a node and get IntelliSense that knows the type on the incoming wire; drag a slider and watch it recompute live** | 5 wk |

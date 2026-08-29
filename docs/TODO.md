@@ -51,6 +51,12 @@ what comparable projects actually ship: a full win-x64 OCCT build is 52.1 MiB ac
 toolkits plus 9.9 MiB of optional third-party libraries, so **R15's 40–160 MB bracket should be
 read as 55–70 MB** — but that is a survey, not a build.
 
+**As of 2026-08-29 the spike has criteria and still has no build.** Nine of them, `M1.6-C1` …
+`M1.6-C9` in [TASKS.md](TASKS.md#m16--the-passfail-criteria-written-before-the-spike), written
+ahead of the work rather than beside it, and each carrying what a failure would mean. The
+distinction they draw is the useful one: **exactly one criterion can reopen ADR-0020**, and it
+reopens the binding rather than the engine.
+
 **One row on this page came from using the product rather than from planning it**, and it is worth
 saying so where the plan lives: `E8-T18`, port type labels. Nothing in the PRD asked for them and
 nothing in EPICS was short without them. Somebody opened the application, put down a
@@ -60,7 +66,7 @@ for anything else.
 
 ---
 
-## Now — name the M1.6 criteria, and watch the first nightly
+## Now — take the M1.6 spike, and the last M1.5 one
 
 - [x] **Walk TASKS.md against E3, E4, E5, E8 and E9** — done, and it moved 41 rows. Ten of them
       came back **`In progress` rather than `Done`**, which is the useful output: the cache
@@ -109,17 +115,29 @@ for anything else.
       whether the wall-clock ceilings, set an order of magnitude above one laptop's numbers, are
       loose enough for a shared machine. `E8-T15` closes on the first green run, not before.
       [N28](NOTES.md) is why *proven to detect* and *proven to run* are different claims.
-- [ ] **Write the M1.6 pass/fail criteria into TASKS.md** — `E13-T1`. **M1.6 gates ADR-0020 the
-      way M1.5 gated ADR-0001**, and M1.5 is now evidence that the rule works: its criteria were
-      written first, one of the three measurements failed, and the failure was diagnosed — a
-      drop-shadow blur threshold — rather than argued away. At minimum: OCCT builds from a
-      pinned tag through a vcpkg manifest on Windows *and* Linux; one boolean runs end to end
-      through a minimal `spark_occt` and `LibraryImport`; the per-RID binary footprint is
-      **measured** against `50a9935`'s 55–70 MB expectation; a `Materialise` on a realistic
-      shape is timed, because ADR-0021's whole rule rests on it being paid once; and a first
-      read is taken on OCCT's threading envelope (`Q14`) and on whether `ShapeFix` can be
-      constrained to a policy we choose. What a *failure* would mean is the part that needs
-      deciding before the spike, not after it.
+- [x] **Write the M1.6 pass/fail criteria into TASKS.md** — `E13-T1`, done on 2026-08-29. Nine
+      criteria, `M1.6-C1` … `M1.6-C9`, in
+      [TASKS.md](TASKS.md#m16--the-passfail-criteria-written-before-the-spike). **The bars were the
+      easy half; what each failure would mean is the half that had to be settled while nobody had a
+      result to defend** — `M1.6-C2`, one boolean end to end, is the only criterion that can reopen
+      ADR-0020, and it reopens the binding rather than the engine; `C1`, `C3` and `C4` change the
+      plan without touching the decision; `C5` … `C9` cannot fail on their answers at all, only on
+      not being asked. It also writes down what must **not** count as a failure — OCCT being hard
+      to debug or slow to upgrade are costs ADR-0020 has already accepted — and the stop rule, since
+      a spike that overruns is stopped and reported rather than extended into the implementation.
+- [ ] **Take the M1.6 spike** — `E13-T1`, two weeks, and it is now the largest unstarted thing in
+      the project. Priority order if the two weeks run out: **`C1`, `C2` and `C3` are the gate** and
+      must land, then `C5`'s first read of the threading envelope, because `R20` is a top-three risk
+      and M6 needs the answer rather than the reading. The manifest and the build recipe are kept;
+      the shim written here is a probe and is deleted. **Two of ADR-0020's seven open items are not
+      on this critical path at all** — the counsel question and whether `OcctNet.Wrapper` has a
+      source repository — and neither should be reported as *not done* afterwards. The shape of the
+      work is unchanged: OCCT builds from a pinned tag through a vcpkg manifest on Windows *and*
+      Linux; one boolean runs end to end through a minimal `spark_occt` and `LibraryImport`; the
+      per-RID footprint is **measured** against `50a9935`'s 55–70 MB expectation; a `Materialise`
+      on a realistic shape is timed, because ADR-0021's whole rule rests on it being paid once; and
+      a first read is taken on the threading envelope (`Q14`) and on whether `ShapeFix` can be
+      constrained to a policy we choose.
 - [ ] **The third M1.5 spike is still outstanding** — `E11-T21`. AvaloniaEdit plus a Roslyn
       completion popup. It gates the M4 code block rather than anything M2 needs, which is why
       the other two were taken first, but it is the last unproven part of M1.5.

@@ -1120,7 +1120,11 @@ which goes from 14 weeks to **20–24**.
 
 - [ ] **M1.6 passes**: OCCT builds from a pinned tag through a vcpkg manifest on Windows *and*
       Linux, one boolean runs end to end through a minimal shim and `LibraryImport`, and the
-      per-RID binary footprint is **measured** rather than bracketed (**E13-T1**).
+      per-RID binary footprint is **measured** rather than bracketed (**E13-T1**). *The nine
+      criteria this is judged against are written down — `M1.6-C1` … `M1.6-C9`, in
+      [TASKS.md](TASKS.md#m16--the-passfail-criteria-written-before-the-spike), each with what a
+      failure would mean decided **before** anybody has a result to defend. Only `M1.6-C2` can
+      reopen ADR-0020, and it reopens the binding rather than the engine.*
 - [ ] The shim is **hand-written, MIT, and ours**, in `native/spark_occt/`, at an order of
       350–500 exported entry points over roughly 2–3% of OCCT's class surface. **No
       third-party binding is adopted** (**E13-T2**, [ADR-0020](adr/0020-occt-via-c-abi-shim.md)).
@@ -1170,3 +1174,13 @@ about it**, and M1.6 exists to answer the first four.
 **Status.** Not started. **Nothing of this epic exists in the tree** — there is no `native/`
 directory, no `Spark.Geometry.Occt` project and no OCCT anywhere. The decision is recorded; the
 work has not begun.
+
+**One thing that could be done before the work began has been.** M1.6's pass/fail criteria were
+written on 2026-08-29, ahead of the spike rather than alongside it
+([TASKS.md](TASKS.md#m16--the-passfail-criteria-written-before-the-spike)). Nine criteria, and the
+half that took the thinking is not the bars but **what each failure would mean**: which one
+reopens a decision, which change the plan without touching the decision, and which cannot fail on
+their answer at all but only on not being asked. It also names what must *not* count as a failure —
+OCCT being hard to debug or slow to upgrade are costs ADR-0020 already accepted — and what M1.6
+cannot answer, because two of the seven open items go to counsel and to a publisher rather than to
+a build.
