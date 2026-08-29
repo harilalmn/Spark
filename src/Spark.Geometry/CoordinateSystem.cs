@@ -74,7 +74,12 @@ public readonly struct CoordinateSystem : IEquatable<CoordinateSystem>
         ZAxis = z;
     }
 
-    private CoordinateSystem(in Point3d origin, in Vector3d xAxis, in Vector3d yAxis, in Vector3d zAxis)
+    // The only way to build a frame from axes that are ALREADY orthonormal, with no
+    // re-orthonormalisation on the way in. Internal rather than public for the reason
+    // Plane's counterpart is: a caller handing in four vectors that are not a right-handed
+    // orthonormal frame gets a value every other member assumes is one. Serialization needs
+    // it so that a frame read back from a file is bit-for-bit the frame that was written.
+    internal CoordinateSystem(in Point3d origin, in Vector3d xAxis, in Vector3d yAxis, in Vector3d zAxis)
     {
         Origin = origin;
         XAxis = xAxis;

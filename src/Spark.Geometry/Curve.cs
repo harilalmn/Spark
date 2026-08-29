@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Spark.Geometry;
 
@@ -40,12 +41,13 @@ namespace Spark.Geometry;
 /// <see cref="DivideByLength(double)"/>.
 /// </para>
 /// <para>
-/// <b>What this slice does not have, deliberately.</b> There is no closest-point query, no
-/// intersection, no offset and no projection; those need the ray caster and the planar layer, and
-/// they are M3 work. There is no value equality on curves either: two curves that draw the same
-/// path through different parameterisations are a tolerance question rather than an
-/// <see cref="object.Equals(object)"/> question, and answering it wrongly by default is worse than
-/// not answering it.
+/// <b>What this slice does not have, deliberately.</b> There is no intersection, no offset and no
+/// projection; those need the planar layer, and they are M3 work. The closest-point query has
+/// since arrived — <see cref="ClosestPoint(in Point3d, in Tolerance)"/> — because the thing it was
+/// waiting for, the bounding-volume hierarchy, now exists. There is no value equality on curves
+/// either: two curves that draw the same path through different parameterisations are a tolerance
+/// question rather than an <see cref="object.Equals(object)"/> question, and answering it wrongly
+/// by default is worse than not answering it.
 /// </para>
 /// </remarks>
 public abstract class Curve
@@ -85,6 +87,7 @@ public abstract class Curve
     private double _length = -1.0;
     private BoundingBox _boundingBox;
     private bool _boundingBoxComputed;
+    private ProximityIndex? _proximity;
 
     /// <summary>
     /// Creates the base part of a curve. It is <c>private protected</c> so that the curve hierarchy
@@ -449,6 +452,99 @@ public abstract class Curve
         return [.. points];
     }
 
+    /// <summary>
+    /// The parameter at the point on this curve closest to a given point.
+    /// </summary>
+    /// <param name="point">The point to approach.</param>
+    /// <param name="tolerance">
+    /// How closely the parameter is resolved. Only <see cref="Tolerance.Linear"/> is consulted,
+    /// and it is read as a distance <b>in space</b> rather than in parameter: the search stops
+    /// when a further step would move the point by less than this. That makes it a promise
+    /// about the answer rather than a hint, and it makes the same call resolve to the same
+    /// place on a curve a metre long and one a micron long. A default-constructed tolerance
+    /// means <see cref="Tolerance.Default"/>, whose linear component is 1e-6 — ask for less if
+    /// the answer feeds something that needs more.
+    /// </param>
+    /// <returns>A parameter in <see cref="Domain"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>There is one implementation and every curve type uses it.</b> The alternative — an
+    /// exact projection on <see cref="Line"/>, a plane-and-angle argument on
+    /// <see cref="Circle"/>, and a general search for the rest — is three pieces of code that
+    /// must agree at their boundaries, and they will not: a polycurve made of a line and an arc
+    /// would answer with one of them at a join and the other a parameter later. The general
+    /// path is exact on a line anyway, because a straight span's box is exact and the Newton
+    /// step lands in one iteration.
+    /// </para>
+    /// <para>
+    /// <b>Ties are real and the answer picks one.</b> The centre of a circle is equidistant
+    /// from every point on it; a point on the axis of a symmetric arc has two answers. No rule
+    /// for choosing is more correct than another, and this member does not pretend otherwise —
+    /// it returns whichever candidate the search reached first, which is stable for a given
+    /// curve and is <b>not</b> stable across a curve and its <see cref="Reversed"/>.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="point"/> is not finite.
+    /// </exception>
+    public double ParameterAtClosestPoint(in Point3d point, in Tolerance tolerance = default)
+    {
+        if (!point.IsValid)
+        {
+            throw new ArgumentException("A point must be finite.", nameof(point));
+        }
+
+        Point3d target = point;
+        Tolerance resolution = tolerance;
+        ProximityIndex index = Proximity();
+
+        // The search prunes on the distance to a span's box, and that is sound only because
+        // the box CONTAINS the span - see ProximityIndex. The narrow phase then returns the
+        // true distance to the span, which is never less than the distance to its box.
+        if (!index.Tree.TryFindNearest(
+                target,
+                span => target.DistanceTo(Evaluate(NearestOnSpan(target, index, span, resolution))),
+                out int nearest,
+                out _))
+        {
+            // Unreachable for a valid curve: the index always holds at least one span. Kept
+            // because returning a silently wrong parameter would be worse than a throw.
+            throw new InvalidOperationException("This curve has no spans to search.");
+        }
+
+        return NearestOnSpan(target, index, nearest, tolerance);
+    }
+
+    /// <summary>
+    /// The point on this curve closest to a given point.
+    /// </summary>
+    /// <param name="point">The point to approach.</param>
+    /// <param name="tolerance">
+    /// How closely the answer is resolved; only <see cref="Tolerance.Linear"/> is consulted. A
+    /// default-constructed tolerance means <see cref="Tolerance.Default"/>.
+    /// </param>
+    /// <returns>The closest point, which always lies on the curve.</returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="point"/> is not finite.
+    /// </exception>
+    public Point3d ClosestPoint(in Point3d point, in Tolerance tolerance = default) =>
+        Evaluate(ParameterAtClosestPoint(point, tolerance));
+
+    /// <summary>
+    /// The distance from a point to this curve.
+    /// </summary>
+    /// <param name="point">The point to measure from.</param>
+    /// <param name="tolerance">
+    /// How closely the answer is resolved; only <see cref="Tolerance.Linear"/> is consulted. A
+    /// default-constructed tolerance means <see cref="Tolerance.Default"/>.
+    /// </param>
+    /// <returns>The distance, never negative and zero for a point on the curve.</returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="point"/> is not finite.
+    /// </exception>
+    public double DistanceTo(in Point3d point, in Tolerance tolerance = default) =>
+        ClosestPoint(point, tolerance).DistanceTo(point);
+
     /// <summary>Returns the same curve traversed in the opposite direction.</summary>
     /// <returns>A new curve. The original is unchanged.</returns>
     public abstract Curve Reversed();
@@ -530,7 +626,7 @@ public abstract class Curve
     {
         double sag = Math.Max(Length * 1e-6, 1e-12);
         Point3d[] points = Tessellate(new Tolerance(sag, Angle.FromDegrees(0.001), 1e-12));
-        return BoundingBox.FromPoints(points).Inflate(sag);
+        return BoundingBox.FromPoints(points).Inflated(sag);
     }
 
     /// <summary>
@@ -597,6 +693,170 @@ public abstract class Curve
     /// <param name="parameter">A parameter inside <see cref="Domain"/>.</param>
     /// <returns>The derivative.</returns>
     internal Vector3d DerivativeWithin(double parameter) => EvaluateDerivative(parameter);
+
+    // The spans the proximity search prunes over, built once and remembered. Curves are
+    // immutable, so a benign race that builds it twice costs one wasted build and never a
+    // wrong answer - the same bargain Length and BoundingBox already make.
+    private ProximityIndex Proximity() => _proximity ??= BuildProximityIndex();
+
+    private ProximityIndex BuildProximityIndex()
+    {
+        // The span count is a MULTIPLE of the seed count rather than a clamped constant, and
+        // that is the whole design of this index. TessellationSeedSpans is the type's own
+        // statement about where it stops being smooth - four for a circle, one per segment for
+        // a polyline - so spans that are a multiple of it never straddle a corner. A span that
+        // does straddle one has two branches of a piecewise function in it, Newton follows the
+        // wrong branch, and the search reports a distance for that span that is too large;
+        // every other span then gets pruned against a bound that is not the real minimum, and
+        // the answer is silently the second-nearest point. A polyline is where that shows,
+        // because a corner is where the derivative jumps rather than merely turns.
+        int seeds = Math.Max(1, TessellationSeedSpans);
+        int perSeed = Math.Clamp(256 / seeds, 1, 64);
+        int spans = seeds * perSeed;
+        Interval domain = Domain;
+        double step = domain.Length / spans;
+
+        double[] starts = new double[spans + 1];
+        BoundingBox[] boxes = new BoundingBox[spans];
+
+        for (int index = 0; index <= spans; index++)
+        {
+            starts[index] = index == spans ? domain.Max : domain.Min + (index * step);
+        }
+
+        for (int index = 0; index < spans; index++)
+        {
+            boxes[index] = SpanBox(starts[index], starts[index + 1]);
+        }
+
+        Bvh<int> tree = Bvh<int>.Build(
+            [.. Enumerable.Range(0, spans)],
+            span => boxes[span]);
+
+        return new ProximityIndex(tree, starts, boxes);
+    }
+
+    // A box guaranteed to contain the curve between two parameters, which is what makes the
+    // BVH's pruning sound rather than merely usually right.
+    //
+    // Trimmed().BoundingBox is the honest way to get one: every analytic curve here computes
+    // its box exactly, and anything without a closed form already falls back to a tessellation
+    // inflated by its own tolerance. The bounds of a handful of SAMPLES would have been cheaper
+    // and wrong - a box that hugs the samples excludes the bulge between them, the search then
+    // prunes the span that actually holds the nearest point, and the answer is silently the
+    // second-nearest. That failure appears only on curved spans and only sometimes.
+    private BoundingBox SpanBox(double from, double to)
+    {
+        try
+        {
+            return Trimmed(new Interval(from, to)).BoundingBox;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            // A span too short for Trimmed to accept. Its endpoints bound it to within the
+            // curve's own smoothness, and a span this short cannot bulge measurably.
+            return new BoundingBox(Evaluate(from), Evaluate(to));
+        }
+    }
+
+    // The parameter of the closest point within one span: a coarse scan to bracket the
+    // minimum, then a golden-section search inside that bracket.
+    //
+    // The obvious implementation is Newton on the derivative of the squared distance, and it
+    // was written that way first. It is wrong at a corner, and a corner is exactly what a
+    // polyline is made of. The failure is worth recording because it is invisible in the
+    // arithmetic: for a target lying just BEFORE a vertex, the nearest sample is the vertex
+    // itself, and the derivative evaluated AT a vertex belongs to the segment after it. The
+    // gradient is then the offset - which points back along the previous segment - dotted with
+    // a direction perpendicular to it, which is zero. Newton reports a stationary point,
+    // declines to move, and the query returns the corner. The answer is out by half a sample
+    // spacing, always in the same direction, and only ever near a join.
+    //
+    // Golden section needs no derivative and so cannot be fooled by one that jumps. It costs
+    // more evaluations than a Newton step that works, and buys the property that matters here:
+    // the answer for a span is never worse than the best point the scan already found, which
+    // is what the hierarchy's pruning depends on.
+    private double NearestOnSpan(in Point3d target, ProximityIndex index, int span, in Tolerance tolerance)
+    {
+        double spanLow = index.Starts[span];
+        double spanHigh = index.Starts[span + 1];
+
+        const int Seeds = 8;
+
+        double step = (spanHigh - spanLow) / Seeds;
+        int best = 0;
+        double bestDistance = double.PositiveInfinity;
+
+        for (int seed = 0; seed <= Seeds; seed++)
+        {
+            double distance = target.DistanceSquaredTo(Evaluate(spanLow + (seed * step)));
+
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = seed;
+            }
+        }
+
+        // The bracket is the two samples either side of the best one. A minimum cannot lie
+        // outside it unless the span holds more than one, and the spans are cut at the curve's
+        // own seed boundaries so that they do not.
+        double low = spanLow + (Math.Max(best - 1, 0) * step);
+        double high = spanLow + (Math.Min(best + 1, Seeds) * step);
+        double answer = spanLow + (best * step);
+
+        // In parameter, from a tolerance in space. The average speed is a good enough
+        // conversion inside one span, and it is the reason this stops at the same PLACE on a
+        // curve a metre long and one a micron long rather than after the same number of steps.
+        double speed = Domain.Length > 0.0 ? Length / Domain.Length : 1.0;
+        double resolution = speed > 0.0
+            ? tolerance.Linear / speed
+            : Math.Abs(Domain.Length) * 1e-15;
+
+        const double Golden = 0.6180339887498949;
+
+        double first = high - (Golden * (high - low));
+        double second = low + (Golden * (high - low));
+        double firstDistance = target.DistanceSquaredTo(Evaluate(first));
+        double secondDistance = target.DistanceSquaredTo(Evaluate(second));
+
+        for (int iteration = 0; iteration < 100 && high - low > resolution; iteration++)
+        {
+            if (firstDistance < secondDistance)
+            {
+                high = second;
+                second = first;
+                secondDistance = firstDistance;
+                first = high - (Golden * (high - low));
+                firstDistance = target.DistanceSquaredTo(Evaluate(first));
+            }
+            else
+            {
+                low = first;
+                first = second;
+                firstDistance = secondDistance;
+                second = low + (Golden * (high - low));
+                secondDistance = target.DistanceSquaredTo(Evaluate(second));
+            }
+        }
+
+        // The scan's own best is still in the running. Golden section assumes the bracket holds
+        // a single minimum, and where that assumption is wrong it can end up worse than where
+        // it started; keeping the better of the two makes this monotone whatever happens.
+        double refined = 0.5 * (low + high);
+        double refinedDistance = target.DistanceSquaredTo(Evaluate(refined));
+
+        return refinedDistance < bestDistance ? refined : answer;
+    }
+
+    private sealed class ProximityIndex(Bvh<int> tree, double[] starts, BoundingBox[] boxes)
+    {
+        public Bvh<int> Tree { get; } = tree;
+
+        public double[] Starts { get; } = starts;
+
+        public BoundingBox[] Boxes { get; } = boxes;
+    }
 
     /// <summary>
     /// The second derivative at a parameter already known to be valid, reachable from another curve

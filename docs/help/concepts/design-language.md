@@ -1310,6 +1310,8 @@ The graph's one broken node is findable from a view where nothing has any text o
 | **V8** | Disabled is signalled by the **removal of depth**, not the removal of contrast; `text.disabled` clears 4.5:1 everywhere. | [§5.5](#55-disabled) |
 | **V9** | Wires and 3D selection outlines use a **casing-and-core pair** so that one of the two strokes always clears 3:1 against whatever is behind it. | [§7.5](#75-wires), [§8.3](#83-geometry-and-selection) |
 | **V10** | **X/Y/Z stay red/green/blue** despite colliding with the semantic hues, contained by strict role scoping and always-present text labels. | [§8.2](#82-axes) |
+| **V11** | The application mark is **drawn from the SVG's own path strings** rather than imported as a bitmap, and the window icon is rendered from that drawing at startup — so there is no `.ico` in the tree and no second copy of the artwork to fall out of date. | [§15.1](#151-the-mark) |
+| **V12** | The splash's indeterminate bar is the **one sanctioned exception to Principle 6**. Everything else on the splash is still, and the status line is set once rather than updated, because the UI thread is blocked and an update could never paint. | [§15.2](#152-the-splash) |
 | **V11** | Spark applies the **4.5:1 body floor to large text as well**, and does not take WCAG's disabled-text exemption. | [§4.1](#41-the-floors) |
 | **V12** | Ghosted geometry is the **one declared exception** to a floor (2.70:1 against active geometry, which no colour can satisfy alongside 3:1 against the ground); it is discharged by a rendering-mode difference instead. | [§8.4](#84-ghosted-geometry-the-one-declared-exception) |
 
@@ -1332,6 +1334,74 @@ M2, alongside the canvas benchmark:
 
 If a future change makes a number in this document wrong, the correct response is to change the
 palette until the number is right again — not to edit the number.
+
+---
+
+## 15. The application mark, and the splash
+
+**Numbered last on purpose.** Sections 1 to 14 are cited by number from source comments and from
+other documents — `§7.3` and `§2.7` both appear in code — so a new section inserted where it
+logically belongs would silently invalidate every one of those references. The mark arrived after
+the numbering did; stable references are worth more than tidy ordering.
+
+### 15.1 The mark
+
+`assets/spark-icon.svg` is the master. The application does not load it: `Theming/SparkLogo.axaml`
+draws the same geometry, and **carries the SVG's path strings verbatim** — Avalonia's geometry
+syntax *is* SVG path syntax, so there is one source of truth, no export step and no bitmap to fall
+out of date. `SparkLogoTests` fails if the two stop agreeing.
+
+It is built from tokens on this page rather than from colours chosen for it:
+
+| Element | Token | Hex |
+|---|---|---|
+| Tile, top of gradient | `surface.base` | `#23272F` |
+| Tile, bottom of gradient | `bg.void` | `#12151A` |
+| Tile rim light | `depth.hi.float` | `#414A59` |
+| Spark, top of gradient | `accent.press` | `#D4C4FF` |
+| Spark, middle | `accent` | `#A98BFF` |
+| Spark, bottom | `lip.hover` | `#8674D6` |
+| Ring | `accent` at 28% | `#A98BFF` |
+| Control points | `accent.hover` | `#C0A8FF` |
+
+Two ideas, layered so they **degrade in the declared order** — the discipline
+[§7.3](#73-how-depth-degrades-with-zoom) applies to canvas cues, applied here:
+
+- **The spark is the silhouette**, and at 16 px it is the entire mark.
+- **The ring carrying two control points** is the parametric curve every Spark document is made
+  of. It shows through the spark's concave waists; below about 32 px it stops being readable as a
+  ring and becomes a halo, which is an acceptable thing for it to become.
+
+**The waist was measured, not chosen.** Rendered with a control offset of 46 the mark reads as a
+gem rather than a spark; at 14 it is elegant and loses too much mass at 16 px. It is 22, picked by
+rendering all four at 512, 48, 32 and 16 px and looking at them side by side.
+
+**There is no `.ico` in the repository.** The window icon is rendered from the same drawing at
+startup, so the taskbar cannot disagree with the splash. `SparkLogo.CreateWindowIcon` returns null
+rather than throwing when there is no render target — an application that refuses to start because
+it could not draw its own icon has its priorities wrong.
+
+### 15.2 The splash
+
+Shown while the shell is built, because that takes over a second and most of it is invisible work:
+importing the node library reflects over an assembly, and the seeded graph is evaluated before
+anything can be drawn.
+
+- **Rectangular, not rounded.** A rounded splash needs window transparency, and where the platform
+  declines to grant it Avalonia paints the window background into the corners — so the rounded
+  version degrades to black notches exactly where you cannot see it happening.
+- **One status line, set once and never updated.** The shell is built by a single blocking call on
+  the UI thread, so a status changed just before it would be assigned and never painted. A label
+  describing the whole wait is honest; a sequence of steps nobody sees is not.
+- **Never shown for `--screenshot` or `--canvas-benchmark`**, for two different reasons: it would
+  be a second window in the capture, and a second window compositing against the thing being
+  measured.
+
+**The indeterminate bar is this document's one sanctioned exception to Principle 6**
+("nothing moves that the user did not move"). The user did move it — they launched the
+application — and a splash showing no sign of life is indistinguishable from one that has hung.
+It uses `ease.linear`, which [§10.1](#101-tokens) already reserves for indeterminate progress.
+Nothing else on the splash moves.
 
 ---
 

@@ -277,6 +277,71 @@ public sealed class CurveProperties
     /// </summary>
     /// <param name="scene">The drawn scale and shapes.</param>
     /// <returns>Six curves: a line, an arc, a circle, an ellipse, a polyline and a polycurve.</returns>
+    [Fact]
+    public void TheClosestPointIsAlwaysOnTheCurveAndNoFartherThanADenseScanCanFind()
+    {
+        Gen.Select(GeometryGenerators.Scenes, Gen.Double[-2.0, 2.0], Gen.Double[-2.0, 2.0])
+            .Sample((scene, across, along) =>
+            {
+                Point3d probe = scene.Plane.Origin
+                    + (scene.Plane.XAxis * (across * scene.Scale))
+                    + (scene.Plane.Normal * (along * scene.Scale));
+
+                foreach (Curve curve in CurvesAt(scene))
+                {
+                    Tolerance tolerance = Tolerance.ForScale(scene.Scale);
+                    double parameter = curve.ParameterAtClosestPoint(probe, tolerance);
+
+                    Assert.InRange(parameter, curve.Domain.Min, curve.Domain.Max);
+
+                    double found = probe.DistanceTo(curve.PointAt(parameter));
+                    double bySampling = DenseMinimum(curve, probe);
+
+                    // A 401-sample scan is the reference and it is a WEAK one on purpose: it
+                    // cannot beat a real minimiser, so the query must be at least as good. The
+                    // slack is relative to the curve's own length, per ADR-0018.
+                    Assert.True(
+                        found <= bySampling + (1e-6 * curve.Length),
+                        $"{curve.GetType().Name}: {found} against {bySampling} at scale {scene.Scale}.");
+                }
+            });
+    }
+
+    [Fact]
+    public void ThePointOnACurveNearestToItselfIsItself()
+    {
+        Gen.Select(GeometryGenerators.Scenes, Gen.Double[0.0, 1.0])
+            .Sample((scene, fraction) =>
+            {
+                foreach (Curve curve in CurvesAt(scene))
+                {
+                    Point3d on = curve.PointAt(curve.Domain.Min + (curve.Domain.Length * fraction));
+
+                    // The distance, not the parameter: a closed curve reached at its seam has
+                    // two parameters for one point, and both are right.
+                    double distance = curve.DistanceTo(on, Tolerance.ForScale(scene.Scale));
+
+                    Assert.True(
+                        distance <= 1e-6 * curve.Length,
+                        $"{curve.GetType().Name}: {distance} against a curve {curve.Length} long.");
+                }
+            });
+    }
+
+    private static double DenseMinimum(Curve curve, in Point3d probe)
+    {
+        Interval domain = curve.Domain;
+        Point3d target = probe;
+        double best = double.PositiveInfinity;
+
+        for (int step = 0; step <= 400; step++)
+        {
+            best = Math.Min(best, curve.PointAt(domain.Min + (domain.Length * step / 400.0)).DistanceTo(target));
+        }
+
+        return best;
+    }
+
     private static IEnumerable<Curve> CurvesAt(Scene scene)
     {
         double radius = scene.Scale * 0.5;

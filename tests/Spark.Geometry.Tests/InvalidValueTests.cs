@@ -49,7 +49,8 @@ public sealed class InvalidValueTests
 
         Assert.Throws<InvalidOperationException>(() => invalid.To2d(SomePoint));
         Assert.Throws<InvalidOperationException>(() => invalid.To3d(new Point2d(1.0, 2.0)));
-        Assert.Throws<InvalidOperationException>(() => invalid.Flip());
+        Assert.Throws<InvalidOperationException>(() => invalid.Flipped());
+        Assert.Throws<InvalidOperationException>(() => invalid.Offset(1.0));
     }
 
     [Fact]
@@ -106,7 +107,7 @@ public sealed class InvalidValueTests
         Assert.True(plane.ClosestPoint(SomePoint).EqualsWithin(new Point3d(1.0, 2.0, 0.0)));
         Assert.True(plane.Project(SomeVector).EqualsWithin(new Vector3d(4.0, 5.0, 0.0)));
         Assert.False(plane.Contains(SomePoint));
-        Assert.True(plane.IsCoplanar(plane.Flip()));
+        Assert.True(plane.IsCoplanar(plane.Flipped()));
         Assert.True(plane.To2d(SomePoint).EqualsWithin(new Point2d(1.0, 2.0)));
         Assert.True(frame.ToWorld(frame.ToLocal(SomePoint)).EqualsWithin(SomePoint));
         Assert.True(frame.ToTransform().IsIdentity());

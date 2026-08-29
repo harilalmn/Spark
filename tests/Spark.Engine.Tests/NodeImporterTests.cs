@@ -208,6 +208,58 @@ public sealed class NodeImporterTests
         Assert.Equal(1, library.Count);
     }
 
+
+    /// <summary>
+    /// The importer reads <see cref="NodeSideEffectAttribute"/> from the member.
+    /// </summary>
+    /// <remarks>
+    /// The whole impurity mechanism was built and none of it was tested through the attribute:
+    /// the one test that existed constructed a <see cref="NodeDefinition"/> by hand with
+    /// <c>isSideEffect: true</c>, which exercises the engine and skips the only step a node
+    /// author ever takes. Deleting the attribute check from the importer would have left every
+    /// test green and made every impure node in every package silently pure — which is the
+    /// worst failure available in a provenance cache, because it poisons nothing and therefore
+    /// serves stale results forever without ever looking wrong.
+    /// </remarks>
+    [Fact]
+    public void AnImpureMemberIsImportedAsImpure()
+    {
+        ImportReport report = Import(typeof(ImportedMixed));
+
+        Assert.True(Definition(report, "ImportedMixed.Ticks").IsSideEffect);
+        Assert.False(Definition(report, "ImportedMixed.Doubled").IsSideEffect);
+    }
+
+    /// <summary>
+    /// The attribute is read from the declaring type as well, so that a package of nodes that
+    /// all touch the same outside thing declares it once.
+    /// </summary>
+    [Fact]
+    public void EveryMemberOfAnImpureTypeIsImportedAsImpure()
+    {
+        ImportReport report = Import(typeof(ImportedClock));
+
+        Assert.True(Definition(report, "ImportedClock.Now").IsSideEffect);
+        Assert.True(Definition(report, "ImportedClock.Later").IsSideEffect);
+    }
+
+    /// <summary>
+    /// Nothing in the built-in library declares a side effect, and that is worth asserting
+    /// rather than assuming.
+    /// </summary>
+    /// <remarks>
+    /// Every node in <c>Spark.Nodes.Core</c> is a pure function of its inputs today. If one ever
+    /// stops being one, this test fails and the author has to decide deliberately — which is the
+    /// only moment at which the decision can be made correctly.
+    /// </remarks>
+    [Fact]
+    public void NothingInTheBuiltInLibraryIsImpure()
+    {
+        ImportReport report = NodeImporter.Import(typeof(Spark.Nodes.Core.Point).Assembly);
+
+        Assert.DoesNotContain(report.Nodes, node => node.Definition.IsSideEffect);
+    }
+
     private static ImportReport Import(params Type[] types) => NodeImporter.Import(types, Package);
 
     private static NodeDefinition Definition(ImportReport report, string name) =>

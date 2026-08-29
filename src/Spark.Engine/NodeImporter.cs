@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using Spark.Api;
 
 namespace Spark.Engine;
@@ -259,8 +260,32 @@ public static class NodeImporter
             outputs.Add(ReturnPort(method, docs));
         }
 
+        // A trailing CancellationToken is the run's, not a port. It has to be the LAST
+        // parameter and it is not enough for it to be merely present: the compiled invoker maps
+        // parameters to argument slots positionally, so a token in the middle would leave the
+        // ports after it reading the wrong arguments. A token anywhere else is refused with a
+        // reason rather than silently made into a port nobody can supply a value for.
+        bool wantsCancellation = parameters.Length > 0
+            && parameters[^1].ParameterType == typeof(CancellationToken);
+
+        if (parameters.Any(parameter => parameter.ParameterType == typeof(CancellationToken))
+            && !wantsCancellation)
+        {
+            exclusions.Add(new ExcludedMember(
+                method,
+                "a CancellationToken must be the last parameter: the invoker binds parameters to "
+                + "argument slots by position, so a token in the middle would shift every port "
+                + "after it."));
+            return;
+        }
+
         foreach (ParameterInfo parameter in parameters)
         {
+            if (wantsCancellation && ReferenceEquals(parameter, parameters[^1]))
+            {
+                continue;
+            }
+
             if (parameter.IsOut)
             {
                 outputs.Add(OutPort(parameter, method, docs));
@@ -278,7 +303,8 @@ public static class NodeImporter
             inputs,
             outputs,
             NodeInvoker.ForMethod(method),
-            docs.SummaryOf(method)));
+            docs.SummaryOf(method),
+            wantsCancellation));
     }
 
     private static void ClassifyConstructor(
@@ -538,6 +564,11 @@ public static class NodeImporter
             SparkNodeAttribute? memberAttribute = candidate.Member.GetCustomAttribute<SparkNodeAttribute>();
             SparkNodeAttribute? typeAttribute = candidate.DeclaringType.GetCustomAttribute<SparkNodeAttribute>();
 
+            // Member first, then the declaring type, so that a package touching one outside
+            // thing can declare it once on the type. Deleting either half leaves every test in
+            // the suite green unless one asserts this directly, which is why one does
+            // (NodeImporterTests): an impure node imported as pure poisons nothing and therefore
+            // serves a stale result forever without ever looking wrong.
             bool sideEffect = candidate.Member.IsDefined(typeof(NodeSideEffectAttribute), inherit: false)
                 || candidate.DeclaringType.IsDefined(typeof(NodeSideEffectAttribute), inherit: false);
 
@@ -551,7 +582,8 @@ public static class NodeImporter
                 version: 1,
                 isSideEffect: sideEffect,
                 description: candidate.Description,
-                category: memberAttribute?.Category ?? typeAttribute?.Category ?? NodeCategories.Custom);
+                category: memberAttribute?.Category ?? typeAttribute?.Category ?? NodeCategories.Custom,
+                wantsCancellation: candidate.WantsCancellation);
 
             nodes.Add(new ImportedNode(definition, candidate.Member));
         }
@@ -572,5 +604,6 @@ public static class NodeImporter
         IReadOnlyList<PortDefinition> Inputs,
         IReadOnlyList<PortDefinition> Outputs,
         NodeInvocation Invoke,
-        string? Description);
+        string? Description,
+        bool WantsCancellation = false);
 }

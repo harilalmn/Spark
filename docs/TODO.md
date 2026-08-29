@@ -3,25 +3,27 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, `dotnet test` (**973 tests over seven
-projects**) and `dotnet format` are all clean, and **CI ran green on Windows and Linux on
-`53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
+Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,203 tests over eight
+projects**) and `dotnet format` are all clean — though `dotnet test` itself now reports
+`Zero tests ran` on SDK 10.0.400 and the 1,203 are counted by `scripts/run-tests.sh`
+([N34](NOTES.md)) — and **CI ran green on Windows and Linux on `53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
 
 Three distinctions still do the work in what follows:
 
-- **What is built.** The value layer (13 types), the curve layer (`Line`, `Arc`, `Circle`,
+- **What is built.** The value layer (16 types, `Quaternion`, `Ray` and a generic `Bvh<T>`
+  included), the curve layer (`Line`, `Arc`, `Circle`,
   `EllipseCurve`, `PolyLine`, `PolyCurve` over a `Curve` base, with arc-length
   reparameterisation), the graph engine and replicator, the reflection importer with its
   two-way diff, the Avalonia shell, the immediate-mode canvas, the GL viewport, 57 nodes in
   `Spark.Nodes.Core`, a `.spark` file a graph survives a round trip through byte for byte, and a
   64-step undo stack over that same file format.
-- **What is not.** No surfaces, meshes, BRep or solids. No `NurbsCurve`. No `spark run`. No
+- **What is not.** No surfaces, meshes, BRep or solids. No `NurbsCurve`. No
   packages and no code block. And **no OCCT**: there is no `native/` directory and no
   `Spark.Geometry.Occt` project.
 - **Gates are not review, and this project now has its own proof three times over.** The
@@ -52,6 +54,34 @@ for anything else.
 
 ---
 
+## Where this left off
+
+**M1's geometry core is finished, and what remains of M1 is blocked rather than pending.** Since
+the last revision the value layer closed (`Quaternion`, the past-participle rename, the three
+parity omissions), the bounding-volume hierarchy landed and paid for itself twice over
+(`Curve.ClosestPoint`, `Point3d.PruneDuplicates`), geometry serialization arrived with the
+reflection diff that keeps it honest, `spark run` writes an OBJ, and the engine's four
+`In progress` rows — the cache's byte budget, the impure declaration, the host-thread scheduler
+and cancellation inside a node — are closed. Two of those closed by being **disproved rather than
+built**: `E3-T10` was already implemented and its row was wrong, and `E2-T16`'s KD-tree was
+withdrawn because the hierarchy already answers what it existed for.
+
+**Four things are outstanding and each is blocked on something other than effort**, which is the
+useful part of this list:
+
+| What | Blocked on |
+|---|---|
+| **M1.6, the OCCT spike** (`E13-T1`) | A C++ toolchain, vcpkg and two weeks. Its criteria are written and fixed; the spike itself is the next real decision point |
+| **The third M1.5 spike** (`E11-T21`) | Judgement. *Is AvaloniaEdit plus a Roslyn popup acceptable to use* is a question a person answers by using it |
+| **The C2VGeometry test harvest** (`E2-T32`) | The seed library, which is not in this repository |
+| **The canvas p95 threshold** (`E1-T34`) | Several nights of the runner's own data. Local figures are now measured ([N37](NOTES.md)) and are explicitly **not** the ones this needs |
+
+**One acceptance is owed rather than blocked:** M1's demoable says a third-party viewer opens the
+OBJ, and nobody has opened one. The file is read back by an independent parser in the test suite,
+which is the strongest proxy available and is not the same claim.
+
+---
+
 ## Now — schedule the guards, and name the M1.6 criteria
 
 - [x] **Walk TASKS.md against E3, E4, E5, E8 and E9** — done, and it moved 41 rows. Ten of them
@@ -59,7 +89,9 @@ for anything else.
       evicts by entry count rather than by bytes, no node can declare itself impure, the
       host-thread scheduler is missing, cancellation does not reach inside a kernel operation,
       the shell has no real docking, the library panel filters without ranking, and three rows
-      wait on the empty `bench/`. Two more are `Open` **with a stated reason** rather than by
+      wait on the empty `bench/`. **Five of those ten have since closed and one of them closed by
+      being disproved**: the cache holds a byte budget now, and the impure-node declaration was
+      never missing — only its test was. Two more are `Open` **with a stated reason** rather than by
       omission, because the importer's two-way diff will not let a public member go unaccounted
       for. Details on the rows and in [EPICS.md](EPICS.md).
 - [x] **Save and load a `.spark` file** — `E3-T17`, `E3-T18`, done. Open and Save are on the
@@ -97,28 +129,55 @@ for anything else.
       putting an automated writer on `main`. Two things follow rather than finish here — the
       workflow **has never run**, and the canvas threshold is `E1-T34`, waiting on data rather
       than on effort.
-- [ ] **Preparing that gate found the number it was going to gate was wrong** — `E8-T21`, done,
-      and it is the reason the row above is not simply ticked. `--canvas-benchmark 600` printed
-      `frames=500` over a 120-frame window, so its median described the tail of the zoom sweep
-      rather than the run: 1.70 ms against the 1.15 ms the whole run gives. **Every canvas figure
-      quoted in these documents before today was measured that way**, including the 0.87 ms this
-      page and `E8-T15` both cited, and they are withdrawn rather than restated ([N31](NOTES.md)).
-      What is left here is only to re-measure and re-quote once the nightly has run on hardware
-      worth quoting.
+- [x] **Preparing that gate found the number it was going to gate was wrong, and the numbers are
+      now re-measured** — `E8-T21`, done. `--canvas-benchmark 600` printed `frames=500` over a
+      120-frame window, so its median described the tail of the zoom sweep rather than the run:
+      1.70 ms against the 1.15 ms the whole run gives, and every canvas figure quoted before that
+      was measured the same way ([N31](NOTES.md)). **The replacements are measured rather than
+      withdrawn**: on an Intel UHD integrated GPU through ANGLE, five consecutive runs give
+      **0.97–1.14 ms median and 3.10–3.27 ms p95** for the render pass at 2,000 nodes — about a
+      fifth of a 60 fps budget, so ADR-0013's bet holds with room ([N37](NOTES.md)). The spread
+      independently confirms why `E1-T34` gates on p95: 17% on the median against 5.5% on the
+      p95, which is N31's observation repeated on different code and a different day.
+      **These are not the numbers `E1-T34` needs**, and saying so is the point — they come from a
+      machine with a GPU, and the nightly runs where there is none.
 
-## Next — name the M1.6 criteria, before the spike
+- [x] **`dotnet test` stopped reporting the suite, and the suite was never the problem** —
+      unplanned, found on the first gate run of this session. On SDK 10.0.400 every one of the
+      seven projects reports `Zero tests ran` and exit code 5 in about 130 ms; run directly, the
+      same binaries discover and pass 981. `dotnet test` drives a Microsoft.Testing.Platform
+      project over a named-pipe server protocol and the handshake never completes, so the SDK
+      reports its own empty inbox. **Neither package is stale** — `xunit.v3` 4.0.0 and
+      `Microsoft.Testing.Platform` 2.3.3 are both the newest published — so there was no upgrade
+      to reach for, and tightening `rollForward` is the real lever but is **deliberately not
+      pulled yet**, because 10.0.100 is not installed here and the pin would trade a misleading
+      run for a build that does not start. `scripts/run-tests.sh` is a **second opinion, not a
+      replacement**: `dotnet test Spark.slnx` stays the documented gate because it is what CI
+      runs, and the two must agree ([N34](NOTES.md)).
+- [x] **The application has a mark, and shows it while it loads** — `E8-T22`, asked for rather
+      than planned. `assets/spark-icon.svg` is the master; the shell draws the same geometry from
+      `Theming/SparkLogo.axaml`, which carries that file's path strings verbatim, and the window
+      icon is rendered from that drawing at startup so **no `.ico` exists in the tree to fall out
+      of date**. A test fails if the two ever disagree. The splash covers the second or so the
+      shell takes to build, and is suppressed for both measurement modes. Three non-obvious
+      startup facts came out of it ([N33](NOTES.md)), the sharpest being that a splash **cannot**
+      report step-by-step progress: the thread it would report on is the one that is blocked.
 
-- [ ] **Write the M1.6 pass/fail criteria into TASKS.md** — `E13-T1`. **M1.6 gates ADR-0020 the
-      way M1.5 gated ADR-0001**, and M1.5 is now evidence that the rule works: its criteria were
-      written first, one of the three measurements failed, and the failure was diagnosed — a
-      drop-shadow blur threshold — rather than argued away. At minimum: OCCT builds from a
-      pinned tag through a vcpkg manifest on Windows *and* Linux; one boolean runs end to end
-      through a minimal `spark_occt` and `LibraryImport`; the per-RID binary footprint is
-      **measured** against `50a9935`'s 55–70 MB expectation; a `Materialise` on a realistic
-      shape is timed, because ADR-0021's whole rule rests on it being paid once; and a first
-      read is taken on OCCT's threading envelope (`Q14`) and on whether `ShapeFix` can be
-      constrained to a policy we choose. What a *failure* would mean is the part that needs
-      deciding before the spike, not after it.
+## Next — the criteria are named; the spike is not taken
+
+- [x] **Write the M1.6 pass/fail criteria into TASKS.md** — `E13-T1`, done. Seven criteria in
+      [TASKS.md](TASKS.md#e13--occt-provider), fixed before any OCCT source is fetched. **C1 and
+      C2 are hard gates** — the pinned-tag vcpkg build on both platforms, and one boolean end to
+      end through the shim with its volume checked analytically; failing either falsifies
+      ADR-0020 as written. **C3 … C7 are measurements**, and the part that needed deciding
+      beforehand was not what they measure but what a bad number *does*: above 100 MB per RID,
+      `E13-T17` stops being a distribution row and becomes a design one; above ~250 ms for a
+      200-face `Materialise`, lazy materialisation becomes load-bearing for interactivity and
+      `E13-T3` inherits partial materialisation; an inconclusive threading read means
+      single-writer **by default and recorded as conservative**, because the failure to avoid is
+      neither answer but a shrug. **The two-week box is real** — if C1 and C2 are not both met
+      inside it the spike stops and reports *ADR-0020 is not cheap to prove*, which is itself a
+      result.
 - [ ] **The third M1.5 spike is still outstanding** — `E11-T21`. AvaloniaEdit plus a Roslyn
       completion popup. It gates the M4 code block rather than anything M2 needs, which is why
       the other two were taken first, but it is the last unproven part of M1.5.
@@ -140,30 +199,216 @@ for anything else.
 
 **Still to do, in rough order:**
 
-- [ ] `Quaternion` — `E2-T1`. **`Rgba` is settled and no longer in scope here**: it lives beside
-      `Appearance` in `Spark.Api` (`E5`), because the kernel carries no appearance.
-- [ ] **Settle the past-participle naming rule and apply it.**
-      [DYNAMO-COVERAGE §4](DYNAMO-COVERAGE.md#member-names-we-will-not-copy) asked for exactly
-      this *before curves arrived and multiplied the surface by five*, and half of it happened:
-      the curve layer follows the rule — `Reversed`, `Trimmed`, `TransformedBy` — and three older
-      members still do not. `Plane.Flip`, `BoundingBox.Inflate` and `Interval.Expand` all read as
-      imperatives and all return new values. Nineteen call sites; all three are unshipped, so the
-      rename is free today and an ADR-0019 change-control question the day after 1.0.
-- [ ] Extract `RayCaster.cs` and its BVH — `E2-T15`. The highest-value file in C2VGeometry, and
-      it pays for itself three times over across mesh booleans, viewport picking and intersection
-      seeding. **`Curve.ClosestPoint` is now waiting on it too.**
-- [ ] Geometry serialization v1 and the reflection-driven round-trip test — `E2-T29`, `E2-T31`.
-      Get the test in before there are twenty types to retrofit it onto; there are now nineteen.
+- [x] `Quaternion` — `E2-T1`, done, and **the row is closed**. It is there for the two jobs a
+      matrix does badly: composing rotations without drift, and interpolating orientations along
+      the shortest arc. `ToTransform` and `ByRotation` are the only crossings; everything else
+      goes on using `Transform`. Three decisions live on the type rather than waiting to be
+      discovered — `q` and `-q` are one rotation, so equality is componentwise like every other
+      value here and `RepresentsSameRotationAs` is the separately named question;
+      `default(Quaternion)` is **not** the identity, because a default meaning *leave it as it
+      is* is what lets a missing assignment ship; and `Inverse()` is the algebraic inverse, so
+      `q * q.Inverse()` is the identity for any valid `q` rather than the identity scaled.
+      Writing the tests turned up a fourth: **an axis read straight off a negative-scalar
+      quaternion is the opposite axis with a positive angle**, which describes the rotation
+      backwards, and taking the absolute value of the scalar fixes the number without fixing the
+      sign. **`Rgba` is settled and no longer in scope here**: it lives beside `Appearance` in
+      `Spark.Api` (`E5`), because the kernel carries no appearance.
+- [x] **Settle the past-participle naming rule and apply it** — done, and the rule is in
+      `NamespaceDoc` rather than only in
+      [DYNAMO-COVERAGE §4](DYNAMO-COVERAGE.md#member-names-we-will-not-copy), which is where a
+      convention has to live to be applied by anyone who has not read that document.
+      `Plane.Flip`, `BoundingBox.Inflate` and `Interval.Expand` are now `Flipped`, `Inflated`
+      and `Expanded`. The argument that settled it is not aesthetics: `plane.Flip();` as a
+      statement compiles, does nothing, and reads as though it worked. Factories and queries
+      are named as the two deliberate exemptions, and `Interval.MakeIncreasing` keeps its name
+      because `Increased` would mean something else. All three were unshipped, so it was free
+      today and an ADR-0019 change-control question the day after 1.0.
+- [x] **A property test was asserting through a boundary, and it would have been blamed on
+      something else for years** — found while running the gates for the row below.
+      `TheSignedAngleBetweenTwoVectorsDoesNotDependOnTheirLengths` failed twice in about
+      twenty-five runs, different seed each time, no kernel change between them. At
+      `CsCheck_Iter=50000` it fails on every run and the shrunk case says why: at a turn of
+      9e-56 degrees the two angles agree to fifty digits, so `EqualsWithin` passes, while one is
+      exactly zero and the other a denormal above it, so `Math.Sign` returns 0 against 1. **The
+      sign of a quantity at the noise floor is not a fact about the geometry.** The property was
+      right; a second and false claim had been smuggled in beside it. One in twenty-five thousand
+      samples is a red build every few weeks on an unrelated commit, which is the exact profile
+      of a test that eventually gets suppressed ([N35](NOTES.md)).
+- [x] **The ray caster and its BVH** — `E2-T15`, done, and **written rather than extracted**.
+      The C2VGeometry original casts against triangles and Spark has no mesh to cast against, so
+      what landed is the part every consumer shares: a `Ray`, and a generic `Bvh<T>` over
+      anything that can be given a box. It is a **broad phase and says so on the type**, because
+      a broad phase quietly taken for an exact answer is a picking bug that reproduces only at
+      certain camera angles. Three things are worth knowing about it. Splitting is a binned
+      surface-area heuristic that **falls back to a median split rather than to a leaf**, since
+      the SAH honestly loses to a leaf on coincident boxes and an oversized leaf is scanned
+      linearly by every query thereafter. Nothing is written after `Build` and every traversal
+      keeps its stack local, so **many threads may query one tree** — asserted rather than
+      assumed. And the slab test **branches on a zero direction component rather than dividing
+      through it**: the branchless form makes `0 × ∞` when the origin lies exactly on a slab
+      plane, which is `NaN`, which reports a miss on precisely the alignments axis-aligned work
+      produces most often. Checked against the linear scan it replaces, by example and by
+      property, and the shape test asserts a **lower** bound on depth as well as an upper one —
+      a tree collapsed to one leaf would pass every other test in the file.
+      **`Curve.ClosestPoint` is next, and now has what it was waiting for.**
+- [x] **`Curve.ClosestPoint`, on that hierarchy** — the member the curve contract named as an
+      exclusion and said was waiting for the ray caster. `ClosestPoint`,
+      `ParameterAtClosestPoint` and `DistanceTo`, one implementation for every curve type: an
+      exact projection on `Line`, a plane-and-angle argument on `Circle` and a general search
+      for the rest is three pieces of code that must agree at their boundaries, and a
+      `PolyCurve` of a line and an arc is such a boundary, probed from either side, in one
+      query. **Newton's method was written first and is wrong at a corner** — the derivative at
+      a vertex belongs to the segment after it, so for a target just before the vertex the
+      gradient is a backward offset dotted with a perpendicular direction, which is zero;
+      Newton declines to move and the query returns the corner. Found by a test that compares
+      the query against a 4,001-sample scan that cannot beat a real minimiser and therefore
+      should never win. Fixed twice over: spans are now cut on the curve's own seed boundaries
+      so none straddles a corner, and the narrow phase is a **golden-section search** that
+      needs no derivative ([N36](NOTES.md)). The tolerance is a promise about the answer rather
+      than a hint — the search stops when a further step would move the point less than
+      `Tolerance.Linear` — so the default resolves to 1e-6 and a caller who needs more asks.
+- [x] **Geometry serialization v1 and the reflection-driven round-trip test** — `E2-T29`,
+      `E2-T31`, done, and it was written at twenty types rather than at forty, which was the
+      whole point of the row. `GeometryJson.Write` and `Read`, with a **per-type `$v`** rather
+      than a document version, because a `NurbsCurve` at v2 and a `Mesh` at v1 have to coexist
+      and a single version forces every type to move together. **Round-tripping is byte-identical
+      and the format is designed backwards from that**: a `Plane` stores all four of its vectors
+      rather than the two that generate them, because re-deriving a frame on read
+      re-orthonormalises it and a file whose diff is floating-point noise cannot be reviewed.
+      Three types gained an `internal` exact constructor for that reason, and one of the three
+      matters more than it sounds — `BoundingBox.Empty` is an **inverted** box and the public
+      constructor sorts its corners, so a naive reader turns the box containing nothing into the
+      box containing everything, silently. Source generation was **rejected with an argument
+      rather than skipped**: immutable types with no parameterless constructor would each need a
+      mutable DTO and two mappings, which is a second definition of the type and therefore the
+      thing that drifts, and hand-written converters use no reflection at all. The diff runs both
+      ways and **was proven to fire** — a sample was removed and the build went red naming the
+      type — which is the same discipline the node importer's two-way diff already applies.
 - [ ] **The C2VGeometry test harvest, timeboxed to one week with a hard stop** — `E2-T32`.
       Harvest only pure-maths-on-values tests; anything needing a `Shape` is discarded without
       argument. **Harvest the assertions, not the generators** — a harvested test whose inputs
       never approach the boundary it checks is a test that cannot fail, which is the trap this
       project has already fallen into twice.
-- [ ] **Close the three small parity gaps in the value layer** — `E2-T40`.
-      `BoundingBox.Intersection`, `Plane.Offset` and `Plane.ByOriginNormalXAxis` are omissions
-      rather than design differences.
-- [ ] `spark` writes an OBJ polyline that a third-party viewer opens. That is the M1 demo, and
-      `Spark.Geometry.Io` is still an empty project — but the curves it would write now exist.
+- [x] **Close the three small parity gaps in the value layer** — `E2-T40`, done.
+      `BoundingBox.Intersection`, `Plane.Offset` and `Plane.ByOriginNormalXAxis` were omissions
+      rather than design differences, and **two of the three carried a decision the word
+      "trivial" had hidden**. `Intersection` returns `Empty` for disjoint boxes rather than the
+      inverted box the crossed-over bounds give, because an inverted box is invalid but not
+      *canonical*, so two disjoint pairs would otherwise return two unequal answers that both
+      mean "no overlap"; and it takes **no tolerance**, because `Intersects` answers a question
+      about touching while `Intersection` returns a region, and widening a region by a tolerance
+      hands back space neither box occupies. Parity in the value layer goes from 92 to
+      **95 of 133**.
+- [ ] **One unreproduced flake in `Spark.UI.Tests`, recorded rather than shrugged at.** A single
+      full-suite run reported one UI test failing; the name was lost to a truncated tail, and
+      **twenty-five subsequent runs — sixteen of that project alone and nine of the whole suite —
+      were clean**. It is written down because a flake nobody wrote down is a flake somebody
+      later suppresses, and because the headless canvas tests drive real pointer gestures and are
+      the most timing-sensitive thing in the repository. Next occurrence: keep the whole output,
+      not the tail. `scripts/run-tests.sh` already prints the failing test names.
+- [x] **Cancellation reaches inside a node** — `E3-T12`, and the row closes. Cancelling between
+      nodes and between replication elements was never enough for one expensive element: a node
+      given a hundred thousand points replicates into a hundred thousand cheap calls and stops
+      promptly, while a node given one enormous mesh makes a single call nothing can interrupt —
+      and the whole point of cancelling is that the user has already changed their mind.
+      **The token is declared, not ambient.** A member takes a `CancellationToken` as its **last**
+      parameter, the importer keeps it out of the ports, and the replicator appends the run's
+      token to the argument array. `NodeInvocation`'s signature did not have to change, because
+      the compiled invoker binds parameters to slots by position — which is also exactly why a
+      token anywhere else is **refused with a reason**: it would shift every port after it and
+      the node would read plausible nonsense. Ambient was rejected on the grounds ADR-0010
+      already used for tolerance. `Bvh<T>.Build` and `Point3d.PruneDuplicates` take one too,
+      checked every 1,024 items because a check per item costs more than the loop.
+      The sharp test replicates **one** element, so the replicator's own check cannot be what
+      stopped it, and asserts the node's own frame is in the stack trace.
+- [x] **The allocation gate's numbers are verified rather than assumed.** `bench/baseline.json`
+      has gated a nightly that has never run. All nineteen entries were re-measured locally under
+      the same `--job short` the workflow uses, and every one matches: the marshalling figures to
+      the byte, the evaluation figures to within 0.15%, and the two `SceneIndex` zeros still zero.
+      **A gate whose numbers nobody has reproduced is a gate nobody knows the state of**, and now
+      one person has.
+- [x] **The watch panel** — the open half of `E8-T10`, and the row closes. A pinned pane in
+      the right-hand column showing one node's whole output. **Pinning is the point**: the strip
+      under a node answers for whatever is under the pointer, and a panel that followed the
+      selection would be a wider strip — so a test asserts that moving the selection does not
+      move the panel. It does the three things the strip's own documentation says it will not:
+      every output port rather than the first, every element rather than six, and a long value
+      **in full** rather than clipped, because *if you need the whole value, that is what the
+      watch panel is for* was a promise somebody had to keep. The bound it does keep is on
+      **lines** rather than characters — a list of a million expanded in full is a hang, and a
+      hang is a worse answer than a truncated one — and it says how many it left out. It holds a
+      `NodeId` rather than a canvas slot, because a slot is not stable across an undo
+      ([N23](NOTES.md)), and a pinned node that has been deleted unpins itself rather than
+      reporting stale values. Seventeen tests, and the shell was screenshotted to check the pane
+      is not squeezed against the bottom of the window — which it was, the first time.
+- [x] **The host-thread scheduler** — `E3-T11`, done, and it is most of why
+      `IEvaluationScheduler` exists at all. The Revit and AutoCAD APIs are callable from one
+      thread and one thread only, and a node touching the host model from anywhere else does not
+      fail cleanly — it corrupts or crashes. `HostThreadEvaluationScheduler` takes the host's own
+      blocking marshalling primitive and carries each **level** across in **one hop**, because a
+      round trip is a queued message and a wait while a node is microseconds of arithmetic.
+      Operations run sequentially, and that is the point rather than a limitation: fanning out
+      inside the marshalled callback would put host API calls back off the host thread.
+      **The re-entrancy deadlock is handled rather than warned about** — a host calling Spark
+      from its own command handler would otherwise block that thread waiting for itself, so an
+      optional `isOnHostThread` predicate makes such a call run inline. An exception is carried
+      back with `ExceptionDispatchInfo` rather than escaping into the host's dispatcher, which
+      would take a message box or the process. Twelve tests, including one that evaluates a whole
+      graph and asserts the hops equal the levels.
+- [x] **The cache holds a memory budget, and one row that said something was missing was wrong**
+      — `E3-T9` and `E3-T10`. The cache now evicts against **two bounds**: an estimated byte
+      budget, 256 MiB by default, and the entry ceiling it already had. The bytes are the bound
+      that matters, since four thousand meshes and four thousand numbers are the same cache by
+      count and are not the same cache. `GraphValueSize` estimates, and **names its three blind
+      spots on itself**: no native memory, no sharing (the same curve twice is charged twice, and
+      that error is in the safe direction), and no walking of a curve's tessellation. The
+      **native** half stays open and belongs to `E13-T3`, exactly as ADR-0021 requires — a
+      provider *reports* its budget and nothing here infers one. A single result larger than the
+      whole budget is kept rather than evicted, because evicting it empties the cache and then
+      evicts the thing just computed.
+      **`E3-T10` turned out to be already built**, and the row saying otherwise is the more
+      useful half of this. `NodeSideEffectAttribute` existed, the importer read it, the key mixed
+      the epoch and the evaluator honoured it. What was missing was a **test through the
+      attribute**: the only one that existed built a definition by hand with
+      `isSideEffect: true`, exercising the engine and skipping the one step a node author ever
+      takes — so deleting the importer's check would have left the suite green and made every
+      impure node in every package silently pure. That is the worst failure a provenance cache
+      has, because it poisons nothing and therefore never looks wrong.
+- [x] **The rest of the near-term parity list, and `E2-T16` withdrawn rather than built** —
+      `Point3d`/`Vector3d` cylindrical and spherical construction, and
+      `Point3d.PruneDuplicates`. That last one is what `E2-T16`'s KD-tree existed for, and the
+      KD-tree is **not built**: `E2-T15`'s hierarchy answers welding, dedup and point queries
+      alike, and a second spatial index is a second thing to get right, to test and to keep
+      true. It should be revived on a **measurement** — pure point sets at scale — and not on
+      an opinion. Two decisions came out of writing these and both are on the members: spherical
+      **inclination is measured from the normal rather than from the plane**, because that is the
+      convention under which a sphere sweeps half a turn and the alternative differs by a sign
+      as well as an offset; and pruning compares a point only against points that were **kept**,
+      never following a dropped one through to its own survivor. The second was got wrong first
+      and a test caught it: following the chain makes coincidence transitive, a chain has no
+      length limit, and a point can end up merged into a representative arbitrarily far away.
+      As built, **no point moves by more than one tolerance**, and a property asserts it.
+      Parity in the value layer reaches **98 of 133**.
+- [x] **`spark` writes an OBJ polyline** — `E2-T34`'s writer half and `E12-T5`'s `run`.
+      `Spark.Geometry.Io` stops being an empty project and `Spark.Cli` stops being a stub:
+      `spark run docs/examples/curves.spark --export curves.obj` evaluates the demo graph
+      headlessly through the same `SparkSession`, node library and `SparkFile` reader the
+      desktop application uses, and writes 20 polylines and 59 points. **The last clause of
+      this row is not ticked**: *a third-party viewer opens it* is a manual acceptance nobody
+      has performed, and it is the only part of the M1 demo that a test in this repository
+      cannot stand in for. What is done instead is the strongest proxy available — the OBJ is
+      read back by a deliberately naive parser written in the test project, which refuses any
+      directive it does not know, because a writer verified by its own reader agrees with
+      itself and with nobody.
+      Three decisions are recorded on the writer rather than left to be found: OBJ has **no
+      curve entity**, so curves are tessellated and the chord tolerance goes into the header;
+      **nothing is welded**, because welding is a tolerance decision belonging to whoever knows
+      what the model is; and numbers are invariant-culture with `
+` endings on every platform,
+      since a comma decimal separator turns `1,5` into two fields that no reader complains
+      about. **Running it found a real defect**: `--tolerance` meant a *characteristic length*,
+      so asking for a coarser export with a bigger number produced a file eight times larger —
+      649,105 vertices against 79,361. It now means the linear tolerance itself.
 
 ## After that — finishing M2, and M1.6
 
@@ -200,9 +445,8 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] Every port shows the type it wants — `E8-T18`. Not in the plan; found by opening the
       application and looking at `Circle.ByCentreRadius`, where a port called `centre` gave no way
       to learn that a `Point3d` belongs in it.
-- [x] Preview bubbles and hover tooltips — the built half of `E8-T10`, plus the tooltip design
-      language §7.2 has specified since M0. **The watch panel is still open**, which is why the
-      row stays `In progress`.
+- [x] Preview bubbles and hover tooltips — `E8-T10`, plus the tooltip design language §7.2 has
+      specified since M0. **The watch panel has since landed too**, so the row is `Done`.
 - [x] Port descriptions from `<param>` — `E5-T7`, which had been marked `Done` while reading only
       `<summary>` ([N29](NOTES.md)). Found by building a port tooltip that had nothing to show.
 - [x] Library search with camel-hump ranking — `E8-T8`. `cbcr` finds `Circle.ByCentreRadius`.
@@ -254,7 +498,7 @@ exclusions is what keeps a walking skeleton from becoming a death march.
 
 | # | Question | Blocks |
 |---|---|---|
-| Q1 | **Two of the three M1.5 spikes are answered and both bets held** (`85e3183`): the GL viewport initialises and draws on the platform we ship to, and the immediate-mode canvas holds 2,000 nodes at 0.87 ms median. The third — AvaloniaEdit plus a Roslyn completion popup, `E11-T21` — is not taken; it gates the M4 code block. | M4 design |
+| Q1 | **Two of the three M1.5 spikes are answered and both bets held** (`85e3183`): the GL viewport initialises and draws on the platform we ship to, and the immediate-mode canvas holds 2,000 nodes at **0.97–1.14 ms median and 3.10–3.27 ms p95**, re-measured after N31 withdrew the original 0.87 ms ([N37](NOTES.md)). The third — AvaloniaEdit plus a Roslyn completion popup, `E11-T21` — is not taken; it gates the M4 code block. | M4 design |
 | Q4 | `Directory.Build.props` promotes CS1591 to an error on **four** projects; the plan named three. Is `Spark.Geometry.Io` deliberately included? | `E10-T8` scope |
 | Q5 | Revit or AutoCAD as the M8 embedding proof host? The scheduler is the same either way; the add-in shell, licensing and test loop are not. | `E12-T4` |
 | **Q13** | **The six licensing questions for counsel, and this is the item on this page with an outside clock on it.** The central one: **is a thin shim whose entire purpose is to expose OCCT a *work that uses the Library* under the Open CASCADE exception, or a derivative work under LGPL §5?** Then — whether single-file, trimmed or AOT publishing is compatible with the relink obligation; whether **vcpkg's port declaring `LGPL-2.1-only`, omitting the exception**, creates exposure; what *prominent notice in supporting documentation* requires concretely; what obligations attach to a user embedding `Spark.Host` in a commercial add-in (`D5`); and whether the source offer is satisfied by a tag reference or needs a hosted archive. **None of this is legal advice and no amount of further reading settles it** — it is a question for a lawyer, and it is on this page for that reason. [ADR-0020](adr/0020-occt-via-c-abi-shim.md) | **Items 1 and 3 before M6.** The rest before 1.0 |
@@ -315,7 +559,7 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   equivalence* is unprovable without ProtoGeometry, and it stands. Capability parity is about
   *presence* — whether a Dynamo user reaches for something and finds it absent — which needs
   no reference implementation to check. [DYNAMO-COVERAGE.md](DYNAMO-COVERAGE.md) is the
-  register: 51 ProtoGeometry types, 837 members, 92 reachable today. `Done` in it means
+  register: 51 ProtoGeometry types, 837 members, 98 reachable today. `Done` in it means
   *present and documented*, never *equivalent*, and the test that keeps it honest
   (`E11-T23`) must say so in its own failure messages.
 - **Six curve types, and the exclusions are named on the types rather than discovered.** There
@@ -323,8 +567,9 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   or NURBS conversion on the curve contract; no offset, projection or pull; and **no value
   equality on curves**, because two curves drawing the same path through different
   parameterisations are a tolerance question rather than an `Equals` question, and answering it
-  wrongly by default is worse than not answering it. `Curve.ClosestPoint` in particular waits on
-  the ray caster and its BVH (`E2-T15`) rather than getting a second implementation.
+  wrongly by default is worse than not answering it. **`Curve.ClosestPoint` is no longer among
+  them**: it waited for the ray caster and its BVH rather than getting a second implementation,
+  and now that `E2-T15` exists it has arrived on top of it.
 - **A general affine transform of an ellipse is refused, not approximated.** `TransformedBy`
   accepts similarities. A shear does take an ellipse to an ellipse, but recovering the new axes
   from the mapped conjugate pair is Rytz's construction, and doing it approximately would return
@@ -344,11 +589,15 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   drop shadow crosses its threshold, costing 57→40 fps at 2,000 nodes. The design language
   already specifies the fix — a sprite cache keyed on a fixed set of blur radii, eight sprites
   in total. Scoped, specified, and not yet built (`E8`).
-- **`concepts.evaluation` is a help topic id with no file behind it.** Five diagnostic codes
-  resolve to it and `docs/help/concepts/evaluation.md` does not exist, so a user following an
-  `SPK101x` code has nowhere to land. The docs harness does not currently check that a topic id
-  names a real topic, which is why nobody noticed; both halves are worth fixing together
-  (`E10`, `E11-T14`).
+- **`concepts.evaluation` had no file behind it, and the harness could not have known.**
+  *Fixed.* Five diagnostic codes resolved to it from M0 and the topic did not exist, so a user
+  following an `SPK101x` code landed nowhere. **Nothing was broken in any way a test could
+  see** — the id was a well-formed string, the codes were registered, and every topic that did
+  exist passed its front-matter check; the gap was between two things nobody was comparing. The
+  topic is written, and the harness gained three checks: a topic id in the source must name a
+  real topic, a `related` id must too, and no two topics may share an id. All three were proven
+  to fire. The second found a second dangling reference immediately — `concepts.lacing` related
+  to `concepts.lists`, and lacing *is* the topic that covers lists.
 - **Coordinates are unitless.** No `UnitSystem`, no unit types, no conversion. Import and
   export assume the file's own units and document that they do. PRD decision **D12**. This
   does **not** remove scale-aware tolerance, which is numerical robustness rather than

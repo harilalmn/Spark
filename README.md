@@ -53,8 +53,10 @@ which ships with Spark.
 > `Spark.Geometry.Occt` project.
 >
 > What has been run, on Windows, on 2026-08-28:
-> `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen projects;
-> `dotnet test Spark.slnx` runs **973 passing tests** across seven projects; and
+> `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over twenty-one projects;
+> the suite runs **1,203 passing tests** across eight projects — counted by
+> `scripts/run-tests.sh`, because `dotnet test` reports `Zero tests ran` on SDK 10.0.400
+> ([NOTES N34](docs/NOTES.md)); and
 > `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean. **CI ran all of it on
 > Windows and Linux on commit `53596ab` and was green**, 969 tests on each — so the Linux leg is
 > no longer a claim, and it has now caught something Windows could not.
@@ -213,20 +215,30 @@ Linux and macOS. Warnings are errors in CI only, never in the project files —
 solution format, which needs a recent SDK and a recent Visual Studio
 ([N1](docs/NOTES.md)).
 
-`dotnet run --project src/Spark.Desktop` opens the application. Three switches are worth knowing:
+`dotnet run --project src/Spark.Desktop` opens the application. It shows a splash while the shell
+is built — that takes over a second, and nearly all of it is invisible work: importing the node
+library reflects over an assembly, and the seeded graph is evaluated before anything can be drawn.
+The mark on it is `assets/spark-icon.svg`; the application draws the same geometry from
+`src/Spark.UI/Theming/SparkLogo.axaml`, which carries that file's path strings verbatim because
+Avalonia's geometry syntax is SVG path syntax. **There is no `.ico` in the repository** — the
+window icon is rendered from the same drawing at startup, so the taskbar cannot disagree with the
+splash. Neither the splash nor a second window appears under `--screenshot` or
+`--canvas-benchmark`, which would otherwise photograph and compete with the thing being measured.
+
+Three switches are worth knowing:
 `--graph curves` opens the curve demo instead of the point grid, `--open PATH` opens a `.spark`
 file, and `--screenshot PREFIX` writes a picture of the shell and a picture of the viewport and
 exits — the viewport one is a GPU read-back rather than a window grab, so it works over a locked
 session and in CI. The first two exist so that opening a particular graph can be checked without
 a human driving a file dialog.
 
-`dotnet test` finds **973 tests** across seven projects. `Spark.Geometry.Tests` (313) and
-`Spark.Geometry.Properties` (38) cover the kernel by example and by CsCheck property
-respectively; `Spark.Engine.Tests` (292) covers the graph, the replicator and the importer;
-`Spark.UI.Tests` (248) drives the canvas headlessly with real pointer gestures;
+The suite is **1,203 tests** across eight projects. `Spark.Geometry.Tests` (445) and
+`Spark.Geometry.Properties` (60) cover the kernel by example and by CsCheck property
+respectively; `Spark.Engine.Tests` (328) covers the graph, the replicator, the importer, the cache, the schedulers and cancellation;
+`Spark.UI.Tests` (273) drives the canvas headlessly with real pointer gestures;
 `Spark.Viewport.Tests` (69) covers the scene and the camera; `Spark.Architecture.Tests` (8)
 enforces the reference graph below by reading `.csproj` files as XML; and `Spark.Docs.Verify`
-(5) checks these documents against the repository. The last two were deliberately stood up
+(8) checks these documents against the repository. The last two were deliberately stood up
 before the code they now guard: a gate added later is a gate that gets an exemption for
 everything already there.
 
@@ -275,7 +287,7 @@ src/Spark.Cli/           the `spark` command
 src/Spark.Viewport/      IViewportRenderer, scene, camera, OpenGL + software backends
 src/Spark.UI/            Avalonia controls and view models
 src/Spark.Desktop/       the application
-tests/  bench/  docs/  scripts/  .github/workflows/
+tests/  bench/  docs/  scripts/  assets/  .github/workflows/
 ```
 
 Twelve source projects, all `net10.0`, with a reference graph that a test enforces rather than

@@ -372,6 +372,20 @@ public sealed class PolyLine : Curve
     /// <inheritdoc/>
     protected override Vector3d EvaluateSecondDerivative(double parameter) => Vector3d.Zero;
 
+    /// <summary>
+    /// One seed span per segment, because a corner is exactly where this curve stops being
+    /// smooth.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Tessellate(in Tolerance)"/> does not consult this — a polyline tessellates to
+    /// its own points and nothing else will do. It is here for everything else that subdivides
+    /// a curve and needs its pieces not to straddle a corner, and the proximity search behind
+    /// <see cref="Curve.ClosestPoint(in Point3d, in Tolerance)"/> is the first of those: a span
+    /// containing a corner holds two branches of a piecewise function, and a Newton step inside
+    /// it follows the wrong one.
+    /// </remarks>
+    protected override int TessellationSeedSpans => SegmentCount;
+
     private static void Validate(Point3d[] points, string parameterName)
     {
         if (points.Length < 2)

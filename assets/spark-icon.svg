@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
+     role="img" aria-labelledby="spark-icon-title spark-icon-desc">
+  <title id="spark-icon-title">Spark</title>
+  <desc id="spark-icon-desc">A four-pointed spark over a ring carrying two control points, on a dark rounded tile.</desc>
+
+  <!--
+    Spark's application mark. The same geometry is drawn by the application itself from
+    src/Spark.UI/Theming/SparkLogo.axaml, which carries these path strings verbatim - Avalonia's
+    geometry syntax is SVG path syntax, so there is one source of truth and no converter.
+
+    EVERY COLOUR IS A TOKEN from docs/help/concepts/design-language.md rather than a value picked
+    for this file, so the mark belongs to the product instead of sitting beside it: the tile is the
+    surface ladder (surface.base to bg.void), the spark is the accent ramp (accent.press, accent,
+    lip.hover), the rim light is depth.hi.float, and the ring is the accent at low opacity.
+
+    Two ideas, layered so they degrade in the right order - the design language asks every cue to
+    declare what carries its meaning once detail is dropped (Principle 5):
+
+      * The SPARK is the silhouette and it is the whole mark at 16 px.
+      * The RING with two control points on it is the parametric curve every Spark document is
+        made of. It shows through the spark's concave waists; at small sizes it becomes a halo.
+
+    The waist is tuned rather than assumed. Rendered at 46 the mark reads as a gem, not a spark;
+    at 14 it is elegant but loses too much mass at 16 px. 22 is the compromise, chosen by looking
+    at all four side by side and at 48, 32 and 16 px.
+  -->
+
+  <defs>
+    <linearGradient id="spark-tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#23272F"/>
+      <stop offset="1" stop-color="#12151A"/>
+    </linearGradient>
+
+    <!-- Lit from above, like every other raised surface in the product, so it fades out before
+         the bottom edge rather than ringing the tile evenly. -->
+    <linearGradient id="spark-rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"    stop-color="#414A59" stop-opacity="0.95"/>
+      <stop offset="0.40" stop-color="#343B47" stop-opacity="0.28"/>
+      <stop offset="1"    stop-color="#343B47" stop-opacity="0"/>
+    </linearGradient>
+
+    <linearGradient id="spark-body" x1="0.18" y1="0" x2="0.82" y2="1">
+      <stop offset="0"    stop-color="#D4C4FF"/>
+      <stop offset="0.46" stop-color="#A98BFF"/>
+      <stop offset="1"    stop-color="#8674D6"/>
+    </linearGradient>
+
+    <radialGradient id="spark-glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0"    stop-color="#A98BFF" stop-opacity="0.62"/>
+      <stop offset="0.45" stop-color="#A98BFF" stop-opacity="0.18"/>
+      <stop offset="1"    stop-color="#A98BFF" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="spark-core" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0"   stop-color="#FFFFFF" stop-opacity="0.80"/>
+      <stop offset="0.6" stop-color="#FFFFFF" stop-opacity="0.10"/>
+      <stop offset="1"   stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="114" fill="url(#spark-tile)"/>
+  <rect x="1.5" y="1.5" width="509" height="509" rx="112.5" fill="none" stroke="url(#spark-rim)" stroke-width="3"/>
+
+  <!-- The curve, and two control points sitting on it. The points are notched out of the ring with
+       a tile-coloured stroke so they read as ON the curve rather than floating behind it. -->
+  <circle cx="256" cy="256" r="152" fill="none" stroke="#A98BFF" stroke-opacity="0.28" stroke-width="6"/>
+  <g fill="#C0A8FF" fill-opacity="0.95" stroke="#15181E" stroke-width="6" stroke-linejoin="round">
+    <path d="M363.5 128.5 L383.5 148.5 L363.5 168.5 L343.5 148.5 Z"/>
+    <path d="M148.5 343.5 L168.5 363.5 L148.5 383.5 L128.5 363.5 Z"/>
+  </g>
+
+  <circle cx="256" cy="256" r="220" fill="url(#spark-glow)"/>
+  <path d="M256 46 Q278 234 440 256 Q278 278 256 466 Q234 278 72 256 Q234 234 256 46 Z" fill="url(#spark-body)"/>
+  <circle cx="256" cy="256" r="52" fill="url(#spark-core)"/>
+</svg>

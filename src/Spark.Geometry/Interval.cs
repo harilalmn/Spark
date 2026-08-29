@@ -268,7 +268,7 @@ public readonly struct Interval : IEquatable<Interval>
     /// The expanded interval, based on this interval's increasing form and therefore always
     /// returned in increasing order unless the shrink was large enough to invert it.
     /// </returns>
-    public Interval Expand(double amount)
+    public Interval Expanded(double amount)
     {
         Interval increasing = MakeIncreasing();
 

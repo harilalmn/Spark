@@ -122,6 +122,42 @@ must not be "corrected".
 `Vector3d.AngleTo` is the unsigned partner: it always returns something in `[0, 180]`
 degrees and needs no axis, because it is not telling you which way round.
 
+### When a rotation wants to be a `Quaternion` rather than a `Transform`
+
+`Transform.Rotation(axis, angle)` is the ordinary way to rotate something, and for one
+rotation it is the right one. `Quaternion` is there for the two things a matrix does badly:
+
+- **Composing many rotations.** Renormalising four numbers is cheap; re-orthonormalising nine
+  is not, so a chain of matrix multiplications slowly stops being a rotation.
+- **Interpolating between two orientations.** `Quaternion.Slerp` turns at a constant angular
+  speed along the shortest arc. Blending two matrices entry by entry does not produce a
+  rotation at all.
+
+```csharp
+Quaternion turn  = Quaternion.ByAxisAngle(Vector3d.ZAxis, Angle.FromDegrees(90.0));
+Vector3d rotated = turn.Rotate(Vector3d.XAxis);          // (0, 1, 0)
+
+Quaternion align = Quaternion.ByTwoVectors(Vector3d.ZAxis, new Vector3d(1.0, 0.0, 1.0));
+Quaternion half   = Quaternion.Slerp(Quaternion.Identity, turn, 0.5);
+double degrees    = half.Angle.Degrees;                  // 45
+
+Transform asMatrix = turn.ToTransform();                 // when a Transform is what you need
+```
+
+Two things about quaternions surprise everybody once, so they are said here rather than
+learned the hard way.
+
+**A quaternion and its negation are the same rotation.** They rotate every vector to exactly
+the same place, and they are still different values. `==` compares the four numbers, like
+every other value in Spark; ask `RepresentsSameRotationAs` when the question is about the
+rotation.
+
+**`default(Quaternion)` is not the identity rotation** — it is four zeros, which is no
+rotation at all, and every member that needs a rotation throws on it. Write
+`Quaternion.Identity` when you mean "no rotation". The default was left invalid on purpose: a
+default that quietly meant *leave it as it is* is exactly what lets a forgotten assignment
+reach production.
+
 ---
 
 ## 3. Planes
@@ -159,11 +195,30 @@ Plane wall = Plane.ByThreePoints(
 
 Vector3d facing = wall.Normal;                          // (0, −1, 0)
 double side = wall.DistanceTo(new Point3d(0.0, 1.0, 0.0)); // −1: one unit behind the wall
-Plane turned = wall.Flip();                             // same plane, normal reversed
+Plane turned = wall.Flipped();                             // same plane, normal reversed
 ```
 
 Three collinear or coincident points define no unique plane, and `ByThreePoints` throws
 `ArgumentException` rather than inventing one.
+
+Two more factories exist for when you care about the frame rather than only the surface.
+`ByOriginNormal` picks the in-plane axes for you — deterministically, but arbitrarily — so if
+it matters which way "along" points, say so with `ByOriginNormalXAxis`. And `Offset` moves a
+plane along its own normal, carrying the frame unrotated, which is what makes a point and its
+projection onto the offset plane share in-plane coordinates:
+
+```csharp
+Plane deck = Plane.ByOriginNormalXAxis(
+    new Point3d(0.0, 0.0, 3.0),   // origin
+    Vector3d.ZAxis,               // normal
+    Vector3d.YAxis);              // which way the plane's own X axis runs
+
+Plane ceiling = deck.Offset(2.7);          // parallel, 2.7 above, same frame
+Plane below   = deck.Offset(-0.4);         // negative goes the other way
+
+Point2d here  = deck.To2d(new Point3d(1.0, 2.0, 3.0));    // (2, −1)
+Point2d there = ceiling.To2d(new Point3d(1.0, 2.0, 5.7)); // (2, −1) — the same coordinates
+```
 
 ### `default(Plane)` is not a plane
 
@@ -403,10 +458,11 @@ Honest scope, so you do not go looking:
 
 | Concept | State |
 |---|---|
-| `Point3d`, `Vector3d`, `Point2d`, `Vector2d`, `UV` | Implemented and tested |
+| `Point3d`, `Vector3d`, `Point2d`, `Vector2d`, `UV`, `Quaternion` | Implemented and tested |
 | `Angle`, `Tolerance`, `Interval`, `BoundingBox` | Implemented and tested |
 | `Plane`, `CoordinateSystem`, `Transform` | Implemented and tested |
-| Lines, arcs, circles, polylines, NURBS curves | M3 — not written |
+| `Line`, `Arc`, `Circle`, `EllipseCurve`, `PolyLine`, `PolyCurve` | Implemented and tested |
+| `NurbsCurve`, `Helix`, curve intersection and offset | M3 — not written |
 | Surfaces, meshes, tessellation | M5 — not written |
 | BRep solids, booleans | M6 — not written |
 

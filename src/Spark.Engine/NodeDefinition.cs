@@ -15,7 +15,11 @@ namespace Spark.Engine;
 /// fifty to a hundred times slower, which does not make lacing slow — it makes it unusable. See
 /// <see cref="NodeInvoker"/>.
 /// </remarks>
-/// <param name="arguments">One argument per input port, in port order.</param>
+/// <param name="arguments">
+/// One argument per input port, in port order — and, for a node that
+/// <see cref="NodeDefinition.WantsCancellation"/>, one further argument holding the run's
+/// <see cref="System.Threading.CancellationToken"/>.
+/// </param>
 /// <returns>One value per output port, in port order.</returns>
 public delegate object?[] NodeInvocation(object?[] arguments);
 
@@ -47,6 +51,12 @@ public sealed class NodeDefinition
     /// Whether the node depends on or changes something outside the graph. An impure node mixes the
     /// run epoch into its cache key and poisons the keys of everything downstream.
     /// </param>
+    /// <param name="wantsCancellation">
+    /// Whether the node's member takes a <see cref="System.Threading.CancellationToken"/> as its
+    /// last parameter. When it does, the replicator appends the run's token to the argument
+    /// array and the compiled invoker passes it straight through, because a trailing token
+    /// occupies the trailing argument slot.
+    /// </param>
     /// <param name="description">One paragraph describing the node. Optional.</param>
     /// <param name="category">
     /// The library category the node is filed under, which is what decides its header colour on the
@@ -68,7 +78,8 @@ public sealed class NodeDefinition
         int version = 1,
         bool isSideEffect = false,
         string? description = null,
-        string? category = null)
+        string? category = null,
+        bool wantsCancellation = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
         ArgumentNullException.ThrowIfNull(inputs);
@@ -100,6 +111,7 @@ public sealed class NodeDefinition
         DefaultLacing = defaultLacing;
         Version = version;
         IsSideEffect = isSideEffect;
+        WantsCancellation = wantsCancellation;
         Description = description;
         Category = string.IsNullOrWhiteSpace(category) ? NodeCategories.Custom : category;
     }
@@ -139,6 +151,28 @@ public sealed class NodeDefinition
     /// cached across runs.
     /// </summary>
     public bool IsSideEffect { get; }
+
+    /// <summary>
+    /// Whether the node takes the run's cancellation token as a trailing argument.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Cancellation between nodes and between replication elements was never enough for one
+    /// expensive element.</b> A node given a hundred thousand points replicates into a hundred
+    /// thousand cheap calls and stops promptly; a node given one enormous mesh makes a single
+    /// call that nothing can interrupt, and the whole point of cancelling is that the user has
+    /// already changed their mind.
+    /// </para>
+    /// <para>
+    /// <b>The token is declared, not ambient.</b> A node author writes a
+    /// <see cref="System.Threading.CancellationToken"/> as the member's last parameter and the
+    /// importer takes it out of the ports. An <c>AsyncLocal</c> would have needed no declaration
+    /// at all and is exactly what this project refused for tolerance: a value that arrives from
+    /// nowhere is a value nobody can see in a signature, test against, or reason about across a
+    /// thread hop — and this one crosses a scheduler by design.
+    /// </para>
+    /// </remarks>
+    public bool WantsCancellation { get; }
 
     /// <summary>The compiled invoker.</summary>
     public NodeInvocation Invoke { get; }

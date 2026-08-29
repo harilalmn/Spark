@@ -183,11 +183,88 @@ public sealed class PlaneTests
     [Fact]
     public void FlippingReversesTheNormalAndKeepsTheFrameRightHanded()
     {
-        Plane flipped = Plane.WorldXY.Flip();
+        Plane flipped = Plane.WorldXY.Flipped();
 
         Assert.True(flipped.Normal.EqualsWithin(-Vector3d.ZAxis));
         AssertRightHanded(flipped);
         Assert.Equal(-3.0, flipped.DistanceTo(new Point3d(0.0, 0.0, 3.0)), 12);
+    }
+
+    [Fact]
+    public void ByOriginNormalXAxisPointsTheFrameWhereItIsToldTo()
+    {
+        Plane plane = Plane.ByOriginNormalXAxis(
+            Point3d.Origin,
+            Vector3d.ZAxis,
+            new Vector3d(0.0, 1.0, 0.0));
+
+        Assert.Equal(new Vector3d(0.0, 1.0, 0.0), plane.XAxis);
+        Assert.Equal(new Vector3d(-1.0, 0.0, 0.0), plane.YAxis);
+        Assert.Equal(Vector3d.ZAxis, plane.Normal);
+
+        // The surface is the same one ByOriginNormal would give; only the frame differs, and
+        // the frame is the entire reason this factory exists.
+        Assert.True(plane.IsCoplanar(Plane.ByOriginNormal(Point3d.Origin, Vector3d.ZAxis)));
+    }
+
+    [Fact]
+    public void ByOriginNormalXAxisProjectsAnObliqueXAxisOntoThePlane()
+    {
+        Plane plane = Plane.ByOriginNormalXAxis(
+            Point3d.Origin,
+            Vector3d.ZAxis,
+            new Vector3d(2.0, 0.0, 7.0));
+
+        Assert.Equal(Vector3d.XAxis, plane.XAxis);
+        Assert.Equal(0.0, plane.XAxis.Dot(plane.Normal), 12);
+    }
+
+    [Fact]
+    public void ByOriginNormalXAxisRejectsAnXAxisParallelToTheNormal()
+    {
+        ArgumentException thrown = Assert.Throws<ArgumentException>(
+            () => Plane.ByOriginNormalXAxis(Point3d.Origin, Vector3d.ZAxis, Vector3d.ZAxis));
+
+        Assert.Equal("xAxis", thrown.ParamName);
+    }
+
+    [Fact]
+    public void OffsetMovesThePlaneAlongItsNormalAndCarriesTheFrameUnrotated()
+    {
+        Plane plane = Plane.ByOriginNormalXAxis(
+            new Point3d(1.0, 2.0, 3.0),
+            Vector3d.ZAxis,
+            Vector3d.YAxis);
+
+        Plane raised = plane.Offset(4.0);
+
+        Assert.Equal(new Point3d(1.0, 2.0, 7.0), raised.Origin);
+        Assert.Equal(plane.XAxis, raised.XAxis);
+        Assert.Equal(plane.YAxis, raised.YAxis);
+        Assert.Equal(plane.Normal, raised.Normal);
+
+        // The property that makes offsetting useful: a point and its projection onto the
+        // offset plane have the same in-plane coordinates.
+        Point3d point = new(5.0, 9.0, 3.0);
+        Assert.Equal(plane.To2d(point), raised.To2d(point + (plane.Normal * 4.0)));
+    }
+
+    [Fact]
+    public void OffsettingTheOtherWayIsNegativeAndOffsettingByZeroGivesAnEqualPlane()
+    {
+        Plane plane = Plane.ByOriginNormal(new Point3d(0.0, 0.0, 5.0), Vector3d.ZAxis);
+
+        Assert.Equal(new Point3d(0.0, 0.0, 2.0), plane.Offset(-3.0).Origin);
+        Assert.Equal(plane, plane.Offset(0.0));
+    }
+
+    [Fact]
+    public void OffsettingByANonFiniteDistanceThrowsRatherThanReturningAnInvalidPlane()
+    {
+        Plane plane = Plane.WorldXY;
+
+        Assert.Equal("distance", Assert.Throws<ArgumentException>(() => plane.Offset(double.NaN)).ParamName);
+        Assert.Equal("distance", Assert.Throws<ArgumentException>(() => plane.Offset(double.PositiveInfinity)).ParamName);
     }
 
     [Fact]
@@ -223,7 +300,7 @@ public sealed class PlaneTests
         Plane shifted = Plane.ByOriginNormal(new Point3d(50.0, -20.0, 0.0), Vector3d.ZAxis);
 
         Assert.True(plane.IsCoplanar(shifted));
-        Assert.True(plane.IsCoplanar(plane.Flip()));
+        Assert.True(plane.IsCoplanar(plane.Flipped()));
         Assert.False(plane.IsCoplanar(Plane.ByOriginNormal(new Point3d(0.0, 0.0, 1.0), Vector3d.ZAxis)));
         Assert.False(plane.IsCoplanar(Plane.WorldYZ));
     }

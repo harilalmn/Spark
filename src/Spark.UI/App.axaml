@@ -14,6 +14,7 @@
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://Spark.UI/Theming/SparkTheme.axaml" />
+        <ResourceInclude Source="avares://Spark.UI/Theming/SparkLogo.axaml" />
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Application.Resources>

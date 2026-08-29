@@ -9,5 +9,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Spark.Host\Spark.Host.csproj" />
+
+    <!--
+      The CLI writes OBJ, so it composes the interchange assembly directly rather than reaching
+      it through the host. Spark.Host is the embedding seam and knows nothing about file formats;
+      routing an exporter through it would put a format dependency in every CAD add-in.
+    -->
+    <ProjectReference Include="..\Spark.Geometry.Io\Spark.Geometry.Io.csproj" />
   </ItemGroup>
 </Project>

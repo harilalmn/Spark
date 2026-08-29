@@ -248,14 +248,14 @@ public sealed class IntervalTests
     [Fact]
     public void ExpandGrowsBothEndsAndANegativeAmountShrinks()
     {
-        Assert.Equal(new Interval(-1.0, 11.0), new Interval(0.0, 10.0).Expand(1.0));
-        Assert.Equal(new Interval(1.0, 9.0), new Interval(0.0, 10.0).Expand(-1.0));
+        Assert.Equal(new Interval(-1.0, 11.0), new Interval(0.0, 10.0).Expanded(1.0));
+        Assert.Equal(new Interval(1.0, 9.0), new Interval(0.0, 10.0).Expanded(-1.0));
     }
 
     [Fact]
     public void ShrinkingPastZeroLengthInvertsTheIntervalRatherThanThrowing()
     {
-        Interval collapsed = new Interval(0.0, 10.0).Expand(-6.0);
+        Interval collapsed = new Interval(0.0, 10.0).Expanded(-6.0);
 
         Assert.True(collapsed.IsDecreasing);
     }

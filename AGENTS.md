@@ -2,7 +2,7 @@
 
 For anyone changing this repository — human or AI. Read this before committing.
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 
 ---
 
@@ -77,7 +77,9 @@ XML doc = what this member does.*
    exactly this form. `--no-incremental` is not optional caution: without it the warning
    count can be a cached result from a compilation that never ran, and it will read as clean.
 2. `dotnet test Spark.slnx` — green. This runs the docs harness and the architecture tests;
-   there is no separate command for either.
+   there is no separate command for either. **If it reports `Zero tests ran` for every project,
+   that is a toolchain fault and not your change** — run `scripts/run-tests.sh` for a second
+   opinion before believing either result ([NOTES.md N34](docs/NOTES.md)).
 3. `dotnet format Spark.slnx --verify-no-changes --severity warn` — clean. Use exactly this
    form: it is what the `format` CI job runs, and a shorter one can pass locally where the
    gate fails.
@@ -475,14 +477,17 @@ As of 2026-08-28, in three tiers. The tiers are the point; collapsing them is th
 
 **Confirmed working, on Windows, by running it.**
 
-- `dotnet build Spark.slnx --no-incremental -warnaserror` — **sixteen** projects, zero
+- `dotnet build Spark.slnx --no-incremental -warnaserror` — **twenty-one** projects, zero
   warnings, zero errors. Use the flag: without it the warning count can come from a cached
   analysis (see *Things that will bite you*).
-- `dotnet test Spark.slnx` — **973 tests across seven projects**, all passing.
-  `Spark.Geometry.Tests` (313) covers the kernel by example; `Spark.Geometry.Properties` (38)
+- `dotnet test Spark.slnx` — **1,203 tests across eight projects**, all passing. The same
+  1,203 are reported by `scripts/run-tests.sh`, which runs each project as the executable
+  Microsoft.Testing.Platform makes it; the two must agree ([NOTES.md N34](docs/NOTES.md)).
+  `Spark.Geometry.Io.Tests` (12) reads the OBJ the writer produced with a parser of its own;
+  `Spark.Geometry.Tests` (445) covers the kernel by example; `Spark.Geometry.Properties` (60)
   covers it with CsCheck properties over generators spanning 1e-9 to 1e9; `Spark.Engine.Tests`
-  (292) covers the graph, the replicator, the importer and the `.spark` format, including a two-way diff against the
-  lacing specification and another against `Spark.Nodes.Core`; `Spark.UI.Tests` (248) drives the
+  (328) covers the graph, the replicator, the importer, the cache, the schedulers, cancellation and the `.spark` format, including a two-way diff against the
+  lacing specification and another against `Spark.Nodes.Core`; `Spark.UI.Tests` (273) drives the
   canvas headlessly with real pointer gestures; `Spark.Viewport.Tests` (69) covers the scene
   builder and the camera; `Spark.Architecture.Tests` (8) enforces the reference-graph rules by
   reading `.csproj` files as XML; `Spark.Docs.Verify` (5) checks front matter, worked examples,

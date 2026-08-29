@@ -84,6 +84,64 @@ public readonly struct Vector3d : IEquatable<Vector3d>
     public bool IsValid => double.IsFinite(X) && double.IsFinite(Y) && double.IsFinite(Z);
 
     /// <summary>
+    /// Creates a vector from cylindrical coordinates in a plane's frame.
+    /// </summary>
+    /// <param name="plane">
+    /// The frame the coordinates are measured in. Only its axes are used; a vector has no
+    /// position, so the plane's origin is deliberately ignored.
+    /// </param>
+    /// <param name="radius">The distance from the axis. A negative radius points the other way.</param>
+    /// <param name="angle">
+    /// The angle around the normal, measured from <see cref="Plane.XAxis"/> towards
+    /// <see cref="Plane.YAxis"/>.
+    /// </param>
+    /// <param name="height">The component along the normal.</param>
+    /// <returns>The vector.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <paramref name="plane"/> is not valid.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when any of the coordinates is not finite.
+    /// </exception>
+    public static Vector3d ByCylindricalCoordinates(
+        in Plane plane,
+        double radius,
+        Angle angle,
+        double height) =>
+        Point3d.ByCylindricalCoordinates(plane, radius, angle, height) - plane.Origin;
+
+    /// <summary>
+    /// Creates a vector from spherical coordinates in a plane's frame.
+    /// </summary>
+    /// <param name="plane">
+    /// The frame the coordinates are measured in. Only its axes are used.
+    /// </param>
+    /// <param name="radius">The vector's length. A negative radius reverses it.</param>
+    /// <param name="azimuth">
+    /// The angle around the normal, measured from <see cref="Plane.XAxis"/> towards
+    /// <see cref="Plane.YAxis"/>.
+    /// </param>
+    /// <param name="inclination">
+    /// The angle <b>from the normal</b> rather than from the plane — see
+    /// <see cref="Point3d.BySphericalCoordinates(in Plane, double, Angle, Angle)"/>, which this
+    /// follows exactly. Two conventions that disagreed by a sign, one on each type, would be a
+    /// defect nobody could see in either of them alone.
+    /// </param>
+    /// <returns>The vector.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <paramref name="plane"/> is not valid.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when any of the coordinates is not finite.
+    /// </exception>
+    public static Vector3d BySphericalCoordinates(
+        in Plane plane,
+        double radius,
+        Angle azimuth,
+        Angle inclination) =>
+        Point3d.BySphericalCoordinates(plane, radius, azimuth, inclination) - plane.Origin;
+
+    /// <summary>
     /// Returns this vector scaled to unit length.
     /// </summary>
     /// <returns>A vector in the same direction with a length of one.</returns>

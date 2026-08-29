@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 
 ---
 
@@ -1001,3 +1001,247 @@ is precisely how that stops being true while every test stays green.
 100 000 elements the return path allocates 5 297 836 B against the argument path's 800 144 B, a
 factor of 6.6, because `FromClr` boxes every element through a `List<object?>`. That was recorded
 as a number to act on later. Later has not come, and it now cannot get worse unnoticed.
+
+---
+
+## N33 — A splash cannot report its own progress, because the thread it would report on is blocked
+
+The splash exists to cover the second or so it takes to build the shell. Almost all of that second
+is one synchronous call: constructing `MainWindowViewModel` imports the node library by reflection
+and evaluates the seeded graph, on the UI thread.
+
+Two consequences follow, and both are counter-intuitive enough to be worth writing down.
+
+**The splash must be built from a posted continuation, not inline.** Show the splash and then
+construct the shell in the next statement, and the splash is created, shown, and never painted:
+the render pass cannot run because the thread is inside the constructor. What the user sees is an
+empty rectangle for the whole wait, which is worse than no splash at all. `App.StartWithSplash`
+posts the shell construction at `DispatcherPriority.Background`, which lets the render pass go
+first.
+
+**A status line cannot be updated during the wait, so it is set once.** The obvious design — set
+"Importing the node library", then "Evaluating the graph", then "Ready" — cannot work for the same
+reason. Each assignment invalidates a visual that will not be redrawn until the blocking call
+returns, by which time the splash is closing. Every step would be assigned and none would appear.
+The window states what the whole wait is for, once, and the only moving thing is the indeterminate
+bar, which the compositor animates without needing this thread. **The first draft of this window
+had the sequence of steps**, and it read "Starting" for the entire run.
+
+**The shell is shown before the splash is closed**, in that order, because the desktop lifetime
+shuts down when the last window closes. Reversed, the application exits between the two
+statements.
+
+**A fourth thing, and it cost a startup crash.** `SplashWindow` declared its own
+`InitializeComponent` rather than using the one Avalonia's name generator emits. The hand-written
+one loads the XAML but does not assign the `x:Name` fields, so `VersionText` was null and the
+constructor threw. `MainWindow` already carried a comment warning about exactly this. A comment on
+one file does not protect another: what would have protected this one is that both windows are
+constructed by the same code path, and nothing constructs them in a test.
+
+## N34 — `dotnet test` reported zero tests over a suite that runs clean, and the suite was never the problem
+
+On SDK **10.0.400** — which `global.json`'s `rollForward: latestFeature` accepts against its
+`10.0.100` pin — `dotnet test Spark.slnx` reports **`Zero tests ran`** and exit code 5 for all
+seven test projects, in about 130 ms per project. The same binaries, executed directly, discover
+and pass **981 tests**. Nothing about the projects, the packages or the code differs between the
+two runs.
+
+The diagnostic log names the difference in one line:
+
+```
+Command line arguments: '--server dotnettestcli --dotnet-test-pipe testingplatform.pipe.<guid>'
+```
+
+`dotnet test` does not run a Microsoft.Testing.Platform project the way the platform's own
+documentation describes running one. It launches it in **server mode** and talks to it over a
+named pipe. The log then stops mid-initialisation: the handshake never completes, the host exits,
+and the SDK reports the only thing it can see from outside — that no tests were reported to it.
+**Zero tests ran is true and useless.** It describes the SDK's inbox, not the suite.
+
+Three things are worth keeping from this.
+
+**The failure mode is the dangerous one.** A test command that reports a *failure* gets
+investigated. A test command that reports *nothing to run* looks, at a glance, like a project
+configuration that has not finished being wired up — which is exactly the state a young repository
+is often in, and exactly the state this one is not. Exit code 5 is what saved it: CI would have
+gone red rather than green-and-empty. **A runner that could report zero tests as success would have
+hidden a 981-test suite for as long as nobody looked.** The value of that non-zero exit is worth
+more than the inconvenience of the bug.
+
+**Neither package is stale, so there was no upgrade to reach for.** `xunit.v3` is at 4.0.0 and
+`Microsoft.Testing.Platform` at 2.3.3, and both are the newest versions published. The mismatch is
+between the SDK's feature band and the platform, not between the platform and the repository, so
+pinning harder is the only lever the repository actually holds — and `rollForward: latestFeature`
+is what handed the choice of band away. Tightening it is a real option and is **deliberately not
+taken yet**: 10.0.100 is not installed on the machine that found this, so the pin would trade a
+misleading test run for a build that does not start, which is worse. It becomes the right change
+the moment CI is observed to drift onto a band where this reproduces.
+
+**`scripts/run-tests.sh` is a second opinion, not a replacement.** It runs each test project as
+the executable Microsoft.Testing.Platform makes it (N11), parses the platform's own summary line
+rather than re-deriving counts, and totals them. `dotnet test Spark.slnx` remains the documented
+gate in AGENTS.md and CONTRIBUTING.md, because it is what CI runs and a local convenience that
+diverges from CI is how a repository grows two definitions of green. The script's job is to answer
+one question the SDK's message cannot: **is this red the code, or the toolchain?** If the two
+disagree, the disagreement itself is the finding, and no claim about the suite should be made until
+it is resolved.
+
+## N35 — A property test that asserted through a boundary, and the run that would have found it years later
+
+`TheSignedAngleBetweenTwoVectorsDoesNotDependOnTheirLengths` failed twice in about twenty-five
+consecutive runs of the property suite, with a different CsCheck seed each time and no change to
+the kernel between them. Raising the sample count found the shape of it immediately: at 50,000
+samples it fails on **every** run, and the shrunk case says why in one number.
+
+```
+Turn = 9.015E-56°
+Expected: 0
+Actual:   1
+```
+
+The property scaled two vectors and asserted that the signed angle between them is unchanged.
+It made two assertions, and only the first is true:
+
+```csharp
+Assert.True(atUnitLength.EqualsWithin(atOtherLengths));
+Assert.Equal(Math.Sign(atUnitLength.Radians), Math.Sign(atOtherLengths.Radians));
+```
+
+At a turn of 9e-56 degrees the two angles agree to fifty digits, so `EqualsWithin` passes. One of
+them is **exactly** zero and the other is a denormal above it, so `Math.Sign` returns `0` against
+`1` and the second assertion fails. **The sign of a quantity at the noise floor is not a fact
+about the geometry.** It is a fact about which of two equally correct roundings happened, and
+`Math.Sign` makes it worse than a coin toss by having a third outcome at exactly zero that
+neither branch of a real disagreement produces.
+
+The same argument applies at a half turn, where `atan2` may return `+π` or `−π` for inputs that
+differ by a rounding, so the fix guards both boundaries and asserts the sign only where it means
+something.
+
+Three things are worth keeping.
+
+**The failure rate is the interesting number, not the failure.** One sample in roughly
+twenty-five thousand, at a hundred samples per run, is a red build every few weeks — always on a
+different seed, never reproducible from the previous failure's information, and always on a
+commit that has nothing to do with it. That is the exact profile of a test that gets an
+`[Ignore]` and an apologetic comment. It was found here only because the suite was run twenty
+times in a row while chasing something else, and then confirmed by turning the sample count up
+rather than by running it more times.
+
+**`CsCheck_Iter` is the tool for this and it is worth remembering it exists.**
+`CsCheck_Iter=50000` turns a one-in-twenty-five-thousand event from unreproducible into
+certain, and the whole suite still runs in half a minute. Any property suspected of flaking
+should be put under it before anything else is tried; **running the same 100 samples again is
+not more evidence, it is the same evidence.**
+
+**The property was right and the assertion was wrong, and the distinction matters.** Signed
+angle is genuinely independent of the operands' lengths; that is what the first assertion says
+and it holds at 150,000 samples. What did not hold was a second claim smuggled in beside it —
+that the *sign* is also independent — which is false wherever the angle is close enough to a
+boundary that the sign is noise. A property test is a statement about the code, and a statement
+that is nearly true is not a weaker statement, it is a different and false one.
+
+## N36 — Newton's method is wrong at a corner, and the corner is where a polyline lives
+
+`Curve.ClosestPoint` searches a bounding-volume hierarchy of parameter spans for the span
+nearest the target, then finds the nearest point inside that span. The second half was written
+first as Newton's method on the derivative of the squared distance, which is the textbook answer
+and is what every reference implementation does. It is wrong on a polyline, and the wrongness is
+invisible in the arithmetic.
+
+For a target lying just *before* a vertex, the nearest of the span's samples is the vertex
+itself. The derivative evaluated **at** a vertex belongs to the segment *after* it —
+`PolyLine.EvaluateDerivative` takes the segment index from `floor(parameter)`, and it has no
+better option, because the derivative genuinely does not exist there. So the gradient is the
+offset, which points back along the *previous* segment, dotted with a direction perpendicular to
+it. That is zero. Newton concludes it is standing at a stationary point, declines to move, and
+the query returns the corner.
+
+The error is half a sample spacing, always in the same direction, and only ever near a join. It
+was found by a test that compares the query against a dense scan of the curve — 4,001 samples,
+which cannot beat a real minimiser and therefore should never win:
+
+```
+PolyLine: query 168.64933339995744 against dense 168.6180358133806.
+```
+
+Two repairs, and both were needed.
+
+**Spans are cut on the curve's own seed boundaries.** The span count is now a *multiple* of
+`TessellationSeedSpans` rather than a clamped constant, and `PolyLine` and `PolyCurve` override
+that property to their segment count. A span therefore never straddles a corner. This matters
+beyond the narrow phase: a span that straddles one holds two branches of a piecewise function,
+the span's reported distance comes back too large, and **every other span is then pruned against
+a bound that is not the real minimum** — so the failure is not a slightly wrong parameter, it is
+a silently wrong *point*, somewhere else on the curve entirely.
+
+**The narrow phase is a golden-section search, not Newton.** Aligned spans fix the straddling
+case and not the endpoint case: a span's own upper end is still a vertex when the next span
+starts a new segment. Golden section needs no derivative and so cannot be fooled by one that
+jumps. It costs more evaluations than a Newton step that works and buys the property the
+hierarchy actually depends on — **the answer for a span is never worse than the best point the
+coarse scan already found.**
+
+Two smaller facts fall out of it.
+
+**The tolerance is a promise about the answer, not a hint.** The search stops when a further
+step would move the *point* by less than `Tolerance.Linear`, converted to a parameter through
+the curve's average speed. So the same call resolves to the same place on a curve a metre long
+and one a micron long — and a caller who passes the default gets 1e-6, not machine precision. A
+test asserting an error below 1e-9 while passing the default tolerance is asserting something
+the contract does not offer.
+
+**There is one implementation and every curve type uses it.** An exact projection on `Line`, a
+plane-and-angle argument on `Circle`, and a general search for the rest is three pieces of code
+that must agree at their boundaries — and a `PolyCurve` of a line and an arc is a boundary,
+probed from either side, in the same query. The general path is exact on a line anyway, because
+a straight span's box is exact and the search has one minimum to find.
+
+## N37 — The canvas figures, re-measured after N31 withdrew them, and what the spread argues for
+
+[N31](#n31--a-benchmark-printed-a-sample-size-it-had-not-measured-over) withdrew every canvas
+figure this repository had quoted, because they were computed over a 120-frame window while the
+run reported 500 frames. `E8-T21` fixed the window. These are the replacements, measured after
+that fix, on a machine that is named rather than implied.
+
+**Hardware.** Windows 11, 16 logical cores, 16 GB. Avalonia on ANGLE, so the surface is
+OpenGL ES 3.0 over Direct3D 11 on an **Intel UHD Graphics** integrated GPU. `Release`,
+`--graph demo --canvas-benchmark 600`, which measures 500 frames after discarding 100 of warm-up.
+2,000 nodes, 1,677 wires, a 1477×834 surface.
+
+Five consecutive runs, render pass only:
+
+| Run | Median | p95 |
+|---|---:|---:|
+| 1 | 0.97 ms | 3.12 ms |
+| 2 | 1.06 ms | 3.20 ms |
+| 3 | 1.14 ms | 3.23 ms |
+| 4 | 1.00 ms | 3.27 ms |
+| 5 | 1.05 ms | 3.10 ms |
+| **Spread** | **0.97–1.14, 17%** | **3.10–3.27, 5.5%** |
+
+Three things follow.
+
+**The bet ADR-0013 made holds with room.** The budget is 16.7 ms for a 60 fps frame and the p95
+of the render pass is about 3.2 ms, so the canvas is using around a fifth of it at 2,000 nodes on
+an integrated GPU. That is the claim `E11-T20` was taken to test, restated on a measurement that
+covers the run it reports.
+
+**The spread confirms, independently, why `E1-T34` gates on p95 and not the median.** N31 asserted
+that four consecutive local runs move the median about 20% and the p95 about 6%. Five runs here
+give 17% and 5.5% — close enough to be the same observation twice, on different code and a
+different day. A threshold on the median would be a threshold on a statistic that moves by a
+sixth for no reason anyone can act on.
+
+**These numbers are not the ones `E1-T34` needs, and quoting them as if they were would repeat
+the mistake N31 records.** They come from a developer machine with a real GPU. The nightly runs
+on a hosted runner with none, where the render pass falls back to software and the figures are
+not comparable. `E1-T34` still waits on that hardware's own distribution over several nights.
+What has changed is only that this repository is no longer quoting a withdrawn number: it is
+quoting a measured one, next to the machine it came from and next to a statement of which
+question it does not answer.
+
+**The wall clock is a different figure and is not the one to compare.** The same runs report
+28–35 fps wall clock, which includes the GL viewport's own frame, the compositor and the
+dispatcher. The render pass is what ADR-0013 is about; the wall clock is what the whole
+application costs, and confusing the two would make the canvas look twenty times slower than it is.

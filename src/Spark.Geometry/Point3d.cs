@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using System.Threading;
 
 namespace Spark.Geometry;
 
@@ -112,6 +115,253 @@ public readonly struct Point3d : IEquatable<Point3d>
         (X + other.X) * 0.5,
         (Y + other.Y) * 0.5,
         (Z + other.Z) * 0.5);
+
+    /// <summary>
+    /// Creates a point from cylindrical coordinates in a plane's frame.
+    /// </summary>
+    /// <param name="plane">
+    /// The frame the coordinates are measured in. <paramref name="angle"/> is measured from its
+    /// <see cref="Plane.XAxis"/> towards its <see cref="Plane.YAxis"/>, and
+    /// <paramref name="height"/> along its <see cref="Plane.Normal"/>.
+    /// </param>
+    /// <param name="radius">
+    /// The distance from the plane's axis. A negative radius points the other way, which is the
+    /// same thing as adding half a turn to the angle, and is allowed for that reason rather than
+    /// refused as an error.
+    /// </param>
+    /// <param name="angle">The angle around the axis, counter-clockwise seen from the normal's end.</param>
+    /// <param name="height">The distance along the normal.</param>
+    /// <returns>The point.</returns>
+    /// <remarks>
+    /// <b>The frame is a parameter rather than the world.</b> Dynamo's counterpart takes a
+    /// coordinate system for the same reason: cylindrical coordinates about the world Z axis are
+    /// almost never the ones anybody wants, and a version that assumed them would be followed
+    /// immediately by a transform undoing the assumption.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <paramref name="plane"/> is not valid.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when any of the coordinates is not finite.
+    /// </exception>
+    public static Point3d ByCylindricalCoordinates(
+        in Plane plane,
+        double radius,
+        Angle angle,
+        double height)
+    {
+        CheckFrame(plane);
+        CheckFinite(radius, nameof(radius));
+        CheckFinite(angle.Radians, nameof(angle));
+        CheckFinite(height, nameof(height));
+
+        return plane.Origin
+            + (plane.XAxis * (radius * Math.Cos(angle.Radians)))
+            + (plane.YAxis * (radius * Math.Sin(angle.Radians)))
+            + (plane.Normal * height);
+    }
+
+    /// <summary>
+    /// Creates a point from spherical coordinates in a plane's frame.
+    /// </summary>
+    /// <param name="plane">The frame the coordinates are measured in.</param>
+    /// <param name="radius">The distance from the plane's origin.</param>
+    /// <param name="azimuth">
+    /// The angle around the normal, measured from <see cref="Plane.XAxis"/> towards
+    /// <see cref="Plane.YAxis"/>.
+    /// </param>
+    /// <param name="inclination">
+    /// The angle <b>from the normal</b>, not from the plane. Zero is straight up the normal, a
+    /// quarter turn is in the plane, and a half turn is straight down. This is the physics
+    /// convention and it is the one that makes a full sphere sweep a range of half a turn; the
+    /// alternative — an elevation measured from the plane — differs from it by a sign as well as
+    /// an offset, which is exactly the confusion worth stating here rather than leaving to a
+    /// reader's assumption.
+    /// </param>
+    /// <returns>The point.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <paramref name="plane"/> is not valid.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when any of the coordinates is not finite.
+    /// </exception>
+    public static Point3d BySphericalCoordinates(
+        in Plane plane,
+        double radius,
+        Angle azimuth,
+        Angle inclination)
+    {
+        CheckFrame(plane);
+        CheckFinite(radius, nameof(radius));
+        CheckFinite(azimuth.Radians, nameof(azimuth));
+        CheckFinite(inclination.Radians, nameof(inclination));
+
+        double flat = radius * Math.Sin(inclination.Radians);
+
+        return plane.Origin
+            + (plane.XAxis * (flat * Math.Cos(azimuth.Radians)))
+            + (plane.YAxis * (flat * Math.Sin(azimuth.Radians)))
+            + (plane.Normal * (radius * Math.Cos(inclination.Radians)));
+    }
+
+    /// <summary>
+    /// Removes points that coincide with an earlier one, within a tolerance.
+    /// </summary>
+    /// <param name="points">The points. Read once, in order, and not modified.</param>
+    /// <param name="map">
+    /// For each input point, the index of the point it became in the result, or <c>-1</c> for one
+    /// that was dropped. This is what a mesh welder needs and cannot recover afterwards: without
+    /// it a caller has the deduplicated positions and no way to renumber the faces that referred
+    /// to them.
+    /// </param>
+    /// <param name="tolerance">
+    /// How close counts as the same place; only <see cref="Tolerance.Linear"/> is consulted. A
+    /// default-constructed tolerance means <see cref="Tolerance.Default"/>.
+    /// </param>
+    /// <returns>The surviving points, in input order.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The first occurrence wins, and the result keeps input order.</b> Both matter: a rule
+    /// that kept the last occurrence would move a vertex by a tolerance's width every time the
+    /// list was re-pruned, and an order that depended on the search structure would make the same
+    /// input produce a different output between releases.
+    /// </para>
+    /// <para>
+    /// <b>Coinciding is not transitive, and this member does not pretend it is.</b> Three points
+    /// spaced a little over half a tolerance apart form a chain in which each is within tolerance
+    /// of its neighbour and the ends are not within tolerance of each other. No partition of such
+    /// a chain is not arbitrary. What is defined here is the greedy answer: a point is dropped
+    /// only when it is within tolerance of a point that was <b>kept</b>, so the middle of that
+    /// chain is dropped and both ends survive. Following a dropped point through to its own
+    /// survivor would be the other answer, and it is the wrong one: it makes coincidence
+    /// transitive, a chain has no length limit, and a point can end up merged into a
+    /// representative arbitrarily far away. <b>This rule moves no point by more than one
+    /// tolerance</b>, which is the property a caller can actually rely on.
+    /// </para>
+    /// <para>
+    /// <b>Points that are not finite are dropped</b> and their entries in
+    /// <paramref name="map"/> are <c>-1</c>. A <see cref="double.NaN"/> coordinate has no
+    /// position, so <i>is this the same place</i> has no answer for it; treating each one as
+    /// distinct would let a single upstream defect multiply into thousands of survivors.
+    /// </para>
+    /// </remarks>
+    /// <param name="cancellationToken">
+    /// Stops the search. Checked as the points are swept, which is where an unbounded input
+    /// spends its time.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="points"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="OperationCanceledException">Cancellation was requested.</exception>
+    public static Point3d[] PruneDuplicates(
+        IReadOnlyList<Point3d> points,
+        out int[] map,
+        in Tolerance tolerance = default,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+
+        map = new int[points.Count];
+        double linear = tolerance.Linear;
+
+        // One hierarchy over all the input points, built once. The alternative is a structure
+        // grown as points are kept, which needs an index supporting insertion - and E2-T16's
+        // KD-tree was going to be that index. It is deliberately not built: searching ALL the
+        // points and then asking whether each neighbour was kept answers the same question with
+        // the structure that already exists, and a second spatial index is a second thing to get
+        // right, to test and to keep true. See the exclusion note on E2-T16 in TASKS.md.
+        Bvh<int> tree = Bvh<int>.Build(
+            [.. Enumerable.Range(0, points.Count)],
+            index => points[index].IsValid
+                ? new BoundingBox(points[index], points[index])
+                : BoundingBox.Empty,
+            cancellationToken);
+
+        List<Point3d> kept = [];
+        List<int> neighbours = [];
+        bool[] isRepresentative = new bool[points.Count];
+        Vector3d reach = new(linear, linear, linear);
+
+        for (int index = 0; index < points.Count; index++)
+        {
+            if ((index & 1023) == 0)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            Point3d point = points[index];
+
+            if (!point.IsValid)
+            {
+                map[index] = -1;
+                continue;
+            }
+
+            neighbours.Clear();
+            tree.Overlapping(new BoundingBox(point - reach, point + reach), neighbours);
+
+            int survivor = -1;
+
+            foreach (int neighbour in neighbours)
+            {
+                // Only points EARLIER in the input can absorb this one, and only ones that were
+                // KEPT rather than merged away. Following a dropped point to its own survivor
+                // instead would make coincidence transitive along a chain, and a chain has no
+                // length limit: a point could end up merged into a representative arbitrarily
+                // far from it. Comparing against representatives only is what bounds the
+                // movement of any point at exactly one tolerance.
+                if (neighbour < index
+                    && isRepresentative[neighbour]
+                    && point.DistanceTo(points[neighbour]) <= linear)
+                {
+                    survivor = map[neighbour];
+                    break;
+                }
+            }
+
+            if (survivor >= 0)
+            {
+                map[index] = survivor;
+                continue;
+            }
+
+            map[index] = kept.Count;
+            isRepresentative[index] = true;
+            kept.Add(point);
+        }
+
+        return [.. kept];
+    }
+
+    /// <summary>
+    /// Removes points that coincide with an earlier one, within a tolerance.
+    /// </summary>
+    /// <param name="points">The points.</param>
+    /// <param name="tolerance">How close counts as the same place.</param>
+    /// <param name="cancellationToken">Stops the search.</param>
+    /// <returns>The surviving points, in input order.</returns>
+    public static Point3d[] PruneDuplicates(
+        IReadOnlyList<Point3d> points,
+        in Tolerance tolerance = default,
+        CancellationToken cancellationToken = default) =>
+        PruneDuplicates(points, out _, tolerance, cancellationToken);
+
+    private static void CheckFrame(in Plane plane)
+    {
+        if (!plane.IsValid)
+        {
+            throw new InvalidOperationException(
+                "A default-constructed Plane has no frame, so no coordinates can be measured in it.");
+        }
+    }
+
+    private static void CheckFinite(double value, string name)
+    {
+        if (!double.IsFinite(value))
+        {
+            throw new ArgumentException("A coordinate must be finite.", name);
+        }
+    }
 
     /// <summary>
     /// Interpolates between two points.

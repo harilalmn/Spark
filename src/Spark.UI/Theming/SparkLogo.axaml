@@ -1,0 +1,118 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!--
+    Spark's application mark, as a drawing rather than a bitmap.
+
+    THE PATH STRINGS HERE ARE THE ONES IN assets/spark-icon.svg, VERBATIM. Avalonia's geometry
+    syntax is SVG path syntax, so the master artwork and the drawn mark are one source of truth
+    with no converter, no export step and no bitmap to fall out of date. If you change one, change
+    the other; SparkLogoTests asserts that the four path strings appear in both files.
+
+    Every colour is a design-language token (§2.2 surface ladder, §2.3 depth, §2.5 accent), which
+    is why the mark sits inside the product rather than beside it.
+
+    Drawn rather than imported for a second reason: the window icon is rendered from this at
+    runtime, so there is no .ico in the tree to regenerate, and NFR-5's no-binaries promise stays
+    literally true of the UI assembly.
+  -->
+
+  <DrawingImage x:Key="SparkLogoImage">
+    <DrawingGroup>
+
+      <!-- Tile -->
+      <GeometryDrawing>
+        <GeometryDrawing.Geometry>
+          <RectangleGeometry Rect="0,0,512,512" RadiusX="114" RadiusY="114"/>
+        </GeometryDrawing.Geometry>
+        <GeometryDrawing.Brush>
+          <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#23272F"/>
+            <GradientStop Offset="1" Color="#12151A"/>
+          </LinearGradientBrush>
+        </GeometryDrawing.Brush>
+      </GeometryDrawing>
+
+      <!-- Rim light: lit from above, fading out before the bottom edge. -->
+      <GeometryDrawing>
+        <GeometryDrawing.Geometry>
+          <RectangleGeometry Rect="1.5,1.5,509,509" RadiusX="112.5" RadiusY="112.5"/>
+        </GeometryDrawing.Geometry>
+        <GeometryDrawing.Pen>
+          <Pen Thickness="3">
+            <Pen.Brush>
+              <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Offset="0"    Color="#F2414A59"/>
+                <GradientStop Offset="0.40" Color="#47343B47"/>
+                <GradientStop Offset="1"    Color="#00343B47"/>
+              </LinearGradientBrush>
+            </Pen.Brush>
+          </Pen>
+        </GeometryDrawing.Pen>
+      </GeometryDrawing>
+
+      <!-- The curve every Spark document is made of. -->
+      <GeometryDrawing>
+        <GeometryDrawing.Geometry>
+          <EllipseGeometry Rect="104,104,304,304"/>
+        </GeometryDrawing.Geometry>
+        <GeometryDrawing.Pen>
+          <Pen Thickness="6" Brush="#47A98BFF"/>
+        </GeometryDrawing.Pen>
+      </GeometryDrawing>
+
+      <!-- Two control points, notched out of the ring so they read as ON the curve. -->
+      <GeometryDrawing Geometry="M363.5 128.5 L383.5 148.5 L363.5 168.5 L343.5 148.5 Z"
+                       Brush="#F2C0A8FF">
+        <GeometryDrawing.Pen>
+          <Pen Thickness="6" Brush="#15181E" LineJoin="Round"/>
+        </GeometryDrawing.Pen>
+      </GeometryDrawing>
+      <GeometryDrawing Geometry="M148.5 343.5 L168.5 363.5 L148.5 383.5 L128.5 363.5 Z"
+                       Brush="#F2C0A8FF">
+        <GeometryDrawing.Pen>
+          <Pen Thickness="6" Brush="#15181E" LineJoin="Round"/>
+        </GeometryDrawing.Pen>
+      </GeometryDrawing>
+
+      <!-- Glow, then the spark, then a lit core. -->
+      <GeometryDrawing>
+        <GeometryDrawing.Geometry>
+          <EllipseGeometry Rect="36,36,440,440"/>
+        </GeometryDrawing.Geometry>
+        <GeometryDrawing.Brush>
+          <RadialGradientBrush Center="50%,50%" GradientOrigin="50%,50%" RadiusX="50%" RadiusY="50%">
+            <GradientStop Offset="0"    Color="#9EA98BFF"/>
+            <GradientStop Offset="0.45" Color="#2EA98BFF"/>
+            <GradientStop Offset="1"    Color="#00A98BFF"/>
+          </RadialGradientBrush>
+        </GeometryDrawing.Brush>
+      </GeometryDrawing>
+
+      <GeometryDrawing Geometry="M256 46 Q278 234 440 256 Q278 278 256 466 Q234 278 72 256 Q234 234 256 46 Z">
+        <GeometryDrawing.Brush>
+          <LinearGradientBrush StartPoint="18%,0%" EndPoint="82%,100%">
+            <GradientStop Offset="0"    Color="#D4C4FF"/>
+            <GradientStop Offset="0.46" Color="#A98BFF"/>
+            <GradientStop Offset="1"    Color="#8674D6"/>
+          </LinearGradientBrush>
+        </GeometryDrawing.Brush>
+      </GeometryDrawing>
+
+      <GeometryDrawing>
+        <GeometryDrawing.Geometry>
+          <EllipseGeometry Rect="204,204,104,104"/>
+        </GeometryDrawing.Geometry>
+        <GeometryDrawing.Brush>
+          <RadialGradientBrush Center="50%,50%" GradientOrigin="50%,50%" RadiusX="50%" RadiusY="50%">
+            <GradientStop Offset="0"   Color="#CCFFFFFF"/>
+            <GradientStop Offset="0.6" Color="#1AFFFFFF"/>
+            <GradientStop Offset="1"   Color="#00FFFFFF"/>
+          </RadialGradientBrush>
+        </GeometryDrawing.Brush>
+      </GeometryDrawing>
+
+    </DrawingGroup>
+  </DrawingImage>
+
+</ResourceDictionary>

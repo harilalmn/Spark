@@ -8,11 +8,10 @@ since: "0.1"
 
 **Status:** Current. Describes the result strip and the hover tooltips, both of which exist.
 **Owner:** `spark-ui`
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 
-> **Scope.** The strip under a node showing what it produced, and the tooltips that say what a
-> port wants. The **watch panel** — a docked pane showing one node's output in full — is a
-> different thing and is not built yet.
+> **Scope.** The strip under a node showing what it produced, the tooltips that say what a port
+> wants, and the **watch panel** — the pinned pane that shows one node's output in full.
 
 ---
 
@@ -89,16 +88,60 @@ Open Spark and press *Curves* on the toolbar.
 5. **Zoom out** with the wheel until the nodes become plain coloured rectangles. Hover one: it
    still names itself.
 
+## The watch panel
+
+The strip under a node is for glancing. The **watch panel**, at the bottom of the right-hand
+pane, is for reading — and the difference between them is not size, it is **what they follow**.
+
+- The strip follows the **node**. Every node has one, and it shows what that node produced.
+- The panel follows **nothing**. You pin it to one node, and it stays there while you select,
+  edit and move anything else.
+
+That is the whole reason there are two. *What did this node just produce* is a question about
+whatever is under your pointer; *what is this one node producing while I change something over
+here* is a question about one node and the rest of the graph, and no strip can answer it.
+
+**To pin one:** select a node, then press **Pin**. **Clear** unpins it.
+
+Once pinned, the panel shows things the strip deliberately does not:
+
+| | Strip under a node | Watch panel |
+|---|---|---|
+| Output ports | The first one | Every one, named |
+| Elements of a list | Six, then a count of the rest | All of them |
+| A long value | Clipped with an ellipsis | In full |
+| Nested lists | The count and rank of the inner list | Expanded, indented, with the rank at every depth |
+| Follows | The node it belongs to | The node you pinned |
+
+```
+centre — 8 items · rank 1
+  [0] (6, 0, 0)
+  [1] (4.24, 4.24, 0)
+  [2] (0, 6, 0)
+  …
+radius — 0.9
+```
+
+Two things to expect.
+
+**A pinned node that you delete unpins itself.** It does not go on showing what the node used to
+produce, because a readout of something that is not there any more is worse than an empty pane.
+An undo that removes the node has the same effect.
+
+**A very large list stops.** The panel writes at most two thousand lines and then says how many
+it did not write. A list of a million expanded in full is not a readout, it is a frozen window,
+and the count is there so that a truncated list never reads as a short one.
+
+---
+
 ## What is not here yet
 
-- **The watch panel.** A docked pane pinned to one node's output, so you can keep an eye on it
-  while working elsewhere. The strip is per-node and lives on the canvas; the panel is a
-  different tool for a different job, and is planned rather than built.
-- **Previews of ports other than the first.** A node with two outputs shows a strip for the
-  first one. Reading the second means wiring it into something, for now.
+- **Previews of ports other than the first, *on the canvas*.** A node with two outputs shows a
+  strip for the first one. The watch panel shows every port, so pin the node when you need the
+  second.
 - **An open strip can be covered by a node below it.** Nodes are drawn over previews on purpose —
   the graph is the document and the strip is a readout of it — so move the node if the strip is
   in the way.
-- **A very long value is cut off with an ellipsis.** An open strip widens to fit what is in it,
-  but only so far: one enormous string is not allowed to lay a strip across the whole graph. If
-  you need the whole value, that is what the watch panel will be for.
+- **A very long value is cut off with an ellipsis, in the strip.** An open strip widens to fit
+  what is in it, but only so far: one enormous string is not allowed to lay a strip across the
+  whole graph. The watch panel shows it in full.

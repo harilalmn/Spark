@@ -163,3 +163,30 @@ public static class ImportedNothing
     /// <returns>Zero.</returns>
     public static double Whatever() => 0;
 }
+
+/// <summary>A type whose members are all impure, declared on the type.</summary>
+[NodeSideEffect("reads the clock")]
+public static class ImportedClock
+{
+    /// <summary>The current tick.</summary>
+    /// <returns>A number that changes.</returns>
+    public static double Now() => Environment.TickCount64;
+
+    /// <summary>Another member of the same impure type.</summary>
+    /// <returns>A number that changes.</returns>
+    public static double Later() => Environment.TickCount64 + 1;
+}
+
+/// <summary>A type carrying one impure member beside a pure one.</summary>
+public static class ImportedMixed
+{
+    /// <summary>Pure: the same inputs give the same answer forever.</summary>
+    /// <param name="value">The value.</param>
+    /// <returns>Twice it.</returns>
+    public static double Doubled(double value) => value * 2.0;
+
+    /// <summary>Impure: depends on something the cache key cannot name.</summary>
+    /// <returns>A number that changes.</returns>
+    [NodeSideEffect("reads the clock")]
+    public static double Ticks() => Environment.TickCount64;
+}
