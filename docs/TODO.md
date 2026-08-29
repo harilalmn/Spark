@@ -180,8 +180,14 @@ for anything else.
       booleans, viewport picking, intersection seeding and `Curve.ClosestPoint` from one
       implementation. Immutable, so parallel queries are safe by construction rather than by
       convention. **`Curve.ClosestPoint` is unblocked.**
-- [ ] Geometry serialization v1 and the reflection-driven round-trip test — `E2-T29`, `E2-T31`.
-      Get the test in before there are twenty types to retrofit it onto; there are now nineteen.
+- [x] Geometry serialization v1 and the reflection-driven round-trip test — `E2-T29`, `E2-T31`,
+      done 2026-08-29 with twenty-two types on the books. **The test earned itself on its first
+      run**: `BoundingBox.Empty` did not survive a round trip, because the public two-corner
+      constructor sorts its corners and so turns the inverted infinite box into the infinite box
+      ([N32](NOTES.md)). Every value carries its own `type` and `version`, so types version
+      independently; an unknown version is refused by name rather than read approximately; and
+      non-finite numbers are written as strings, because a value a caller can legally hold must be
+      saveable.
 - [ ] **The C2VGeometry test harvest, timeboxed to one week with a hard stop** — `E2-T32`.
       Harvest only pure-maths-on-values tests; anything needing a `Shape` is discarded without
       argument. **Harvest the assertions, not the generators** — a harvested test whose inputs

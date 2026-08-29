@@ -992,3 +992,29 @@ a `NaN` here means *this axis places no constraint*, which is exactly what a par
 plane should contribute. `RayTests.ARayLyingExactlyOnAFaceStillHits` pins it, and removing either
 guard turns it red — checked, not assumed.
 
+---
+
+## N32 — `BoundingBox.Empty` cannot survive its own public constructor
+
+`new BoundingBox(corner, oppositeCorner)` sorts the two corners per axis. That is right, and it
+is why a caller with two opposite points of a region does not have to work out which one is the
+minimum. It also means the constructor **cannot reproduce every value of the type it constructs**.
+
+`BoundingBox.Empty` is the *inverted* infinite box — `Min` at `+∞`, `Max` at `−∞` — and it is a
+real value with a real job: it contains nothing, intersects nothing, and is the identity for
+`Union`, which makes it the correct seed for accumulating a box over a sequence. Feed its two
+corners back through the public constructor and the sort reverses them, producing the **infinite
+box**: the value that contains everything. The exact opposite, silently, with no error anywhere.
+
+The serialization round-trip test found this on its first run, which is the argument for writing
+that kind of test at all. It is not a defect anybody would find by reading `BoundingBox`, and it
+would have shown up much later as *a graph that opens with everything selected*, or as an
+accumulated bound that swallowed the model.
+
+The fix is an `internal static BoundingBox FromSortedCorners`, used by the deserializer and
+nothing else. It is deliberately not public: a caller who wants an inverted box wants
+`Empty`, and a caller with two corners wants the sorting. **The general shape is worth carrying
+to every value type added after this one** — *can this type's public constructors reproduce every
+value the type can hold?* — because whenever the answer is no, something that reconstructs values
+needs a door the ordinary caller does not.
+

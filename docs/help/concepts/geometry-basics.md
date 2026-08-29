@@ -522,6 +522,35 @@ the tree**, because only it can skip a whole branch once something nearer has be
 And the index is **immutable**: it is safe to query from many threads at once, and a changed set
 is a new index rather than an update.
 
+## 10. Saving geometry
+
+`GeometryJson` writes any geometry value as JSON and reads it back:
+
+```csharp
+string json = GeometryJson.Serialize(Circle.ByCentreRadius(Point3d.Origin, 2.5), indented: true);
+Circle again = GeometryJson.Deserialize<Circle>(json);
+```
+
+```json
+{
+  "type": "Circle",
+  "version": 1,
+  "plane": { "type": "Plane", "version": 1, "origin": { "type": "Point3d", ... }, ... },
+  "radius": 2.5
+}
+```
+
+**Every value says what it is and which version it is**, nested values included. That is what
+lets one type change its stored shape without disturbing the others, and it means a file can be
+read without a schema beside it. A version this build does not recognise is **refused by name**
+rather than read approximately — a file from a newer Spark is not silently reinterpreted as
+slightly different geometry.
+
+Two consequences worth knowing. Non-finite numbers are written as `"NaN"`, `"Infinity"` and
+`"-Infinity"` strings, because JSON has no numeric form for them and `BoundingBox.Empty` is built
+from infinities. And a type with no JSON form — `BoundingVolumeHierarchy`, which is an index you
+rebuild rather than store — is refused loudly rather than written as an empty object.
+
 ---
 
 ## What is not here yet

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-29 22:40 +0530
+**Last updated:** 2026-08-29 23:55 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | M1 — geometry core, finishing it |
 | **Working on** | Nothing. Between steps. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **4** — `Ray` and `BoundingVolumeHierarchy` (`E2-T15`) |
+| **Last completed step** | Queue **5** — geometry serialization v1 and its reflection round-trip test (`E2-T29`, `E2-T31`) |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | Take queue item **5**, geometry serialization v1 and the reflection-driven round-trip test (`E2-T29`, `E2-T31`). **Get the reflection test in first** — it walks every public type in `Spark.Geometry`, round-trips an instance and fails on any type that is not covered, which is what stops the format drifting behind the kernel. There are now **twenty-two** public geometry types, so the retrofit cost is already real and grows. The `.spark` graph format is JSON ([ADR-0017](adr/0017-spark-file-is-plain-json.md)) and geometry should follow it rather than invent a second convention; the open question to settle *before* writing is what a version stamp looks like and what happens on an unknown one. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1024** after this step: Geometry.Tests 381, Geometry.Properties 42), `dotnet format`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | Take queue item **6**, **M1's demoable**: `Spark.Geometry.Io`'s OBJ writer, and `spark` writing a polyline a third-party viewer opens. `src/Spark.Geometry.Io/` is an empty project and `src/Spark.Cli/` is a stub. OBJ is a text format with no versioning worth agonising over; the decisions that *do* need making are what a `Curve` becomes in a format that has only vertices and lines (a tessellation at a stated tolerance), and whether the writer takes geometry or a scene. **Keep it writer-only** — an OBJ reader is not what M1 needs and would double the row. Acceptance is a real file opened in a real third-party viewer, so leave a committed sample under `docs/examples/`. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1036** after this step: Geometry.Tests 393, Geometry.Properties 42), `dotnet format`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -114,8 +114,8 @@ the two disagree.**
 | 2 | ~~The three value-layer parity gaps~~ | `E2-T40` | S | **Done** 2026-08-29 |
 | 3 | ~~`Quaternion` — the last piece of the value layer~~ | `E2-T1` | M | **Done** 2026-08-29 |
 | 4 | ~~`RayCaster` and its BVH~~ — landed as `Ray` and `BoundingVolumeHierarchy` — pays for itself across mesh booleans, viewport picking, intersection seeding, and `Curve.ClosestPoint` waits on it | `E2-T15` | L | **Done** 2026-08-29 |
-| 5 | **Geometry serialization v1 and the reflection-driven round-trip test** — get it in before there are twenty types to retrofit it onto; there are now **twenty-two** | `E2-T29`, `E2-T31` | M | **Next** |
-| 6 | **`Spark.Geometry.Io`: the OBJ writer, and `spark` writing a polyline a third-party viewer opens** — this is **M1's demoable** | `E2-T33`, `E12-T5` | M | Open |
+| 5 | **Geometry serialization v1 and the reflection-driven round-trip test** — get it in before there are twenty types to retrofit it onto; there are now **twenty-two** | `E2-T29`, `E2-T31` | M | **Done** 2026-08-29 |
+| 6 | **`Spark.Geometry.Io`: the OBJ writer, and `spark` writing a polyline a third-party viewer opens** — this is **M1's demoable** | `E2-T33`, `E12-T5` | M | **Next** |
 | 7 | **The C2VGeometry test harvest**, timeboxed to one week with a hard stop. Harvest assertions, not generators | `E2-T32` | L | Open — **needs the C2VGeometry source, which is not in this repository** |
 | 8 | **M1.5 spike (c): AvaloniaEdit plus a Roslyn completion popup** — the last unproven part of M1.5, gating M4 | `E11-T21` | M | Open |
 | 9 | **What is left of M2** — real docking (`E8-T2`), group/note/align (`E8-T6`), watch nodes (`E8-T10`), `spark run` (`E12-T5`) | | L | Open |
@@ -358,4 +358,45 @@ its origin lies exactly on one of the planes, and every comparison against `NaN`
 obvious implementation reports a **miss** for a ray that grazes the box. That is what a click
 along an edge does. Mutation-tested: removing the guard turns
 `RayTests.ARayLyingExactlyOnAFaceStillHits` red.
+
+### 2026-08-29 — Queue 5: geometry serialization, and a test that says which types cannot be saved (`E2-T29`, `E2-T31`)
+
+**What.** `GeometryJson` — twenty-two types in and out — and the reflection-driven round-trip test
+that fails when a geometry type has neither a sample nor a stated reason for not having one. 12
+new tests; the suite is **1036**.
+
+**The format decision that mattered.** Every value carries its **own** `type` and `version`,
+nested values included, so a `Circle` document contains a versioned `Plane` containing versioned
+`Point3d` and `Vector3d` values. It is verbose, and the alternative — one version at the top of
+the document — cannot express the requirement the row states in its own words: *a `NurbsCurve` at
+v2 and a `Mesh` at v1 must coexist*. Adding per-type versions later would break every file already
+written, so it is not a thing to defer.
+
+**An unknown version is refused by name.** The tempting behaviour is to read what you recognise
+and ignore the rest, and it turns a file from a newer Spark into subtly wrong geometry with no
+error anywhere.
+
+**Non-finite numbers are written as strings**, because `BoundingBox.Empty` is built from
+infinities and is a legal, useful value — the correct seed for accumulating a bound. A serializer
+that cannot write what a caller can hold is not finished.
+
+**One deviation from the row, recorded rather than quietly taken.** It is hand-written, not
+source-generated. With an explicit converter per type the generator's job is done by hand, and what
+it would still buy is trimming and AOT — which ADR-0020 has ruled out for the shipping application.
+If trimming returns, so does the decision.
+
+**The test earned its keep on its first run, which is the entire argument for writing it now.**
+`BoundingBox.Empty` did not survive a round trip. The public two-corner constructor sorts its
+corners — correct, and the reason a caller with two opposite points does not have to think — so it
+turns the *inverted* infinite box into the infinite box: the value that contains nothing becomes
+the value that contains everything, silently. Nobody would find that by reading `BoundingBox`; it
+would have surfaced much later as a graph that opens with everything selected. The fix is an
+`internal FromSortedCorners` used by the deserializer alone, and [N32](NOTES.md) carries the
+general question to the next value type: **can this type's public constructors reproduce every
+value it can hold?**
+
+**Verified.** Build clean with `-warnaserror`; 1036 tests, 0 failures; format clean; docs harness
+green. The completeness check was **proven to fire**: deleting the `Ray` sample fails the run and
+names `Ray`. It is a two-way diff, so a sample for a type that no longer exists fails too — dead
+coverage looks exactly like coverage.
 

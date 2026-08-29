@@ -53,6 +53,24 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
 
     // Builds a box from bounds that are already known to be in the right order, which is the
     // only way to produce the deliberately inverted Empty box.
+    /// <summary>
+    /// Creates a box from its two corners <b>exactly as given</b>, without sorting them.
+    /// </summary>
+    /// <param name="min">The lower corner.</param>
+    /// <param name="max">The upper corner.</param>
+    /// <returns>The box.</returns>
+    /// <remarks>
+    /// <b>Internal, and it exists for one reason: <see cref="Empty"/> cannot survive the public
+    /// two-corner constructor.</b> That constructor sorts the corners per axis, which is right
+    /// for a caller who has two opposite points and does not know which is which — and it turns
+    /// the inverted infinite box into the infinite box, its exact opposite in meaning. Anything
+    /// reconstructing a box it previously read out of one, a deserializer above all, needs the
+    /// unsorted form. This is deliberately not public: a caller who wants an inverted box wants
+    /// <see cref="Empty"/>, and one who has two corners wants the sorting.
+    /// </remarks>
+    internal static BoundingBox FromSortedCorners(in Point3d min, in Point3d max) =>
+        new(min.X, min.Y, min.Z, max.X, max.Y, max.Z);
+
     private BoundingBox(double minX, double minY, double minZ, double maxX, double maxY, double maxZ)
     {
         Min = new Point3d(minX, minY, minZ);
