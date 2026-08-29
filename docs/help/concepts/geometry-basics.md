@@ -488,6 +488,40 @@ Like `default(Plane)`, **`default(Quaternion)` is not a rotation** — its compo
 — and every geometric member throws on it. The rotation that does nothing is
 `Quaternion.Identity`, and you have to ask for it by name.
 
+## 9. Rays, and finding things without looking at all of them
+
+A `Ray` is a point and a direction, and it **stops at its origin** — what is behind it is not on
+it. Its direction is stored normalised, so every parameter is a distance in coordinate units.
+
+```csharp
+Ray look = Ray.ByTwoPoints(camera, target);
+
+Point3d ahead = look.PointAt(5.0);                  // five units along, not five direction-lengths
+bool hits = look.Intersects(someBox, out double entry, out double exit);
+```
+
+Asking *which of these ten thousand things does the ray meet* by testing all ten thousand is
+fine once and ruinous every frame. `BoundingVolumeHierarchy` is the index that removes the loop.
+It is built over **boxes** and answers with **indices**, so it works for anything you can bound —
+triangles, curves, whole objects — and never needs to know what an item is:
+
+```csharp
+BoundingVolumeHierarchy index = BoundingVolumeHierarchy.Build(bounds);
+List<int> candidates = [];
+
+index.Query(look, candidates);        // a conservative filter: test the real geometry yourself
+index.Query(regionBox, candidates);   // everything overlapping a region
+
+// ...or let it find the nearest hit, and tell it what a hit actually is:
+(int item, double distance) = index.FirstHit(look, (i, boxEntry) => TestRealGeometry(i, look));
+```
+
+Three things are worth knowing. **A box query is a filter, never an answer** — the caller tests
+the real geometry of the few candidates that come back. **`FirstHit` is the member that pays for
+the tree**, because only it can skip a whole branch once something nearer has been found.
+And the index is **immutable**: it is safe to query from many threads at once, and a changed set
+is a new index rather than an update.
+
 ---
 
 ## What is not here yet

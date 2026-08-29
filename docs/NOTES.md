@@ -964,3 +964,31 @@ The wider shape is [N18](#n18--three-green-gates-are-not-a-review-and-a-passing-
 again, from the other end. N18 is about a test that cannot fail. This is about a test that is not
 there at all, and the gates cannot tell the two apart from a test that passes.
 
+---
+
+## N31 — The slab test's correctness lives entirely in what it does with NaN
+
+`Ray.Intersects(BoundingBox)` is the standard slab test, and it looks like six divisions and four
+comparisons. The part that is easy to get wrong is not visible in that description.
+
+**Dividing by a zero direction component is correct and must not be guarded against.** A ray
+parallel to an axis produces `±∞` for that slab's two parameters, the comparisons that follow do
+exactly the right thing with infinities, and the branchless form is both faster and simpler than
+the *is this component zero* special case people reach for.
+
+**But `0 × ∞` is `NaN`, and that case is reachable.** It happens when the direction is parallel to
+a slab **and** the origin lies exactly on one of its planes: `(min - origin)` is exactly zero, the
+reciprocal is infinite, and the product is `NaN`. Every comparison against `NaN` is false, so a
+naive `near = Math.Max(near, first)` propagates it and the test returns a **miss** for a ray that
+plainly grazes the box.
+
+That is not an exotic input. It is what a click along an edge does, what an axis-aligned ray
+through a grid of axis-aligned cells does at every cell boundary, and what a picking ray in a
+plan view does constantly — so the failure would show up as *sometimes the thing directly under
+the cursor is not selected*, which is a bug nobody reports precisely.
+
+The fix is one line per bound: ignore a `NaN` rather than letting it narrow the interval, because
+a `NaN` here means *this axis places no constraint*, which is exactly what a parallel ray on the
+plane should contribute. `RayTests.ARayLyingExactlyOnAFaceStillHits` pins it, and removing either
+guard turns it red — checked, not assumed.
+

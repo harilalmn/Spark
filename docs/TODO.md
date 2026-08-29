@@ -173,9 +173,13 @@ for anything else.
       added after it instead of having to be remembered — which is the half of this item that was
       worth more than the rename. Free today because nothing is shipped and the compiler finds every
       call site; an ADR-0019 change-control question the day after 1.0.
-- [ ] Extract `RayCaster.cs` and its BVH — `E2-T15`. The highest-value file in C2VGeometry, and
-      it pays for itself three times over across mesh booleans, viewport picking and intersection
-      seeding. **`Curve.ClosestPoint` is now waiting on it too.**
+- [x] Extract `RayCaster.cs` and its BVH — `E2-T15`, done 2026-08-29 as **`Ray` and
+      `BoundingVolumeHierarchy`**. The seed file bundled a ray, an acceleration structure and
+      ray-triangle maths; **there are no triangles yet**, so the honest extraction is the first
+      two — and splitting them is better regardless, because a hierarchy over *boxes* serves mesh
+      booleans, viewport picking, intersection seeding and `Curve.ClosestPoint` from one
+      implementation. Immutable, so parallel queries are safe by construction rather than by
+      convention. **`Curve.ClosestPoint` is unblocked.**
 - [ ] Geometry serialization v1 and the reflection-driven round-trip test — `E2-T29`, `E2-T31`.
       Get the test in before there are twenty types to retrofit it onto; there are now nineteen.
 - [ ] **The C2VGeometry test harvest, timeboxed to one week with a hard stop** — `E2-T32`.

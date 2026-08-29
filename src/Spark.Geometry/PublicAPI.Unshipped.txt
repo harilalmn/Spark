@@ -38,6 +38,14 @@ Spark.Geometry.BoundingBox.Min.get -> Spark.Geometry.Point3d
 Spark.Geometry.BoundingBox.Union(in Spark.Geometry.BoundingBox other) -> Spark.Geometry.BoundingBox
 Spark.Geometry.BoundingBox.Union(in Spark.Geometry.Point3d point) -> Spark.Geometry.BoundingBox
 Spark.Geometry.BoundingBox.Volume.get -> double
+Spark.Geometry.BoundingVolumeHierarchy
+Spark.Geometry.BoundingVolumeHierarchy.Bounds.get -> Spark.Geometry.BoundingBox
+Spark.Geometry.BoundingVolumeHierarchy.Count.get -> int
+Spark.Geometry.BoundingVolumeHierarchy.FirstHit(in Spark.Geometry.Ray ray, System.Func<int, double, double?>! hit) -> (int Index, double Distance)
+Spark.Geometry.BoundingVolumeHierarchy.NearestTo(in Spark.Geometry.Point3d point) -> (int Index, double Distance)
+Spark.Geometry.BoundingVolumeHierarchy.NodeCount.get -> int
+Spark.Geometry.BoundingVolumeHierarchy.Query(in Spark.Geometry.BoundingBox region, System.Collections.Generic.List<int>! results, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> void
+Spark.Geometry.BoundingVolumeHierarchy.Query(in Spark.Geometry.Ray ray, System.Collections.Generic.List<int>! results) -> void
 Spark.Geometry.Circle
 Spark.Geometry.Circle.Centre.get -> Spark.Geometry.Point3d
 Spark.Geometry.Circle.Circle(in Spark.Geometry.Plane plane, double radius) -> void
@@ -180,6 +188,18 @@ Spark.Geometry.Quaternion.W.get -> double
 Spark.Geometry.Quaternion.X.get -> double
 Spark.Geometry.Quaternion.Y.get -> double
 Spark.Geometry.Quaternion.Z.get -> double
+Spark.Geometry.Ray
+Spark.Geometry.Ray.ClosestPointTo(in Spark.Geometry.Point3d point) -> (Spark.Geometry.Point3d Point, double Distance)
+Spark.Geometry.Ray.Direction.get -> Spark.Geometry.Vector3d
+Spark.Geometry.Ray.Equals(Spark.Geometry.Ray other) -> bool
+Spark.Geometry.Ray.EqualsWithin(in Spark.Geometry.Ray other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Ray.Intersects(in Spark.Geometry.BoundingBox box) -> bool
+Spark.Geometry.Ray.Intersects(in Spark.Geometry.BoundingBox box, out double entry, out double exit) -> bool
+Spark.Geometry.Ray.IsValid.get -> bool
+Spark.Geometry.Ray.Origin.get -> Spark.Geometry.Point3d
+Spark.Geometry.Ray.PointAt(double distance) -> Spark.Geometry.Point3d
+Spark.Geometry.Ray.Ray() -> void
+Spark.Geometry.Ray.Ray(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d direction) -> void
 Spark.Geometry.Tolerance
 Spark.Geometry.Tolerance.Angular.get -> Spark.Geometry.Angle
 Spark.Geometry.Tolerance.AreEqual(double a, double b) -> bool
@@ -356,6 +376,9 @@ override Spark.Geometry.PolyLine.Trimmed(in Spark.Geometry.Interval domain) -> S
 override Spark.Geometry.Quaternion.Equals(object? obj) -> bool
 override Spark.Geometry.Quaternion.GetHashCode() -> int
 override Spark.Geometry.Quaternion.ToString() -> string!
+override Spark.Geometry.Ray.Equals(object? obj) -> bool
+override Spark.Geometry.Ray.GetHashCode() -> int
+override Spark.Geometry.Ray.ToString() -> string!
 override Spark.Geometry.Tolerance.Equals(object? obj) -> bool
 override Spark.Geometry.Tolerance.GetHashCode() -> int
 override Spark.Geometry.Tolerance.ToString() -> string!
@@ -403,6 +426,8 @@ static Spark.Geometry.BoundingBox.FromPoints(System.ReadOnlySpan<Spark.Geometry.
 static Spark.Geometry.BoundingBox.Union(in Spark.Geometry.BoundingBox a, in Spark.Geometry.BoundingBox b) -> Spark.Geometry.BoundingBox
 static Spark.Geometry.BoundingBox.operator !=(in Spark.Geometry.BoundingBox left, in Spark.Geometry.BoundingBox right) -> bool
 static Spark.Geometry.BoundingBox.operator ==(in Spark.Geometry.BoundingBox left, in Spark.Geometry.BoundingBox right) -> bool
+static Spark.Geometry.BoundingVolumeHierarchy.Build(System.Collections.Generic.IReadOnlyList<Spark.Geometry.BoundingBox>! boxes) -> Spark.Geometry.BoundingVolumeHierarchy!
+static Spark.Geometry.BoundingVolumeHierarchy.Build(System.ReadOnlySpan<Spark.Geometry.BoundingBox> boxes) -> Spark.Geometry.BoundingVolumeHierarchy!
 static Spark.Geometry.Circle.ByCentreNormalRadius(in Spark.Geometry.Point3d centre, in Spark.Geometry.Vector3d normal, double radius) -> Spark.Geometry.Circle!
 static Spark.Geometry.Circle.ByCentreRadius(in Spark.Geometry.Point3d centre, double radius) -> Spark.Geometry.Circle!
 static Spark.Geometry.Circle.ByPlaneRadius(in Spark.Geometry.Plane plane, double radius) -> Spark.Geometry.Circle!
@@ -467,6 +492,9 @@ static Spark.Geometry.Quaternion.Slerp(in Spark.Geometry.Quaternion from, in Spa
 static Spark.Geometry.Quaternion.operator !=(in Spark.Geometry.Quaternion left, in Spark.Geometry.Quaternion right) -> bool
 static Spark.Geometry.Quaternion.operator *(in Spark.Geometry.Quaternion a, in Spark.Geometry.Quaternion b) -> Spark.Geometry.Quaternion
 static Spark.Geometry.Quaternion.operator ==(in Spark.Geometry.Quaternion left, in Spark.Geometry.Quaternion right) -> bool
+static Spark.Geometry.Ray.ByTwoPoints(in Spark.Geometry.Point3d from, in Spark.Geometry.Point3d towards) -> Spark.Geometry.Ray
+static Spark.Geometry.Ray.operator !=(in Spark.Geometry.Ray left, in Spark.Geometry.Ray right) -> bool
+static Spark.Geometry.Ray.operator ==(in Spark.Geometry.Ray left, in Spark.Geometry.Ray right) -> bool
 static Spark.Geometry.Tolerance.Default.get -> Spark.Geometry.Tolerance
 static Spark.Geometry.Tolerance.ForScale(double characteristicLength) -> Spark.Geometry.Tolerance
 static Spark.Geometry.Tolerance.operator !=(Spark.Geometry.Tolerance left, Spark.Geometry.Tolerance right) -> bool

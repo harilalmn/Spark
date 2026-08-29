@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-29 21:30 +0530
+**Last updated:** 2026-08-29 22:40 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | M1 — geometry core, finishing it |
 | **Working on** | Nothing. Between steps. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **3** — `Quaternion` (`E2-T1`), which completes the value layer |
+| **Last completed step** | Queue **4** — `Ray` and `BoundingVolumeHierarchy` (`E2-T15`) |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | Take queue item **4**, `RayCaster` and its BVH (`E2-T15`). It is the largest item in the near queue and the highest-value file in C2VGeometry, and **four things wait on it**: mesh booleans, viewport picking, intersection seeding and `Curve.ClosestPoint`. **The C2VGeometry source is not in this repository**, so this is a fresh implementation against the same idea rather than a port — decide the BVH's build strategy (median split on the longest axis is the defensible default), its leaf size, and whether it is built eagerly or lazily, and write those down before writing the traversal. There is a benchmark suite (`bench/Spark.Benchmarks`) and a budgets file that a new hot path should join. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**999** after this step: Geometry.Tests 356, Geometry.Properties 42), `dotnet format`. **Check the counts, do not just read *green*** — [N30](NOTES.md). |
+| **Next action** | Take queue item **5**, geometry serialization v1 and the reflection-driven round-trip test (`E2-T29`, `E2-T31`). **Get the reflection test in first** — it walks every public type in `Spark.Geometry`, round-trips an instance and fails on any type that is not covered, which is what stops the format drifting behind the kernel. There are now **twenty-two** public geometry types, so the retrofit cost is already real and grows. The `.spark` graph format is JSON ([ADR-0017](adr/0017-spark-file-is-plain-json.md)) and geometry should follow it rather than invent a second convention; the open question to settle *before* writing is what a version stamp looks like and what happens on an unknown one. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1024** after this step: Geometry.Tests 381, Geometry.Properties 42), `dotnet format`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -113,8 +113,8 @@ the two disagree.**
 | 1 | ~~The past-participle naming rule, applied~~ | `E2-T49` | S | **Done** 2026-08-29 |
 | 2 | ~~The three value-layer parity gaps~~ | `E2-T40` | S | **Done** 2026-08-29 |
 | 3 | ~~`Quaternion` — the last piece of the value layer~~ | `E2-T1` | M | **Done** 2026-08-29 |
-| 4 | **`RayCaster` and its BVH** *(next)* — pays for itself across mesh booleans, viewport picking, intersection seeding, and `Curve.ClosestPoint` waits on it | `E2-T15` | L | Open |
-| 5 | **Geometry serialization v1 and the reflection-driven round-trip test** — get it in before there are twenty types to retrofit it onto; there are nineteen | `E2-T29`, `E2-T31` | M | Open |
+| 4 | ~~`RayCaster` and its BVH~~ — landed as `Ray` and `BoundingVolumeHierarchy` — pays for itself across mesh booleans, viewport picking, intersection seeding, and `Curve.ClosestPoint` waits on it | `E2-T15` | L | **Done** 2026-08-29 |
+| 5 | **Geometry serialization v1 and the reflection-driven round-trip test** — get it in before there are twenty types to retrofit it onto; there are now **twenty-two** | `E2-T29`, `E2-T31` | M | **Next** |
 | 6 | **`Spark.Geometry.Io`: the OBJ writer, and `spark` writing a polyline a third-party viewer opens** — this is **M1's demoable** | `E2-T33`, `E12-T5` | M | Open |
 | 7 | **The C2VGeometry test harvest**, timeboxed to one week with a hard stop. Harvest assertions, not generators | `E2-T32` | L | Open — **needs the C2VGeometry source, which is not in this repository** |
 | 8 | **M1.5 spike (c): AvaloniaEdit plus a Roslyn completion popup** — the last unproven part of M1.5, gating M4 | `E11-T21` | M | Open |
@@ -307,4 +307,55 @@ and looked like success, which is [N15](NOTES.md) biting on its own terms.
 **Fixed in passing.** `docs/help/concepts/geometry-basics.md` still told readers that lines, arcs
 and circles were *M3 — not written*, four days after the curve layer landed. A help topic that is
 wrong about what exists is worse than one that is silent.
+
+### 2026-08-29 — Queue 4: `Ray` and `BoundingVolumeHierarchy` (`E2-T15`)
+
+**What.** The register called this *extract `RayCaster.cs` and its BVH*, and the first useful
+thing the step produced was the discovery that the name was wrong for what can exist today.
+C2VGeometry's file bundles three things — a ray, an acceleration structure, and ray-triangle
+maths — and **there are no triangles in this kernel yet**. So the extraction is `Ray` and
+`BoundingVolumeHierarchy`, separately, and separating them is better regardless: a hierarchy over
+*boxes* serves mesh booleans, viewport picking, intersection seeding and `Curve.ClosestPoint` from
+one implementation instead of four. 25 new tests; the suite is **1024**.
+
+**Decisions written down because each one had a defensible alternative.**
+
+*The ray's direction is normalised on construction*, so a parameter is a **distance** rather than
+a multiple of whatever length was passed in. And a ray **excludes what is behind its origin** —
+the difference between a ray and a line, and exactly the difference that decides whether a click
+selects something behind the camera.
+
+*The split is a median on the index, not on the coordinate.* A coordinate median is the usual
+choice and degenerates into a linked list on coincident boxes, which is not a rare input — it is
+what a thousand instances at the same location gives you. An index median guarantees
+`ceil(log2 n) + 1` depth on any input at all. A surface-area heuristic would beat both on typical
+ray-tracing scenes and gives up that guarantee; it is the obvious later change and it is named as
+such on the type.
+
+*Invalid boxes keep their index.* Dropping them at build time would renumber every item after
+them and silently break the caller's mapping — a bug that surfaces a long way from its cause.
+They are indexed and never returned.
+
+*`FirstHit` prunes on the caller's reported distance, not on the box.* A large box entered early
+can hold geometry hit late, so pruning on box entry would return the wrong item. There is a test
+whose only job is that case.
+
+*Immutable, therefore thread-safe by construction.* `ParallelEvaluationScheduler` runs a level's
+nodes in parallel, so anything the evaluator can reach must expect concurrent readers. No query
+touches instance state; the traversal stack is on the caller's stack. A `Parallel.For` test says
+so rather than a comment.
+
+**Verified.** Build clean with `-warnaserror`; 1024 tests, 0 failures; format clean; docs harness
+green. The strongest tests are the two that **agree with brute force**: 200 pseudo-random rays and
+200 random regions from fixed seeds, each compared against the linear scan the hierarchy exists to
+replace. An accelerator that answers differently from the loop it replaces is worse than no
+accelerator.
+
+**[N31](NOTES.md) records the one genuinely subtle thing**, and it is not the tree. The slab test
+divides by the direction, and dividing by zero is *correct* — a parallel ray gets ±∞ and the
+comparisons handle it. But `0 × ∞` is `NaN`, which happens when the ray is parallel to a slab and
+its origin lies exactly on one of the planes, and every comparison against `NaN` is false, so the
+obvious implementation reports a **miss** for a ray that grazes the box. That is what a click
+along an edge does. Mutation-tested: removing the guard turns
+`RayTests.ARayLyingExactlyOnAFaceStillHits` red.
 
