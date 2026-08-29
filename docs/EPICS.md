@@ -979,10 +979,13 @@ nothing.
       *Marshalling, evaluation and the canvas do. Replication over 100 000 items is covered only
       through marshalling, and tessellation throughput has nothing to benchmark yet.*
 - [ ] `tests/corpus/` grows with every bug found (**E11-T17**).
-- [ ] The three M1.5 spikes have **pass/fail criteria written down before the spike starts**
-      and are deleted afterwards (**E11-T19**, **E11-T20**, **E11-T21**). *None of the three
-      criteria is written. This is the next thing this epic owes, and it must land before M1
-      ends, not before M1.5 begins.*
+- [x] The three M1.5 spikes have **pass/fail criteria written down before the spike starts**
+      (**E11-T19**, **E11-T20**, **E11-T21**). *All three are taken and **M1.5 is complete**.
+      Spike (c)'s five criteria were written first and are on its row, and two of the five were
+      answered only after a failure that raised no error at all ([N33](NOTES.md)). The second half
+      of this criterion — **and are deleted afterwards** — is met for (a) and (b) and deliberately
+      **not** for (c): its central claim is executable rather than prose, so what would be deleted
+      is the thing that notices when the claim stops being true.*
 
 **Status.** Partly done, and materially further along than at the last pass. **Four test
 projects exist and `dotnet test Spark.slnx` runs 315 tests**, all passing locally on

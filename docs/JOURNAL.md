@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-30 00:50 +0530
+**Last updated:** 2026-08-30 02:15 +0530
 **Protocol version:** 2
 
 ---
@@ -16,14 +16,14 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1 is demoable.** What remains of it is the C2VGeometry harvest, which needs a source tree this repository does not have |
+| **Milestone** | **M1 and M1.5 are both done.** M1.6 is deferred for want of a C++ toolchain; the next milestone with work in it is **M2's remainder** |
 | **Working on** | Nothing. Between steps. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **6** — `ObjWriter` and `spark export`, M1's demoable (`E2-T34`, `E12-T5`) |
+| **Last completed step** | Queue **8** — M1.5 spike (c), AvaloniaEdit plus Roslyn completion (`E11-T21`) |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | Queue item **7** is **blocked** — the C2VGeometry test harvest needs a source tree that is not in this repository and not on this machine. Skip it and take queue item **8**, the last M1.5 spike (`E11-T21`): **AvaloniaEdit plus a Roslyn completion popup**. It is ≤3 days and throwaway, it gates the M4 code block, and it is the only part of M1.5 still unproven. Write its pass/fail criteria **before** starting, the way `M1.6-C1 … C9` were written — at minimum: the editor hosts inside the Avalonia shell, a completion popup appears at the caret and is positioned correctly when the editor is scrolled, and Roslyn supplies the completion list for an expression whose type comes from a wire. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1045** after this step: Geometry.Tests 402), `dotnet format`. **Check the counts** — [N30](NOTES.md). |
-| **Blocked on** | Nothing, once item 7 is skipped. **One human step is outstanding and cannot be automated**: opening the exported OBJ in a third-party viewer, which is what M1's acceptance criterion actually asks for. |
+| **Next action** | Take queue item **9**, what is left of M2: real docking (`E8-T2`, blocked on pinning `Dock.Avalonia.Themes.Fluent` — the templates live in that companion package and without it a `DockControl` renders nothing), group/note/align (`E8-T6`), watch nodes and preview bubbles showing rank as well as value (`E8-T10`), and `spark run` (`E12-T5`, which now has `spark export` beside it to copy). Take them in that order: docking is the one that changes the shell's shape, so everything else is cheaper after it. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1050** after this step: Geometry.Tests 402, UI.Tests 235), `dotnet format`. **Check the counts** — [N30](NOTES.md). |
+| **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
 
@@ -116,9 +116,9 @@ the two disagree.**
 | 4 | ~~`RayCaster` and its BVH~~ — landed as `Ray` and `BoundingVolumeHierarchy` — pays for itself across mesh booleans, viewport picking, intersection seeding, and `Curve.ClosestPoint` waits on it | `E2-T15` | L | **Done** 2026-08-29 |
 | 5 | **Geometry serialization v1 and the reflection-driven round-trip test** — get it in before there are twenty types to retrofit it onto; there are now **twenty-two** | `E2-T29`, `E2-T31` | M | **Done** 2026-08-29 |
 | 6 | **`Spark.Geometry.Io`: the OBJ writer, and `spark` writing a polyline a third-party viewer opens** — this is **M1's demoable** | `E2-T34`, `E12-T5` | M | **Done** 2026-08-29 |
-| 7 | **The C2VGeometry test harvest**, timeboxed to one week with a hard stop. Harvest assertions, not generators | `E2-T32` | L | Open — **needs the C2VGeometry source, which is not in this repository** |
-| 8 | **M1.5 spike (c): AvaloniaEdit plus a Roslyn completion popup** — the last unproven part of M1.5, gating M4 | `E11-T21` | M | **Next** |
-| 9 | **What is left of M2** — real docking (`E8-T2`), group/note/align (`E8-T6`), watch nodes (`E8-T10`), `spark run` (`E12-T5`) | | L | Open |
+| 7 | **The C2VGeometry test harvest**, timeboxed to one week with a hard stop. Harvest assertions, not generators | `E2-T32` | L | **Blocked** — needs the C2VGeometry source, which is not in this repository and not on this machine. Skipped 2026-08-30 |
+| 8 | **M1.5 spike (c): AvaloniaEdit plus a Roslyn completion popup** — the last unproven part of M1.5, gating M4 | `E11-T21` | M | **Done** 2026-08-30 |
+| 9 | **What is left of M2** *(next)* — real docking (`E8-T2`), group/note/align (`E8-T6`), watch nodes (`E8-T10`), `spark run` (`E12-T5`) | | L | Open |
 | 10 | **M3 — NURBS curves** | `E2-T10` … | XL | Open |
 | + | **A guard that no test project reports zero tests** — one line, and it catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)) | `E11`-adjacent | S | Open, take it with the next CI change |
 
@@ -440,4 +440,56 @@ opens*, and **no human has opened it**. The structure is asserted by tests; the 
 person looking at the file. That is written into TODO rather than quietly counted as met, and no
 generated `.obj` is committed — a derived artefact in the tree is diff noise, and the command that
 produces it is one line.
+
+### 2026-08-30 — Queue 8: M1.5 spike (c), and M1.5 is complete (`E11-T21`)
+
+**The question.** Is AvaloniaEdit plus a Roslyn completion popup acceptable to build the M4 code
+block on? **The answer is go.** Five criteria, written before the spike ran, all met. The suite is
+**1050**.
+
+**C2 is the one that mattered, and Roslyn answered *nothing* twice before it worked.** Neither
+failure raised an error, and an empty completion list looks exactly like a caret with nothing to
+suggest. First: `MefHostServices.DefaultAssemblies` composes the *workspace* layer only, and
+`CompletionService` lives in Features — without naming the Features assemblies,
+`CompletionService.GetService` returns null. Second, and worse: the **document** carries its own
+`SourceCodeKind` and it defaults to `Regular`; setting the project's parse options to `Script` does
+not override it, and a snippet parsed as a compilation unit is a file of syntax errors about which
+the semantic model has nothing to say. Both are in [N33](NOTES.md). With them right, `p.` completes
+to `X`, `DistanceTo` and `EqualsWithin` against a type that came from an **expression** — which is
+exactly the case M4 promises, *IntelliSense that knows the type on the incoming wire*.
+
+**C3 was the criterion the row predicted would be awkward, and it was, in a way that is now
+pinned.** `TextView.GetVisualPosition` answers in **document** coordinates, so a popup anchor is
+that minus `TextView.ScrollOffset` — forget the subtraction and the popup is right only on the
+first screenful. And `BringCaretToView` does nothing until the view has been laid out once, so the
+order is text, layout, caret, scroll, layout. Getting it wrong put the caret fifteen pixels above
+the viewport with no error anywhere.
+
+**What the harness cannot answer, stated rather than glossed.** Headless drawing has no font
+metrics, so every glyph measures zero wide and the caret's X is always zero. Vertical placement is
+real, because line height needs no font. Horizontal placement needs the running application — and
+it is the smaller half: a popup one character to the left is a cosmetic complaint, a popup on the
+wrong screenful is not.
+
+**Kept rather than deleted, which departs from *throwaway* deliberately.** Spikes (a) and (b) were
+UI experiments whose findings survived as prose. This one's central claim — *the caret's position
+tracks scrolling* — is executable, and deleting the spike would keep the finding and remove the
+thing that notices when it stops being true.
+
+**One repair to the existing tests, and it is worth knowing.** `HeadlessUnitTestSession.StartNew`
+can be called **once per process**. A second call from a second test class leaves both sessions
+broken and every test in both classes fails with nothing pointing at the cause. The session moved
+into `HeadlessSession` and both classes share it.
+
+**Verified.** Build clean with `-warnaserror`; 1050 tests, 0 failures; format clean; docs harness
+green.
+
+---
+
+### 2026-08-30 — Queue 7 skipped: the C2VGeometry harvest is blocked
+
+`E2-T32` wants a week of harvesting pure-maths tests out of C2VGeometry, taking **assertions rather
+than generators**. The source tree is not in this repository and not on this machine, so it cannot
+start here. Recorded as blocked with the reason rather than left looking un-started, and the queue
+routes around it exactly as it does around M1.6.
 

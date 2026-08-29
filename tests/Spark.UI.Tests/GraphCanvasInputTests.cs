@@ -37,9 +37,6 @@ namespace Spark.UI.Tests;
 /// </remarks>
 public sealed class GraphCanvasInputTests
 {
-    private static readonly HeadlessUnitTestSession Session =
-        HeadlessUnitTestSession.StartNew(typeof(HeadlessTestApplication));
-
     [Fact]
     public void ClickingANodeSelectsIt() => OnUiThread(() =>
     {
@@ -509,8 +506,7 @@ public sealed class GraphCanvasInputTests
 
     /// <summary>Runs a test body on the headless UI thread, rethrowing anything it threw.</summary>
     /// <param name="body">The gesture sequence and its assertions.</param>
-    private static void OnUiThread(Action body) =>
-        Session.Dispatch(body, CancellationToken.None).GetAwaiter().GetResult();
+    private static void OnUiThread(Action body) => HeadlessSession.Run(body);
 
     private static void Click(Window window, double x, double y, RawInputModifiers modifiers = RawInputModifiers.None) =>
         Click(window, new Point(x, y), modifiers);

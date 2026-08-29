@@ -65,7 +65,7 @@ which ships with Spark.
 >
 > What has been run, on Windows, on 2026-08-29:
 > `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen projects;
-> **1,045 tests pass** across seven projects;
+> **1,050 tests pass** across seven projects;
 > `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean; and the nightly's whole
 > pipeline — nineteen benchmark cases, the canvas benchmark and the budget check — is green.
 > **CI ran the build, the tests and the format check on Windows and Linux on commit `53596ab` and
@@ -248,10 +248,10 @@ exits — the viewport one is a GPU read-back rather than a window grab, so it w
 session and in CI. The first two exist so that opening a particular graph can be checked without
 a human driving a file dialog.
 
-`dotnet test` finds **1,045 tests** across seven projects. `Spark.Geometry.Tests` (402) and
+`dotnet test` finds **1,050 tests** across seven projects. `Spark.Geometry.Tests` (402) and
 `Spark.Geometry.Properties` (42) cover the kernel by example and by CsCheck property
 respectively; `Spark.Engine.Tests` (289) covers the graph, the replicator and the importer;
-`Spark.UI.Tests` (230) drives the canvas headlessly with real pointer gestures;
+`Spark.UI.Tests` (235) drives the canvas headlessly with real pointer gestures;
 `Spark.Viewport.Tests` (69) covers the scene and the camera; `Spark.Architecture.Tests` (8)
 enforces the reference graph below by reading `.csproj` files as XML; and `Spark.Docs.Verify`
 (5) checks these documents against the repository. The last two were deliberately stood up

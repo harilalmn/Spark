@@ -138,9 +138,13 @@ for anything else.
       on a realistic shape is timed, because ADR-0021's whole rule rests on it being paid once; and
       a first read is taken on the threading envelope (`Q14`) and on whether `ShapeFix` can be
       constrained to a policy we choose.
-- [ ] **The third M1.5 spike is still outstanding** — `E11-T21`. AvaloniaEdit plus a Roslyn
-      completion popup. It gates the M4 code block rather than anything M2 needs, which is why
-      the other two were taken first, but it is the last unproven part of M1.5.
+- [x] **The third M1.5 spike** — `E11-T21`, taken 2026-08-30, and **the verdict is go: M1.5 is
+      complete.** AvaloniaEdit hosts headlessly, Roslyn completes `p.` against a type that came from
+      an expression, and the caret's visual position survives scrolling. Two of the five criteria
+      were reached only after Roslyn answered **nothing at all, twice, with no error** — the Features
+      layer must be named in the MEF composition, and the *document* carries its own
+      `SourceCodeKind`, which the project's parse options do not override ([N33](NOTES.md)).
+      `ScriptCompletion` is the first code in `Spark.Scripting`.
 
 ## Then — the rest of M1, the geometry core
 

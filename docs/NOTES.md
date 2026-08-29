@@ -1018,3 +1018,36 @@ to every value type added after this one** — *can this type's public construct
 value the type can hold?* — because whenever the answer is no, something that reconstructs values
 needs a door the ordinary caller does not.
 
+---
+
+## N33 — Roslyn completion fails silently twice before it works
+
+M1.5 spike (c) asked whether Roslyn can supply a completion list for a code block. It can, and it
+answered *nothing at all* twice on the way there. **Neither failure raised an error**, which is
+what makes them worth a note: an empty completion list looks exactly like a caret with nothing to
+suggest.
+
+**One — the host services must include the Features layer.**
+`MefHostServices.Create(MefHostServices.DefaultAssemblies)` composes the *workspace* layer only,
+and `CompletionService` lives in Features. With it missing, `CompletionService.GetService(document)`
+returns **null**, and the obvious `if (service is null) return []` turns a composition mistake into
+a permanent empty popup. The composition has to name
+`Microsoft.CodeAnalysis.Features`, `Microsoft.CodeAnalysis.CSharp.Features` and
+`Microsoft.CodeAnalysis.CSharp.Workspaces` explicitly. The code now throws instead of returning
+empty, because a missing service is a wiring bug and should read like one.
+
+**Two — the *document* carries its own `SourceCodeKind`, and it defaults to `Regular`.** Setting
+the project's parse options to `SourceCodeKind.Script` is not enough:
+`DocumentInfo.Create(..., sourceCodeKind: SourceCodeKind.Script)` is the one that counts. Parsed as
+`Regular`, a snippet like `var p = new Point3d(1, 2, 3);` is a file of syntax errors, the semantic
+model has nothing to say about `p`, and completion returns an empty list — again with no error.
+
+With both right, `p.` completes to `X`, `DistanceTo`, `EqualsWithin` and the rest, against a type
+that came from an expression rather than from anything the user declared. That is the case the M4
+code block actually needs — *IntelliSense that knows the type on the incoming wire* — and it works.
+
+**The general shape, since this is the second note this week about it:** an API that answers
+*nothing* where it means *I am not configured* costs more to debug than one that throws.
+[N30](#n30--a-test-that-disappears-is-invisible-to-all-three-gates) is the same shape from the test
+side. When wrapping one, convert the silence into a failure at the boundary.
+
