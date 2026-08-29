@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-29
+**Last updated:** 2026-08-30
 
 ---
 
@@ -1051,3 +1051,34 @@ code block actually needs — *IntelliSense that knows the type on the incoming 
 [N30](#n30--a-test-that-disappears-is-invisible-to-all-three-gates) is the same shape from the test
 side. When wrapping one, convert the silence into a failure at the boundary.
 
+
+---
+
+## N34 — Dock's `Tool.Content` is `[TemplateContent]`, so pane markup inside it loses the window's names
+
+`Dock.Model.Avalonia.Controls.Tool` carries its content as `[Content]`, `[TemplateContent]` and
+`[ResolveByName]`. The middle one is the load-bearing part: markup written **inline** inside a
+`<Tool>` is not built as part of the surrounding file, it is compiled into a *template* and built
+later into its own namescope.
+
+The consequence is easy to miss and expensive to find, because it is not a compile error. A window
+that declares its panes inline inside `Tool`s still builds; its generated `x:Name` fields —
+`Canvas`, `Viewport`, `LibraryList`, `CreateBox` — are simply **never assigned**, and the first
+line of code-behind that touches one throws a `NullReferenceException` at runtime. Roughly seven
+hundred lines of `MainWindow.axaml.cs` reach through exactly those fields.
+
+**So the panes had to become `UserControl`s before the shell could become a `DockControl`**, and
+that ordering is the whole reason `E8-T2` landed as two commits rather than one. A `UserControl`
+brings its own namescope with it, so its `x:Name`s resolve against itself and survive being built
+inside a template; the window then holds the pane, and reaches the canvas through it.
+
+**How this was established, and the general shape:** by reflecting over the property's attributes
+before writing any code, rather than by writing the layout and debugging the nulls —
+
+```
+p.GetCustomAttributes(true)  // → ContentAttribute, TemplateContentAttribute, ResolveByNameAttribute
+```
+
+**When a container takes arbitrary content, check whether it takes it as a value or as a
+template.** The two are indistinguishable in the XAML that fills them in and completely different
+in where the names inside end up.

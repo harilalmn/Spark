@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-30 02:15 +0530
+**Last updated:** 2026-08-30 12:30 +0530
 **Protocol version:** 2
 
 ---
@@ -16,13 +16,13 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1 and M1.5 are both done.** M1.6 is deferred for want of a C++ toolchain; the next milestone with work in it is **M2's remainder** |
-| **Working on** | Nothing. Between steps. |
+| **Milestone** | **M1 and M1.5 are both done.** M1.6 is deferred for want of a C++ toolchain; the work in flight is **M2's remainder** |
+| **Working on** | Nothing. Between steps, half way through queue **9**'s first item |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **8** — M1.5 spike (c), AvaloniaEdit plus Roslyn completion (`E11-T21`) |
+| **Last completed step** | Queue **9**, `E8-T2` step **(a)** — the four panes extracted into `UserControl`s |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | Take queue item **9**, what is left of M2: real docking (`E8-T2`, blocked on pinning `Dock.Avalonia.Themes.Fluent` — the templates live in that companion package and without it a `DockControl` renders nothing), group/note/align (`E8-T6`), watch nodes and preview bubbles showing rank as well as value (`E8-T10`), and `spark run` (`E12-T5`, which now has `spark export` beside it to copy). Take them in that order: docking is the one that changes the shell's shape, so everything else is cheaper after it. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1050** after this step: Geometry.Tests 402, UI.Tests 235), `dotnet format`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | `E8-T2` step **(b)**: add the `Dock.Avalonia.Themes.Fluent` and `Dock.Model.Avalonia` `PackageReference`s to `Spark.UI` (both versions are already pinned in `Directory.Packages.props`; `Dock.Model.Avalonia` needs a `PackageVersion` adding), put `<DockFluentTheme/>` in `App.axaml`'s styles, and replace the shell `Grid` in `MainWindow.axaml` with a `DockControl` whose `RootDock` holds the four panes as `Tool`s. Then make `WorkspaceLayout` actually drive it — **today the preset buttons change the model and nothing else, because nothing binds to it** — so *Modelling*, *Authoring* and *Presenting* visibly rearrange the shell and *Reset layout* puts it back. Verify with the three gates and `--screenshot`, and this time the picture is **expected to change**: compare against `before-shell.png` deliberately rather than for equality. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1050** after step (a), unchanged: Geometry.Tests 402, UI.Tests 235), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -492,4 +492,39 @@ green.
 than generators**. The source tree is not in this repository and not on this machine, so it cannot
 start here. Recorded as blocked with the reason rather than left looking un-started, and the queue
 routes around it exactly as it does around M1.6.
+
+### 2026-08-30 — Queue 9, `E8-T2` step (a): the panes become controls of their own
+
+**What.** `src/Spark.UI/Views/Panes/` — `LibraryPane`, `CanvasPane`, `ViewportPane` and
+`InspectorPane`, each a `UserControl` with its own markup and its own handlers. `MainWindow.axaml`
+loses 114 lines and keeps its `Grid` and both splitters exactly as they were;
+`MainWindow.axaml.cs` loses the creation-box gesture (to `CanvasPane`) and the literal-commit
+handlers (to `InspectorPane`), and reaches the canvas and the viewport through two private
+properties so that **every remaining call site is unchanged**.
+
+**Why this is a step and not part of the docking step.** `Tool.Content` in `Dock.Model.Avalonia`
+is `[TemplateContent]`: pane markup written inline inside a `Tool` is built into its own namescope
+and the window's `x:Name` fields are never assigned. That is a `NullReferenceException` at
+runtime, not a compile error, and about seven hundred lines of code-behind reach through those
+fields. Written up as [N34](NOTES.md#n34--docks-toolcontent-is-templatecontent-so-pane-markup-inside-it-loses-the-windows-names).
+**It was established by reflecting over the property's attributes before writing any code**, which
+is the difference between one paragraph and an afternoon.
+
+**Verified.** Build clean, 0 warnings; **1050 tests, 0 failures**, unchanged — which is the
+correct result for a refactor that moved code without changing it; `dotnet format` clean. **The
+gate that actually proves this one is the screenshot**: `--graph curves --screenshot` before and
+after are the same picture, down to the library scroll position and the node colours, differing
+only in the frame timings, which are timings. The viewport read-back agrees exactly — 53 distinct
+colours, mean luminance 30.5/255, both runs.
+
+**AGENTS.md step 7 does not apply**: nothing was fixed, so there is no test to watch go red.
+Saying so beats skipping it quietly.
+
+**One thing changed on purpose rather than mechanically.** The benchmark used to hide the viewport
+by setting `Viewport.IsVisible = false` on the control; it now hides `ViewportPane`, the whole
+pane. With the row collapsed to zero the two were indistinguishable, which is exactly why it was
+worth correcting while the code was in hand rather than leaving a line that is right by accident.
+
+**Cost.** Under an hour, most of it reading the seven hundred lines of code-behind carefully
+enough to know which handlers were pane-local and which were about the document.
 

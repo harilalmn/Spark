@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:controls="clr-namespace:Spark.UI.Controls"
+        xmlns:panes="clr-namespace:Spark.UI.Views.Panes"
         xmlns:vm="clr-namespace:Spark.UI.ViewModels"
         x:Class="Spark.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -25,11 +25,10 @@
 
   <!--
     The shell is a Grid with splitters rather than a DockControl. Dock.Avalonia is referenced and
-    is the intended home for this layout, but its control templates ship in a separate package
-    (Dock.Avalonia.Themes.Fluent) that is not in Directory.Packages.props, and without them a
-    DockControl has no template and renders nothing. The serialisable layout model this grid is
-    driven from — Shell/WorkspaceLayout.cs, with reset and named presets — is the part that has
-    to exist either way, and it carries over unchanged when the theme package lands.
+    is the intended home for this layout; the panes below are UserControls precisely so that the
+    swap is a change of container rather than a rewrite of the shell's content. The serialisable
+    layout model the arrangement is driven from — Shell/WorkspaceLayout.cs, with reset and named
+    presets — has to exist either way, and it carries over unchanged.
   -->
 
   <Grid RowDefinitions="Auto,*,Auto">
@@ -74,125 +73,21 @@
 
     <Grid Grid.Row="1" ColumnDefinitions="260,4,*,4,320" x:Name="ShellColumns">
 
-      <!-- Library. Select an entry and press Place, or double-click it. -->
-      <Border Grid.Column="0" Classes="pane" x:Name="LibraryPane">
-        <Grid RowDefinitions="Auto,Auto,*,Auto">
-          <TextBlock Grid.Row="0" Classes="paneTitle" Text="LIBRARY" />
-
-          <TextBox Grid.Row="1" Margin="10,0,10,8" Text="{Binding LibrarySearch, Mode=TwoWay}" />
-
-          <ListBox Grid.Row="2" Margin="6,0,6,6"
-                   x:Name="LibraryList"
-                   ItemsSource="{Binding LibraryEntries}"
-                   SelectedItem="{Binding SelectedLibraryEntry, Mode=TwoWay}"
-                   DoubleTapped="OnLibraryDoubleTapped">
-            <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="vm:LibraryEntryViewModel">
-                <StackPanel Spacing="1" ToolTip.Tip="{Binding Description}">
-                  <TextBlock Text="{Binding DisplayName}" />
-                  <TextBlock Classes="muted" FontSize="10" Text="{Binding Signature}" />
-                </StackPanel>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-
-          <Button Grid.Row="3" Classes="toolbar" Margin="10,0,10,10"
-                  HorizontalAlignment="Stretch" Content="Place node" Click="OnPlaceNode" />
-        </Grid>
-      </Border>
+      <panes:LibraryPane Grid.Column="0" x:Name="LibraryPane" />
 
       <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
 
       <Grid Grid.Column="2" RowDefinitions="*,4,*" x:Name="CentreRows">
-        <Border Grid.Row="0" Classes="pane" Padding="1">
-          <!--
-            The canvas draws every node in immediate mode (ADR-0013), and this Canvas over the top
-            of it is where the exceptions live: a real Avalonia control, positioned in screen
-            space, for the one thing being interacted with. Today that is the creation box; the
-            in-place node editor (E8-T5) belongs in the same layer.
-          -->
-          <Panel>
-            <controls:GraphCanvas x:Name="Canvas" />
-
-            <Canvas x:Name="OverlayLayer" IsHitTestVisible="True">
-              <Border x:Name="CreateBox" Classes="float" Width="300" IsVisible="False">
-                <Grid RowDefinitions="Auto,Auto,Auto">
-                  <TextBox Grid.Row="0" x:Name="CreateSearchBox" Margin="8,8,8,4"
-                           PlaceholderText="Type a node name"
-                           Text="{Binding CreateSearch, Mode=TwoWay}"
-                           KeyDown="OnCreateSearchKeyDown"
-                           LostFocus="OnCreateSearchLostFocus" />
-
-                  <ListBox Grid.Row="1" x:Name="CreateResultsList" Margin="4,0,4,4"
-                           MaxHeight="240"
-                           ItemsSource="{Binding CreateResults}"
-                           SelectedItem="{Binding SelectedCreateResult, Mode=TwoWay}"
-                           DoubleTapped="OnCreateResultChosen">
-                    <ListBox.ItemTemplate>
-                      <DataTemplate x:DataType="vm:LibraryEntryViewModel">
-                        <StackPanel Spacing="1">
-                          <TextBlock Text="{Binding DisplayName}" />
-                          <TextBlock Classes="muted" FontSize="10" Text="{Binding Signature}" />
-                        </StackPanel>
-                      </DataTemplate>
-                    </ListBox.ItemTemplate>
-                  </ListBox>
-
-                  <TextBlock Grid.Row="2" Classes="muted" FontSize="10" Margin="10,0,10,8"
-                             Text="Enter places it here · Esc cancels" />
-                </Grid>
-              </Border>
-            </Canvas>
-          </Panel>
-        </Border>
+        <panes:CanvasPane Grid.Row="0" x:Name="CanvasPane" />
 
         <GridSplitter Grid.Row="1" ResizeDirection="Rows" />
 
-        <Border Grid.Row="2" Classes="pane" Padding="1">
-          <controls:ViewportControl x:Name="Viewport" />
-        </Border>
+        <panes:ViewportPane Grid.Row="2" x:Name="ViewportPane" />
       </Grid>
 
       <GridSplitter Grid.Column="3" ResizeDirection="Columns" />
 
-      <Border Grid.Column="4" Classes="pane" x:Name="InspectorPane">
-        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
-          <TextBlock Grid.Row="0" Classes="paneTitle" Text="PROPERTIES" />
-
-          <TextBlock Grid.Row="1" Margin="10,0,10,4" TextWrapping="Wrap"
-                     Text="{Binding SelectionTitle}" />
-
-          <TextBlock Grid.Row="2" Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
-                     Text="{Binding SelectionDescription}" />
-
-          <!-- Editing a value here writes the literal through the engine graph, which marks the
-               node and everything downstream dirty, and starts a run off the UI thread. -->
-          <ItemsControl Grid.Row="3" Margin="10,0,10,10" ItemsSource="{Binding Inspector}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:PortLiteralViewModel">
-                <Grid ColumnDefinitions="90,*" Margin="0,0,0,6">
-                  <!-- The type is on the row, not only in the tooltip. A box labelled "radius"
-                       does not tell anybody what belongs in it, and a tooltip answers a question
-                       the user has to have thought to ask. -->
-                  <StackPanel Grid.Column="0" VerticalAlignment="Center"
-                              ToolTip.Tip="{Binding Description}">
-                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding Label}" />
-                    <TextBlock Classes="muted" FontSize="10" Opacity="0.8" Text="{Binding TypeName}" />
-                  </StackPanel>
-                  <TextBox Grid.Column="1" IsEnabled="{Binding IsEditable}"
-                           Text="{Binding Text, Mode=TwoWay}"
-                           LostFocus="OnLiteralCommitted"
-                           KeyDown="OnLiteralKeyDown" />
-                </Grid>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-
-          <TextBlock Grid.Row="4" Classes="paneTitle" Text="DIAGNOSTICS" />
-          <TextBlock Grid.Row="5" Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
-                     Text="{Binding DiagnosticsText}" />
-        </Grid>
-      </Border>
+      <panes:InspectorPane Grid.Column="4" x:Name="InspectorPane" />
     </Grid>
 
     <Border Grid.Row="2" Classes="chrome" Padding="10,4">

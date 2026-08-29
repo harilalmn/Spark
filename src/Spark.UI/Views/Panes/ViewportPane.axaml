@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Spark.UI.Controls"
+             xmlns:vm="clr-namespace:Spark.UI.ViewModels"
+             x:Class="Spark.UI.Views.Panes.ViewportPane"
+             x:DataType="vm:MainWindowViewModel"
+             x:CompileBindings="True">
+
+  <Border Classes="pane" Padding="1">
+    <controls:ViewportControl x:Name="View" />
+  </Border>
+</UserControl>

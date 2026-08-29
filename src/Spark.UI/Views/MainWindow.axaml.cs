@@ -52,13 +52,26 @@ public sealed partial class MainWindow : Window
         // evaluation would be doing it on the thread it draws on (ADR-0005).
         Canvas.GraphChanged += OnCanvasGraphChanged;
         Canvas.SelectionChanged += OnCanvasSelectionChanged;
-        Canvas.CreateRequested += OnCanvasCreateRequested;
+
+        // The library pane cannot see the canvas, and should not: where a node lands depends on
+        // what is already on the surface. It asks, and the window is what knows both halves.
+        LibraryPane.PlaceRequested += (_, _) => PlaceSelectedLibraryEntry();
 
         DataContextChanged += OnDataContextChanged;
         Opened += OnOpened;
     }
 
     private MainWindowViewModel? Model => DataContext as MainWindowViewModel;
+
+    /// <summary>
+    /// The canvas inside <c>CanvasPane</c>. The window drives the surface — binding the graph,
+    /// framing it, running the benchmark over it — while the pane owns the gestures that happen
+    /// on it. Named so that the two are not the same thing by accident.
+    /// </summary>
+    private GraphCanvas Canvas => CanvasPane.Canvas;
+
+    /// <summary>The viewport inside <c>ViewportPane</c>, for the same reason.</summary>
+    private ViewportControl Viewport => ViewportPane.Viewport;
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
@@ -129,139 +142,6 @@ public sealed partial class MainWindow : Window
 
     private void OnCanvasSelectionChanged(object? sender, EventArgs e) =>
         Model?.ShowSelection(Canvas.Selection);
-
-    private double _createWorldX;
-    private double _createWorldY;
-
-    /// <summary>
-    /// Opens the creation box over the point that was double-clicked.
-    /// </summary>
-    /// <remarks>
-    /// The world point is kept rather than recomputed on commit, because the canvas can be panned
-    /// or zoomed by the scroll wheel while the box is open, and a node that lands where the
-    /// pointer *now* is rather than where the user asked for it is the kind of small betrayal that
-    /// makes a gesture feel unreliable.
-    /// </remarks>
-    /// <param name="sender">The canvas.</param>
-    /// <param name="e">Where the node should go.</param>
-    private void OnCanvasCreateRequested(object? sender, CanvasCreateRequestedEventArgs e)
-    {
-        if (Model is not { } model)
-        {
-            return;
-        }
-
-        _createWorldX = e.WorldX;
-        _createWorldY = e.WorldY;
-
-        model.CreateSearch = string.Empty;
-
-        // Kept inside the canvas, so a double-click near the right or bottom edge does not open a
-        // box that is half off screen and half unreachable.
-        double left = Math.Clamp(e.ScreenX, 0, Math.Max(0, Canvas.Bounds.Width - CreateBox.Width));
-        double top = Math.Clamp(e.ScreenY, 0, Math.Max(0, Canvas.Bounds.Height - 160));
-
-        Avalonia.Controls.Canvas.SetLeft(CreateBox, left);
-        Avalonia.Controls.Canvas.SetTop(CreateBox, top);
-        CreateBox.IsVisible = true;
-        CreateSearchBox.Focus();
-    }
-
-    private void CloseCreateBox()
-    {
-        if (!CreateBox.IsVisible)
-        {
-            return;
-        }
-
-        CreateBox.IsVisible = false;
-        Canvas.Focus();
-    }
-
-    /// <summary>
-    /// Commits the highlighted result, if there is one, and closes the box.
-    /// </summary>
-    /// <remarks>
-    /// The new node is selected and the canvas takes focus, so the gesture ends where the next one
-    /// begins: a node on the canvas, ready to be wired or dragged, rather than a text box still
-    /// holding the keyboard.
-    /// </remarks>
-    private void CommitCreateBox()
-    {
-        if (Model is not { } model || model.SelectedCreateResult is not { } entry)
-        {
-            return;
-        }
-
-        int slot = model.PlaceEntryAt(entry, _createWorldX, _createWorldY);
-        CloseCreateBox();
-
-        Canvas.RefreshStructure();
-        Canvas.SelectOnly(slot);
-        Canvas.Focus();
-        _ = model.EvaluateAsync();
-    }
-
-    private void OnCreateSearchKeyDown(object? sender, KeyEventArgs e)
-    {
-        switch (e.Key)
-        {
-            // Key.Return is the same value as Key.Enter in Avalonia, so naming both here is a
-            // duplicate label rather than thoroughness.
-            case Key.Enter:
-                CommitCreateBox();
-                e.Handled = true;
-                break;
-
-            case Key.Escape:
-                CloseCreateBox();
-                e.Handled = true;
-                break;
-
-            // The arrows move the highlight without leaving the text box, which is what lets a
-            // user keep typing after looking down the list.
-            case Key.Down:
-                MoveCreateSelection(1);
-                e.Handled = true;
-                break;
-
-            case Key.Up:
-                MoveCreateSelection(-1);
-                e.Handled = true;
-                break;
-
-            default:
-                break;
-        }
-    }
-
-    private void MoveCreateSelection(int delta)
-    {
-        if (Model is not { } model || model.CreateResults.Count == 0)
-        {
-            return;
-        }
-
-        int current = model.SelectedCreateResult is { } selected
-            ? model.CreateResults.IndexOf(selected)
-            : -1;
-
-        int next = Math.Clamp(current + delta, 0, model.CreateResults.Count - 1);
-        model.SelectedCreateResult = model.CreateResults[next];
-    }
-
-    private void OnCreateSearchLostFocus(object? sender, RoutedEventArgs e)
-    {
-        // Clicking a result moves focus to the list, which must not read as dismissing the box.
-        if (CreateResultsList.IsKeyboardFocusWithin)
-        {
-            return;
-        }
-
-        CloseCreateBox();
-    }
-
-    private void OnCreateResultChosen(object? sender, TappedEventArgs e) => CommitCreateBox();
 
     private void OnRun(object? sender, RoutedEventArgs e)
     {
@@ -366,10 +246,6 @@ public sealed partial class MainWindow : Window
         UpdateStatus();
     }
 
-    private void OnPlaceNode(object? sender, RoutedEventArgs e) => PlaceSelectedLibraryEntry();
-
-    private void OnLibraryDoubleTapped(object? sender, TappedEventArgs e) => PlaceSelectedLibraryEntry();
-
     private void PlaceSelectedLibraryEntry()
     {
         if (Model is not { } model)
@@ -389,28 +265,6 @@ public sealed partial class MainWindow : Window
         Canvas.SelectOnly(slot);
         Canvas.Focus();
         _ = model.EvaluateAsync();
-    }
-
-    private void OnLiteralCommitted(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: PortLiteralViewModel literal })
-        {
-            literal.Commit();
-        }
-    }
-
-    private void OnLiteralKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (e.Key is not Key.Enter and not Key.Return)
-        {
-            return;
-        }
-
-        if (sender is Control { DataContext: PortLiteralViewModel literal })
-        {
-            literal.Commit();
-            e.Handled = true;
-        }
     }
 
     private string? _documentPath;
@@ -630,7 +484,7 @@ public sealed partial class MainWindow : Window
         // and the claim being tested is about how many nodes can be ON SCREEN at 60 fps.
         LibraryPane.IsVisible = false;
         InspectorPane.IsVisible = false;
-        Viewport.IsVisible = false;
+        ViewportPane.IsVisible = false;
         ShellColumns.ColumnDefinitions = new ColumnDefinitions("0,0,*,0,0");
         CentreRows.RowDefinitions = new RowDefinitions("*,0,0");
 

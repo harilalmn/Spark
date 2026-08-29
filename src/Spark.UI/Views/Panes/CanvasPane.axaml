@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Spark.UI.Controls"
+             xmlns:vm="clr-namespace:Spark.UI.ViewModels"
+             x:Class="Spark.UI.Views.Panes.CanvasPane"
+             x:DataType="vm:MainWindowViewModel"
+             x:CompileBindings="True">
+
+  <Border Classes="pane" Padding="1">
+    <!--
+      The canvas draws every node in immediate mode (ADR-0013), and this Canvas over the top
+      of it is where the exceptions live: a real Avalonia control, positioned in screen
+      space, for the one thing being interacted with. Today that is the creation box; the
+      in-place node editor (E8-T5) belongs in the same layer.
+    -->
+    <Panel>
+      <controls:GraphCanvas x:Name="CanvasControl" />
+
+      <Canvas x:Name="OverlayLayer" IsHitTestVisible="True">
+        <Border x:Name="CreateBox" Classes="float" Width="300" IsVisible="False">
+          <Grid RowDefinitions="Auto,Auto,Auto">
+            <TextBox Grid.Row="0" x:Name="CreateSearchBox" Margin="8,8,8,4"
+                     PlaceholderText="Type a node name"
+                     Text="{Binding CreateSearch, Mode=TwoWay}"
+                     KeyDown="OnCreateSearchKeyDown"
+                     LostFocus="OnCreateSearchLostFocus" />
+
+            <ListBox Grid.Row="1" x:Name="CreateResultsList" Margin="4,0,4,4"
+                     MaxHeight="240"
+                     ItemsSource="{Binding CreateResults}"
+                     SelectedItem="{Binding SelectedCreateResult, Mode=TwoWay}"
+                     DoubleTapped="OnCreateResultChosen">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:LibraryEntryViewModel">
+                  <StackPanel Spacing="1">
+                    <TextBlock Text="{Binding DisplayName}" />
+                    <TextBlock Classes="muted" FontSize="10" Text="{Binding Signature}" />
+                  </StackPanel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+
+            <TextBlock Grid.Row="2" Classes="muted" FontSize="10" Margin="10,0,10,8"
+                       Text="Enter places it here · Esc cancels" />
+          </Grid>
+        </Border>
+      </Canvas>
+    </Panel>
+  </Border>
+</UserControl>

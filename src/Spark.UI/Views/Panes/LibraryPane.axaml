@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Spark.UI.ViewModels"
+             x:Class="Spark.UI.Views.Panes.LibraryPane"
+             x:DataType="vm:MainWindowViewModel"
+             x:CompileBindings="True">
+
+  <!-- Select an entry and press Place, or double-click it. The pane never touches the canvas
+       itself: placement needs a free spot on a surface this control cannot see, so it asks
+       (PlaceRequested) rather than reaching. -->
+  <Border Classes="pane">
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+      <TextBlock Grid.Row="0" Classes="paneTitle" Text="LIBRARY" />
+
+      <TextBox Grid.Row="1" Margin="10,0,10,8" Text="{Binding LibrarySearch, Mode=TwoWay}" />
+
+      <ListBox Grid.Row="2" Margin="6,0,6,6"
+               x:Name="LibraryList"
+               ItemsSource="{Binding LibraryEntries}"
+               SelectedItem="{Binding SelectedLibraryEntry, Mode=TwoWay}"
+               DoubleTapped="OnLibraryDoubleTapped">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:LibraryEntryViewModel">
+            <StackPanel Spacing="1" ToolTip.Tip="{Binding Description}">
+              <TextBlock Text="{Binding DisplayName}" />
+              <TextBlock Classes="muted" FontSize="10" Text="{Binding Signature}" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <Button Grid.Row="3" Classes="toolbar" Margin="10,0,10,10"
+              HorizontalAlignment="Stretch" Content="Place node" Click="OnPlaceNode" />
+    </Grid>
+  </Border>
+</UserControl>
