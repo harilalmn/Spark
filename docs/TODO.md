@@ -8,9 +8,9 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
 eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,196 tests over eight
+Ctrl+Z steps back through every edit. `dotnet build`, the test suite (**1,203 tests over eight
 projects**) and `dotnet format` are all clean — though `dotnet test` itself now reports
-`Zero tests ran` on SDK 10.0.400 and the 1,196 are counted by `scripts/run-tests.sh`
+`Zero tests ran` on SDK 10.0.400 and the 1,203 are counted by `scripts/run-tests.sh`
 ([N34](NOTES.md)) — and **CI ran green on Windows and Linux on `53596ab`**, 969 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
 
@@ -61,7 +61,7 @@ for anything else.
       evicts by entry count rather than by bytes, no node can declare itself impure, the
       host-thread scheduler is missing, cancellation does not reach inside a kernel operation,
       the shell has no real docking, the library panel filters without ranking, and three rows
-      wait on the empty `bench/`. **Three of those ten have since closed and one of them closed by
+      wait on the empty `bench/`. **Five of those ten have since closed and one of them closed by
       being disproved**: the cache holds a byte budget now, and the impure-node declaration was
       never missing — only its test was. Two more are `Open` **with a stated reason** rather than by
       omission, because the importer's two-way diff will not let a public member go unaccounted
@@ -278,6 +278,27 @@ for anything else.
       later suppresses, and because the headless canvas tests drive real pointer gestures and are
       the most timing-sensitive thing in the repository. Next occurrence: keep the whole output,
       not the tail. `scripts/run-tests.sh` already prints the failing test names.
+- [x] **Cancellation reaches inside a node** — `E3-T12`, and the row closes. Cancelling between
+      nodes and between replication elements was never enough for one expensive element: a node
+      given a hundred thousand points replicates into a hundred thousand cheap calls and stops
+      promptly, while a node given one enormous mesh makes a single call nothing can interrupt —
+      and the whole point of cancelling is that the user has already changed their mind.
+      **The token is declared, not ambient.** A member takes a `CancellationToken` as its **last**
+      parameter, the importer keeps it out of the ports, and the replicator appends the run's
+      token to the argument array. `NodeInvocation`'s signature did not have to change, because
+      the compiled invoker binds parameters to slots by position — which is also exactly why a
+      token anywhere else is **refused with a reason**: it would shift every port after it and
+      the node would read plausible nonsense. Ambient was rejected on the grounds ADR-0010
+      already used for tolerance. `Bvh<T>.Build` and `Point3d.PruneDuplicates` take one too,
+      checked every 1,024 items because a check per item costs more than the loop.
+      The sharp test replicates **one** element, so the replicator's own check cannot be what
+      stopped it, and asserts the node's own frame is in the stack trace.
+- [x] **The allocation gate's numbers are verified rather than assumed.** `bench/baseline.json`
+      has gated a nightly that has never run. All nineteen entries were re-measured locally under
+      the same `--job short` the workflow uses, and every one matches: the marshalling figures to
+      the byte, the evaluation figures to within 0.15%, and the two `SceneIndex` zeros still zero.
+      **A gate whose numbers nobody has reproduced is a gate nobody knows the state of**, and now
+      one person has.
 - [x] **The watch panel** — the open half of `E8-T10`, and the row closes. A pinned pane in
       the right-hand column showing one node's whole output. **Pinning is the point**: the strip
       under a node answers for whatever is under the pointer, and a panel that followed the

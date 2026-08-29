@@ -434,7 +434,7 @@ static Spark.Geometry.BoundingBox.Intersection(in Spark.Geometry.BoundingBox a, 
 static Spark.Geometry.BoundingBox.Union(in Spark.Geometry.BoundingBox a, in Spark.Geometry.BoundingBox b) -> Spark.Geometry.BoundingBox
 static Spark.Geometry.BoundingBox.operator !=(in Spark.Geometry.BoundingBox left, in Spark.Geometry.BoundingBox right) -> bool
 static Spark.Geometry.BoundingBox.operator ==(in Spark.Geometry.BoundingBox left, in Spark.Geometry.BoundingBox right) -> bool
-static Spark.Geometry.Bvh<T>.Build(System.Collections.Generic.IReadOnlyList<T>! items, System.Func<T, Spark.Geometry.BoundingBox>! bounds) -> Spark.Geometry.Bvh<T>!
+static Spark.Geometry.Bvh<T>.Build(System.Collections.Generic.IReadOnlyList<T>! items, System.Func<T, Spark.Geometry.BoundingBox>! bounds, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Spark.Geometry.Bvh<T>!
 static Spark.Geometry.Circle.ByCentreNormalRadius(in Spark.Geometry.Point3d centre, in Spark.Geometry.Vector3d normal, double radius) -> Spark.Geometry.Circle!
 static Spark.Geometry.Circle.ByCentreRadius(in Spark.Geometry.Point3d centre, double radius) -> Spark.Geometry.Circle!
 static Spark.Geometry.Circle.ByPlaneRadius(in Spark.Geometry.Plane plane, double radius) -> Spark.Geometry.Circle!
@@ -481,8 +481,8 @@ static Spark.Geometry.Point3d.ByCylindricalCoordinates(in Spark.Geometry.Plane p
 static Spark.Geometry.Point3d.BySphericalCoordinates(in Spark.Geometry.Plane plane, double radius, Spark.Geometry.Angle azimuth, Spark.Geometry.Angle inclination) -> Spark.Geometry.Point3d
 static Spark.Geometry.Point3d.Lerp(in Spark.Geometry.Point3d start, in Spark.Geometry.Point3d end, double t) -> Spark.Geometry.Point3d
 static Spark.Geometry.Point3d.Origin.get -> Spark.Geometry.Point3d
-static Spark.Geometry.Point3d.PruneDuplicates(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Point3d[]!
-static Spark.Geometry.Point3d.PruneDuplicates(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, out int[]! map, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Point3d[]!
+static Spark.Geometry.Point3d.PruneDuplicates(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance), System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Spark.Geometry.Point3d[]!
+static Spark.Geometry.Point3d.PruneDuplicates(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, out int[]! map, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance), System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Spark.Geometry.Point3d[]!
 static Spark.Geometry.Point3d.Subtract(in Spark.Geometry.Point3d left, in Spark.Geometry.Point3d right) -> Spark.Geometry.Vector3d
 static Spark.Geometry.Point3d.Unset.get -> Spark.Geometry.Point3d
 static Spark.Geometry.Point3d.explicit operator Spark.Geometry.Point3d(in Spark.Geometry.Vector3d vector) -> Spark.Geometry.Point3d

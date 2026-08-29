@@ -202,7 +202,15 @@ public static class Replicator
     {
         NodeDefinition definition = run.Definition;
         int inputCount = definition.Inputs.Count;
-        object?[] clrArguments = new object?[inputCount];
+        // One slot per port, plus one for the token when the node asked for it. A trailing
+        // parameter maps to a trailing argument, so the compiled invoker needs no special case:
+        // it walks parameters in order and the token is simply the last of them.
+        object?[] clrArguments = new object?[inputCount + (definition.WantsCancellation ? 1 : 0)];
+
+        if (definition.WantsCancellation)
+        {
+            clrArguments[inputCount] = run.CancellationToken;
+        }
 
         run.LeafCount++;
 

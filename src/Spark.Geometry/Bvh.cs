@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Spark.Geometry;
 
@@ -24,7 +25,7 @@ namespace Spark.Geometry;
 /// <para>
 /// <b>The tree is immutable once built, and that is what makes it safe to query from many
 /// threads.</b> Nothing is cached in a node, no field is written after
-/// <see cref="Build(IReadOnlyList{T}, Func{T, BoundingBox})"/> returns, and every traversal
+/// <see cref="Build(IReadOnlyList{T}, Func{T, BoundingBox}, CancellationToken)"/> returns, and every traversal
 /// keeps its state in a local stack. The evaluator replicates over lists in parallel and the
 /// viewport picks on a different thread again; a structure that memoised its last query would
 /// have needed a lock on the hottest path in the kernel.
@@ -91,6 +92,10 @@ public sealed class Bvh<T>
     /// The box for an item. Called exactly once per item, so it may be as expensive as it
     /// needs to be.
     /// </param>
+    /// <param name="cancellationToken">
+    /// Stops the build. Checked while the boxes are computed and again at every split, which is
+    /// where the time goes.
+    /// </param>
     /// <returns>The tree.</returns>
     /// <remarks>
     /// <b>An item whose box is invalid is dropped, not rejected.</b> A degenerate element in
@@ -103,7 +108,11 @@ public sealed class Bvh<T>
     /// Thrown when <paramref name="items"/> or <paramref name="bounds"/> is
     /// <see langword="null"/>.
     /// </exception>
-    public static Bvh<T> Build(IReadOnlyList<T> items, Func<T, BoundingBox> bounds)
+    /// <exception cref="OperationCanceledException">Cancellation was requested.</exception>
+    public static Bvh<T> Build(
+        IReadOnlyList<T> items,
+        Func<T, BoundingBox> bounds,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(items);
         ArgumentNullException.ThrowIfNull(bounds);
@@ -113,6 +122,14 @@ public sealed class Bvh<T>
 
         for (int index = 0; index < items.Count; index++)
         {
+            // Every 1,024 items rather than every item: the check is a volatile read and the
+            // work between two of them is one call to a caller's bounds function, so checking
+            // per item would make the token cost more than the loop it interrupts.
+            if ((index & 1023) == 0)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
             BoundingBox box = bounds(items[index]);
 
             if (box.IsValid)
@@ -141,7 +158,7 @@ public sealed class Bvh<T>
 
         // A binary tree over n leaves with at least one item each has at most 2n - 1 nodes.
         List<Node> nodes = new(Math.Max(1, (2 * ordered.Length) - 1));
-        int depth = Split(nodes, ordered, orderedBounds, centroids, 0, ordered.Length, 1);
+        int depth = Split(nodes, ordered, orderedBounds, centroids, 0, ordered.Length, 1, cancellationToken);
 
         return new Bvh<T>([.. nodes], ordered, orderedBounds, depth);
     }
@@ -384,8 +401,11 @@ public sealed class Bvh<T>
         Point3d[] centroids,
         int from,
         int to,
-        int depth)
+        int depth,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         int self = nodes.Count;
         int count = to - from;
         BoundingBox box = BoundsOf(bounds, from, to);
@@ -407,9 +427,9 @@ public sealed class Bvh<T>
         // The node stops being a leaf. Start is reused as the left child's index, which is
         // what keeps a node to four fields; Count of zero is what says to read it that way.
         int left = nodes.Count;
-        int leftDepth = Split(nodes, items, bounds, centroids, from, middle, depth + 1);
+        int leftDepth = Split(nodes, items, bounds, centroids, from, middle, depth + 1, cancellationToken);
         int right = nodes.Count;
-        int rightDepth = Split(nodes, items, bounds, centroids, middle, to, depth + 1);
+        int rightDepth = Split(nodes, items, bounds, centroids, middle, to, depth + 1, cancellationToken);
 
         nodes[self] = new Node(box, left, 0, right);
 

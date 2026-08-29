@@ -125,7 +125,7 @@ public sealed class PolarAndPruningTests
             new(9.0, 0.0, 0.0),
         ];
 
-        Point3d[] pruned = Point3d.PruneDuplicates(points, out int[] map);
+        Point3d[] pruned = Prune(points, out int[] map);
 
         Assert.Equal(3, pruned.Length);
         Assert.Equal(points[0], pruned[0]);
@@ -139,7 +139,7 @@ public sealed class PolarAndPruningTests
     {
         Point3d[] points = [new(0.0, 0.0, 0.0), new(1.0, 0.0, 0.0), new(0.0, 0.0, 0.0)];
 
-        Point3d[] pruned = Point3d.PruneDuplicates(points, out int[] map);
+        Point3d[] pruned = Prune(points, out int[] map);
 
         // Every input index lands on a real output index, and the position it lands on is the
         // position it had. Without this a caller has deduplicated points and no way to renumber
@@ -156,7 +156,7 @@ public sealed class PolarAndPruningTests
     {
         Point3d[] points = [.. Enumerable.Range(0, 50).Select(index => new Point3d(index, 0.0, 0.0))];
 
-        Assert.Equal(50, Point3d.PruneDuplicates(points).Length);
+        Assert.Equal(50, Prune(points).Length);
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public sealed class PolarAndPruningTests
 
         Point3d[] chain = [new(0.0, 0.0, 0.0), new(0.6, 0.0, 0.0), new(1.2, 0.0, 0.0)];
 
-        Point3d[] pruned = Point3d.PruneDuplicates(chain, out int[] map, tolerance);
+        Point3d[] pruned = Prune(chain, out int[] map, tolerance);
 
         Assert.Equal(2, pruned.Length);
         Assert.Equal([0, 0, 1], map);
@@ -180,7 +180,7 @@ public sealed class PolarAndPruningTests
     {
         Point3d[] points = [new(0.0, 0.0, 0.0), Point3d.Unset, new(1.0, 0.0, 0.0), Point3d.Unset];
 
-        Point3d[] pruned = Point3d.PruneDuplicates(points, out int[] map);
+        Point3d[] pruned = Prune(points, out int[] map);
 
         Assert.Equal(2, pruned.Length);
         Assert.Equal([0, -1, 1, -1], map);
@@ -191,7 +191,7 @@ public sealed class PolarAndPruningTests
     {
         Point3d[] points = [.. Enumerable.Repeat(new Point3d(1.0, 2.0, 3.0), 1000)];
 
-        Assert.Single(Point3d.PruneDuplicates(points));
+        Assert.Single(Prune(points));
     }
 
     [Fact]
@@ -220,7 +220,7 @@ public sealed class PolarAndPruningTests
             }
         }
 
-        Point3d[] pruned = Point3d.PruneDuplicates(points, out int[] map);
+        Point3d[] pruned = Prune(points, out int[] map);
         (List<Point3d> expected, int[] expectedMap) = Quadratic(points, Tolerance.Default.Linear);
 
         Assert.Equal(expected.Count, pruned.Length);
@@ -235,16 +235,28 @@ public sealed class PolarAndPruningTests
     [Fact]
     public void PruningNullIsRefused()
     {
-        Assert.Throws<ArgumentNullException>(() => Point3d.PruneDuplicates(null!));
-        Assert.Throws<ArgumentNullException>(() => Point3d.PruneDuplicates(null!, out _));
+        Assert.Throws<ArgumentNullException>(
+            () => Point3d.PruneDuplicates(null!, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Throws<ArgumentNullException>(
+            () => Point3d.PruneDuplicates(null!, out _, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public void PruningAnEmptyListIsAnEmptyResultRatherThanAFailure()
     {
-        Assert.Empty(Point3d.PruneDuplicates([], out int[] map));
+        Assert.Empty(Prune([], out int[] map));
         Assert.Empty(map);
     }
+
+    // One place that supplies the test's cancellation token. See the note on BvhTests.Build.
+    private static Point3d[] Prune(IReadOnlyList<Point3d> points, Tolerance tolerance = default) =>
+        Point3d.PruneDuplicates(points, tolerance, TestContext.Current.CancellationToken);
+
+    private static Point3d[] Prune(
+        IReadOnlyList<Point3d> points,
+        out int[] map,
+        Tolerance tolerance = default) =>
+        Point3d.PruneDuplicates(points, out map, tolerance, TestContext.Current.CancellationToken);
 
     private static (List<Point3d> Kept, int[] Map) Quadratic(IReadOnlyList<Point3d> points, double linear)
     {

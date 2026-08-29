@@ -18,7 +18,7 @@ public sealed class BvhTests
     [Fact]
     public void AnEmptyTreeIsUsableAndAnswersNothing()
     {
-        Bvh<BoundingBox> tree = Bvh<BoundingBox>.Build([], box => box);
+        Bvh<BoundingBox> tree = Build<BoundingBox>([], box => box);
         List<BoundingBox> results = [];
 
         Assert.Equal(0, tree.Count);
@@ -42,7 +42,7 @@ public sealed class BvhTests
             new(new Point3d(5.0, 5.0, 5.0), new Point3d(6.0, 6.0, 6.0)),
         ];
 
-        Bvh<BoundingBox> tree = Bvh<BoundingBox>.Build(items, box => box);
+        Bvh<BoundingBox> tree = Build(items, box => box);
 
         Assert.Equal(2, tree.Count);
     }
@@ -50,7 +50,7 @@ public sealed class BvhTests
     [Fact]
     public void TheRootBoxContainsEveryItem()
     {
-        Bvh<BoundingBox> tree = Bvh<BoundingBox>.Build(Grid, box => box);
+        Bvh<BoundingBox> tree = Build(Grid, box => box);
 
         Assert.Equal(Grid.Length, tree.Count);
 
@@ -63,7 +63,7 @@ public sealed class BvhTests
     [Fact]
     public void TheTreeIsLogarithmicallyDeepRatherThanALinkedList()
     {
-        Bvh<BoundingBox> tree = Bvh<BoundingBox>.Build(Grid, box => box);
+        Bvh<BoundingBox> tree = Build(Grid, box => box);
 
         // 1,000 items at four to a leaf need about 250 leaves and a depth near nine; this
         // build gives 543 nodes at depth 11. Both bounds are asserted rather than just the
@@ -77,7 +77,7 @@ public sealed class BvhTests
     [Fact]
     public void ARaySweepAgreesWithTheLinearScanItReplaces()
     {
-        Bvh<BoundingBox> tree = Bvh<BoundingBox>.Build(Grid, box => box);
+        Bvh<BoundingBox> tree = Build(Grid, box => box);
 
         foreach (Ray ray in SampleRays())
         {
@@ -95,7 +95,7 @@ public sealed class BvhTests
     [Fact]
     public void ABoxSweepAgreesWithTheLinearScanItReplaces()
     {
-        Bvh<BoundingBox> tree = Bvh<BoundingBox>.Build(Grid, box => box);
+        Bvh<BoundingBox> tree = Build(Grid, box => box);
 
         foreach (BoundingBox query in SampleBoxes())
         {
@@ -112,7 +112,7 @@ public sealed class BvhTests
     [Fact]
     public void TheNearestItemIsTheNearestItemTheLinearScanFinds()
     {
-        Bvh<BoundingBox> tree = Bvh<BoundingBox>.Build(Grid, box => box);
+        Bvh<BoundingBox> tree = Build(Grid, box => box);
 
         foreach (Point3d point in SamplePoints())
         {
@@ -137,7 +137,7 @@ public sealed class BvhTests
     [Fact]
     public void ResultsAreAppendedRatherThanReplacingWhatIsAlreadyInTheList()
     {
-        Bvh<BoundingBox> tree = Bvh<BoundingBox>.Build(Grid, box => box);
+        Bvh<BoundingBox> tree = Build(Grid, box => box);
         List<BoundingBox> results = [BoundingBox.Empty];
 
         int added = tree.Overlapping(tree.Bounds, results);
@@ -156,7 +156,7 @@ public sealed class BvhTests
         BoundingBox one = new(Point3d.Origin, new Point3d(1.0, 1.0, 1.0));
         BoundingBox[] identical = [.. Enumerable.Repeat(one, 50)];
 
-        Bvh<BoundingBox> tree = Bvh<BoundingBox>.Build(identical, box => box);
+        Bvh<BoundingBox> tree = Build(identical, box => box);
         List<BoundingBox> results = [];
 
         Assert.Equal(50, tree.Count);
@@ -172,7 +172,7 @@ public sealed class BvhTests
         // in half the tree and every query then descends into it; the SAH keeps it in one leaf.
         List<BoundingBox> items = [.. Grid, new BoundingBox(new Point3d(-1e6, -1e6, -1e6), new Point3d(1e6, 1e6, 1e6))];
 
-        Bvh<BoundingBox> tree = Bvh<BoundingBox>.Build(items, box => box);
+        Bvh<BoundingBox> tree = Build(items, box => box);
         List<BoundingBox> found = [];
 
         BoundingBox query = new(new Point3d(0.5, 0.5, 0.5), new Point3d(0.6, 0.6, 0.6));
@@ -184,7 +184,7 @@ public sealed class BvhTests
     [Fact]
     public void ManyThreadsMayQueryOneTreeAtOnce()
     {
-        Bvh<BoundingBox> tree = Bvh<BoundingBox>.Build(Grid, box => box);
+        Bvh<BoundingBox> tree = Build(Grid, box => box);
         Ray[] rays = [.. SampleRays()];
 
         // Nothing is written after the build and every traversal keeps its stack local, so
@@ -203,14 +203,25 @@ public sealed class BvhTests
     [Fact]
     public void NullArgumentsAreRefused()
     {
-        Bvh<BoundingBox> tree = Bvh<BoundingBox>.Build(Grid, box => box);
+        Bvh<BoundingBox> tree = Build(Grid, box => box);
 
-        Assert.Throws<ArgumentNullException>(() => Bvh<BoundingBox>.Build(null!, box => box));
-        Assert.Throws<ArgumentNullException>(() => Bvh<BoundingBox>.Build(Grid, null!));
+        // The real entry point rather than the helper, since a null bounds function does not
+        // type-check through it. The token is passed for the same reason it is everywhere else.
+        Assert.Throws<ArgumentNullException>(
+            () => Bvh<BoundingBox>.Build(null!, box => box, TestContext.Current.CancellationToken));
+        Assert.Throws<ArgumentNullException>(
+            () => Bvh<BoundingBox>.Build(Grid, null!, TestContext.Current.CancellationToken));
         Assert.Throws<ArgumentNullException>(() => tree.Hit(new Ray(Point3d.Origin, Vector3d.XAxis), null!));
         Assert.Throws<ArgumentNullException>(() => tree.Overlapping(tree.Bounds, null!));
         Assert.Throws<ArgumentNullException>(() => tree.TryFindNearest(Point3d.Origin, null!, out _, out _));
     }
+
+    // One place that supplies the test's cancellation token, rather than forty. The token is
+    // never triggered here - these builds are microseconds - but a test project that ignores it
+    // is a test project that cannot be interrupted, and a call site repeating it forty times is
+    // a call site whose subject is the token rather than the tree.
+    private static Bvh<T> Build<T>(System.Collections.Generic.IReadOnlyList<T> items, Func<T, BoundingBox> bounds) =>
+        Bvh<T>.Build(items, bounds, TestContext.Current.CancellationToken);
 
     private static BoundingBox[] BuildGrid()
     {

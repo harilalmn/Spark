@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 
 namespace Spark.Geometry;
 
@@ -244,13 +245,19 @@ public readonly struct Point3d : IEquatable<Point3d>
     /// distinct would let a single upstream defect multiply into thousands of survivors.
     /// </para>
     /// </remarks>
+    /// <param name="cancellationToken">
+    /// Stops the search. Checked as the points are swept, which is where an unbounded input
+    /// spends its time.
+    /// </param>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="points"/> is <see langword="null"/>.
     /// </exception>
+    /// <exception cref="OperationCanceledException">Cancellation was requested.</exception>
     public static Point3d[] PruneDuplicates(
         IReadOnlyList<Point3d> points,
         out int[] map,
-        in Tolerance tolerance = default)
+        in Tolerance tolerance = default,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(points);
 
@@ -267,7 +274,8 @@ public readonly struct Point3d : IEquatable<Point3d>
             [.. Enumerable.Range(0, points.Count)],
             index => points[index].IsValid
                 ? new BoundingBox(points[index], points[index])
-                : BoundingBox.Empty);
+                : BoundingBox.Empty,
+            cancellationToken);
 
         List<Point3d> kept = [];
         List<int> neighbours = [];
@@ -276,6 +284,11 @@ public readonly struct Point3d : IEquatable<Point3d>
 
         for (int index = 0; index < points.Count; index++)
         {
+            if ((index & 1023) == 0)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
             Point3d point = points[index];
 
             if (!point.IsValid)
@@ -325,9 +338,13 @@ public readonly struct Point3d : IEquatable<Point3d>
     /// </summary>
     /// <param name="points">The points.</param>
     /// <param name="tolerance">How close counts as the same place.</param>
+    /// <param name="cancellationToken">Stops the search.</param>
     /// <returns>The surviving points, in input order.</returns>
-    public static Point3d[] PruneDuplicates(IReadOnlyList<Point3d> points, in Tolerance tolerance = default) =>
-        PruneDuplicates(points, out _, tolerance);
+    public static Point3d[] PruneDuplicates(
+        IReadOnlyList<Point3d> points,
+        in Tolerance tolerance = default,
+        CancellationToken cancellationToken = default) =>
+        PruneDuplicates(points, out _, tolerance, cancellationToken);
 
     private static void CheckFrame(in Plane plane)
     {
