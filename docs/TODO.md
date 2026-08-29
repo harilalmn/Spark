@@ -201,8 +201,14 @@ for anything else.
       boundary case, and `Offset` rejects a non-finite distance because that is otherwise the one
       route to an invalid `Plane` from a factory. `Interval.Intersect` was renamed `Intersection`
       with them, so both types name their set operations with nouns.
-- [ ] `spark` writes an OBJ polyline that a third-party viewer opens. That is the M1 demo, and
-      `Spark.Geometry.Io` is still an empty project — but the curves it would write now exist.
+- [x] `spark` writes an OBJ polyline — **M1's demoable**, `E2-T34` and `E12-T5`, done 2026-08-29.
+      `spark export --open docs/examples/curves.spark --out curves.obj --tolerance 0.001` opens the
+      graph, evaluates it **with no window anywhere**, and writes ten curves and 1,255 vertices.
+      `Spark.Geometry.Io` is no longer an empty project. **The half a machine cannot do is still
+      outstanding**: opening the file in a third-party viewer and looking at it. The file's
+      structure is asserted by tests — one-based file-global indices, invariant-culture numbers,
+      no byte-order mark — but *a human has not looked at it yet*, and that is what the criterion
+      actually asks for.
 
 ## After that — finishing M2, and M1.6
 

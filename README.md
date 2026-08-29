@@ -9,7 +9,7 @@ Autodesk software required.
 MIT licensed. `net10.0`. Solid modelling by [OpenCascade](https://dev.opencascade.org/),
 which ships with Spark.
 
-**Last updated:** 2026-08-29
+**Last updated:** 2026-08-30
 
 > ## Status: it runs, and it draws curves
 >
@@ -48,6 +48,12 @@ which ships with Spark.
 > cached by *provenance* rather than by document, so a former state asks for keys that are still
 > resident and the run after an undo recomputes nothing at all.
 >
+> **Geometry leaves the application.** `spark export --open graph.spark --out file.obj` opens a
+> `.spark` file, evaluates it with **no window anywhere**, and writes its curves as an OBJ that
+> any 3D application opens — curves become polylines at a tolerance recorded in the file's own
+> header. That is M1's demoable, and the first proof that a graph is a document and an evaluation
+> is a computation rather than something the desktop application does to itself.
+>
 > **What does not exist.** No surfaces, meshes, BRep or solids. No `NurbsCurve`. No `spark run`,
 > no packages, no code block. And **no OpenCascade**: there is no `native/` directory and no
 > `Spark.Geometry.Occt` project.
@@ -59,7 +65,7 @@ which ships with Spark.
 >
 > What has been run, on Windows, on 2026-08-29:
 > `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen projects;
-> **952 tests pass** across seven projects;
+> **1,045 tests pass** across seven projects;
 > `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean; and the nightly's whole
 > pipeline — nineteen benchmark cases, the canvas benchmark and the budget check — is green.
 > **CI ran the build, the tests and the format check on Windows and Linux on commit `53596ab` and
@@ -242,8 +248,8 @@ exits — the viewport one is a GPU read-back rather than a window grab, so it w
 session and in CI. The first two exist so that opening a particular graph can be checked without
 a human driving a file dialog.
 
-`dotnet test` finds **952 tests** across seven projects. `Spark.Geometry.Tests` (313) and
-`Spark.Geometry.Properties` (38) cover the kernel by example and by CsCheck property
+`dotnet test` finds **1,045 tests** across seven projects. `Spark.Geometry.Tests` (402) and
+`Spark.Geometry.Properties` (42) cover the kernel by example and by CsCheck property
 respectively; `Spark.Engine.Tests` (289) covers the graph, the replicator and the importer;
 `Spark.UI.Tests` (230) drives the canvas headlessly with real pointer gestures;
 `Spark.Viewport.Tests` (69) covers the scene and the camera; `Spark.Architecture.Tests` (8)

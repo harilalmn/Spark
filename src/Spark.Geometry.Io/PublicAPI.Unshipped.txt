@@ -1,1 +1,5 @@
 #nullable enable
+Spark.Geometry.Io.ObjWriter
+const Spark.Geometry.Io.ObjWriter.Digits = 9 -> int
+static Spark.Geometry.Io.ObjWriter.WriteCurves(System.IO.TextWriter! writer, System.Collections.Generic.IEnumerable<Spark.Geometry.Curve!>! curves, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> int
+static Spark.Geometry.Io.ObjWriter.WriteCurvesToFile(string! path, System.Collections.Generic.IEnumerable<Spark.Geometry.Curve!>! curves, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> int

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-29 23:55 +0530
+**Last updated:** 2026-08-30 00:50 +0530
 **Protocol version:** 2
 
 ---
@@ -16,14 +16,14 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | M1 — geometry core, finishing it |
+| **Milestone** | **M1 is demoable.** What remains of it is the C2VGeometry harvest, which needs a source tree this repository does not have |
 | **Working on** | Nothing. Between steps. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **5** — geometry serialization v1 and its reflection round-trip test (`E2-T29`, `E2-T31`) |
+| **Last completed step** | Queue **6** — `ObjWriter` and `spark export`, M1's demoable (`E2-T34`, `E12-T5`) |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | Take queue item **6**, **M1's demoable**: `Spark.Geometry.Io`'s OBJ writer, and `spark` writing a polyline a third-party viewer opens. `src/Spark.Geometry.Io/` is an empty project and `src/Spark.Cli/` is a stub. OBJ is a text format with no versioning worth agonising over; the decisions that *do* need making are what a `Curve` becomes in a format that has only vertices and lines (a tessellation at a stated tolerance), and whether the writer takes geometry or a scene. **Keep it writer-only** — an OBJ reader is not what M1 needs and would double the row. Acceptance is a real file opened in a real third-party viewer, so leave a committed sample under `docs/examples/`. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1036** after this step: Geometry.Tests 393, Geometry.Properties 42), `dotnet format`. **Check the counts** — [N30](NOTES.md). |
-| **Blocked on** | Nothing. |
+| **Next action** | Queue item **7** is **blocked** — the C2VGeometry test harvest needs a source tree that is not in this repository and not on this machine. Skip it and take queue item **8**, the last M1.5 spike (`E11-T21`): **AvaloniaEdit plus a Roslyn completion popup**. It is ≤3 days and throwaway, it gates the M4 code block, and it is the only part of M1.5 still unproven. Write its pass/fail criteria **before** starting, the way `M1.6-C1 … C9` were written — at minimum: the editor hosts inside the Avalonia shell, a completion popup appears at the caret and is positioned correctly when the editor is scrolled, and Roslyn supplies the completion list for an expression whose type comes from a wire. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1045** after this step: Geometry.Tests 402), `dotnet format`. **Check the counts** — [N30](NOTES.md). |
+| **Blocked on** | Nothing, once item 7 is skipped. **One human step is outstanding and cannot be automated**: opening the exported OBJ in a third-party viewer, which is what M1's acceptance criterion actually asks for. |
 
 **Step status vocabulary**, and it means exactly this:
 
@@ -115,9 +115,9 @@ the two disagree.**
 | 3 | ~~`Quaternion` — the last piece of the value layer~~ | `E2-T1` | M | **Done** 2026-08-29 |
 | 4 | ~~`RayCaster` and its BVH~~ — landed as `Ray` and `BoundingVolumeHierarchy` — pays for itself across mesh booleans, viewport picking, intersection seeding, and `Curve.ClosestPoint` waits on it | `E2-T15` | L | **Done** 2026-08-29 |
 | 5 | **Geometry serialization v1 and the reflection-driven round-trip test** — get it in before there are twenty types to retrofit it onto; there are now **twenty-two** | `E2-T29`, `E2-T31` | M | **Done** 2026-08-29 |
-| 6 | **`Spark.Geometry.Io`: the OBJ writer, and `spark` writing a polyline a third-party viewer opens** — this is **M1's demoable** | `E2-T33`, `E12-T5` | M | **Next** |
+| 6 | **`Spark.Geometry.Io`: the OBJ writer, and `spark` writing a polyline a third-party viewer opens** — this is **M1's demoable** | `E2-T34`, `E12-T5` | M | **Done** 2026-08-29 |
 | 7 | **The C2VGeometry test harvest**, timeboxed to one week with a hard stop. Harvest assertions, not generators | `E2-T32` | L | Open — **needs the C2VGeometry source, which is not in this repository** |
-| 8 | **M1.5 spike (c): AvaloniaEdit plus a Roslyn completion popup** — the last unproven part of M1.5, gating M4 | `E11-T21` | M | Open |
+| 8 | **M1.5 spike (c): AvaloniaEdit plus a Roslyn completion popup** — the last unproven part of M1.5, gating M4 | `E11-T21` | M | **Next** |
 | 9 | **What is left of M2** — real docking (`E8-T2`), group/note/align (`E8-T6`), watch nodes (`E8-T10`), `spark run` (`E12-T5`) | | L | Open |
 | 10 | **M3 — NURBS curves** | `E2-T10` … | XL | Open |
 | + | **A guard that no test project reports zero tests** — one line, and it catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)) | `E11`-adjacent | S | Open, take it with the next CI change |
@@ -399,4 +399,45 @@ value it can hold?**
 green. The completeness check was **proven to fire**: deleting the `Ray` sample fails the run and
 names `Ray`. It is a two-way diff, so a sample for a type that no longer exists fails too — dead
 coverage looks exactly like coverage.
+
+### 2026-08-29 — Queue 6: `ObjWriter` and `spark export` — M1's demoable
+
+**What.** `Spark.Geometry.Io` stops being an empty project and `Spark.Cli` stops being a stub.
+`spark export --open docs/examples/curves.spark --out curves.obj --tolerance 0.001` opens the
+committed example, evaluates it with **no window anywhere**, and writes ten curves and 1,255
+vertices. 9 new tests; the suite is **1045**.
+
+**Writer only, and it is a decision rather than a stage.** An OBJ *reader* would need a position
+on materials, groups, negative indices, free-form surfaces and a decade of dialects, in exchange
+for importing a format that carries no curves and no precision. Spark's import story is STEP and
+`.spark`; OBJ is how geometry leaves.
+
+**A curve becomes a polyline and the tolerance goes in the header.** OBJ's own `curv` elements are
+free-form NURBS that effectively no viewer reads. Writing the tessellation tolerance into the file
+means *how round is this circle* has an answer inside the artefact rather than in whoever ran the
+export.
+
+**The first version of the export rule was wrong, and the failure was the useful part.** It took
+the geometry of nodes nothing consumes — ingredients are not results — and exported **nothing at
+all** from the example graph, because that graph ends in `Display.ByGeometryColour` nodes whose
+output is an appearance. The rule is now every node's outputs, deduplicated **by reference**,
+which is exactly right for a pass-through node: `Display` yields the same instance its input had.
+The lesson generalises past this bug: **a graph's interesting geometry is routinely mid-chain**,
+and a rule that only reads the leaves exports the labelling.
+
+**Invariant culture, always.** A German locale writes `1,5` for one and a half and produces an OBJ
+that viewers misread or reject — on some machines only, which is the worst way to find a bug.
+There is a test that sets `CurrentCulture` to `de-DE` and asserts the file contains no comma at
+all. The Linux CI leg exists partly for this class of difference.
+
+**Verified.** Build clean with `-warnaserror`; 1045 tests, 0 failures; format clean; docs harness
+green. The structural traps are pinned by name: **one-based, file-global vertex indices** (the
+classic way to write an OBJ that opens and draws nonsense, which is worse than one that fails to
+open), no byte-order mark, nulls skipped rather than throwing.
+
+**What is honestly not done.** M1's criterion is *an OBJ polyline that a third-party viewer
+opens*, and **no human has opened it**. The structure is asserted by tests; the acceptance is a
+person looking at the file. That is written into TODO rather than quietly counted as met, and no
+generated `.obj` is committed — a derived artefact in the tree is diff noise, and the command that
+produces it is one line.
 
