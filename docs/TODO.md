@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
@@ -51,6 +51,34 @@ nothing in EPICS was short without them. Somebody opened the application, put do
 `Circle.ByCentreRadius`, and could not tell what `centre` wanted. The requirement was written
 afterwards (**FR-82**), which is the right order for a defect nobody predicted and the wrong order
 for anything else.
+
+---
+
+## Where this left off
+
+**M1's geometry core is finished, and what remains of M1 is blocked rather than pending.** Since
+the last revision the value layer closed (`Quaternion`, the past-participle rename, the three
+parity omissions), the bounding-volume hierarchy landed and paid for itself twice over
+(`Curve.ClosestPoint`, `Point3d.PruneDuplicates`), geometry serialization arrived with the
+reflection diff that keeps it honest, `spark run` writes an OBJ, and the engine's four
+`In progress` rows — the cache's byte budget, the impure declaration, the host-thread scheduler
+and cancellation inside a node — are closed. Two of those closed by being **disproved rather than
+built**: `E3-T10` was already implemented and its row was wrong, and `E2-T16`'s KD-tree was
+withdrawn because the hierarchy already answers what it existed for.
+
+**Four things are outstanding and each is blocked on something other than effort**, which is the
+useful part of this list:
+
+| What | Blocked on |
+|---|---|
+| **M1.6, the OCCT spike** (`E13-T1`) | A C++ toolchain, vcpkg and two weeks. Its criteria are written and fixed; the spike itself is the next real decision point |
+| **The third M1.5 spike** (`E11-T21`) | Judgement. *Is AvaloniaEdit plus a Roslyn popup acceptable to use* is a question a person answers by using it |
+| **The C2VGeometry test harvest** (`E2-T32`) | The seed library, which is not in this repository |
+| **The canvas p95 threshold** (`E1-T34`) | Several nights of the runner's own data. Local figures are now measured ([N37](NOTES.md)) and are explicitly **not** the ones this needs |
+
+**One acceptance is owed rather than blocked:** M1's demoable says a third-party viewer opens the
+OBJ, and nobody has opened one. The file is read back by an independent parser in the test suite,
+which is the strongest proxy available and is not the same claim.
 
 ---
 

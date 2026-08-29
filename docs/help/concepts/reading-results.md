@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes the result strip and the hover tooltips, both of which exist.
 **Owner:** `spark-ui`
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 
 > **Scope.** The strip under a node showing what it produced, the tooltips that say what a port
 > wants, and the **watch panel** — the pinned pane that shows one node's output in full.

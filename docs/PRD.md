@@ -3,7 +3,7 @@
 **Status:** M0 — foundations, mostly landed. No product code is implemented; the repository
 is scaffolding, gates and specification.
 **Owner:** Nicety
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 **Latest change:** the solid-modelling kernel decision — **D2 reverses**, **D15** is new, R1 and
 R12 retire, R15 … R22 arrive, and a new epic **E13** appears. [ADR-0020](adr/0020-occt-via-c-abi-shim.md),
 [ADR-0021](adr/0021-brep-kernel-residency.md). **Nothing of it is built.**

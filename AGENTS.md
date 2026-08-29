@@ -2,7 +2,7 @@
 
 For anyone changing this repository — human or AI. Read this before committing.
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 
 ---
 

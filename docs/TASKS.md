@@ -4,7 +4,7 @@ Every task, its epic, and its state. Epics are described in [EPICS.md](EPICS.md)
 order for what to do next is in [TODO.md](TODO.md); the requirements behind them are in
 [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 **Legend:** `Done` · `In progress` · `Open` · `Blocked` · `Withdrawn`
 
 **Summary:** 94 done · 19 in progress · 148 open · 9 withdrawn — **270 rows**
