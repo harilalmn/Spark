@@ -30,6 +30,7 @@ Spark.Geometry.BoundingBox.Equals(Spark.Geometry.BoundingBox other) -> bool
 Spark.Geometry.BoundingBox.EqualsWithin(in Spark.Geometry.BoundingBox other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
 Spark.Geometry.BoundingBox.Inflated(double amount) -> Spark.Geometry.BoundingBox
 Spark.Geometry.BoundingBox.Inflated(double x, double y, double z) -> Spark.Geometry.BoundingBox
+Spark.Geometry.BoundingBox.Intersection(in Spark.Geometry.BoundingBox other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.BoundingBox?
 Spark.Geometry.BoundingBox.Intersects(in Spark.Geometry.BoundingBox other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
 Spark.Geometry.BoundingBox.IsValid.get -> bool
 Spark.Geometry.BoundingBox.Max.get -> Spark.Geometry.Point3d
@@ -85,7 +86,7 @@ Spark.Geometry.Interval.Equals(Spark.Geometry.Interval other) -> bool
 Spark.Geometry.Interval.EqualsWithin(in Spark.Geometry.Interval other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
 Spark.Geometry.Interval.Expanded(double amount) -> Spark.Geometry.Interval
 Spark.Geometry.Interval.Includes(double value, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
-Spark.Geometry.Interval.Intersect(in Spark.Geometry.Interval other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Interval?
+Spark.Geometry.Interval.Intersection(in Spark.Geometry.Interval other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Interval?
 Spark.Geometry.Interval.Interval() -> void
 Spark.Geometry.Interval.Interval(double min, double max) -> void
 Spark.Geometry.Interval.IsDecreasing.get -> bool
@@ -111,6 +112,7 @@ Spark.Geometry.Plane.Flipped() -> Spark.Geometry.Plane
 Spark.Geometry.Plane.IsCoplanar(in Spark.Geometry.Plane other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
 Spark.Geometry.Plane.IsValid.get -> bool
 Spark.Geometry.Plane.Normal.get -> Spark.Geometry.Vector3d
+Spark.Geometry.Plane.Offset(double distance) -> Spark.Geometry.Plane
 Spark.Geometry.Plane.Origin.get -> Spark.Geometry.Point3d
 Spark.Geometry.Plane.Plane() -> void
 Spark.Geometry.Plane.Plane(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal) -> void
@@ -394,6 +396,7 @@ static Spark.Geometry.Interval.operator ==(in Spark.Geometry.Interval left, in S
 static Spark.Geometry.Line.ByStartPointDirectionLength(in Spark.Geometry.Point3d start, in Spark.Geometry.Vector3d direction, double length) -> Spark.Geometry.Line!
 static Spark.Geometry.Line.ByStartPointEndPoint(in Spark.Geometry.Point3d start, in Spark.Geometry.Point3d end) -> Spark.Geometry.Line!
 static Spark.Geometry.Plane.ByOriginNormal(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal) -> Spark.Geometry.Plane
+static Spark.Geometry.Plane.ByOriginNormalXAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal, in Spark.Geometry.Vector3d xAxis) -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.ByOriginXAxisYAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d xAxis, in Spark.Geometry.Vector3d yAxis) -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.ByThreePoints(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.WorldXY.get -> Spark.Geometry.Plane

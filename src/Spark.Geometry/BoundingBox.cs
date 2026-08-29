@@ -310,6 +310,58 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
     public static BoundingBox Union(in BoundingBox a, in BoundingBox b) => a.Union(b);
 
     /// <summary>
+    /// Returns the box covered by both this box and another, or <see langword="null"/> when
+    /// they do not overlap. The counterpart to <see cref="Union(in BoundingBox)"/>.
+    /// </summary>
+    /// <param name="other">The box to intersect with.</param>
+    /// <param name="tolerance">
+    /// The tolerance to use, matching <see cref="Intersects(in BoundingBox, in Tolerance)"/>
+    /// so that the two agree about boxes that touch. A default-constructed tolerance means
+    /// <see cref="Tolerance.Default"/>.
+    /// </param>
+    /// <returns>
+    /// The overlap, which may be flat, thin or a single point when the boxes only touch, or
+    /// <see langword="null"/> when they miss each other on any axis. Returns
+    /// <see langword="null"/> when either box is not <see cref="IsValid"/> — which covers
+    /// <see cref="Empty"/> and any box with a <see cref="double.NaN"/> corner, and matches
+    /// what <see cref="Intersects(in BoundingBox, in Tolerance)"/> answers for both.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// Each axis is delegated to <see cref="Interval.Intersection(in Interval, in Tolerance)"/>
+    /// rather than reimplemented, which is what guarantees that a box and its three intervals
+    /// cannot disagree about a boundary case. The tolerance rule therefore arrives here
+    /// unchanged: boxes separated by a gap no wider than the tolerance count as touching, and
+    /// the result on that axis is the single value at the middle of the gap.
+    /// </para>
+    /// <para>
+    /// <see langword="null"/> rather than <see cref="Empty"/> is deliberate and is the same
+    /// argument <see cref="Interval.Intersection(in Interval, in Tolerance)"/> makes: an
+    /// empty result and a real degenerate one must not be the same value.
+    /// </para>
+    /// </remarks>
+    public BoundingBox? Intersection(in BoundingBox other, in Tolerance tolerance = default)
+    {
+        if (!IsValid || !other.IsValid)
+        {
+            return null;
+        }
+
+        Interval? x = new Interval(Min.X, Max.X).Intersection(new Interval(other.Min.X, other.Max.X), tolerance);
+        Interval? y = new Interval(Min.Y, Max.Y).Intersection(new Interval(other.Min.Y, other.Max.Y), tolerance);
+        Interval? z = new Interval(Min.Z, Max.Z).Intersection(new Interval(other.Min.Z, other.Max.Z), tolerance);
+
+        if (x is null || y is null || z is null)
+        {
+            return null;
+        }
+
+        return new BoundingBox(
+            new Point3d(x.Value.Min, y.Value.Min, z.Value.Min),
+            new Point3d(x.Value.Max, y.Value.Max, z.Value.Max));
+    }
+
+    /// <summary>
     /// Returns the box grown by the same amount on every axis, in both directions.
     /// </summary>
     /// <param name="amount">

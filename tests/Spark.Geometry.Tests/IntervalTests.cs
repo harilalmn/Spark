@@ -156,7 +156,7 @@ public sealed class IntervalTests
     [Fact]
     public void IntersectReturnsTheOverlap()
     {
-        Interval? overlap = new Interval(0.0, 10.0).Intersect(new Interval(5.0, 20.0));
+        Interval? overlap = new Interval(0.0, 10.0).Intersection(new Interval(5.0, 20.0));
 
         Assert.NotNull(overlap);
         Assert.Equal(new Interval(5.0, 10.0), overlap!.Value);
@@ -165,7 +165,7 @@ public sealed class IntervalTests
     [Fact]
     public void IntersectReturnsNullWhenTheIntervalsAreDisjoint()
     {
-        Assert.Null(new Interval(0.0, 1.0).Intersect(new Interval(2.0, 3.0)));
+        Assert.Null(new Interval(0.0, 1.0).Intersection(new Interval(2.0, 3.0)));
     }
 
     [Fact]
@@ -189,7 +189,7 @@ public sealed class IntervalTests
         Assert.True(left.Includes(1.0 + 1e-9));
         Assert.True(right.Includes(1.0));
 
-        Interval? overlap = left.Intersect(right);
+        Interval? overlap = left.Intersection(right);
 
         Assert.NotNull(overlap);
         Assert.True(left.Includes(overlap!.Value.Min));
@@ -199,7 +199,7 @@ public sealed class IntervalTests
     [Fact]
     public void IntersectStillReportsARealGapAsDisjoint()
     {
-        Assert.Null(new Interval(0.0, 1.0).Intersect(new Interval(1.1, 2.0)));
+        Assert.Null(new Interval(0.0, 1.0).Intersection(new Interval(1.1, 2.0)));
     }
 
     [Fact]
@@ -208,15 +208,15 @@ public sealed class IntervalTests
         Interval left = new(0.0, 1.0);
         Interval right = new(1.5, 2.0);
 
-        Assert.Null(left.Intersect(right));
-        Assert.NotNull(left.Intersect(right, Tolerance.Default.Scaled(1e6)));
+        Assert.Null(left.Intersection(right));
+        Assert.NotNull(left.Intersection(right, Tolerance.Default.Scaled(1e6)));
     }
 
     [Fact]
     public void IntersectReturnsNullForAnIntervalWithANaNBound()
     {
-        Assert.Null(new Interval(0.0, double.NaN).Intersect(Interval.Unit));
-        Assert.Null(Interval.Unit.Intersect(new Interval(0.0, double.NaN)));
+        Assert.Null(new Interval(0.0, double.NaN).Intersection(Interval.Unit));
+        Assert.Null(Interval.Unit.Intersection(new Interval(0.0, double.NaN)));
     }
 
     [Fact]
@@ -239,7 +239,7 @@ public sealed class IntervalTests
     [Fact]
     public void IntervalsThatTouchAtOnePointIntersectAtThatPoint()
     {
-        Interval? overlap = new Interval(0.0, 1.0).Intersect(new Interval(1.0, 2.0));
+        Interval? overlap = new Interval(0.0, 1.0).Intersection(new Interval(1.0, 2.0));
 
         Assert.NotNull(overlap);
         Assert.Equal(new Interval(1.0, 1.0), overlap!.Value);

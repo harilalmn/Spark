@@ -253,6 +253,94 @@ public sealed class PlaneTests
         Assert.Equal("Plane(Origin=(0, 0, 0), Normal=(0, 0, 1))", Plane.WorldXY.ToString());
     }
 
+
+    [Fact]
+    public void OffsetMovesAlongTheNormalAndKeepsTheFrame()
+    {
+        Plane moved = Plane.WorldXY.Offset(3.0);
+
+        Assert.Equal(new Point3d(0.0, 0.0, 3.0), moved.Origin);
+        Assert.Equal(Plane.WorldXY.XAxis, moved.XAxis);
+        Assert.Equal(Plane.WorldXY.YAxis, moved.YAxis);
+        Assert.Equal(Plane.WorldXY.Normal, moved.Normal);
+        AssertRightHanded(moved);
+    }
+
+    [Fact]
+    public void OffsetShiftsSignedDistanceByExactlyTheDistance()
+    {
+        Point3d probe = new(1.0, 2.0, 10.0);
+        Plane moved = Plane.WorldXY.Offset(4.0);
+
+        Assert.Equal(Plane.WorldXY.DistanceTo(probe) - 4.0, moved.DistanceTo(probe), 12);
+
+        // The frame is untouched, so in-plane coordinates do not move with the plane.
+        Assert.Equal(Plane.WorldXY.To2d(probe), moved.To2d(probe));
+    }
+
+    [Fact]
+    public void OffsetByZeroReturnsAnEqualPlane()
+    {
+        Assert.Equal(Plane.WorldYZ, Plane.WorldYZ.Offset(0.0));
+    }
+
+    [Fact]
+    public void OffsetRejectsANonFiniteDistance()
+    {
+        // A plane whose origin is NaN is not a plane, and every factory guarantees IsValid.
+        Assert.Throws<ArgumentException>(() => Plane.WorldXY.Offset(double.NaN));
+        Assert.Throws<ArgumentException>(() => Plane.WorldXY.Offset(double.PositiveInfinity));
+    }
+
+    [Fact]
+    public void ByOriginNormalXAxisUsesOnlyTheInPlaneComponentOfTheXAxis()
+    {
+        // The requested X axis leans out of the plane by 45 degrees; only what lies in the
+        // plane survives, so the frame is orthonormal and XAxis is the projection.
+        Plane plane = Plane.ByOriginNormalXAxis(
+            Point3d.Origin,
+            Vector3d.ZAxis,
+            new Vector3d(1.0, 0.0, 1.0));
+
+        Assert.True(plane.XAxis.EqualsWithin(Vector3d.XAxis));
+        Assert.True(plane.Normal.EqualsWithin(Vector3d.ZAxis));
+        AssertRightHanded(plane);
+    }
+
+    [Fact]
+    public void ByOriginNormalXAxisPinsTheInPlaneRotation()
+    {
+        Plane rotated = Plane.ByOriginNormalXAxis(
+            Point3d.Origin,
+            Vector3d.ZAxis,
+            new Vector3d(1.0, 1.0, 0.0));
+
+        Assert.True(rotated.XAxis.EqualsWithin(new Vector3d(1.0, 1.0, 0.0).Normalised()));
+        Assert.True(rotated.YAxis.EqualsWithin(new Vector3d(-1.0, 1.0, 0.0).Normalised()));
+
+        // The same plane as WorldXY geometrically, and a different frame on it - which is the
+        // whole reason this factory exists.
+        Assert.True(rotated.IsCoplanar(Plane.WorldXY));
+        Assert.False(rotated.XAxis.EqualsWithin(Plane.WorldXY.XAxis));
+    }
+
+    [Fact]
+    public void ByOriginNormalXAxisRejectsAnXAxisParallelToTheNormal()
+    {
+        ArgumentException failure = Assert.Throws<ArgumentException>(
+            () => Plane.ByOriginNormalXAxis(Point3d.Origin, Vector3d.ZAxis, new Vector3d(0.0, 0.0, -2.0)));
+
+        Assert.Equal("xAxis", failure.ParamName);
+    }
+
+    [Fact]
+    public void ByOriginNormalXAxisRejectsADegenerateNormalAndANonFiniteOrigin()
+    {
+        Assert.Throws<ArgumentException>(
+            () => Plane.ByOriginNormalXAxis(Point3d.Origin, Vector3d.Zero, Vector3d.XAxis));
+        Assert.Throws<ArgumentException>(
+            () => Plane.ByOriginNormalXAxis(new Point3d(double.NaN, 0.0, 0.0), Vector3d.ZAxis, Vector3d.XAxis));
+    }
     private static void AssertRightHanded(in Plane plane)
     {
         Assert.True(plane.XAxis.IsUnit());

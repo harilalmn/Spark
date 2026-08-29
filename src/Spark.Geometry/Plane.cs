@@ -192,6 +192,57 @@ public readonly struct Plane : IEquatable<Plane>
     }
 
     /// <summary>
+    /// Creates a plane from its normal and the in-plane direction its X axis should follow.
+    /// </summary>
+    /// <param name="origin">The plane's origin.</param>
+    /// <param name="normal">The plane's normal. Need not be normalised.</param>
+    /// <param name="xAxis">
+    /// The direction the plane's first in-plane coordinate is measured along. It does
+    /// <b>not</b> have to lie in the plane: only the component of it perpendicular to
+    /// <paramref name="normal"/> is kept, so the resulting frame is orthonormal and
+    /// <see cref="XAxis"/> may differ from what was passed in.
+    /// </param>
+    /// <returns>The plane.</returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="origin"/> is not finite, when <paramref name="normal"/> is
+    /// zero-length or non-finite, or when <paramref name="xAxis"/> is parallel to
+    /// <paramref name="normal"/> and therefore has no component in the plane.
+    /// </exception>
+    /// <remarks>
+    /// This is the only factory that fixes both the plane <b>and</b> its in-plane rotation
+    /// without needing a second point.
+    /// <see cref="ByOriginNormal(in Point3d, in Vector3d)"/> picks an arbitrary X axis, and
+    /// <see cref="ByOriginXAxisYAxis(in Point3d, in Vector3d, in Vector3d)"/> asks for the
+    /// plane in terms of two in-plane directions rather than in terms of the normal. Which of
+    /// the three to reach for is decided by which two facts the caller actually has.
+    /// </remarks>
+    public static Plane ByOriginNormalXAxis(in Point3d origin, in Vector3d normal, in Vector3d xAxis)
+    {
+        if (!origin.IsValid)
+        {
+            throw new ArgumentException("A plane's origin must be finite.", nameof(origin));
+        }
+
+        if (!normal.TryNormalise(out Vector3d unitNormal))
+        {
+            throw new ArgumentException(
+                "The normal must have non-zero length and finite components.",
+                nameof(normal));
+        }
+
+        Vector3d inPlane = xAxis - (unitNormal * unitNormal.Dot(xAxis));
+
+        if (!inPlane.TryNormalise(out Vector3d x))
+        {
+            throw new ArgumentException(
+                "The X axis is parallel to the normal, so it has no component in the plane.",
+                nameof(xAxis));
+        }
+
+        return new Plane(origin, x, unitNormal.Cross(x), unitNormal);
+    }
+
+    /// <summary>
     /// Creates the plane through three points.
     /// </summary>
     /// <param name="first">
@@ -306,6 +357,42 @@ public readonly struct Plane : IEquatable<Plane>
         ThrowIfInvalid();
 
         return vector - (Normal * vector.Dot(Normal));
+    }
+
+    /// <summary>
+    /// Returns the parallel plane a given distance along this plane's normal.
+    /// </summary>
+    /// <param name="distance">
+    /// How far to move, measured along <see cref="Normal"/>. A negative distance moves the
+    /// other way, and zero returns an equal plane.
+    /// </param>
+    /// <returns>
+    /// A plane with the same frame — same <see cref="XAxis"/>, <see cref="YAxis"/> and
+    /// <see cref="Normal"/> — whose origin has moved. Because the frame is unchanged,
+    /// <see cref="To2d(in Point3d)"/> agrees between the two planes and
+    /// <see cref="DistanceTo(in Point3d)"/> differs by exactly
+    /// <paramref name="distance"/>.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when this plane is not valid, which for a <c>readonly struct</c> means a
+    /// default-constructed one.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="distance"/> is not finite. A plane whose origin is
+    /// infinite or <see cref="double.NaN"/> is not a plane, and producing one silently would
+    /// defeat the guarantee that every <see cref="Plane"/> reachable through a factory is
+    /// <see cref="IsValid"/>.
+    /// </exception>
+    public Plane Offset(double distance)
+    {
+        ThrowIfInvalid();
+
+        if (!double.IsFinite(distance))
+        {
+            throw new ArgumentException("An offset distance must be finite.", nameof(distance));
+        }
+
+        return new Plane(Origin + (Normal * distance), XAxis, YAxis, Normal);
     }
 
     /// <summary>

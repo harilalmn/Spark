@@ -258,4 +258,85 @@ public sealed class BoundingBoxTests
             "BoundingBox((0, 0, 0), (1, 1, 1))",
             new BoundingBox(Point3d.Origin, new Point3d(1.0, 1.0, 1.0)).ToString());
     }
+
+    [Fact]
+    public void IntersectionReturnsTheOverlap()
+    {
+        BoundingBox a = new(Point3d.Origin, new Point3d(10.0, 10.0, 10.0));
+        BoundingBox b = new(new Point3d(5.0, -1.0, 2.0), new Point3d(20.0, 4.0, 8.0));
+
+        BoundingBox? overlap = a.Intersection(b);
+
+        Assert.NotNull(overlap);
+        Assert.Equal(new Point3d(5.0, 0.0, 2.0), overlap!.Value.Min);
+        Assert.Equal(new Point3d(10.0, 4.0, 8.0), overlap.Value.Max);
+    }
+
+    [Fact]
+    public void IntersectionIsNullWhenTheBoxesMissOnASingleAxis()
+    {
+        BoundingBox a = new(Point3d.Origin, new Point3d(1.0, 1.0, 1.0));
+
+        // Overlapping in X and Y is not enough: one separated axis is a miss.
+        Assert.Null(a.Intersection(new BoundingBox(new Point3d(0.5, 0.5, 5.0), new Point3d(2.0, 2.0, 6.0))));
+    }
+
+    [Fact]
+    public void IntersectionOfTouchingBoxesIsFlatRatherThanNull()
+    {
+        BoundingBox a = new(Point3d.Origin, new Point3d(1.0, 1.0, 1.0));
+        BoundingBox b = new(new Point3d(1.0, 0.0, 0.0), new Point3d(2.0, 1.0, 1.0));
+
+        BoundingBox? overlap = a.Intersection(b);
+
+        Assert.NotNull(overlap);
+        Assert.True(overlap!.Value.IsValid);
+        Assert.Equal(0.0, overlap.Value.Diagonal.X);
+        Assert.Equal(1.0, overlap.Value.Diagonal.Y);
+    }
+
+    [Fact]
+    public void IntersectionAgreesWithIntersectsIncludingAboutEmptyAndNaN()
+    {
+        BoundingBox unit = new(Point3d.Origin, new Point3d(1.0, 1.0, 1.0));
+        BoundingBox nan = new(Point3d.Origin, new Point3d(double.NaN, 1.0, 1.0));
+
+        // The two predicates are built from the same per-axis comparison, and this is the
+        // pair of cases where an independent reimplementation would have drifted apart:
+        // Empty is min-above-max on every axis, and NaN makes every comparison false.
+        Assert.False(unit.Intersects(BoundingBox.Empty));
+        Assert.Null(unit.Intersection(BoundingBox.Empty));
+        Assert.Null(BoundingBox.Empty.Intersection(unit));
+        Assert.Null(BoundingBox.Empty.Intersection(BoundingBox.Empty));
+
+        Assert.False(unit.Intersects(nan));
+        Assert.Null(unit.Intersection(nan));
+        Assert.Null(nan.Intersection(unit));
+    }
+
+    [Fact]
+    public void IntersectionHonoursTheSameToleranceIntersectsDoes()
+    {
+        BoundingBox a = new(Point3d.Origin, new Point3d(1.0, 1.0, 1.0));
+        BoundingBox b = new(new Point3d(1.5, 0.0, 0.0), new Point3d(2.0, 1.0, 1.0));
+        Tolerance wide = Tolerance.Default.Scaled(1e6);
+
+        Assert.False(a.Intersects(b));
+        Assert.Null(a.Intersection(b));
+
+        Assert.True(a.Intersects(b, wide));
+        Assert.NotNull(a.Intersection(b, wide));
+    }
+
+    [Fact]
+    public void IntersectionIsContainedInBothInputs()
+    {
+        BoundingBox a = new(new Point3d(-3.0, -2.0, -1.0), new Point3d(4.0, 5.0, 6.0));
+        BoundingBox b = new(new Point3d(0.0, 0.0, 0.0), new Point3d(10.0, 1.0, 10.0));
+
+        BoundingBox overlap = a.Intersection(b)!.Value;
+
+        Assert.True(a.Contains(overlap));
+        Assert.True(b.Contains(overlap));
+    }
 }

@@ -114,7 +114,7 @@ public sealed class ValueLayerProperties
             {
                 Interval left = first.Domain;
                 Interval right = second.Domain;
-                Interval? overlap = left.Intersect(right);
+                Interval? overlap = left.Intersection(right);
 
                 if (overlap is not { } shared)
                 {

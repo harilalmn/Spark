@@ -165,6 +165,31 @@ Plane turned = wall.Flipped();                          // same plane, normal re
 Three collinear or coincident points define no unique plane, and `ByThreePoints` throws
 `ArgumentException` rather than inventing one.
 
+### Choosing a factory: which two facts do you have?
+
+The four factories differ only in what you already know. `ByOriginNormal` takes a point and a
+normal and picks the in-plane rotation for you; `ByOriginNormalXAxis` takes the same and lets
+you **pin that rotation**, which matters the moment you use `To2d` and care which way *along*
+the plane is X. Like every factory, it orthonormalises: the X axis you pass need not lie in the
+plane, and only the part of it that does is kept.
+
+```csharp
+Plane spun = Plane.ByOriginNormalXAxis(
+    Point3d.Origin,
+    Vector3d.ZAxis,                      // the same plane as WorldXY...
+    new Vector3d(1.0, 1.0, 0.0));        // ...turned 45° about the normal
+
+bool same = spun.IsCoplanar(Plane.WorldXY);   // true — same plane
+Point2d p = spun.To2d(new Point3d(1.0, 1.0, 0.0)); // (√2, 0) — and a different frame on it
+
+Plane ceiling = Plane.WorldXY.Offset(2.7);    // parallel, 2.7 along the normal
+double drop = ceiling.DistanceTo(Point3d.Origin); // −2.7
+```
+
+`Offset` keeps the frame and moves only the origin, so `To2d` gives the same answer on both
+planes and only `DistanceTo` shifts. It refuses a non-finite distance: a plane whose origin is
+`NaN` is not a plane, and no factory will hand you one.
+
 ### `default(Plane)` is not a plane
 
 `Plane` is a struct, which is the right choice for something that appears once per element
@@ -394,6 +419,35 @@ double length = reversed.Length;        // −1, signed, following the direction
 `IsValid` asks only whether both bounds are finite. It deliberately does not require
 `Min <= Max`, because the guard everybody writes without thinking — `if (!domain.IsValid)
 throw` — would then reject every reversed curve in the model.
+
+## 7. Bounding boxes, and the empty answer
+
+A `BoundingBox` is world-axis-aligned: two corners, no frame. `Union` grows one, `Intersection`
+narrows one, and the pair is where the interesting rule lives.
+
+```csharp
+BoundingBox room  = new(Point3d.Origin, new Point3d(10.0, 8.0, 3.0));
+BoundingBox slab  = new(new Point3d(-1.0, -1.0, 0.0), new Point3d(11.0, 9.0, 0.2));
+
+BoundingBox both  = room.Union(slab);        // the smallest box holding the two
+BoundingBox? over = room.Intersection(slab); // the shared space, or null
+
+if (over is BoundingBox shared)
+{
+    double thickness = shared.Diagonal.Z;    // 0.2 — the slab inside the room
+}
+```
+
+**`Intersection` returns `BoundingBox?`, and the `null` is the point.** No value of
+`BoundingBox` unambiguously means *no overlap*: a zero-size box is a real answer — it is what
+two boxes that touch along a face produce — so an empty result and a degenerate one must not be
+the same value. `Interval.Intersection` answers the same way for the same reason, and a box
+delegates each of its three axes to it, which is why a box and its intervals can never disagree
+about a boundary.
+
+`BoundingBox.Empty` is the inverted infinite box. It contains nothing, intersects nothing, and
+is the identity for `Union` — which makes it the seed you want when accumulating a box over a
+sequence, and never a result you should test for.
 
 ---
 

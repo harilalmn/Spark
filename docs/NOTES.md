@@ -927,3 +927,40 @@ and a re-parameterised suite is precisely the case where somebody has to look at
 again anyway.
 
 The matching decision, and the alternatives it beat, are [ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md).
+
+---
+
+## N30 — A test that disappears is invisible to all three gates
+
+While adding `BoundingBox.Intersection` a scripted edit truncated
+`tests/Spark.Geometry.Tests/InvalidValueTests.cs` to **zero bytes**. The cause is a Python
+footgun and not interesting — `open(p, 'w').write(open(p).read()...)` truncates the file before
+the read runs — but what happened next is.
+
+**The build stayed clean. `dotnet format` stayed clean. The suite went green.** A hundred and
+fourteen lines of tests, including every assertion about `default(Plane)` refusing coordinate
+conversions, had ceased to exist, and nothing in the repository objected. Deleting a test is not
+a compile error, not a style violation and not a failure; it is a smaller number.
+
+**The only signal was the count**, and it was caught by arithmetic rather than by a gate: fourteen
+tests had been added, `Spark.Geometry.Tests` should have read 327, and it read 319. Had the step
+added six tests instead of fourteen, the numbers would have agreed and the loss would have been
+committed.
+
+Two things follow, and the second matters more than the first.
+
+**The count is load-bearing, so quote it.** Every log entry, commit message and status paragraph
+in this repository that names a test total is doing real work — it is the only place a
+disappearance can show up. Writing *the suite is green* instead of *952 tests pass* removes the
+only detector.
+
+**A gate would be cheap.** Nothing asserts that a test project reports a non-zero count, and that
+one line would have caught this, would catch a truncated file, and would also catch the
+`dotnet test` discovery failure recorded in [AGENTS.md](../AGENTS.md#before-you-commit) — which is
+the same defect wearing different clothes: a run that discovers nothing looks exactly like a run
+where nothing is wrong. It is queued.
+
+The wider shape is [N18](#n18--three-green-gates-are-not-a-review-and-a-passing-test-is-not-evidence-a-test-can-fail)'s
+again, from the other end. N18 is about a test that cannot fail. This is about a test that is not
+there at all, and the gates cannot tell the two apart from a test that passes.
+

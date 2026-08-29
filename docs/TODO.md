@@ -178,9 +178,14 @@ for anything else.
       argument. **Harvest the assertions, not the generators** — a harvested test whose inputs
       never approach the boundary it checks is a test that cannot fail, which is the trap this
       project has already fallen into twice.
-- [ ] **Close the three small parity gaps in the value layer** — `E2-T40`.
-      `BoundingBox.Intersection`, `Plane.Offset` and `Plane.ByOriginNormalXAxis` are omissions
-      rather than design differences.
+- [x] **Close the three small parity gaps in the value layer** — `E2-T40`, done 2026-08-29.
+      `BoundingBox.Intersection`, `Plane.Offset` and `Plane.ByOriginNormalXAxis`. Parity moves
+      from 92 to 95 of 837. **Two of the three were not as trivial as the register said**:
+      `Intersection` delegates each axis to `Interval.Intersection` rather than reimplementing
+      the tolerance rule, which is what stops a box and its three intervals disagreeing about a
+      boundary case, and `Offset` rejects a non-finite distance because that is otherwise the one
+      route to an invalid `Plane` from a factory. `Interval.Intersect` was renamed `Intersection`
+      with them, so both types name their set operations with nouns.
 - [ ] `spark` writes an OBJ polyline that a third-party viewer opens. That is the M1 demo, and
       `Spark.Geometry.Io` is still an empty project — but the curves it would write now exist.
 

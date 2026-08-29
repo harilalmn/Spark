@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-29 18:40 +0530
+**Last updated:** 2026-08-29 20:10 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | M1 — geometry core, finishing it |
 | **Working on** | Nothing. Between steps. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **1** — the past-participle naming rule (`E2-T49`). Its commit is whatever `git log -1` says; this file does not record its own hash, for the reason in the log entry below. |
+| **Last completed step** | Queue **2** — the three value-layer parity gaps (`E2-T40`) |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | Take queue item **2**, `E2-T40`'s three value-layer parity gaps: `BoundingBox.Intersection` (the nullable box-against-box counterpart to `Interval.Intersect`, which already exists and is the shape to copy), `Plane.Offset(double)` and `Plane.ByOriginNormalXAxis(...)`. All three are omissions rather than design differences — [DYNAMO-COVERAGE §3.1](DYNAMO-COVERAGE.md#31-values-and-frames--6-types-133-members-92-reachable) enumerates them with the 38 others that are *not* being added. Each needs an XML doc comment, a `PublicAPI.Unshipped.txt` line, example-based tests, and a look at whether a CsCheck property is warranted. **Follow `Interval.Intersect`'s existing nullable-return convention rather than inventing one.** |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project test executables (952 before this step), `dotnet format`. A new public member with no baseline line is an RS0016 build error, so the baseline cannot be forgotten. |
+| **Next action** | Take queue item **3**, `Quaternion` (`E2-T1`) — the last piece of the value layer. `Transform` already carries the rotation algebra, so the questions to settle first are **what `Quaternion` is for that `Transform` is not**: composing rotations without accumulating shear, interpolating between orientations (`Slerp`), and being the compact form a serialised camera or frame wants. Follow the layer's existing conventions exactly — `readonly struct`, exact `operator ==`, `EqualsWithin(other, in Tolerance)`, a `TryNormalise` sibling if normalisation can fail, and every public member documented or the build fails. `default(Quaternion)` must not be a usable rotation, on the `default(Plane)` precedent. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**966** after this step: Geometry.Tests is 327), `dotnet format`. **Check the counts, do not just read *green*** — [N30](NOTES.md) is why. |
 | **Blocked on** | Nothing. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -111,8 +111,8 @@ the two disagree.**
 | # | Item | Rows | Size | State |
 |---|---|---|---|---|
 | 1 | ~~The past-participle naming rule, applied~~ | `E2-T49` | S | **Done** 2026-08-29 |
-| 2 | **The three value-layer parity gaps** — `BoundingBox.Intersection`, `Plane.Offset`, `Plane.ByOriginNormalXAxis` | `E2-T40` | S | **Next** |
-| 3 | **`Quaternion`** — the last piece of the value layer | `E2-T1` | M | Open |
+| 2 | ~~The three value-layer parity gaps~~ | `E2-T40` | S | **Done** 2026-08-29 |
+| 3 | **`Quaternion`** — the last piece of the value layer | `E2-T1` | M | **Next** |
 | 4 | **`RayCaster` and its BVH** — pays for itself across mesh booleans, viewport picking, intersection seeding, and `Curve.ClosestPoint` waits on it | `E2-T15` | L | Open |
 | 5 | **Geometry serialization v1 and the reflection-driven round-trip test** — get it in before there are twenty types to retrofit it onto; there are nineteen | `E2-T29`, `E2-T31` | M | Open |
 | 6 | **`Spark.Geometry.Io`: the OBJ writer, and `spark` writing a polyline a third-party viewer opens** — this is **M1's demoable** | `E2-T33`, `E12-T5` | M | Open |
@@ -120,6 +120,7 @@ the two disagree.**
 | 8 | **M1.5 spike (c): AvaloniaEdit plus a Roslyn completion popup** — the last unproven part of M1.5, gating M4 | `E11-T21` | M | Open |
 | 9 | **What is left of M2** — real docking (`E8-T2`), group/note/align (`E8-T6`), watch nodes (`E8-T10`), `spark run` (`E12-T5`) | | L | Open |
 | 10 | **M3 — NURBS curves** | `E2-T10` … | XL | Open |
+| + | **A guard that no test project reports zero tests** — one line, and it catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)) | `E11`-adjacent | S | Open, take it with the next CI change |
 
 **Deferred, with a reason rather than by omission:**
 
@@ -211,3 +212,50 @@ where the work stopped, a name says what it was.
 committed, and failed on its first genuine use. That is the same lesson N28 records about the
 native-binary check: proven to detect is not proven to run, and a procedure's first real execution
 is part of adding it.
+
+### 2026-08-29 — Queue 2: the three value-layer parity gaps (`E2-T40`)
+
+**What.** `BoundingBox.Intersection`, `Plane.Offset` and `Plane.ByOriginNormalXAxis`. Parity moves
+from **92 to 95 of 837**, and from 12/16 to 14/16 on `Plane`. Fourteen new tests; the suite is
+**966**, with `Spark.Geometry.Tests` at 327.
+
+**Two of the three were not as trivial as the register called them, and the difference is the
+whole value of the step.**
+
+`BoundingBox.Intersection` delegates each axis to `Interval.Intersection` rather than
+reimplementing the tolerance rule. That is not tidiness: the only interesting behaviour in either
+member is at the boundary — touching faces, gaps narrower than the tolerance — and two independent
+implementations of the same rule drift there first. `Empty` forced the one real decision: its
+corners are min-above-max on every axis, so an interval built from them and normalised would
+report the empty box as overlapping *everything*. The guard is `IsValid` on both operands, and a
+named test pins it.
+
+`Plane.Offset` refuses a non-finite distance. Without that, `Plane.WorldXY.Offset(double.NaN)` is
+the one route to an invalid `Plane` out of a factory, which would quietly break the guarantee
+`default(Plane)`'s whole design rests on.
+
+`Interval.Intersect` was renamed **`Intersection`** in the same change. Adding
+`BoundingBox.Intersection` beside `Interval.Intersect` would have created an inconsistency that
+gets quoted later, and both types already name their other set operation `Union`. Nouns for set
+operations is now written into `NamespaceDoc` beside yesterday's past-participle rule.
+
+**Verified.** Build clean with `-warnaserror`; **966 tests, 0 failures**; `dotnet format` clean;
+docs harness green. **The mutation test was run**: removing the `IsValid` guard from
+`Intersection` turns `BoundingBoxTests.IntersectionAgreesWithIntersectsIncludingAboutEmptyAndNaN`
+red, and the guard was restored afterwards. That is AGENTS.md step 7 done properly rather than
+claimed.
+
+**The near miss, which is the part worth reading.** A scripted edit truncated
+`InvalidValueTests.cs` to zero bytes, and **the build, the formatter and the suite all stayed
+green** — 114 lines of tests had vanished and nothing objected. It was caught by arithmetic: 14
+tests added, 327 expected, 319 reported. [N30](NOTES.md) records it, along with the two
+consequences — that a quoted test count is load-bearing rather than decorative, and that a
+one-line guard asserting no test project reports zero would have caught this, a discovery failure,
+and the `dotnet test` anomaly, all three. It is queued.
+
+**Documents.** DYNAMO-COVERAGE §3.1 and its summary table renumbered (the anchor changed with the
+heading, and both references were updated), the `E2-T40` row, PRD's FR-81 status line, TODO, and
+`docs/help/concepts/geometry-basics.md` — which gained a *choosing a factory* subsection and an
+entirely new **§7 Bounding boxes**, because the type had no prose anywhere and a new public member
+with no worked example is an unfinished change.
+

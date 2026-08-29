@@ -228,7 +228,7 @@ public readonly struct Interval : IEquatable<Interval>
     /// value of <see cref="Interval"/> unambiguously means "no overlap", and inventing one
     /// would make an empty result indistinguishable from a real degenerate one.
     /// </remarks>
-    public Interval? Intersect(in Interval other, in Tolerance tolerance = default)
+    public Interval? Intersection(in Interval other, in Tolerance tolerance = default)
     {
         if (double.IsNaN(Min) || double.IsNaN(Max) || double.IsNaN(other.Min) || double.IsNaN(other.Max))
         {

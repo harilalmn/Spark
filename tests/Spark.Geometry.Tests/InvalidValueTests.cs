@@ -50,6 +50,7 @@ public sealed class InvalidValueTests
         Assert.Throws<InvalidOperationException>(() => invalid.To2d(SomePoint));
         Assert.Throws<InvalidOperationException>(() => invalid.To3d(new Point2d(1.0, 2.0)));
         Assert.Throws<InvalidOperationException>(() => invalid.Flipped());
+        Assert.Throws<InvalidOperationException>(() => invalid.Offset(1.0));
     }
 
     [Fact]
