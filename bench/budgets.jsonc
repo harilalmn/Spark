@@ -1,0 +1,227 @@
+// Spark — performance budgets.
+//
+// What `dotnet run --project bench/Spark.Benchmarks --configuration Release -- check` holds the
+// nightly run to. The decision behind this file is ADR-0023; the reason its three kinds of budget
+// are three different strengths is NOTES.md N29. Read one of them before changing a number here,
+// because "the nightly went red so I raised the ceiling" is the failure mode this file has.
+//
+// COMMENTS ARE PART OF THE FORMAT. The extension is .jsonc and the reader skips comments and
+// allows trailing commas; nothing else parses this file, and a budget without its reasoning is
+// a number nobody can review.
+//
+// ── The three strengths ──────────────────────────────────────────────────────────────────────
+//
+//   maxAllocatedBytes  DETERMINISTIC. Bytes per operation is a property of the code, identical on
+//                      a laptop and on a hosted runner. Set at the measurement plus about ten per
+//                      cent. This is the real guard, and where most regressions show up first.
+//
+//   maxMeanNs          NOT PORTABLE. A hosted runner is shared, throttled and of unknown vintage.
+//                      Set an ORDER OF MAGNITUDE above the measurement. What these are allowed to
+//                      catch is "an algorithm changed"; they will not catch a 20% drift and must
+//                      never be quoted as though they could.
+//
+//   ratios             MACHINE-INDEPENDENT, and the sharpest thing in this file. Both halves are
+//                      measured in the same run seconds apart, so the machine cancels. Every
+//                      claim this project makes about performance that CAN be written as a ratio
+//                      is written as one here.
+//
+// ── Where the numbers came from ──────────────────────────────────────────────────────────────
+//
+// Measured 2026-08-29 on a 13th Gen Intel Core i9-13900H, Windows 11, .NET 10.0.11, Release,
+// BenchmarkDotNet 0.15.8 default job, 19 cases. The machine is named because it makes the
+// wall-clock figures legible as what they are: one machine's numbers, widened tenfold before
+// anything was allowed to depend on them.
+//
+// ── Adding a benchmark ───────────────────────────────────────────────────────────────────────
+//
+// Add its budget here in the same commit. The check is a TWO-WAY DIFF: a case with no budget
+// fails, and a budget with no case fails. The key is BenchmarkDotNet's FullName, which is built
+// from the METHOD name and the [Params] values — not from [Benchmark(Description = ...)]. So
+// rewording a description is free, and changing a [Params] value renames every case it appears in
+// (N29).
+{
+  "lastUpdated": "2026-08-29",
+
+  "cases": {
+    // ── Evaluation ───────────────────────────────────────────────────────────────────────────
+    // A chain of replicating nodes, evaluated against a cold cache and against a warm one. The
+    // warm number is the one that matters and it is guarded by a ratio below; these ceilings only
+    // catch the case where both halves move together.
+    "Spark.Benchmarks.EvaluationBenchmarks.Cold(Nodes: 50, Elements: 100)": {
+      "maxMeanNs": 5500000,
+      "maxAllocatedBytes": 1760000
+    },
+    "Spark.Benchmarks.EvaluationBenchmarks.Cold(Nodes: 500, Elements: 100)": {
+      "maxMeanNs": 90000000,
+      "maxAllocatedBytes": 17800000
+    },
+    "Spark.Benchmarks.EvaluationBenchmarks.Warm(Nodes: 50, Elements: 100)": {
+      "maxMeanNs": 360000,
+      "maxAllocatedBytes": 114000
+    },
+    "Spark.Benchmarks.EvaluationBenchmarks.Warm(Nodes: 500, Elements: 100)": {
+      "maxMeanNs": 3000000,
+      "maxAllocatedBytes": 1150000
+    },
+
+    // ── Marshalling ──────────────────────────────────────────────────────────────────────────
+    // E4-T3's standing guard, and the performance-critical path of the whole engine: every element
+    // of every replicated call crosses it twice. The allocation ceilings are the point here — the
+    // return path's cost is almost entirely allocation, and that is the number that travels.
+    "Spark.Benchmarks.MarshallingBenchmarks.NumbersToClr(Count: 10)": {
+      "maxMeanNs": 1400,
+      "maxAllocatedBytes": 160
+    },
+    "Spark.Benchmarks.MarshallingBenchmarks.NumbersToClr(Count: 1000)": {
+      "maxMeanNs": 72000,
+      "maxAllocatedBytes": 8900
+    },
+    "Spark.Benchmarks.MarshallingBenchmarks.NumbersToClr(Count: 100000)": {
+      "maxMeanNs": 7600000,
+      "maxAllocatedBytes": 880000
+    },
+    "Spark.Benchmarks.MarshallingBenchmarks.PointsToClr(Count: 10)": {
+      "maxMeanNs": 1700,
+      "maxAllocatedBytes": 330
+    },
+    "Spark.Benchmarks.MarshallingBenchmarks.PointsToClr(Count: 1000)": {
+      "maxMeanNs": 77000,
+      "maxAllocatedBytes": 26500
+    },
+    "Spark.Benchmarks.MarshallingBenchmarks.PointsToClr(Count: 100000)": {
+      "maxMeanNs": 9300000,
+      "maxAllocatedBytes": 2640000
+    },
+
+    // The return path. At 100 000 elements it costs roughly eight times the argument path and
+    // allocates six times as much, because FromClr boxes every element through a List<object?>.
+    // That is a KNOWN cost recorded on E4-T3, not a regression — these ceilings hold the line at
+    // it rather than blessing it, and the day somebody fixes the boxing they should come down.
+    "Spark.Benchmarks.MarshallingBenchmarks.NumbersFromClr(Count: 10)": {
+      "maxMeanNs": 1600,
+      "maxAllocatedBytes": 820
+    },
+    "Spark.Benchmarks.MarshallingBenchmarks.NumbersFromClr(Count: 1000)": {
+      "maxMeanNs": 90000,
+      "maxAllocatedBytes": 53600
+    },
+    "Spark.Benchmarks.MarshallingBenchmarks.NumbersFromClr(Count: 100000)": {
+      "maxMeanNs": 65000000,
+      "maxAllocatedBytes": 5830000
+    },
+    "Spark.Benchmarks.MarshallingBenchmarks.PointsFromClr(Count: 10)": {
+      "maxMeanNs": 1600,
+      "maxAllocatedBytes": 990
+    },
+    "Spark.Benchmarks.MarshallingBenchmarks.PointsFromClr(Count: 1000)": {
+      "maxMeanNs": 96000,
+      "maxAllocatedBytes": 71200
+    },
+    "Spark.Benchmarks.MarshallingBenchmarks.PointsFromClr(Count: 100000)": {
+      "maxMeanNs": 87000000,
+      "maxAllocatedBytes": 7590000
+    },
+
+    // ── Canvas spatial index ─────────────────────────────────────────────────────────────────
+    // The managed half of ADR-0013. Cull and hit-test run on every frame and every pointer move,
+    // and they allocate NOTHING — that zero is an exact budget rather than a rounded one, because
+    // it is an invariant of the design rather than a measurement of it. A per-frame path that
+    // starts allocating is a per-frame path that starts collecting.
+    "Spark.Benchmarks.SceneIndexBenchmarks.Cull(Nodes: 2000)": {
+      "maxMeanNs": 4800,
+      "maxAllocatedBytes": 0
+    },
+    "Spark.Benchmarks.SceneIndexBenchmarks.HitTest(Nodes: 2000)": {
+      "maxMeanNs": 5700,
+      "maxAllocatedBytes": 0
+    },
+    "Spark.Benchmarks.SceneIndexBenchmarks.Rebuild(Nodes: 2000)": {
+      "maxMeanNs": 425000,
+      "maxAllocatedBytes": 2600
+    }
+  },
+
+  // ── Ratios ─────────────────────────────────────────────────────────────────────────────────
+  // Each of these is a claim this project has written down in prose somewhere, restated as the one
+  // kind of number a shared runner can be trusted for. Every ceiling carries roughly three times
+  // the slack of the measurement, because the point is to catch a change of kind, not of degree.
+  "ratios": [
+    {
+      "name": "warm evaluation, 500 nodes, as a fraction of cold",
+      "why": "The provenance cache's central claim, and what makes undo instant (E3-T8, ADR-0022). Measured 0.033; a cache that stopped hitting would be near 1.",
+      "numerator": "Spark.Benchmarks.EvaluationBenchmarks.Warm(Nodes: 500, Elements: 100)",
+      "denominator": "Spark.Benchmarks.EvaluationBenchmarks.Cold(Nodes: 500, Elements: 100)",
+      "maxRatio": 0.10
+    },
+    {
+      "name": "warm evaluation, 50 nodes, as a fraction of cold",
+      "why": "The same claim at a size where the evaluator's fixed costs are proportionally larger. Measured 0.066.",
+      "numerator": "Spark.Benchmarks.EvaluationBenchmarks.Warm(Nodes: 50, Elements: 100)",
+      "denominator": "Spark.Benchmarks.EvaluationBenchmarks.Cold(Nodes: 50, Elements: 100)",
+      "maxRatio": 0.20
+    },
+    {
+      "name": "culling a screenful against rebuilding the whole index",
+      "why": "ADR-0013 rests on culling being far cheaper per frame than building. It is also the shape of a bug this code has already had once — the index was rebuilt inside Render. Measured 0.011.",
+      "numerator": "Spark.Benchmarks.SceneIndexBenchmarks.Cull(Nodes: 2000)",
+      "denominator": "Spark.Benchmarks.SceneIndexBenchmarks.Rebuild(Nodes: 2000)",
+      "maxRatio": 0.10
+    },
+    {
+      "name": "hit-testing a point against rebuilding the whole index",
+      "why": "The same, for the pointer path. Measured 0.013.",
+      "numerator": "Spark.Benchmarks.SceneIndexBenchmarks.HitTest(Nodes: 2000)",
+      "denominator": "Spark.Benchmarks.SceneIndexBenchmarks.Rebuild(Nodes: 2000)",
+      "maxRatio": 0.10
+    },
+    {
+      "name": "marshalling numbers out: 100 000 elements against 1 000",
+      "why": "A hundred times the data for a hundred times the work is linear. Measured 107 — as close to linear as this path gets. An accidental O(n squared) moves this by two orders of magnitude on any machine.",
+      "numerator": "Spark.Benchmarks.MarshallingBenchmarks.NumbersToClr(Count: 100000)",
+      "denominator": "Spark.Benchmarks.MarshallingBenchmarks.NumbersToClr(Count: 1000)",
+      "maxRatio": 300
+    },
+    {
+      "name": "marshalling points out: 100 000 elements against 1 000",
+      "why": "The same, for a struct element type. Measured 122.",
+      "numerator": "Spark.Benchmarks.MarshallingBenchmarks.PointsToClr(Count: 100000)",
+      "denominator": "Spark.Benchmarks.MarshallingBenchmarks.PointsToClr(Count: 1000)",
+      "maxRatio": 350
+    },
+    {
+      "name": "marshalling numbers in: 100 000 elements against 1 000",
+      "why": "Measured 747, and it is NOT linear — the return path's boxing through a List<object?> makes the large case disproportionately expensive (E4-T3). The ceiling holds that known shape rather than endorsing it; if the boxing is ever fixed, this comes down with it.",
+      "numerator": "Spark.Benchmarks.MarshallingBenchmarks.NumbersFromClr(Count: 100000)",
+      "denominator": "Spark.Benchmarks.MarshallingBenchmarks.NumbersFromClr(Count: 1000)",
+      "maxRatio": 2000
+    },
+    {
+      "name": "marshalling points in: 100 000 elements against 1 000",
+      "why": "The same, for a struct element type. Measured 907.",
+      "numerator": "Spark.Benchmarks.MarshallingBenchmarks.PointsFromClr(Count: 100000)",
+      "denominator": "Spark.Benchmarks.MarshallingBenchmarks.PointsFromClr(Count: 1000)",
+      "maxRatio": 2500
+    }
+  ],
+
+  // ── The canvas, measured through a real window ─────────────────────────────────────────────
+  // From `--canvas-benchmark 600`, which drives a fixed pan-and-zoom cycle over 2 000 nodes,
+  // discards the first sixth as warm-up and prints the frame-time distribution. This is the number
+  // ADR-0013 is actually judged on, and it cannot be a BenchmarkDotNet case because it needs a
+  // compositor.
+  //
+  // These ceilings are ADR-0013's OWN CLAIM rather than a widened measurement: 16.7 ms is one
+  // frame at 60 fps, and 33.3 ms is two. A developer machine does it in 0.87 ms median and 2.26 ms
+  // p95, so there is a great deal of room — deliberately, because the runner has no GPU and this
+  // step has never run on one. If it turns out a hosted runner cannot hold 60 fps at all, the
+  // honest response is to say what the step measures there, not to widen the claim.
+  //
+  // The counts are checked as well as the times: a run that did a tenth of its frames over an
+  // empty graph would otherwise report an excellent median.
+  "canvas": {
+    "minNodes": 2000,
+    "minFrames": 400,
+    "maxMedianMs": 16.7,
+    "maxP95Ms": 33.3
+  }
+}

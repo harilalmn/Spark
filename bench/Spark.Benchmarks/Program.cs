@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Reflection;
 using BenchmarkDotNet.Running;
 
@@ -13,15 +14,36 @@ namespace Spark.Benchmarks;
 /// an unoptimised measurement is not a slower measurement, it is a different program.
 /// </para>
 /// <para>
-/// <b>Nothing here runs in CI yet</b>, and the register says so rather than implying otherwise
-/// (`E1-T13` is the harness; `E8-T15` is the schedule that makes it a guard). A benchmark nobody
-/// runs is a file, not a gate.
+/// <b>The `check` verb is what makes these numbers a guard rather than a report.</b>
+/// `dotnet run --project bench/Spark.Benchmarks --configuration Release -- check` compares a
+/// finished run against `bench/budgets.jsonc` and exits non-zero when a budget is broken — see
+/// <see cref="BudgetCheck"/> for what is and is not worth budgeting. The nightly workflow
+/// (`.github/workflows/nightly.yml`) runs the suites and then the check; `E1-T13` was the harness
+/// and `E8-T15` is the schedule.
 /// </para>
 /// </remarks>
 public static class Program
 {
-    /// <summary>Runs the benchmarks named on the command line, or all of them.</summary>
-    /// <param name="args">BenchmarkDotNet's own switches, chiefly `--filter`.</param>
-    public static void Main(string[] args) =>
-        BenchmarkSwitcher.FromAssembly(Assembly.GetExecutingAssembly()).Run(args);
+    /// <summary>Runs the benchmarks named on the command line, or checks a finished run.</summary>
+    /// <param name="args">
+    /// `check ...` to check a run against the budgets; otherwise BenchmarkDotNet's own switches,
+    /// chiefly `--filter`.
+    /// </param>
+    /// <returns>Zero on success, one when a benchmark could not run or a budget is broken.</returns>
+    public static int Main(string[] args)
+    {
+        if (args.Length > 0 && args[0] == "check")
+        {
+            return BudgetCheck.Run([.. args.Skip(1)]);
+        }
+
+        // The exit code matters here for the same reason the check exists: a nightly whose
+        // benchmarks failed to build would otherwise be green, and a green nightly that measured
+        // nothing is worse than no nightly at all.
+        return BenchmarkSwitcher.FromAssembly(Assembly.GetExecutingAssembly())
+            .Run(args)
+            .Any(summary => summary.HasCriticalValidationErrors)
+                ? 1
+                : 0;
+    }
 }

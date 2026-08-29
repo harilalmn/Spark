@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 
 ---
 
@@ -887,3 +887,43 @@ than executing it, so the *next* script added from Windows cannot fail this way 
 pointed at `Spark.Desktop` it fails on Avalonia's Skia and HarfBuzz natives. It had not been
 proven to *run*, and those are different claims. A gate's first execution in CI is part of adding
 it, not a formality afterwards.
+
+---
+
+## N29 — Only one of a benchmark's three numbers means the same thing on another machine
+
+`bench/budgets.jsonc` gives three kinds of budget three deliberately different strengths, and the
+reason is not caution — it is that the numbers are not equally portable.
+
+**Allocated bytes per operation is deterministic.** For a given build it is a property of the
+code, identical on a developer laptop and on a shared GitHub runner. It is therefore budgeted
+tightly, and it is the only figure here that can be. It is also what most real regressions show
+up in first: `FromClr` boxing every element through a `List<object?>` costs 5.3 MB at 100 000
+elements, and it would cost 5.3 MB anywhere.
+
+**Wall-clock on a hosted runner is a property of the code and of a virtual machine** of unknown
+vintage, contention and thermal state. Those ceilings are set an order of magnitude above the
+measurement, and what they are allowed to catch is *an algorithm changed* — never *this got 20%
+slower*. A tighter one produces a nightly that fails at random, which is a guard everybody learns
+to ignore inside a fortnight.
+
+**A ratio between two cases in the same run is machine-independent, and is the sharpest thing in
+the file.** Both halves are measured on the same runner seconds apart, so the machine cancels.
+*Warm evaluation costs a fraction of cold* is 27-fold on a developer machine ([N26](#n26--two-benchmarks-were-wrong-before-they-were-right-and-the-numbers-said-so-both-times)) and
+will be about 27-fold anywhere — which means the provenance cache's central claim, the one that
+makes undo instant, is expressible as exactly the kind of number a hosted runner can be trusted
+for. **Where a claim can be written as a ratio, write it as a ratio.** The same trick guards
+linearity: the 100 000-element marshalling case divided by the 1 000-element one is a scaling
+factor, and an accidental O(n²) moves it by two orders of magnitude on any hardware.
+
+**The budget key is BenchmarkDotNet's `FullName`, and it contains the parameter values.**
+`Spark.Benchmarks.MarshallingBenchmarks.NumbersToClr(Count: 10)` is built from the *method* name
+and the `[Params]` values, not from the `[Benchmark(Description = …)]` text. So rewording a
+description costs nothing, and **changing a `[Params]` value or renaming a method renames every
+case it appears in** — at which point the check reports the old key as budgeted-but-not-measured
+and the new one as measured-but-not-budgeted. That is the intended behaviour rather than an
+inconvenience: the two-way diff is there so that a benchmark cannot quietly stop being covered,
+and a re-parameterised suite is precisely the case where somebody has to look at the numbers
+again anyway.
+
+The matching decision, and the alternatives it beat, are [ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md).

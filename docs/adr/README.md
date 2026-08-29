@@ -38,11 +38,12 @@ withdrawn, and the gap stays.
 | [0020](0020-occt-via-c-abi-shim.md) | OpenCascade as the solid-modelling kernel, reached through a C-ABI shim we own | Accepted | 2026-08-27 |
 | [0021](0021-brep-kernel-residency.md) | Kernel residency is canonical, not cached | Accepted | 2026-08-27 |
 | [0022](0022-undo-by-document-snapshot.md) | Undo is a stack of document snapshots, not a stack of inverse commands | Accepted | 2026-08-28 |
+| [0023](0023-performance-budgets-not-a-benchmark-time-series.md) | Performance is guarded by committed budgets, not by a benchmark time series | Accepted | 2026-08-29 |
 
 Statuses are *Proposed*, *Accepted*, *Superseded by ADR-NNNN*, *Amended by ADR-NNNN* or
 *Withdrawn*. Every record numbered 0001 to 0019 was accepted at M0, before implementation,
 which is the point of having made the decisions explicitly; 0020 and 0021 were accepted during
-M1 and 0022 during M2, and each says in its own text what forced it.
+M1, and 0022 and 0023 during M2, and each says in its own text what forced it.
 
 **The difference between *superseded* and *amended* is deliberate.** A superseded record's
 decision no longer holds and a later record replaces it whole. An amended record's decision

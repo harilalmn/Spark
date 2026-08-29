@@ -1,0 +1,118 @@
+name: Nightly
+
+# The schedule that turns three measurements into three guards (E8-T15, and the open half of
+# E4-T3). The benchmark project has existed since ab2f37e and nothing ran it, so it measured
+# rather than guarded: a number nobody compares to anything cannot go red.
+#
+# This is deliberately NOT in ci.yml. A full BenchmarkDotNet run is fifteen to twenty minutes per
+# operating system, which is more than the entire pull-request build costs today, and a gate that
+# slow gets bypassed rather than fixed. Nightly is the right cadence for a guard whose job is to
+# name the day something changed, not to block a commit.
+#
+# Two things follow from running on hosted runners, and both are in bench/budgets.jsonc rather
+# than assumed here: allocation figures are deterministic and are budgeted tightly, and wall-clock
+# figures are not and are budgeted to catch a step change only.
+#
+# GitHub disables a scheduled workflow after 60 days without repository activity, and says so by
+# email. If this stops running, that is the first thing to check.
+
+on:
+  schedule:
+    # 03:00 UTC daily. The hour is arbitrary; the minute deliberately is not zero, because the
+    # top of the hour is when hosted runners are most contended and this job measures time.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  benchmarks:
+    name: Benchmarks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+
+    # Both operating systems, for the same reason ci.yml builds both — and here it is not merely
+    # a rot-guard: allocation is the half of these budgets that is machine-independent, so a
+    # Linux leg genuinely re-tests it rather than repeating it. The canvas benchmark is Windows
+    # only; see the step itself.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # MinVer derives the version from the nearest tag, so a shallow clone would produce a
+          # wrong version rather than an obvious failure.
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ matrix.os }}-${{ hashFiles('**/Directory.Packages.props') }}
+          restore-keys: nuget-${{ matrix.os }}-
+
+      # Release is not optional and BenchmarkDotNet refuses to produce numbers without it: an
+      # unoptimised measurement is not a slower measurement, it is a different program.
+      - name: Run the benchmark suites
+        run: >
+          dotnet run --project bench/Spark.Benchmarks --configuration Release --
+          --filter '*'
+          --exporters json
+          --artifacts artifacts/benchmarks
+
+      # ADR-0013's own number, measured through a real window and a real compositor, which is why
+      # it cannot be a BenchmarkDotNet case. Windows only: the Linux runner has no display server,
+      # and driving Avalonia under xvfb would measure a software rasteriser nobody ships on.
+      #
+      # UNPROVEN ON A HOSTED RUNNER as of this commit — it has only ever been run on a developer
+      # machine, where it takes 0.87 ms median at 2,000 nodes. If the first nightly cannot open a
+      # window, the honest fixes are to make the measurement headless or to delete this step. Do
+      # not reach for continue-on-error: a step allowed to fail is not a guard, and the budgets
+      # file would then be checking something nobody runs.
+      - name: Canvas benchmark, 2 000 nodes
+        if: runner.os == 'Windows'
+        shell: bash
+        run: dotnet run --project src/Spark.Desktop --configuration Release -- --canvas-benchmark 600 | tee canvas.log
+
+      # The check is a verb on the benchmark host rather than a shell script, so that it reads the
+      # same JSON on both operating systems without a jq dependency, and so that it can be run
+      # locally exactly as CI runs it. --no-canvas is how a run states that it deliberately did not
+      # measure the canvas; without it a budgeted-but-unmeasured canvas is a failure, which is what
+      # stops this quietly degrading into a benchmarks-only guard.
+      - name: Check the run against the budgets
+        shell: bash
+        run: |
+          if [ -f canvas.log ]; then
+            canvas=(--canvas canvas.log)
+          else
+            canvas=(--no-canvas)
+          fi
+
+          dotnet run --project bench/Spark.Benchmarks --configuration Release --no-build -- \
+            check --results artifacts/benchmarks/results "${canvas[@]}"
+
+      # Kept whether the check passed or failed. The failure message names the case and the
+      # ceiling; the reports are what let somebody see how far and since when.
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-reports-${{ matrix.os }}
+          path: |
+            artifacts/benchmarks/results/
+            canvas.log
+          retention-days: 30
+          if-no-files-found: warn

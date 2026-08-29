@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -92,8 +92,13 @@ exemption for everything that already exists.
       `scripts/check-no-native-binaries.sh`, run on both operating systems, and **proven to
       fire**: pointed at `Spark.Desktop` it fails on the Skia and HarfBuzz natives Avalonia
       brings.
-- [ ] Benchmarks run nightly, not per-PR, with results committed as a git time series
-      (**E1-T21**).
+- [ ] Benchmarks run nightly, not per-PR, against **budgets committed in `bench/budgets.jsonc`
+      rather than results committed as a git time series** (**E1-T21**,
+      [ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md)). *The cadence half
+      of this criterion is unchanged and the storage half is reversed, for reasons that were not
+      knowable before the benchmarks had been run on a shared machine. `nightly.yml` is written,
+      the check is proven to fire, and the whole pipeline is green locally — and **it has never run
+      on a hosted runner**, which [N28](NOTES.md) is the note about.*
 - [ ] The release workflow refuses to publish when the computed version and the tag
       disagree (**E1-T22**).
 - [x] Public-API baselines for `Spark.Api` and `Spark.Geometry` are checked in, so every
@@ -436,9 +441,11 @@ repeating the short input's last element gives 23, and case 45 and the worked ex
 already said 23. A digit transposition sitting in the corpus that everything downstream would
 have been tested against.
 
-**One row is short:** `E4-T3` has the marshalling and not the standing benchmark, because
-`bench/` is still an empty directory — so the engine's most performance-critical path has no
-guard on it.
+**That row is short no longer.** `E4-T3` has the marshalling *and* the standing benchmark, and
+since 2026-08-29 the benchmark has a schedule and a ceiling: the nightly checks `MarshallingBenchmarks`
+against `bench/budgets.jsonc` on both operating systems. The two budgets that matter on this path are
+the ones a change of machine cannot move — allocation, and the 100 000-against-1 000 scaling ratio
+([ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md), [N29](NOTES.md)).
 
 Writing it has already paid for itself. It settled ten questions the plan left open
 (decisions D1–D10 in its §2.16) and **overturned one answer the plan had wrong**: `Auto` was
@@ -669,7 +676,10 @@ another.
       (**E8-T6**).
 - [x] LOD below 40% zoom (**E8-T7**).
 - [ ] A 2000-node synthetic graph pans and zooms at 60 fps, benchmarked nightly from M2
-      (**E8-T15**).
+      (**E8-T15**). *The nightly exists and the budget is this criterion stated as a number —
+      16.7 ms median is one frame at 60 fps. Locally it holds with room to spare: 1.60 ms median
+      and 2.90 ms p95 over 500 measured frames on 2026-08-29. Unticked because the step has never
+      run on a runner without a GPU, and that is the only part still unknown.*
 - [ ] Docking via `Dock.Avalonia`, with a serialisable, testable layout model, *reset
       layout* and named workspace presets. RCS's from-scratch dock manager is **not**
       ported; only the idea is (**E8-T2**).
@@ -712,9 +722,10 @@ setting a flag on the first move, and a test drags a node out and back to where 
 **Three rows are short.** The shell is a `Grid` with splitters rather than a `DockControl`,
 because Dock.Avalonia's templates live in a companion package that was never pinned and without
 it a `DockControl` renders nothing at all (`E8-T2`). Group, note and align are not built
-(`E8-T6`). And one measured number has a harness now but no schedule: `bench/Spark.Benchmarks`
-and `--canvas-benchmark` both produce figures, and nothing runs either of them nightly
-(`E8-T15`).
+(`E8-T6`). And the measured number that had a harness and no schedule now has both: a nightly runs
+`bench/Spark.Benchmarks` and `--canvas-benchmark` against committed budgets, leaving `E8-T15`
+short only its first execution on a hosted runner (`E1-T21`,
+[ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md)).
 
 **The hybrid overlay has its first inhabitant** (`E8-T5`). Nothing is edited in place on a node
 yet, but the canvas creation box is a real Avalonia control positioned in screen space over the
@@ -963,7 +974,10 @@ nothing.
       is worthless; a loud one is fine (**E11-T14**). *Written in `ci.yml`; being
       `pull_request`-only it cannot have run, and has not.*
 - [ ] A headless UI smoke test runs in CI (**E11-T15**).
-- [ ] Benchmarks run nightly with results committed as a git time series (**E11-T16**).
+- [ ] Benchmarks run nightly, against committed budgets rather than a committed time series
+      (**E11-T16**, [ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md)).
+      *Marshalling, evaluation and the canvas do. Replication over 100 000 items is covered only
+      through marshalling, and tessellation throughput has nothing to benchmark yet.*
 - [ ] `tests/corpus/` grows with every bug found (**E11-T17**).
 - [ ] The three M1.5 spikes have **pass/fail criteria written down before the spike starts**
       and are deleted afterwards (**E11-T19**, **E11-T20**, **E11-T21**). *None of the three

@@ -9,7 +9,7 @@ Autodesk software required.
 MIT licensed. `net10.0`. Solid modelling by [OpenCascade](https://dev.opencascade.org/),
 which ships with Spark.
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 
 > ## Status: it runs, and it draws curves
 >
@@ -52,12 +52,19 @@ which ships with Spark.
 > no packages, no code block. And **no OpenCascade**: there is no `native/` directory and no
 > `Spark.Geometry.Occt` project.
 >
-> What has been run, on Windows, on 2026-08-28:
+> **The benchmarks are guards now, not reports.** A nightly workflow runs the three suites on
+> Windows and Linux and the application's own 2 000-node canvas benchmark on Windows, and fails
+> when a number breaks a budget committed in `bench/budgets.jsonc`. It has been run end to end
+> locally and **has never run on a hosted runner**, which is a real difference and not a formality.
+>
+> What has been run, on Windows, on 2026-08-29:
 > `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen projects;
-> `dotnet test Spark.slnx` runs **952 passing tests** across seven projects; and
-> `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean. **CI ran all of it on
-> Windows and Linux on commit `53596ab` and was green**, 952 tests on each — so the Linux leg is
-> no longer a claim, and it has now caught something Windows could not.
+> **952 tests pass** across seven projects;
+> `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean; and the nightly's whole
+> pipeline — nineteen benchmark cases, the canvas benchmark and the budget check — is green.
+> **CI ran the build, the tests and the format check on Windows and Linux on commit `53596ab` and
+> was green**, 952 tests on each — so the Linux leg is no longer a claim, and it has now caught
+> something Windows could not.
 >
 > **Worth knowing about how this code is accepted.** The kernel's first slice passed all three
 > gates and was rejected on review, with three of its eight claims false — most visibly a
@@ -207,6 +214,21 @@ prints `0 Warning(s)` — so a clean build and a skipped one read identically. T
 hypothetical here: the public-API analyzer findings that produced the baselines were invisible
 without the flag ([docs/NOTES.md N15](docs/NOTES.md)).
 
+**A second workflow runs nightly**, because the performance guards are too slow to sit in front of
+a pull request and too easy to ignore anywhere else. It runs the benchmark suites on both
+operating systems, drives the application's own 2 000-node canvas benchmark on Windows, and checks
+the numbers against the budgets committed in `bench/budgets.jsonc`:
+
+```bash
+dotnet run --project bench/Spark.Benchmarks --configuration Release -- --filter '*' --exporters json --artifacts artifacts/benchmarks
+dotnet run --project bench/Spark.Benchmarks --configuration Release -- check --results artifacts/benchmarks/results --no-canvas
+```
+
+The budgets are deliberately of three different strengths — allocation is deterministic and is
+budgeted tightly, ratios between two cases are machine-independent, and wall-clock ceilings on a
+hosted runner are only good for catching a step change. [docs/NOTES.md N29](docs/NOTES.md) says
+why, and why a benchmark with no budget fails the check.
+
 Everything targets `net10.0` with no `-windows` target framework, so it builds on Windows,
 Linux and macOS. Warnings are errors in CI only, never in the project files —
 [docs/NOTES.md N3](docs/NOTES.md) explains why. The solution file is `.slnx`, the XML
@@ -220,10 +242,10 @@ exits — the viewport one is a GPU read-back rather than a window grab, so it w
 session and in CI. The first two exist so that opening a particular graph can be checked without
 a human driving a file dialog.
 
-`dotnet test` finds **893 tests** across seven projects. `Spark.Geometry.Tests` (313) and
+`dotnet test` finds **952 tests** across seven projects. `Spark.Geometry.Tests` (313) and
 `Spark.Geometry.Properties` (38) cover the kernel by example and by CsCheck property
 respectively; `Spark.Engine.Tests` (289) covers the graph, the replicator and the importer;
-`Spark.UI.Tests` (171) drives the canvas headlessly with real pointer gestures;
+`Spark.UI.Tests` (230) drives the canvas headlessly with real pointer gestures;
 `Spark.Viewport.Tests` (69) covers the scene and the camera; `Spark.Architecture.Tests` (8)
 enforces the reference graph below by reading `.csproj` files as XML; and `Spark.Docs.Verify`
 (5) checks these documents against the repository. The last two were deliberately stood up

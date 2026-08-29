@@ -2,7 +2,7 @@
 
 For anyone changing this repository — human or AI. Read this before committing.
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 
 ---
 
@@ -82,10 +82,20 @@ XML doc = what this member does.*
    form: it is what the `format` CI job runs, and a shorter one can pass locally where the
    gate fails.
    Two further checks are CI's and are runnable locally when you have touched what they guard:
-   `scripts/check-no-native-binaries.sh` (NFR-5, and it is in the build job), and
-   `dotnet run --project bench/Spark.Benchmarks --configuration Release --filter '*'` when you
-   have changed marshalling, evaluation or the canvas spatial index. **Benchmarks are not yet
-   scheduled**, so they measure rather than guard — read them, do not assume them.
+   `scripts/check-no-native-binaries.sh` (NFR-5, and it is in the build job), and the benchmarks
+   when you have changed marshalling, evaluation or the canvas spatial index. **The benchmarks now
+   run nightly against committed budgets** (`.github/workflows/nightly.yml`), so they guard rather
+   than merely measure. Run them the way the nightly does:
+
+   ```
+   dotnet run --project bench/Spark.Benchmarks --configuration Release -- --filter '*' --exporters json --artifacts artifacts/benchmarks
+   dotnet run --project bench/Spark.Benchmarks --configuration Release -- check --results artifacts/benchmarks/results --no-canvas
+   ```
+
+   The budgets are in `bench/budgets.jsonc` and **they are not all worth the same**: allocation
+   ceilings are deterministic and tight, ratios are machine-independent and are the sharpest thing
+   there, and the wall-clock ceilings catch a step change and nothing finer. Adding a benchmark
+   without adding its budget is a failure, on purpose — see [N29](docs/NOTES.md).
 4. Documents updated per the table above, including their **Last updated** dates.
 5. New user-facing behaviour has a help topic **with a worked example**.
 6. New public API on a contract project has an XML doc comment and a public-API baseline
@@ -96,7 +106,16 @@ XML doc = what this member does.*
 8. Commit message says what changed and why, and **names the task IDs it advances**.
 9. Sign off with DCO: `git commit -s`. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-All three commands above have been verified to work as written, on Windows, on 2026-08-28.
+Commands 1 and 3 were verified as written, on Windows, on 2026-08-29, along with the benchmark
+run and its budget check. **Command 2 did not run as written that day, and the reason is not
+understood**: `dotnet test Spark.slnx` reported `Zero tests ran` and exit code 5 for every
+project — including projects the change did not touch — under SDK 10.0.400, while each project's
+own test executable ran green for a total of **952 tests, 0 failures**. That is a local tooling
+failure rather than a red suite, and CI's `dotnet test` leg is what settles it. **Do not read a
+green suite out of a run that discovered nothing**: exit code 5 with a zero total is exactly what
+that looks like, and until this is diagnosed, a run of
+`tests/<project>/bin/Debug/net10.0/<project>.exe` is the fallback that actually executes tests.
+
 Steps 1 through 3 are gates. A red docs harness is a broken build, including when the only
 thing broken is a dangling ADR citation in a build-file comment — that is precisely the point
 of it, and it has already caught exactly that (`E1-T29`).

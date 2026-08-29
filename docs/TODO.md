@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
@@ -12,6 +12,14 @@ Ctrl+Z steps back through every edit. `dotnet build`, `dotnet test` (**952 tests
 projects**) and `dotnet format` are all clean, and **CI ran green on Windows and Linux on
 `53596ab`**, 952 tests on each leg — and the Linux leg has now caught something Windows could
 not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
+
+**The benchmarks stopped being a report and became a guard on 2026-08-29.** A nightly workflow
+runs the three suites on both operating systems and the application's own canvas benchmark on
+Windows, and checks every number against budgets committed in `bench/budgets.jsonc` — allocation
+tightly, ratios sharply, wall-clock loosely and for stated reasons
+([ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md), [N29](NOTES.md)). It is
+green locally end to end and **has never run on a hosted runner**, which is the difference between
+proven to detect and proven to run.
 
 Three distinctions still do the work in what follows:
 
@@ -52,7 +60,7 @@ for anything else.
 
 ---
 
-## Now — schedule the guards, and name the M1.6 criteria
+## Now — name the M1.6 criteria, and watch the first nightly
 
 - [x] **Walk TASKS.md against E3, E4, E5, E8 and E9** — done, and it moved 41 rows. Ten of them
       came back **`In progress` rather than `Done`**, which is the useful output: the cache
@@ -82,13 +90,25 @@ for anything else.
       `scripts/check-no-native-binaries.sh` runs in the CI build job on both operating systems and
       was proven to fire before being trusted: pointed at `Spark.Desktop` it fails on the Skia and
       HarfBuzz natives Avalonia brings.
-- [ ] **Run the benchmarks on a schedule** — `E8-T15`, and the half of `E4-T3` that is still open.
-      The harness exists and nothing runs it, so it measures rather than guards. A nightly job
-      against `bench/` plus the application's own `--canvas-benchmark` is what turns three numbers
-      into three guards.
-
-## Next — name the M1.6 criteria, before the spike
-
+- [x] **Run the benchmarks on a schedule** — `E1-T21` and `E4-T3`, done; `E8-T15` short only its
+      first run. `.github/workflows/nightly.yml` runs the suites on both operating systems, drives
+      `--canvas-benchmark` on Windows, and checks every number against budgets committed in
+      `bench/budgets.jsonc`. **The storage half of the M0 plan is reversed and the cadence half is
+      not**: budgets, not a committed time series
+      ([ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md)). What makes the
+      budgets worth anything is that they are not all the same strength — allocation is
+      deterministic and is held to ten per cent, ratios between two cases are machine-independent
+      and are the sharpest guards in the file, and wall-clock ceilings on a shared runner are an
+      order of magnitude out and catch a step change only ([N29](NOTES.md)). Proven to fire before
+      being trusted, on eight deliberate breakages including **a case that vanished and a case
+      nobody budgeted**, both of which fail the run.
+- [ ] **Watch the first nightly, and treat it as part of adding the guard.** The workflow is green
+      locally end to end and **has never run on a hosted runner**. Two things can only be learnt
+      there: whether a GitHub Windows runner can open a window at all — if it cannot, the honest
+      answers are a headless measurement or deleting that step, never `continue-on-error` — and
+      whether the wall-clock ceilings, set an order of magnitude above one laptop's numbers, are
+      loose enough for a shared machine. `E8-T15` closes on the first green run, not before.
+      [N28](NOTES.md) is why *proven to detect* and *proven to run* are different claims.
 - [ ] **Write the M1.6 pass/fail criteria into TASKS.md** — `E13-T1`. **M1.6 gates ADR-0020 the
       way M1.5 gated ADR-0001**, and M1.5 is now evidence that the rule works: its criteria were
       written first, one of the three measurements failed, and the failure was diagnosed — a
