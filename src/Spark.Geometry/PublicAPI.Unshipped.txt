@@ -157,6 +157,29 @@ Spark.Geometry.PolyLine.Points() -> Spark.Geometry.Point3d[]!
 Spark.Geometry.PolyLine.PolyLine(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> void
 Spark.Geometry.PolyLine.SegmentAt(int index) -> Spark.Geometry.Line!
 Spark.Geometry.PolyLine.SegmentCount.get -> int
+Spark.Geometry.Quaternion
+Spark.Geometry.Quaternion.Conjugate() -> Spark.Geometry.Quaternion
+Spark.Geometry.Quaternion.Equals(Spark.Geometry.Quaternion other) -> bool
+Spark.Geometry.Quaternion.EqualsWithin(in Spark.Geometry.Quaternion other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Quaternion.IsSameRotation(in Spark.Geometry.Quaternion other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Quaternion.IsUnit(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Quaternion.IsValid.get -> bool
+Spark.Geometry.Quaternion.Length.get -> double
+Spark.Geometry.Quaternion.LengthSquared.get -> double
+Spark.Geometry.Quaternion.Normalised() -> Spark.Geometry.Quaternion
+Spark.Geometry.Quaternion.OfPoint(in Spark.Geometry.Point3d point) -> Spark.Geometry.Point3d
+Spark.Geometry.Quaternion.OfVector(in Spark.Geometry.Vector3d vector) -> Spark.Geometry.Vector3d
+Spark.Geometry.Quaternion.Quaternion() -> void
+Spark.Geometry.Quaternion.Quaternion(double x, double y, double z, double w) -> void
+Spark.Geometry.Quaternion.ToAxisAngle() -> (Spark.Geometry.Vector3d Axis, Spark.Geometry.Angle Angle)
+Spark.Geometry.Quaternion.ToTransform() -> Spark.Geometry.Transform
+Spark.Geometry.Quaternion.TryGetInverse(out Spark.Geometry.Quaternion inverse) -> bool
+Spark.Geometry.Quaternion.TryNormalise(out Spark.Geometry.Quaternion unit) -> bool
+Spark.Geometry.Quaternion.Vector.get -> Spark.Geometry.Vector3d
+Spark.Geometry.Quaternion.W.get -> double
+Spark.Geometry.Quaternion.X.get -> double
+Spark.Geometry.Quaternion.Y.get -> double
+Spark.Geometry.Quaternion.Z.get -> double
 Spark.Geometry.Tolerance
 Spark.Geometry.Tolerance.Angular.get -> Spark.Geometry.Angle
 Spark.Geometry.Tolerance.AreEqual(double a, double b) -> bool
@@ -330,6 +353,9 @@ override Spark.Geometry.PolyLine.Tessellate(in Spark.Geometry.Tolerance toleranc
 override Spark.Geometry.PolyLine.ToString() -> string!
 override Spark.Geometry.PolyLine.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
 override Spark.Geometry.PolyLine.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
+override Spark.Geometry.Quaternion.Equals(object? obj) -> bool
+override Spark.Geometry.Quaternion.GetHashCode() -> int
+override Spark.Geometry.Quaternion.ToString() -> string!
 override Spark.Geometry.Tolerance.Equals(object? obj) -> bool
 override Spark.Geometry.Tolerance.GetHashCode() -> int
 override Spark.Geometry.Tolerance.ToString() -> string!
@@ -433,6 +459,14 @@ static Spark.Geometry.PolyLine.ByClosedPoints(System.Collections.Generic.IEnumer
 static Spark.Geometry.PolyLine.ByPoints(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> Spark.Geometry.PolyLine!
 static Spark.Geometry.PolyLine.ByRectangle(in Spark.Geometry.Plane plane, double width, double length) -> Spark.Geometry.PolyLine!
 static Spark.Geometry.PolyLine.ByRegularPolygon(in Spark.Geometry.Plane plane, double radius, int sides) -> Spark.Geometry.PolyLine!
+static Spark.Geometry.Quaternion.ByAxisAngle(in Spark.Geometry.Vector3d axis, Spark.Geometry.Angle angle) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.ByRotationBetween(in Spark.Geometry.Vector3d from, in Spark.Geometry.Vector3d to) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.Identity.get -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.Multiply(in Spark.Geometry.Quaternion a, in Spark.Geometry.Quaternion b) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.Slerp(in Spark.Geometry.Quaternion from, in Spark.Geometry.Quaternion to, double parameter) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.operator !=(in Spark.Geometry.Quaternion left, in Spark.Geometry.Quaternion right) -> bool
+static Spark.Geometry.Quaternion.operator *(in Spark.Geometry.Quaternion a, in Spark.Geometry.Quaternion b) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.operator ==(in Spark.Geometry.Quaternion left, in Spark.Geometry.Quaternion right) -> bool
 static Spark.Geometry.Tolerance.Default.get -> Spark.Geometry.Tolerance
 static Spark.Geometry.Tolerance.ForScale(double characteristicLength) -> Spark.Geometry.Tolerance
 static Spark.Geometry.Tolerance.operator !=(Spark.Geometry.Tolerance left, Spark.Geometry.Tolerance right) -> bool

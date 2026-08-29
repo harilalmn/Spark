@@ -477,6 +477,7 @@ maps every rename so the mapping never has to be reconstructed from memory.
 | `Point` | `Point3d` | Renamed — see below |
 | `Vector` | `Vector3d` | Renamed — see below |
 | `UV` | `UV` | Same |
+| — | `Quaternion` | **No Dynamo counterpart.** ProtoGeometry rotates through `CoordinateSystem` and `Rotate` only, so a Spark user gets something a Dynamo user does not: drift-free composition, `Slerp`, and four numbers to store instead of sixteen. It adds nothing to the parity count in §3, which counts *their* members, and that asymmetry is the right one — parity is a floor, not a ceiling |
 | `Plane` | `Plane` | Same |
 | `CoordinateSystem` | `CoordinateSystem` | Same name, unscaled — §3.1 |
 | `BoundingBox` | `BoundingBox` | Same name, world-aligned only — §3.1 |

@@ -54,6 +54,24 @@ public sealed class InvalidValueTests
     }
 
     [Fact]
+    public void ADefaultQuaternionIsNotARotationAndRefusesToActLikeOne()
+    {
+        Quaternion invalid = default;
+
+        Assert.False(invalid.IsValid);
+        Assert.Throws<InvalidOperationException>(() => invalid.OfVector(Vector3d.XAxis));
+        Assert.Throws<InvalidOperationException>(() => invalid.OfPoint(SomePoint));
+        Assert.Throws<InvalidOperationException>(() => invalid.ToAxisAngle());
+        Assert.Throws<InvalidOperationException>(() => invalid.ToTransform());
+        Assert.Throws<InvalidOperationException>(() => invalid.Normalised());
+
+        // The non-geometric members still answer, on every value, exactly as Plane's do.
+        Assert.Equal(0.0, invalid.LengthSquared);
+        Assert.Equal(default, invalid);
+        Assert.Equal("Quaternion(0, 0, 0, 0)", invalid.ToString());
+    }
+
+    [Fact]
     public void AValidPlaneStillRefusesToBeComparedAgainstAnInvalidOne()
     {
         ArgumentException failure = Assert.Throws<ArgumentException>(

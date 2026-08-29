@@ -449,6 +449,45 @@ about a boundary.
 is the identity for `Union` — which makes it the seed you want when accumulating a box over a
 sequence, and never a result you should test for.
 
+## 8. Rotations: `Quaternion` beside `Transform`
+
+A `Transform` can already rotate. `Quaternion` exists for the three things a 4×4 matrix is bad
+at: **composing** many rotations without accumulating shear, **interpolating** between two
+orientations, and **storing** an orientation in four numbers rather than sixteen.
+
+```csharp
+Quaternion yaw   = Quaternion.ByAxisAngle(Vector3d.ZAxis, Angle.FromDegrees(90.0));
+Quaternion pitch = Quaternion.ByAxisAngle(Vector3d.YAxis, Angle.FromDegrees(30.0));
+
+Quaternion both = yaw * pitch;              // pitch first, then yaw - matrix order
+Vector3d aimed  = both.OfVector(Vector3d.XAxis);
+
+Quaternion onto = Quaternion.ByRotationBetween(Vector3d.XAxis, new Vector3d(1.0, 1.0, 0.0));
+Quaternion half = Quaternion.Slerp(Quaternion.Identity, yaw, 0.5); // 45° about Z
+
+Transform asMatrix = both.ToTransform();     // when you need it in a Transform chain
+(Vector3d axis, Angle angle) = both.ToAxisAngle();
+```
+
+**Two quaternions describe every rotation**, `q` and `-q`, so component equality is not the same
+question as *is this the same rotation*:
+
+```csharp
+Quaternion negated = new(-yaw.X, -yaw.Y, -yaw.Z, -yaw.W);
+
+bool sameValue    = yaw.EqualsWithin(negated);   // false - the components differ
+bool sameRotation = yaw.IsSameRotation(negated); // true  - they turn everything alike
+```
+
+Ask `IsSameRotation` when the question is about the rotation, and `EqualsWithin` when it is
+about the value. `Slerp` handles the same fact internally: it flips one input when needed so it
+always takes the short way round, which is the difference between a smooth 45° and an
+unexplained 315° spin.
+
+Like `default(Plane)`, **`default(Quaternion)` is not a rotation** — its components are all zero
+— and every geometric member throws on it. The rotation that does nothing is
+`Quaternion.Identity`, and you have to ask for it by name.
+
 ---
 
 ## What is not here yet
@@ -459,8 +498,9 @@ Honest scope, so you do not go looking:
 |---|---|
 | `Point3d`, `Vector3d`, `Point2d`, `Vector2d`, `UV` | Implemented and tested |
 | `Angle`, `Tolerance`, `Interval`, `BoundingBox` | Implemented and tested |
-| `Plane`, `CoordinateSystem`, `Transform` | Implemented and tested |
-| Lines, arcs, circles, polylines, NURBS curves | M3 — not written |
+| `Plane`, `CoordinateSystem`, `Transform`, `Quaternion` | Implemented and tested |
+| Lines, arcs, circles, ellipses, polylines, polycurves | Implemented and tested |
+| NURBS curves | M3 — not written |
 | Surfaces, meshes, tessellation | M5 — not written |
 | BRep solids, booleans | M6 — not written |
 

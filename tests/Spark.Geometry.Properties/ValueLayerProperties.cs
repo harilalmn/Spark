@@ -423,4 +423,68 @@ public sealed class ValueLayerProperties
 
         Assert.Equal(1, trueCount);
     }
+
+    [Fact]
+    public void AQuaternionRotatesExactlyAsTheEquivalentMatrixDoes()
+    {
+        GeometryGenerators.Scenes.Sample(scene =>
+        {
+            Vector3d vector = scene.Second * scene.Scale;
+
+            // Two independent implementations of the same right-handed convention, one built
+            // from half-angle sines and one from a Rodrigues matrix. Across nine decades of
+            // scale, they either agree or one of them has a sign or a half-angle wrong.
+            Vector3d viaQuaternion = Quaternion.ByAxisAngle(scene.Axis, scene.Turn).OfVector(vector);
+            Vector3d viaMatrix = Transform.Rotation(scene.Axis, scene.Turn).OfVector(vector);
+
+            Assert.True(viaQuaternion.EqualsWithin(viaMatrix, scene.PositionTolerance));
+        });
+    }
+
+    [Fact]
+    public void AQuaternionRotationPreservesLength()
+    {
+        GeometryGenerators.Scenes.Sample(scene =>
+        {
+            Vector3d vector = scene.Second * scene.Scale;
+            Quaternion rotation = Quaternion.ByAxisAngle(scene.Axis, scene.Turn);
+
+            Assert.True(scene.PositionTolerance.AreEqual(vector.Length, rotation.OfVector(vector).Length));
+        });
+    }
+
+    [Fact]
+    public void AQuaternionFollowedByItsInverseReturnsEveryVectorToWhereItStarted()
+    {
+        GeometryGenerators.Scenes.Sample(scene =>
+        {
+            Vector3d vector = scene.Second * scene.Scale;
+            Quaternion rotation = Quaternion.ByAxisAngle(scene.Axis, scene.Turn);
+
+            Assert.True(rotation.TryGetInverse(out Quaternion inverse));
+            Assert.True(inverse.OfVector(rotation.OfVector(vector))
+                .EqualsWithin(vector, scene.PositionTolerance));
+        });
+    }
+
+    [Fact]
+    public void SlerpingHalfwayLeavesEqualRotationsOnEitherSide()
+    {
+        GeometryGenerators.Scenes.Sample(scene =>
+        {
+            Quaternion start = Quaternion.Identity;
+            Quaternion end = Quaternion.ByAxisAngle(scene.Axis, scene.Turn);
+            Quaternion middle = Quaternion.Slerp(start, end, 0.5);
+
+            Assert.True(start.TryGetInverse(out Quaternion startInverse));
+            Assert.True(middle.TryGetInverse(out Quaternion middleInverse));
+
+            // Constant angular speed is the entire claim of Slerp over lerp, and this is what
+            // it means: the turn from start to middle equals the turn from middle to end.
+            Angle first = (middle * startInverse).ToAxisAngle().Angle;
+            Angle second = (end * middleInverse).ToAxisAngle().Angle;
+
+            Assert.True(GeometryGenerators.Dimensionless.AreEqual(first.Radians, second.Radians));
+        });
+    }
 }

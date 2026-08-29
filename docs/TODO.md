@@ -159,8 +159,13 @@ for anything else.
 
 **Still to do, in rough order:**
 
-- [ ] `Quaternion` — `E2-T1`. **`Rgba` is settled and no longer in scope here**: it lives beside
-      `Appearance` in `Spark.Api` (`E5`), because the kernel carries no appearance.
+- [x] `Quaternion` — `E2-T1`, done 2026-08-29, and the value layer is complete. Composition,
+      `Slerp`, axis-angle both ways, and `IsSameRotation` beside `EqualsWithin` because **`q` and
+      `-q` are the same rotation while their components are not** — a trap that belongs in the API
+      rather than in a comment. Matrix-to-quaternion extraction and Euler angles are excluded
+      **on the type**, so their absence reads as a decision rather than an omission.
+      **`Rgba` was settled earlier and is not in scope here**: it lives beside `Appearance` in
+      `Spark.Api` (`E5`), because the kernel carries no appearance.
 - [x] **Settle the past-participle naming rule and apply it** — `E2-T49`, done 2026-08-29.
       `Plane.Flip` → `Flipped`, `BoundingBox.Inflate` → `Inflated`, `Interval.Expand` → `Expanded`,
       across twelve call sites, the public-API baseline and a worked example in `docs/help/`. **The

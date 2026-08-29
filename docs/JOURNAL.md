@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-29 20:10 +0530
+**Last updated:** 2026-08-29 21:30 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | M1 — geometry core, finishing it |
 | **Working on** | Nothing. Between steps. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **2** — the three value-layer parity gaps (`E2-T40`) |
+| **Last completed step** | Queue **3** — `Quaternion` (`E2-T1`), which completes the value layer |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | Take queue item **3**, `Quaternion` (`E2-T1`) — the last piece of the value layer. `Transform` already carries the rotation algebra, so the questions to settle first are **what `Quaternion` is for that `Transform` is not**: composing rotations without accumulating shear, interpolating between orientations (`Slerp`), and being the compact form a serialised camera or frame wants. Follow the layer's existing conventions exactly — `readonly struct`, exact `operator ==`, `EqualsWithin(other, in Tolerance)`, a `TryNormalise` sibling if normalisation can fail, and every public member documented or the build fails. `default(Quaternion)` must not be a usable rotation, on the `default(Plane)` precedent. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**966** after this step: Geometry.Tests is 327), `dotnet format`. **Check the counts, do not just read *green*** — [N30](NOTES.md) is why. |
+| **Next action** | Take queue item **4**, `RayCaster` and its BVH (`E2-T15`). It is the largest item in the near queue and the highest-value file in C2VGeometry, and **four things wait on it**: mesh booleans, viewport picking, intersection seeding and `Curve.ClosestPoint`. **The C2VGeometry source is not in this repository**, so this is a fresh implementation against the same idea rather than a port — decide the BVH's build strategy (median split on the longest axis is the defensible default), its leaf size, and whether it is built eagerly or lazily, and write those down before writing the traversal. There is a benchmark suite (`bench/Spark.Benchmarks`) and a budgets file that a new hot path should join. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**999** after this step: Geometry.Tests 356, Geometry.Properties 42), `dotnet format`. **Check the counts, do not just read *green*** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -112,8 +112,8 @@ the two disagree.**
 |---|---|---|---|---|
 | 1 | ~~The past-participle naming rule, applied~~ | `E2-T49` | S | **Done** 2026-08-29 |
 | 2 | ~~The three value-layer parity gaps~~ | `E2-T40` | S | **Done** 2026-08-29 |
-| 3 | **`Quaternion`** — the last piece of the value layer | `E2-T1` | M | **Next** |
-| 4 | **`RayCaster` and its BVH** — pays for itself across mesh booleans, viewport picking, intersection seeding, and `Curve.ClosestPoint` waits on it | `E2-T15` | L | Open |
+| 3 | ~~`Quaternion` — the last piece of the value layer~~ | `E2-T1` | M | **Done** 2026-08-29 |
+| 4 | **`RayCaster` and its BVH** *(next)* — pays for itself across mesh booleans, viewport picking, intersection seeding, and `Curve.ClosestPoint` waits on it | `E2-T15` | L | Open |
 | 5 | **Geometry serialization v1 and the reflection-driven round-trip test** — get it in before there are twenty types to retrofit it onto; there are nineteen | `E2-T29`, `E2-T31` | M | Open |
 | 6 | **`Spark.Geometry.Io`: the OBJ writer, and `spark` writing a polyline a third-party viewer opens** — this is **M1's demoable** | `E2-T33`, `E12-T5` | M | Open |
 | 7 | **The C2VGeometry test harvest**, timeboxed to one week with a hard stop. Harvest assertions, not generators | `E2-T32` | L | Open — **needs the C2VGeometry source, which is not in this repository** |
@@ -258,4 +258,53 @@ heading, and both references were updated), the `E2-T40` row, PRD's FR-81 status
 `docs/help/concepts/geometry-basics.md` — which gained a *choosing a factory* subsection and an
 entirely new **§7 Bounding boxes**, because the type had no prose anywhere and a new public member
 with no worked example is an unfinished change.
+
+### 2026-08-29 — Queue 3: `Quaternion` (`E2-T1`)
+
+**What.** The last type in the value layer. `ByAxisAngle`, `ByRotationBetween`, `operator *`,
+`OfVector`/`OfPoint`, `Slerp`, `ToAxisAngle`, `ToTransform`, `TryGetInverse`, `Conjugate`,
+`Normalised`/`TryNormalise`, `IsUnit`, `IsSameRotation`, `EqualsWithin` and the equality trio.
+**999 tests** now, up from 966: 28 example-based, 4 CsCheck properties, one invalid-value case.
+
+**The design decisions worth having made, rather than the code.**
+
+*Why it exists at all*, since `Transform` already rotates: composition that does not drift into
+shear, interpolation that is actually defined, and four numbers instead of sixteen to store. That
+paragraph is on the type, because *why is this here beside that* is the question a reader of a
+geometry kernel asks first.
+
+*`IsSameRotation` beside `EqualsWithin`.* `q` and `-q` are the same rotation and their components
+are not equal. The trap belongs in the API — two methods, each answering a different question,
+each documented as such — rather than in a comment on one method that quietly answers both wrong.
+
+*`OfVector` and `OfPoint`, not `Rotate`.* Names the result, matches `Transform`, and obeys the
+rule `E2-T49` put into `NamespaceDoc` two steps ago. The convention is already doing work.
+
+*Non-unit quaternions are handled rather than rejected.* `OfVector` divides by the squared
+length, which costs a division and no square root, so a long composed chain can be normalised
+once at the end instead of at every step — the accurate path and the fast path are the same one.
+
+*Two exclusions, stated on the type.* No matrix-to-quaternion extraction: it needs a policy for a
+matrix that is nearly-but-not-quite a rotation, and that policy belongs with the surface work that
+first needs it. No Euler angles: twelve conventions, no defensible default, and gimbal lock. An
+absence that is written down reads as a decision; the same absence unwritten reads as an
+oversight.
+
+**Verified.** Build clean with `-warnaserror`; 999 tests, 0 failures; format clean; docs harness
+green. Two independent checks that the convention is right rather than merely self-consistent:
+every rotation is compared against `Transform.Rotation` **by example** at four axis-angle pairs
+and **by property** across nine decades of scale. A sign error or a half-angle error fails both.
+**Mutation-tested**: removing Slerp's short-path negation turns
+`SlerpTakesTheShortPathWhenAnInputIsNegated` red — that is the classic quaternion animation bug,
+a 45° interpolation becoming a 315° spin, and it is now pinned by a named test.
+
+**Cost.** About an hour. The public-API baseline took a fifth of it, and the way to do that
+quickly is worth recording: build with `--no-incremental`, and the RS0016 warnings *are* the
+missing baseline lines — extract the symbol names, merge, and `LC_ALL=C sort`, which is exactly
+the order the file is already in. Building without `--no-incremental` produced no warnings at all
+and looked like success, which is [N15](NOTES.md) biting on its own terms.
+
+**Fixed in passing.** `docs/help/concepts/geometry-basics.md` still told readers that lines, arcs
+and circles were *M3 — not written*, four days after the curve layer landed. A help topic that is
+wrong about what exists is worse than one that is silent.
 
