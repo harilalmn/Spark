@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-29 17:40 +0530
+**Last updated:** 2026-08-29 18:05 +0530
 **Protocol version:** 1
 
 ---
@@ -17,13 +17,13 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | M1 — geometry core, finishing it |
-| **Working on** | Nothing. Between steps. |
+| **Working on** | Nothing. Between steps, **awaiting the go-ahead to start the run.** |
 | **Step status** | `CLEAN` |
-| **Last commit** | `dfa2803` — Decide what M1.6's failure would mean, while nobody has a result to defend |
+| **Last commit** | `96c3e99` — Make an interrupted session cheap: a write-ahead development journal |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | Take queue item **1**: rename `Plane.Flip`, `BoundingBox.Inflate` and `Interval.Expand` to past participles across all call sites, per [DYNAMO-COVERAGE §4](DYNAMO-COVERAGE.md#member-names-we-will-not-copy). |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project test executables (see *Environment facts*), `dotnet format Spark.slnx --verify-no-changes --severity warn` |
-| **Blocked on** | Nothing. |
+| **Next action** | Take queue item **1**, the past-participle rename. **It has been scouted, so do not re-grep:** `Plane.Flip()` is defined at `src/Spark.Geometry/Plane.cs:325` and referenced in its own XML docs at lines 28 and 418; `BoundingBox.Inflate` is two overloads at `BoundingBox.cs:321` and `:333`; `Interval.Expand` is at `Interval.cs:271`. Call sites outside the definitions: `Curve.cs:533`, and eleven in `Spark.Geometry.Tests` and `Spark.Geometry.Properties`. Four lines in `PublicAPI.Unshipped.txt` (31, 32, 86, 110). **`Rect.Inflate` in `Spark.UI/Controls/GraphCanvas.cs` is Avalonia's and must not be touched.** Documents to follow: [DYNAMO-COVERAGE §4](DYNAMO-COVERAGE.md#member-names-we-will-not-copy) (which also asks for the convention to be written into `NamespaceDoc.cs`), the `E2-T3` and `E2-T6` rows in [TASKS.md](TASKS.md), and the item in [TODO.md](TODO.md). |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror` must be clean — a missed call site is a compile error, which is what makes this rename safe; then the per-project test executables (952) and `dotnet format`. |
+| **Blocked on** | Nothing technical. Paused deliberately: the marathon was set up and reported before starting, at the user's request. |
 
 **Step status vocabulary**, and it means exactly this:
 
@@ -148,3 +148,10 @@ cheap.
 **Recorded, because they cost time to rediscover:** no C++ toolchain here, so M1.6 is deferred
 rather than merely not-started; and `dotnet test` at the solution level does not work on this
 machine. Both are in *Environment facts* above.
+
+**The protocol was exercised once before anything else happened, which is the only way to find
+out whether it works.** Queue item 1 was written ahead — `IN PROGRESS`, with a concrete next
+action — and then the run was paused before any code changed. Rolling *Current state* back to
+`CLEAN` was a two-line edit, and the scouting the write-ahead had already produced was kept in
+*Next action* rather than thrown away, so the next session starts item 1 without repeating the
+search. That is the shape a real interruption should have.
