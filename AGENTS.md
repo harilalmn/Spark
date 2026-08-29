@@ -6,6 +6,19 @@ For anyone changing this repository — human or AI. Read this before committing
 
 ---
 
+## Marathon mode
+
+This project is worked as a **long resumable run to 1.0**, in small verified steps that survive
+an interrupted session. [docs/JOURNAL.md](docs/JOURNAL.md) holds the live state — what is being
+worked on right now, what the next concrete action is, and the log of how the work got here —
+and [CLAUDE.md](CLAUDE.md) is what a cold session reads first.
+
+**The journal is written before a step, not only after it.** That is the entire mechanism: a
+session that dies half way through leaves a note saying what it was in the middle of. Everything
+below still applies unchanged — the journal records the work, it does not excuse any of it.
+
+---
+
 ## The standing instruction
 
 > **Documentation is updated after every change, before committing. Everything is
