@@ -302,6 +302,14 @@ public static class SparkFile
         writer.WriteNumber("x", node.X);
         writer.WriteNumber("y", node.Y);
 
+        // Written before the literals so the node's shape reads top-down: what it is, then what
+        // was typed into it. A node with no script omits the field entirely, which keeps every
+        // graph that has never held a code block byte-identical to what earlier builds wrote.
+        if (node.Script is { } script)
+        {
+            writer.WriteString("script", script);
+        }
+
         if (node.Literals.Count > 0)
         {
             writer.WriteStartArray("literals");
@@ -404,6 +412,11 @@ public static class SparkFile
         double y = ReadDouble(element, "y");
 
         List<GraphLiteral> literals = [];
+        string? script = element.TryGetProperty("script", out JsonElement scriptElement)
+            && scriptElement.ValueKind == JsonValueKind.String
+                ? scriptElement.GetString()
+                : null;
+
         if (element.TryGetProperty("literals", out JsonElement literalArray)
             && literalArray.ValueKind == JsonValueKind.Array)
         {
@@ -413,7 +426,7 @@ public static class SparkFile
             }
         }
 
-        return new GraphDocumentNode(id, nodeKey, lacing, x, y, literals);
+        return new GraphDocumentNode(id, nodeKey, lacing, x, y, literals, script);
     }
 
     private static GraphLiteral ReadLiteral(JsonElement element)

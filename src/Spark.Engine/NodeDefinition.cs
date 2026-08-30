@@ -134,6 +134,17 @@ public sealed class NodeDefinition
     /// </remarks>
     public bool ShowsValue { get; }
 
+    /// <summary>
+    /// The source this definition was built from, or <see langword="null"/> when it came from a
+    /// library.
+    /// </summary>
+    /// <remarks>
+    /// Carried so that a code block can be saved: its ports depend on what the user typed, so the
+    /// file has to hold the text and rebuild the definition on open. Everything else in this type
+    /// is derived from that text, which is why the text and not the derivation is what persists.
+    /// </remarks>
+    public string? Script { get; private init; }
+
     /// <summary>The input ports, in port order.</summary>
     public IReadOnlyList<PortDefinition> Inputs { get; }
 
@@ -180,6 +191,41 @@ public sealed class NodeDefinition
 
         return [.. replicatingPorts.OrderBy(index => Inputs[index].ReplicationGuide ?? index).ThenBy(index => index)];
     }
+
+    /// <summary>
+    /// Builds a definition from what a script node factory worked out about a piece of source.
+    /// </summary>
+    /// <param name="source">What the factory inferred.</param>
+    /// <param name="script">The source itself, kept so the node can be saved.</param>
+    /// <returns>The definition.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="script"/> is null.</exception>
+    /// <remarks>
+    /// <b>The key carries a hash of the script</b> rather than being a fixed
+    /// <c>Spark.Scripting/CodeBlock</c>. The evaluation cache keys on the definition's key, so two
+    /// nodes with different code must not collide — and two nodes with the <i>same</i> code should,
+    /// which is what makes ten copies of a snippet compile and evaluate once rather than ten times.
+    /// </remarks>
+    public static NodeDefinition FromScript(NodeDefinitionSource source, string script)
+    {
+        ArgumentNullException.ThrowIfNull(script);
+
+        return new NodeDefinition(
+            new NodeKey(ScriptPackage, source.Name + "#" + source.ContentHash),
+            source.Name,
+            [.. source.Inputs.Select(port => new PortDefinition(
+                port.Name, port.ValueType, PortDefinition.RankOfType(port.ValueType), port.Description))],
+            [.. source.Outputs.Select(port => new PortDefinition(
+                port.Name, port.ValueType, PortDefinition.RankOfType(port.ValueType), port.Description))],
+            arguments => source.Invoke(arguments),
+            description: "A C# code block.",
+            category: NodeCategories.Script)
+        {
+            Script = script,
+        };
+    }
+
+    /// <summary>The package a code block's key belongs to.</summary>
+    public const string ScriptPackage = "Spark.Scripting";
 
     /// <inheritdoc/>
     public override string ToString() => Key.Value;

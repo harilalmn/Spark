@@ -1259,3 +1259,24 @@ because CsCheck deliberately generates values like `1e-15` that a uniform draw e
 produces. Running the suite forty times and reading the printed counterexample took two minutes and
 gave the answer outright. **The generator's seed is the evidence; a reproduction that stops failing
 is not the same as a cause.**
+
+---
+
+## N41 — A placeholder for *something that does not exist* must be something that cannot come to exist
+
+Twice now a test has broken because the value it used to mean *this does not exist* came to exist.
+
+- `GeometryJsonTests.AnUnknownTypeIsRefused` deserialised a type named `"NurbsCurve"` to prove an
+  unknown type is refused. It broke the day `NurbsCurve` was added.
+- `GraphNoteTests.AVersionNewerThanThisBuildIsStillRefused` read a file at `formatVersion: 3` to
+  prove a future version is refused. It broke the day the code block made version 3 current.
+
+Both failures are maximally confusing: the test names something real, the assertion is about
+something else entirely, and the failure arrives in a commit that had no business touching it. Both
+cost a few minutes of *is this a real regression?* at exactly the moment attention was elsewhere.
+
+**Do not reach for the next plausible name or number.** A planned type, the next version integer,
+the next error code — these are all things somebody will implement, and the test is a landmine with
+their name on it. Use something that cannot be overtaken: `999999` for a version,
+`"NotATypeThisBuildKnows"` for a type name. The absurdity is the point, and it wants a comment
+saying so, or a tidy-minded reader will make it plausible again.

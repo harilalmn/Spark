@@ -177,14 +177,21 @@ public sealed class GraphNoteTests
     }
 
     /// <summary>
-    /// The reader still refuses a version it does not know, and the bump to 2 did not quietly
-    /// widen that. A version-3 file is refused rather than partly read.
+    /// The reader refuses a version it does not know rather than partly reading it.
     /// </summary>
+    /// <remarks>
+    /// <b>The number is deliberately absurd.</b> This test said <c>3</c> when the current version
+    /// was 2, and broke the day scripts made 3 real — for a reason that had nothing to do with
+    /// what it checks. That is the second time a placeholder here has been overtaken by the thing
+    /// it was standing in for, the first being the type name in
+    /// <c>GeometryJsonTests.AnUnknownTypeIsRefused</c>. A stand-in for *something that does not
+    /// exist* must be something that cannot come to exist.
+    /// </remarks>
     [Fact]
     public void AVersionNewerThanThisBuildIsStillRefused()
     {
         Assert.Throws<SparkFileException>(
-            () => SparkFile.Read("""{"formatVersion": 3, "nodes": [], "wires": []}"""));
+            () => SparkFile.Read("""{"formatVersion": 999999, "nodes": [], "wires": []}"""));
     }
 
     /// <summary>

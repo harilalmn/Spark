@@ -24,13 +24,19 @@ namespace Spark.Engine;
 /// <param name="X">The node's left edge on the canvas.</param>
 /// <param name="Y">The node's top edge on the canvas.</param>
 /// <param name="Literals">The values typed into unwired input ports, sparsely — only ports that have one.</param>
+/// <param name="Script">
+/// The source of a code block, or <see langword="null"/> for every other kind of node. A code
+/// block's ports depend on what the user typed, so its definition cannot be looked up in a library
+/// and has to be rebuilt from this when the file is opened.
+/// </param>
 public sealed record GraphDocumentNode(
     NodeId Id,
     NodeKey Key,
     LacingMode Lacing,
     double X,
     double Y,
-    IReadOnlyList<GraphLiteral> Literals);
+    IReadOnlyList<GraphLiteral> Literals,
+    string? Script = null);
 
 /// <summary>One wire in a `.spark` file.</summary>
 /// <param name="Source">The node the wire leaves.</param>
@@ -132,7 +138,7 @@ public sealed class GraphDocument
     /// change and a release is a release, and tying them together makes every release a format
     /// question.
     /// </remarks>
-    public const int CurrentFormatVersion = 2;
+    public const int CurrentFormatVersion = 3;
 
     /// <summary>
     /// The version a document writes when it contains nothing that needs a newer reader.
@@ -150,6 +156,18 @@ public sealed class GraphDocument
 
     /// <summary>The first version whose reader understands notes.</summary>
     public const int NotesFormatVersion = 2;
+
+    /// <summary>
+    /// The first version whose reader understands a node carrying its own source.
+    /// </summary>
+    /// <remarks>
+    /// Three rather than two, and the rule is the same one notes established: a version-2 reader
+    /// does not know the <c>script</c> field exists, so it would open the file, show a code block
+    /// with no code in it, and write the code away on the next save. Sharing a version with notes
+    /// and groups would be convenient and wrong — they shipped, and a reader that shipped is a
+    /// reader that exists.
+    /// </remarks>
+    public const int ScriptsFormatVersion = 3;
 
     /// <summary>
     /// The first version whose reader understands groups. The same as
@@ -247,6 +265,7 @@ public sealed class GraphDocument
     /// </summary>
     /// <param name="notes">How many notes the document carries.</param>
     /// <param name="groups">How many groups it carries.</param>
+    /// <param name="scripts">How many of its nodes carry their own source.</param>
     /// <returns>
     /// <see cref="NotesFormatVersion"/> when there is anything a version-1 reader would drop,
     /// otherwise <see cref="BaselineFormatVersion"/>.
@@ -257,8 +276,15 @@ public sealed class GraphDocument
     /// outcome, and asking for it costs exactly this: writing 2 when, and only when, there is
     /// something a version-1 reader would throw away.
     /// </remarks>
-    public static int MinimumReaderVersion(int notes, int groups = 0) =>
-        notes > 0 || groups > 0 ? NotesFormatVersion : BaselineFormatVersion;
+    public static int MinimumReaderVersion(int notes, int groups = 0, int scripts = 0)
+    {
+        if (scripts > 0)
+        {
+            return ScriptsFormatVersion;
+        }
+
+        return notes > 0 || groups > 0 ? NotesFormatVersion : BaselineFormatVersion;
+    }
 
     /// <summary>
     /// Captures a live graph as a document, taking canvas positions from a lookup the caller owns.
@@ -335,7 +361,8 @@ public sealed class GraphDocument
                 instance.Lacing,
                 x,
                 y,
-                literals));
+                literals,
+                instance.Definition.Script));
         }
 
         List<GraphDocumentWire> wires =
@@ -344,8 +371,17 @@ public sealed class GraphDocument
                 new GraphDocumentWire(wire.Source, wire.SourcePort, wire.Target, wire.TargetPort)),
         ];
 
+        int scripts = 0;
+        foreach (GraphDocumentNode node in nodes)
+        {
+            if (node.Script is not null)
+            {
+                scripts++;
+            }
+        }
+
         return new GraphDocument(
-            MinimumReaderVersion(notes?.Count ?? 0, groups?.Count ?? 0), nodes, wires, notes, groups);
+            MinimumReaderVersion(notes?.Count ?? 0, groups?.Count ?? 0, scripts), nodes, wires, notes, groups);
     }
 
     /// <summary>
@@ -359,6 +395,11 @@ public sealed class GraphDocument
     /// behaviour `E3-T7` asks for and the reason <c>LoadWire</c> exists.
     /// </remarks>
     /// <param name="library">The library to bind definitions from.</param>
+    /// <param name="scripts">
+    /// How to turn a code block's source into a definition, or <see langword="null"/> when
+    /// scripting is not available. A document containing a code block is then refused rather than
+    /// opened with the node missing.
+    /// </param>
     /// <returns>The graph.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="library"/> is <see langword="null"/>.</exception>
     /// <exception cref="SparkFileException">
@@ -366,14 +407,46 @@ public sealed class GraphDocument
     /// (`E7`); until they exist, refusing loudly beats opening a graph with holes in it that look
     /// like the user's own doing.
     /// </exception>
-    public Graph Restore(NodeLibrary library)
+    public Graph Restore(NodeLibrary library, IScriptNodeFactory? scripts = null)
     {
         ArgumentNullException.ThrowIfNull(library);
 
         Graph graph = new();
         foreach (GraphDocumentNode node in _nodes)
         {
-            if (!library.TryGet(node.Key, out NodeDefinition? definition) || definition is null)
+            NodeDefinition? definition;
+
+            // A node carrying its own source is a code block, and its definition is built rather
+            // than looked up: its ports are whatever the user's identifiers imply, so no library
+            // could hold it.
+            if (node.Script is { } source)
+            {
+                if (scripts is null)
+                {
+                    throw new SparkFileException(new SparkDiagnostic(
+                        DiagnosticSeverity.Error,
+                        DiagnosticCodes.UnknownNodeDefinition,
+                        "This graph contains a code block and scripting is not available.",
+                        detail: "A Spark graph is executable code. Opening one with scripting "
+                            + "disabled refuses rather than dropping the executable parts, because "
+                            + "a graph silently missing a node is worse than one that will not open.",
+                        nodeId: node.Id.Value,
+                        helpTopicId: DiagnosticCodes.FileTopic));
+                }
+
+                definition = NodeDefinition.FromScript(scripts.Create(source), source);
+                graph.AddNode(definition, node.Id);
+                graph.SetLacing(node.Id, node.Lacing);
+
+                foreach (GraphLiteral literal in node.Literals)
+                {
+                    graph.SetLiteral(node.Id, literal.PortIndex, literal.Value);
+                }
+
+                continue;
+            }
+
+            if (!library.TryGet(node.Key, out definition) || definition is null)
             {
                 throw new SparkFileException(new SparkDiagnostic(
                     DiagnosticSeverity.Error,

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 13:30 +0530
+**Last updated:** 2026-08-31 14:30 +0530
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2 and M3 are done** — M3 closed on 2026-08-31. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. Next is **M4, the C# code block** |
-| **Working on** | Nothing. **M3 is done** |
+| **Working on** | Nothing. Between steps, inside M4 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | `E2-T12`, `E5-T13` and `E5-T16` — offset and fillet, the curated categories, and the watch row. **M3 is complete** |
+| **Last completed step** | M4 step **(a)** — the script-node seam: `IScriptNodeFactory`, per-instance definitions, format v3 |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **M4 — the C# code block**, which is epic [E6](EPICS.md). Read the `E6` rows in [TASKS.md](TASKS.md) before anything else, and re-read the **M1.5 spike (c)** journal entry and `CodeEditorSpikeTests` — that spike exists precisely to de-risk this milestone and its findings are executable. The hard part is **not** the editor: it is that a code block needs a **per-instance node definition**, and the engine has none — every `NodeDefinition` today is imported once from an assembly and shared. A block whose ports change as the user types is a definition that belongs to one node instance. Decide that shape first, because it reaches into `Graph`, the cache key and the `.spark` format, and it is far more expensive to change later than the Roslyn work is. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1368**: Geometry.Tests 584, Engine.Tests 332, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | M4 step **(b)**: **the Roslyn pipeline in `Spark.Scripting`** — the first real implementation of `IScriptNodeFactory`. Cheapest first: **`E6-T2` the reference catalog**, because nothing compiles without references and getting them wrong produces errors that look like the user's fault. Then **`E6-T5` semantic input-port inference** — compile once against the prelude, collect `CS0103`/`CS0117`, take the identifiers in source order. Then **`E6-T8` named-tuple outputs**. `E6-T3` the collectible load context can wait a step: a definition that never unloads is a leak, not a wrong answer, and `E6-T15`'s warning — delegates into user code pin the context — is the thing to get right when it lands. **Keep the stub factory in `ScriptNodeSeamTests`**: it tests the seam without Roslyn and should go on doing that. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1376**: Geometry.Tests 584, Engine.Tests 340, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -106,6 +106,12 @@ Discovered the hard way, and each one costs an hour if rediscovered.
   unaided. That was the cheapest thing that could have failed before M1.6, and it did not.
   **OCCT is a different order of magnitude** — 47 toolkits against zlib's one — so this says the
   pipeline works, not that the OCCT build will.
+- **RCS, CADScript and DoodleSharp are not on this machine**, and neither is C2VGeometry. Five `E6`
+  rows say *port X from RCS* or *from CADScript* — `E6-T1`, `E6-T2`, `E6-T3`, `E6-T4`, `E6-T13`.
+  **Porting is a strategy, not the deliverable**, so those are written from scratch here against
+  the behaviour the rows describe. Where a row names a specific lesson from the original — the
+  non-locking read, the uncleaned registry pinning a collectible context — that lesson is the part
+  worth keeping and it is in the row.
 - **No `gh` CLI**, so CI results cannot be read from here. A run's outcome has to be pasted in.
 - **The nightly benchmark workflow has never run on a hosted runner.** `E8-T15` closes on its
   first green run, and the canvas step is the part that might not survive a runner with no GPU.
@@ -1426,3 +1432,52 @@ curated node categories.
 point of the offset is the offset distance from the original — rather than comparing against a
 hand-computed shape, and the fillet tests check tangency directly by measuring the arc's centre
 against both original lines.
+
+### 2026-08-31 — M4 begins at the seam, not at the editor
+
+**The journal's next action said to decide the shape before touching Roslyn, because it reaches
+into `Graph`, the cache key and the file format.** It does, and the decision is made.
+
+**Half of it was already true.** `Graph.AddNode` takes a `NodeDefinition` and nothing requires that
+definition to have come from a library — so per-instance definitions needed no change at all. What
+needed changing was the *file*: a node was looked up by key on open, and a code block's definition
+does not exist to be looked up. `GraphDocumentNode` carries `Script` now, and `Restore` rebuilds the
+definition from it.
+
+**Rebuilding needs Roslyn, and a graph of boxes and circles must never load Roslyn** — `E6-T14`
+states it. So `Restore` takes an **`IScriptNodeFactory`**: the engine holds the contract, the host
+supplies an implementation, and a document with no scripts never asks. `Spark.Engine` does not
+reference `Spark.Scripting` and still does not.
+
+**That same seam gives `E6-T16` its meaning at the right place.** Running with scripting disabled
+*is* passing no factory, and a graph containing a code block then **refuses to open, naming the
+node**. It does not open with the node quietly missing — a Spark graph is executable code, and a
+switch that silently dropped the executable parts would be worse than no switch.
+
+**Format version 3, by the rule notes established.** A version-2 reader does not know the `script`
+field exists; it would open the graph, show an empty code block, and write the code away on the next
+save. Sharing version 2 would have been convenient and wrong — versions 1 and 2 have shipped, and a
+reader that shipped is a reader that exists. A graph with no code block is still version 1, byte for
+byte.
+
+**The key carries a hash of the script.** The evaluation cache keys on the definition's key, so two
+blocks with different code must not collide — and two with the *same* code should, which is
+`E6-T10`'s *identical text in ten nodes compiles once* falling out of the design rather than being
+added to it.
+
+**One test broke, and it is the second time this exact trap has fired.**
+`AVersionNewerThanThisBuildIsStillRefused` read a file at `formatVersion: 3` to prove a future
+version is refused, and version 3 became real today. The first was `AnUnknownTypeIsRefused` naming
+`"NurbsCurve"`. Written up as
+[N41](NOTES.md#n41--a-placeholder-for-something-that-does-not-exist-must-be-something-that-cannot-come-to-exist):
+**a stand-in for something that does not exist must be something that cannot come to exist.**
+
+**Also recorded in the environment facts: RCS, CADScript and DoodleSharp are not on this machine.**
+Five `E6` rows say *port X from* one of them. Porting is a strategy and not the deliverable, so
+those get written here against the behaviour the rows describe — and where a row names a specific
+lesson from the original, that lesson is the part worth keeping.
+
+**Verified.** Build clean with `-warnaserror`; **1376 tests, 0 failures** (1368 + 8);
+`dotnet format` clean. The seam is tested with a stub factory containing no compiler at all, which
+is the point: none of it waits on Roslyn, and it should go on testing the seam after the real
+factory exists.

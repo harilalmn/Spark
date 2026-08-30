@@ -17,6 +17,8 @@ Spark.Api.Displayable.Displayable(object! geometry, Spark.Api.Appearance! appear
 Spark.Api.Displayable.Geometry.get -> object!
 Spark.Api.IEvaluationScheduler
 Spark.Api.IEvaluationScheduler.Run(System.Collections.Generic.IReadOnlyList<System.Action!>! operations, System.Threading.CancellationToken cancellationToken) -> void
+Spark.Api.IScriptNodeFactory
+Spark.Api.IScriptNodeFactory.Create(string! script) -> Spark.Api.NodeDefinitionSource
 Spark.Api.KeepStructureAttribute
 Spark.Api.KeepStructureAttribute.KeepStructureAttribute() -> void
 Spark.Api.LacingMode
@@ -28,6 +30,21 @@ Spark.Api.LacingMode.Shortest = 1 -> Spark.Api.LacingMode
 Spark.Api.NoReplicationAttribute
 Spark.Api.NoReplicationAttribute.NoReplicationAttribute() -> void
 Spark.Api.NodeCategories
+Spark.Api.NodeDefinitionSource
+Spark.Api.NodeDefinitionSource.ContentHash.get -> string!
+Spark.Api.NodeDefinitionSource.ContentHash.init -> void
+Spark.Api.NodeDefinitionSource.Deconstruct(out string! Name, out string! ContentHash, out System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>! Inputs, out System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>! Outputs, out System.Func<object?[]!, object?[]!>! Invoke) -> void
+Spark.Api.NodeDefinitionSource.Equals(Spark.Api.NodeDefinitionSource other) -> bool
+Spark.Api.NodeDefinitionSource.Inputs.get -> System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>!
+Spark.Api.NodeDefinitionSource.Inputs.init -> void
+Spark.Api.NodeDefinitionSource.Invoke.get -> System.Func<object?[]!, object?[]!>!
+Spark.Api.NodeDefinitionSource.Invoke.init -> void
+Spark.Api.NodeDefinitionSource.Name.get -> string!
+Spark.Api.NodeDefinitionSource.Name.init -> void
+Spark.Api.NodeDefinitionSource.NodeDefinitionSource() -> void
+Spark.Api.NodeDefinitionSource.NodeDefinitionSource(string! Name, string! ContentHash, System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>! Inputs, System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>! Outputs, System.Func<object?[]!, object?[]!>! Invoke) -> void
+Spark.Api.NodeDefinitionSource.Outputs.get -> System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>!
+Spark.Api.NodeDefinitionSource.Outputs.init -> void
 Spark.Api.NodeIgnoreAttribute
 Spark.Api.NodeIgnoreAttribute.NodeIgnoreAttribute(string! reason) -> void
 Spark.Api.NodeIgnoreAttribute.Reason.get -> string!
@@ -53,6 +70,17 @@ Spark.Api.Rgba.Green.get -> byte
 Spark.Api.Rgba.Red.get -> byte
 Spark.Api.Rgba.Rgba() -> void
 Spark.Api.Rgba.Rgba(byte red, byte green, byte blue, byte alpha = 255) -> void
+Spark.Api.ScriptPort
+Spark.Api.ScriptPort.Deconstruct(out string! Name, out System.Type! ValueType, out string? Description) -> void
+Spark.Api.ScriptPort.Description.get -> string?
+Spark.Api.ScriptPort.Description.init -> void
+Spark.Api.ScriptPort.Equals(Spark.Api.ScriptPort other) -> bool
+Spark.Api.ScriptPort.Name.get -> string!
+Spark.Api.ScriptPort.Name.init -> void
+Spark.Api.ScriptPort.ScriptPort() -> void
+Spark.Api.ScriptPort.ScriptPort(string! Name, System.Type! ValueType, string? Description = null) -> void
+Spark.Api.ScriptPort.ValueType.get -> System.Type!
+Spark.Api.ScriptPort.ValueType.init -> void
 Spark.Api.ShowsValueAttribute
 Spark.Api.ShowsValueAttribute.ShowsValueAttribute() -> void
 Spark.Api.SparkDiagnostic
@@ -95,15 +123,21 @@ const Spark.Api.NodeCategories.Solid = "Solid" -> string!
 const Spark.Api.ValueText.FullLength = 20000 -> int
 const Spark.Api.ValueText.SummaryLength = 60 -> int
 override Spark.Api.Displayable.ToString() -> string!
+override Spark.Api.NodeDefinitionSource.GetHashCode() -> int
 override Spark.Api.Rgba.Equals(object? obj) -> bool
 override Spark.Api.Rgba.GetHashCode() -> int
 override Spark.Api.Rgba.ToString() -> string!
+override Spark.Api.ScriptPort.GetHashCode() -> int
 override Spark.Api.SparkDiagnostic.ToString() -> string!
 override Spark.Api.SparkList.ToString() -> string!
 static Spark.Api.Appearance.Default.get -> Spark.Api.Appearance!
 static Spark.Api.Displayable.Unwrap(object? value) -> object?
+static Spark.Api.NodeDefinitionSource.operator !=(Spark.Api.NodeDefinitionSource left, Spark.Api.NodeDefinitionSource right) -> bool
+static Spark.Api.NodeDefinitionSource.operator ==(Spark.Api.NodeDefinitionSource left, Spark.Api.NodeDefinitionSource right) -> bool
 static Spark.Api.Rgba.operator !=(Spark.Api.Rgba left, Spark.Api.Rgba right) -> bool
 static Spark.Api.Rgba.operator ==(Spark.Api.Rgba left, Spark.Api.Rgba right) -> bool
+static Spark.Api.ScriptPort.operator !=(Spark.Api.ScriptPort left, Spark.Api.ScriptPort right) -> bool
+static Spark.Api.ScriptPort.operator ==(Spark.Api.ScriptPort left, Spark.Api.ScriptPort right) -> bool
 static Spark.Api.SparkDiagnostic.FormatElementPath(System.Collections.Generic.IReadOnlyList<int>! elementPath) -> string!
 static Spark.Api.SparkList.Empty(int rank) -> Spark.Api.SparkList!
 static Spark.Api.SparkList.Of(params object?[]! items) -> Spark.Api.SparkList!
@@ -112,3 +146,7 @@ static Spark.Api.ValueText.Full(object? value) -> string!
 static Spark.Api.ValueText.Shape(int rank, int count) -> string!
 static Spark.Api.ValueText.Shape(object? value) -> string!
 static Spark.Api.ValueText.Summary(object? value) -> string?
+~override Spark.Api.NodeDefinitionSource.Equals(object obj) -> bool
+~override Spark.Api.NodeDefinitionSource.ToString() -> string
+~override Spark.Api.ScriptPort.Equals(object obj) -> bool
+~override Spark.Api.ScriptPort.ToString() -> string
