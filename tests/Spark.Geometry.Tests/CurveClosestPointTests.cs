@@ -175,6 +175,60 @@ public sealed class CurveClosestPointTests
         Assert.Equal(2.0, circle.DistanceTo(outside), 6);
     }
 
+    /// <summary>
+    /// <b>The regression for a curve whose speed jumps between spans.</b> A polyline of segments
+    /// 1, 1, 98, 1, 1 units long covers each in the same amount of parameter, so a sweep uniform in
+    /// parameter puts a hundredth of its samples per unit length on the long one — and a query
+    /// point sitting <i>on</i> that segment was answered from a different segment entirely, more
+    /// than a unit away.
+    /// </summary>
+    /// <remarks>
+    /// Found by an interpolation test that was looking for an overshoot and found a closest-point
+    /// bug instead. The fix is to sample per span and to narrow the bracket without derivatives,
+    /// because at a span boundary the derivative belongs to whichever side the curve reports and a
+    /// Newton step computed from it can point away from the answer.
+    /// </remarks>
+    [Fact]
+    public void ASegmentAHundredTimesLongerThanItsNeighboursIsStillSearched()
+    {
+        PolyLine uneven = new(
+        [
+            new Point3d(0, 0, 0), new Point3d(1, 0, 0), new Point3d(2, 0, 0),
+            new Point3d(100, 0, 0), new Point3d(101, 0, 0), new Point3d(102, 0, 0),
+        ]);
+
+        // Every point along the line is on the polyline, so every distance must be zero.
+        for (int i = 0; i <= 400; i++)
+        {
+            Point3d on = new(102.0 * i / 400.0, 0, 0);
+
+            Assert.True(
+                uneven.DistanceTo(on) < 1e-9,
+                $"A point at x = {on.X} lying on the polyline is reported {uneven.DistanceTo(on)} away.");
+        }
+    }
+
+    /// <summary>The same shape as a NURBS curve, where the spans are knots rather than vertices.</summary>
+    [Fact]
+    public void ANurbsCurveWithVeryUnevenSpansIsStillSearched()
+    {
+        NurbsCurve curve = NurbsCurve.InterpolatePoints(
+        [
+            new Point3d(0, 0, 0), new Point3d(1, 0, 0), new Point3d(2, 0, 0),
+            new Point3d(100, 0, 0), new Point3d(101, 0, 0), new Point3d(102, 0, 0),
+        ],
+            3);
+
+        for (int i = 0; i <= 400; i++)
+        {
+            Point3d on = curve.PointAt(curve.Domain.Min + (curve.Domain.Length * i / 400.0));
+
+            Assert.True(
+                curve.DistanceTo(on) < 1e-7,
+                $"A point on the curve at {on} is reported {curve.DistanceTo(on)} away from it.");
+        }
+    }
+
     private static Point3d[] Probes() =>
     [
         new(0, 0, 0),

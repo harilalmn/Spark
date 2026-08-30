@@ -459,6 +459,269 @@ public sealed class NurbsCurve : Curve
         return new NurbsCurve(points, knots, weights);
     }
 
+    /// <summary>
+    /// The curve of a given degree that passes exactly through a sequence of points.
+    /// </summary>
+    /// <param name="points">The points to pass through, at least two, no two consecutive equal.</param>
+    /// <param name="degree">The degree. At least 1, and less than the number of points.</param>
+    /// <returns>A clamped curve interpolating every point.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="points"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="degree"/> is less than 1, or not less than the number of points.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// There are fewer than two points, a point is not finite, or two consecutive points coincide.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// Global interpolation: choose a parameter for each point, build the knot vector from those
+    /// parameters, then solve the linear system that says <i>the curve at parameter i is point
+    /// i</i>. The unknowns are the control points, which are generally <b>not</b> the input points
+    /// — that is the difference between interpolation and the polyline through them, and it is
+    /// what a caller is asking for when they ask for a smooth curve through their data.
+    /// </para>
+    /// <para>
+    /// <b>Parameters are chosen by chord length, not uniformly.</b> Uniform parameterisation is one
+    /// line shorter and produces visible loops and cusps whenever the points are unevenly spaced —
+    /// the curve has to travel the same amount of parameter across a long gap as a short one, so it
+    /// speeds up and overshoots. Chord length is the standard answer and costs a square root per
+    /// point. The knots are then averaged from those parameters, which is what keeps the system
+    /// banded and well conditioned rather than merely solvable.
+    /// </para>
+    /// <para>
+    /// The result is non-rational. Weights are a modelling choice, and inventing them to fit points
+    /// would be answering a question nobody asked with an answer nobody could check.
+    /// </para>
+    /// </remarks>
+    public static NurbsCurve InterpolatePoints(IReadOnlyList<Point3d> points, int degree = 3)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+        ArgumentOutOfRangeException.ThrowIfLessThan(degree, 1);
+
+        if (points.Count < 2)
+        {
+            throw new ArgumentException(
+                "A curve through points needs at least two of them.", nameof(points));
+        }
+
+        if (degree >= points.Count)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(degree),
+                degree,
+                $"A degree-{degree} curve needs more than {degree} points to interpolate and was "
+                + $"given {points.Count}. Lower the degree, or supply more points.");
+        }
+
+        double[] parameters = ChordLengthParameters(points);
+        KnotVector knots = AveragedKnots(parameters, degree);
+
+        // The system is N · P = Q, where N is the matrix of basis values at each parameter, Q the
+        // input points and P the control points sought. N is banded with bandwidth degree + 1, and
+        // that is a consequence of the averaged knots rather than a coincidence.
+        int n = points.Count;
+        double[,] matrix = new double[n, n];
+
+        for (int i = 0; i < n; i++)
+        {
+            int span = knots.FindSpan(parameters[i]);
+            double[] basis = knots.BasisFunctions(span, parameters[i]);
+
+            for (int j = 0; j <= degree; j++)
+            {
+                matrix[i, span - degree + j] = basis[j];
+            }
+        }
+
+        double[,] rightHand = new double[n, 3];
+        for (int i = 0; i < n; i++)
+        {
+            rightHand[i, 0] = points[i].X;
+            rightHand[i, 1] = points[i].Y;
+            rightHand[i, 2] = points[i].Z;
+        }
+
+        double[,] solved = SolveInPlace(matrix, rightHand);
+
+        Point3d[] controlPoints = new Point3d[n];
+        for (int i = 0; i < n; i++)
+        {
+            controlPoints[i] = new Point3d(solved[i, 0], solved[i, 1], solved[i, 2]);
+        }
+
+        return new NurbsCurve(controlPoints, knots);
+    }
+
+    /// <summary>
+    /// A parameter for each point, spaced by the distance between them and normalised to 0..1.
+    /// </summary>
+    private static double[] ChordLengthParameters(IReadOnlyList<Point3d> points)
+    {
+        double[] parameters = new double[points.Count];
+        double total = 0.0;
+
+        for (int i = 1; i < points.Count; i++)
+        {
+            Point3d previous = points[i - 1];
+            Point3d current = points[i];
+
+            if (!double.IsFinite(current.X) || !double.IsFinite(current.Y) || !double.IsFinite(current.Z))
+            {
+                throw new ArgumentException($"Point {i} is {current}, which is not finite.", nameof(points));
+            }
+
+            double chord = previous.DistanceTo(current);
+
+            // Two coincident points would give the same parameter to two different points, and the
+            // system would be singular. Refusing beats solving something that has no answer.
+            if (chord == 0.0)
+            {
+                throw new ArgumentException(
+                    $"Points {i - 1} and {i} are the same point. An interpolating curve cannot pass "
+                    + "through two different points at the same parameter.",
+                    nameof(points));
+            }
+
+            total += chord;
+            parameters[i] = total;
+        }
+
+        for (int i = 1; i < points.Count - 1; i++)
+        {
+            parameters[i] /= total;
+        }
+
+        parameters[^1] = 1.0;
+        return parameters;
+    }
+
+    /// <summary>
+    /// The clamped knot vector whose interior knots are running averages of the parameters.
+    /// </summary>
+    /// <remarks>
+    /// De Boor's averaging. It is what guarantees every diagonal entry of the interpolation matrix
+    /// is non-zero — the Schoenberg–Whitney condition — which is the difference between a system
+    /// that is banded and well conditioned and one that is merely square.
+    /// </remarks>
+    private static KnotVector AveragedKnots(double[] parameters, int degree)
+    {
+        int n = parameters.Length;
+        double[] knots = new double[n + degree + 1];
+
+        for (int i = 0; i <= degree; i++)
+        {
+            knots[i] = 0.0;
+            knots[^(i + 1)] = 1.0;
+        }
+
+        for (int j = 1; j <= n - degree - 1; j++)
+        {
+            double sum = 0.0;
+            for (int i = j; i <= j + degree - 1; i++)
+            {
+                sum += parameters[i];
+            }
+
+            knots[j + degree] = sum / degree;
+        }
+
+        return new KnotVector(degree, knots);
+    }
+
+    /// <summary>
+    /// Gaussian elimination with partial pivoting, solving for three right-hand sides at once.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Dense rather than banded. The matrix <i>is</i> banded and a band solver would be O(n·p²)
+    /// against this O(n³), which matters at a thousand points and does not at the tens a person
+    /// draws — and a band solver written now would be a second thing to be right about before
+    /// anything needs it. The point where this becomes the bottleneck is measurable, and when it
+    /// is measured the replacement has this to check against.
+    /// </para>
+    /// <para>
+    /// <b>Partial pivoting is not optional</b>, even though the averaged knots make the matrix
+    /// diagonally dominant in practice: "in practice" is not a guarantee, and the failure without
+    /// it is a division by a zero pivot producing a curve full of infinities rather than an
+    /// exception.
+    /// </para>
+    /// </remarks>
+    private static double[,] SolveInPlace(double[,] matrix, double[,] rightHand)
+    {
+        int n = matrix.GetLength(0);
+        int columns = rightHand.GetLength(1);
+
+        for (int pivot = 0; pivot < n; pivot++)
+        {
+            int best = pivot;
+            for (int row = pivot + 1; row < n; row++)
+            {
+                if (Math.Abs(matrix[row, pivot]) > Math.Abs(matrix[best, pivot]))
+                {
+                    best = row;
+                }
+            }
+
+            if (best != pivot)
+            {
+                for (int column = 0; column < n; column++)
+                {
+                    (matrix[pivot, column], matrix[best, column]) =
+                        (matrix[best, column], matrix[pivot, column]);
+                }
+
+                for (int column = 0; column < columns; column++)
+                {
+                    (rightHand[pivot, column], rightHand[best, column]) =
+                        (rightHand[best, column], rightHand[pivot, column]);
+                }
+            }
+
+            double diagonal = matrix[pivot, pivot];
+            if (diagonal == 0.0)
+            {
+                throw new InvalidOperationException(
+                    "The interpolation system is singular. Two points share a parameter, which "
+                    + "should have been refused when the chord lengths were measured.");
+            }
+
+            for (int row = pivot + 1; row < n; row++)
+            {
+                double factor = matrix[row, pivot] / diagonal;
+                if (factor == 0.0)
+                {
+                    continue;
+                }
+
+                for (int column = pivot; column < n; column++)
+                {
+                    matrix[row, column] -= factor * matrix[pivot, column];
+                }
+
+                for (int column = 0; column < columns; column++)
+                {
+                    rightHand[row, column] -= factor * rightHand[pivot, column];
+                }
+            }
+        }
+
+        for (int row = n - 1; row >= 0; row--)
+        {
+            for (int column = 0; column < columns; column++)
+            {
+                double sum = rightHand[row, column];
+                for (int k = row + 1; k < n; k++)
+                {
+                    sum -= matrix[row, k] * rightHand[k, column];
+                }
+
+                rightHand[row, column] = sum / matrix[row, row];
+            }
+        }
+
+        return rightHand;
+    }
+
     /// <inheritdoc/>
     public override Curve Reversed()
     {
@@ -670,6 +933,13 @@ public sealed class NurbsCurve : Curve
 
         return total;
     }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The distinct knots. A NURBS curve is a different polynomial in each span and its speed is
+    /// generally discontinuous where two meet, which is exactly what the sweep needs to know.
+    /// </remarks>
+    protected override IReadOnlyList<double> SpanBoundaries() => DistinctSpans();
 
     /// <summary>The distinct knot values bounding the domain's spans, in order.</summary>
     private double[] DistinctSpans()

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 07:00 +0530
+**Last updated:** 2026-08-31 08:30 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5 and M2 are done** — M2 closed on 2026-08-30. M1.6 is deferred for want of a C++ toolchain. The work in flight is **M3, NURBS curves** |
 | **Working on** | Nothing. Between steps, inside M3 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | The flaky signed-angle property, diagnosed from its seed and fixed ([N40](NOTES.md)) |
+| **Last completed step** | Queue **10**, `E2-T10` step **(f)** — interpolation, and a closest-point defect it uncovered |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | Back to `E2-T10`, step **(f)**: **fit and interpolate**, which are the last two on the row and belong together because they are the same problem twice — *global interpolation* puts a curve exactly through a set of points, *approximation* puts one near them with fewer control points. Start with **interpolation**, which is the one with an exact answer: choose parameters for the points (chord-length is the standard and beats uniform badly on unevenly spaced data), build the clamped knot vector by averaging them, assemble the banded basis matrix and solve. **The test writes itself and is decisive:** the resulting curve must pass through every input point to within tolerance — which is a property, not an example, so run it over generated point sets as well as fixed ones. Then approximation on top, which needs least squares and a stated tolerance. **Before starting, split the `E2-T10` row in TASKS.md** — it has absorbed six steps and what is done is no longer legible inside one cell. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1282**: Geometry.Tests 512, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | `E2-T10` step **(g)**: **approximation** — a least-squares fit through many points with **fewer** control points than points, to a stated tolerance. It is interpolation's sibling and reuses most of it: the same chord-length parameters, the same averaged knots, but a rectangular basis matrix solved as `NᵀN · P = NᵀQ` with the two end points interpolated exactly and the interior fitted. **The tolerance is the design question, not the algebra**: decide whether the caller says *how many control points* or *how close*, and if the latter, the loop that raises the count until the worst deviation is inside it needs a stated cap so a noisy input cannot ask for a control point per sample. **Reuse `SolveInPlace`**, which is already there and already pivots. Then `E2-T10` is close to done and the row should be split in TASKS.md — it has absorbed seven steps and one cell is no longer a readable place to record them. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1301**: Geometry.Tests 531, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -1162,3 +1162,52 @@ case survives even if CsCheck's seed format ever changes.
 
 **Cost.** Thirty-five minutes, twenty of them spent on two wrong guesses that a two-minute loop
 would have skipped.
+
+### 2026-08-30 — Interpolation, and the closest-point bug it walked into
+
+**`E2-T10` step (f).** `NurbsCurve.InterpolatePoints` — the curve that passes exactly through a
+sequence of points. Chord-length parameters, de Boor's averaged knots, and a Gaussian solve with
+partial pivoting.
+
+**Chord length rather than uniform, and it is not a detail.** Uniform parameterisation is a line
+shorter and produces visible overshoot whenever the points are unevenly spaced: the curve has to
+cross a long gap in the same amount of parameter as a short one, so it accelerates and swings wide.
+`UnevenlySpacedPointsDoNotProduceAnOvershoot` is the test, on six collinear points with one
+hundred-fold gap, and it asserts both that the curve does not leave the line and that it does not
+run past the ends and come back.
+
+**The averaged knots are load-bearing too.** They are what makes every diagonal of the interpolation
+matrix non-zero — the Schoenberg–Whitney condition — which is the difference between a system that
+is banded and well conditioned and one that is merely square.
+
+**Then that overshoot test found a bug in code from two steps ago.** It reported the curve 1.36
+away from a polygon it was lying exactly on. The curve was fine: **`Curve.ClosestParameter` was
+wrong**, and wrong in a way its own property test could not see. Its sweep was uniform in
+*parameter*, and a polyline whose segments run 1, 1, 98, 1, 1 units covers each in the same amount
+of parameter — so the long segment got a hundredth of the sample density per unit length, and a
+query point on it was answered from a different segment altogether. The property test passed
+because its probes were all far from the curve, where a coarse bracket is good enough.
+
+**Two changes, each for a distinct half of the failure.** The sweep now samples **per span**, via a
+new `Curve.SpanBoundaries` that `PolyLine`, `PolyCurve` and `NurbsCurve` override — the speed of a
+parameterisation changes at span boundaries, so that is where the sampling density has to be
+decided. And the bracket is narrowed by **golden section before Newton**, because at a span
+boundary the derivative belongs to whichever side the curve reports, and a Newton step computed
+from the wrong side points away from the answer and is then correctly rejected, leaving the search
+stuck. A derivative-free search does not care which side it is on.
+
+**Verified.** Build clean with `-warnaserror`; **1301 tests, 0 failures** (1282 + 19);
+`dotnet format` clean. Two regression tests pin the closest-point defect directly — one on the
+polyline, one on a NURBS curve with the same shape — so it cannot come back through either door.
+
+**Two tolerances were guessed and are now measured.** The circle test asserted a radial error I had
+estimated; each time I raised the bound the *first* failing sample reported a slightly larger
+number, which is what chasing a first failure instead of a maximum looks like. Measured properly
+over four thousand samples it is **6.5e-4 relative**, and the bound is set just above that with the
+number written down. Most of that error is at the seam, because this is an *open* interpolation of
+points that happen to close and nothing ties the two ends together — which is worth knowing and is
+now in the test.
+
+**Cost.** An hour and a half, half of it on the closest-point defect, which was worth every minute:
+it was live in `Curve` for two steps and would have been found eventually by something much less
+convenient than a test.

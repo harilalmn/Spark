@@ -276,6 +276,22 @@ public sealed class PolyLine : Curve
     public override Point3d[] Tessellate(in Tolerance tolerance = default) => [.. _points];
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// One boundary per vertex. A polyline's speed changes at every one of them, and its segments
+    /// can differ in length by any factor at all.
+    /// </remarks>
+    protected override IReadOnlyList<double> SpanBoundaries()
+    {
+        double[] boundaries = new double[_points.Length];
+        for (int i = 0; i < boundaries.Length; i++)
+        {
+            boundaries[i] = i;
+        }
+
+        return boundaries;
+    }
+
+    /// <inheritdoc/>
     public override Curve Reversed()
     {
         Point3d[] reversed = new Point3d[_points.Length];

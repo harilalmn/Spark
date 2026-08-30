@@ -274,26 +274,145 @@ public abstract class Curve
     /// </remarks>
     public virtual double ClosestParameter(in Point3d point)
     {
-        Interval domain = Domain;
-        int samples = Math.Max(MinimumClosestPointSamples, TessellationSeedSpans * 8);
+        double[] samples = ClosestPointSweep();
 
-        double best = domain.Min;
+        int best = 0;
         double bestDistance = double.PositiveInfinity;
 
-        for (int i = 0; i <= samples; i++)
+        for (int i = 0; i < samples.Length; i++)
         {
-            double t = domain.Min + (domain.Length * i / samples);
-            double distance = Evaluate(t).DistanceSquaredTo(point);
+            double distance = Evaluate(samples[i]).DistanceSquaredTo(point);
 
             if (distance < bestDistance)
             {
                 bestDistance = distance;
-                best = t;
+                best = i;
             }
         }
 
-        return RefineClosest(best, point);
+        // The bracket is the interval between the two neighbouring samples, whatever spans they
+        // fall in. Deriving it from the current span's spacing instead is wrong exactly where it
+        // matters: when the best sample sits on a boundary between a short span and a long one,
+        // the bracket comes out the width of the short span and the answer, one sample into the
+        // long one, is unreachable.
+        double low = samples[Math.Max(0, best - 1)];
+        double high = samples[Math.Min(samples.Length - 1, best + 1)];
+
+        // Narrow the bracket without derivatives first. At a span boundary the derivative is
+        // whichever side the curve reports, and if the answer is on the other side a Newton step
+        // computed from it points the wrong way — on a polyline whose segments differ by a factor
+        // of a hundred that is not a small error, it is the whole answer. A golden-section search
+        // does not care which side it is on.
+        (double narrowLow, double narrowHigh) = NarrowClosestBracket(low, high, point);
+
+        double seed = Evaluate(narrowLow).DistanceSquaredTo(point)
+            <= Evaluate(narrowHigh).DistanceSquaredTo(point)
+                ? narrowLow
+                : narrowHigh;
+
+        return RefineClosest(seed, narrowLow, narrowHigh, point);
     }
+
+    /// <summary>
+    /// Golden-section search on the distance, narrowing a bracket without using derivatives.
+    /// </summary>
+    /// <param name="low">The lower end of the bracket.</param>
+    /// <param name="high">The upper end.</param>
+    /// <param name="point">The point being measured from.</param>
+    /// <returns>A much smaller bracket around the nearest parameter.</returns>
+    /// <remarks>
+    /// Golden section rather than bisection because it needs one new evaluation per iteration
+    /// instead of two, and evaluating a curve is the expensive part of this whole operation.
+    /// </remarks>
+    private (double Low, double High) NarrowClosestBracket(double low, double high, in Point3d point)
+    {
+        const double InverseGolden = 0.6180339887498949;
+
+        double a = low;
+        double b = high;
+        double c = b - ((b - a) * InverseGolden);
+        double d = a + ((b - a) * InverseGolden);
+        double fc = Evaluate(c).DistanceSquaredTo(point);
+        double fd = Evaluate(d).DistanceSquaredTo(point);
+
+        for (int i = 0; i < ClosestPointBracketSteps; i++)
+        {
+            if (fc < fd)
+            {
+                b = d;
+                d = c;
+                fd = fc;
+                c = b - ((b - a) * InverseGolden);
+                fc = Evaluate(c).DistanceSquaredTo(point);
+            }
+            else
+            {
+                a = c;
+                c = d;
+                fc = fd;
+                d = a + ((b - a) * InverseGolden);
+                fd = Evaluate(d).DistanceSquaredTo(point);
+            }
+        }
+
+        return (a, b);
+    }
+
+    /// <summary>
+    /// The parameters the closest-point sweep evaluates: every span boundary, and
+    /// <see cref="ClosestPointSamplesPerSpan"/> steps within each span.
+    /// </summary>
+    /// <returns>The parameters, strictly increasing.</returns>
+    private double[] ClosestPointSweep()
+    {
+        IReadOnlyList<double> spans = SpanBoundaries();
+        List<double> samples = new((spans.Count - 1) * ClosestPointSamplesPerSpan);
+
+        samples.Add(spans[0]);
+
+        for (int span = 0; span + 1 < spans.Count; span++)
+        {
+            double from = spans[span];
+            double width = spans[span + 1] - from;
+
+            for (int i = 1; i <= ClosestPointSamplesPerSpan; i++)
+            {
+                double t = i == ClosestPointSamplesPerSpan
+                    ? spans[span + 1]
+                    : from + (width * i / ClosestPointSamplesPerSpan);
+
+                // A span of zero width contributes nothing but repeats, and a repeated sample
+                // makes the bracket below collapse to a point.
+                if (t > samples[^1])
+                {
+                    samples.Add(t);
+                }
+            }
+        }
+
+        return [.. samples];
+    }
+
+    /// <summary>
+    /// The parameters at which the curve's speed may change discontinuously — segment ends, knots,
+    /// the domain's own ends.
+    /// </summary>
+    /// <returns>The boundaries in increasing order, always at least the two domain ends.</returns>
+    /// <remarks>
+    /// <para>
+    /// Used to sample the closest-point sweep <b>per span rather than per domain</b>, and that
+    /// distinction is not academic. A polyline whose segments run 1, 1, 98, 1, 1 units long covers
+    /// each in the same amount of parameter, so a sweep uniform in parameter puts a hundredth of
+    /// its samples per unit length on the long segment and one per unit on the short ones — and a
+    /// query near the start of the long segment is answered from the wrong segment entirely. That
+    /// was a real defect, found by an interpolation test that was looking for something else.
+    /// </para>
+    /// <para>
+    /// The default is the two ends, which is right for anything with one smooth piece. Curves made
+    /// of pieces override it.
+    /// </para>
+    /// </remarks>
+    protected virtual IReadOnlyList<double> SpanBoundaries() => [Domain.Min, Domain.Max];
 
     /// <summary>The point on the curve nearest a given point.</summary>
     /// <param name="point">The point to measure from.</param>
@@ -309,6 +428,8 @@ public abstract class Curve
     /// Newton's method on the perpendicularity condition, from a bracketed start.
     /// </summary>
     /// <param name="start">A parameter already known to be in the right basin.</param>
+    /// <param name="low">The lower end of the bracket the refinement may not leave.</param>
+    /// <param name="high">The upper end of the bracket.</param>
     /// <param name="point">The point being measured from.</param>
     /// <returns>The refined parameter, inside the domain.</returns>
     /// <remarks>
@@ -324,9 +445,8 @@ public abstract class Curve
     /// breaks the only property anybody checks: that nothing sampled is nearer.
     /// </para>
     /// </remarks>
-    private double RefineClosest(double start, in Point3d point)
+    private double RefineClosest(double start, double low, double high, in Point3d point)
     {
-        Interval domain = Domain;
         double t = start;
         double distance = Evaluate(t).DistanceSquaredTo(point);
 
@@ -344,7 +464,7 @@ public abstract class Curve
                 break;
             }
 
-            double next = Math.Clamp(t - (f / df), domain.Min, domain.Max);
+            double next = Math.Clamp(t - (f / df), low, high);
             double nextDistance = Evaluate(next).DistanceSquaredTo(point);
 
             if (nextDistance >= distance)
@@ -352,7 +472,7 @@ public abstract class Curve
                 break;
             }
 
-            bool converged = Math.Abs(next - t) <= Math.Abs(domain.Length) * 1e-14;
+            bool converged = Math.Abs(next - t) <= Math.Abs(high - low) * 1e-14;
 
             t = next;
             distance = nextDistance;
@@ -754,10 +874,22 @@ public abstract class Curve
     }
 
     /// <summary>
-    /// The fewest samples the closest-point sweep takes before refining, however few spans a curve
-    /// has. A straight line needs two; a curve that doubles back needs enough to find both lobes.
+    /// How many samples the closest-point sweep takes <b>within each span</b> before refining.
     /// </summary>
-    private const int MinimumClosestPointSamples = 64;
+    /// <remarks>
+    /// Per span rather than per curve, so that a curve made of pieces of wildly different lengths
+    /// gets the same resolution on each of them. Thirty-two is enough to separate the two lobes of
+    /// anything that doubles back inside a single span, which is the case a coarser sweep loses.
+    /// </remarks>
+    private const int ClosestPointSamplesPerSpan = 32;
+
+    /// <summary>
+    /// How many golden-section steps narrow the bracket before Newton polishes it. Each step
+    /// shrinks the interval by a factor of 0.618, so sixty takes two neighbouring samples down to
+    /// a part in ten to the twelfth of their spacing — past the point where Newton has anything
+    /// left to do, which is the intention: Newton is the polish, not the search.
+    /// </summary>
+    private const int ClosestPointBracketSteps = 60;
 
     /// <summary>
     /// How many Newton steps the closest-point refinement takes at most. Quadratic convergence

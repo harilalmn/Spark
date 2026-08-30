@@ -488,6 +488,7 @@ static Spark.Geometry.KnotVector.CreateClamped(int degree, int controlPoints) ->
 static Spark.Geometry.Line.ByStartPointDirectionLength(in Spark.Geometry.Point3d start, in Spark.Geometry.Vector3d direction, double length) -> Spark.Geometry.Line!
 static Spark.Geometry.Line.ByStartPointEndPoint(in Spark.Geometry.Point3d start, in Spark.Geometry.Point3d end) -> Spark.Geometry.Line!
 static Spark.Geometry.NurbsCurve.ByPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.NurbsCurve!
+static Spark.Geometry.NurbsCurve.InterpolatePoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, int degree = 3) -> Spark.Geometry.NurbsCurve!
 static Spark.Geometry.Plane.ByOriginNormal(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal) -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.ByOriginNormalXAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal, in Spark.Geometry.Vector3d xAxis) -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.ByOriginXAxisYAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d xAxis, in Spark.Geometry.Vector3d yAxis) -> Spark.Geometry.Plane

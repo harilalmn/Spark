@@ -181,6 +181,19 @@ public sealed class PolyCurve : Curve
     }
 
     /// <inheritdoc/>
+    /// <remarks>One boundary per segment, since each is a different curve with its own speed.</remarks>
+    protected override IReadOnlyList<double> SpanBoundaries()
+    {
+        double[] boundaries = new double[_segments.Length + 1];
+        for (int i = 0; i < boundaries.Length; i++)
+        {
+            boundaries[i] = i;
+        }
+
+        return boundaries;
+    }
+
+    /// <inheritdoc/>
     public override Curve Reversed()
     {
         Curve[] reversed = new Curve[_segments.Length];
