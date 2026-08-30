@@ -269,24 +269,171 @@ internal static class Program
             Console.Error.WriteLine($"spark: {diagnostic.Code}: {diagnostic.Message}");
         }
 
-        List<Curve> curves = [.. Results(graph, result)];
+        // **The format comes from the extension, and surfaces are tessellated on the way out.**
+        // A user who typed `--out model.stl` has said what they want; making them repeat it in a
+        // `--format` flag would be ceremony, and writing OBJ regardless would produce a file whose
+        // name lies about its contents.
+        string extension = Path.GetExtension(output).ToUpperInvariant();
 
-        if (curves.Count == 0)
+        if (extension is ".STL" or ".PLY" or ".GLB")
+        {
+            List<Mesh> meshes = [.. Meshes(graph, result, chosen)];
+
+            if (meshes.Count == 0)
+            {
+                Console.Error.WriteLine(
+                    "spark: the graph produced no surfaces or meshes, so nothing was written.");
+
+                return result.HasErrors ? 1 : 2;
+            }
+
+            int faces = WriteMeshes(output, extension, meshes);
+
+            Console.WriteLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"spark: wrote {meshes.Count} mesh(es), {faces} face(s), to {output} at tolerance "
+                + $"{chosen.Linear:G9} ({result.NodesEvaluated} node(s) evaluated, {result.CacheHits} cache hit(s))"));
+
+            return result.HasErrors ? 1 : 0;
+        }
+
+        List<Curve> curves = [.. Results(graph, result)];
+        List<Mesh> alsoMeshes = [.. Meshes(graph, result, chosen)];
+
+        if (curves.Count == 0 && alsoMeshes.Count == 0)
         {
             // Not an error: a graph of numbers is a legal graph. But writing an empty file and
             // saying nothing would look like success, so say which it was.
-            Console.Error.WriteLine("spark: the graph produced no curves, so nothing was written.");
+            Console.Error.WriteLine(
+                "spark: the graph produced no curves, surfaces or meshes, so nothing was written.");
+
             return result.HasErrors ? 1 : 2;
         }
 
-        int written = ObjWriter.WriteCurvesToFile(output, curves, chosen);
+        int written = curves.Count > 0
+            ? ObjWriter.WriteCurvesToFile(output, curves, chosen)
+            : ObjWriter.WriteMeshesToFile(output, alsoMeshes);
 
         Console.WriteLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"spark: wrote {written} curve(s) to {output} at tolerance {chosen.Linear:G9} "
+            $"spark: wrote {written} object(s) to {output} at tolerance {chosen.Linear:G9} "
             + $"({result.NodesEvaluated} node(s) evaluated, {result.CacheHits} cache hit(s))"));
 
         return result.HasErrors ? 1 : 0;
+    }
+
+    /// <summary>
+    /// Writes meshes in whichever of the mesh formats the extension named.
+    /// </summary>
+    /// <remarks>
+    /// <b>Several meshes are joined into one before writing.</b> STL and PLY hold one mesh by
+    /// construction, and a caller who asked for one file expects one file - glTF's scene graph
+    /// could hold several and does not need to here.
+    /// </remarks>
+    private static int WriteMeshes(string output, string extension, List<Mesh> meshes)
+    {
+        Mesh combined = Combine(meshes);
+
+        return extension switch
+        {
+            ".STL" => StlFile.WriteToFile(output, combined),
+            ".PLY" => PlyFile.WriteToFile(output, combined),
+            _ => GltfWriter.WriteToFile(output, combined),
+        };
+    }
+
+    /// <summary>Joins several meshes into one, offsetting each one's indices.</summary>
+    private static Mesh Combine(List<Mesh> meshes)
+    {
+        if (meshes.Count == 1)
+        {
+            return meshes[0];
+        }
+
+        List<Point3d> vertices = [];
+        List<MeshFace> faces = [];
+
+        foreach (Mesh mesh in meshes)
+        {
+            int offset = vertices.Count;
+
+            vertices.AddRange(mesh.Vertices());
+
+            foreach (MeshFace face in mesh.Faces())
+            {
+                faces.Add(face.IsQuad
+                    ? new MeshFace(face.A + offset, face.B + offset, face.C + offset, face.D + offset)
+                    : new MeshFace(face.A + offset, face.B + offset, face.C + offset));
+            }
+        }
+
+        return new Mesh(vertices, faces);
+    }
+
+    /// <summary>
+    /// Every mesh the graph produced, with surfaces tessellated at the export tolerance.
+    /// </summary>
+    /// <remarks>
+    /// The same reasoning as <see cref="Results"/>: every node's outputs rather than only the
+    /// leaves, because a graph's interesting geometry is routinely mid-chain, and repeats removed
+    /// by reference because a pass-through node yields the instance it was given.
+    /// </remarks>
+    private static IEnumerable<Mesh> Meshes(Graph graph, EvaluationResult result, Tolerance tolerance)
+    {
+        HashSet<object> seen = new(ReferenceEqualityComparer.Instance);
+
+        foreach (NodeInstance node in graph.Nodes())
+        {
+            for (int port = 0; port < node.Definition.Outputs.Count; port++)
+            {
+                foreach (object value in Renderable(result.Value(node.Id, port)))
+                {
+                    if (!seen.Add(value))
+                    {
+                        continue;
+                    }
+
+                    yield return value switch
+                    {
+                        Mesh mesh => mesh,
+                        Spark.Geometry.Surface surface => surface.ToMesh(tolerance),
+                        _ => throw new InvalidOperationException("Renderable yielded something else."),
+                    };
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<object> Renderable(object? value)
+    {
+        switch (value)
+        {
+            case Mesh or Spark.Geometry.Surface:
+                yield return value;
+                break;
+
+            case Displayable displayable:
+                foreach (object inner in Renderable(displayable.Geometry))
+                {
+                    yield return inner;
+                }
+
+                break;
+
+            case SparkList list:
+                foreach (object? item in list)
+                {
+                    foreach (object inner in Renderable(item))
+                    {
+                        yield return inner;
+                    }
+                }
+
+                break;
+
+            default:
+                break;
+        }
     }
 
     /// <summary>
@@ -379,8 +526,10 @@ internal static class Program
         Console.WriteLine("      --no-script refuses a graph containing a code block. A Spark graph is");
         Console.WriteLine("      executable code; this is how a build declines to run somebody else's.");
         Console.WriteLine();
-        Console.WriteLine("  spark export --open GRAPH.spark --out FILE.obj [--tolerance T]");
-        Console.WriteLine("      Evaluate a graph with no window and write its curves as OBJ.");
+        Console.WriteLine("  spark export --open GRAPH.spark --out FILE.[obj|stl|ply|glb] [--tolerance T]");
+        Console.WriteLine("      Evaluate a graph with no window and write its geometry.");
+        Console.WriteLine("      The format comes from the extension: obj for curves and meshes,");
+        Console.WriteLine("      stl, ply and glb for meshes. Surfaces are tessellated on the way out.");
         Console.WriteLine("      Curves become polylines; the tolerance used is in the file's header.");
         Console.WriteLine();
         Console.WriteLine("  spark --version");

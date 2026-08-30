@@ -106,6 +106,151 @@ public static class ObjWriter
     }
 
     /// <summary>
+    /// Writes meshes as OBJ faces.
+    /// </summary>
+    /// <param name="writer">Where to write.</param>
+    /// <param name="meshes">The meshes. Nulls are skipped rather than throwing.</param>
+    /// <returns>How many meshes were written.</returns>
+    /// <exception cref="ArgumentNullException">Either argument is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Quads are written as quads.</b> OBJ has always allowed a face of any arity and every
+    /// viewer reads them, so splitting them would throw away structure the mesh went to some
+    /// trouble to keep — and would double the face count of a tessellated surface for nothing.
+    /// </para>
+    /// <para>
+    /// <b>Indices are one-based and file-global</b>, which is OBJ's rule and the single most common
+    /// thing to get wrong when writing several objects into one file: a second mesh's indices
+    /// continue from the first's rather than restarting. Normals and texture coordinates get their
+    /// own independent global counters, because OBJ numbers the three streams separately.
+    /// </para>
+    /// </remarks>
+    public static int WriteMeshes(TextWriter writer, IEnumerable<Mesh> meshes)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+        ArgumentNullException.ThrowIfNull(meshes);
+
+        List<Mesh> real = [];
+
+        foreach (Mesh mesh in meshes)
+        {
+            if (mesh is not null)
+            {
+                real.Add(mesh);
+            }
+        }
+
+        writer.WriteLine("# Wavefront OBJ written by Spark");
+        writer.WriteLine(string.Create(CultureInfo.InvariantCulture, $"# meshes: {real.Count}"));
+
+        int vertexBase = 1;
+        int normalBase = 1;
+        int textureBase = 1;
+        int index = 0;
+
+        foreach (Mesh mesh in real)
+        {
+            index++;
+
+            writer.WriteLine();
+            writer.WriteLine(string.Create(CultureInfo.InvariantCulture, $"o Mesh_{index}"));
+
+            foreach (Point3d vertex in mesh.Vertices())
+            {
+                writer.WriteLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"v {Format(vertex.X)} {Format(vertex.Y)} {Format(vertex.Z)}"));
+            }
+
+            UV[]? textures = mesh.TextureCoordinates();
+
+            if (textures is not null)
+            {
+                foreach (UV uv in textures)
+                {
+                    writer.WriteLine(string.Create(
+                        CultureInfo.InvariantCulture, $"vt {Format(uv.U)} {Format(uv.V)}"));
+                }
+            }
+
+            Vector3d[]? normals = mesh.Normals();
+
+            if (normals is not null)
+            {
+                foreach (Vector3d normal in normals)
+                {
+                    writer.WriteLine(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"vn {Format(normal.X)} {Format(normal.Y)} {Format(normal.Z)}"));
+                }
+            }
+
+            foreach (MeshFace face in mesh.Faces())
+            {
+                writer.Write('f');
+
+                for (int corner = 0; corner < face.Count; corner++)
+                {
+                    int vertex = vertexBase + face[corner];
+
+                    writer.Write(' ');
+                    writer.Write(vertex.ToString(CultureInfo.InvariantCulture));
+
+                    // OBJ's `v/vt/vn` triple, with an empty middle when there is no texture
+                    // coordinate. Writing `v//vn` rather than `v/vn` is the part every hand-rolled
+                    // writer gets wrong, and a viewer that reads the second form reads the normal
+                    // index as a texture index.
+                    if (textures is not null || normals is not null)
+                    {
+                        writer.Write('/');
+
+                        if (textures is not null)
+                        {
+                            writer.Write((textureBase + face[corner]).ToString(CultureInfo.InvariantCulture));
+                        }
+
+                        if (normals is not null)
+                        {
+                            writer.Write('/');
+                            writer.Write((normalBase + face[corner]).ToString(CultureInfo.InvariantCulture));
+                        }
+                    }
+                }
+
+                writer.WriteLine();
+            }
+
+            vertexBase += mesh.VertexCount;
+
+            if (textures is not null)
+            {
+                textureBase += textures.Length;
+            }
+
+            if (normals is not null)
+            {
+                normalBase += normals.Length;
+            }
+        }
+
+        return real.Count;
+    }
+
+    /// <summary>Writes meshes as OBJ to a file, replacing it if it exists.</summary>
+    /// <param name="path">The file to write.</param>
+    /// <param name="meshes">The meshes.</param>
+    /// <returns>How many meshes were written.</returns>
+    /// <exception cref="ArgumentNullException">Either argument is null.</exception>
+    public static int WriteMeshesToFile(string path, IEnumerable<Mesh> meshes)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        using StreamWriter writer = new(path, false, new System.Text.UTF8Encoding(false));
+
+        return WriteMeshes(writer, meshes);
+    }
+
+    /// <summary>
     /// Writes curves as OBJ polylines to a file, replacing it if it exists.
     /// </summary>
     /// <param name="path">The file to write.</param>

@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3 and M4 are done.** **M5 is open**: the surface layer landed 2026-08-31; `NurbsSurface`, `Mesh`, tessellation and the shaded viewport remain. M1.6 is deferred |
 | **Working on** | Nothing. Between steps, inside M5 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E2-T26`, tessellation and the shaded viewport** — a surface becomes a mesh to a tolerance and the viewport draws it smoothly. Seams and poles are welded, which is what makes a tessellated sphere closed rather than merely convincing |
+| **Last completed step** | **`E2-T34` and `E2-T35`, the mesh formats** — OBJ meshes, STL read and write with welding, PLY with colours, and binary glTF. The CLI dispatches on the extension, and a second golden example graph is checked in |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M5 step **(e)**: **`E2-T34` and `E2-T35`, the mesh formats.** `ObjWriter` already writes curves as polylines; extend it to meshes, then STL and PLY read and write, then glTF write. **An OBJ reader is still deliberately out** (`E2-T34`'s recorded decision: it would have to take a position on materials); STL and PLY are the two whose readers are honest, because their files contain geometry and nothing else. After it, the last of M5: the software renderer and CI visual regression (`E11-T16`), and then **M6 opens with BRep topology** — `E2-T22`, `E2-T23`, `E2-T28`. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1626**: Geometry.Tests 718, UI.Tests 435, Engine.Tests 343, Viewport.Tests 74, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph surfaces --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | **M6 opens with BRep topology.** M5's remaining rows — the software renderer and CI visual regression (`E11-T16`) — are **deferred to after M6**, and the reason is stated rather than assumed: they guard the viewport against regression, and the viewport is not what the milestone that follows depends on. **Take `E2-T22` first**: `BrepVertex`, `BrepEdge`, `BrepTrim`, `BrepLoop`, `BrepFace`, `BrepShell`, `Brep`, **index-based** — arrays and int indices, no object references — then `E2-T23`'s `BrepBuilder` and `readonly ref struct` navigators, then `E2-T28`'s `IBrepKernel` with `Capabilities` and `Result<T>`. The data model never crosses the seam; the operations do. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1641**: Geometry.Tests 733, UI.Tests 437, Engine.Tests 343, Viewport.Tests 74, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph surfaces --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -2204,3 +2204,64 @@ distinct colours in the frame where the curve demo has 53.
 **Verified.** Build clean with `-warnaserror`; **1626 tests, 0 failures** (Geometry 699 → 718,
 Viewport 69 → 74); `dotnet format` clean; docs harness green; and
 `--graph surfaces --screenshot` renders all four with the OpenGL viewport reporting ready.
+
+### 2026-08-31 — The mesh formats: OBJ, STL, PLY and glTF
+
+**`E2-T34` and `E2-T35`.** Geometry can now leave Spark in four formats, and come back in two.
+
+**OBJ gained meshes.** Quads stay quads — OBJ has always allowed any arity, every viewer reads
+them, and splitting would double a tessellated surface's face count for nothing. The indices are
+one-based and **file-global**, which is the single most common way to write an OBJ that opens and
+draws the wrong thing: a second object's indices continue from the first's rather than restarting,
+and the three streams — vertices, texture coordinates, normals — are numbered independently. And a
+mesh with normals and no texture coordinates writes `v//vn`, not `v/vn`, which a reader would take
+as a texture index.
+
+**STL is the one format here whose reader is unambiguous, which is why it has one and OBJ does
+not.** An STL file contains triangles and nothing else: no materials, no groups, no dialects. There
+is exactly one decision on the way in, and it is welding — read unwelded, a printed cube arrives as
+36 vertices with no shared edges at all, so it is never closed, never manifold, and nothing
+downstream can ask it a topological question. **The match is exact rather than tolerant**: STL
+stores singles, so two triangles that meant to share a corner wrote the same four bytes, and a
+tolerance would additionally weld corners that were never meant to meet — which is a repair
+operation and belongs to whoever asked for one.
+
+**Which form an STL is in cannot be decided by its leading word.** An ASCII STL begins with `solid`
+and so do a great many binary ones, because some exporters write it into the 80-byte header. The
+reliable test is arithmetic: a binary STL is exactly `84 + 50n` bytes for the count it declares.
+Both forms are read, because the ASCII one is what a person hand-edits and what a bug report
+arrives as.
+
+**PLY is here for the colours**, and that is the whole reason `Mesh` has a colour channel at all
+(a scan carries measured colour and every other format here would drop it).
+It reads its **header as a description** rather than assuming a property order: a file whose
+vertices carry `x y z nx ny nz red green blue` would otherwise have its normals read as colours,
+which is a wrong mesh rather than an error. The binary forms are refused **by name**, because a
+half-implemented reader for two endiannesses and arbitrary scalar types would produce a wrong mesh
+where a refusal produces a sentence.
+
+**glTF is written by hand, and `NFR-5` is why.** Every glTF package on NuGet brings either a native
+dependency or a large object model, and what is needed is one mesh in one scene. It is the binary
+`.glb` rather than the JSON form, because a `.gltf` references its buffers by URI and exporting one
+produces a *directory* — a user who emails the `.gltf` alone has sent nothing.
+
+**Two glTF conventions have to be right or the model arrives rotated and inside out.** It is y-up
+where Spark is z-up, and **the change is a rotation, not a swap**: exchanging y and z alone flips
+the handedness, so every face is wound the wrong way and every normal points in. There is a test
+that reads the written positions back out of the binary chunk and checks the cube still has a
+*positive* volume, which is the only assertion that can tell a rotation from a mirror.
+
+**And the CLI dispatches on the extension.** `spark export --out model.stl` writes STL;
+`.ply`, `.glb` and `.obj` do what they say. A user who typed the extension has said what they want,
+and writing OBJ regardless would produce a file whose name lies about its contents. Surfaces are
+tessellated on the way out at the export tolerance, so the flag that has always meant *how round is
+this circle* now also means *how round is this sphere*.
+
+**A second example graph is checked in.** `docs/examples/surfaces.spark`, on the same golden-file
+terms as the curve one: it is exactly what this build saves, it opens, it evaluates without error,
+and it produces four surfaces. Exporting it writes 1,296 STL facets, 675 PLY vertices and a 32 KB
+`.glb`.
+
+**Verified.** Build clean with `-warnaserror`; **1641 tests, 0 failures** (Geometry 718 → 733,
+UI 435 → 437); `dotnet format` clean; docs harness green; and all four formats written from the
+command line against the checked-in example.

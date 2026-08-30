@@ -256,6 +256,59 @@ public sealed class CanvasGraphTests
         Assert.Equal(expected, actual);
     }
 
+    /// <summary>
+    /// `docs/examples/surfaces.spark` is exactly what this build saves, for the reason the curve
+    /// example is: an example that has drifted from the format teaches somebody the wrong thing.
+    /// </summary>
+    [Fact]
+    public void TheCheckedInSurfacesExampleMatchesWhatThisBuildWrites()
+    {
+        string path = ExamplePath("surfaces.spark");
+
+        if (Environment.GetEnvironmentVariable("SPARK_UPDATE_EXAMPLES") == "1")
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, CanvasDocument.Save(DemoGraphs.Surfaces(TestGraphs.Library)));
+        }
+
+        Assert.True(File.Exists(path), $"The example graph is missing: {path}");
+
+        string expected = File.ReadAllText(path).ReplaceLineEndings(LineFeed);
+        string actual = CanvasDocument.Save(DemoGraphs.Surfaces(TestGraphs.Library))
+            .ReplaceLineEndings(LineFeed);
+
+        Assert.Equal(expected, actual);
+    }
+
+    /// <summary>
+    /// The surface example opens, evaluates without error, and produces surfaces — which is the
+    /// half a byte comparison cannot check.
+    /// </summary>
+    [Fact]
+    public void TheCheckedInSurfacesExampleOpensAndEvaluates()
+    {
+        CanvasGraph opened = CanvasDocument.Open(
+            File.ReadAllText(ExamplePath("surfaces.spark")), TestGraphs.Library);
+
+        EvaluationResult result = GraphEvaluator.Evaluate(
+            opened.Engine, new EvaluationContext(), TestContext.Current.CancellationToken);
+        opened.ApplyResult(result);
+
+        Assert.DoesNotContain(opened.Nodes, node => node.State.HasFlag(CanvasNodeState.Error));
+
+        int surfaces = 0;
+
+        foreach (NodeInstance node in opened.Engine.Nodes())
+        {
+            if (result.Value(node.Id) is Spark.Geometry.Surface)
+            {
+                surfaces++;
+            }
+        }
+
+        Assert.Equal(4, surfaces);
+    }
+
     /// <summary>The checked-in example opens into the graph it was written from.</summary>
     [Fact]
     public void TheCheckedInCurvesExampleOpensAndEvaluates()
