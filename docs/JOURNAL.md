@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 09:15 +0530
+**Last updated:** 2026-08-31 10:30 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5 and M2 are done** — M2 closed on 2026-08-30. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. The work in flight is **M3, NURBS curves** |
 | **Working on** | Nothing. Between steps, inside M3 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **10**, `E2-T10` step **(f)** — interpolation, and a closest-point defect it uncovered |
+| **Last completed step** | Queue **10**, `E2-T10` step **(g)** — least-squares approximation |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | `E2-T10` step **(g)**: **approximation** — a least-squares fit through many points with **fewer** control points than points, to a stated tolerance. It is interpolation's sibling and reuses most of it: the same chord-length parameters, the same averaged knots, but a rectangular basis matrix solved as `NᵀN · P = NᵀQ` with the two end points interpolated exactly and the interior fitted. **The tolerance is the design question, not the algebra**: decide whether the caller says *how many control points* or *how close*, and if the latter, the loop that raises the count until the worst deviation is inside it needs a stated cap so a noisy input cannot ask for a control point per sample. **Reuse `SolveInPlace`**, which is already there and already pivots. Then `E2-T10` is close to done and the row should be split in TASKS.md — it has absorbed seven steps and one cell is no longer a readable place to record them. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1301**: Geometry.Tests 531, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | **Split the `E2-T10` row in [TASKS.md](TASKS.md) before writing any more code against it.** It has absorbed seven steps — knot vector, curve, insertion, exact trim, closest point, degree elevation, interpolation, approximation — and one table cell is no longer a readable place to record what is done and what is not. Give each remaining piece its own row: **fit to a stated tolerance**, **knot removal**, and **split as its own operation**. That is a documentation step and should be committed as one. **Then** knot removal, which is the interesting one of the three: it is the inverse of insertion and the only operation here that is *allowed* to change the curve, so it needs a tolerance and a stated rule for what 'unchanged enough to drop a knot' means — and until it exists, degree elevation's output is exact but not minimal, which is written down in the elevation remarks. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1313**: Geometry.Tests 543, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -1264,3 +1264,46 @@ here. It bootstraps and reports a version; nothing has exercised it against a re
 the first thing to try when M1.6 is picked up.
 
 **No gates beyond `Spark.Docs.Verify`** — nothing changed but documentation.
+
+### 2026-08-31 — Approximation, and three test premises that were wrong
+
+**`E2-T10` step (g).** `NurbsCurve.ApproximatePoints` — a curve *near* a set of points rather than
+through them, with fewer control points than points. Least squares through the normal equations,
+reusing interpolation's chord-length parameters and its pivoting solver.
+
+**The two end points are pinned and taken out of the system.** A fitted curve whose ends float is
+unusable for anything that joins curves, and it is the first thing a caller notices. Their
+contribution is subtracted from the right-hand side rather than left for the solver to approximate.
+
+**The caller says how many control points, not how close.** A tolerance-driven overload — *fit
+within 0.1 mm* — is the friendlier signature and is deliberately not this one: it needs a loop that
+raises the count until the deviation fits, which on noisy data terminates only at one control point
+per sample, and that silently returns an interpolation dressed as a fit. It needs a cap and a
+policy for hitting the cap, and that is a step with its own tests rather than a parameter.
+
+**Then three tests failed, and all three of my premises were wrong rather than the code.** This is
+the part worth recording.
+
+- *A fit to points sampled from a curve it can represent is exact* — **false.** The fit is
+  parameterised by chord length and the sampled curve is not, and a cubic in one parameterisation
+  is not a cubic in the other. What is true is that the geometric deviation converges as control
+  points are added.
+- *More control points never fit worse* — **false as stated.** That holds over a nested sequence of
+  spaces, and these are not nested: every control-point count gets its own knot vector. The
+  measured series really does rise once, 0.1127 to 0.1128, between four and five.
+- *A fit stays within the noise amplitude* — **arithmetic done carelessly.** The noise is ±0.5 on
+  each of two axes, so a point can sit 0.707 from the line it was scattered around, not 0.5.
+
+**And I nearly recorded a bug that did not exist.** Diagnosing the first failure, I compared the two
+curves *at the same parameter* — which cannot converge even for a perfect fit, for exactly the
+reason the test premise was wrong. The error plateaued at 0.34 across four to thirty control points
+and looked precisely like a broken solver. Measured geometrically — distance from each point to the
+curve — the same fits converge **0.113 → 2.4e-5**. The lesson is narrow and sharp: **compare curves
+by where they are, never by what their parameters say**, and it is now in the class remarks so the
+next person does not spend the same twenty minutes.
+
+**Verified.** Build clean with `-warnaserror`; **1313 tests, 0 failures** (1301 + 12);
+`dotnet format` clean. The convergence figures above are asserted rather than described — the test
+requires thirty control points to fit a hundred times better than six.
+
+**Cost.** An hour, half of it establishing that the code was right.

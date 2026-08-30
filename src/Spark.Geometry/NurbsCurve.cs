@@ -553,6 +553,214 @@ public sealed class NurbsCurve : Curve
     }
 
     /// <summary>
+    /// The curve of a given degree and control-point count that comes closest to a set of points.
+    /// </summary>
+    /// <param name="points">The points to approximate, at least three, no two consecutive equal.</param>
+    /// <param name="controlPoints">
+    /// How many control points the result may use. More than the degree, fewer than
+    /// <paramref name="points"/>.
+    /// </param>
+    /// <param name="degree">The degree. At least 1.</param>
+    /// <returns>A clamped curve passing through the first and last point and near the rest.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="points"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The degree is less than 1, or the control-point count is outside
+    /// <c>degree + 1 .. points.Count - 1</c>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// There are fewer than three points, a point is not finite, or two consecutive points coincide.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// Least squares, the sibling of <see cref="InterpolatePoints"/>: the same chord-length
+    /// parameters and the same averaged knots, but <b>fewer control points than points</b>, so the
+    /// system is rectangular and is solved as <c>NᵀN · P = NᵀQ</c>. The curve then passes near the
+    /// data rather than through it, which is what you want when the data is measured rather than
+    /// drawn — an interpolating curve through noisy points reproduces the noise faithfully and
+    /// wobbles.
+    /// </para>
+    /// <para>
+    /// <b>The two end points are interpolated exactly and taken out of the system.</b> A fitted
+    /// curve whose ends float is unusable for anything that joins curves, and it is the first thing
+    /// a caller notices. So the first and last control points are fixed at the first and last data
+    /// points, and their contribution is subtracted from the right-hand side rather than left for
+    /// the solver to approximate.
+    /// </para>
+    /// <para>
+    /// <b>The caller says how many control points, not how close.</b> A tolerance-driven overload —
+    /// <i>fit within 0.1mm</i> — is the friendlier signature and is deliberately not this one: it
+    /// needs a loop that raises the count until the deviation fits, which on noisy data terminates
+    /// only at one control point per sample, and that silently returns an interpolation dressed as
+    /// a fit. The honest version of that takes a cap and a policy for hitting it, and belongs in
+    /// its own step with its own tests.
+    /// </para>
+    /// </remarks>
+    public static NurbsCurve ApproximatePoints(
+        IReadOnlyList<Point3d> points, int controlPoints, int degree = 3)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+        ArgumentOutOfRangeException.ThrowIfLessThan(degree, 1);
+
+        if (points.Count < 3)
+        {
+            throw new ArgumentException(
+                "Approximating needs at least three points. With two, the answer is the line "
+                + "through them and there is nothing to fit.",
+                nameof(points));
+        }
+
+        ArgumentOutOfRangeException.ThrowIfLessThan(controlPoints, degree + 1);
+
+        if (controlPoints >= points.Count)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(controlPoints),
+                controlPoints,
+                $"Approximating {points.Count} points needs fewer than {points.Count} control "
+                + "points. With as many as there are points, ask for an interpolation instead — "
+                + "that is what InterpolatePoints is, and it is exact.");
+        }
+
+        double[] parameters = ChordLengthParameters(points);
+        KnotVector knots = ApproximationKnots(parameters, controlPoints, degree);
+
+        // The interior control points are the unknowns: the first and last are pinned to the first
+        // and last data points, so there are controlPoints - 2 of them, fitted against
+        // points.Count - 2 interior data points.
+        int unknowns = controlPoints - 2;
+        int rows = points.Count - 2;
+
+        double[,] basis = new double[rows, unknowns];
+        double[,] residual = new double[rows, 3];
+
+        Point3d first = points[0];
+        Point3d last = points[^1];
+
+        for (int i = 0; i < rows; i++)
+        {
+            double t = parameters[i + 1];
+            int span = knots.FindSpan(t);
+            double[] values = knots.BasisFunctions(span, t);
+
+            // The two pinned control points still influence the curve here, so their share is
+            // moved to the right-hand side and the solver fits what is left.
+            double firstShare = 0.0;
+            double lastShare = 0.0;
+
+            for (int j = 0; j <= degree; j++)
+            {
+                int column = span - degree + j;
+
+                if (column == 0)
+                {
+                    firstShare = values[j];
+                }
+                else if (column == controlPoints - 1)
+                {
+                    lastShare = values[j];
+                }
+                else
+                {
+                    basis[i, column - 1] = values[j];
+                }
+            }
+
+            Point3d target = points[i + 1];
+            residual[i, 0] = target.X - (firstShare * first.X) - (lastShare * last.X);
+            residual[i, 1] = target.Y - (firstShare * first.Y) - (lastShare * last.Y);
+            residual[i, 2] = target.Z - (firstShare * first.Z) - (lastShare * last.Z);
+        }
+
+        // The normal equations. Forming NᵀN squares the condition number, which is the standard
+        // objection to doing it this way — and it is the right trade here: the matrix is banded and
+        // well conditioned by construction (the averaged knots see to that), the sizes are the tens
+        // a person draws rather than the thousands a scanner produces, and a QR factorisation would
+        // be a second solver to be right about before anything needs it.
+        double[,] normal = new double[unknowns, unknowns];
+        double[,] rightHand = new double[unknowns, 3];
+
+        for (int i = 0; i < unknowns; i++)
+        {
+            for (int j = 0; j < unknowns; j++)
+            {
+                double sum = 0.0;
+                for (int row = 0; row < rows; row++)
+                {
+                    sum += basis[row, i] * basis[row, j];
+                }
+
+                normal[i, j] = sum;
+            }
+
+            for (int component = 0; component < 3; component++)
+            {
+                double sum = 0.0;
+                for (int row = 0; row < rows; row++)
+                {
+                    sum += basis[row, i] * residual[row, component];
+                }
+
+                rightHand[i, component] = sum;
+            }
+        }
+
+        double[,] solved = SolveInPlace(normal, rightHand);
+
+        Point3d[] control = new Point3d[controlPoints];
+        control[0] = first;
+        control[^1] = last;
+
+        for (int i = 0; i < unknowns; i++)
+        {
+            control[i + 1] = new Point3d(solved[i, 0], solved[i, 1], solved[i, 2]);
+        }
+
+        return new NurbsCurve(control, knots);
+    }
+
+    /// <summary>
+    /// The clamped knot vector for an approximation, spread over the data's parameters.
+    /// </summary>
+    /// <remarks>
+    /// <b>Not the interpolation's averaging rule.</b> That one averages a window of parameters per
+    /// knot and assumes one control point per point; here there are fewer control points than
+    /// parameters, so the knots are placed by walking the parameters at a fractional stride. The
+    /// effect is the same in spirit — every span covers a comparable amount of <i>data</i> rather
+    /// than a comparable amount of parameter — which is what keeps the least-squares matrix full
+    /// rank when the points are unevenly spaced.
+    /// </remarks>
+    private static KnotVector ApproximationKnots(
+        double[] parameters, int controlPoints, int degree)
+    {
+        int n = parameters.Length;
+        double[] knots = new double[controlPoints + degree + 1];
+
+        for (int i = 0; i <= degree; i++)
+        {
+            knots[i] = 0.0;
+            knots[^(i + 1)] = 1.0;
+        }
+
+        double stride = (double)n / (controlPoints - degree);
+
+        for (int j = 1; j < controlPoints - degree; j++)
+        {
+            double position = j * stride;
+            int index = (int)position;
+            double fraction = position - index;
+
+            // Guarded because the stride can land exactly on the last parameter, and reading one
+            // past it would be an off-by-one that only shows up on particular counts.
+            double low = parameters[Math.Min(index - 1, n - 1)];
+            double high = parameters[Math.Min(index, n - 1)];
+
+            knots[degree + j] = ((1.0 - fraction) * low) + (fraction * high);
+        }
+
+        return new KnotVector(degree, knots);
+    }
+
+    /// <summary>
     /// A parameter for each point, spaced by the distance between them and normalised to 0..1.
     /// </summary>
     private static double[] ChordLengthParameters(IReadOnlyList<Point3d> points)
