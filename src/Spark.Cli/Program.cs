@@ -98,6 +98,7 @@ internal static class Program
     {
         string? input = null;
         bool all = false;
+        bool scripting = true;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -109,6 +110,10 @@ internal static class Program
 
                 case "--all":
                     all = true;
+                    break;
+
+                case "--no-script":
+                    scripting = false;
                     break;
 
                 default:
@@ -134,7 +139,26 @@ internal static class Program
         using SparkSession session = new();
 
         GraphDocument document = SparkFile.Read(File.ReadAllText(input));
-        Graph graph = document.Restore(session.Library);
+
+        // `E6-T16`. **A graph is executable code, and `spark run` is the one place that runs it
+        // without a person watching** - in a build, on a schedule, from a hook. So the flag is
+        // here, and it refuses rather than dropping the executable parts: a graph that silently
+        // ran with its code blocks missing would produce a wrong answer quietly, which is worse
+        // than an error. And a document with no scripts in it never asks for a factory at all,
+        // which is what keeps Roslyn out of a `spark run` that has no code blocks (`E6-T14`).
+        if (!scripting && document.HasScripts)
+        {
+            Console.Error.WriteLine(
+                "spark: this graph contains a code block and --no-script was given, so it was not run.");
+
+            return 1;
+        }
+
+        IScriptNodeFactory? scripts = scripting && document.HasScripts
+            ? session.EnableScripting()
+            : null;
+
+        Graph graph = document.Restore(session.Library, scripts);
 
         EvaluationContext context = new(default, new SequentialEvaluationScheduler());
         EvaluationResult result = GraphEvaluator.Evaluate(graph, context, CancellationToken.None);
@@ -349,9 +373,11 @@ internal static class Program
     {
         Console.WriteLine("spark — the Spark command line");
         Console.WriteLine();
-        Console.WriteLine("  spark run GRAPH.spark [--all]");
+        Console.WriteLine("  spark run GRAPH.spark [--all] [--no-script]");
         Console.WriteLine("      Evaluate a graph with no window and print what its watches saw.");
         Console.WriteLine("      --all prints every node's value instead, which is what a diff wants.");
+        Console.WriteLine("      --no-script refuses a graph containing a code block. A Spark graph is");
+        Console.WriteLine("      executable code; this is how a build declines to run somebody else's.");
         Console.WriteLine();
         Console.WriteLine("  spark export --open GRAPH.spark --out FILE.obj [--tolerance T]");
         Console.WriteLine("      Evaluate a graph with no window and write its curves as OBJ.");

@@ -120,6 +120,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _scriptText = string.Empty;
 
+    /// <summary>
+    /// Why an opened graph has not been run, or null when there is nothing to say (`E6-T16`).
+    /// </summary>
+    [ObservableProperty]
+    private string? _scriptBanner;
+
     [ObservableProperty]
     private LibraryEntryViewModel? _selectedLibraryEntry;
 
@@ -187,7 +193,33 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// adoption.
     /// </remarks>
     public MainWindowViewModel(string? startupGraph, string? startupDocumentPath)
+        : this(startupGraph, startupDocumentPath, noScript: false)
     {
+    }
+
+    /// <summary>
+    /// Creates the view model, optionally with scripting refused for the whole session
+    /// (`E6-T16`).
+    /// </summary>
+    /// <param name="startupGraph">The seeded graph to open, or null.</param>
+    /// <param name="startupDocumentPath">A file to open instead, or null.</param>
+    /// <param name="noScript">
+    /// True to refuse scripting permanently. A graph containing a code block then fails to open,
+    /// naming the node.
+    /// </param>
+    /// <remarks>
+    /// <b>Refusing happens before the document is read</b>, because the refusal has to hold for the
+    /// document being opened at startup as well as for every later one — and because
+    /// <see cref="SparkSession.DisableScripting"/> is one-way, which is what makes it a trust
+    /// boundary rather than a setting.
+    /// </remarks>
+    public MainWindowViewModel(string? startupGraph, string? startupDocumentPath, bool noScript)
+    {
+        if (noScript)
+        {
+            _session.DisableScripting();
+        }
+
         Layout = WorkspaceLayout.Default;
 
         AllLibraryEntries =
@@ -398,13 +430,56 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <param name="text">The file's text.</param>
     /// <returns><see langword="true"/> when it opened; otherwise the reason is in the diagnostics pane.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is <see langword="null"/>.</exception>
-    public bool TryOpenDocument(string text)
+    public bool TryOpenDocument(string text) => TryOpenDocument(text, origin: null);
+
+    /// <summary>
+    /// Replaces the document with one read from a file, applying the trust rule (`E6-T16`).
+    /// </summary>
+    /// <param name="text">The file's text.</param>
+    /// <param name="origin">Where it came from, or null when it has no path.</param>
+    /// <returns><see langword="true"/> when it opened.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>A graph containing a code block is not evaluated because it was opened.</b> That is the
+    /// whole of the posture: a Spark graph is executable code, .NET has no way to sandbox it, and
+    /// running it on double-click would make opening a file from a colleague equivalent to running
+    /// an unknown program. It opens, it draws, its values are empty, and a banner says why.
+    /// </para>
+    /// <para>
+    /// <b>A graph the user has already agreed to runs immediately</b>, keyed on the file *and* its
+    /// exact content — see <see cref="ScriptTrustStore"/> for why both halves are needed. Nothing
+    /// about a graph with no code blocks in it changes: there is nothing to decide.
+    /// </para>
+    /// </remarks>
+    public bool TryOpenDocument(string text, string? origin)
     {
         ArgumentNullException.ThrowIfNull(text);
 
         try
         {
-            AdoptGraph(CanvasDocument.Open(text, _session.Library, _session.Scripts));
+            IReadOnlyList<string> scripts = SparkFile.Read(text).Scripts();
+            bool run = scripts.Count == 0 || _trust.IsTrusted(origin, scripts);
+
+            // **Scripting is turned on here, and only when the document needs it.** A session that
+            // has never placed a code block has never loaded Roslyn, and a document with none in it
+            // must not make it - that is `E6-T14`. But a saved graph *with* one has to open in a
+            // session that has not placed one, which it could not do while this passed whatever
+            // `_session.Scripts` happened to be.
+            IScriptNodeFactory? factory = scripts.Count > 0 && _session.ScriptingAllowed
+                ? _session.EnableScripting()
+                : _session.Scripts;
+
+            AdoptGraph(CanvasDocument.Open(text, _session.Library, factory), evaluate: run);
+
+            PendingScripts = run ? 0 : scripts.Count;
+            PendingOrigin = run ? null : origin;
+            ScriptBanner = run
+                ? null
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"This graph contains {scripts.Count} code block{(scripts.Count == 1 ? string.Empty : "s")}, which is a program. It has been opened but not run.");
+
             GraphReplaced?.Invoke(this, EventArgs.Empty);
             return true;
         }
@@ -741,6 +816,49 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         return [.. items.Select(item => new CodeCompletionCandidate(item.DisplayText, item.Kind))];
     }
 
+    /// <summary>How many code blocks are waiting on the user's decision.</summary>
+    public int PendingScripts { get; private set; }
+
+    /// <summary>Where the untrusted document came from, or null.</summary>
+    public string? PendingOrigin { get; private set; }
+
+    /// <summary>Whether an opened graph is waiting to be trusted before it runs.</summary>
+    public bool IsAwaitingTrust => PendingScripts > 0;
+
+    /// <summary>
+    /// Runs a graph the user has decided to trust, and remembers the decision (`E6-T16`).
+    /// </summary>
+    /// <param name="remember">
+    /// True to record the decision, so this file saying exactly this runs without asking again.
+    /// </param>
+    /// <returns>True when there was something waiting.</returns>
+    /// <remarks>
+    /// <b>Running once and remembering are two different decisions and are offered as two.</b> A
+    /// user opening a graph from an unknown source may reasonably want to run it now and be asked
+    /// again next time; a store that recorded every *run* would quietly turn a one-off into a
+    /// standing permission.
+    /// </remarks>
+    public bool TrustAndRun(bool remember)
+    {
+        if (!IsAwaitingTrust)
+        {
+            return false;
+        }
+
+        if (remember && PendingOrigin is { } origin && TrySaveDocument() is { } text)
+        {
+            _trust.Trust(origin, SparkFile.Read(text).Scripts());
+        }
+
+        PendingScripts = 0;
+        PendingOrigin = null;
+        ScriptBanner = null;
+
+        _ = EvaluateGraphAsync();
+
+        return true;
+    }
+
     /// <summary>The source behind a canvas node, or null when it is not a code block.</summary>
     private string? ScriptOf(CanvasNode node) =>
         _graph.Engine.Node(node.Id).Definition.Script;
@@ -913,6 +1031,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     private int _lastRenderableCount;
+    private readonly ScriptTrustStore _trust = new();
 
     private void AdoptGraph(CanvasGraph graph, bool evaluate = true, bool resetHistory = true)
     {

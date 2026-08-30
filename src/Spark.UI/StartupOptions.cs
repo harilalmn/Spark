@@ -24,6 +24,12 @@ namespace Spark.UI;
 /// <param name="OpenPath">
 /// A `.spark` file to open instead of a seeded graph, or null.
 /// </param>
+/// <param name="NoScript">
+/// True when scripting is refused for the whole session (`E6-T16`). A graph containing a code
+/// block then fails to open, naming the node, rather than opening with the node quietly missing —
+/// a Spark graph is executable code, and dropping the executable parts would be worse than
+/// refusing.
+/// </param>
 /// <param name="BenchmarkZoom">
 /// A zoom to pin the benchmark at, or zero to sweep. Pinning is what separates "how much does the
 /// graph cost" from "how much does what is on screen cost", which is the claim ADR-0013 actually
@@ -35,7 +41,8 @@ public readonly record struct StartupOptions(
     double BenchmarkZoom,
     string? ScreenshotPrefix,
     string? Graph,
-    string? OpenPath)
+    string? OpenPath,
+    bool NoScript = false)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
     public static StartupOptions Default => new(0, 0, 0, null, null, null);
@@ -75,6 +82,10 @@ public readonly record struct StartupOptions(
     /// exits. The viewport image is a GPU read-back rather than a window grab, so it works over a
     /// locked session and in CI, where a screen capture returns the lock screen.
     /// </item>
+    /// <item>
+    /// <c>--no-script</c> refuses scripting for the session, which is the one switch here that is
+    /// aimed at users rather than at a bet (`E6-T16`).
+    /// </item>
     /// </list>
     /// </remarks>
     public static StartupOptions Parse(string[]? args)
@@ -90,6 +101,7 @@ public readonly record struct StartupOptions(
         string? screenshot = null;
         string? graph = null;
         string? open = null;
+        bool noScript = false;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -123,6 +135,10 @@ public readonly record struct StartupOptions(
                     graph = args[++i];
                     break;
 
+                case "--no-script":
+                    noScript = true;
+                    break;
+
                 case "--open" when i + 1 < args.Length:
                     open = args[++i];
                     break;
@@ -137,7 +153,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript);
     }
 
     private static int ParseCount(string text, int fallback) =>

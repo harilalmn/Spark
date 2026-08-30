@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 22:15 +0530
+**Last updated:** 2026-08-31 23:55 +0530
 **Protocol version:** 2
 
 ---
@@ -16,13 +16,13 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1, M1.5, M2 and M3 are done** — M3 closed on 2026-08-31. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. Next is **M4, the C# code block** |
-| **Working on** | Nothing. Between steps, inside M4 |
+| **Milestone** | **M1, M1.5, M2, M3 and M4 are done** — M4 closed on 2026-08-31 but for `E6-T14`'s docked script node. M1.6 is deferred. Next is **M5, surfaces and meshes** |
+| **Working on** | Nothing. **Between milestones**: M4 closed, M5 not started |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E6-T10` and `E6-T1`** — a compile cache that survives the process, keyed on a fingerprint of the references rather than the per-process version counter the row named, and compile errors placed on the user's own line |
+| **Last completed step** | **`E6-T3`, `E6-T15` and the rest of `E6-T16`, closing M4** — a collectible load context, a registry cleared before unload proven by a weak reference that dies, and a graph that is opened, drawn and not run until somebody says so |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M4 step **(h)(ii)**, the last of `E6`: **`E6-T3`** the collectible `ScriptLoadContext`, **`E6-T15`** clearing callback registries before unload, and the rest of **`E6-T16`** — the `--no-script` CLI flag, the script-node banner, no auto-run on open, and the per-origin content-hash allowlist. **`E6-T15` carries DoodleSharp's warning**: a delegate into user code pins a collectible context, so an uncleaned registry means the ALC never unloads and the proof is a weak reference that has to go dead. Then M4 closes and **M5 opens with surfaces**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1467**: Geometry.Tests 584, UI.Tests 415, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | **Open M5 with the surface layer**, which is the spine everything else in the milestone hangs from and the prerequisite for M6's BRep faces. In order: a `Surface` base beside `Curve` with the same contract discipline — `PointAt`, `NormalAt`, a two-dimensional domain, closure, exclusions named on the type — then the analytic surfaces, then `NurbsSurface`. After the surfaces: `Mesh`, tessellation, `RenderPackage` streaming and the shaded viewport. **Settle the contract against the parity register first, as `E2-T41` did for curves** — the `AtLength` family was cheap to have from the first commit and would have been expensive to retrofit. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1487**: Geometry.Tests 584, UI.Tests 435, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -1938,3 +1938,52 @@ bytes, a missing ports file, and no cache directory at all.
 `dotnet format` clean; docs harness green. The cache is tested across **two factories over one
 directory**, because a single factory would answer from the resident cache and prove nothing — two
 is the shape of the case the row exists for, which is closing Spark and opening the graph again.
+
+### 2026-08-31 — M4 closes: the collectible context, and a graph that is not run because it was opened
+
+**`E6-T3`, `E6-T15` and the rest of `E6-T16` — and with them M4.**
+
+**Script assemblies were permanent.** `Assembly.Load(bytes)` puts them in the default context,
+where nothing can ever unload them; a code block is recompiled on every edit and on every change to
+what is wired into it, so ten minutes' work on one script left dozens of assemblies in the process
+for good. They now load into a collectible `ScriptLoadContext`. **Its `Load` override returns null
+on purpose** — that defers to the default context, so a script's `Point3d` is the graph's
+`Point3d`. A context that resolved its own copy would hand the script a type with the same name and
+the same shape that nothing could be assigned to, and that is the most confusing failure this layer
+could produce.
+
+**`E6-T15`'s warning turned out to be exact.** A delegate into user code pins the context it lives
+in, and the resident cache is full of them — so `Unload` clears the registry *first*. Reverting
+that one ordering turns the test red, and the test is a **weak reference that has to go dead**:
+`AssemblyLoadContext.Unload` returns whether or not the context can actually go, so a test
+asserting *no exception was thrown* would have passed in precisely the case the row exists to
+prevent. A second test pins the other half — a definition still on somebody's canvas keeps the
+context alive, correctly, and goes on working.
+
+**And the trust posture, which is the user-facing half.** A graph containing a code block is
+opened, drawn, and **not run**; a banner in the properties pane says how many code blocks it
+contains and offers *Run once* and *Always trust this file*. Those are two decisions and are
+offered as two, because a store that recorded every run would quietly turn a one-off into a
+standing permission. The allowlist is keyed on **origin and exact content** — the file alone would
+inherit a colleague's edits, the content alone would let a graph carry its permission wherever it
+travelled. `--no-script` works on `spark run` and on the desktop, and refuses rather than dropping
+the executable parts: a graph that ran with its code blocks silently missing would produce a wrong
+answer quietly, which is worse than an error.
+
+**One bug this exposed, and it had been there since the code block landed.** A saved graph
+containing a code block could not be reopened in a session that had never *placed* one — the shell
+passed whatever `_session.Scripts` happened to be, which is null until something enables it. So
+"save a graph with a code block, restart, open it" failed, and nothing tested it because every test
+that opened one had placed one first. Scripting is now enabled when the document turns out to need
+it, and **only** then, which is also exactly what `E6-T14` asks for.
+
+**M4 is complete but for one row's second half.** `E6-T14`'s docked C# Script Node is not built; the
+inline Code Block covers every behaviour in the epic and the docked variant is a second
+presentation of the same pipeline rather than new machinery. Everything else in `E6` is done: the
+Roslyn pipeline, semantic port inference, named-tuple outputs, typed inputs, wire-typed
+IntelliSense in a real editor, guard weaving, cancellation, both compile caches, the source map, the
+collectible context and the trust posture.
+
+**Verified.** Build clean with `-warnaserror`; **1487 tests, 0 failures** (UI 415 → 435);
+`dotnet format` clean; docs harness green. The registry-clear ordering was reverted once and two
+tests went red.

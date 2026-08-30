@@ -254,6 +254,32 @@ public sealed class GraphDocument
     /// <summary>The wires, ordered by their endpoints for the same reason.</summary>
     public IReadOnlyList<GraphDocumentWire> Wires => _wires;
 
+    /// <summary>The source of every code block in this document, in document order.</summary>
+    /// <remarks>
+    /// <b>What the trust decision is made about</b> (`E6-T16`). A Spark graph is executable code,
+    /// and the honest way to say so is to show the user what would run before it runs — so this is
+    /// read before <see cref="Restore"/> is called, not discovered inside it. It is also how a
+    /// caller decides whether to touch Roslyn at all: a document with no scripts in it never asks
+    /// for a factory, which is `E6-T14`.
+    /// </remarks>
+    public IReadOnlyList<string> Scripts()
+    {
+        List<string> sources = [];
+
+        foreach (GraphDocumentNode node in _nodes)
+        {
+            if (node.Script is { } source)
+            {
+                sources.Add(source);
+            }
+        }
+
+        return sources;
+    }
+
+    /// <summary>Whether this document contains anything that would execute code.</summary>
+    public bool HasScripts => Scripts().Count > 0;
+
     /// <summary>The canvas notes, ordered by identity. Empty for a graph that has none.</summary>
     public IReadOnlyList<GraphDocumentNote> Notes => _notes;
 

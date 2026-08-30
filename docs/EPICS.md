@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-31 (E6 caching and source map)
+**Last updated:** 2026-08-31 (M4 complete)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -588,15 +588,24 @@ diverge most; rework is budgeted there specifically.
       lambda is not counted, because bracketing a body needs its return type and only a lambda
       declines to state one; and recursion inside a library the script calls is not our code to
       rewrite. Both still end in `R11`.
-- [ ] Callback registries are cleared before unload, because delegates into user code pin
-      the collectible context (**E6-T15**).
-- [ ] Opening a graph never auto-runs it: Manual mode plus a banner listing script nodes and
-      required packages, with a content-hash per-origin trust allowlist, and
-      `spark run --no-script` for CI (**E6-T16**).
+- [x] Callback registries are cleared before unload, because delegates into user code pin
+      the collectible context (**E6-T15**) — done 2026-08-31, with the collectible context
+      itself (**E6-T3**). **The proof is a weak reference that goes dead**: `Unload` returns
+      whether or not the context can go, so a test asserting "no exception" would pass in
+      exactly the case the row exists to prevent.
+- [x] Opening a graph never auto-runs it: a banner naming how many code blocks it contains,
+      with a content-hash per-origin trust allowlist, and `--no-script` on both `spark run`
+      and the desktop (**E6-T16**) — done 2026-08-31. **Run once and Always trust are two
+      decisions and are offered as two**; a store that recorded every run would turn a one-off
+      into a standing permission. Required packages are `E7`'s to list, and the banner has
+      the place for them.
 - [ ] A graph containing no script nodes never loads `Spark.Scripting` (**E6-T14**).
 
-**Status.** Not started. M1.5 spike (c) — AvaloniaEdit plus a Roslyn completion popup that
-is acceptable to use — is a go/no-go gate on this epic's approach
+**Status.** **Complete except the docked C# Script Node (E6-T14's second half), as of
+2026-08-31.** The inline Code Block covers every behaviour in this epic; the docked variant is a
+second presentation of the same pipeline rather than new machinery. M1.5 spike (c) — AvaloniaEdit
+plus a Roslyn completion popup that is acceptable to use — was the go/no-go gate on this epic's
+approach
 ([E11-T21](#e11--quality-and-verification)).
 
 ---

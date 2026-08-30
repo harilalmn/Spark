@@ -113,6 +113,22 @@ public sealed partial class InspectorPane : UserControl
         }
     }
 
+    private void OnRunOnce(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel model)
+        {
+            model.TrustAndRun(remember: false);
+        }
+    }
+
+    private void OnAlwaysTrust(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel model)
+        {
+            model.TrustAndRun(remember: true);
+        }
+    }
+
     private void OnGroupTitleCommitted(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainWindowViewModel model && model.CommitGroupTitle())

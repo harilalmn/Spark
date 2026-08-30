@@ -196,5 +196,25 @@ and wire `points` into a watch node to see them.
 
 **A Spark graph containing a code block is a program.** Opening one from a source you do not
 trust is the same as running an unknown application: .NET has no code-access security, and Spark
-does not pretend otherwise. Running with scripting switched off refuses to open such a graph and
-names the node, rather than opening it with the node quietly missing.
+does not pretend otherwise.
+
+**So Spark does not run a graph because you opened it.** Open a file containing code blocks and it
+appears on the canvas, drawn, with its values empty and a banner in the properties pane:
+
+> This graph contains 2 code blocks, which is a program. It has been opened but not run.
+
+Two buttons sit under it. **Run once** runs it now and asks again next time. **Always trust this
+file** runs it and remembers — for *this file saying exactly this*. Change a line and you are asked
+again; send the file to somebody else and they are asked too. A graph with no code blocks in it is
+never asked about, because there is nothing to decide.
+
+**To refuse scripting entirely**, start with `--no-script`:
+
+```
+spark run graph.spark --no-script
+```
+
+A graph containing a code block then **fails to open**, naming what it contains. It does not open
+with the code blocks quietly missing — that would produce a wrong answer silently, which is worse
+than an error. The desktop application takes the same switch, and once scripting has been refused
+in a session it cannot be turned back on.

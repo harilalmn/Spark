@@ -49,6 +49,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     private readonly ReferenceCatalog _references;
     private readonly GuardWeaver _guards;
     private readonly ScriptAssemblyCache _persistent;
+    private ScriptLoadContext _context = new();
     private readonly ConcurrentDictionary<string, NodeDefinitionSource> _compiled = new(StringComparer.Ordinal);
 
     /// <summary>Creates a factory over a reference catalogue.</summary>
@@ -104,6 +105,46 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
 
     /// <summary>How many scripts the resident cache is holding.</summary>
     public int CachedScripts => _compiled.Count;
+
+    /// <summary>
+    /// Drops every compiled script and unloads the context they were in (`E6-T3`, `E6-T15`).
+    /// </summary>
+    /// <returns>
+    /// A weak reference to the context that was unloaded, so a caller can *prove* it went rather
+    /// than assume it.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The registry is cleared first, and that ordering is the whole of `E6-T15`.</b> Every
+    /// entry in the resident cache holds a delegate bound to a method in a script assembly, and a
+    /// delegate into user code pins the collectible context it lives in. Unloading with the
+    /// registry still populated is not an error — it is silence: the call returns, nothing
+    /// complains, and the context stays alive for the life of the process along with every
+    /// assembly in it.
+    /// </para>
+    /// <para>
+    /// <b>What this cannot do is anything about references held elsewhere.</b> A node definition
+    /// built from a script holds the same delegate, a cached evaluation result may hold a value of
+    /// a script-defined type, and a viewport buffer may hold geometry that came from one. The
+    /// context unloads when the last of those goes and not before, which is why the return value is
+    /// a weak reference rather than a boolean: *unloaded* is not a fact this method can report at
+    /// the moment it returns.
+    /// </para>
+    /// </remarks>
+    public WeakReference Unload()
+    {
+        // Cleared *before* the unload, not after. See the remarks: the other order silently does
+        // nothing.
+        _compiled.Clear();
+
+        ScriptLoadContext going = _context;
+        _context = new ScriptLoadContext();
+
+        WeakReference reference = new(going);
+        going.Unload();
+
+        return reference;
+    }
 
     /// <inheritdoc/>
     public NodeDefinitionSource Create(string script, IReadOnlyDictionary<string, Type>? inputTypes = null)
@@ -318,11 +359,11 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// a different build of the generator looks like.
     /// </para>
     /// </remarks>
-    private static Func<object?[], CancellationToken, object?>? Bind(byte[] assembly)
+    private Func<object?[], CancellationToken, object?>? Bind(byte[] assembly)
     {
         try
         {
-            MethodInfo? method = Assembly.Load(assembly)
+            MethodInfo? method = _context.Load(assembly)
                 .GetType("SparkGenerated.Block")
                 ?.GetMethod("Run");
 

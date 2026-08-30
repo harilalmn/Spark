@@ -326,7 +326,10 @@ public sealed partial class MainWindow : Window
             // The view model reports its own refusals into the diagnostics pane. A refused file is
             // a diagnostic like any other, and the view is not allowed to name the engine type that
             // would carry it (E8-T11).
-            if (model.TryOpenDocument(text))
+            // The origin goes in with the text, because the trust decision is about *this file
+            // saying this* (`E6-T16`) - the content alone would trust every copy of a graph
+            // anywhere, which is exactly how a malicious one would travel.
+            if (model.TryOpenDocument(text, chosen[0].TryGetLocalPath()))
             {
                 _documentPath = chosen[0].TryGetLocalPath();
                 Canvas.ZoomToFit();

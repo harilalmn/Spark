@@ -79,6 +79,25 @@
                  MaxHeight="220" />
       </StackPanel>
 
+      <!-- E6-T16: a graph containing a code block is opened, drawn, and not run. The banner is
+           where the user is told so, and where they say otherwise. Saying it in the diagnostics
+           pane would read as a failure, which this is not. -->
+      <Border Grid.Row="4" Margin="10,0,10,10" Padding="8" CornerRadius="3"
+              IsVisible="{Binding ScriptBanner, Converter={x:Static ObjectConverters.IsNotNull}}"
+              Background="{DynamicResource ThemeAccentBrush4}"
+              BorderBrush="{DynamicResource ThemeBorderMidBrush}"
+              BorderThickness="1">
+        <StackPanel Spacing="6">
+          <TextBlock Text="{Binding ScriptBanner}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" TextWrapping="Wrap"
+                     Text="Opening a graph from a source you do not trust is like running an unknown program." />
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Button Content="Run once" Click="OnRunOnce" />
+            <Button Content="Always trust this file" Click="OnAlwaysTrust" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
       <TextBlock Grid.Row="5" Classes="paneTitle" Text="DIAGNOSTICS" />
       <TextBlock Grid.Row="6" Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
                  Text="{Binding DiagnosticsText}" />
