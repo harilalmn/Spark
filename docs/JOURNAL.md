@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 02:50 +0530
+**Last updated:** 2026-08-31 04:00 +0530
 **Protocol version:** 2
 
 ---
@@ -16,13 +16,13 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1 and M1.5 are both done.** M1.6 is deferred for want of a C++ toolchain; the work in flight is **M2's remainder** |
-| **Working on** | Nothing. Between steps, at the start of M3 |
+| **Milestone** | **M1, M1.5 and M2 are done** — M2 closed on 2026-08-30. M1.6 is deferred for want of a C++ toolchain. The work in flight is **M3, NURBS curves** |
+| **Working on** | Nothing. Between steps, inside M3 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **10**, `E2-T10` step **(a)** — `KnotVector`: invariants, span search and basis functions |
+| **Last completed step** | Queue **10**, `E2-T10` step **(b)** — `NurbsCurve`: homogeneous de Boor, derivatives, serialization |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | `E2-T10` step **(b)**: **`NurbsCurve` itself**, on top of the knot vector. It must satisfy the whole `Curve` contract at once, because `Curve` is abstract over all of it — `Domain` (the knot vector's), `IsClosed`, `Evaluate`, `EvaluateDerivative`, `EvaluateSecondDerivative`, `Reversed`, `Trimmed`, `TransformedBy`. **Work in homogeneous coordinates**: store control points as weighted 4-vectors, evaluate with de Boor there, and project at the end — a rational curve evaluated by dividing at each step is both slower and less accurate, and the derivative formula only comes out clean in homogeneous form (the quotient rule on `C(t) = A(t)/w(t)`). **Weights must be positive**, refused in the constructor, or the denominator can reach zero inside the domain and the curve has a pole in it. Prove it against curves that already exist: a degree-1 `NurbsCurve` through two points must agree with `Line`, and a rational quadratic with weights `1, cos(θ/2), 1` must agree with `Arc` to tolerance — **those two tests are worth more than any number of self-consistent ones**, because they check the curve against geometry this repository already trusts. Expect `GeometryJsonTests` to fail the moment the type exists; that is it working. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1196**: Geometry.Tests 427, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | `E2-T10` step **(c)**: **knot insertion**, which unlocks most of the rest of the row. Boehm's algorithm on the homogeneous control points — insert a knot `u` into a span, and the `degree` control points around it are replaced by `degree + 1` new ones formed by linear interpolation, with the curve unchanged. **It is the foundation for four other operations**: `Trimmed` (insert at both ends to full multiplicity, then take the control points between), split (the same, once), closest point (subdivide and recurse), and degree elevation. Do it on the **homogeneous** points, not the projected ones, or the weights come out wrong for a rational curve. **The test that proves it is the one that says nothing changed:** insert a knot anywhere and every sampled point must be identical to nine or more decimal places, while the control-point count goes up by exactly one. Then `Trimmed` stops throwing, and `TrimmingSaysItIsNotBuiltYet` should be *replaced* rather than deleted — a test that a feature is missing is a reminder to remove when it arrives. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1222**: Geometry.Tests 453, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -119,7 +119,7 @@ the two disagree.**
 | 7 | **The C2VGeometry test harvest**, timeboxed to one week with a hard stop. Harvest assertions, not generators | `E2-T32` | L | **Blocked** — needs the C2VGeometry source, which is not in this repository and not on this machine. Skipped 2026-08-30 |
 | 8 | **M1.5 spike (c): AvaloniaEdit plus a Roslyn completion popup** — the last unproven part of M1.5, gating M4 | `E11-T21` | M | **Done** 2026-08-30 |
 | 9 | ~~**What is left of M2** — real docking (`E8-T2`), group/note/align (`E8-T6`), watch nodes (`E8-T10`), `spark run` (`E12-T5`)~~ | | L | **Done** 2026-08-30 |
-| 10 | **M3 — NURBS curves** *(in progress)* — `KnotVector` done 2026-08-30; `NurbsCurve` next | `E2-T10` … | XL | Open |
+| 10 | **M3 — NURBS curves** *(in progress)* — `KnotVector` and `NurbsCurve` done 2026-08-30; knot insertion next | `E2-T10` … | XL | Open |
 | + | **Persist the workspace layout between sessions** — `WorkspaceLayout` already serialises and round-trips under test; nothing writes it. A dragged arrangement dies with the window, which is the one thing a dock is for | `E8-T2`-adjacent | S | Open |
 | + | **A guard that no test project reports zero tests** — one line, and it catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)) | `E11`-adjacent | S | Open, take it with the next CI change |
 
@@ -967,3 +967,52 @@ like a modelling mistake rather than a kernel one.
 quoted a test count from two days and 244 tests ago.
 
 **Cost.** Fifty minutes.
+
+### 2026-08-30 — `NurbsCurve`, checked against curves that already work
+
+**`E2-T10` step (b).** Control points, weights and a `KnotVector`, satisfying the whole `Curve`
+contract — because `Curve` is abstract over all of it and there is no smaller version that
+compiles.
+
+**Homogeneous throughout.** Each control point is stored as `(w·x, w·y, w·z, w)`, de Boor runs on
+those four components, and the projection happens once at the end. Dividing at every step of the
+recurrence is slower, less accurate, and makes the derivative formulae unreadable — the quotient
+rule applies once to `C = A/w` instead of being threaded through the recursion.
+
+**Weights are refused if they are not positive.** A zero or negative weight lets the denominator
+reach zero somewhere inside the domain, and the curve then has a pole in it: a parameter that looks
+exactly like its neighbours returns infinities. The constructor is the only place that failure can
+be attributed to its cause.
+
+**The tests that matter are the agreement tests, and they are why I trust the result.** A spline
+implementation can be entirely self-consistent and entirely wrong. What cannot be faked is a
+degree-1 curve agreeing with `Line` and with `PolyLine`, and a rational quadratic with weights
+`1, cos 45°, 1` being *exactly* a quarter circle — every sampled point at the radius to nine
+decimal places. Those two check the arithmetic against geometry this repository already trusts,
+written long before this and exercised by hundreds of tests of their own. The derivatives are
+checked against central differences for the same reason: an analytic derivative verified against
+the analysis that produced it proves only that it was copied consistently.
+
+**One real defect, found by a test that was about something else.** `Curve.ComputeLength`
+integrates over equal spans across the whole domain, and a NURBS curve's speed is generally
+**discontinuous at every interior knot** — a degree-1 curve is the extreme case, being a polyline
+with piecewise-constant speed. Gauss–Legendre across a corner is wrong by an amount that looks like
+rounding. `ComputeLength` and `TessellationSeedSpans` now both work one knot span at a time, so
+every piece the rule sees is smooth. The polyline-agreement test is what surfaced it.
+
+**Two gates spoke again.** `EveryPublicGeometryTypeHasASample` caught `NurbsCurve` the moment it
+existed, exactly as it caught `KnotVector` an hour earlier. And `AnUnknownTypeIsRefused` failed —
+because it used the string `"NurbsCurve"` as its example of a type this build does not know, which
+was true when it was written and stopped being true today. **Naming a planned type as a stand-in
+for an unplanned one is a trap**, and the fix says so in a comment beside a name that can never
+become real.
+
+**Verified.** Build clean with `-warnaserror`; **1222 tests, 0 failures** (1196 + 26);
+`dotnet format` clean.
+
+**Left undone and named:** knot insertion, and therefore `Trimmed`, which throws
+`NotSupportedException` naming what is missing rather than returning an approximation a caller has
+no way to detect. Degree elevation, split, closest point, fit and interpolate are the rest of the
+row.
+
+**Cost.** An hour and a quarter.

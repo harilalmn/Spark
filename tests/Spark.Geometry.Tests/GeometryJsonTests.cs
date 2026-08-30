@@ -47,6 +47,21 @@ public sealed class GeometryJsonTests
             Plane.WorldXY, 3.0, Angle.FromDegrees(15.0), Angle.FromDegrees(220.0)),
         [typeof(EllipseCurve)] = EllipseCurve.ByPlaneRadiiAngles(
             Plane.WorldYZ, 4.0, 2.0, Angle.Zero, Angle.FromDegrees(300.0)),
+        // Rational, degree 3, with an interior knot and unequal weights. A non-rational curve
+        // over a uniform 0..1 vector would round-trip even if the weights or the knots were being
+        // dropped, which is the failure a sample exists to catch.
+        [typeof(NurbsCurve)] = new NurbsCurve(
+            3,
+            [
+                new Point3d(0, 0, 0),
+                new Point3d(1, 4, 1),
+                new Point3d(4, 5, -1),
+                new Point3d(7, 1, 2),
+                new Point3d(9, 2, 0),
+            ],
+            [2, 2, 2, 2, 4, 6, 6, 6, 6],
+            [1.0, 2.5, 0.4, 1.8, 1.0]),
+
         [typeof(PolyLine)] = PolyLine.ByPoints(
         [
             new Point3d(0.0, 0.0, 0.0),
@@ -179,8 +194,12 @@ public sealed class GeometryJsonTests
     [Fact]
     public void AnUnknownTypeIsRefused()
     {
+        // The name is deliberately one that cannot ever become a real type. This test used to say
+        // "NurbsCurve", which was unknown when it was written and stopped being unknown the day
+        // NurbsCurve landed - at which point the test failed for a reason that had nothing to do
+        // with what it checks. Naming a planned type as a stand-in for an unplanned one is a trap.
         Assert.Throws<NotSupportedException>(
-            () => GeometryJson.Deserialize("{\"type\":\"NurbsCurve\",\"version\":1}"));
+            () => GeometryJson.Deserialize("{\"type\":\"NotATypeThisBuildKnows\",\"version\":1}"));
         Assert.Throws<NotSupportedException>(() => GeometryJson.Deserialize("{\"version\":1}"));
         Assert.Throws<NotSupportedException>(() => GeometryJson.Deserialize("42"));
     }

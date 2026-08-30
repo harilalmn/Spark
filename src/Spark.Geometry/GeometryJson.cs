@@ -223,6 +223,30 @@ public static class GeometryJson
                 writer.WriteEndArray();
                 break;
 
+            case NurbsCurve v:
+                Open(writer, nameof(NurbsCurve));
+                Member(writer, "knots", v.Knots);
+                writer.WriteStartArray("controlPoints");
+                foreach (Point3d point in v.ControlPoints())
+                {
+                    Write(writer, point);
+                }
+
+                writer.WriteEndArray();
+
+                // Written always, even when every weight is one. A curve is defined by its
+                // weights, and omitting them when they happen to be uniform would make the file's
+                // shape depend on the curve's values - which is the kind of conditional that reads
+                // as a saving and costs a reader an hour.
+                writer.WriteStartArray("weights");
+                foreach (double weight in v.Weights())
+                {
+                    writer.WriteNumberValue(weight);
+                }
+
+                writer.WriteEndArray();
+                break;
+
             case PolyLine v:
                 Open(writer, nameof(PolyLine));
                 writer.WriteStartArray("points");
@@ -310,6 +334,7 @@ public static class GeometryJson
                 Angle.FromRadians(Number(element, "startAngle")),
                 Angle.FromRadians(Number(element, "sweepAngle"))),
             nameof(KnotVector) => ReadKnotVector(element),
+            nameof(NurbsCurve) => ReadNurbsCurve(element),
             nameof(PolyLine) => ReadPolyLine(element),
             nameof(PolyCurve) => ReadPolyCurve(element),
             _ => throw new NotSupportedException(
@@ -363,6 +388,24 @@ public static class GeometryJson
         }
 
         return new KnotVector(element.GetProperty("degree").GetInt32(), knots);
+    }
+
+    private static NurbsCurve ReadNurbsCurve(JsonElement element)
+    {
+        List<Point3d> points = [];
+        foreach (JsonElement point in element.GetProperty("controlPoints").EnumerateArray())
+        {
+            points.Add((Point3d)Read(point));
+        }
+
+        List<double> weights = [];
+        foreach (JsonElement weight in element.GetProperty("weights").EnumerateArray())
+        {
+            weights.Add(weight.GetDouble());
+        }
+
+        return new NurbsCurve(
+            points, (KnotVector)Read(element.GetProperty("knots")), weights);
     }
 
     private static PolyLine ReadPolyLine(JsonElement element)
