@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-30 19:15 +0530
+**Last updated:** 2026-08-30 20:30 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1 and M1.5 are both done.** M1.6 is deferred for want of a C++ toolchain; the work in flight is **M2's remainder** |
 | **Working on** | Nothing. Between steps, part way through queue **9** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **9**, `E8-T6` step **(a)** — **align**: six alignments, two distributions, one toolbar flyout |
+| **Last completed step** | Queue **9**, `E8-T6` step **(b)** — notes in the `.spark` format and in `CanvasGraph` |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | `E8-T6` step **(b)** — **notes**, and with them the decision step (a) was able to defer. A note is a rectangle of text on the canvas that the engine never evaluates, and it has to survive save and open, so **the `.spark` format has to carry it**. Answer the question in this order: a note is a **canvas annotation**, not a document object — it has no `NodeId`, no ports and no provenance, and giving it one would put a thing that cannot evaluate into the evaluator's model. So it belongs beside the node *positions* in `GraphDocument`, which is already the precedent for data the engine writes and never reads (`Graph/CanvasDocument.cs` says so in as many words). Start by reading `src/Spark.Engine/GraphDocument.cs` and `SparkFile.cs` to see what a format addition costs — **check whether it needs a version bump and whether an older file still opens**, because that is the part that is expensive to get wrong. Then a `CanvasNote` on `CanvasGraph`, drawing in `GraphCanvas.Render` beneath the nodes, and round-trip tests. **Group is step (c)** and rides on the same format work. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1076**: Geometry.Tests 402, Engine.Tests 289, UI.Tests 261, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | `E8-T6` step **(c)**: **notes on the canvas.** The model and the file are done; nothing draws them. Draw notes in `GraphCanvas.Render` **beneath the nodes and beneath the wires**, so a note is a background a graph sits on rather than something that occludes it. Then: hit-test (a note is only grabbable by its own rectangle, and a node on top of one must still win), select, drag, delete, and a **New note** toolbar button that places one at `SuggestPlacement` and selects it. **Editing the text goes in the inspector pane, not on the canvas** — the canvas is immediate-mode and hosts no controls, and building a text editor inside it to avoid one binding would be the expensive way round. Every one of those is a `GraphChanged` with `affectsEvaluation: false`. Watch two things: the selection is currently a set of node **slots**, so a note needs its own selection state rather than a slot that means something else; and `CanvasBounds`/`SceneIndex` are node-shaped, so decide whether notes go in the spatial index or are hit-tested linearly — **linearly is right until there are hundreds**, and saying so is cheaper than a second index. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1094**: Geometry.Tests 402, Engine.Tests 300, UI.Tests 268, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -629,3 +629,47 @@ is the guard for the index update, and it is the bug this epic has already been 
 The screenshot shows **Align ▾** on the toolbar, correctly greyed with nothing selected.
 
 **Cost.** About an hour, of which the headless teardown was half.
+
+### 2026-08-30 — Notes reach the file, and the version rule that let them
+
+**`E8-T6` step (b)** — notes as far as the model and the file. Drawing them is step (c); this step
+is the half that is expensive to change later, and it is the half with a decision in it.
+
+**A note is a canvas annotation, not a document object.** No `NodeId`, no ports, no provenance,
+never evaluated, nothing can wire to it. So it goes into `GraphDocument` beside the node
+coordinates — the existing precedent for data the file must remember and the evaluator must never
+read — and never into `Graph`. `GraphNoteTests.ANoteNeverReachesTheGraph` is the assertion that
+keeps it there. ADR-0017 already listed notes as `.spark` content, so this was planned rather than
+invented.
+
+**The version rule is the part I did not expect to have to decide.** Carrying notes changes the
+format, and the obvious move is to bump `CurrentFormatVersion` to 2 and write 2 from now on. That
+is wrong here, and [ADR-0016](adr/0016-no-dynamo-interoperability.md) is what makes it wrong: a
+graph referencing a missing package has to re-save **byte-identically**, and stamping every save
+with the current version would rewrite the first line of every version-1 graph in existence the
+first time anybody opened one.
+
+So **the version written is the minimum version that can read the file**, derived from content. No
+notes, and the file is version 1 to the byte, exactly as before. Notes, and it is version 2 — and
+a version-1 build then refuses it loudly rather than opening it, showing the graph, and throwing
+every note away on the next save. The `notes` key is omitted entirely rather than written as an
+empty array, for the same reason: `"notes": []` would add two lines to the diff of every graph
+that has never had a note in it.
+
+**ADR-0017 requires a golden-file test against a real old-version graph**, and there is one:
+`docs/examples/curves.spark` is version 1, and `TheCheckedInVersionOneExampleReSavesUnchanged`
+opens it and asserts the bytes back. It is the test that would have caught an unconditional bump.
+
+**Verified.** Build clean with `-warnaserror`; **1094 tests, 0 failures** (1076 + 18);
+`dotnet format` clean. **AGENTS.md step 7:** `AGraphWithNoNotesIsStillWrittenAsVersionOne` and
+`TheCheckedInVersionOneExampleReSavesUnchanged` are the named guards — set the version
+unconditionally and both go red.
+
+**One thing the gates caught that I had got wrong.** I cited ADR-0016 in the journal and in an XML
+doc comment as `0016-not-a-dynamo-fork.md`, which is not its filename. `Spark.Docs.Verify`'s
+relative-link check failed on it. That check has now earned itself twice — it caught two dangling
+ADR citations when it was extended to build files, and now a third from prose written this
+afternoon.
+
+**Cost.** About fifty minutes, most of it reading two ADRs before writing anything, which is what
+turned a version bump from a one-line change into the right one-line change.

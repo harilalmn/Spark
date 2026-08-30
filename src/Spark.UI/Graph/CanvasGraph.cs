@@ -283,6 +283,7 @@ public sealed class CanvasGraph
     private readonly List<CanvasNode> _nodes = [];
     private readonly Dictionary<NodeId, int> _slots = [];
     private readonly List<CanvasWire> _wires = [];
+    private readonly List<CanvasNote> _notes = [];
     private readonly TypeCompatibility _compatibility = TypeCompatibility.Default;
     private bool _wiresDirty = true;
 
@@ -324,6 +325,17 @@ public sealed class CanvasGraph
     /// <summary>The nodes, in draw order — index 0 is at the bottom.</summary>
     public IReadOnlyList<CanvasNode> Nodes => _nodes;
 
+    /// <summary>
+    /// The notes on the canvas, in draw order.
+    /// </summary>
+    /// <remarks>
+    /// Kept beside the nodes rather than among them. A note is not a node — nothing wires to it and
+    /// it never evaluates — and putting the two in one list would mean every loop over nodes had to
+    /// remember to skip some of them, which is the sort of thing that is remembered nine times out
+    /// of ten.
+    /// </remarks>
+    public IReadOnlyList<CanvasNote> Notes => _notes;
+
     /// <summary>The wires, projected into slot terms.</summary>
     public IReadOnlyList<CanvasWire> Wires
     {
@@ -332,6 +344,37 @@ public sealed class CanvasGraph
             RebuildWires();
             return _wires;
         }
+    }
+
+    /// <summary>Adds a note at a position and returns it.</summary>
+    /// <param name="x">The left edge in world coordinates.</param>
+    /// <param name="y">The top edge in world coordinates.</param>
+    /// <param name="text">What it says, or null for an empty note.</param>
+    /// <returns>The note, so the caller can select it or begin editing it.</returns>
+    public CanvasNote AddNote(double x, double y, string? text = null)
+    {
+        CanvasNote note = new() { X = x, Y = y, Text = text ?? string.Empty };
+        _notes.Add(note);
+        return note;
+    }
+
+    /// <summary>Adopts a note that already has an identity, which is what opening a file does.</summary>
+    /// <param name="note">The note.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="note"/> is null.</exception>
+    public void AdoptNote(CanvasNote note)
+    {
+        ArgumentNullException.ThrowIfNull(note);
+        _notes.Add(note);
+    }
+
+    /// <summary>Removes a note.</summary>
+    /// <param name="note">The note to remove.</param>
+    /// <returns>True when it was there to remove.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="note"/> is null.</exception>
+    public bool RemoveNote(CanvasNote note)
+    {
+        ArgumentNullException.ThrowIfNull(note);
+        return _notes.Remove(note);
     }
 
     /// <summary>Places a node instance and gives it a position.</summary>

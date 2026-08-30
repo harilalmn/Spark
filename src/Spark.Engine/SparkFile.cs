@@ -142,6 +142,28 @@ public static class SparkFile
             }
 
             writer.WriteEndArray();
+
+            // Omitted entirely when there are none, not written as an empty array. Every version-1
+            // graph on disk has to re-save byte-identically (ADR-0016), and "notes": [] would put
+            // two new lines into the diff of every graph that has never had a note in it.
+            if (document.Notes.Count > 0)
+            {
+                writer.WriteStartArray("notes");
+                foreach (GraphDocumentNote note in document.Notes)
+                {
+                    writer.WriteStartObject();
+                    writer.WriteString("id", note.Id.ToString("D", CultureInfo.InvariantCulture));
+                    writer.WriteNumber("x", note.X);
+                    writer.WriteNumber("y", note.Y);
+                    writer.WriteNumber("width", note.Width);
+                    writer.WriteNumber("height", note.Height);
+                    writer.WriteString("text", note.Text);
+                    writer.WriteEndObject();
+                }
+
+                writer.WriteEndArray();
+            }
+
             writer.WriteEndObject();
         }
 
@@ -223,7 +245,17 @@ public static class SparkFile
                 }
             }
 
-            return new GraphDocument(formatVersion, nodes, wires);
+            List<GraphDocumentNote> notes = [];
+            if (root.TryGetProperty("notes", out JsonElement noteArray)
+                && noteArray.ValueKind == JsonValueKind.Array)
+            {
+                foreach (JsonElement element in noteArray.EnumerateArray())
+                {
+                    notes.Add(ReadNote(element));
+                }
+            }
+
+            return new GraphDocument(formatVersion, nodes, wires, notes);
         }
     }
 
@@ -375,6 +407,34 @@ public static class SparkFile
             _ => throw Malformed(
                 $"The literal on port {port} has an unknown kind '{kind.GetString()}'."),
         };
+    }
+
+    /// <summary>
+    /// Reads one note. Its text is required to be present but is allowed to be empty, because a
+    /// note the user has created and not yet typed into is a real state and saving is not modal.
+    /// </summary>
+    private static GraphDocumentNote ReadNote(JsonElement element)
+    {
+        if (!element.TryGetProperty("id", out JsonElement idElement)
+            || idElement.ValueKind != JsonValueKind.String
+            || !Guid.TryParseExact(idElement.GetString(), "D", out Guid id))
+        {
+            throw Malformed("A note has no identity.");
+        }
+
+        if (!element.TryGetProperty("text", out JsonElement textElement)
+            || textElement.ValueKind != JsonValueKind.String)
+        {
+            throw Malformed("A note has no text.");
+        }
+
+        return new GraphDocumentNote(
+            id,
+            ReadDouble(element, "x"),
+            ReadDouble(element, "y"),
+            ReadDouble(element, "width"),
+            ReadDouble(element, "height"),
+            textElement.GetString() ?? string.Empty);
     }
 
     private static NodeId ReadId(JsonElement element, string name)

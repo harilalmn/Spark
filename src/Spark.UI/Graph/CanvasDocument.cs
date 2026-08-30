@@ -35,9 +35,17 @@ public static class CanvasDocument
             positions[node.Id] = (node.X, node.Y);
         }
 
+        List<GraphDocumentNote> notes = [];
+        foreach (CanvasNote note in graph.Notes)
+        {
+            notes.Add(new GraphDocumentNote(
+                note.Id, note.X, note.Y, note.Width, note.Height, note.Text));
+        }
+
         return SparkFile.Write(GraphDocument.Capture(
             graph.Engine,
-            id => positions.TryGetValue(id, out (double X, double Y) at) ? at : (0.0, 0.0)));
+            id => positions.TryGetValue(id, out (double X, double Y) at) ? at : (0.0, 0.0),
+            notes));
     }
 
     /// <summary>Reads the text of a `.spark` file into a canvas graph.</summary>
@@ -62,6 +70,21 @@ public static class CanvasDocument
         foreach (GraphDocumentNode node in document.Nodes)
         {
             graph.Adopt(engine.Node(node.Id), node.X, node.Y);
+        }
+
+        // Notes keep the identity they were saved with, so that re-saving a file that was only
+        // opened produces no diff at all. A fresh Guid here would rewrite every note's id line
+        // every time the file was touched.
+        foreach (GraphDocumentNote note in document.Notes)
+        {
+            graph.AdoptNote(new CanvasNote(note.Id)
+            {
+                X = note.X,
+                Y = note.Y,
+                Width = note.Width,
+                Height = note.Height,
+                Text = note.Text,
+            });
         }
 
         return graph;

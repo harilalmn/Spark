@@ -40,6 +40,33 @@ public sealed record GraphDocumentNode(
 public readonly record struct GraphDocumentWire(
     NodeId Source, int SourcePort, NodeId Target, int TargetPort);
 
+/// <summary>
+/// One note in a `.spark` file: a rectangle of text the user put on the canvas.
+/// </summary>
+/// <remarks>
+/// <para>
+/// A note is a <b>canvas annotation, not a document object</b>. It has no <see cref="NodeId"/>, no
+/// ports and no provenance, it is never evaluated, and nothing can be wired to it. Giving it a
+/// place in <see cref="Graph"/> would put something that cannot evaluate into the evaluator's
+/// model, so it lives here instead — beside the node coordinates, which is already this type's
+/// precedent for data the file must remember and the engine must never read.
+/// </para>
+/// <para>
+/// It carries a <see cref="Guid"/> of its own all the same, for the reason the nodes do: the file
+/// is sorted by identity so that two files holding the same graph are the same bytes however they
+/// were assembled. Sorting notes by their position or their text instead would make moving one, or
+/// fixing a typo in it, reorder the file.
+/// </para>
+/// </remarks>
+/// <param name="Id">The note's identity, which survives save and load.</param>
+/// <param name="X">Its left edge on the canvas.</param>
+/// <param name="Y">Its top edge on the canvas.</param>
+/// <param name="Width">How wide it is.</param>
+/// <param name="Height">How tall it is.</param>
+/// <param name="Text">What it says. Never null; an empty note is a note the user has not typed in yet.</param>
+public sealed record GraphDocumentNote(
+    Guid Id, double X, double Y, double Width, double Height, string Text);
+
 /// <summary>One value typed into an unwired input port.</summary>
 /// <param name="PortIndex">Which input port it belongs to.</param>
 /// <param name="Value">
@@ -82,21 +109,41 @@ public sealed class GraphDocument
     /// change and a release is a release, and tying them together makes every release a format
     /// question.
     /// </remarks>
-    public const int CurrentFormatVersion = 1;
+    public const int CurrentFormatVersion = 2;
+
+    /// <summary>
+    /// The version a document writes when it contains nothing that needs a newer reader.
+    /// </summary>
+    /// <remarks>
+    /// <b>The version written is the minimum version that can read the file, not a stamp of the
+    /// build that wrote it.</b> That is forced rather than chosen:
+    /// [ADR-0016](../../docs/adr/0016-no-dynamo-interoperability.md) requires a graph referencing a missing
+    /// package to re-save <i>byte-identically</i>, and stamping every save with the current version
+    /// would rewrite the first line of every version-1 graph in existence the first time it was
+    /// opened. A file is therefore version 2 only if it actually contains something a version-1
+    /// reader would silently drop.
+    /// </remarks>
+    public const int BaselineFormatVersion = 1;
+
+    /// <summary>The first version whose reader understands notes.</summary>
+    public const int NotesFormatVersion = 2;
 
     private readonly GraphDocumentNode[] _nodes;
     private readonly GraphDocumentWire[] _wires;
+    private readonly GraphDocumentNote[] _notes;
 
     /// <summary>Creates a document.</summary>
     /// <param name="formatVersion">The format version. Must be positive.</param>
     /// <param name="nodes">The nodes.</param>
     /// <param name="wires">The wires.</param>
-    /// <exception cref="ArgumentNullException">Either collection is <see langword="null"/>.</exception>
+    /// <param name="notes">The canvas notes, if any.</param>
+    /// <exception cref="ArgumentNullException">A collection is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="formatVersion"/> is not positive.</exception>
     public GraphDocument(
         int formatVersion,
         IEnumerable<GraphDocumentNode> nodes,
-        IEnumerable<GraphDocumentWire> wires)
+        IEnumerable<GraphDocumentWire> wires,
+        IEnumerable<GraphDocumentNote>? notes = null)
     {
         ArgumentNullException.ThrowIfNull(nodes);
         ArgumentNullException.ThrowIfNull(wires);
@@ -121,6 +168,12 @@ public sealed class GraphDocument
                 .ThenBy(wire => wire.Target.Value.ToString("D", CultureInfo.InvariantCulture), StringComparer.Ordinal)
                 .ThenBy(wire => wire.TargetPort),
         ];
+
+        _notes =
+        [
+            .. (notes ?? []).OrderBy(
+                note => note.Id.ToString("D", CultureInfo.InvariantCulture), StringComparer.Ordinal),
+        ];
     }
 
     /// <summary>The format version this document was read from, or is to be written as.</summary>
@@ -132,6 +185,23 @@ public sealed class GraphDocument
     /// <summary>The wires, ordered by their endpoints for the same reason.</summary>
     public IReadOnlyList<GraphDocumentWire> Wires => _wires;
 
+    /// <summary>The canvas notes, ordered by identity. Empty for a graph that has none.</summary>
+    public IReadOnlyList<GraphDocumentNote> Notes => _notes;
+
+    /// <summary>
+    /// The lowest format version whose reader could load this document without losing anything.
+    /// </summary>
+    /// <param name="notes">How many notes the document carries.</param>
+    /// <returns><see cref="NotesFormatVersion"/> when there are notes, otherwise <see cref="BaselineFormatVersion"/>.</returns>
+    /// <remarks>
+    /// A version-1 reader does not know the <c>notes</c> array exists; it would open the file, show
+    /// the graph, and drop every note the next time the user saved. Refusing to open is the honest
+    /// outcome, and asking for it costs exactly this: writing 2 when, and only when, there is
+    /// something a version-1 reader would throw away.
+    /// </remarks>
+    public static int MinimumReaderVersion(int notes) =>
+        notes > 0 ? NotesFormatVersion : BaselineFormatVersion;
+
     /// <summary>
     /// Captures a live graph as a document, taking canvas positions from a lookup the caller owns.
     /// </summary>
@@ -140,6 +210,11 @@ public sealed class GraphDocument
     /// Where each node sits, or <see langword="null"/> to write every node at the origin — which is
     /// what a headless caller with no canvas does.
     /// </param>
+    /// <param name="notes">
+    /// The canvas notes, or <see langword="null"/> for none. A headless caller has none, and a
+    /// document with none is written at <see cref="BaselineFormatVersion"/> so that it stays
+    /// byte-identical to what earlier builds wrote.
+    /// </param>
     /// <returns>The document.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="graph"/> is <see langword="null"/>.</exception>
     /// <exception cref="SparkFileException">
@@ -147,7 +222,9 @@ public sealed class GraphDocument
     /// port, because on a graph of two hundred nodes that is the only part a caller can act on.
     /// </exception>
     public static GraphDocument Capture(
-        Graph graph, Func<NodeId, (double X, double Y)>? positions = null)
+        Graph graph,
+        Func<NodeId, (double X, double Y)>? positions = null,
+        IReadOnlyList<GraphDocumentNote>? notes = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -207,7 +284,8 @@ public sealed class GraphDocument
                 new GraphDocumentWire(wire.Source, wire.SourcePort, wire.Target, wire.TargetPort)),
         ];
 
-        return new GraphDocument(CurrentFormatVersion, nodes, wires);
+        return new GraphDocument(
+            MinimumReaderVersion(notes?.Count ?? 0), nodes, wires, notes);
     }
 
     /// <summary>
