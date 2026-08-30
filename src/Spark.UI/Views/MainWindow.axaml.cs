@@ -416,6 +416,7 @@ public sealed partial class MainWindow : Window
             await model.EvaluateAsync().ConfigureAwait(true);
         }
 
+
         Canvas.ZoomToFit();
         Viewport.ZoomToFit();
         StartCapture(prefix);

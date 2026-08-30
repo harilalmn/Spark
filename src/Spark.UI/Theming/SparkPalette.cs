@@ -176,6 +176,9 @@ public static class SparkPalette
     /// <summary>A frozen brush for <see cref="CanvasGroup"/>.</summary>
     public static IBrush CanvasGroupBrush { get; } = Frozen(CanvasGroup);
 
+    /// <summary>A frozen brush for <see cref="SurfaceFloat"/>.</summary>
+    public static IBrush SurfaceFloatBrush { get; } = Frozen(SurfaceFloat);
+
     /// <summary>A frozen brush for <see cref="NodeBody"/>.</summary>
     public static IBrush NodeBodyBrush { get; } = Frozen(NodeBody);
 

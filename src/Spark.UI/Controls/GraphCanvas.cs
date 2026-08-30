@@ -110,6 +110,18 @@ public sealed class GraphCanvas : Control
 
     /// <summary>The inset between a note's edge and its text.</summary>
     private const double NotePadding = 10;
+
+    /// <summary>The gap between a node's bottom edge and its preview bubble.</summary>
+    private const double PreviewGap = 6;
+
+    /// <summary>The inset between a preview bubble's edge and its text.</summary>
+    private const double PreviewPadding = 8;
+
+    /// <summary>The gap between the rank line and the value line inside a bubble.</summary>
+    private const double PreviewLineGap = 3;
+
+    /// <summary>How wide a preview bubble's value line may grow before it wraps.</summary>
+    private const double PreviewMaximumWidth = 320;
     private const double PortFontSize = 11;
     private const double TypeFontSize = 10;
     private const double TypeGap = 6;
@@ -136,6 +148,7 @@ public sealed class GraphCanvas : Control
     private CanvasGraph _graph = new();
     private bool _indexDirty = true;
     private bool _fitPending;
+    private (double Zoom, double OffsetX, double OffsetY) _fitDeferredFrom;
 
     private InteractionMode _mode;
     private Point _pointerAnchor;
@@ -361,6 +374,13 @@ public sealed class GraphCanvas : Control
         if (Bounds.Width < 1 || Bounds.Height < 1)
         {
             _fitPending = true;
+
+            // Where the view was when the fit was deferred. If anything moves it before the first
+            // arrival of a real size, that is a more recent instruction than this one and the
+            // deferred fit stands down - otherwise a fit requested at startup would silently
+            // overwrite a zoom set deliberately a moment later, which is exactly what --zoom
+            // found.
+            _fitDeferredFrom = (_transform.Zoom, _transform.OffsetX, _transform.OffsetY);
             return;
         }
 
@@ -380,8 +400,16 @@ public sealed class GraphCanvas : Control
         if (_fitPending && finalSize.Width >= 1 && finalSize.Height >= 1)
         {
             _fitPending = false;
-            _transform.FitTo(_graph.ComputeBounds(), finalSize.Width, finalSize.Height);
-            InvalidateVisual();
+
+            bool untouched = _transform.Zoom == _fitDeferredFrom.Zoom
+                && _transform.OffsetX == _fitDeferredFrom.OffsetX
+                && _transform.OffsetY == _fitDeferredFrom.OffsetY;
+
+            if (untouched)
+            {
+                _transform.FitTo(_graph.ComputeBounds(), finalSize.Width, finalSize.Height);
+                InvalidateVisual();
+            }
         }
 
         return arranged;
@@ -769,6 +797,7 @@ public sealed class GraphCanvas : Control
             DrawNotes(context, pens, detail);
             DrawWires(context, pens, visible, detail);
             DrawNodes(context, pens, detail, zoom);
+            DrawPreviews(context, pens, detail);
             DrawDragWire(context, pens);
             DrawMarquee(context, pens);
         }
@@ -1206,6 +1235,94 @@ public sealed class GraphCanvas : Control
                         run, new Point(rightStart - TypeGap - run.Width, y - (run.Height / 2)));
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Draws a preview bubble under the hovered node and under every selected node.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Rank first, on its own line.</b> `E8-T10` asks for a node's output <i>and its rank</i>,
+    /// and says why: rank is what users get wrong. A node that quietly produced a list of lists
+    /// where a list was expected is the commonest way a graph goes wrong without ever erroring, and
+    /// it is invisible in the value — <c>[[1], [2]]</c> and <c>[1, 2]</c> look alike at a glance and
+    /// are not alike at all. So rank gets a line rather than a clause.
+    /// </para>
+    /// <para>
+    /// <b>Only the hovered and selected nodes get one, and that is a budget decision as much as a
+    /// design one.</b> Laying out text for two thousand nodes would spend `E8-T15`'s whole 16.7 ms
+    /// frame on strings nobody is reading. It is also the better design: a bubble answers <i>what
+    /// is this one doing</i>, which is a question about the node under the pointer, and a permanent
+    /// readout is what a <c>Watch</c> node is for.
+    /// </para>
+    /// </remarks>
+    private void DrawPreviews(DrawingContext context, in FramePens pens, CanvasDetail detail)
+    {
+        // Below the title threshold the text would be unreadable, and a bubble with unreadable
+        // text in it is a smudge that hides the graph behind it.
+        if (!CanvasLevelOfDetail.DrawsTitle(detail))
+        {
+            return;
+        }
+
+        if (_hoverNode >= 0 && _hoverNode < _graph.Nodes.Count && !_selection.Contains(_hoverNode))
+        {
+            DrawPreview(context, pens, _graph.Nodes[_hoverNode]);
+        }
+
+        foreach (int slot in _selection)
+        {
+            if (slot >= 0 && slot < _graph.Nodes.Count)
+            {
+                DrawPreview(context, pens, _graph.Nodes[slot]);
+            }
+        }
+    }
+
+    private static void DrawPreview(DrawingContext context, in FramePens pens, CanvasNode node)
+    {
+        if (node.ResultSummary is not { } summary || summary.Length == 0)
+        {
+            return;
+        }
+
+        FormattedText rank = new(
+            CanvasGraph.RankLine(node),
+            CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            LabelTypeface,
+            TypeFontSize,
+            SparkPalette.TextMutedBrush);
+
+        FormattedText value = new(
+            summary,
+            CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            LabelTypeface,
+            PortFontSize,
+            SparkPalette.TextPrimaryBrush)
+        {
+            MaxTextWidth = PreviewMaximumWidth,
+        };
+
+        double width = Math.Max(rank.Width, value.Width) + (2 * PreviewPadding);
+        double height = rank.Height + value.Height + (2 * PreviewPadding) + PreviewLineGap;
+
+        // Under the node and left-aligned with it, so a column of nodes produces a column of
+        // bubbles rather than a staircase.
+        Rect box = new(node.X, node.Y + node.Height + PreviewGap, width, height);
+        RoundedRect rounded = new(box, CornerRadius);
+
+        context.DrawRectangle(SparkPalette.SurfaceFloatBrush, null, rounded);
+        context.DrawRectangle(null, pens.NodeOutline, rounded);
+
+        using (context.PushClip(box))
+        {
+            context.DrawText(rank, new Point(box.X + PreviewPadding, box.Y + PreviewPadding));
+            context.DrawText(
+                value,
+                new Point(box.X + PreviewPadding, box.Y + PreviewPadding + rank.Height + PreviewLineGap));
         }
     }
 

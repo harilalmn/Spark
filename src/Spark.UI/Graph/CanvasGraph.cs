@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Spark.Api;
 using Spark.Engine;
 using Spark.UI.Canvas;
@@ -168,6 +169,21 @@ public sealed class CanvasNode
 
     /// <summary>A one-line summary of the value on output port 0, or null.</summary>
     public string? ResultSummary { get; set; }
+
+    /// <summary>
+    /// The rank of the value the node last produced: 0 for a single value, 1 for a list, 2 for a
+    /// list of lists.
+    /// </summary>
+    /// <remarks>
+    /// Kept as a number rather than left inside <see cref="ResultSummary"/>'s text. Rank is the
+    /// thing users get wrong — a node that quietly produced a list of lists where they expected a
+    /// list is the commonest way a graph goes wrong without erroring — so it has to be something
+    /// the canvas can lay out on its own line, not a substring somebody has to read.
+    /// </remarks>
+    public int ResultRank { get; set; }
+
+    /// <summary>How many items the value holds, or 0 when it is not a list.</summary>
+    public int ResultCount { get; set; }
 
     /// <summary>
     /// The node's height, derived from its port count. A node is as tall as its content and no
@@ -816,6 +832,8 @@ public sealed class CanvasGraph
                 node.State = kept;
                 node.Message = null;
                 node.ResultSummary = null;
+                node.ResultRank = 0;
+                node.ResultCount = 0;
                 continue;
             }
 
@@ -829,7 +847,10 @@ public sealed class CanvasGraph
 
             IReadOnlyList<SparkDiagnostic> diagnostics = result.DiagnosticsFor(node.Id);
             node.Message = diagnostics.Count > 0 ? diagnostics[0].Message : null;
-            node.ResultSummary = Summarise(result.Value(node.Id));
+            object? value = result.Value(node.Id);
+            node.ResultSummary = Summarise(value);
+            node.ResultRank = SparkList.RankOf(value);
+            node.ResultCount = value is SparkList produced ? produced.Count : 0;
         }
     }
 
@@ -891,26 +912,52 @@ public sealed class CanvasGraph
     public void InvalidateWires() => _wiresDirty = true;
 
     /// <summary>
+    /// The rank line a preview bubble and the watch panel both show above a value.
+    /// </summary>
+    /// <param name="node">The node whose last result is being described.</param>
+    /// <returns>Text such as <c>rank 0 · one value</c> or <c>rank 2 · 4 items</c>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="node"/> is null.</exception>
+    /// <remarks>
+    /// <b>Rank 0 says <i>one value</i>, never <i>0 items</i>.</b> A scalar and an empty list are
+    /// precisely the two things this line exists to tell apart, and wording them alike would defeat
+    /// it at the one moment it matters. `E8-T10` asks for rank because rank is what users get
+    /// wrong: <c>[[1], [2]]</c> and <c>[1, 2]</c> read alike at a glance and behave completely
+    /// differently under lacing.
+    /// </remarks>
+    public static string RankLine(CanvasNode node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+
+        if (node.ResultRank == 0)
+        {
+            return "rank 0 · one value";
+        }
+
+        string items = node.ResultCount == 1 ? "1 item" : string.Create(
+            CultureInfo.InvariantCulture, $"{node.ResultCount} items");
+
+        return string.Create(
+            CultureInfo.InvariantCulture, $"rank {node.ResultRank} · {items}");
+    }
+
+    /// <summary>
     /// A one-line rendering of a value for the properties panel and the node's own readout.
     /// </summary>
     /// <param name="value">The value, which may be a list.</param>
     /// <returns>The rendering, or null when there is nothing to say.</returns>
     public static string? Summarise(object? value)
     {
-        switch (value)
+        if (value is null)
         {
-            case null:
-                return null;
-
-            case SparkList list:
-                string text = list.ToString();
-                string head = text.Length > 60 ? text[..57] + "…" : text;
-                return $"{list.Count} items, rank {list.Rank}  {head}";
-
-            default:
-                string plain = value.ToString() ?? string.Empty;
-                return plain.Length > 60 ? plain[..57] + "…" : plain;
+            return null;
         }
+
+        // The value alone. Rank and length used to be prefixed here, and once RankLine existed
+        // that made a preview bubble read "rank 1 · 8 items" above "8 items, rank 1  [...]" —
+        // the same fact twice, in two wordings, in adjacent lines. One rendering of a value, one
+        // rendering of its shape, and callers compose the two.
+        string text = value.ToString() ?? string.Empty;
+        return text.Length > 60 ? text[..57] + "…" : text;
     }
 
     private static IReadOnlyList<CanvasPortInfo> Describe(IReadOnlyList<PortDefinition> ports)

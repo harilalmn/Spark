@@ -892,7 +892,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         if (node.ResultSummary is { } summary)
         {
-            builder.Append("\n\nOutput: ").Append(summary);
+            // The same two lines the preview bubble shows, in the same order and the same words.
+            builder.Append("\n\nOutput: ").Append(CanvasGraph.RankLine(node));
+            builder.Append('\n').Append(summary);
         }
 
         return builder.ToString();

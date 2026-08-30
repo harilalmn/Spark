@@ -117,6 +117,36 @@ public sealed class GraphCanvasZoomToFitTests
         }
     });
 
+    /// <summary>
+    /// <b>A deferred fit stands down if something moves the view first.</b> A fit asked for at
+    /// startup must not silently overwrite a zoom set deliberately a moment later — which is what
+    /// <c>--zoom</c> found the first time this was written without the check.
+    /// </summary>
+    [Fact]
+    public void ADeferredFitYieldsToALaterDeliberateZoom() => HeadlessSession.Run(() =>
+    {
+        GraphCanvas canvas = new() { Graph = WideGraph() };
+
+        canvas.ZoomToFit();
+
+        // A more recent instruction than the fit, given before the canvas ever had a size.
+        canvas.Transform.Zoom = 0.5;
+        canvas.Transform.OffsetX = 250;
+
+        Window window = new() { Width = 800, Height = 600, Content = canvas };
+        window.Show();
+
+        try
+        {
+            Assert.Equal(0.5, canvas.Transform.Zoom, 6);
+            Assert.Equal(250, canvas.Transform.OffsetX, 6);
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
+
     /// <summary>A graph far wider than any window, so a real fit must zoom out and cannot not.</summary>
     private static CanvasGraph WideGraph()
     {

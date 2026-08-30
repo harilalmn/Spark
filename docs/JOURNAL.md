@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-30 23:25 +0530
+**Last updated:** 2026-08-31 00:20 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1 and M1.5 are both done.** M1.6 is deferred for want of a C++ toolchain; the work in flight is **M2's remainder** |
 | **Working on** | Nothing. Between steps, part way through queue **9** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | The zoom-to-fit regression, fixed and written up as [N39](NOTES.md) |
+| **Last completed step** | Queue **9**, `E8-T10` step **(a)** — preview bubbles, with rank on its own line |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | Queue **9**'s next item: **`E8-T10` — watch nodes.** Read the `E8-T10` row in [TASKS.md](TASKS.md) first. The shape to aim for: a *Watch* node shows the value on its input, live, on the canvas — so it is a node the evaluator runs like any other, and the thing that is new is that its **result has to reach the canvas**. `CanvasNode.ResultSummary` and `CanvasGraph.Summarise` already exist and are already applied from `EvaluationResult`, so the question is presentation and not plumbing: decide whether a watch is a node that draws its summary large, or a node whose summary goes in a panel. **Prefer the first** — the value belongs where the graph is, which is the entire argument for a node-based editor — and it reuses the `ResultSummary` path rather than adding a second one. Check what `Summarise` does with a long list before designing the box, because that is what a watch is usually pointed at. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1133**: Geometry.Tests 402, Engine.Tests 305, UI.Tests 302, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | `E8-T10` step **(b)** — **the `Watch` node**, which closes `E8-T10`. A `Watch` node takes anything and returns it unchanged, so it can sit in the middle of a wire without altering the graph, and it exists so that a readout can be **pinned** where a bubble is only a glance. Add it to `Spark.Nodes.Core` (its own file, `Watch.cs`, imported by reflection like every other node — check `PublicAPI.Unshipped.txt` needs the entry). Then the two halves that make it worth having: the node **draws its value in its own body** rather than in a bubble, so it stays put and stays readable; and the properties pane shows the **untruncated** value when one is selected, which is the *watch panel* half of the row. `Summarise` truncates at 60 characters — deliberately, for the bubble — so the panel needs the full `ToString()`, and a list of ten thousand points is the case to decide before writing the box. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1141**: Geometry.Tests 402, Engine.Tests 305, UI.Tests 310, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -800,3 +800,45 @@ file about an API that answers *nothing* where it means something specific, so i
 rule rather than as another anecdote.
 
 **Cost.** Twenty-five minutes, against three commits of being wrong.
+
+### 2026-08-30 — Preview bubbles, and the rank line that is the point of them
+
+**`E8-T10` step (a).** `CanvasNode.ResultSummary` has existed since the walking skeleton and has
+only ever reached the properties pane. Now a bubble under the node says what it produced.
+
+**Rank gets its own line, and that is the feature.** The `E8-T10` row says *must show rank, not
+only value — rank is what users get wrong*, and it is right: `[[1], [2]]` and `[1, 2]` read alike
+at a glance and behave completely differently under lacing, and a node that quietly produced a
+list of lists is the commonest way a graph goes wrong without ever erroring. So `ResultRank` and
+`ResultCount` became fields rather than being left as a substring of the summary, and the bubble
+reads `rank 1 · 8 items` above the value. **Rank 0 says *one value*, never *0 items*** — a scalar
+and an empty list are precisely the two things the line exists to tell apart, and wording them
+alike would defeat it at the one moment it matters.
+
+**Only the hovered node and the selected nodes get a bubble**, and that is a budget decision as
+much as a design one: laying out text for two thousand nodes would spend `E8-T15`'s entire 16.7 ms
+frame on strings nobody is reading. It is also the better design — a bubble answers *what is this
+one doing*, and a permanent readout is what a `Watch` node is for, which is step (b). The
+consequence worth noting is what it avoided: no per-node toggle, and therefore **no new field in
+the file format** three days after the last two.
+
+**Two things the screenshot found that the tests could not.** First, the bubble read
+`rank 1 · 8 items` above `8 items, rank 1  [...]` — the same fact twice, in two wordings, in
+adjacent lines. `Summarise` had been prefixing rank and length since before `RankLine` existed; it
+now renders the value and nothing else, and the properties pane composes the same two lines the
+bubble does. Second, and more serious: **`--zoom` stopped working**. The deferred fit added in the
+previous step was firing on a later arrange and overwriting a zoom set deliberately afterwards. A
+pending fit now records where the view was when it was deferred and **stands down if anything has
+moved it since** — a more recent instruction wins. That is a defect I introduced an hour ago and
+would not have found from the failing test I wrote for it, because the test only asked whether the
+fit happened.
+
+**Verified.** Build clean with `-warnaserror`; **1141 tests, 0 failures** (1133 + 8);
+`dotnet format` clean. The canvas benchmark over 2000 nodes reads **1.54 ms median, 3.40 ms p95**
+against a 16.7 ms budget — unchanged from the 1.60 ms on record, which is the number that had to
+not move. The bubbles were photographed by temporarily drawing them for every node, since a
+screenshot cannot hover and the selected node was outside the pinned view; the *which nodes* rule
+is covered by the code and the tests rather than by that picture, and saying so is better than
+implying the picture proved more than it did.
+
+**Cost.** An hour, a third of it on the `--zoom` regression.

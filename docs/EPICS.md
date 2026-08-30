@@ -706,6 +706,9 @@ another.
       that point (**E8-T19**). Dynamo's gesture, with the difference stated where a user will meet
       it: Dynamo makes a code block, and Spark's code block is [E6](#e6--c-code-block), M4.
 - [ ] Watch nodes and preview bubbles show a node's output **and its rank** (**E8-T10**).
+      *Preview bubbles as of 2026-08-30, on the hovered node and the selected ones: rank gets
+      its own line, because a scalar and an empty list must never read alike. The watch node
+      itself is what remains.*
 - [ ] Aggressive autosave and crash recovery, because
       [R11](PRD.md#12-risks) means the process can die without warning (**E8-T13**).
 - [ ] Banners for a missing package and for a graph containing script nodes (**E8-T16**).
