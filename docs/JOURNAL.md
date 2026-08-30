@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 10:30 +0530
+**Last updated:** 2026-08-31 10:50 +0530
 **Protocol version:** 2
 
 ---
@@ -19,9 +19,9 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5 and M2 are done** — M2 closed on 2026-08-30. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. The work in flight is **M3, NURBS curves** |
 | **Working on** | Nothing. Between steps, inside M3 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **10**, `E2-T10` step **(g)** — least-squares approximation |
+| **Last completed step** | The `E2-T10` row split into nine, so what is done and what is not are separately visible |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **Split the `E2-T10` row in [TASKS.md](TASKS.md) before writing any more code against it.** It has absorbed seven steps — knot vector, curve, insertion, exact trim, closest point, degree elevation, interpolation, approximation — and one table cell is no longer a readable place to record what is done and what is not. Give each remaining piece its own row: **fit to a stated tolerance**, **knot removal**, and **split as its own operation**. That is a documentation step and should be committed as one. **Then** knot removal, which is the interesting one of the three: it is the inverse of insertion and the only operation here that is *allowed* to change the curve, so it needs a tolerance and a stated rule for what 'unchanged enough to drop a knot' means — and until it exists, degree elevation's output is exact but not minimal, which is written down in the elevation remarks. |
+| **Next action** | **`E2-T55` — knot removal**, now that it has a row of its own. It is the inverse of insertion and **the only operation in this family allowed to change the curve**, which is the whole difficulty: insertion, trimming and elevation all promise *nothing changed* and can be tested by asserting exactly that, and this one cannot. It needs a `Tolerance` and a stated rule for what *unchanged enough to drop a knot* means — Wolters' removal test or an equivalent, with the deviation bound **named rather than assumed**. Write the rule down before the code. Two tests carry the weight: removing a knot that was just inserted returns the original control points (a knot with nothing to say can always go), and removing one that matters is **refused** rather than performed badly. When it lands, revisit [E2-T53](TASKS.md)'s remark that elevation is exact but not minimal — that sentence becomes actionable rather than merely true. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1313**: Geometry.Tests 543, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
@@ -134,7 +134,7 @@ the two disagree.**
 | 7 | **The C2VGeometry test harvest**, timeboxed to one week with a hard stop. Harvest assertions, not generators | `E2-T32` | L | **Blocked** — needs the C2VGeometry source, which is not in this repository and not on this machine. Skipped 2026-08-30 |
 | 8 | **M1.5 spike (c): AvaloniaEdit plus a Roslyn completion popup** — the last unproven part of M1.5, gating M4 | `E11-T21` | M | **Done** 2026-08-30 |
 | 9 | ~~**What is left of M2** — real docking (`E8-T2`), group/note/align (`E8-T6`), watch nodes (`E8-T10`), `spark run` (`E12-T5`)~~ | | L | **Done** 2026-08-30 |
-| 10 | **M3 — NURBS curves** *(in progress)* — knot vector, curve, insertion, exact trim, closest point and degree elevation all done 2026-08-30; knot removal, fit and interpolate remain | `E2-T10` … | XL | Open |
+| 10 | **M3 — NURBS curves** *(in progress)* — `E2-T10`, `E2-T50` … `E2-T54` all **done**: knot vector, curve, insertion, exact trim, closest point, degree elevation, interpolation, approximation. Remaining: knot removal (`E2-T55`), fit to tolerance (`E2-T56`), split (`E2-T57`) | `E2-T10`, `E2-T50`–`E2-T57` | XL | Open |
 | + | **Persist the workspace layout between sessions** — `WorkspaceLayout` already serialises and round-trips under test; nothing writes it. A dragged arrangement dies with the window, which is the one thing a dock is for | `E8-T2`-adjacent | S | Open |
 | + | **A guard that no test project reports zero tests** — one line, and it catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)) | `E11`-adjacent | S | Open, take it with the next CI change |
 
@@ -1307,3 +1307,28 @@ next person does not spend the same twenty minutes.
 requires thirty control points to fit a hundred times better than six.
 
 **Cost.** An hour, half of it establishing that the code was right.
+
+### 2026-08-31 — One row became nine
+
+**A documentation step, committed as one.** `E2-T10` had absorbed seven work steps and its
+description cell had grown to **4,473 characters** — a paragraph-long wall in which *done* and
+*not done* were interleaved and neither was findable. The register's job is to answer *what is
+built* at a glance, and that cell had stopped doing it.
+
+**Split by operation, not by session.** `E2-T10` keeps the curve type, its evaluation and its
+derivatives; `E2-T50` … `E2-T54` take the knot vector, insertion and trimming, closest point,
+degree elevation, and interpolation with approximation. The three that remain each get a row of
+their own — **`E2-T55` knot removal**, **`E2-T56` fit to a stated tolerance**, **`E2-T57` split** —
+which is the point of the exercise: three open pieces buried in a sentence at the end of a
+four-thousand-character cell are three pieces nobody schedules.
+
+**`E2-T10` was kept rather than retired.** It is referenced from `PRD.md`, from `EPICS.md` and from
+nine journal entries, and renumbering a stable identifier to tidy a table would break every one of
+them for no gain. New work took new numbers from the end of the range.
+
+**Each new row carries the *why*, not just the *what*** — the homogeneous blend, the exactness of
+the trim, the property that is the whole closest-point test, the tolerance question that makes knot
+removal different from everything around it. That was already the register's convention and it is
+what made splitting the cell possible at all: the material was there, it simply had nowhere to sit.
+
+**No gates beyond `Spark.Docs.Verify`** — nothing changed but documentation.
