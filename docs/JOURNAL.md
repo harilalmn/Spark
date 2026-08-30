@@ -101,9 +101,11 @@ Discovered the hard way, and each one costs an hour if rediscovered.
   locally; the Linux leg needs `wsl --install -d Ubuntu` and a reboot, or a CI runner. **Do not
   record M1.6 as unblocked** — it is half unblocked, and the half that is missing is the half that
   makes the criterion a cross-platform claim.
-- **vcpkg has not yet built a port here.** It bootstraps and reports its version; nothing has
-  exercised it against a real package, let alone OCCT's. That is the first thing to try when M1.6
-  is picked up, before anything harder.
+- **vcpkg builds ports here.** `vcpkg install zlib:x64-windows` compiled from source and passed
+  post-build validation in 32 seconds, so vcpkg finds MSVC, drives CMake and completes a real port
+  unaided. That was the cheapest thing that could have failed before M1.6, and it did not.
+  **OCCT is a different order of magnitude** — 47 toolkits against zlib's one — so this says the
+  pipeline works, not that the OCCT build will.
 - **No `gh` CLI**, so CI results cannot be read from here. A run's outcome has to be pasted in.
 - **The nightly benchmark workflow has never run on a hosted runner.** `E8-T15` closes on its
   first green run, and the canvas step is the part that might not survive a runner with no GPU.
