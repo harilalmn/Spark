@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-30 20:10 +0530
+**Last updated:** 2026-08-31 18:05 +0530
 **Protocol version:** 2
 
 ---
@@ -19,9 +19,9 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2 and M3 are done** — M3 closed on 2026-08-31. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. Next is **M4, the C# code block** |
 | **Working on** | Nothing. Between steps, inside M4 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | M4 step **(d)(i)** — `E6-T17`'s seam: the evaluation's `CancellationToken` reaches a script, and is not swallowed by a reflection wrapper. **`E6-T17` is `In progress`, not `Done`** — an infinite loop still hangs |
+| **Last completed step** | **D16** — Windows is the only OS Spark will ever support, recorded with the two things it reopens as **Q15**. Documentation only. The step before it was M4 **(d)(i)**, `E6-T17`'s cancellation seam, which is still `In progress` — an infinite loop still hangs |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M4 step **(d)(ii)**: **`E6-T4`, the guard weaver** — the half that makes step (d)(i) do anything. Rewrite the syntax tree before compiling so that every loop body tests the token and counts its iterations against a ceiling, and so that recursion depth is bounded. **The channel is already there**: the generated entry point is `Run(object[] __in, CancellationToken __token)`, so a woven check is `__token.ThrowIfCancellationRequested()` against a parameter already in scope. **Note the honest limit the row records**: `StackOverflowException` cannot be caught in .NET and terminates the process ([R11](PRD.md#12-risks)), so depth must be *bounded by the weaver*, never caught by the runner. Closing `E6-T4` also closes `E6-T17` and ticks the shared EPICS criterion — and it is the first user-facing behaviour here, so it needs a help topic with a worked example. Then `E6-T15` — clear callback registries before unload — pairs with `E6-T3`, and neither is urgent while assemblies are never unloaded at all. |
+| **Next action** | Back to M4 step **(d)(ii)**: **`E6-T4`, the guard weaver** — the half that makes step (d)(i) do anything. Rewrite the syntax tree before compiling so every loop body tests the token and counts its iterations against a ceiling, and so recursion depth is bounded. **The channel is already there**: the generated entry point is `Run(object[] __in, CancellationToken __token)`, so a woven check is `__token.ThrowIfCancellationRequested()` against a parameter already in scope. **Note the honest limit the row records**: `StackOverflowException` cannot be caught in .NET and terminates the process ([R11](PRD.md#12-risks)), so depth must be *bounded by the weaver*, never caught by the runner. Closing `E6-T4` also closes `E6-T17` and ticks the shared EPICS criterion, and it is the first user-facing behaviour here, so it needs a help topic with a worked example. **Separately, and not for a coding session: Q15 wants a human.** It is what blocks M1.6, and answering it is cheaper than installing WSL. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1396**: Geometry.Tests 584, Engine.Tests 343, UI.Tests 344, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
@@ -96,11 +96,14 @@ Discovered the hard way, and each one costs an hour if rediscovered.
   applied — `__cplusplus` reads `199711` under MSVC without `/Zc:__cplusplus` and means nothing.
   `cl.exe` is **not** on the ambient `PATH` by design; a build has to source
   `VC\Auxiliary\Build\vcvars64.bat` first, which is what CI does too.
-- **There is still no Linux, so `M1.6-C1` is still not satisfiable here.** WSL is not installed and
-  `M1.6-C1` is a real OCCT build on **two** operating systems. The Windows leg can now be attempted
-  locally; the Linux leg needs `wsl --install -d Ubuntu` and a reboot, or a CI runner. **Do not
-  record M1.6 as unblocked** — it is half unblocked, and the half that is missing is the half that
-  makes the criterion a cross-platform claim.
+- **There is still no Linux, so `M1.6-C1` is still not satisfiable here** — but **ask Q15 before
+  installing anything.** WSL is not installed and `M1.6-C1` is a real OCCT build on **two** operating
+  systems. The Windows leg can be attempted locally; the Linux leg needs `wsl --install -d Ubuntu`
+  and a reboot, or a CI runner. **`D16` may have removed the reason for the Linux leg entirely**:
+  the client has decided Spark supports Windows and nothing else, ever, so whether `M1.6-C1` and
+  `M1.6-C2` still require two operating systems is **Q15** and is unanswered. Settling Q15 is
+  cheaper than installing WSL, and it might make it unnecessary. **Do not record M1.6 as
+  unblocked** on either ground until Q15 is answered.
 - **vcpkg builds ports here.** `vcpkg install zlib:x64-windows` compiled from source and passed
   post-build validation in 32 seconds, so vcpkg finds MSVC, drives CMake and completes a real port
   unaided. That was the cheapest thing that could have failed before M1.6, and it did not.
@@ -1624,3 +1627,48 @@ nothing to document with a worked example yet. That arrives with `E6-T4`.
 **Verified.** Build clean with `-warnaserror`, zero warnings; **1396 tests, 0 failures**
 (Engine 340 → 343, UI 341 → 344); `dotnet format --verify-no-changes` clean; docs harness green;
 and the four reverts above.
+
+### 2026-08-31 — D16: Windows, and nothing else, ever
+
+**Not a queue item.** The client stated a decision and asked for it to be recorded, so this step is
+documentation only and no code changed.
+
+**The decision.** Spark supports Windows and no other operating system, permanently. **D14** already
+said *v1 releases target Windows only*; **D16** removes the *v1*. It is now a statement about the
+product rather than about a version, and the README, installer and website say Windows without a
+"for now". `N5` and the §9 out-of-scope bullet are hardened to match, and D14 is left otherwise
+unedited with a pointer to D16 — the same treatment D2 got when it was reversed, so the narrower
+decision actually taken then stays legible.
+
+**The part worth more than the decision is what it reopens, and D16 does not settle either.** Both
+were bought with the cross-platform option D16 gives up, so both are now unfunded, and both are
+recorded as **Q15** rather than resolved here:
+
+- **The binding.** ADR-0020 chose a hand-written C-ABI shim over C++/CLI at a stated **15–25%
+  effort premium**, and the payoff it names is *buying back the entire cross-platform option*. Under
+  D16 that payoff is worth nothing. **The honest counter belongs in the same breath**: the shim was
+  also chosen for a small, deliberately chosen ABI surface and for surviving OCCT upgrades, and
+  neither reason is about operating systems — a generated C++/CLI binding cannot reduce the surface,
+  which is why Macad3D's runs to 170 files. C++/CLI would also reverse **D7** and break the
+  `-windows`-free architecture test. **The moment to ask is now**: `spark_occt` is unwritten, so
+  reopening is cheap today and expensive at M6.
+- **The two-OS criteria.** `M1.6-C1` and `M1.6-C2` demand the build and one boolean on Windows *and*
+  Linux. **This is what blocks M1.6 today**, and answering Q15 is cheaper than installing WSL and may
+  make it unnecessary. The journal's environment fact now says so, because the next session's
+  instinct will be to install WSL.
+
+**The distinction the whole record turns on: supporting an OS is a release commitment; running CI on
+one is a test technique.** D14 already held them apart and D16 settles only the first. The ubuntu
+job's *rot-guard* justification is void — it guards an option the product has renounced — but the
+job has independently caught a real defect that had nothing to do with shipping on Linux
+([N28](NOTES.md)), and it is where floating-point and culture-dependent differences surface. That is
+a different argument for keeping it, and it has to be made on its own merits or the job has to go.
+Q15(c).
+
+**`AGENTS.md`'s no-`-windows`-TFM rule is left in force with a warning attached**, because its
+stated justification is the rot-guard and a reader who now finds that justification void would draw
+the wrong conclusion. The rule is cheap, a `-windows` TFM is very hard to remove once it spreads,
+and Q15 may keep the Linux job anyway.
+
+**Verified.** Docs harness green — 5 checks, which is what covers `Last updated` lines, relative
+links and ADR citations across the four documents touched. No code changed, so no other gate applies.

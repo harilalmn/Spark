@@ -2,7 +2,7 @@
 
 For anyone changing this repository — human or AI. Read this before committing.
 
-**Last updated:** 2026-08-29
+**Last updated:** 2026-08-31
 
 ---
 
@@ -365,6 +365,13 @@ silently ends the Linux rot-guard job — which would quietly convert the choice
 from a strategy into wasted effort. Avalonia does not need one. `Spark.Architecture.Tests`
 enforces this (`E11-T8`): it greps every `.csproj` outside `obj/` for the string `-windows`,
 so it catches one arriving through a template as readily as one added on purpose.
+
+**The rule still stands; the sentence above no longer justifies it on its own.** `D16` decided
+that Spark supports Windows and nothing else, **ever**, so the rot-guard is guarding an option
+the product has given up. Whether the Linux job survives at all is **Q15**, unanswered. **Do not
+relax this rule on the strength of D16** — the architecture test is cheap, a `-windows` TFM is
+very hard to remove once it has spread, and Q15 may well keep the Linux job for the defects it
+finds rather than for the platform it represents ([NOTES.md N28](docs/NOTES.md)).
 
 **No unsafe code.** `AllowUnsafeBlocks=false` everywhere. `Span<T>`, `ref struct` and
 `System.Numerics` cover the kernel's needs. Revisit only with a benchmark showing a real
