@@ -4,7 +4,7 @@ Every task, its epic, and its state. Epics are described in [EPICS.md](EPICS.md)
 order for what to do next is in [TODO.md](TODO.md); the requirements behind them are in
 [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-30
+**Last updated:** 2026-08-30 (E6-T17 in progress)
 **Legend:** `Done` · `In progress` · `Open` · `Blocked` · `Withdrawn`
 
 **Summary:** 97 done · 19 in progress · 142 open · 9 withdrawn — **267 rows**
@@ -356,7 +356,7 @@ Everything else in this file is a plan, not a claim.
 | E6-T1 | Port `ScriptRewriter` and `SourceMap` from RCS | Open | |
 | E6-T2 | Port `ReferenceCatalog` | Done | **The biggest single time-saver in the port campaign.** Its non-locking read is also what lets [E7-T9](#e7--packages-and-extensibility) offer auto-reload: users can rebuild their library in Visual Studio while Spark is open |
 | E6-T3 | Port `ScriptLoadContext` | Open | |
-| E6-T4 | Port `GuardWeaver` | Open | Bounds loop iterations and recursion depth |
+| E6-T4 | Port `GuardWeaver` | Open | Bounds loop iterations and recursion depth. **The channel it writes against already exists** (`E6-T17`): the generated entry point is `Run(object[] __in, CancellationToken __token)`, so a woven loop check is `__token.ThrowIfCancellationRequested()` against a parameter that is already in scope, plus an iteration counter. Recursion depth has to be bounded rather than caught — `StackOverflowException` terminates the process ([R11](PRD.md#12-risks)) |
 | E6-T5 | Semantic input-port inference | Done | Compile once against the prelude, collect `CS0103`/`CS0117` diagnostics, take the identifiers in source order. Materially more robust than a syntax walk, because Roslyn has already resolved locals, aliases, globals members and type parameters — all of which a walker gets wrong. Port identity is the **variable name**, so reordering usages does not rewire |
 | E6-T6 | Typed input injection | Open | Once a port is connected the upstream type is known, so inject `Point3d center = (Point3d)__in[0];` rather than `object` |
 | E6-T7 | Wire-typed IntelliSense | Open | Type `center.` inside a code block and get `Point3d` members. **The single most compelling thing Spark can demo that Dynamo cannot** |
@@ -369,7 +369,7 @@ Everything else in this file is a plan, not a claim.
 | E6-T14 | The two node types over one pipeline | In progress | An inline **Code Block** and a docked **C# Script Node**. A graph with no script nodes must never load `Spark.Scripting`. **The Code Block landed 2026-08-31**: a toolbar button places one, its source is edited in the properties pane, and it evaluates. Roslyn is untouched until `SparkSession.EnableScripting` is called and the first caller is `PlaceCodeBlock`, so a session that never places one never loads it. **Editing a script re-makes wires by port name, not by index** — indices shift when a script gains an identifier, and reconnecting by index would silently rewire the graph. **The docked C# Script Node is not built** |
 | E6-T15 | Clear callback registries before unload | Open | DoodleSharp's resident-assembly cache comes **with this warning**: delegates into user code pin the collectible context, so an uncleaned registry means the ALC never unloads |
 | E6-T16 | Trust posture: no auto-run on open, script-node banner, per-origin content-hash allowlist, `--no-script` | In progress | Stated rather than implied: **The seam landed 2026-08-31**: scripting off is `SparkSession.Scripts` being null, a graph containing a code block then refuses to open naming the node, and `DisableScripting` is one-way because a switch any code path could reverse is not a trust boundary. **Still to build: the `--no-script` CLI flag, the script-node banner, no-auto-run-on-open, and the per-origin content-hash allowlist.** Stated rather than implied: **a Spark graph is executable code; opening one from an untrusted source is equivalent to running an unknown program.** .NET has no code-access security, so pretending otherwise would be dishonest |
-| E6-T17 | Cancel a runaway script | Open | A deliberately infinite loop must be cancelled rather than hanging. Note the honest limit: `StackOverflowException` cannot be caught in .NET and terminates the process ([R11](PRD.md#12-risks)) |
+| E6-T17 | Cancel a runaway script | In progress | A deliberately infinite loop must be cancelled rather than hanging. Note the honest limit: `StackOverflowException` cannot be caught in .NET and terminates the process ([R11](PRD.md#12-risks)). **The seam is cut and the loop still hangs**, which is the whole of what this row is worth until `E6-T4` lands: `NodeDefinitionSource.Invoke` is a `ScriptInvocation` taking the evaluation's token, `NodeDefinition.Call` is what the replicator uses so the token reaches the generated `Run(object[] __in, CancellationToken __token)`, and the entry point is bound with `CreateDelegate` so cancellation is not buried in a `TargetInvocationException` ([N42](NOTES.md)). A script therefore never *starts* once evaluation is cancelled — but nothing checks the token mid-loop until the guard weaver writes those checks |
 
 ## E7 — Packages and extensibility
 

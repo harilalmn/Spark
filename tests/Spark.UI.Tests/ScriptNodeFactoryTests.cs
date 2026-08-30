@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Reflection;
+using System.Threading;
 using Spark.Api;
 using Spark.Scripting;
 
@@ -33,7 +35,7 @@ public sealed class ScriptNodeFactoryTests
         NodeDefinitionSource block = new ScriptNodeFactory().Create("return a * 2;");
 
         Assert.Equal("a", Assert.Single(block.Inputs).Name);
-        Assert.Equal(84.0, Assert.Single(block.Invoke([42.0])));
+        Assert.Equal(84.0, Assert.Single(block.Invoke([42.0], CancellationToken.None)));
     }
 
     /// <summary>Several free identifiers become several ports, in source order.</summary>
@@ -43,7 +45,7 @@ public sealed class ScriptNodeFactoryTests
         NodeDefinitionSource block = new ScriptNodeFactory().Create("return width * height + depth;");
 
         Assert.Equal(["width", "height", "depth"], block.Inputs.Select(p => p.Name));
-        Assert.Equal(23.0, Assert.Single(block.Invoke([4.0, 5.0, 3.0])));
+        Assert.Equal(23.0, Assert.Single(block.Invoke([4.0, 5.0, 3.0], CancellationToken.None)));
     }
 
     /// <summary>
@@ -90,7 +92,7 @@ public sealed class ScriptNodeFactoryTests
         NodeDefinitionSource block = new ScriptNodeFactory().Create(
             "return new Point3d(x, 2, 3);");
 
-        object? result = Assert.Single(block.Invoke([1.0]));
+        object? result = Assert.Single(block.Invoke([1.0], CancellationToken.None));
 
         Spark.Geometry.Point3d point = Assert.IsType<Spark.Geometry.Point3d>(result);
         Assert.Equal(1.0, point.X);
@@ -109,7 +111,7 @@ public sealed class ScriptNodeFactoryTests
 
         Assert.Equal(["area", "perimeter"], block.Outputs.Select(p => p.Name));
 
-        object?[] values = block.Invoke([3.0, 4.0]);
+        object?[] values = block.Invoke([3.0, 4.0], CancellationToken.None);
         Assert.Equal(12.0, values[0]);
         Assert.Equal(14.0, values[1]);
     }
@@ -136,9 +138,66 @@ public sealed class ScriptNodeFactoryTests
         Assert.NotNull(block.Invoke);
 
         InvalidOperationException failure = Assert.Throws<InvalidOperationException>(
-            () => block.Invoke([1.0]));
+            () => block.Invoke([1.0], CancellationToken.None));
 
         Assert.Contains("did not compile", failure.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// <b>`E6-T17`: a script does not start once evaluation has been cancelled.</b>
+    /// </summary>
+    /// <remarks>
+    /// The generated entry point takes the token and tests it before a line of the user's source
+    /// runs. On its own that stops nothing already looping — bounding a loop is `E6-T4`'s job — but
+    /// it is what keeps every code block downstream of a cancelled node from running to completion
+    /// before anyone notices, which is the common case rather than the dramatic one.
+    /// </remarks>
+    [Fact]
+    public void ACancelledTokenStopsAScriptBeforeItRuns()
+    {
+        NodeDefinitionSource block = new ScriptNodeFactory().Create("return a * 2;");
+
+        using CancellationTokenSource cancelled = new();
+        cancelled.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => block.Invoke([42.0], cancelled.Token));
+    }
+
+    /// <summary>
+    /// <b>Cancellation arrives bare, not wrapped in a <see cref="TargetInvocationException"/>.</b>
+    /// </summary>
+    /// <remarks>
+    /// The entry point is bound with <c>CreateDelegate</c> rather than called through
+    /// <c>MethodInfo.Invoke</c>, and this test is the reason rather than speed. The replicator
+    /// recognises cancellation by catching <see cref="OperationCanceledException"/> and letting it
+    /// through; a wrapped one does not match that filter, so it would be reported as
+    /// <c>'CodeBlock' failed</c> and the evaluation would continue — a stop button that logs an
+    /// error and does not stop. <see cref="Assert.Throws{T}(System.Func{object})"/> is exact rather
+    /// than assignable, so a wrapper fails this outright.
+    /// </remarks>
+    [Fact]
+    public void AScriptsExceptionIsNotWrappedByReflection()
+    {
+        NodeDefinitionSource block = new ScriptNodeFactory().Create(
+            "if (a > 0) throw new InvalidOperationException(\"from the script\"); return a;");
+
+        using CancellationTokenSource live = new();
+
+        InvalidOperationException thrown = Assert.Throws<InvalidOperationException>(
+            () => block.Invoke([1.0], live.Token));
+
+        Assert.Equal("from the script", thrown.Message);
+    }
+
+    /// <summary>An uncancelled token is simply the ordinary path, and costs the script nothing.</summary>
+    [Fact]
+    public void ALiveTokenLetsTheScriptRun()
+    {
+        NodeDefinitionSource block = new ScriptNodeFactory().Create("return a * 2;");
+
+        using CancellationTokenSource live = new();
+
+        Assert.Equal(84.0, Assert.Single(block.Invoke([42.0], live.Token)));
     }
 
     /// <summary>

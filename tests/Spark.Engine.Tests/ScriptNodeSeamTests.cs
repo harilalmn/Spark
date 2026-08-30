@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using System.Threading;
 using Spark.Api;
 using Spark.Engine;
 
@@ -162,6 +164,91 @@ public sealed class ScriptNodeSeamTests
         Assert.Equal(NodeDefinition.ScriptPackage, block.Key.Package);
     }
 
+    /// <summary>
+    /// <b>`E6-T17`: the evaluation's own token is the one the script is handed.</b>
+    /// </summary>
+    /// <remarks>
+    /// Asserted by identity rather than by observing a cancellation, because that is the part that
+    /// actually breaks. A seam that fabricated a fresh <see cref="CancellationToken"/> — or passed
+    /// <see cref="CancellationToken.None"/>, which is what <c>NodeDefinition.Invoke</c> still does —
+    /// would satisfy every test that only checks "something was passed", and would then never
+    /// cancel anything.
+    /// </remarks>
+    [Fact]
+    public void AScriptIsInvokedWithTheEvaluationsOwnToken()
+    {
+        CancellationToken seen = default;
+        RecordingFactory factory = new((_, token) =>
+        {
+            seen = token;
+            return [1.0];
+        });
+
+        Graph graph = new();
+        NodeInstance block = graph.AddNode(
+            NodeDefinition.FromScript(factory.Create(Doubling), Doubling));
+        graph.SetLiteral(block.Id, 0, 21.0);
+
+        using CancellationTokenSource source = new();
+        GraphEvaluator.Evaluate(graph, new EvaluationContext(), source.Token);
+
+        Assert.Equal(source.Token, seen);
+        Assert.NotEqual(CancellationToken.None, seen);
+    }
+
+    /// <summary>
+    /// <b>A script that cancels stops the evaluation, rather than being reported as a node that
+    /// failed.</b>
+    /// </summary>
+    /// <remarks>
+    /// This is the half of `E6-T17` that the replicator owns. Its two catch filters already exclude
+    /// <see cref="OperationCanceledException"/>, so cancellation propagates — but only while it
+    /// arrives <i>bare</i>. Anything that wraps it, and reflective invocation through
+    /// <c>MethodInfo.Invoke</c> is exactly such a thing, turns "the user pressed stop" into
+    /// "'CodeBlock' failed" and lets the evaluation carry on to the next node.
+    /// </remarks>
+    [Fact]
+    public void AScriptThatObservesCancellationStopsTheEvaluation()
+    {
+        using CancellationTokenSource source = new();
+        RecordingFactory factory = new((_, token) =>
+        {
+            // The realistic shape: the token is not yet cancelled when the script starts, and
+            // becomes so while it is running. This is what the guard weaver's loop checks will do.
+            source.Cancel();
+            token.ThrowIfCancellationRequested();
+
+            return [1.0];
+        });
+
+        Graph graph = new();
+        NodeInstance block = graph.AddNode(
+            NodeDefinition.FromScript(factory.Create(Doubling), Doubling));
+        graph.SetLiteral(block.Id, 0, 21.0);
+
+        Assert.Throws<OperationCanceledException>(
+            () => GraphEvaluator.Evaluate(graph, new EvaluationContext(), source.Token));
+    }
+
+    /// <summary>
+    /// <see cref="NodeDefinition.Call"/> is the same call as <see cref="NodeDefinition.Invoke"/>
+    /// for a node that came from a library, and is the only one that carries a token for a script.
+    /// </summary>
+    [Fact]
+    public void OnlyAScriptDefinitionCarriesACancellableInvocation()
+    {
+        NodeDefinition block = NodeDefinition.FromScript(new StubFactory().Create(Doubling), Doubling);
+        NodeDefinition library = Library.Definitions().First(d => d.Inputs.Count > 0);
+
+        Assert.NotNull(block.InvokeScript);
+        Assert.Null(library.InvokeScript);
+
+        using CancellationTokenSource cancelled = new();
+        cancelled.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => block.Call([21.0], cancelled.Token));
+    }
+
     private static NodeLibrary BuildLibrary()
     {
         NodeLibrary library = new();
@@ -173,6 +260,22 @@ public sealed class ScriptNodeSeamTests
     /// A factory with no compiler in it. It understands exactly two scripts, which is enough to
     /// exercise every path through the seam and keeps these tests independent of Roslyn.
     /// </summary>
+    /// <summary>A factory whose one script is whatever the test wants it to be.</summary>
+    private sealed class RecordingFactory(ScriptInvocation invoke) : IScriptNodeFactory
+    {
+        public NodeDefinitionSource Create(string script)
+        {
+            ArgumentNullException.ThrowIfNull(script);
+
+            return new NodeDefinitionSource(
+                "CodeBlock",
+                script.GetHashCode(StringComparison.Ordinal).ToString("X8", System.Globalization.CultureInfo.InvariantCulture),
+                [new ScriptPort("a", typeof(double))],
+                [new ScriptPort("result", typeof(double))],
+                invoke);
+        }
+    }
+
     private sealed class StubFactory : IScriptNodeFactory
     {
         public NodeDefinitionSource Create(string script)
@@ -186,7 +289,12 @@ public sealed class ScriptNodeSeamTests
                 script.GetHashCode(StringComparison.Ordinal).ToString("X8", System.Globalization.CultureInfo.InvariantCulture),
                 [new ScriptPort("a", typeof(double))],
                 [new ScriptPort("result", typeof(double))],
-                arguments => [Convert.ToDouble(arguments[0], System.Globalization.CultureInfo.InvariantCulture) * factor]);
+                (arguments, cancellationToken) =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    return [Convert.ToDouble(arguments[0], System.Globalization.CultureInfo.InvariantCulture) * factor];
+                });
         }
     }
 }

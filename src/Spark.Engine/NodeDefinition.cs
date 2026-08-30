@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Spark.Api;
 
 namespace Spark.Engine;
@@ -170,6 +171,33 @@ public sealed class NodeDefinition
     public NodeInvocation Invoke { get; }
 
     /// <summary>
+    /// The invoker for a code block, which takes the evaluation's cancellation token — null for
+    /// every node that came from a library.
+    /// </summary>
+    /// <remarks>
+    /// Set only by <see cref="FromScript"/>. It exists because a code block is the one node whose
+    /// body a user wrote by hand and can therefore fail to terminate; see
+    /// <see cref="ScriptInvocation"/> for why the token stops here rather than reaching
+    /// <see cref="NodeInvocation"/> as well.
+    /// </remarks>
+    public ScriptInvocation? InvokeScript { get; private init; }
+
+    /// <summary>Runs the node once, honouring cancellation if the node is able to.</summary>
+    /// <param name="arguments">One argument per input port, in port order.</param>
+    /// <param name="cancellationToken">The evaluation's token.</param>
+    /// <returns>One value per output port, in port order.</returns>
+    /// <remarks>
+    /// <b>Call this rather than <see cref="Invoke"/>.</b> For a library node the two are the same
+    /// call; for a code block <see cref="Invoke"/> silently drops the token, which is exactly the
+    /// bug `E6-T17` exists to prevent. The token is passed on rather than checked here, because a
+    /// script that has already started is stopped from inside — by the guard weaver's checks — and
+    /// not by anything this method could do after the fact.
+    /// </remarks>
+    /// <exception cref="OperationCanceledException">Cancellation was requested.</exception>
+    public object?[] Call(object?[] arguments, CancellationToken cancellationToken) =>
+        InvokeScript is { } script ? script(arguments, cancellationToken) : Invoke(arguments);
+
+    /// <summary>
     /// Resolves an instance's lacing to a real replication algorithm. This is the one hop, and it
     /// is the whole of what <see cref="LacingMode.Auto"/> means.
     /// </summary>
@@ -216,11 +244,12 @@ public sealed class NodeDefinition
                 port.Name, port.ValueType, PortDefinition.RankOfType(port.ValueType), port.Description))],
             [.. source.Outputs.Select(port => new PortDefinition(
                 port.Name, port.ValueType, PortDefinition.RankOfType(port.ValueType), port.Description))],
-            arguments => source.Invoke(arguments),
+            arguments => source.Invoke(arguments, CancellationToken.None),
             description: "A C# code block.",
             category: NodeCategories.Script)
         {
             Script = script,
+            InvokeScript = source.Invoke,
         };
     }
 

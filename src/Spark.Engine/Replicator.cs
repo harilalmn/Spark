@@ -249,7 +249,9 @@ public static class Replicator
                 }
             }
 
-            object?[] produced = definition.Invoke(clrArguments);
+            // `E6-T17`: `Call`, not `Invoke`. A code block is invoked with the evaluation's token so
+            // that a runaway script can be stopped; `Invoke` would drop it silently.
+            object?[] produced = definition.Call(clrArguments, run.CancellationToken);
             object?[] outputs = new object?[definition.Outputs.Count];
 
             for (int index = 0; index < outputs.Length; index++)

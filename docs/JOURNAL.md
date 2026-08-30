@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 16:40 +0530
+**Last updated:** 2026-08-30 20:10 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2 and M3 are done** — M3 closed on 2026-08-31. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. Next is **M4, the C# code block** |
 | **Working on** | Nothing. Between steps, inside M4 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | M4 step **(c)** — a code block on the canvas: placed, edited, compiled, evaluated |
+| **Last completed step** | M4 step **(d)(i)** — `E6-T17`'s seam: the evaluation's `CancellationToken` reaches a script, and is not swallowed by a reflection wrapper. **`E6-T17` is `In progress`, not `Done`** — an infinite loop still hangs |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M4 step **(d)**: **safety before polish** — `E6-T17` cancel a runaway script and `E6-T4` the guard weaver, in that order. A code block can currently contain `while(true){}` and take the application with it, and that is the one defect in what has been built that a user can hit by accident on their first afternoon. `E6-T17` needs the invocation to observe the evaluation's `CancellationToken`, which means threading it into `NodeDefinitionSource.Invoke`; `E6-T4` rewrites the syntax tree to bound loop iterations and recursion depth before compiling. **Note the honest limit the row already records**: `StackOverflowException` cannot be caught in .NET and terminates the process ([R11](PRD.md#12-risks)), so recursion depth has to be bounded by the weaver rather than caught by the runner. Then `E6-T15` — clear callback registries before unload — pairs with `E6-T3`, and neither is urgent while assemblies are never unloaded at all. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1390**: Geometry.Tests 584, Engine.Tests 340, UI.Tests 341, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | M4 step **(d)(ii)**: **`E6-T4`, the guard weaver** — the half that makes step (d)(i) do anything. Rewrite the syntax tree before compiling so that every loop body tests the token and counts its iterations against a ceiling, and so that recursion depth is bounded. **The channel is already there**: the generated entry point is `Run(object[] __in, CancellationToken __token)`, so a woven check is `__token.ThrowIfCancellationRequested()` against a parameter already in scope. **Note the honest limit the row records**: `StackOverflowException` cannot be caught in .NET and terminates the process ([R11](PRD.md#12-risks)), so depth must be *bounded by the weaver*, never caught by the runner. Closing `E6-T4` also closes `E6-T17` and ticks the shared EPICS criterion — and it is the first user-facing behaviour here, so it needs a help topic with a worked example. Then `E6-T15` — clear callback registries before unload — pairs with `E6-T3`, and neither is urgent while assemblies are never unloaded at all. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1396**: Geometry.Tests 584, Engine.Tests 343, UI.Tests 344, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -1572,3 +1572,55 @@ not a code block** — the ordering follows from that rather than from what was 
 **Verified.** Build clean with `-warnaserror`; **1390 tests, 0 failures**; `dotnet format` clean;
 and the screenshot above, which is the only thing that could have shown the tuple ports arriving on
 the canvas.
+
+### 2026-08-30 — The token reaches the script, and a wrapper that would have eaten it
+
+**M4 step (d)(i), `E6-T17`.** A code block could take the application with it, and the token that
+should stop it was not reaching it. Now it is. **The row is not closed**, and that is the honest
+part of this entry: `while (true) { }` still hangs. What exists is the channel and the entry check;
+`E6-T4`'s guard weaver is what makes a running loop hit it.
+
+**The token stops at scripts rather than reaching every node, deliberately.**
+`NodeDefinitionSource.Invoke` is now a `ScriptInvocation` taking a `CancellationToken`;
+`NodeDefinition` gained `InvokeScript` and a `Call(arguments, token)` that the replicator uses in
+place of `Invoke`. Giving `NodeInvocation` the token instead was the tidier-looking option and was
+wrong: a library node is a method somebody wrote intending it to return, and handing all of them a
+token they ignore spreads the cost of one hazard across the whole node model. **A code block is the
+only node whose body a user can write non-terminating by accident.**
+
+**`NodeDefinition.Invoke` still exists and still drops the token**, which is a trap, so `Call` is
+documented as the one to use and the seam test `OnlyAScriptDefinitionCarriesACancellableInvocation`
+pins the distinction.
+
+**The thing that would have made all of this useless was three layers down.** The replicator's two
+broad catch filters already excluded `OperationCanceledException` — good design, already there. But
+the generated entry point was reached through `MethodInfo.Invoke`, which wraps whatever the script
+threw in a `TargetInvocationException`, and *that* does not match the filter. The full sequence:
+user presses stop, token cancels, the script's check fires, the wrapper hides it, the replicator
+reports `'CodeBlock' failed` and **carries on to the next node**. Every piece correct, the whole
+thing broken. Binding with `CreateDelegate` removes the wrapper; it is also faster, which is the
+lesser reason and would have been the wrong one to record. [N42](NOTES.md).
+
+**Reverted both halves to watch four named tests go red**, separately: routing the replicator back
+through `Invoke` reddens `AScriptIsInvokedWithTheEvaluationsOwnToken` and
+`AScriptThatObservesCancellationStopsTheEvaluation`; putting `MethodInfo.Invoke` back reddens
+`ACancelledTokenStopsAScriptBeforeItRuns` and `AScriptsExceptionIsNotWrappedByReflection`. Two
+independent failures rather than one, because they are two independent defects.
+
+**The token is asserted by identity, not by observing a cancellation.** A seam that fabricated a
+fresh token, or passed `CancellationToken.None`, satisfies any test that only checks *something was
+passed* and then never cancels anything. `Assert.Equal(source.Token, seen)` is the assertion that
+cannot be faked.
+
+**An unrelated thing found on the way:** `ScriptNodeFactory.cs` contained a **raw NUL byte** — the
+cache-key separator in `script + " " + version`, written as the character rather than the escape.
+It is a sound separator and the string is unchanged, but grep classified the whole file as binary
+and silently omitted it from every content search. Replaced with `" "`. Nothing behavioural, and
+the file is greppable again.
+
+**No help topic.** Nothing user-facing changed — there is still no stop button — so there is
+nothing to document with a worked example yet. That arrives with `E6-T4`.
+
+**Verified.** Build clean with `-warnaserror`, zero warnings; **1396 tests, 0 failures**
+(Engine 340 → 343, UI 341 → 344); `dotnet format --verify-no-changes` clean; docs harness green;
+and the four reverts above.

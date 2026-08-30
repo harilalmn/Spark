@@ -59,7 +59,32 @@ public readonly record struct NodeDefinitionSource(
     string ContentHash,
     System.Collections.Generic.IReadOnlyList<ScriptPort> Inputs,
     System.Collections.Generic.IReadOnlyList<ScriptPort> Outputs,
-    System.Func<object?[], object?[]> Invoke);
+    ScriptInvocation Invoke);
+
+/// <summary>
+/// Runs a script once, with one argument per input port, and returns one value per output port.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>This is the one invocation in Spark that takes a <see cref="System.Threading.CancellationToken"/>,
+/// and the asymmetry is deliberate</b> (`E6-T17`). A library node is a method call that was written
+/// by somebody who intended it to return; a code block is the only thing in a graph whose author
+/// can write <c>while (true) { }</c> without meaning to, and the only thing that can therefore take
+/// the application with it. Handing every node a token it ignores would spread the cost of that one
+/// hazard across the whole node model.
+/// </para>
+/// <para>
+/// <b>Holding the token is not the same as honouring it.</b> Nothing the compiler emits from a
+/// user's source checks a token on its own, so this signature is the channel and not the mechanism:
+/// the guard weaver (`E6-T4`) is what rewrites a loop to test it. What the token buys on its own is
+/// that a script never *starts* once evaluation has been cancelled.
+/// </para>
+/// </remarks>
+/// <param name="arguments">One argument per input port, in port order.</param>
+/// <param name="cancellationToken">The evaluation's token.</param>
+/// <returns>One value per output port, in port order.</returns>
+public delegate object?[] ScriptInvocation(
+    object?[] arguments, System.Threading.CancellationToken cancellationToken);
 
 /// <summary>One port of a script node.</summary>
 /// <param name="Name">The port's name, which is the identifier the script uses.</param>

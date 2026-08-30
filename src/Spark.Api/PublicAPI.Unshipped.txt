@@ -33,16 +33,16 @@ Spark.Api.NodeCategories
 Spark.Api.NodeDefinitionSource
 Spark.Api.NodeDefinitionSource.ContentHash.get -> string!
 Spark.Api.NodeDefinitionSource.ContentHash.init -> void
-Spark.Api.NodeDefinitionSource.Deconstruct(out string! Name, out string! ContentHash, out System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>! Inputs, out System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>! Outputs, out System.Func<object?[]!, object?[]!>! Invoke) -> void
+Spark.Api.NodeDefinitionSource.Deconstruct(out string! Name, out string! ContentHash, out System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>! Inputs, out System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>! Outputs, out Spark.Api.ScriptInvocation! Invoke) -> void
 Spark.Api.NodeDefinitionSource.Equals(Spark.Api.NodeDefinitionSource other) -> bool
 Spark.Api.NodeDefinitionSource.Inputs.get -> System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>!
 Spark.Api.NodeDefinitionSource.Inputs.init -> void
-Spark.Api.NodeDefinitionSource.Invoke.get -> System.Func<object?[]!, object?[]!>!
+Spark.Api.NodeDefinitionSource.Invoke.get -> Spark.Api.ScriptInvocation!
 Spark.Api.NodeDefinitionSource.Invoke.init -> void
 Spark.Api.NodeDefinitionSource.Name.get -> string!
 Spark.Api.NodeDefinitionSource.Name.init -> void
 Spark.Api.NodeDefinitionSource.NodeDefinitionSource() -> void
-Spark.Api.NodeDefinitionSource.NodeDefinitionSource(string! Name, string! ContentHash, System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>! Inputs, System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>! Outputs, System.Func<object?[]!, object?[]!>! Invoke) -> void
+Spark.Api.NodeDefinitionSource.NodeDefinitionSource(string! Name, string! ContentHash, System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>! Inputs, System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>! Outputs, Spark.Api.ScriptInvocation! Invoke) -> void
 Spark.Api.NodeDefinitionSource.Outputs.get -> System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>!
 Spark.Api.NodeDefinitionSource.Outputs.init -> void
 Spark.Api.NodeIgnoreAttribute
@@ -150,3 +150,5 @@ static Spark.Api.ValueText.Summary(object? value) -> string?
 ~override Spark.Api.NodeDefinitionSource.ToString() -> string
 ~override Spark.Api.ScriptPort.Equals(object obj) -> bool
 ~override Spark.Api.ScriptPort.ToString() -> string
+Spark.Api.ScriptInvocation
+virtual Spark.Api.ScriptInvocation.Invoke(object?[]! arguments, System.Threading.CancellationToken cancellationToken) -> object?[]!

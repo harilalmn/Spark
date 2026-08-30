@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-30
+**Last updated:** 2026-08-30 (N42 added)
 
 ---
 
@@ -1280,3 +1280,26 @@ the next error code — these are all things somebody will implement, and the te
 their name on it. Use something that cannot be overtaken: `999999` for a version,
 `"NotATypeThisBuildKnows"` for a type name. The absurdity is the point, and it wants a comment
 saying so, or a tidy-minded reader will make it plausible again.
+
+## N42 — Reflective invocation wraps the one exception the engine reads for meaning
+
+The replicator's two broad catch filters both end with `exception is not
+OperationCanceledException`, so cancellation propagates out of a node instead of being recorded as
+a failure. That works only while cancellation arrives **bare**.
+
+A code block's entry point used to be reached through `MethodInfo.Invoke`, which wraps whatever the
+script threw in a `TargetInvocationException`. A `TargetInvocationException` does not match those
+filters. So the sequence was: the user presses stop, the token is cancelled, the script's
+`ThrowIfCancellationRequested` fires, the wrapper hides it, and the replicator reports
+`'CodeBlock' failed: Exception has been thrown by the target of an invocation` — **and then carries
+on to the next node**. A stop button that logs an error and does not stop.
+
+Binding the entry point with `CreateDelegate` instead removes the wrapper entirely, and it is a
+faster call besides — but speed is the lesser reason and would have been the wrong one to write
+down.
+
+**The general shape, and it is not confined to cancellation:** any time control flow is expressed
+by an exception *type* and the call is made reflectively, the wrapper silently changes the meaning.
+Nothing fails; the wrong branch is simply taken. `Assert.Throws<T>` is exact rather than assignable,
+which makes it the right tool to pin this down — `ScriptNodeFactoryTests
+.AScriptsExceptionIsNotWrappedByReflection` fails outright if the wrapper comes back.
