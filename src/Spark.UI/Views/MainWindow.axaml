@@ -65,6 +65,8 @@
           selected nodes, and the two distribute items disable below three, so nothing on it
           is ever offered and then ignored.
         -->
+        <Button Classes="toolbar" Content="New note" Click="OnAddNote" />
+
         <Button Classes="toolbar" Content="Align ▾" x:Name="AlignButton">
           <Button.Flyout>
             <MenuFlyout>

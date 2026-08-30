@@ -81,6 +81,10 @@ public sealed partial class MainWindow : Window
         // what is already on the surface. It asks, and the window is what knows both halves.
         _libraryPane.PlaceRequested += (_, _) => PlaceSelectedLibraryEntry();
 
+        // The pane owns the text box; the canvas owns the pixels; the shell owns the undo stack.
+        // The pane tells the window the text changed, and the window tells the other two.
+        _inspectorPane.NoteEdited += (_, _) => Canvas.NoteTextEdited();
+
         DataContextChanged += OnDataContextChanged;
         Opened += OnOpened;
     }
@@ -171,8 +175,26 @@ public sealed partial class MainWindow : Window
 
     private void OnCanvasSelectionChanged(object? sender, EventArgs e)
     {
-        Model?.ShowSelection(Canvas.Selection);
+        // A note first, because selecting one clears the node selection: asking the other way
+        // round would show "Nothing selected" over a note that plainly is.
+        if (Canvas.SelectedNote is { } note)
+        {
+            Model?.ShowNote(note);
+        }
+        else
+        {
+            Model?.ShowSelection(Canvas.Selection);
+        }
+
         UpdateAlignAvailability();
+    }
+
+    /// <summary>Puts a new note where a new node would go, and puts the caret in it.</summary>
+    private void OnAddNote(object? sender, RoutedEventArgs e)
+    {
+        Canvas.SuggestPlacement(Model?.PlacementOrdinal ?? 0, out double x, out double y);
+        Canvas.AddNote(x, y);
+        UpdateStatus();
     }
 
     /// <summary>

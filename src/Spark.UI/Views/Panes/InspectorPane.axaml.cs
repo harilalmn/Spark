@@ -1,3 +1,4 @@
+using System;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -18,6 +19,22 @@ public sealed partial class InspectorPane : UserControl
 {
     /// <summary>Creates the pane.</summary>
     public InspectorPane() => InitializeComponent();
+
+    /// <summary>Raised when the selected note's text has been changed and committed.</summary>
+    /// <remarks>
+    /// An event rather than a call, for the reason <c>LibraryPane.PlaceRequested</c> is one: the
+    /// canvas has to redraw and the shell has to record an undo step, and this pane should know
+    /// about neither.
+    /// </remarks>
+    public event EventHandler? NoteEdited;
+
+    private void OnNoteCommitted(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel model && model.CommitNoteText())
+        {
+            NoteEdited?.Invoke(this, EventArgs.Empty);
+        }
+    }
 
     private void OnLiteralCommitted(object? sender, RoutedEventArgs e)
     {

@@ -15,6 +15,18 @@
       <TextBlock Grid.Row="2" Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
                  Text="{Binding SelectionDescription}" />
 
+      <!-- A note's text. Edited here rather than on the canvas: the canvas is one immediate-mode
+           surface that hosts no controls (ADR-0013), so a caret in it would mean writing a text
+           editor to avoid writing a binding. Shown only when a note is selected, off the same
+           property that holds the note - one source of truth rather than two that can disagree. -->
+      <TextBox Grid.Row="3" Margin="10,0,10,10"
+               IsVisible="{Binding SelectedNote, Converter={x:Static ObjectConverters.IsNotNull}}"
+               Text="{Binding NoteText, Mode=TwoWay}"
+               AcceptsReturn="True"
+               TextWrapping="Wrap"
+               VerticalAlignment="Stretch"
+               LostFocus="OnNoteCommitted" />
+
       <!-- Editing a value here writes the literal through the engine graph, which marks the
            node and everything downstream dirty, and starts a run off the UI thread. -->
       <ItemsControl Grid.Row="3" Margin="10,0,10,10" ItemsSource="{Binding Inspector}">

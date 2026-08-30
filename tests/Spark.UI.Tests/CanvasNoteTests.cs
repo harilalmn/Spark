@@ -118,6 +118,38 @@ public sealed class CanvasNoteTests
         Assert.Equal(string.Empty, note.Text);
     }
 
+    /// <summary>
+    /// <i>Zoom to fit</i> has to fit the document, not the part of it that evaluates. A note placed
+    /// beside a graph would otherwise sit just off the edge of the one gesture whose whole promise
+    /// is that nothing is off the edge any more.
+    /// </summary>
+    [Fact]
+    public void ComputingBoundsIncludesTheNotes()
+    {
+        CanvasGraph graph = TestGraphs.SourceAndSink();
+        Spark.UI.Canvas.CanvasBounds withoutNote = graph.ComputeBounds();
+
+        graph.AddNote(withoutNote.MaxX + 400, withoutNote.MaxY + 400, "over here");
+
+        Spark.UI.Canvas.CanvasBounds withNote = graph.ComputeBounds();
+
+        Assert.True(withNote.MaxX > withoutNote.MaxX);
+        Assert.True(withNote.MaxY > withoutNote.MaxY);
+    }
+
+    /// <summary>A canvas holding only notes still has bounds, so an empty graph is not the answer.</summary>
+    [Fact]
+    public void AGraphOfNothingButNotesStillHasBounds()
+    {
+        CanvasGraph graph = new();
+        graph.AddNote(100, 200, "alone");
+
+        Spark.UI.Canvas.CanvasBounds bounds = graph.ComputeBounds();
+
+        Assert.Equal(100, bounds.MinX);
+        Assert.Equal(200, bounds.MinY);
+    }
+
     private static string ExamplePath(string name)
     {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);

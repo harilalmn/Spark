@@ -104,6 +104,12 @@ public sealed class GraphCanvas : Control
     private const int WireHitSamples = 16;
     private const double GlyphFontSize = 12;
     private const double HeaderFontSize = 12;
+
+    /// <summary>The size a note's own text is drawn at.</summary>
+    private const double NoteFontSize = 12;
+
+    /// <summary>The inset between a note's edge and its text.</summary>
+    private const double NotePadding = 10;
     private const double PortFontSize = 11;
     private const double TypeFontSize = 10;
     private const double TypeGap = 6;
@@ -138,6 +144,8 @@ public sealed class GraphCanvas : Control
     private CanvasPort? _hoverPort;
     private CanvasPort? _dragSourcePort;
     private CanvasWire? _selectedWire;
+    private CanvasNote? _selectedNote;
+    private CanvasNote? _hoverNote;
     private Point _dragWireWorldEnd;
     private WireOutcome _dragOutcome = WireOutcome.Refused;
     private Point _marqueeStartWorld;
@@ -190,6 +198,7 @@ public sealed class GraphCanvas : Control
         DraggingNodes,
         Marquee,
         DraggingWire,
+        DraggingNote,
     }
 
     /// <summary>The canvas background fill. Exposed so the shell can paint the same colour behind it.</summary>
@@ -222,6 +231,15 @@ public sealed class GraphCanvas : Control
 
     /// <summary>The wire the last click selected, or null.</summary>
     public CanvasWire? SelectedWire => _selectedWire;
+
+    /// <summary>The selected note, or null.</summary>
+    /// <remarks>
+    /// A third kind of selection beside nodes and wires, and deliberately not folded into the node
+    /// selection. That set holds <i>slots</i>, which index <c>Graph.Nodes</c>; a note has no slot,
+    /// and giving it a fake one would make every existing loop over the selection wrong in a way
+    /// the compiler could not see.
+    /// </remarks>
+    public CanvasNote? SelectedNote => _selectedNote;
 
     /// <summary>
     /// Rebuilds the spatial index and the wire geometry after the graph was edited from outside the
@@ -385,6 +403,7 @@ public sealed class GraphCanvas : Control
             }
 
             _selectedWire = null;
+            _selectedNote = null;
             _focusNode = node;
             _mode = InteractionMode.DraggingNodes;
             _dragTotalX = 0;
@@ -402,6 +421,7 @@ public sealed class GraphCanvas : Control
         if (HitTestWire(world) is { } wire)
         {
             _selection.Clear();
+            _selectedNote = null;
             _selectedWire = wire;
             _mode = InteractionMode.None;
             e.Handled = true;
@@ -410,12 +430,33 @@ public sealed class GraphCanvas : Control
             return;
         }
 
+        // Notes are tested last of all the things that can be hit, which is the same ordering as
+        // their draw order: a note is behind everything, so everything on top of it wins its
+        // clicks. Selecting one clears the node selection, because the two cannot be dragged or
+        // deleted together and a selection that spans both would have to answer what Delete means.
+        if (HitTestNote(world) is { } note)
+        {
+            _selection.Clear();
+            _selectedNote = note;
+            _mode = InteractionMode.DraggingNote;
+            _dragTotalX = 0;
+            _dragTotalY = 0;
+            _dragStartWorld = world;
+            e.Pointer.Capture(this);
+            e.Handled = true;
+            InvalidateVisual();
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
         _selectedWire = null;
+        _selectedNote = null;
         if (!e.KeyModifiers.HasFlag(KeyModifiers.Shift))
         {
             _selection.Clear();
-            SelectionChanged?.Invoke(this, EventArgs.Empty);
         }
+
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
 
         _mode = InteractionMode.Marquee;
         _marqueeStartWorld = world;
@@ -447,6 +488,12 @@ public sealed class GraphCanvas : Control
                 InvalidateVisual();
                 return;
 
+            case InteractionMode.DraggingNote when _selectedNote is { } dragged:
+                MoveNote(dragged, world.X - _dragStartWorld.X, world.Y - _dragStartWorld.Y);
+                _dragStartWorld = world;
+                InvalidateVisual();
+                return;
+
             case InteractionMode.Marquee:
                 _marqueeEndWorld = world;
                 InvalidateVisual();
@@ -465,11 +512,13 @@ public sealed class GraphCanvas : Control
 
         int node = HitTestNode(world);
         CanvasPort? port = HitTestPort(world);
+        CanvasNote? note = node >= 0 ? null : HitTestNote(world);
 
-        if (node != _hoverNode || !NullablePortEquals(port, _hoverPort))
+        if (node != _hoverNode || !NullablePortEquals(port, _hoverPort) || !ReferenceEquals(note, _hoverNote))
         {
             _hoverNode = node;
             _hoverPort = port;
+            _hoverNote = note;
             InvalidateVisual();
         }
     }
@@ -496,6 +545,15 @@ public sealed class GraphCanvas : Control
                 _dragTotalY = 0;
                 GraphChanged?.Invoke(
                     this, new GraphEditedEventArgs(Plural("Move", _selection.Count), affectsEvaluation: false));
+                break;
+
+            // Net displacement again, for the reason the node drag learned it: a note dragged out
+            // and back records nothing, because an undo step that moves nothing reads as broken.
+            case InteractionMode.DraggingNote when _dragTotalX != 0 || _dragTotalY != 0:
+                _dragTotalX = 0;
+                _dragTotalY = 0;
+                GraphChanged?.Invoke(
+                    this, new GraphEditedEventArgs("Move note", affectsEvaluation: false));
                 break;
 
             default:
@@ -624,6 +682,10 @@ public sealed class GraphCanvas : Control
             Matrix.CreateScale(zoom, zoom) *
             Matrix.CreateTranslation(-_transform.OffsetX * zoom, -_transform.OffsetY * zoom)))
         {
+            // Notes first, and therefore behind. A note is a background that a region of the
+            // graph sits on — a label for it — so a note drawn over its own nodes would be
+            // annotating them by hiding them.
+            DrawNotes(context, pens, detail);
             DrawWires(context, pens, visible, detail);
             DrawNodes(context, pens, detail, zoom);
             DrawDragWire(context, pens);
@@ -653,6 +715,79 @@ public sealed class GraphCanvas : Control
 
         _index.Rebuild(bounds);
         _indexDirty = false;
+    }
+
+    /// <summary>
+    /// Draws the notes, behind everything else on the canvas.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A note is painted on <c>canvas.group</c>, the design language's surface for canvas
+    /// annotation. It is reused rather than duplicated because a note and a group are the same
+    /// kind of thing to a reader — a labelled region rather than a participant — and because its
+    /// text contrast is already verified at 14.58:1 by <c>PaletteContrastTests</c>. A new colour
+    /// would be a new row in that table for no gain.
+    /// </para>
+    /// <para>
+    /// Below the title threshold the text is dropped and the rectangle is kept. That is the same
+    /// rule the nodes follow, and it is the right one: zoomed out, a note's job is to show that a
+    /// region is annotated at all, and unreadable text costs layout time to communicate nothing.
+    /// </para>
+    /// </remarks>
+    private void DrawNotes(DrawingContext context, in FramePens pens, CanvasDetail detail)
+    {
+        if (_graph.Notes.Count == 0)
+        {
+            return;
+        }
+
+        bool drawsText = CanvasLevelOfDetail.DrawsTitle(detail);
+
+        foreach (CanvasNote note in _graph.Notes)
+        {
+            Rect rect = new(note.X, note.Y, note.Width, note.Height);
+            RoundedRect rounded = new(rect, CornerRadius);
+
+            context.DrawRectangle(
+                ReferenceEquals(note, _hoverNote)
+                    ? SparkPalette.SurfaceBaseBrush
+                    : SparkPalette.CanvasGroupBrush,
+                null,
+                rounded);
+
+            // The selection ring is the same one a node gets. A user who has learned what the
+            // accent outline means should not have to learn it twice.
+            context.DrawRectangle(
+                null,
+                ReferenceEquals(note, _selectedNote) ? pens.SelectionRing : pens.NodeOutline,
+                rounded);
+
+            if (!drawsText || note.Text.Length == 0)
+            {
+                continue;
+            }
+
+            // Not cached by string, unlike node titles and port labels. Those repeat across
+            // thousands of nodes drawn from a library of a couple of hundred names; a note's text
+            // is unique to it and is being edited, so caching it would fill the cache with entries
+            // that are each used once and are stale a keystroke later.
+            FormattedText run = new(
+                note.Text,
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                LabelTypeface,
+                NoteFontSize,
+                SparkPalette.TextPrimaryBrush)
+            {
+                MaxTextWidth = Math.Max(1, note.Width - (2 * NotePadding)),
+                MaxTextHeight = Math.Max(1, note.Height - (2 * NotePadding)),
+            };
+
+            using (context.PushClip(rect))
+            {
+                context.DrawText(run, new Point(note.X + NotePadding, note.Y + NotePadding));
+            }
+        }
     }
 
     private void DrawNodes(DrawingContext context, in FramePens pens, CanvasDetail detail, double zoom)
@@ -1243,6 +1378,43 @@ public sealed class GraphCanvas : Control
     }
 
     /// <summary>
+    /// Puts a new, empty note on the canvas and selects it.
+    /// </summary>
+    /// <param name="x">The left edge in world coordinates.</param>
+    /// <param name="y">The top edge in world coordinates.</param>
+    /// <returns>The note, so the caller can put the caret in it.</returns>
+    /// <remarks>
+    /// Created empty rather than with placeholder text. Placeholder text has to be deleted before
+    /// the note can be written, and a user who forgets is left with a note that says
+    /// <i>New note</i> in the middle of their graph.
+    /// </remarks>
+    public CanvasNote AddNote(double x, double y)
+    {
+        CanvasNote note = _graph.AddNote(x, y);
+
+        _selection.Clear();
+        _selectedWire = null;
+        _selectedNote = note;
+
+        InvalidateVisual();
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
+        GraphChanged?.Invoke(this, new GraphEditedEventArgs("Add note", affectsEvaluation: false));
+        return note;
+    }
+
+    /// <summary>Reports that the selected note's text has been edited elsewhere.</summary>
+    /// <remarks>
+    /// The canvas hosts no controls — it is one immediate-mode surface — so a note is typed into
+    /// in the properties pane and the canvas is told. Redrawing is the canvas's job; recording the
+    /// undo step is the shell's, which is why this raises the edit rather than performing it.
+    /// </remarks>
+    public void NoteTextEdited()
+    {
+        InvalidateVisual();
+        GraphChanged?.Invoke(this, new GraphEditedEventArgs("Edit note", affectsEvaluation: false));
+    }
+
+    /// <summary>
     /// Whether an alignment would be meaningful over the current selection.
     /// </summary>
     /// <param name="align">The operation.</param>
@@ -1355,6 +1527,21 @@ public sealed class GraphCanvas : Control
             return true;
         }
 
+        if (_selectedNote is { } note)
+        {
+            _selectedNote = null;
+            if (!_graph.RemoveNote(note))
+            {
+                return false;
+            }
+
+            _hoverNote = null;
+            InvalidateVisual();
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
+            GraphChanged?.Invoke(this, new GraphEditedEventArgs("Delete note", affectsEvaluation: false));
+            return true;
+        }
+
         if (_selection.Count == 0)
         {
             return false;
@@ -1424,6 +1611,35 @@ public sealed class GraphCanvas : Control
         }
 
         return found;
+    }
+
+    /// <summary>The topmost note under a world point, or null.</summary>
+    /// <remarks>
+    /// A linear scan, back to front, and not an entry in <c>SceneIndex</c>. The index earns itself
+    /// over thousands of nodes; a graph with thousands of <i>notes</i> is not a thing anybody has,
+    /// and a second index would be a second thing to keep in step for a loop that is currently
+    /// shorter than the call that would replace it. Revisit it when a real graph has hundreds.
+    /// </remarks>
+    private CanvasNote? HitTestNote(Point world)
+    {
+        IReadOnlyList<CanvasNote> notes = _graph.Notes;
+        for (int index = notes.Count - 1; index >= 0; index--)
+        {
+            if (notes[index].Bounds.Contains(world.X, world.Y))
+            {
+                return notes[index];
+            }
+        }
+
+        return null;
+    }
+
+    private void MoveNote(CanvasNote note, double dx, double dy)
+    {
+        _dragTotalX += dx;
+        _dragTotalY += dy;
+        note.X += dx;
+        note.Y += dy;
     }
 
     private int HitTestNode(Point world)

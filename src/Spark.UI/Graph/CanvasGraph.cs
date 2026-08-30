@@ -691,7 +691,7 @@ public sealed class CanvasGraph
     /// <returns>The union, or a unit rectangle at the origin when the graph is empty.</returns>
     public CanvasBounds ComputeBounds()
     {
-        if (_nodes.Count == 0)
+        if (_nodes.Count == 0 && _notes.Count == 0)
         {
             return new CanvasBounds(0, 0, 1, 1);
         }
@@ -704,6 +704,18 @@ public sealed class CanvasGraph
         foreach (CanvasNode node in _nodes)
         {
             CanvasBounds bounds = node.Bounds;
+            minX = System.Math.Min(minX, bounds.MinX);
+            minY = System.Math.Min(minY, bounds.MinY);
+            maxX = System.Math.Max(maxX, bounds.MaxX);
+            maxY = System.Math.Max(maxY, bounds.MaxY);
+        }
+
+        // Notes count. *Zoom to fit* has to fit the document, not the part of it that evaluates:
+        // a note placed beside a graph would otherwise sit just off the edge of the one gesture
+        // whose entire promise is that nothing is off the edge any more.
+        foreach (CanvasNote note in _notes)
+        {
+            CanvasBounds bounds = note.Bounds;
             minX = System.Math.Min(minX, bounds.MinX);
             minY = System.Math.Min(minY, bounds.MinY);
             maxX = System.Math.Max(maxX, bounds.MaxX);

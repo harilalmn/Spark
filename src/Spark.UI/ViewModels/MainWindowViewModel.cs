@@ -66,6 +66,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _diagnosticsText = "No run yet.";
 
+    /// <summary>The note the properties pane is editing, or null when it is not editing one.</summary>
+    /// <remarks>
+    /// Also the flag the pane's note editor is shown by. A separate <c>IsNoteSelected</c> boolean
+    /// would be a second thing that has to agree with this one, and the day they disagree is the
+    /// day a note's text is typed into a box that is editing nothing.
+    /// </remarks>
+    [ObservableProperty]
+    private CanvasNote? _selectedNote;
+
+    [ObservableProperty]
+    private string _noteText = string.Empty;
+
     [ObservableProperty]
     private LibraryEntryViewModel? _selectedLibraryEntry;
 
@@ -483,6 +495,51 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         return slot;
     }
 
+    /// <summary>
+    /// Shows a selected note in the properties pane, or clears it.
+    /// </summary>
+    /// <param name="note">The note, or null when the selection is not a note.</param>
+    /// <remarks>
+    /// The text is edited here rather than on the canvas. The canvas is one immediate-mode surface
+    /// that hosts no controls at all — that is <a href="adr/0013">ADR-0013</a>, and it is what lets
+    /// two thousand nodes draw in a frame — so putting a caret in it would mean writing a text
+    /// editor to avoid writing a binding.
+    /// </remarks>
+    public void ShowNote(CanvasNote? note)
+    {
+        Inspector.Clear();
+        SelectedNote = note;
+
+        if (note is null)
+        {
+            return;
+        }
+
+        SelectionTitle = "Note";
+        SelectionDescription = "Type into the box below. A note is not evaluated and nothing can "
+            + "be wired to it.";
+        NoteText = note.Text;
+    }
+
+    /// <summary>Commits the edited text back to the selected note.</summary>
+    /// <returns>True when the note's text actually changed, so the caller can record one step.</returns>
+    /// <remarks>
+    /// Returns whether anything changed rather than assuming it did. The pane commits on every lost
+    /// focus, and a user who clicks into a note and out again without typing must not find a step
+    /// on the undo stack whose undo does nothing — the same rule the drag gesture and the alignment
+    /// both had to learn.
+    /// </remarks>
+    public bool CommitNoteText()
+    {
+        if (SelectedNote is not { } note || note.Text == NoteText)
+        {
+            return false;
+        }
+
+        note.Text = NoteText;
+        return true;
+    }
+
     /// <summary>Rebuilds the inspector for the current canvas selection.</summary>
     /// <param name="selection">The selected slots.</param>
     public void ShowSelection(IReadOnlyCollection<int> selection)
@@ -490,6 +547,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         ArgumentNullException.ThrowIfNull(selection);
 
         Inspector.Clear();
+        SelectedNote = null;
 
         if (selection.Count != 1)
         {

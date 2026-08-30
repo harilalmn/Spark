@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-30 20:30 +0530
+**Last updated:** 2026-08-30 21:45 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1 and M1.5 are both done.** M1.6 is deferred for want of a C++ toolchain; the work in flight is **M2's remainder** |
 | **Working on** | Nothing. Between steps, part way through queue **9** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **9**, `E8-T6` step **(b)** — notes in the `.spark` format and in `CanvasGraph` |
+| **Last completed step** | Queue **9**, `E8-T6` step **(c)** — notes drawn, selected, dragged, deleted and edited |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | `E8-T6` step **(c)**: **notes on the canvas.** The model and the file are done; nothing draws them. Draw notes in `GraphCanvas.Render` **beneath the nodes and beneath the wires**, so a note is a background a graph sits on rather than something that occludes it. Then: hit-test (a note is only grabbable by its own rectangle, and a node on top of one must still win), select, drag, delete, and a **New note** toolbar button that places one at `SuggestPlacement` and selects it. **Editing the text goes in the inspector pane, not on the canvas** — the canvas is immediate-mode and hosts no controls, and building a text editor inside it to avoid one binding would be the expensive way round. Every one of those is a `GraphChanged` with `affectsEvaluation: false`. Watch two things: the selection is currently a set of node **slots**, so a note needs its own selection state rather than a slot that means something else; and `CanvasBounds`/`SceneIndex` are node-shaped, so decide whether notes go in the spatial index or are hit-tested linearly — **linearly is right until there are hundreds**, and saying so is cheaper than a second index. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1094**: Geometry.Tests 402, Engine.Tests 300, UI.Tests 268, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | `E8-T6` step **(d)** — **group**, the last of the three and the one that closes `E8-T6`. Follow the note precedent exactly, because a group is the same kind of object: a canvas annotation with no `NodeId`, no ports and no provenance, carried in `GraphDocument` and never in `Graph`. `CanvasGroup` needs a title, a rectangle, and **the identities of the nodes it contains** — that last one is the only place it differs from a note, and it is the design question: store **node ids** rather than a rectangle-at-save-time, because a group that re-derives its members from geometry silently gains and loses them when nodes are dragged. The `notes` array precedent says add a `groups` array and leave `MinimumReaderVersion` returning 2 (groups and notes both need a v2 reader; there is no reason to invent a v3 for a second field landing the same week). Then draw it behind the notes, drag it **with its members**, and delete it *without* deleting them — that last is the one users get burned by elsewhere and is worth a named test. Reuse `CanvasNote`'s shape wherever it fits rather than paraphrasing it. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1106**: Geometry.Tests 402, Engine.Tests 300, UI.Tests 280, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -673,3 +673,49 @@ afternoon.
 
 **Cost.** About fifty minutes, most of it reading two ADRs before writing anything, which is what
 turned a version bump from a one-line change into the right one-line change.
+
+### 2026-08-30 — Notes become visible, and a third thing the canvas can select
+
+**`E8-T6` step (c).** The model and the file landed in step (b); nothing drew them. Now a note is
+a rectangle on the canvas that can be made, moved, typed into and deleted.
+
+**Drawn behind the wires and the nodes**, on `canvas.group` — the design language's existing
+surface for canvas annotation, reused rather than duplicated because a note and a group are the
+same kind of thing to a reader, and because its text contrast is already verified at 14.58:1 by
+`PaletteContrastTests`. A note drawn over its own nodes would be annotating them by hiding them.
+
+**A third kind of selection.** `_selection` is a set of *slots* that index `Graph.Nodes`; a note
+has no slot, and giving it a fake one would have made every existing loop over the selection wrong
+in a way the compiler could not see. So `SelectedNote` sits beside `SelectedWire`, and selecting a
+note clears the node selection — the two cannot be dragged or deleted together without Delete
+having to answer which it meant.
+
+**Hit-tested by a linear scan, not through `SceneIndex`**, and that is a decision rather than an
+omission. The index earns itself over thousands of nodes; a graph with thousands of *notes* is not
+a thing anybody has, and a second index would be a second structure to keep in step for a loop
+currently shorter than the call that would replace it. Written down so the next person can see it
+was weighed. Notes lose clicks to nodes and to wires, matching the order they are drawn in.
+
+**The text is typed in the properties pane, not on the canvas.** The canvas is one immediate-mode
+surface that hosts no controls at all — [ADR-0013](adr/0013-immediate-mode-node-canvas.md), and it
+is what lets two thousand nodes draw in a frame — so putting a caret in it would mean writing a
+text editor to avoid writing a binding. The pane raises `NoteEdited`, the window tells the canvas
+to redraw and the shell to record a step. `CommitNoteText` returns whether anything changed, so
+clicking into the box and out again without typing records nothing: the same rule the node drag
+and the alignment both had to learn, arriving for the third time.
+
+**One thing found by looking rather than by testing.** With the notes seeded and *Zoom to fit*
+pressed, a note beside the graph sat off the edge. `ComputeBounds` only knew about nodes. It is
+the one gesture whose whole promise is that nothing is off the edge any more, so it now fits the
+document rather than the part of it that evaluates.
+
+**Verified.** Build clean with `-warnaserror`; **1106 tests, 0 failures** (1094 + 12);
+`dotnet format` clean. **AGENTS.md step 7:** `ANodeOnTopOfANoteStillWinsTheClick` and
+`DraggingANoteBackToWhereItStartedRecordsNothing` are the named guards. The screenshot is the
+verification that matters here and it was taken twice — the first attempt drew nothing, because
+the seed ran in `OnDataContextChanged` before `BindGraph` replaced the canvas's graph, which is a
+fact about the shell's startup order rather than about notes. The second shows a plain note behind
+an overlapping node, a selected note carrying the same accent ring a node gets, and the properties
+pane editing its text.
+
+**Cost.** About an hour and a quarter.
