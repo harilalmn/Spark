@@ -114,7 +114,8 @@ public sealed class CanvasNode
         double y,
         IReadOnlyList<CanvasPortInfo> inputs,
         IReadOnlyList<CanvasPortInfo> outputs,
-        string? description)
+        string? description,
+        bool showsValue = false)
     {
         Id = id;
         Title = title;
@@ -124,6 +125,7 @@ public sealed class CanvasNode
         Inputs = inputs;
         Outputs = outputs;
         Description = description;
+        ShowsValue = showsValue;
 
         // Roughly 6.6 px per character at 12 px semibold, plus the two 8 px header insets and room
         // for a state glyph. A title that overflows is clipped by the header, which reads as a bug.
@@ -145,6 +147,18 @@ public sealed class CanvasNode
 
     /// <summary>The library category, which decides the header colour.</summary>
     public NodeCategory Category { get; }
+
+    /// <summary>
+    /// Whether this node's value is shown permanently rather than only on hover or selection — a
+    /// watch node.
+    /// </summary>
+    /// <remarks>
+    /// Copied from the definition, which declares it. The canvas asks a canvas question and never
+    /// names an engine type, which is the rule
+    /// ([ADR-0005](../../docs/adr/0005-api-engine-host-layering.md)) that also decides where the
+    /// double-click search box gets its answers.
+    /// </remarks>
+    public bool ShowsValue { get; }
 
     /// <summary>The left edge in world coordinates.</summary>
     public double X { get; set; }
@@ -580,7 +594,8 @@ public sealed class CanvasGraph
             y,
             Describe(instance.Definition.Inputs),
             Describe(instance.Definition.Outputs),
-            instance.Definition.Description);
+            instance.Definition.Description,
+            instance.Definition.ShowsValue);
 
         _nodes.Add(node);
         _slots[instance.Id] = _nodes.Count - 1;
@@ -938,6 +953,43 @@ public sealed class CanvasGraph
 
         return string.Create(
             CultureInfo.InvariantCulture, $"rank {node.ResultRank} · {items}");
+    }
+
+    /// <summary>
+    /// The most characters the watch panel renders. Beyond this the value is cut and the cut is
+    /// announced.
+    /// </summary>
+    /// <remarks>
+    /// A cap rather than no cap, because a list of a hundred thousand points renders to several
+    /// megabytes of text and a <c>TextBox</c> handed that stops being a user interface. Generous
+    /// enough that anything a person is actually reading arrives whole, and the cut says how much
+    /// was left out rather than trailing off, so nobody mistakes a truncation for the end of their
+    /// data.
+    /// </remarks>
+    public const int WatchCharacterLimit = 20_000;
+
+    /// <summary>
+    /// The full rendering of a value for the watch panel, capped rather than summarised.
+    /// </summary>
+    /// <param name="value">The value, which may be a list.</param>
+    /// <returns>The rendering, or an empty string when there is nothing to show.</returns>
+    public static string Expand(object? value)
+    {
+        if (value is null)
+        {
+            return string.Empty;
+        }
+
+        string text = value.ToString() ?? string.Empty;
+        if (text.Length <= WatchCharacterLimit)
+        {
+            return text;
+        }
+
+        int hidden = text.Length - WatchCharacterLimit;
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"{text[..WatchCharacterLimit]}{Environment.NewLine}{Environment.NewLine}… {hidden} more characters not shown.");
     }
 
     /// <summary>

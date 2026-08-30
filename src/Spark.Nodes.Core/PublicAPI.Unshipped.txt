@@ -14,6 +14,7 @@ Spark.Nodes.Core.Point
 Spark.Nodes.Core.PolyCurve
 Spark.Nodes.Core.PolyLine
 Spark.Nodes.Core.Vector
+Spark.Nodes.Core.Watch
 const Spark.Nodes.Core.Number.MaximumRangeCount = 1000000 -> int
 static Spark.Nodes.Core.Arc.ByCentreStartPointSweepAngle(Spark.Geometry.Point3d centre, Spark.Geometry.Point3d startPoint, Spark.Geometry.Vector3d normal, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Arc!
 static Spark.Nodes.Core.Arc.ByPlaneRadiusAngles(Spark.Geometry.Plane plane, double radius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Arc!
@@ -72,3 +73,4 @@ static Spark.Nodes.Core.Vector.Scale(Spark.Geometry.Vector3d vector, double fact
 static Spark.Nodes.Core.Vector.XAxis() -> Spark.Geometry.Vector3d
 static Spark.Nodes.Core.Vector.YAxis() -> Spark.Geometry.Vector3d
 static Spark.Nodes.Core.Vector.ZAxis() -> Spark.Geometry.Vector3d
+static Spark.Nodes.Core.Watch.Value(object? value) -> object?

@@ -705,10 +705,11 @@ another.
 - [x] Double-clicking empty canvas opens a ranked search box there, and Enter places the node at
       that point (**E8-T19**). Dynamo's gesture, with the difference stated where a user will meet
       it: Dynamo makes a code block, and Spark's code block is [E6](#e6--c-code-block), M4.
-- [ ] Watch nodes and preview bubbles show a node's output **and its rank** (**E8-T10**).
-      *Preview bubbles as of 2026-08-30, on the hovered node and the selected ones: rank gets
-      its own line, because a scalar and an empty list must never read alike. The watch node
-      itself is what remains.*
+- [x] Watch nodes and preview bubbles show a node's output **and its rank** (**E8-T10**).
+      *Both, as of 2026-08-30. Rank gets its own line, because a scalar and an empty list must
+      never read alike and `[[1], [2]]` looks like `[1, 2]` at a glance. A bubble follows the
+      pointer and the selection; a `Watch` node pins one, and `[KeepStructure]` on its port is
+      what stops the engine replicating it and handing it one item at a time.*
 - [ ] Aggressive autosave and crash recovery, because
       [R11](PRD.md#12-risks) means the process can die without warning (**E8-T13**).
 - [ ] Banners for a missing package and for a graph containing script nodes (**E8-T16**).

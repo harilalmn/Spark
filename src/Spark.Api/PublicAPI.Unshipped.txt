@@ -53,6 +53,8 @@ Spark.Api.Rgba.Green.get -> byte
 Spark.Api.Rgba.Red.get -> byte
 Spark.Api.Rgba.Rgba() -> void
 Spark.Api.Rgba.Rgba(byte red, byte green, byte blue, byte alpha = 255) -> void
+Spark.Api.ShowsValueAttribute
+Spark.Api.ShowsValueAttribute.ShowsValueAttribute() -> void
 Spark.Api.SparkDiagnostic
 Spark.Api.SparkDiagnostic.Code.get -> string!
 Spark.Api.SparkDiagnostic.Detail.get -> string?

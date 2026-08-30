@@ -143,6 +143,9 @@ public sealed class GraphCanvas : Control
     private readonly Dictionary<string, FormattedText> _typeText = [];
     private readonly List<WireVisual> _wireVisuals = [];
     private readonly HashSet<int> _selection = [];
+
+    /// <summary>Which nodes already got a bubble this frame, so none is drawn twice.</summary>
+    private readonly HashSet<int> _previewsDrawn = [];
     private readonly HashSet<CanvasPort> _connectedPorts = [];
 
     private CanvasGraph _graph = new();
@@ -1266,18 +1269,51 @@ public sealed class GraphCanvas : Control
             return;
         }
 
-        if (_hoverNode >= 0 && _hoverNode < _graph.Nodes.Count && !_selection.Contains(_hoverNode))
-        {
-            DrawPreview(context, pens, _graph.Nodes[_hoverNode]);
-        }
+
+        // The selection first, because a selected node may be off screen after a pan and still
+        // deserves its bubble, and the cull would have dropped it.
+        _previewsDrawn.Clear();
 
         foreach (int slot in _selection)
         {
-            if (slot >= 0 && slot < _graph.Nodes.Count)
+            if (slot >= 0 && slot < _graph.Nodes.Count && _previewsDrawn.Add(slot))
             {
                 DrawPreview(context, pens, _graph.Nodes[slot]);
             }
         }
+
+        // Then whatever the cull kept, so an off-screen watch costs nothing. ShowsPreview owns
+        // the rule; this loop owns the pixels, which is what makes the rule testable without a
+        // frame.
+        foreach (int slot in _index.Visible)
+        {
+            if (ShowsPreview(slot) && _previewsDrawn.Add(slot))
+            {
+                DrawPreview(context, pens, _graph.Nodes[slot]);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether a node's value is on show: it is a watch, or it is selected, or the pointer is over
+    /// it.
+    /// </summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <returns>True when a preview bubble belongs under it.</returns>
+    /// <remarks>
+    /// The rule, separated from the drawing, because the rule is the part with a decision in it
+    /// and the drawing is the part that needs a frame. A <b>watch</b> is permanent — that is what
+    /// distinguishes it from a bubble, which answers <i>what is this one doing</i> about whatever
+    /// is under the pointer right now.
+    /// </remarks>
+    public bool ShowsPreview(int slot)
+    {
+        if (slot < 0 || slot >= _graph.Nodes.Count)
+        {
+            return false;
+        }
+
+        return _graph.Nodes[slot].ShowsValue || _selection.Contains(slot) || slot == _hoverNode;
     }
 
     private static void DrawPreview(DrawingContext context, in FramePens pens, CanvasNode node)

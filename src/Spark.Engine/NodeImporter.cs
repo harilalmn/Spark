@@ -522,6 +522,11 @@ public static class NodeImporter
             bool sideEffect = candidate.Member.IsDefined(typeof(NodeSideEffectAttribute), inherit: false)
                 || candidate.DeclaringType.IsDefined(typeof(NodeSideEffectAttribute), inherit: false);
 
+            // Declared on the member only, unlike the side-effect flag. A whole type of watch
+            // nodes is not a thing, and inheriting it from the type would make every future
+            // member of that type a watch by accident.
+            bool showsValue = candidate.Member.IsDefined(typeof(ShowsValueAttribute), inherit: false);
+
             NodeDefinition definition = new(
                 new NodeKey(package, memberAttribute?.Name ?? name),
                 memberAttribute?.Name ?? name,
@@ -532,7 +537,8 @@ public static class NodeImporter
                 version: 1,
                 isSideEffect: sideEffect,
                 description: candidate.Description,
-                category: memberAttribute?.Category ?? typeAttribute?.Category ?? NodeCategories.Custom);
+                category: memberAttribute?.Category ?? typeAttribute?.Category ?? NodeCategories.Custom,
+                showsValue: showsValue);
 
             nodes.Add(new ImportedNode(definition, candidate.Member));
         }

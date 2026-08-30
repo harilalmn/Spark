@@ -6,7 +6,7 @@
              x:CompileBindings="True">
 
   <Border Classes="pane">
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto">
       <TextBlock Grid.Row="0" Classes="paneTitle" Text="PROPERTIES" />
 
       <TextBlock Grid.Row="1" Margin="10,0,10,4" TextWrapping="Wrap"
@@ -56,8 +56,22 @@
         </ItemsControl.ItemTemplate>
       </ItemsControl>
 
-      <TextBlock Grid.Row="4" Classes="paneTitle" Text="DIAGNOSTICS" />
-      <TextBlock Grid.Row="5" Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
+      <!-- The watch panel. A bubble on the canvas is a glance and is cut at sixty characters;
+           this is where somebody goes to read the value. Read-only and selectable, because the
+           thing people do with a watched value next is copy part of it. -->
+      <StackPanel Grid.Row="4" Margin="10,0,10,10"
+                  IsVisible="{Binding WatchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+        <TextBlock Classes="paneTitle" Text="WATCH" Margin="0,0,0,2" />
+        <TextBlock Classes="muted" FontSize="10" Text="{Binding WatchRank}" Margin="0,0,0,4" />
+        <TextBox Text="{Binding WatchText, Mode=OneWay}"
+                 IsReadOnly="True"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 MaxHeight="220" />
+      </StackPanel>
+
+      <TextBlock Grid.Row="5" Classes="paneTitle" Text="DIAGNOSTICS" />
+      <TextBlock Grid.Row="6" Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
                  Text="{Binding DiagnosticsText}" />
     </Grid>
   </Border>

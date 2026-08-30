@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 00:20 +0530
+**Last updated:** 2026-08-31 01:15 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1 and M1.5 are both done.** M1.6 is deferred for want of a C++ toolchain; the work in flight is **M2's remainder** |
 | **Working on** | Nothing. Between steps, part way through queue **9** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **9**, `E8-T10` step **(a)** — preview bubbles, with rank on its own line |
+| **Last completed step** | Queue **9**, `E8-T10` step **(b)** — the `Watch` node and the watch panel. **`E8-T10` is `Done`** |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | `E8-T10` step **(b)** — **the `Watch` node**, which closes `E8-T10`. A `Watch` node takes anything and returns it unchanged, so it can sit in the middle of a wire without altering the graph, and it exists so that a readout can be **pinned** where a bubble is only a glance. Add it to `Spark.Nodes.Core` (its own file, `Watch.cs`, imported by reflection like every other node — check `PublicAPI.Unshipped.txt` needs the entry). Then the two halves that make it worth having: the node **draws its value in its own body** rather than in a bubble, so it stays put and stays readable; and the properties pane shows the **untruncated** value when one is selected, which is the *watch panel* half of the row. `Summarise` truncates at 60 characters — deliberately, for the bubble — so the panel needs the full `ToString()`, and a list of ten thousand points is the case to decide before writing the box. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1141**: Geometry.Tests 402, Engine.Tests 305, UI.Tests 310, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | Queue **9**'s last item: **`E12-T5` — `spark run`.** Read the `E12-T5` row in [TASKS.md](TASKS.md) first, and check what the `spark` CLI already does — the OBJ export half of that row landed with M1, so this is the other half and some of the plumbing exists. The shape: `spark run graph.spark` opens a `.spark` file **with no UI at all**, evaluates it, and reports. That is the claim `GraphDocument`'s own remarks already make — canvas coordinates travel through the document without the engine reading them, *which is also why `spark run` will be able to load the same file with no UI present* — so this step is where that sentence gets tested rather than asserted. Watch for the one thing that will bite: the node library has to be loaded the way the shell loads it, through `Spark.Host`, or `spark run` and the application will disagree about what a node is. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1155**: Geometry.Tests 402, Engine.Tests 310, UI.Tests 319, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -842,3 +842,44 @@ is covered by the code and the tests rather than by that picture, and saying so 
 implying the picture proved more than it did.
 
 **Cost.** An hour, a third of it on the `--zoom` regression.
+
+### 2026-08-30 — The watch node, and one attribute that is the whole node
+
+**`E8-T10` step (b), and with it `E8-T10`.** A bubble answers *what is this node under my pointer
+doing*. A watch answers *what is happening here*, while you go and look at something else. That is
+the whole difference, and it is why a watch is a node you place rather than a per-node toggle —
+which would also have meant a fourth new field in the file format this week.
+
+**`[KeepStructure]` on the input port is the node.** `object` is rank 0, so a plain `object` port
+replicates: the engine would have handed the watch one item at a time, and the list is precisely
+what somebody opened a watch to look at. The attribute already existed for exactly this shape of
+problem; finding it was worth more than writing it would have been.
+
+**How the canvas knows a watch is a watch, without naming one.** The canvas has no node library and
+must not name an engine type — [ADR-0005](adr/0005-api-engine-host-layering.md), and the `E8-T19`
+row already writes the rule down for the double-click search box. So the node **declares** it:
+`[ShowsValue]` in `Spark.Api`, surfacing as `NodeDefinition.ShowsValue`, travelling the same route
+`Category` already travels — a fact the engine carries for the shell and never reads itself.
+**A `NodeCategories.Watch` was considered and rejected**: it would have meant inventing a
+design-language colour, and a contrast-verified row in `PaletteContrastTests` to go with it, to
+answer a question that has nothing to do with how the node is painted.
+
+**The watch panel is a second rendering of the value on purpose.** `Summarise` cuts at sixty
+characters, which is right for a bubble and useless for reading, so `Expand` renders it in full —
+capped at 20,000 characters, with the cut **announced**. A truncation that trails off is one a
+reader mistakes for the end of their data.
+
+**Verified.** Build clean with `-warnaserror`; **1155 tests, 0 failures** (1141 + 14);
+`dotnet format` clean. The screenshot shows the node on the canvas, the library at 58 nodes, and
+the **WATCH** section rendering `rank 1 · 5 items` above `[1, 2, 3, 4, 5]`.
+
+**What I did not photograph, and why I am saying so.** The bubble under a *watch* node is not in
+that picture. The temporary harness that placed the node re-evaluated the graph from inside the
+capture callback and left `ResultSummary` null by render time — an artefact of poking the model in
+a way the application never does, not a defect: the previous step's screenshot shows bubbles
+rendering. Rather than debug the harness, the **rule** moved out of the drawing into
+`GraphCanvas.ShowsPreview`, which three tests now pin — a watch shows with nothing selected and
+nothing hovered, an ordinary node does not, and an impossible slot is false rather than an
+exception. The decision is the part with a judgement in it; the pixels were already proven.
+
+**Cost.** An hour and a quarter, and it closes the last of queue 9's canvas work.

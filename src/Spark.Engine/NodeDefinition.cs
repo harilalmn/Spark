@@ -48,6 +48,7 @@ public sealed class NodeDefinition
     /// run epoch into its cache key and poisons the keys of everything downstream.
     /// </param>
     /// <param name="description">One paragraph describing the node. Optional.</param>
+    /// <param name="showsValue">Whether the canvas shows this node's value permanently.</param>
     /// <param name="category">
     /// The library category the node is filed under, which is what decides its header colour on the
     /// canvas. Defaults to <see cref="NodeCategories.Custom"/>. A plain string rather than an enum,
@@ -68,7 +69,8 @@ public sealed class NodeDefinition
         int version = 1,
         bool isSideEffect = false,
         string? description = null,
-        string? category = null)
+        string? category = null,
+        bool showsValue = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
         ArgumentNullException.ThrowIfNull(inputs);
@@ -102,6 +104,7 @@ public sealed class NodeDefinition
         IsSideEffect = isSideEffect;
         Description = description;
         Category = string.IsNullOrWhiteSpace(category) ? NodeCategories.Custom : category;
+        ShowsValue = showsValue;
     }
 
     /// <summary>The definition's stable identity, including the package that published it.</summary>
@@ -118,6 +121,18 @@ public sealed class NodeDefinition
     /// Never blank.
     /// </summary>
     public string Category { get; }
+
+    /// <summary>
+    /// Whether the canvas should show this node's value permanently rather than only when it is
+    /// hovered or selected — a watch node.
+    /// </summary>
+    /// <remarks>
+    /// A fact the engine carries and never reads, exactly like <see cref="Category"/> and like a
+    /// node's canvas coordinates. It is here rather than in the shell because the canvas has no
+    /// library and must not name an engine type
+    /// ([ADR-0005](../../docs/adr/0005-api-engine-host-layering.md)).
+    /// </remarks>
+    public bool ShowsValue { get; }
 
     /// <summary>The input ports, in port order.</summary>
     public IReadOnlyList<PortDefinition> Inputs { get; }

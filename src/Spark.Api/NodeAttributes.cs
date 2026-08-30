@@ -158,6 +158,34 @@ public sealed class KeepStructureAttribute : Attribute
 }
 
 /// <summary>
+/// Marks a node whose value the canvas should show permanently, rather than only when it is
+/// hovered or selected. A watch node.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Declared by the node, not recognised by the canvas.</b> The canvas has no node library and
+/// must never name an engine type — [ADR-0005](../../docs/adr/0005-api-engine-host-layering.md) —
+/// so <i>is this a watch?</i> has to be something the definition says about itself. It travels the
+/// same route as <c>Category</c>: a fact the engine carries for the shell's benefit and never reads
+/// itself.
+/// </para>
+/// <para>
+/// It is an attribute rather than a category because it is not a question about colour. Giving
+/// watches their own category would mean inventing a design-language colour, and a
+/// contrast-verified row to go with it, to answer a question that has nothing to do with how the
+/// node is painted.
+/// </para>
+/// </remarks>
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+public sealed class ShowsValueAttribute : Attribute
+{
+    /// <summary>Creates the attribute.</summary>
+    public ShowsValueAttribute()
+    {
+    }
+}
+
+/// <summary>
 /// Sets a port's Cross Product dimension. Dimensions nest in ascending guide order, outermost
 /// first; ports without a guide keep their port index. Has no effect in any other mode.
 /// </summary>

@@ -45,6 +45,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly SparkSession _session = new();
     private readonly HashSet<GeometryKey> _published = [];
     private readonly DocumentHistory _history = new();
+    private EvaluationResult? _lastResult;
     private readonly System.Threading.SemaphoreSlim _applying = new(1, 1);
 
     [ObservableProperty]
@@ -84,6 +85,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string _groupTitle = string.Empty;
+
+    /// <summary>
+    /// The selected node's output in full, for the watch panel, or empty when there is nothing to
+    /// watch.
+    /// </summary>
+    /// <remarks>
+    /// Separate from the summary the preview bubble shows, and deliberately so: a bubble is a
+    /// glance and is cut at sixty characters, and a panel is where somebody goes to actually read
+    /// the value. Rendering the same string in both would make one of the two wrong.
+    /// </remarks>
+    [ObservableProperty]
+    private string _watchText = string.Empty;
+
+    /// <summary>The rank line above the watch panel, or empty when nothing is being watched.</summary>
+    [ObservableProperty]
+    private string _watchRank = string.Empty;
 
     [ObservableProperty]
     private LibraryEntryViewModel? _selectedLibraryEntry;
@@ -443,6 +460,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         try
         {
+            // Kept so the watch panel can render the value in full. The canvas node only carries
+            // a sixty-character summary, which is right for a bubble and useless for reading.
+            _lastResult = result;
+
             _graph.ApplyResult(result);
             PublishGeometry(result);
             RefreshInspector();
@@ -511,6 +532,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         Inspector.Clear();
         SelectedNote = null;
         SelectedGroup = group;
+        WatchText = string.Empty;
+        WatchRank = string.Empty;
 
         if (group is null)
         {
@@ -552,6 +575,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         Inspector.Clear();
         SelectedGroup = null;
         SelectedNote = note;
+        WatchText = string.Empty;
+        WatchRank = string.Empty;
 
         if (note is null)
         {
@@ -592,6 +617,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         Inspector.Clear();
         SelectedNote = null;
         SelectedGroup = null;
+        WatchText = string.Empty;
+        WatchRank = string.Empty;
 
         if (selection.Count != 1)
         {
@@ -613,6 +640,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         SelectionTitle = node.Title;
         SelectionDescription = BuildSelectionDescription(node, instance);
+
+        WatchRank = node.ResultSummary is null ? string.Empty : CanvasGraph.RankLine(node);
+        WatchText = _lastResult is null ? string.Empty : CanvasGraph.Expand(_lastResult.Value(node.Id));
 
         for (int index = 0; index < instance.Definition.Inputs.Count; index++)
         {
