@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 04:00 +0530
+**Last updated:** 2026-08-31 05:00 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5 and M2 are done** — M2 closed on 2026-08-30. M1.6 is deferred for want of a C++ toolchain. The work in flight is **M3, NURBS curves** |
 | **Working on** | Nothing. Between steps, inside M3 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **10**, `E2-T10` step **(b)** — `NurbsCurve`: homogeneous de Boor, derivatives, serialization |
+| **Last completed step** | Queue **10**, `E2-T10` step **(c)** — knot insertion, and `Trimmed` made exact |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | `E2-T10` step **(c)**: **knot insertion**, which unlocks most of the rest of the row. Boehm's algorithm on the homogeneous control points — insert a knot `u` into a span, and the `degree` control points around it are replaced by `degree + 1` new ones formed by linear interpolation, with the curve unchanged. **It is the foundation for four other operations**: `Trimmed` (insert at both ends to full multiplicity, then take the control points between), split (the same, once), closest point (subdivide and recurse), and degree elevation. Do it on the **homogeneous** points, not the projected ones, or the weights come out wrong for a rational curve. **The test that proves it is the one that says nothing changed:** insert a knot anywhere and every sampled point must be identical to nine or more decimal places, while the control-point count goes up by exactly one. Then `Trimmed` stops throwing, and `TrimmingSaysItIsNotBuiltYet` should be *replaced* rather than deleted — a test that a feature is missing is a reminder to remove when it arrives. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1222**: Geometry.Tests 453, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | `E2-T10` step **(d)**: **`ClosestPoint` on a NURBS curve**, which is the operation the rest of the kernel waits on — `Curve.ClosestPoint` is what mesh work, picking and intersection seeding all reach for, and the `E2-T33` property *ClosestPoint is never farther than any sampled point* is already written as a criterion. Check what `Curve` already provides: the other curves may have a shared fallback to reuse or improve rather than a per-type implementation to add. The standard approach is a coarse sample to bracket, then **Newton on the dot product** `(C(t) − P) · C'(t) = 0`, which needs the second derivative — already implemented and already tested against central differences. **Two traps:** the iteration must be clamped to the domain or it walks off a clamped curve's end and returns a parameter that does not exist; and a closed or nearly-closed curve has two solutions, so the bracketing sample has to be fine enough to find the right basin rather than the first one. Verify against the property directly — sample a few thousand points on the curve and assert none is nearer than the answer. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1236**: Geometry.Tests 467, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -119,7 +119,7 @@ the two disagree.**
 | 7 | **The C2VGeometry test harvest**, timeboxed to one week with a hard stop. Harvest assertions, not generators | `E2-T32` | L | **Blocked** — needs the C2VGeometry source, which is not in this repository and not on this machine. Skipped 2026-08-30 |
 | 8 | **M1.5 spike (c): AvaloniaEdit plus a Roslyn completion popup** — the last unproven part of M1.5, gating M4 | `E11-T21` | M | **Done** 2026-08-30 |
 | 9 | ~~**What is left of M2** — real docking (`E8-T2`), group/note/align (`E8-T6`), watch nodes (`E8-T10`), `spark run` (`E12-T5`)~~ | | L | **Done** 2026-08-30 |
-| 10 | **M3 — NURBS curves** *(in progress)* — `KnotVector` and `NurbsCurve` done 2026-08-30; knot insertion next | `E2-T10` … | XL | Open |
+| 10 | **M3 — NURBS curves** *(in progress)* — `KnotVector`, `NurbsCurve`, knot insertion and exact trimming done 2026-08-30; closest point next | `E2-T10` … | XL | Open |
 | + | **Persist the workspace layout between sessions** — `WorkspaceLayout` already serialises and round-trips under test; nothing writes it. A dragged arrangement dies with the window, which is the one thing a dock is for | `E8-T2`-adjacent | S | Open |
 | + | **A guard that no test project reports zero tests** — one line, and it catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)) | `E11`-adjacent | S | Open, take it with the next CI change |
 
@@ -1016,3 +1016,42 @@ no way to detect. Degree elevation, split, closest point, fit and interpolate ar
 row.
 
 **Cost.** An hour and a quarter.
+
+### 2026-08-30 — Knot insertion, and a trim that is exact rather than nearly
+
+**`E2-T10` step (c).** Boehm's algorithm, and the operation it unlocks.
+
+**Insertion is done on the homogeneous control points.** Blending the projected ones is the classic
+mistake: it is right for a non-rational curve, wrong for a rational one, and produces a curve that
+is *visibly close* to the original and not equal to it — which is the hardest kind of wrong to
+notice, because everything looks fine.
+
+**The test that proves it is the one that says nothing changed.** Insert a knot anywhere, and every
+one of two hundred sampled points must be identical to ten decimal places while the control-point
+count goes up by exactly one. Both the rational and the non-rational sample are checked, because
+the homogeneous mistake passes the second and fails the first. And the arc stays a circle: after
+inserting a knot into the rational quadratic, every sampled point is still at the radius to nine
+places.
+
+**`Trimmed` stopped throwing.** It raises both ends to full multiplicity and keeps the control-point
+window between them, so it is **exact**: the trimmed curve occupies the same points the original did
+over that range, to nine decimal places, rather than an approximation a caller has no way to detect.
+It also keeps the requested parameter range as its domain instead of reparameterising to 0..1, so
+parameters a caller was already holding still mean what they meant.
+
+**The index arithmetic was wrong the first time, and the tests said which.** Insertion passed
+immediately; all five trim tests failed. The fix was to derive the window from the knots rather than
+count it: the **last** knot equal to the start and the **first** equal to the end, with the window
+running from `la - degree` to `fb - 1`. Last-of-the-start rather than first, because a clamped
+curve's own ends already repeat `degree + 1` times — taking the first would land one index early on
+exactly the case where the range is the whole domain, which is the case `TrimmingToTheWholeDomainIsTheSameCurve`
+covers.
+
+**Verified.** Build clean with `-warnaserror`; **1236 tests, 0 failures** (1222 + 14);
+`dotnet format` clean. `TrimmingSaysItIsNotBuiltYet` was **replaced rather than deleted** — a test
+that a feature is missing is a reminder to remove when it arrives, and the eight tests that took its
+place are what it was standing in for. `TwoAbuttingTrimsCoverTheWholeCurvesLength` is `E2-T33`'s
+*Split(t) rejoined equals the original* property applied to NURBS before the property suite has a
+generator for one.
+
+**Cost.** Fifty minutes, a third of it on the extraction window.

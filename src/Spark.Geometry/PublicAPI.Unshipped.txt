@@ -132,6 +132,7 @@ Spark.Geometry.NurbsCurve.Knots.get -> Spark.Geometry.KnotVector!
 Spark.Geometry.NurbsCurve.NurbsCurve(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! controlPoints, Spark.Geometry.KnotVector! knots, System.Collections.Generic.IReadOnlyList<double>? weights = null) -> void
 Spark.Geometry.NurbsCurve.NurbsCurve(int degree, System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! controlPoints, System.Collections.Generic.IReadOnlyList<double>! knots, System.Collections.Generic.IReadOnlyList<double>? weights = null) -> void
 Spark.Geometry.NurbsCurve.Weights() -> double[]!
+Spark.Geometry.NurbsCurve.WithKnotInserted(double knot, int times = 1) -> Spark.Geometry.NurbsCurve!
 Spark.Geometry.Plane
 Spark.Geometry.Plane.ClosestPoint(in Spark.Geometry.Point3d point) -> Spark.Geometry.Point3d
 Spark.Geometry.Plane.Contains(in Spark.Geometry.Point3d point, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool

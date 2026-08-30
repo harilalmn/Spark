@@ -214,6 +214,131 @@ public sealed class NurbsCurve : Curve
         return new NurbsCurve(points, KnotVector.CreateClamped(1, points.Count));
     }
 
+    /// <summary>
+    /// Inserts a knot, leaving the curve's shape completely unchanged.
+    /// </summary>
+    /// <param name="knot">The parameter to insert at, inside the domain.</param>
+    /// <param name="times">How many times to insert it. At least 1.</param>
+    /// <returns>A curve with the same shape and more control points.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="knot"/> is outside the domain, or <paramref name="times"/> is less than 1.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// The insertion would take the knot's multiplicity above the degree, which would leave a
+    /// control point with no support at all.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// Boehm's algorithm. The <c>degree</c> control points straddling the insertion are replaced by
+    /// <c>degree + 1</c> new ones, each a linear blend of two neighbours — and the blend is done on
+    /// the <b>homogeneous</b> points. Blending the projected points instead is the classic mistake:
+    /// it is right for a non-rational curve, wrong for a rational one, and produces a curve that is
+    /// visibly close to the original and not equal to it, which is the hardest kind of wrong to
+    /// notice.
+    /// </para>
+    /// <para>
+    /// <b>This is the foundation of several other operations.</b> Trimming and splitting are knot
+    /// insertion to full multiplicity at the cut, closest-point search is repeated subdivision, and
+    /// degree elevation is built on the same blending. Getting it exactly right — <i>shape
+    /// unchanged</i>, not <i>shape nearly unchanged</i> — is what makes all of them trustworthy.
+    /// </para>
+    /// </remarks>
+    public NurbsCurve WithKnotInserted(double knot, int times = 1)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(times, 1);
+
+        Interval domain = Domain;
+        if (knot < domain.Min || knot > domain.Max)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(knot), knot, $"The knot must be inside the domain {domain.Min} to {domain.Max}.");
+        }
+
+        int existing = Knots.Multiplicity(knot);
+        if (existing + times > Degree)
+        {
+            throw new ArgumentException(
+                $"Inserting {knot.ToString("R", CultureInfo.InvariantCulture)} {times} more time(s) would "
+                + $"take its multiplicity to {existing + times}, above the degree {Degree}. A knot at full "
+                + "multiplicity already splits the curve there; inserting past it would leave a control "
+                + "point with no support.",
+                nameof(times));
+        }
+
+        NurbsCurve current = this;
+        for (int i = 0; i < times; i++)
+        {
+            current = current.InsertOnce(knot);
+        }
+
+        return current;
+    }
+
+    /// <summary>One application of Boehm's algorithm.</summary>
+    private NurbsCurve InsertOnce(double knot)
+    {
+        int p = Degree;
+        int span = Knots.FindSpan(knot);
+        int n = _controlPoints.Length;
+
+        double[] oldKnots = Knots.ToArray();
+        double[] newKnots = new double[oldKnots.Length + 1];
+
+        Array.Copy(oldKnots, newKnots, span + 1);
+        newKnots[span + 1] = knot;
+        Array.Copy(oldKnots, span + 1, newKnots, span + 2, oldKnots.Length - span - 1);
+
+        double[,] blended = new double[n + 1, 4];
+
+        // Everything before the affected window and everything after it is carried across
+        // untouched. Only the p points ending at the span are replaced, by p + 1 new ones.
+        for (int i = 0; i <= span - p; i++)
+        {
+            for (int c = 0; c < 4; c++)
+            {
+                blended[i, c] = _homogeneous[i, c];
+            }
+        }
+
+        for (int i = span; i < n; i++)
+        {
+            for (int c = 0; c < 4; c++)
+            {
+                blended[i + 1, c] = _homogeneous[i, c];
+            }
+        }
+
+        for (int i = span - p + 1; i <= span; i++)
+        {
+            double denominator = oldKnots[i + p] - oldKnots[i];
+            double alpha = denominator == 0.0 ? 0.0 : (knot - oldKnots[i]) / denominator;
+
+            for (int c = 0; c < 4; c++)
+            {
+                blended[i, c] = (alpha * _homogeneous[i, c]) + ((1.0 - alpha) * _homogeneous[i - 1, c]);
+            }
+        }
+
+        return FromHomogeneous(blended, new KnotVector(p, newKnots));
+    }
+
+    /// <summary>Rebuilds a curve from homogeneous control points, projecting them back out.</summary>
+    private static NurbsCurve FromHomogeneous(double[,] homogeneous, KnotVector knots)
+    {
+        int count = homogeneous.GetLength(0);
+        Point3d[] points = new Point3d[count];
+        double[] weights = new double[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            double w = homogeneous[i, 3];
+            weights[i] = w;
+            points[i] = new Point3d(homogeneous[i, 0] / w, homogeneous[i, 1] / w, homogeneous[i, 2] / w);
+        }
+
+        return new NurbsCurve(points, knots, weights);
+    }
+
     /// <inheritdoc/>
     public override Curve Reversed()
     {
@@ -242,14 +367,129 @@ public sealed class NurbsCurve : Curve
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <para>
+    /// Exact, not approximate, and that is what knot insertion buys. Both ends of the requested
+    /// range are raised to full multiplicity — <c>degree</c> — which makes the curve pass through a
+    /// control point there and leaves the piece between them describable on its own. The control
+    /// points outside that window are then simply dropped.
+    /// </para>
+    /// <para>
+    /// The result keeps the requested parameter range as its domain rather than being
+    /// reparameterised to 0..1, so a caller holding parameters from before the trim can still use
+    /// them.
+    /// </para>
+    /// </remarks>
     public override Curve Trimmed(in Interval domain)
     {
-        // Trimming a NURBS curve exactly needs knot insertion, which is E2-T10's next slice. Until
-        // it exists, saying so beats returning something that is nearly right: a caller who trims
-        // and gets an approximation has no way to tell.
-        throw new NotSupportedException(
-            "Trimming a NurbsCurve needs knot insertion, which is not built yet (E2-T10). "
-            + "Evaluate the curve over the sub-domain, or trim a Line, Arc, Circle or PolyLine.");
+        Interval wanted = domain.MakeIncreasing();
+        Interval whole = Domain;
+
+        if (wanted.Min < whole.Min - 1e-12 || wanted.Max > whole.Max + 1e-12)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(domain), domain, $"The trim range must lie inside {whole.Min} to {whole.Max}.");
+        }
+
+        if (wanted.Length <= 0.0)
+        {
+            throw new ArgumentException("A trim range must have length.", nameof(domain));
+        }
+
+        int p = Degree;
+        NurbsCurve current = this;
+
+        // The start first, then the end. Doing it the other way round is equally correct and
+        // harder to read, because the start insertion shifts every index the end one would use.
+        int atStart = p - current.Knots.Multiplicity(wanted.Min);
+        if (atStart > 0)
+        {
+            current = current.WithKnotInserted(wanted.Min, atStart);
+        }
+
+        int atEnd = p - current.Knots.Multiplicity(wanted.Max);
+        if (atEnd > 0)
+        {
+            current = current.WithKnotInserted(wanted.Max, atEnd);
+        }
+
+        return current.Extract(wanted);
+    }
+
+    /// <summary>
+    /// Takes the piece of a curve between two parameters already at full multiplicity.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// With both ends repeated <c>degree</c> times, the piece between them is described entirely by
+    /// a contiguous window of the control points, and the window is found from the knots rather
+    /// than counted. Let <c>la</c> be the index of the <b>last</b> knot equal to the start and
+    /// <c>fb</c> the index of the <b>first</b> knot equal to the end: the window runs from
+    /// <c>la - degree</c> to <c>fb - 1</c>, and the knots strictly between them are the interior
+    /// knots the piece keeps.
+    /// </para>
+    /// <para>
+    /// Last-of-the-start and first-of-the-end rather than the other way round, because a clamped
+    /// curve's own ends already repeat <c>degree + 1</c> times: taking the first knot equal to the
+    /// start would land one index early on exactly the case where the range is the whole domain.
+    /// </para>
+    /// </remarks>
+    private NurbsCurve Extract(in Interval range)
+    {
+        double[] knots = Knots.ToArray();
+        int p = Degree;
+
+        int lastAtStart = -1;
+        for (int i = 0; i < knots.Length; i++)
+        {
+            if (knots[i] == range.Min)
+            {
+                lastAtStart = i;
+            }
+        }
+
+        int firstAtEnd = -1;
+        for (int i = 0; i < knots.Length; i++)
+        {
+            if (knots[i] == range.Max)
+            {
+                firstAtEnd = i;
+                break;
+            }
+        }
+
+        if (lastAtStart < p || firstAtEnd < 0)
+        {
+            throw new InvalidOperationException(
+                "The trim range was not raised to full multiplicity before extraction. This is a "
+                + "bug in NurbsCurve.Trimmed, not in the caller's input.");
+        }
+
+        int first = lastAtStart - p;
+        int count = firstAtEnd - lastAtStart + p;
+
+        Point3d[] points = new Point3d[count];
+        double[] weights = new double[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            points[i] = _controlPoints[first + i];
+            weights[i] = _weights[first + i];
+        }
+
+        double[] kept = new double[count + p + 1];
+        for (int i = 0; i <= p; i++)
+        {
+            kept[i] = range.Min;
+            kept[kept.Length - 1 - i] = range.Max;
+        }
+
+        for (int i = 0; i < firstAtEnd - lastAtStart - 1; i++)
+        {
+            kept[p + 1 + i] = knots[lastAtStart + 1 + i];
+        }
+
+        return new NurbsCurve(points, new KnotVector(p, kept), weights);
     }
 
     /// <inheritdoc/>

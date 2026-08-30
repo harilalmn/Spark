@@ -272,10 +272,10 @@ division from a parameter division, since every other one travels at a constant 
 
 **Still not started in this epic.** No surfaces, no meshes, no BRep topology, no `IBrepKernel`,
 no serialization and no interchange. `Spark.Geometry.Io` is still an empty project. No
-`NurbsCurve` — it landed on 2026-08-30, evaluation and derivatives included, checked against
-`Line` and `Arc` rather than against itself, and still owing knot insertion, degree elevation,
-split, fit and interpolate — and no closest-point, split, offset or intersection on the curves
-that exist —
+`NurbsCurve` — it landed on 2026-08-30, with evaluation, derivatives, knot insertion and exact
+trimming, checked against `Line` and `Arc` rather than against itself, and still owing degree
+elevation, fit and interpolate — and no closest-point, offset or intersection on the curves that
+exist —
 each named on its type rather than left to be discovered.
 
 **How the slice was accepted matters more than that it was.** The first attempt passed

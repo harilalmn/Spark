@@ -350,16 +350,198 @@ public sealed class NurbsCurveTests
     }
 
     /// <summary>
-    /// Trimming needs knot insertion, which is not built. Saying so beats returning an
-    /// approximation a caller has no way to detect.
+    /// <b>The test that proves knot insertion: nothing changed.</b> Insert a knot anywhere and the
+    /// curve must occupy exactly the same points — the whole point of the operation is that it
+    /// alters the representation and not the geometry. A blend done on the projected points instead
+    /// of the homogeneous ones passes this for a non-rational curve and fails it for a rational
+    /// one, which is why both are checked.
+    /// </summary>
+    [Theory]
+    [InlineData(false, 0.31)]
+    [InlineData(true, 0.31)]
+    [InlineData(false, 0.5)]
+    [InlineData(true, 0.5)]
+    [InlineData(true, 0.87)]
+    public void InsertingAKnotChangesNothingAboutTheCurve(bool rational, double at)
+    {
+        NurbsCurve original = Sample(rational);
+        double t = original.Domain.Min + (original.Domain.Length * at);
+
+        NurbsCurve inserted = original.WithKnotInserted(t);
+
+        Assert.Equal(original.Knots.Count + 1, inserted.Knots.Count);
+        Assert.Equal(original.ControlPoints().Length + 1, inserted.ControlPoints().Length);
+        Assert.Equal(original.Degree, inserted.Degree);
+        Assert.Equal(original.Domain.Min, inserted.Domain.Min, 12);
+        Assert.Equal(original.Domain.Max, inserted.Domain.Max, 12);
+
+        for (int i = 0; i <= 200; i++)
+        {
+            double u = original.Domain.Min + (original.Domain.Length * i / 200.0);
+            Point3d before = original.PointAt(u);
+            Point3d after = inserted.PointAt(u);
+
+            Assert.Equal(before.X, after.X, 10);
+            Assert.Equal(before.Y, after.Y, 10);
+            Assert.Equal(before.Z, after.Z, 10);
+        }
+    }
+
+    /// <summary>Inserting the same knot repeatedly still changes nothing.</summary>
+    [Fact]
+    public void InsertingAKnotSeveralTimesStillChangesNothing()
+    {
+        NurbsCurve original = Sample(rational: true);
+        double t = original.Domain.Min + (original.Domain.Length * 0.4);
+
+        NurbsCurve inserted = original.WithKnotInserted(t, 3);
+
+        Assert.Equal(3, inserted.Knots.Multiplicity(t));
+        Assert.Equal(original.ControlPoints().Length + 3, inserted.ControlPoints().Length);
+
+        for (int i = 0; i <= 100; i++)
+        {
+            double u = original.Domain.Min + (original.Domain.Length * i / 100.0);
+            Assert.True(original.PointAt(u).EqualsWithin(inserted.PointAt(u)));
+        }
+    }
+
+    /// <summary>
+    /// A rational curve keeps being the arc it was. This is the insertion test with the strongest
+    /// external reference: the quarter circle is a circle before and after.
     /// </summary>
     [Fact]
-    public void TrimmingSaysItIsNotBuiltYet()
+    public void InsertingIntoTheArcKeepsItACircle()
     {
-        NotSupportedException failure = Assert.Throws<NotSupportedException>(
-            () => Sample(rational: false).Trimmed(new Interval(0.2, 0.8)));
+        const double radius = 5.0;
+        double weight = Math.Cos(Math.PI / 4);
 
-        Assert.Contains("knot insertion", failure.Message, StringComparison.OrdinalIgnoreCase);
+        NurbsCurve arc = new(
+            2,
+            [new Point3d(radius, 0, 0), new Point3d(radius, radius, 0), new Point3d(0, radius, 0)],
+            [0, 0, 0, 1, 1, 1],
+            [1.0, weight, 1.0]);
+
+        NurbsCurve refined = arc.WithKnotInserted(0.5);
+
+        for (int i = 0; i <= 40; i++)
+        {
+            Point3d p = refined.PointAt(i / 40.0);
+            Assert.Equal(radius, p.DistanceTo(Point3d.Origin), 9);
+        }
+    }
+
+    /// <summary>
+    /// Insertion past full multiplicity is refused. A knot at multiplicity `degree` already splits
+    /// the curve there; going further leaves a control point with no support at all.
+    /// </summary>
+    [Fact]
+    public void InsertingPastFullMultiplicityIsRefused()
+    {
+        NurbsCurve curve = Sample(rational: false);
+        double t = curve.Domain.Min + (curve.Domain.Length * 0.5);
+
+        Assert.Throws<ArgumentException>(() => curve.WithKnotInserted(t, curve.Degree + 1));
+    }
+
+    [Fact]
+    public void InsertingOutsideTheDomainIsRefused()
+    {
+        NurbsCurve curve = Sample(rational: false);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => curve.WithKnotInserted(curve.Domain.Max + 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => curve.WithKnotInserted(curve.Domain.Min - 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => curve.WithKnotInserted(0.5, 0));
+    }
+
+    /// <summary>
+    /// <b>Trimming is exact.</b> The trimmed curve occupies exactly the same points as the original
+    /// did over that range — not nearly, which is what an approximation would give and what a
+    /// caller could not detect.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TrimmingKeepsTheOriginalShapeOverTheKeptRange(bool rational)
+    {
+        NurbsCurve original = Sample(rational);
+        Interval whole = original.Domain;
+        Interval wanted = new(
+            whole.Min + (whole.Length * 0.23), whole.Min + (whole.Length * 0.71));
+
+        Curve trimmed = original.Trimmed(wanted);
+
+        Assert.Equal(wanted.Min, trimmed.Domain.Min, 9);
+        Assert.Equal(wanted.Max, trimmed.Domain.Max, 9);
+
+        for (int i = 0; i <= 100; i++)
+        {
+            double t = wanted.Min + (wanted.Length * i / 100.0);
+            Point3d before = original.PointAt(t);
+            Point3d after = trimmed.PointAt(t);
+
+            Assert.Equal(before.X, after.X, 9);
+            Assert.Equal(before.Y, after.Y, 9);
+            Assert.Equal(before.Z, after.Z, 9);
+        }
+    }
+
+    /// <summary>A trimmed curve starts and ends exactly where it was asked to.</summary>
+    [Fact]
+    public void ATrimmedCurveInterpolatesItsNewEnds()
+    {
+        NurbsCurve original = Sample(rational: true);
+        Interval whole = original.Domain;
+        Interval wanted = new(
+            whole.Min + (whole.Length * 0.3), whole.Min + (whole.Length * 0.6));
+
+        Curve trimmed = original.Trimmed(wanted);
+
+        Assert.True(trimmed.PointAt(wanted.Min).EqualsWithin(original.PointAt(wanted.Min)));
+        Assert.True(trimmed.PointAt(wanted.Max).EqualsWithin(original.PointAt(wanted.Max)));
+    }
+
+    /// <summary>
+    /// Two abutting trims rejoin into the whole. This is `E2-T33`'s property applied to NURBS
+    /// before the property suite has a generator for one.
+    /// </summary>
+    [Fact]
+    public void TwoAbuttingTrimsCoverTheWholeCurvesLength()
+    {
+        NurbsCurve original = Sample(rational: true);
+        Interval whole = original.Domain;
+        double middle = whole.Min + (whole.Length * 0.45);
+
+        Curve left = original.Trimmed(new Interval(whole.Min, middle));
+        Curve right = original.Trimmed(new Interval(middle, whole.Max));
+
+        Assert.Equal(original.Length, left.Length + right.Length, 6);
+        Assert.True(left.PointAt(middle).EqualsWithin(right.PointAt(middle)));
+    }
+
+    [Fact]
+    public void TrimmingToTheWholeDomainIsTheSameCurve()
+    {
+        NurbsCurve original = Sample(rational: true);
+        Curve trimmed = original.Trimmed(original.Domain);
+
+        for (int i = 0; i <= 50; i++)
+        {
+            double t = original.Domain.Min + (original.Domain.Length * i / 50.0);
+            Assert.True(original.PointAt(t).EqualsWithin(trimmed.PointAt(t)));
+        }
+    }
+
+    [Fact]
+    public void TrimmingOutsideTheDomainIsRefused()
+    {
+        NurbsCurve curve = Sample(rational: false);
+        Interval whole = curve.Domain;
+
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => curve.Trimmed(new Interval(whole.Min - 1, whole.Max)));
+        Assert.Throws<ArgumentException>(
+            () => curve.Trimmed(new Interval(whole.Min, whole.Min)));
     }
 
     [Fact]
