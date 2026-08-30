@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-30 12:30 +0530
+**Last updated:** 2026-08-30 17:40 +0530
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 and M1.5 are both done.** M1.6 is deferred for want of a C++ toolchain; the work in flight is **M2's remainder** |
-| **Working on** | Nothing. Between steps, half way through queue **9**'s first item |
+| **Working on** | Nothing. Between steps, part way through queue **9** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **9**, `E8-T2` step **(a)** — the four panes extracted into `UserControl`s |
+| **Last completed step** | Queue **9**, `E8-T2` step **(b)** — the shell is a real `DockControl` driven by `WorkspaceLayout`. **`E8-T2` is `Done`** |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | `E8-T2` step **(b)**: add the `Dock.Avalonia.Themes.Fluent` and `Dock.Model.Avalonia` `PackageReference`s to `Spark.UI` (both versions are already pinned in `Directory.Packages.props`; `Dock.Model.Avalonia` needs a `PackageVersion` adding), put `<DockFluentTheme/>` in `App.axaml`'s styles, and replace the shell `Grid` in `MainWindow.axaml` with a `DockControl` whose `RootDock` holds the four panes as `Tool`s. Then make `WorkspaceLayout` actually drive it — **today the preset buttons change the model and nothing else, because nothing binds to it** — so *Modelling*, *Authoring* and *Presenting* visibly rearrange the shell and *Reset layout* puts it back. Verify with the three gates and `--screenshot`, and this time the picture is **expected to change**: compare against `before-shell.png` deliberately rather than for equality. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1050** after step (a), unchanged: Geometry.Tests 402, UI.Tests 235), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | Queue **9**'s next item: **`E8-T6` — group, note and align on the canvas.** Read the `E8-T6` row in [TASKS.md](TASKS.md) first; the canvas already has selection, the `SceneIndex` and undo over whole-document snapshots, so all three operations are edits to the document rather than new machinery. Take **align** first — it is the smallest of the three, it needs no new document type, and it proves the edit-plus-undo path before group and note add one. Before starting, decide whether a group is a document object or a canvas annotation, because that decision is expensive to reverse and `E8-T6` does not make it for you. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1058** after step (b): Geometry.Tests 402, Engine.Tests 289, UI.Tests 243, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -118,8 +118,9 @@ the two disagree.**
 | 6 | **`Spark.Geometry.Io`: the OBJ writer, and `spark` writing a polyline a third-party viewer opens** — this is **M1's demoable** | `E2-T34`, `E12-T5` | M | **Done** 2026-08-29 |
 | 7 | **The C2VGeometry test harvest**, timeboxed to one week with a hard stop. Harvest assertions, not generators | `E2-T32` | L | **Blocked** — needs the C2VGeometry source, which is not in this repository and not on this machine. Skipped 2026-08-30 |
 | 8 | **M1.5 spike (c): AvaloniaEdit plus a Roslyn completion popup** — the last unproven part of M1.5, gating M4 | `E11-T21` | M | **Done** 2026-08-30 |
-| 9 | **What is left of M2** *(next)* — real docking (`E8-T2`), group/note/align (`E8-T6`), watch nodes (`E8-T10`), `spark run` (`E12-T5`) | | L | Open |
+| 9 | **What is left of M2** *(in progress)* — ~~real docking (`E8-T2`)~~ **done 2026-08-30**; group/note/align (`E8-T6`) *(next)*, watch nodes (`E8-T10`), `spark run` (`E12-T5`) | | L | Open |
 | 10 | **M3 — NURBS curves** | `E2-T10` … | XL | Open |
+| + | **Persist the workspace layout between sessions** — `WorkspaceLayout` already serialises and round-trips under test; nothing writes it. A dragged arrangement dies with the window, which is the one thing a dock is for | `E8-T2`-adjacent | S | Open |
 | + | **A guard that no test project reports zero tests** — one line, and it catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)) | `E11`-adjacent | S | Open, take it with the next CI change |
 
 **Deferred, with a reason rather than by omission:**
@@ -528,3 +529,61 @@ worth correcting while the code was in hand rather than leaving a line that is r
 **Cost.** Under an hour, most of it reading the seven hundred lines of code-behind carefully
 enough to know which handlers were pane-local and which were about the document.
 
+
+### 2026-08-30 — The shell becomes a dock, and two bugs that looked like working code
+
+**`E8-T2` step (b), and with it `E8-T2`.** Queue **9**'s first item. The shell's `Grid` and
+`GridSplitter`s are gone; `MainWindow.axaml` holds a `DockControl` whose tree is built by
+`src/Spark.UI/Shell/SparkDockFactory.cs`. Panes drag into one another, float out and dock back.
+`Dock.Avalonia.Themes.Fluent` and `Dock.Model.Avalonia` are now `PackageReference`s rather than
+pins, and `<dock:DockFluentTheme/>` sits above `SparkStyles` in `App.axaml`.
+
+**The layout model finally does something.** `WorkspaceLayout` has existed since step 0 and until
+today nothing consumed it: pressing *Modelling* updated a correct model and moved nothing.
+`MainWindowViewModel.WorkspaceChanged` now fires after a preset or a reset, and the window answers
+it with `SparkDockFactory.Apply`. The tree is built **once** and adjusted in place, because
+rebuilding it would re-parent the OpenGL viewport and buy a black frame for nothing.
+
+**I resumed a part-written step.** The tree was dirty on top of `0829543` and the journal said so,
+which is the whole point of the write-ahead. The dock itself was already up and rendering; what
+was left was a regression, two defects underneath it, and the debugging scaffolding.
+
+**The regression: every bound row in every pane drew nothing.** The library list with 57 entries
+in the view model showed no rows, under a heading reading `LIBRARY` that rendered perfectly. So
+did *Nothing selected* and the diagnostics text. Dock puts the **dockable** on the presented
+content's `DataContext`, so panes compiled against `MainWindowViewModel` were resolving their
+bindings against a `Tool` — and a compiled binding handed the wrong type does not throw, it binds
+to nothing. `SetContext` now sets the pane control's `DataContext` as well as `Tool.Context`.
+[N35](NOTES.md#n35--dock-puts-the-dockable-on-the-panes-datacontext-and-compiled-bindings-say-nothing-about-it).
+
+**The defect underneath it was worse, and only a test could have found it.** `IsShowing` asked
+`tool.Owner is not null`. `HideDockable` leaves `Owner` set — it has to, since that is where
+`RestoreDockable` puts the tool back — so the predicate reported every pane as showing, always.
+Hiding still worked, because the hide branch ran anyway; **restoring never ran at all**, because
+it was guarded by `!showing`. *Presenting* looked perfect and *Reset layout* afterwards did
+nothing, and the two side panes stayed gone until the application was restarted. A predicate that
+is wrong only in the direction that looks like success survives every screenshot you take of it.
+[N36](NOTES.md#n36--hidedockable-leaves-owner-set-so-owner-is-not-null-is-not-is-it-showing).
+
+**Verified.** Build clean with `-warnaserror`, 0 warnings; **1058 tests, 0 failures** — 1050 plus
+the eight new ones; `dotnet format` clean. **AGENTS.md step 7:** `SparkDockFactoryTests` is the
+named guard, and it is not decorative — `TheDefaultLayoutBringsBackWhatAPresetHid` and
+`PresentingHidesTheLibraryAndTheInspector` **went red first and caught the `Owner` defect**, and
+`SettingTheContextReachesEachPaneControlAndNotOnlyItsTool` goes red if either half of `SetContext`
+is dropped. The screenshot was expected to change and did: the four panes now carry dock title
+bars and grips, and the library list, *Nothing selected* and the diagnostics text are all back
+after the `DataContext` fix. A preset was verified visually the only way it currently can be — a
+temporary line forcing *Presenting* at startup, screenshot, revert — and the shell rearranged as
+the model says: no library, no inspector, canvas and viewport full width, the viewport read-back
+growing from 1401×516 to 2208×642 because it now owns the whole width.
+
+**What surprised me.** Both defects were invisible to the gate the previous session was leaning
+on. The build was clean, the format was clean, the screenshot showed a plausible shell — and two
+of the four panes were, in different senses, not working. The screenshot is a good gate for *did
+the layout change*; it is a poor one for *does the layout change back*.
+
+**Left undone, and named rather than omitted:** `WorkspaceLayout` serialises and round-trips under
+test but is never written to disk, so a dragged arrangement does not survive a restart. That is
+now a queue item rather than an implication.
+
+**Cost.** About an hour and a half, of which the tests were half and worth it twice over.

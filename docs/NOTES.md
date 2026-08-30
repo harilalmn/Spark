@@ -1082,3 +1082,54 @@ p.GetCustomAttributes(true)  // → ContentAttribute, TemplateContentAttribute, 
 **When a container takes arbitrary content, check whether it takes it as a value or as a
 template.** The two are indistinguishable in the XAML that fills them in and completely different
 in where the names inside end up.
+
+---
+
+## N35 — Dock puts the *dockable* on the pane's `DataContext`, and compiled bindings say nothing about it
+
+A `Tool`'s content is presented inside Dock's own controls, and those set their `DataContext` to
+the **dockable** — the `Tool` — not to whatever the `Tool.Context` is. A pane that relied on
+`DataContext` inheritance from the window (every pane did, before the shell was a `DockControl`)
+therefore resolves its bindings against a `Tool`.
+
+**Nothing reports this.** `x:CompileBindings="True"` with `x:DataType="vm:MainWindowViewModel"`
+compiles a binding that expects a `MainWindowViewModel` and simply produces nothing when handed
+something else. The visible result is a pane that draws its *static* markup — its heading, its
+buttons, its search box — with every *bound* row missing: a library list with 57 entries in the
+view model and no rows on screen, under a heading that says `LIBRARY`. It reads as a layout
+problem, and the layout is fine.
+
+The fix is one line and the diagnosis is the expensive part, so: **when content moves into a
+container that owns its own `DataContext`, set the context on the control explicitly.**
+`SparkDockFactory.SetContext` sets both `Tool.Context` and the pane control's `DataContext`, and
+`SparkDockFactoryTests.SettingTheContextReachesEachPaneControlAndNotOnlyItsTool` goes red if
+either half is dropped.
+
+This is [N33](#n33--roslyn-completion-fails-silently-twice-before-it-works)'s shape again from a
+third direction: an API that answers *nothing* where it means *that is not the type I was told to
+expect*.
+
+---
+
+## N36 — `HideDockable` leaves `Owner` set, so `Owner is not null` is not "is it showing?"
+
+Dock's `HideDockable` moves a dockable out of its owner's `VisibleDockables` and records it on the
+root — but it **keeps `Owner`**, and it has to, because that is where `RestoreDockable` puts the
+dockable back.
+
+So `tool.Owner is not null` answers *has this ever been in the tree*, not *is it in the tree now*.
+Written as a visibility predicate it is wrong in exactly one direction: every pane always reports
+as showing. That makes hiding look correct — the pane does disappear, because the hide branch
+still runs — while **restoring silently never runs at all**, since the restore branch is guarded by
+`!showing`. *Presenting* worked; *Reset layout* afterwards did nothing, and the two side panes were
+gone until the application was restarted.
+
+Ask the containment question instead:
+
+```csharp
+dock.VisibleDockables?.Contains(tool) == true
+```
+
+The general shape: **a predicate that is wrong only in the direction that looks like success will
+survive every screenshot you take of it.** This one was found by a unit test asserting the
+round trip — hide, restore, and check — which is the assertion a screenshot cannot make.

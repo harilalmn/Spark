@@ -195,6 +195,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <summary>Raised on the UI thread after a run's results have been applied.</summary>
     public event EventHandler? EvaluationCompleted;
 
+    /// <summary>Raised after <see cref="Layout"/> has been changed by a preset or by a reset.</summary>
+    /// <remarks>
+    /// <see cref="Layout"/> is a mutable model rather than a stream of values, so changing it
+    /// notifies nothing on its own. Until this event existed the preset buttons ran, updated the
+    /// model, and left the shell exactly as it was — a command that did its job and appeared to do
+    /// nothing.
+    /// </remarks>
+    public event EventHandler? WorkspaceChanged;
+
     /// <summary>The shell's pane arrangement.</summary>
     public WorkspaceLayout Layout { get; }
 
@@ -535,6 +544,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         Layout.CopyFrom(preset);
         SelectedWorkspace = name;
         OnPropertyChanged(nameof(Layout));
+        WorkspaceChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Returns every pane to its default size and makes them all visible.</summary>

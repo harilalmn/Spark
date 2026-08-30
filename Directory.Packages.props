@@ -57,11 +57,17 @@
     <!--
       Dock.Avalonia ships its control templates in this companion package. Without it a
       DockControl has no template and renders nothing at all - which is not an obvious
-      failure. Pinned here so the version is decided; the PackageReference arrives with
-      the slice that implements docking. The shell currently uses Grid + GridSplitter
-      driven by a serialisable WorkspaceLayout, and that layout model carries over.
+      failure, so it is referenced by Spark.UI rather than merely pinned here.
     -->
     <PackageVersion Include="Dock.Avalonia.Themes.Fluent" Version="[12.1.0.4]" />
+    <!--
+      The XAML-declarable half of the dock model: ProportionalDock, ToolDock, Tool and a
+      Factory that can be written in a .axaml file. Dock.Model.Mvvm is the same model built
+      in C# instead, and the shell uses the XAML one because a Tool's Content is a template
+      (N34) - which makes the panes inside it UserControls either way, but keeps the layout
+      itself readable next to the window it lays out.
+    -->
+    <PackageVersion Include="Dock.Model.Avalonia" Version="[12.1.0.4]" />
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="[8.4.2]" />
   </ItemGroup>
 

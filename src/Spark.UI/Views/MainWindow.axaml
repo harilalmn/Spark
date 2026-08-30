@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:panes="clr-namespace:Spark.UI.Views.Panes"
+        xmlns:dock="clr-namespace:Dock.Avalonia.Controls;assembly=Dock.Avalonia"
         xmlns:vm="clr-namespace:Spark.UI.ViewModels"
         x:Class="Spark.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -24,11 +24,12 @@
   </Window.KeyBindings>
 
   <!--
-    The shell is a Grid with splitters rather than a DockControl. Dock.Avalonia is referenced and
-    is the intended home for this layout; the panes below are UserControls precisely so that the
-    swap is a change of container rather than a rewrite of the shell's content. The serialisable
-    layout model the arrangement is driven from — Shell/WorkspaceLayout.cs, with reset and named
-    presets — has to exist either way, and it carries over unchanged.
+    The shell is a real DockControl: the panes can be dragged into each other, floated out and
+    put back. Its layout is built in C# rather than declared here (Shell/SparkDockFactory.cs),
+    for two reasons. A Tool's Content is a template (N34), so declaring the panes inline would
+    put them in a namescope this window cannot reach; and the arrangement has to be derivable
+    from WorkspaceLayout, which is the serialisable half - presets, reset - and is much easier
+    to keep honest when one function owns the mapping.
   -->
 
   <Grid RowDefinitions="Auto,*,Auto">
@@ -71,24 +72,7 @@
       </StackPanel>
     </Border>
 
-    <Grid Grid.Row="1" ColumnDefinitions="260,4,*,4,320" x:Name="ShellColumns">
-
-      <panes:LibraryPane Grid.Column="0" x:Name="LibraryPane" />
-
-      <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
-
-      <Grid Grid.Column="2" RowDefinitions="*,4,*" x:Name="CentreRows">
-        <panes:CanvasPane Grid.Row="0" x:Name="CanvasPane" />
-
-        <GridSplitter Grid.Row="1" ResizeDirection="Rows" />
-
-        <panes:ViewportPane Grid.Row="2" x:Name="ViewportPane" />
-      </Grid>
-
-      <GridSplitter Grid.Column="3" ResizeDirection="Columns" />
-
-      <panes:InspectorPane Grid.Column="4" x:Name="InspectorPane" />
-    </Grid>
+    <dock:DockControl Grid.Row="1" x:Name="Shell" />
 
     <Border Grid.Row="2" Classes="chrome" Padding="10,4">
       <TextBlock Classes="caption" Text="{Binding StatusText}" />

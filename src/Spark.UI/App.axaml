@@ -1,5 +1,6 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:dock="using:Dock.Avalonia.Themes.Fluent"
              x:Class="Spark.UI.App"
              RequestedThemeVariant="Dark">
 
@@ -20,6 +21,14 @@
 
   <Application.Styles>
     <FluentTheme />
+
+    <!--
+      Dock's control templates. Without this a DockControl has no template and renders nothing at
+      all - not an error, just an empty window, which is why the package is a reference rather
+      than only a version pin. It goes above SparkStyles so the shell's own styles win.
+    -->
+    <dock:DockFluentTheme />
+
     <StyleInclude Source="avares://Spark.UI/Theming/SparkStyles.axaml" />
   </Application.Styles>
 

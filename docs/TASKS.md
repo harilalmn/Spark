@@ -4,7 +4,7 @@ Every task, its epic, and its state. Epics are described in [EPICS.md](EPICS.md)
 order for what to do next is in [TODO.md](TODO.md); the requirements behind them are in
 [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-29
+**Last updated:** 2026-08-30
 **Legend:** `Done` · `In progress` · `Open` · `Blocked` · `Withdrawn`
 
 **Summary:** 97 done · 19 in progress · 142 open · 9 withdrawn — **267 rows**
@@ -76,8 +76,9 @@ half that is missing:
 - **`E4-T3`** and **`E8-T15`** waited on `bench/`, which was then an empty directory. `bench/` exists,
   and as of 2026-08-29 a nightly runs it: `E4-T3` is `Done` and `E8-T15` is short only its first
   execution on a hosted runner.
-- **`E8-T2`** has the layout model and the presets but not the docking, because a companion
-  package was never pinned.
+- **`E8-T2`** is now `Done` — the shell is a real `DockControl` driven by `WorkspaceLayout`. What
+  it does not yet do is *remember*: the layout serialises but is never saved, so a dragged
+  arrangement lasts until the window closes.
 - **`E8-T6`** is missing group, note and align. **`E8-T8`** has the panel but not the ranking.
 - **`E5-T14`** is 57 nodes, which is a number rather than a finish line.
 
@@ -387,7 +388,7 @@ Everything else in this file is a plan, not a claim.
 | ID | Task | Status | Notes |
 |---|---|---|---|
 | E8-T1 | Avalonia application shell, DI and main window | Done | **Built in `85e3183`/`35107f0`.** `Spark.Desktop` |
-| E8-T2 | Docking via `Dock.Avalonia`, serialisable layout, reset, workspace presets | In progress | **Workspace presets, reset and a serialisable `WorkspaceLayout` exist; the docking does not.** The shell is a `Grid` with splitters rather than a `DockControl`, because Dock.Avalonia's templates live in a companion package (`Dock.Avalonia.Themes.Fluent`) that was never pinned - and without it a `DockControl` renders nothing at all. Recorded where the next person will hit it. **Do not port RCS's from-scratch dock manager.** Port the *idea* of a serialisable, testable layout model |
+| E8-T2 | Docking via `Dock.Avalonia`, serialisable layout, reset, workspace presets | Done | **The shell is a real `DockControl`.** Landed in two steps because it had to: the four panes became `UserControl`s first, since a `Tool`'s content is a *template* and pane markup written inline loses the window's `x:Name`s ([N34](NOTES.md)). `Shell/SparkDockFactory.cs` builds the tree once and adjusts it in place — rebuilding would re-parent the OpenGL viewport and cost a black frame — and `WorkspaceLayout` drives it, so *Modelling*, *Authoring*, *Presenting* and *Reset layout* visibly rearrange the shell. Two failures that looked like successes are recorded as [N35](NOTES.md) and [N36](NOTES.md); `SparkDockFactoryTests` is the guard against both. **Do not port RCS's from-scratch dock manager.** The *idea* — a serialisable, testable layout model — is what was ported. **Still not wired:** the layout serialises and round-trips under test but is never written to disk, so a dragged arrangement does not survive a restart |
 | E8-T3 | Port `SceneIndex` from DoodleSharp | Done | **Built in `85e3183`/`35107f0`.** Pure managed data-structure code with no WPF in it. Culling and hit-testing come free with it |
 | E8-T4 | Immediate-mode canvas rendering over the retained index | Done | **Built in `85e3183`/`35107f0`.** One Avalonia control for the whole canvas. One control per node collapses somewhere between 500 and 2000 nodes because layout and hit-test costs are per-visual. Drawing a few thousand rounded rectangles and beziers through Skia is trivial by comparison. **One Skia backend only** — DoodleSharp's three-backend arbitration with hysteresis is deliberately left behind |
 | E8-T5 | Hybrid overlay for the node under interaction | Open | **Not built, and named as absent in `GraphCanvas`'s own remarks.** Every node is drawn immediate-mode today, including the one under the pointer. Only the node currently being interacted with gets a real Avalonia control positioned over the drawing — typically one at a time. This is what preserves input fidelity |

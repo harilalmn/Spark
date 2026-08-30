@@ -15,7 +15,9 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Spark.UI.Controls;
 using Spark.UI.Graph;
+using Spark.UI.Shell;
 using Spark.UI.ViewModels;
+using Spark.UI.Views.Panes;
 
 namespace Spark.UI.Views;
 
@@ -31,6 +33,11 @@ namespace Spark.UI.Views;
 /// </remarks>
 public sealed partial class MainWindow : Window
 {
+    private readonly SparkDockFactory _dock = new();
+    private readonly LibraryPane _libraryPane = new();
+    private readonly CanvasPane _canvasPane = new();
+    private readonly ViewportPane _viewportPane = new();
+    private readonly InspectorPane _inspectorPane = new();
     private readonly Stopwatch _wallClock = new();
     private int _benchmarkFrames;
     private int _framesRun;
@@ -46,6 +53,18 @@ public sealed partial class MainWindow : Window
         // and the first line below throws — which is exactly what happened the first time.
         InitializeComponent();
 
+        // The panes are constructed here rather than declared in the XAML because a Tool's
+        // Content is a template (N34): declaring them inline would build them into a namescope
+        // this window cannot reach, and everything below reaches them.
+        Shell.Factory = _dock;
+        Shell.Layout = _dock.Build(new Dictionary<WorkspacePane, object?>
+        {
+            [WorkspacePane.Library] = _libraryPane,
+            [WorkspacePane.Canvas] = _canvasPane,
+            [WorkspacePane.Viewport] = _viewportPane,
+            [WorkspacePane.Inspector] = _inspectorPane,
+        });
+
         Canvas.ShowFrameStatistics = true;
 
         // The canvas reports gestures; the view model runs the graph. A view that started an
@@ -55,7 +74,7 @@ public sealed partial class MainWindow : Window
 
         // The library pane cannot see the canvas, and should not: where a node lands depends on
         // what is already on the surface. It asks, and the window is what knows both halves.
-        LibraryPane.PlaceRequested += (_, _) => PlaceSelectedLibraryEntry();
+        _libraryPane.PlaceRequested += (_, _) => PlaceSelectedLibraryEntry();
 
         DataContextChanged += OnDataContextChanged;
         Opened += OnOpened;
@@ -68,10 +87,10 @@ public sealed partial class MainWindow : Window
     /// framing it, running the benchmark over it — while the pane owns the gestures that happen
     /// on it. Named so that the two are not the same thing by accident.
     /// </summary>
-    private GraphCanvas Canvas => CanvasPane.Canvas;
+    private GraphCanvas Canvas => _canvasPane.Canvas;
 
     /// <summary>The viewport inside <c>ViewportPane</c>, for the same reason.</summary>
-    private ViewportControl Viewport => ViewportPane.Viewport;
+    private ViewportControl Viewport => _viewportPane.Viewport;
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
@@ -79,6 +98,11 @@ public sealed partial class MainWindow : Window
         {
             return;
         }
+
+        _dock.SetContext(model);
+
+        model.WorkspaceChanged += (_, _) => _dock.Apply(model.Layout);
+        _dock.Apply(model.Layout);
 
         Viewport.Scene = model.Scene;
         model.GraphReplaced += (_, _) => BindGraph(frame: true);
@@ -482,11 +506,11 @@ public sealed partial class MainWindow : Window
         // Give the canvas the whole window. Measuring it inside a third of the centre column
         // would produce a flattering number for the wrong reason: a smaller viewport culls more,
         // and the claim being tested is about how many nodes can be ON SCREEN at 60 fps.
-        LibraryPane.IsVisible = false;
-        InspectorPane.IsVisible = false;
-        ViewportPane.IsVisible = false;
-        ShellColumns.ColumnDefinitions = new ColumnDefinitions("0,0,*,0,0");
-        CentreRows.RowDefinitions = new RowDefinitions("*,0,0");
+        WorkspaceLayout canvasOnly = WorkspaceLayout.Default;
+        canvasOnly.SetVisible(WorkspacePane.Library, false);
+        canvasOnly.SetVisible(WorkspacePane.Inspector, false);
+        canvasOnly.SetVisible(WorkspacePane.Viewport, false);
+        _dock.Apply(canvasOnly);
 
         _benchmarkBounds = Canvas.Graph.ComputeBounds();
         _wallClock.Restart();

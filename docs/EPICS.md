@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-29
+**Last updated:** 2026-08-30
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -680,9 +680,11 @@ another.
       16.7 ms median is one frame at 60 fps. Locally it holds with room to spare: 1.60 ms median
       and 2.90 ms p95 over 500 measured frames on 2026-08-29. Unticked because the step has never
       run on a runner without a GPU, and that is the only part still unknown.*
-- [ ] Docking via `Dock.Avalonia`, with a serialisable, testable layout model, *reset
+- [x] Docking via `Dock.Avalonia`, with a serialisable, testable layout model, *reset
       layout* and named workspace presets. RCS's from-scratch dock manager is **not**
-      ported; only the idea is (**E8-T2**).
+      ported; only the idea is (**E8-T2**). *The shell is a `DockControl` as of 2026-08-30:
+      panes drag, float and dock, and the four presets rearrange them. The layout
+      round-trips through JSON under test but is not yet persisted between sessions.*
 - [x] Library search ranks exact → prefix → **camel-hump** → substring → tag → description.
       Camel-hump is the highest-value search feature across thousands of nodes and is cheap
       (**E8-T8**).
@@ -719,10 +721,13 @@ was a test that could not fail, in the shape [N18](NOTES.md) and [N19](NOTES.md)
 The repair was both halves — the canvas now accumulates a **net** displacement rather than
 setting a flag on the first move, and a test drags a node out and back to where it started.
 
-**Three rows are short.** The shell is a `Grid` with splitters rather than a `DockControl`,
-because Dock.Avalonia's templates live in a companion package that was never pinned and without
-it a `DockControl` renders nothing at all (`E8-T2`). Group, note and align are not built
-(`E8-T6`). And the measured number that had a harness and no schedule now has both: a nightly runs
+**Two rows are short.** The shell became a real `DockControl` on 2026-08-30 (`E8-T2`), and the
+two-step landing is the interesting part: the panes had to be extracted into `UserControl`s
+first, because a `Tool`'s content is a template and inline pane markup silently loses the
+window's `x:Name`s ([N34](NOTES.md)). Two further defects looked exactly like working code — a
+pane bound against the wrong `DataContext` draws its heading over an empty list ([N35](NOTES.md)),
+and `Owner is not null` reports every pane as showing so *Reset layout* restored nothing
+([N36](NOTES.md)). Group, note and align are not built (`E8-T6`). And the measured number that had a harness and no schedule now has both: a nightly runs
 `bench/Spark.Benchmarks` and `--canvas-benchmark` against committed budgets, leaving `E8-T15`
 short only its first execution on a hosted runner (`E1-T21`,
 [ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md)).
