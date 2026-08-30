@@ -943,16 +943,7 @@ public sealed class CanvasGraph
     {
         ArgumentNullException.ThrowIfNull(node);
 
-        if (node.ResultRank == 0)
-        {
-            return "rank 0 · one value";
-        }
-
-        string items = node.ResultCount == 1 ? "1 item" : string.Create(
-            CultureInfo.InvariantCulture, $"{node.ResultCount} items");
-
-        return string.Create(
-            CultureInfo.InvariantCulture, $"rank {node.ResultRank} · {items}");
+        return ValueText.Shape(node.ResultRank, node.ResultCount);
     }
 
     /// <summary>
@@ -966,51 +957,21 @@ public sealed class CanvasGraph
     /// was left out rather than trailing off, so nobody mistakes a truncation for the end of their
     /// data.
     /// </remarks>
-    public const int WatchCharacterLimit = 20_000;
+    public const int WatchCharacterLimit = ValueText.FullLength;
 
     /// <summary>
     /// The full rendering of a value for the watch panel, capped rather than summarised.
     /// </summary>
     /// <param name="value">The value, which may be a list.</param>
     /// <returns>The rendering, or an empty string when there is nothing to show.</returns>
-    public static string Expand(object? value)
-    {
-        if (value is null)
-        {
-            return string.Empty;
-        }
-
-        string text = value.ToString() ?? string.Empty;
-        if (text.Length <= WatchCharacterLimit)
-        {
-            return text;
-        }
-
-        int hidden = text.Length - WatchCharacterLimit;
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"{text[..WatchCharacterLimit]}{Environment.NewLine}{Environment.NewLine}… {hidden} more characters not shown.");
-    }
+    public static string Expand(object? value) => ValueText.Full(value);
 
     /// <summary>
     /// A one-line rendering of a value for the properties panel and the node's own readout.
     /// </summary>
     /// <param name="value">The value, which may be a list.</param>
     /// <returns>The rendering, or null when there is nothing to say.</returns>
-    public static string? Summarise(object? value)
-    {
-        if (value is null)
-        {
-            return null;
-        }
-
-        // The value alone. Rank and length used to be prefixed here, and once RankLine existed
-        // that made a preview bubble read "rank 1 · 8 items" above "8 items, rank 1  [...]" —
-        // the same fact twice, in two wordings, in adjacent lines. One rendering of a value, one
-        // rendering of its shape, and callers compose the two.
-        string text = value.ToString() ?? string.Empty;
-        return text.Length > 60 ? text[..57] + "…" : text;
-    }
+    public static string? Summarise(object? value) => ValueText.Summary(value);
 
     private static IReadOnlyList<CanvasPortInfo> Describe(IReadOnlyList<PortDefinition> ports)
     {

@@ -1072,7 +1072,11 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
 - [ ] `Spark.Host` is proven inside a real Revit or AutoCAD add-in (**E12-T4**).
 - [ ] `spark run`, `check`, `render`, `export`, `pkg`, `docs` and `graph` all work
       headlessly, and `spark run` produces output identical to the desktop app's
-      (**E12-T5**).
+      (**E12-T5**). *`export` since 2026-08-29 and `run` since 2026-08-30. The identical-output
+      half is met structurally rather than by care: the value rendering lives in
+      `Spark.Api.ValueText`, beneath both the shell and the CLI, and a test fails the day a
+      second one appears. The other five verbs wait on the milestones that give them something
+      to do.*
 - [ ] The CLI ships as `spark.exe` inside the installer and the portable zip, beside the
       desktop application (**E12-T5**, **E12-T9**, **E12-T10**). *`Spark.Cli` sets
       `<AssemblyName>spark</AssemblyName>`; it is not a dotnet global tool and there is no

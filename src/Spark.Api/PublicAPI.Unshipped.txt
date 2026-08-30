@@ -81,6 +81,7 @@ Spark.Api.SparkNodeAttribute.DefaultLacing.set -> void
 Spark.Api.SparkNodeAttribute.Name.get -> string?
 Spark.Api.SparkNodeAttribute.Name.set -> void
 Spark.Api.SparkNodeAttribute.SparkNodeAttribute() -> void
+Spark.Api.ValueText
 const Spark.Api.NodeCategories.Curve = "Curve" -> string!
 const Spark.Api.NodeCategories.Custom = "Custom" -> string!
 const Spark.Api.NodeCategories.Display = "Display" -> string!
@@ -91,6 +92,8 @@ const Spark.Api.NodeCategories.Math = "Math" -> string!
 const Spark.Api.NodeCategories.Point = "Point" -> string!
 const Spark.Api.NodeCategories.Script = "Script" -> string!
 const Spark.Api.NodeCategories.Solid = "Solid" -> string!
+const Spark.Api.ValueText.FullLength = 20000 -> int
+const Spark.Api.ValueText.SummaryLength = 60 -> int
 override Spark.Api.Displayable.ToString() -> string!
 override Spark.Api.Rgba.Equals(object? obj) -> bool
 override Spark.Api.Rgba.GetHashCode() -> int
@@ -105,3 +108,7 @@ static Spark.Api.SparkDiagnostic.FormatElementPath(System.Collections.Generic.IR
 static Spark.Api.SparkList.Empty(int rank) -> Spark.Api.SparkList!
 static Spark.Api.SparkList.Of(params object?[]! items) -> Spark.Api.SparkList!
 static Spark.Api.SparkList.RankOf(object? value) -> int
+static Spark.Api.ValueText.Full(object? value) -> string!
+static Spark.Api.ValueText.Shape(int rank, int count) -> string!
+static Spark.Api.ValueText.Shape(object? value) -> string!
+static Spark.Api.ValueText.Summary(object? value) -> string?

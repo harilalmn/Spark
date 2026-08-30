@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using Spark.Api;
 using Spark.Engine;
@@ -23,14 +24,35 @@ namespace Spark.Cli;
 /// something that only exists inside the desktop application.
 /// </para>
 /// <para>
-/// <c>run</c>, <c>check</c>, <c>render</c>, <c>pkg</c>, <c>docs</c> and <c>graph</c> are
-/// `E12-T5` and arrive with the milestones that give them something to do.
+/// <c>spark run</c> is the same claim without the geometry: open a graph, evaluate it with no
+/// window, and say what it produced. It reports through <see cref="ValueText"/>, which is also
+/// what the canvas and the properties pane render with — <c>E12-T5</c> requires the command line
+/// to produce output identical to the desktop application's, and one shared implementation is the
+/// only way to keep a requirement like that true rather than merely asserted.
+/// </para>
+/// <para>
+/// <c>check</c>, <c>render</c>, <c>pkg</c>, <c>docs</c> and <c>graph</c> are `E12-T5` and arrive
+/// with the milestones that give them something to do.
 /// </para>
 /// </remarks>
 internal static class Program
 {
     private static int Main(string[] args)
     {
+        // The value renderings carry '·' and '…', and Windows consoles default to a code page
+        // that cannot represent either — including when the output is redirected to a file, which
+        // is the case that matters, because the whole point of `spark run` is output somebody can
+        // diff. Set once, before anything is written.
+        try
+        {
+            Console.OutputEncoding = Encoding.UTF8;
+        }
+        catch (IOException)
+        {
+            // No console attached — a redirected or service context. The stream encoding is then
+            // already whatever the host chose, and failing to start over it would be absurd.
+        }
+
         if (args.Length == 0 || args[0] is "--help" or "-h" or "help")
         {
             Usage();
@@ -41,6 +63,7 @@ internal static class Program
         {
             return args[0] switch
             {
+                "run" => Run(args.AsSpan(1)),
                 "export" => Export(args.AsSpan(1)),
                 "--version" => Version(),
                 _ => Unknown(args[0]),
@@ -54,6 +77,114 @@ internal static class Program
             Console.Error.WriteLine($"spark: {failure.Message}");
             return 1;
         }
+    }
+
+    /// <summary>
+    /// Opens a graph, evaluates it with no window anywhere, and reports what it produced.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Watch nodes are what it prints by default.</b> A graph of two thousand nodes has two
+    /// thousand values and almost none of them is what the person running it wanted to see; a
+    /// watch is the user saying <i>this one</i>, and it is already the thing the canvas pins a
+    /// bubble to. <c>--all</c> is there for a diff, where every value is exactly what you want.
+    /// </para>
+    /// <para>
+    /// Diagnostics go to standard error and values to standard output, so that
+    /// <c>spark run g.spark &gt; values.txt</c> captures the answer and still shows the problems.
+    /// </para>
+    /// </remarks>
+    private static int Run(ReadOnlySpan<string> args)
+    {
+        string? input = null;
+        bool all = false;
+
+        for (int i = 0; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--open" when i + 1 < args.Length:
+                    input = args[++i];
+                    break;
+
+                case "--all":
+                    all = true;
+                    break;
+
+                default:
+                    // A bare path is the ordinary way to name a file to a command line, and
+                    // requiring --open for the argument the verb is about would be ceremony.
+                    if (input is null && !args[i].StartsWith('-'))
+                    {
+                        input = args[i];
+                        break;
+                    }
+
+                    Console.Error.WriteLine($"spark: unrecognised option '{args[i]}'.");
+                    return 1;
+            }
+        }
+
+        if (input is null)
+        {
+            Console.Error.WriteLine("spark: run needs a graph to run. Try: spark run graph.spark");
+            return 1;
+        }
+
+        using SparkSession session = new();
+
+        GraphDocument document = SparkFile.Read(File.ReadAllText(input));
+        Graph graph = document.Restore(session.Library);
+
+        EvaluationContext context = new(default, new SequentialEvaluationScheduler());
+        EvaluationResult result = GraphEvaluator.Evaluate(graph, context, CancellationToken.None);
+
+        foreach (SparkDiagnostic diagnostic in result.Diagnostics)
+        {
+            Console.Error.WriteLine($"spark: {diagnostic.Code}: {diagnostic.Message}");
+        }
+
+        int reported = 0;
+
+        // The document's order, not the graph's. `graph.Nodes()` walks a dictionary, so two runs
+        // of the same file could print the same values in a different order — and the reason to
+        // print values at all is so that two runs can be compared. The document is already sorted
+        // by identity, for exactly this reason.
+        foreach (GraphDocumentNode documented in document.Nodes)
+        {
+            NodeInstance node = graph.Node(documented.Id);
+
+            if (!all && !node.Definition.ShowsValue)
+            {
+                continue;
+            }
+
+            object? value = result.Value(node.Id);
+            if (ValueText.Summary(value) is not { } summary)
+            {
+                continue;
+            }
+
+            reported++;
+            Console.WriteLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{node.Definition.DisplayName}  {ValueText.Shape(value)}  {summary}"));
+        }
+
+        if (reported == 0 && !all)
+        {
+            // Not an error, and not silence either: a graph with no watches in it ran perfectly
+            // well and simply said nothing, which looks identical to a graph that did nothing.
+            Console.Error.WriteLine(
+                "spark: no watch nodes in this graph. Add a Watch node, or run with --all.");
+        }
+
+        Console.WriteLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"spark: {result.NodesEvaluated} node(s) evaluated, {result.CacheHits} cache hit(s), "
+            + $"{result.Diagnostics.Count} diagnostic(s)"));
+
+        return result.HasErrors ? 1 : 0;
     }
 
     private static int Export(ReadOnlySpan<string> args)
@@ -218,12 +349,16 @@ internal static class Program
     {
         Console.WriteLine("spark — the Spark command line");
         Console.WriteLine();
+        Console.WriteLine("  spark run GRAPH.spark [--all]");
+        Console.WriteLine("      Evaluate a graph with no window and print what its watches saw.");
+        Console.WriteLine("      --all prints every node's value instead, which is what a diff wants.");
+        Console.WriteLine();
         Console.WriteLine("  spark export --open GRAPH.spark --out FILE.obj [--tolerance T]");
         Console.WriteLine("      Evaluate a graph with no window and write its curves as OBJ.");
         Console.WriteLine("      Curves become polylines; the tolerance used is in the file's header.");
         Console.WriteLine();
         Console.WriteLine("  spark --version");
         Console.WriteLine();
-        Console.WriteLine("  run, check, render, pkg, docs and graph arrive with later milestones.");
+        Console.WriteLine("  check, render, pkg, docs and graph arrive with later milestones.");
     }
 }

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 01:15 +0530
+**Last updated:** 2026-08-31 02:00 +0530
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 and M1.5 are both done.** M1.6 is deferred for want of a C++ toolchain; the work in flight is **M2's remainder** |
-| **Working on** | Nothing. Between steps, part way through queue **9** |
+| **Working on** | Nothing. **Queue 9 is finished**, and with it what was left of M2 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **9**, `E8-T10` step **(b)** — the `Watch` node and the watch panel. **`E8-T10` is `Done`** |
+| **Last completed step** | Queue **9**, `E12-T5` — `spark run`, and the value rendering moved into `Spark.Api.ValueText` |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | Queue **9**'s last item: **`E12-T5` — `spark run`.** Read the `E12-T5` row in [TASKS.md](TASKS.md) first, and check what the `spark` CLI already does — the OBJ export half of that row landed with M1, so this is the other half and some of the plumbing exists. The shape: `spark run graph.spark` opens a `.spark` file **with no UI at all**, evaluates it, and reports. That is the claim `GraphDocument`'s own remarks already make — canvas coordinates travel through the document without the engine reading them, *which is also why `spark run` will be able to load the same file with no UI present* — so this step is where that sentence gets tested rather than asserted. Watch for the one thing that will bite: the node library has to be loaded the way the shell loads it, through `Spark.Host`, or `spark run` and the application will disagree about what a node is. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1155**: Geometry.Tests 402, Engine.Tests 310, UI.Tests 319, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | Queue **10** — **M3, NURBS curves**, starting at `E2-T10`. This is an **XL** item and the first geometry work in a while, so **start by reading, not by typing**: the `E2-T10` row in [TASKS.md](TASKS.md), the `E2` section of [EPICS.md](EPICS.md), and what `Spark.Geometry`'s existing `Curve` hierarchy already promises — `NurbsCurve` has to satisfy the same `Curve` contract that `Ray`, `Circle` and `PolyLine` already do, and the tessellation path and the serialization round-trip test both apply to it the day it exists. **Take the smallest first slice that a test can prove**: the data (control points, weights, knots, degree) with its invariants enforced in the constructor, and a knot-vector validity check, before any evaluation. `Curve.PointAt` on a de Boor evaluation is the second slice, not the first. Before starting, re-derive the queue from [TODO.md](TODO.md) — queue 9 is done and the two documents should be made to agree. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1171**: Geometry.Tests 402, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -118,8 +118,8 @@ the two disagree.**
 | 6 | **`Spark.Geometry.Io`: the OBJ writer, and `spark` writing a polyline a third-party viewer opens** — this is **M1's demoable** | `E2-T34`, `E12-T5` | M | **Done** 2026-08-29 |
 | 7 | **The C2VGeometry test harvest**, timeboxed to one week with a hard stop. Harvest assertions, not generators | `E2-T32` | L | **Blocked** — needs the C2VGeometry source, which is not in this repository and not on this machine. Skipped 2026-08-30 |
 | 8 | **M1.5 spike (c): AvaloniaEdit plus a Roslyn completion popup** — the last unproven part of M1.5, gating M4 | `E11-T21` | M | **Done** 2026-08-30 |
-| 9 | **What is left of M2** *(in progress)* — ~~real docking (`E8-T2`)~~ **done 2026-08-30**; group/note/align (`E8-T6`) *(next)*, watch nodes (`E8-T10`), `spark run` (`E12-T5`) | | L | Open |
-| 10 | **M3 — NURBS curves** | `E2-T10` … | XL | Open |
+| 9 | ~~**What is left of M2** — real docking (`E8-T2`), group/note/align (`E8-T6`), watch nodes (`E8-T10`), `spark run` (`E12-T5`)~~ | | L | **Done** 2026-08-30 |
+| 10 | **M3 — NURBS curves** *(next)* | `E2-T10` … | XL | Open |
 | + | **Persist the workspace layout between sessions** — `WorkspaceLayout` already serialises and round-trips under test; nothing writes it. A dragged arrangement dies with the window, which is the one thing a dock is for | `E8-T2`-adjacent | S | Open |
 | + | **A guard that no test project reports zero tests** — one line, and it catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)) | `E11`-adjacent | S | Open, take it with the next CI change |
 
@@ -883,3 +883,45 @@ nothing hovered, an ordinary node does not, and an impossible slot is false rath
 exception. The decision is the part with a judgement in it; the pixels were already proven.
 
 **Cost.** An hour and a quarter, and it closes the last of queue 9's canvas work.
+
+### 2026-08-30 — `spark run`, and making "identical output" structural
+
+**`E12-T5`'s `run` verb**, which is queue **9**'s last item. `spark export` already opened a
+`.spark`, restored it against `SparkSession.Library` and evaluated it with no window, so the verb
+itself was half a day's worth of plumbing. The row's other sentence was the work.
+
+**"`spark run` must produce output identical to the desktop app's."** That is a claim about two
+programs, and the value rendering lived in `CanvasGraph.Summarise`/`RankLine`/`Expand` — inside
+`Spark.UI`, which the CLI must not reference. Writing the CLI's output by hand would have made the
+row true on the day it was ticked and false soon after, and nothing would have noticed. So the
+rendering moved **down**: `Spark.Api.ValueText`, beneath both, with `CanvasGraph` delegating to it
+and the CLI calling it directly. `ValueRenderingTests` asserts the delegation, so the day somebody
+reintroduces a second rendering is the day a test goes red rather than the day the two silently
+diverge.
+
+**What it prints by default is the watch nodes**, which is what a watch is for and what makes the
+agreement visible: the same node, the same line, in the application and on the command line.
+`--all` prints every node, for a diff. Diagnostics go to stderr and values to stdout, so
+`spark run g.spark > values.txt` captures the answer and still shows the problems.
+
+**Two things found by running it rather than by writing it.** The values printed in
+`Graph.Nodes()` order, which walks a dictionary — so two runs of one file could print the same
+values in a different order, defeating the only reason to print them at all. They now follow the
+**document's** order, which is sorted by identity for exactly this reason. And the rank line's `·`
+came out mangled: a Windows console defaults to a code page that cannot represent it, **including
+when the output is redirected to a file**, which is the case that matters.
+`Console.OutputEncoding = UTF8`, guarded for the no-console case.
+
+**Verified.** Build clean with `-warnaserror`; **1171 tests, 0 failures** (1155 + 16);
+`dotnet format` clean. `spark run docs/examples/curves.spark --all` run twice into two files and
+`diff`ed: **identical**, and readable UTF-8. A hand-written graph carrying a `Watch.Value` wired to
+a `Number.Range` prints `Watch.Value  rank 1 · 6 items  [0, 1, 2, 3, 4, 5]` — which is also the
+end-to-end proof of `[KeepStructure]`: without it the watch would have been replicated and the run
+would have printed six scalars.
+
+**One constant was lying and is not now.** `SummaryLength = 60` named a threshold but produced 58
+characters, because the ellipsis was added after a 57-character cut. It now means what a caller
+needs it to mean — the longest a summary can be, ellipsis included.
+
+**Cost.** Fifty minutes. **Queue 9 is finished**: `E8-T2`, `E8-T6`, `E8-T10` and `E12-T5`'s `run`
+are all done, which is what was left of M2.
