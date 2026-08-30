@@ -42,10 +42,17 @@ public static class CanvasDocument
                 note.Id, note.X, note.Y, note.Width, note.Height, note.Text));
         }
 
+        List<GraphDocumentGroup> groups = [];
+        foreach (CanvasGroup group in graph.Groups)
+        {
+            groups.Add(new GraphDocumentGroup(group.Id, group.Title, [.. group.Members]));
+        }
+
         return SparkFile.Write(GraphDocument.Capture(
             graph.Engine,
             id => positions.TryGetValue(id, out (double X, double Y) at) ? at : (0.0, 0.0),
-            notes));
+            notes,
+            groups));
     }
 
     /// <summary>Reads the text of a `.spark` file into a canvas graph.</summary>
@@ -85,6 +92,20 @@ public static class CanvasDocument
                 Height = note.Height,
                 Text = note.Text,
             });
+        }
+
+        // Groups keep their identity for the reason notes do, and their membership is taken as
+        // written rather than re-derived: a member the graph no longer has is simply not found
+        // when the frame is measured, which is what makes a hand-edited file survive.
+        foreach (GraphDocumentGroup group in document.Groups)
+        {
+            CanvasGroup restored = new(group.Id) { Title = group.Title };
+            foreach (NodeId member in group.Members)
+            {
+                restored.Add(member);
+            }
+
+            graph.AdoptGroup(restored);
         }
 
         return graph;

@@ -27,6 +27,12 @@
                VerticalAlignment="Stretch"
                LostFocus="OnNoteCommitted" />
 
+      <!-- A group's title, on the same principle as a note's text. -->
+      <TextBox Grid.Row="3" Margin="10,0,10,10" VerticalAlignment="Top"
+               IsVisible="{Binding SelectedGroup, Converter={x:Static ObjectConverters.IsNotNull}}"
+               Text="{Binding GroupTitle, Mode=TwoWay}"
+               LostFocus="OnGroupTitleCommitted" />
+
       <!-- Editing a value here writes the literal through the engine graph, which marks the
            node and everything downstream dirty, and starts a run off the UI thread. -->
       <ItemsControl Grid.Row="3" Margin="10,0,10,10" ItemsSource="{Binding Inspector}">

@@ -187,6 +187,81 @@ public sealed class GraphNoteTests
             () => SparkFile.Read("""{"formatVersion": 3, "nodes": [], "wires": []}"""));
     }
 
+    /// <summary>
+    /// A group's members are sorted in the file, so the same selection made in a different order
+    /// writes the same bytes. A selection is a set; the file must not inherit an order it never
+    /// had.
+    /// </summary>
+    [Fact]
+    public void AGroupsMemberOrderDoesNotReachTheFile()
+    {
+        Graph graph = new();
+        NodeId first = graph.AddNode(Library.ByName("Number.Value")).Id;
+        NodeId second = graph.AddNode(Library.ByName("Math.Sin")).Id;
+        Guid id = Guid.NewGuid();
+
+        string forwards = SparkFile.Write(GraphDocument.Capture(
+            graph, groups: [new GraphDocumentGroup(id, "Both", [first, second])]));
+        string backwards = SparkFile.Write(GraphDocument.Capture(
+            graph, groups: [new GraphDocumentGroup(id, "Both", [second, first])]));
+
+        Assert.Equal(forwards, backwards);
+    }
+
+    /// <summary>
+    /// Groups arrive at version 2, the same as notes. Inventing a version 3 for the second field
+    /// to land in the same week would refuse a file to a reader that can in fact read it.
+    /// </summary>
+    [Fact]
+    public void AGraphWithGroupsIsWrittenAsVersionTwo()
+    {
+        Graph graph = new();
+        NodeId only = graph.AddNode(Library.ByName("Number.Value")).Id;
+
+        string text = SparkFile.Write(GraphDocument.Capture(
+            graph, groups: [new GraphDocumentGroup(Guid.NewGuid(), "One", [only])]));
+
+        Assert.Contains("\"formatVersion\": 2", text, StringComparison.Ordinal);
+        Assert.Equal(GraphDocument.GroupsFormatVersion, SparkFile.Read(text).FormatVersion);
+    }
+
+    /// <summary>
+    /// A group with no members is malformed rather than empty. A group's whole content is what it
+    /// contains, so one containing nothing could only have arrived by an editing mistake.
+    /// </summary>
+    [Fact]
+    public void AGroupWithNoMembersIsRefused()
+    {
+        string text = $$"""
+            {"formatVersion": 2, "nodes": [], "wires": [],
+             "groups": [{"id": "{{Guid.NewGuid():D}}", "title": "Empty", "members": []}]}
+            """;
+
+        Assert.Throws<SparkFileException>(() => SparkFile.Read(text));
+    }
+
+    /// <summary>A group whose member is not a node identity is malformed.</summary>
+    [Fact]
+    public void AGroupNamingSomethingThatIsNotANodeIsRefused()
+    {
+        string text = $$"""
+            {"formatVersion": 2, "nodes": [], "wires": [],
+             "groups": [{"id": "{{Guid.NewGuid():D}}", "title": "Bad", "members": ["not-a-guid"]}]}
+            """;
+
+        Assert.Throws<SparkFileException>(() => SparkFile.Read(text));
+    }
+
+    /// <summary>A graph with neither notes nor groups still writes version 1 and mentions neither.</summary>
+    [Fact]
+    public void AGraphWithNeitherMentionsNeither()
+    {
+        string text = SparkFile.Write(Capture([]));
+
+        Assert.DoesNotContain("groups", text, StringComparison.Ordinal);
+        Assert.Contains("\"formatVersion\": 1", text, StringComparison.Ordinal);
+    }
+
     private static GraphDocument Capture(IReadOnlyList<GraphDocumentNote> notes)
     {
         Graph graph = new();

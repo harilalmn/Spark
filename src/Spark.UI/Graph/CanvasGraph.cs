@@ -284,6 +284,7 @@ public sealed class CanvasGraph
     private readonly Dictionary<NodeId, int> _slots = [];
     private readonly List<CanvasWire> _wires = [];
     private readonly List<CanvasNote> _notes = [];
+    private readonly List<CanvasGroup> _groups = [];
     private readonly TypeCompatibility _compatibility = TypeCompatibility.Default;
     private bool _wiresDirty = true;
 
@@ -336,6 +337,13 @@ public sealed class CanvasGraph
     /// </remarks>
     public IReadOnlyList<CanvasNote> Notes => _notes;
 
+    /// <summary>The groups on the canvas, in draw order.</summary>
+    /// <remarks>
+    /// Beside the nodes for the reason the notes are: a group is not a node, and a single list
+    /// would put a skip in every loop that walks the nodes.
+    /// </remarks>
+    public IReadOnlyList<CanvasGroup> Groups => _groups;
+
     /// <summary>The wires, projected into slot terms.</summary>
     public IReadOnlyList<CanvasWire> Wires
     {
@@ -344,6 +352,132 @@ public sealed class CanvasGraph
             RebuildWires();
             return _wires;
         }
+    }
+
+    /// <summary>Creates a group around a set of nodes.</summary>
+    /// <param name="slots">The slots to enclose.</param>
+    /// <param name="title">What to call it, or null for the default.</param>
+    /// <returns>The group, or null when no slot named a node that exists.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="slots"/> is null.</exception>
+    /// <remarks>
+    /// Membership is recorded by identity rather than by slot, because slots renumber when a node
+    /// is deleted and a group holding stale slots would frame whichever nodes happened to move
+    /// into them.
+    /// </remarks>
+    public CanvasGroup? AddGroup(IReadOnlyCollection<int> slots, string? title = null)
+    {
+        ArgumentNullException.ThrowIfNull(slots);
+
+        CanvasGroup group = new();
+        foreach (int slot in slots)
+        {
+            if (slot >= 0 && slot < _nodes.Count)
+            {
+                group.Add(_nodes[slot].Id);
+            }
+        }
+
+        if (group.Members.Count == 0)
+        {
+            return null;
+        }
+
+        if (title is not null)
+        {
+            group.Title = title;
+        }
+
+        _groups.Add(group);
+        return group;
+    }
+
+    /// <summary>Adopts a group that already has an identity, which is what opening a file does.</summary>
+    /// <param name="group">The group.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="group"/> is null.</exception>
+    public void AdoptGroup(CanvasGroup group)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+        _groups.Add(group);
+    }
+
+    /// <summary>
+    /// Removes a group. <b>Its nodes stay exactly where they are.</b>
+    /// </summary>
+    /// <param name="group">The group to remove.</param>
+    /// <returns>True when it was there to remove.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="group"/> is null.</exception>
+    /// <remarks>
+    /// Ungrouping must never delete work. A frame around some nodes is an annotation, and deleting
+    /// an annotation that takes the annotated thing with it is the single most expensive surprise
+    /// an editor can spring on somebody.
+    /// </remarks>
+    public bool RemoveGroup(CanvasGroup group)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+        return _groups.Remove(group);
+    }
+
+    /// <summary>
+    /// The rectangle a group draws, derived from its members and never stored.
+    /// </summary>
+    /// <param name="group">The group.</param>
+    /// <returns>Its frame, or null when none of its members is still in the graph.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="group"/> is null.</exception>
+    public CanvasBounds? GroupBounds(CanvasGroup group)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+
+        double minX = double.MaxValue;
+        double minY = double.MaxValue;
+        double maxX = double.MinValue;
+        double maxY = double.MinValue;
+        bool any = false;
+
+        foreach (CanvasNode node in _nodes)
+        {
+            if (!group.Contains(node.Id))
+            {
+                continue;
+            }
+
+            any = true;
+            CanvasBounds bounds = node.Bounds;
+            minX = Math.Min(minX, bounds.MinX);
+            minY = Math.Min(minY, bounds.MinY);
+            maxX = Math.Max(maxX, bounds.MaxX);
+            maxY = Math.Max(maxY, bounds.MaxY);
+        }
+
+        if (!any)
+        {
+            return null;
+        }
+
+        return new CanvasBounds(
+            minX - CanvasGroup.Padding,
+            minY - CanvasGroup.Padding - CanvasGroup.TitleHeight,
+            maxX + CanvasGroup.Padding,
+            maxY + CanvasGroup.Padding);
+    }
+
+    /// <summary>The slots of a group's members that are still in the graph.</summary>
+    /// <param name="group">The group.</param>
+    /// <returns>The slots, in ascending order.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="group"/> is null.</exception>
+    public IReadOnlyList<int> SlotsIn(CanvasGroup group)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+
+        List<int> slots = [];
+        for (int slot = 0; slot < _nodes.Count; slot++)
+        {
+            if (group.Contains(_nodes[slot].Id))
+            {
+                slots.Add(slot);
+            }
+        }
+
+        return slots;
     }
 
     /// <summary>Adds a note at a position and returns it.</summary>
@@ -457,6 +591,18 @@ public sealed class CanvasGraph
         for (int index = 0; index < _nodes.Count; index++)
         {
             _slots[_nodes[index].Id] = index;
+        }
+
+        // A deleted node leaves every group it was in. Left behind, the identity would be a
+        // member that cannot be found, and a group whose last member was deleted would go on
+        // claiming to contain something. Groups that empty out are removed with it: a frame
+        // around nothing is not a frame.
+        for (int index = _groups.Count - 1; index >= 0; index--)
+        {
+            if (_groups[index].Remove(id) && _groups[index].Members.Count == 0)
+            {
+                _groups.RemoveAt(index);
+            }
         }
 
         _wiresDirty = true;
@@ -716,6 +862,22 @@ public sealed class CanvasGraph
         foreach (CanvasNote note in _notes)
         {
             CanvasBounds bounds = note.Bounds;
+            minX = System.Math.Min(minX, bounds.MinX);
+            minY = System.Math.Min(minY, bounds.MinY);
+            maxX = System.Math.Max(maxX, bounds.MaxX);
+            maxY = System.Math.Max(maxY, bounds.MaxY);
+        }
+
+        // And so do group frames, which reach beyond their own members by the padding and the
+        // title strip. Fitting the members exactly clips the title off the top of the window,
+        // which is where the group's name is and the only part of it a pointer can grab.
+        foreach (CanvasGroup group in _groups)
+        {
+            if (GroupBounds(group) is not { } bounds)
+            {
+                continue;
+            }
+
             minX = System.Math.Min(minX, bounds.MinX);
             minY = System.Math.Min(minY, bounds.MinY);
             maxX = System.Math.Max(maxX, bounds.MaxX);

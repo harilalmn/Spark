@@ -164,6 +164,30 @@ public static class SparkFile
                 writer.WriteEndArray();
             }
 
+            // Groups after notes, and omitted the same way when there are none. Both arrive at
+            // version 2, so a file carrying either needs the same reader.
+            if (document.Groups.Count > 0)
+            {
+                writer.WriteStartArray("groups");
+                foreach (GraphDocumentGroup group in document.Groups)
+                {
+                    writer.WriteStartObject();
+                    writer.WriteString("id", group.Id.ToString("D", CultureInfo.InvariantCulture));
+                    writer.WriteString("title", group.Title);
+
+                    writer.WriteStartArray("members");
+                    foreach (NodeId member in group.Members)
+                    {
+                        writer.WriteStringValue(Format(member));
+                    }
+
+                    writer.WriteEndArray();
+                    writer.WriteEndObject();
+                }
+
+                writer.WriteEndArray();
+            }
+
             writer.WriteEndObject();
         }
 
@@ -255,7 +279,17 @@ public static class SparkFile
                 }
             }
 
-            return new GraphDocument(formatVersion, nodes, wires, notes);
+            List<GraphDocumentGroup> groups = [];
+            if (root.TryGetProperty("groups", out JsonElement groupArray)
+                && groupArray.ValueKind == JsonValueKind.Array)
+            {
+                foreach (JsonElement element in groupArray.EnumerateArray())
+                {
+                    groups.Add(ReadGroup(element));
+                }
+            }
+
+            return new GraphDocument(formatVersion, nodes, wires, notes, groups);
         }
     }
 
@@ -435,6 +469,52 @@ public static class SparkFile
             ReadDouble(element, "width"),
             ReadDouble(element, "height"),
             textElement.GetString() ?? string.Empty);
+    }
+
+    /// <summary>
+    /// Reads one group. A group with no members is malformed rather than empty: a group's whole
+    /// content is what it contains, so one containing nothing is a frame around nothing and could
+    /// only have arrived by an editing mistake.
+    /// </summary>
+    private static GraphDocumentGroup ReadGroup(JsonElement element)
+    {
+        if (!element.TryGetProperty("id", out JsonElement idElement)
+            || idElement.ValueKind != JsonValueKind.String
+            || !Guid.TryParseExact(idElement.GetString(), "D", out Guid id))
+        {
+            throw Malformed("A group has no identity.");
+        }
+
+        if (!element.TryGetProperty("title", out JsonElement titleElement)
+            || titleElement.ValueKind != JsonValueKind.String)
+        {
+            throw Malformed("A group has no title.");
+        }
+
+        if (!element.TryGetProperty("members", out JsonElement memberArray)
+            || memberArray.ValueKind != JsonValueKind.Array)
+        {
+            throw Malformed("A group has no members.");
+        }
+
+        List<NodeId> members = [];
+        foreach (JsonElement member in memberArray.EnumerateArray())
+        {
+            if (member.ValueKind != JsonValueKind.String
+                || !Guid.TryParseExact(member.GetString(), "D", out Guid memberId))
+            {
+                throw Malformed("A group names a member that is not a node identity.");
+            }
+
+            members.Add(new NodeId(memberId));
+        }
+
+        if (members.Count == 0)
+        {
+            throw Malformed("A group has no members.");
+        }
+
+        return new GraphDocumentGroup(id, titleElement.GetString() ?? string.Empty, members);
     }
 
     private static NodeId ReadId(JsonElement element, string name)

@@ -84,6 +84,7 @@ public sealed partial class MainWindow : Window
         // The pane owns the text box; the canvas owns the pixels; the shell owns the undo stack.
         // The pane tells the window the text changed, and the window tells the other two.
         _inspectorPane.NoteEdited += (_, _) => Canvas.NoteTextEdited();
+        _inspectorPane.GroupRenamed += (_, _) => Canvas.GroupTitleEdited();
 
         DataContextChanged += OnDataContextChanged;
         Opened += OnOpened;
@@ -175,11 +176,15 @@ public sealed partial class MainWindow : Window
 
     private void OnCanvasSelectionChanged(object? sender, EventArgs e)
     {
-        // A note first, because selecting one clears the node selection: asking the other way
-        // round would show "Nothing selected" over a note that plainly is.
+        // The annotations first, because selecting either clears the node selection: asking the
+        // other way round would show "Nothing selected" over something that plainly is.
         if (Canvas.SelectedNote is { } note)
         {
             Model?.ShowNote(note);
+        }
+        else if (Canvas.SelectedGroup is { } group)
+        {
+            Model?.ShowGroup(group);
         }
         else
         {
@@ -187,6 +192,13 @@ public sealed partial class MainWindow : Window
         }
 
         UpdateAlignAvailability();
+    }
+
+    /// <summary>Frames the selected nodes in a group.</summary>
+    private void OnGroupSelection(object? sender, RoutedEventArgs e)
+    {
+        Canvas.GroupSelection();
+        UpdateStatus();
     }
 
     /// <summary>Puts a new note where a new node would go, and puts the caret in it.</summary>
@@ -211,6 +223,7 @@ public sealed partial class MainWindow : Window
         int selected = Canvas.Selection.Count;
 
         AlignButton.IsEnabled = selected >= CanvasAlignment.MinimumToAlign;
+        GroupButton.IsEnabled = Canvas.CanGroupSelection();
         DistributeHorizontally.IsEnabled = selected >= CanvasAlignment.MinimumToDistribute;
         DistributeVertically.IsEnabled = selected >= CanvasAlignment.MinimumToDistribute;
     }

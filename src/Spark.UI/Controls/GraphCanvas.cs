@@ -146,6 +146,7 @@ public sealed class GraphCanvas : Control
     private CanvasWire? _selectedWire;
     private CanvasNote? _selectedNote;
     private CanvasNote? _hoverNote;
+    private CanvasGroup? _selectedGroup;
     private Point _dragWireWorldEnd;
     private WireOutcome _dragOutcome = WireOutcome.Refused;
     private Point _marqueeStartWorld;
@@ -199,6 +200,7 @@ public sealed class GraphCanvas : Control
         Marquee,
         DraggingWire,
         DraggingNote,
+        DraggingGroup,
     }
 
     /// <summary>The canvas background fill. Exposed so the shell can paint the same colour behind it.</summary>
@@ -240,6 +242,9 @@ public sealed class GraphCanvas : Control
     /// the compiler could not see.
     /// </remarks>
     public CanvasNote? SelectedNote => _selectedNote;
+
+    /// <summary>The selected group, or null.</summary>
+    public CanvasGroup? SelectedGroup => _selectedGroup;
 
     /// <summary>
     /// Rebuilds the spatial index and the wire geometry after the graph was edited from outside the
@@ -404,6 +409,7 @@ public sealed class GraphCanvas : Control
 
             _selectedWire = null;
             _selectedNote = null;
+            _selectedGroup = null;
             _focusNode = node;
             _mode = InteractionMode.DraggingNodes;
             _dragTotalX = 0;
@@ -422,6 +428,7 @@ public sealed class GraphCanvas : Control
         {
             _selection.Clear();
             _selectedNote = null;
+            _selectedGroup = null;
             _selectedWire = wire;
             _mode = InteractionMode.None;
             e.Handled = true;
@@ -437,6 +444,7 @@ public sealed class GraphCanvas : Control
         if (HitTestNote(world) is { } note)
         {
             _selection.Clear();
+            _selectedGroup = null;
             _selectedNote = note;
             _mode = InteractionMode.DraggingNote;
             _dragTotalX = 0;
@@ -449,8 +457,30 @@ public sealed class GraphCanvas : Control
             return;
         }
 
+        // A group is behind even the notes, and it is grabbed by its title strip rather than by
+        // its whole rectangle. Its rectangle is mostly the gap between its own nodes, and a group
+        // that swallowed every click in that gap would make marquee-selecting inside one
+        // impossible - which is the gesture a user reaches for most often once nodes are grouped.
+        if (HitTestGroupTitle(world) is { } group)
+        {
+            _selection.Clear();
+            _selectedWire = null;
+            _selectedNote = null;
+            _selectedGroup = group;
+            _mode = InteractionMode.DraggingGroup;
+            _dragTotalX = 0;
+            _dragTotalY = 0;
+            _dragStartWorld = world;
+            e.Pointer.Capture(this);
+            e.Handled = true;
+            InvalidateVisual();
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
         _selectedWire = null;
         _selectedNote = null;
+        _selectedGroup = null;
         if (!e.KeyModifiers.HasFlag(KeyModifiers.Shift))
         {
             _selection.Clear();
@@ -490,6 +520,12 @@ public sealed class GraphCanvas : Control
 
             case InteractionMode.DraggingNote when _selectedNote is { } dragged:
                 MoveNote(dragged, world.X - _dragStartWorld.X, world.Y - _dragStartWorld.Y);
+                _dragStartWorld = world;
+                InvalidateVisual();
+                return;
+
+            case InteractionMode.DraggingGroup when _selectedGroup is { } group:
+                MoveGroup(group, world.X - _dragStartWorld.X, world.Y - _dragStartWorld.Y);
                 _dragStartWorld = world;
                 InvalidateVisual();
                 return;
@@ -554,6 +590,13 @@ public sealed class GraphCanvas : Control
                 _dragTotalY = 0;
                 GraphChanged?.Invoke(
                     this, new GraphEditedEventArgs("Move note", affectsEvaluation: false));
+                break;
+
+            case InteractionMode.DraggingGroup when _dragTotalX != 0 || _dragTotalY != 0:
+                _dragTotalX = 0;
+                _dragTotalY = 0;
+                GraphChanged?.Invoke(
+                    this, new GraphEditedEventArgs("Move group", affectsEvaluation: false));
                 break;
 
             default:
@@ -685,6 +728,7 @@ public sealed class GraphCanvas : Control
             // Notes first, and therefore behind. A note is a background that a region of the
             // graph sits on — a label for it — so a note drawn over its own nodes would be
             // annotating them by hiding them.
+            DrawGroups(context, pens, detail);
             DrawNotes(context, pens, detail);
             DrawWires(context, pens, visible, detail);
             DrawNodes(context, pens, detail, zoom);
@@ -715,6 +759,66 @@ public sealed class GraphCanvas : Control
 
         _index.Rebuild(bounds);
         _indexDirty = false;
+    }
+
+    /// <summary>
+    /// Draws the groups, behind everything including the notes.
+    /// </summary>
+    /// <remarks>
+    /// The frame is derived from the members every frame rather than stored, so a group cannot
+    /// drift from what it contains — drag a member and the frame follows on the next paint with
+    /// nothing to keep in step. A group whose members have all been deleted measures to nothing
+    /// and is skipped, which is the same answer as not drawing a frame around nothing.
+    /// </remarks>
+    private void DrawGroups(DrawingContext context, in FramePens pens, CanvasDetail detail)
+    {
+        if (_graph.Groups.Count == 0)
+        {
+            return;
+        }
+
+        bool drawsTitle = CanvasLevelOfDetail.DrawsTitle(detail);
+
+        foreach (CanvasGroup group in _graph.Groups)
+        {
+            if (_graph.GroupBounds(group) is not { } bounds)
+            {
+                continue;
+            }
+
+            Rect rect = new(bounds.MinX, bounds.MinY, bounds.Width, bounds.Height);
+            RoundedRect rounded = new(rect, CornerRadius);
+
+            context.DrawRectangle(SparkPalette.CanvasGroupBrush, null, rounded);
+            context.DrawRectangle(
+                null,
+                ReferenceEquals(group, _selectedGroup) ? pens.SelectionRing : pens.NodeOutline,
+                rounded);
+
+            if (!drawsTitle || group.Title.Length == 0)
+            {
+                continue;
+            }
+
+            // In the title strip, which is also the only part of the frame that takes a click.
+            // The rest of a group's rectangle is the gap between its own nodes, and swallowing
+            // clicks there would make marquee-selecting inside a group impossible.
+            FormattedText title = new(
+                group.Title,
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                LabelTypeface,
+                NoteFontSize,
+                SparkPalette.TextSecondaryBrush);
+
+            Rect strip = new(rect.X, rect.Y, rect.Width, CanvasGroup.TitleHeight);
+            using (context.PushClip(strip))
+            {
+                context.DrawText(
+                    title,
+                    new Point(rect.X + 8, rect.Y + ((CanvasGroup.TitleHeight - title.Height) / 2)));
+            }
+        }
     }
 
     /// <summary>
@@ -1402,6 +1506,45 @@ public sealed class GraphCanvas : Control
         return note;
     }
 
+    /// <summary>
+    /// Puts a frame around the selected nodes and selects it.
+    /// </summary>
+    /// <param name="title">What to call it, or null for the default.</param>
+    /// <returns>The group, or null when nothing was selected.</returns>
+    public CanvasGroup? GroupSelection(string? title = null)
+    {
+        if (_selection.Count == 0)
+        {
+            return null;
+        }
+
+        if (_graph.AddGroup([.. _selection], title) is not { } group)
+        {
+            return null;
+        }
+
+        _selection.Clear();
+        _selectedWire = null;
+        _selectedNote = null;
+        _selectedGroup = group;
+
+        InvalidateVisual();
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
+        GraphChanged?.Invoke(this, new GraphEditedEventArgs("Group nodes", affectsEvaluation: false));
+        return group;
+    }
+
+    /// <summary>Whether there is a selection a group could be made from.</summary>
+    /// <returns>True when at least one node is selected.</returns>
+    public bool CanGroupSelection() => _selection.Count > 0;
+
+    /// <summary>Reports that the selected group's title has been edited elsewhere.</summary>
+    public void GroupTitleEdited()
+    {
+        InvalidateVisual();
+        GraphChanged?.Invoke(this, new GraphEditedEventArgs("Rename group", affectsEvaluation: false));
+    }
+
     /// <summary>Reports that the selected note's text has been edited elsewhere.</summary>
     /// <remarks>
     /// The canvas hosts no controls — it is one immediate-mode surface — so a note is typed into
@@ -1527,6 +1670,23 @@ public sealed class GraphCanvas : Control
             return true;
         }
 
+        // Ungrouping never deletes work. The frame goes; every node it framed stays exactly
+        // where it was. An editor that takes the contents with the container is the single most
+        // expensive surprise it can spring on somebody.
+        if (_selectedGroup is { } group)
+        {
+            _selectedGroup = null;
+            if (!_graph.RemoveGroup(group))
+            {
+                return false;
+            }
+
+            InvalidateVisual();
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
+            GraphChanged?.Invoke(this, new GraphEditedEventArgs("Ungroup", affectsEvaluation: false));
+            return true;
+        }
+
         if (_selectedNote is { } note)
         {
             _selectedNote = null;
@@ -1632,6 +1792,46 @@ public sealed class GraphCanvas : Control
         }
 
         return null;
+    }
+
+    /// <summary>The topmost group whose <i>title strip</i> is under a world point, or null.</summary>
+    private CanvasGroup? HitTestGroupTitle(Point world)
+    {
+        IReadOnlyList<CanvasGroup> groups = _graph.Groups;
+        for (int index = groups.Count - 1; index >= 0; index--)
+        {
+            if (_graph.GroupBounds(groups[index]) is not { } bounds)
+            {
+                continue;
+            }
+
+            if (world.X >= bounds.MinX && world.X <= bounds.MaxX
+                && world.Y >= bounds.MinY && world.Y <= bounds.MinY + CanvasGroup.TitleHeight)
+            {
+                return groups[index];
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Moves a group by moving its members. The frame follows because it is derived from them.
+    /// </summary>
+    private void MoveGroup(CanvasGroup group, double dx, double dy)
+    {
+        _dragTotalX += dx;
+        _dragTotalY += dy;
+
+        foreach (int slot in _graph.SlotsIn(group))
+        {
+            CanvasNode node = _graph.Nodes[slot];
+            node.X += dx;
+            node.Y += dy;
+            _index.Update(slot, node.Bounds);
+        }
+
+        _wireVisuals.Clear();
     }
 
     private void MoveNote(CanvasNote note, double dx, double dy)

@@ -78,6 +78,29 @@ public sealed record GraphDocumentNote(
 public readonly record struct GraphLiteral(int PortIndex, object? Value);
 
 /// <summary>
+/// One group in a `.spark` file: a titled frame around a set of nodes.
+/// </summary>
+/// <remarks>
+/// <para>
+/// A group is the same kind of thing as a <see cref="GraphDocumentNote"/> — a canvas annotation
+/// with no <see cref="NodeId"/> of its own, no ports and no provenance — and it is carried the same
+/// way, beside the coordinates rather than inside <see cref="Graph"/>.
+/// </para>
+/// <para>
+/// <b>It stores which nodes it contains, and not the rectangle it draws.</b> The rectangle is
+/// derived from the members every time it is needed, so it can never drift from them. The
+/// alternative — storing a rectangle and deciding membership by containment — makes a group
+/// silently gain a node the moment somebody drags one across its edge, and silently lose one when
+/// they drag it out. Membership that changes without being asked for is the thing users get burned
+/// by in other editors, and it is not recoverable by looking at the file afterwards.
+/// </para>
+/// </remarks>
+/// <param name="Id">The group's identity, which survives save and load.</param>
+/// <param name="Title">What the group is called. Never null; an untitled group is a real state.</param>
+/// <param name="Members">The nodes inside it, ordered by identity so the file is stable.</param>
+public sealed record GraphDocumentGroup(Guid Id, string Title, IReadOnlyList<NodeId> Members);
+
+/// <summary>
 /// A whole graph in the shape a `.spark` file holds it: the data model, with no evaluation state,
 /// no results and no geometry.
 /// </summary>
@@ -128,22 +151,33 @@ public sealed class GraphDocument
     /// <summary>The first version whose reader understands notes.</summary>
     public const int NotesFormatVersion = 2;
 
+    /// <summary>
+    /// The first version whose reader understands groups. The same as
+    /// <see cref="NotesFormatVersion"/>, deliberately: groups and notes landed in the same week,
+    /// and inventing a version 3 for the second of them would refuse a file to a reader that can
+    /// in fact read it.
+    /// </summary>
+    public const int GroupsFormatVersion = 2;
+
     private readonly GraphDocumentNode[] _nodes;
     private readonly GraphDocumentWire[] _wires;
     private readonly GraphDocumentNote[] _notes;
+    private readonly GraphDocumentGroup[] _groups;
 
     /// <summary>Creates a document.</summary>
     /// <param name="formatVersion">The format version. Must be positive.</param>
     /// <param name="nodes">The nodes.</param>
     /// <param name="wires">The wires.</param>
     /// <param name="notes">The canvas notes, if any.</param>
+    /// <param name="groups">The canvas groups, if any.</param>
     /// <exception cref="ArgumentNullException">A collection is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="formatVersion"/> is not positive.</exception>
     public GraphDocument(
         int formatVersion,
         IEnumerable<GraphDocumentNode> nodes,
         IEnumerable<GraphDocumentWire> wires,
-        IEnumerable<GraphDocumentNote>? notes = null)
+        IEnumerable<GraphDocumentNote>? notes = null,
+        IEnumerable<GraphDocumentGroup>? groups = null)
     {
         ArgumentNullException.ThrowIfNull(nodes);
         ArgumentNullException.ThrowIfNull(wires);
@@ -174,6 +208,23 @@ public sealed class GraphDocument
             .. (notes ?? []).OrderBy(
                 note => note.Id.ToString("D", CultureInfo.InvariantCulture), StringComparer.Ordinal),
         ];
+
+        // Members are sorted here too, not only the groups. A group whose members are listed in
+        // the order the user happened to select them would make the same selection produce two
+        // different files, which is exactly what canonical formatting exists to prevent.
+        _groups =
+        [
+            .. (groups ?? [])
+                .Select(group => group with
+                {
+                    Members =
+                    [
+                        .. group.Members.OrderBy(
+                            id => id.Value.ToString("D", CultureInfo.InvariantCulture), StringComparer.Ordinal),
+                    ],
+                })
+                .OrderBy(group => group.Id.ToString("D", CultureInfo.InvariantCulture), StringComparer.Ordinal),
+        ];
     }
 
     /// <summary>The format version this document was read from, or is to be written as.</summary>
@@ -188,19 +239,26 @@ public sealed class GraphDocument
     /// <summary>The canvas notes, ordered by identity. Empty for a graph that has none.</summary>
     public IReadOnlyList<GraphDocumentNote> Notes => _notes;
 
+    /// <summary>The canvas groups, ordered by identity, for the same reason.</summary>
+    public IReadOnlyList<GraphDocumentGroup> Groups => _groups;
+
     /// <summary>
     /// The lowest format version whose reader could load this document without losing anything.
     /// </summary>
     /// <param name="notes">How many notes the document carries.</param>
-    /// <returns><see cref="NotesFormatVersion"/> when there are notes, otherwise <see cref="BaselineFormatVersion"/>.</returns>
+    /// <param name="groups">How many groups it carries.</param>
+    /// <returns>
+    /// <see cref="NotesFormatVersion"/> when there is anything a version-1 reader would drop,
+    /// otherwise <see cref="BaselineFormatVersion"/>.
+    /// </returns>
     /// <remarks>
     /// A version-1 reader does not know the <c>notes</c> array exists; it would open the file, show
     /// the graph, and drop every note the next time the user saved. Refusing to open is the honest
     /// outcome, and asking for it costs exactly this: writing 2 when, and only when, there is
     /// something a version-1 reader would throw away.
     /// </remarks>
-    public static int MinimumReaderVersion(int notes) =>
-        notes > 0 ? NotesFormatVersion : BaselineFormatVersion;
+    public static int MinimumReaderVersion(int notes, int groups = 0) =>
+        notes > 0 || groups > 0 ? NotesFormatVersion : BaselineFormatVersion;
 
     /// <summary>
     /// Captures a live graph as a document, taking canvas positions from a lookup the caller owns.
@@ -212,9 +270,10 @@ public sealed class GraphDocument
     /// </param>
     /// <param name="notes">
     /// The canvas notes, or <see langword="null"/> for none. A headless caller has none, and a
-    /// document with none is written at <see cref="BaselineFormatVersion"/> so that it stays
-    /// byte-identical to what earlier builds wrote.
+    /// document with neither notes nor groups is written at <see cref="BaselineFormatVersion"/> so
+    /// that it stays byte-identical to what earlier builds wrote.
     /// </param>
+    /// <param name="groups">The canvas groups, or <see langword="null"/> for none.</param>
     /// <returns>The document.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="graph"/> is <see langword="null"/>.</exception>
     /// <exception cref="SparkFileException">
@@ -224,7 +283,8 @@ public sealed class GraphDocument
     public static GraphDocument Capture(
         Graph graph,
         Func<NodeId, (double X, double Y)>? positions = null,
-        IReadOnlyList<GraphDocumentNote>? notes = null)
+        IReadOnlyList<GraphDocumentNote>? notes = null,
+        IReadOnlyList<GraphDocumentGroup>? groups = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -285,7 +345,7 @@ public sealed class GraphDocument
         ];
 
         return new GraphDocument(
-            MinimumReaderVersion(notes?.Count ?? 0), nodes, wires, notes);
+            MinimumReaderVersion(notes?.Count ?? 0, groups?.Count ?? 0), nodes, wires, notes, groups);
     }
 
     /// <summary>

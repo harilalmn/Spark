@@ -78,6 +78,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _noteText = string.Empty;
 
+    /// <summary>The group the properties pane is editing, or null.</summary>
+    [ObservableProperty]
+    private CanvasGroup? _selectedGroup;
+
+    [ObservableProperty]
+    private string _groupTitle = string.Empty;
+
     [ObservableProperty]
     private LibraryEntryViewModel? _selectedLibraryEntry;
 
@@ -496,6 +503,41 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
+    /// Shows a selected group in the properties pane, or clears it.
+    /// </summary>
+    /// <param name="group">The group, or null when the selection is not a group.</param>
+    public void ShowGroup(CanvasGroup? group)
+    {
+        Inspector.Clear();
+        SelectedNote = null;
+        SelectedGroup = group;
+
+        if (group is null)
+        {
+            return;
+        }
+
+        SelectionTitle = "Group";
+        int count = group.Members.Count;
+        string nodes = count == 1 ? "1 node" : string.Create(CultureInfo.InvariantCulture, $"{count} nodes");
+        SelectionDescription = nodes + ". Deleting the group leaves them where they are.";
+        GroupTitle = group.Title;
+    }
+
+    /// <summary>Commits the edited title back to the selected group.</summary>
+    /// <returns>True when the title actually changed.</returns>
+    public bool CommitGroupTitle()
+    {
+        if (SelectedGroup is not { } group || group.Title == GroupTitle)
+        {
+            return false;
+        }
+
+        group.Title = GroupTitle;
+        return true;
+    }
+
+    /// <summary>
     /// Shows a selected note in the properties pane, or clears it.
     /// </summary>
     /// <param name="note">The note, or null when the selection is not a note.</param>
@@ -508,6 +550,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public void ShowNote(CanvasNote? note)
     {
         Inspector.Clear();
+        SelectedGroup = null;
         SelectedNote = note;
 
         if (note is null)
@@ -548,6 +591,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         Inspector.Clear();
         SelectedNote = null;
+        SelectedGroup = null;
 
         if (selection.Count != 1)
         {

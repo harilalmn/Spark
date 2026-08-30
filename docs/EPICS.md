@@ -672,12 +672,14 @@ another.
       (**E8-T11**).
 - [ ] The canvas is one control over a retained `SceneIndex`, with a hybrid overlay for the
       node under interaction (**E8-T3**, **E8-T4**, **E8-T5**).
-- [ ] Pan, zoom, box select, drag, wire, unwire, delete, group, note and align all work
-      (**E8-T6**). *Everything but group, as of 2026-08-30. Align is six alignments and two
+- [x] Pan, zoom, box select, drag, wire, unwire, delete, group, note and align all work
+      (**E8-T6**). *All of it, as of 2026-08-30. Align is six alignments and two
       distributions behind one toolbar flyout; the distributions equalise gaps rather than
       centres, because a node's height is its port count and no two are alike. A note is a
       canvas annotation rather than a document object, drawn behind everything and typed into
-      in the properties pane, because the canvas hosts no controls.*
+      in the properties pane, because the canvas hosts no controls. A group stores which nodes
+      it contains and derives its frame, so membership never changes because something was
+      dragged past.*
 - [x] LOD below 40% zoom (**E8-T7**).
 - [ ] A 2000-node synthetic graph pans and zooms at 60 fps, benchmarked nightly from M2
       (**E8-T15**). *The nightly exists and the budget is this criterion stated as a number —
@@ -725,13 +727,18 @@ was a test that could not fail, in the shape [N18](NOTES.md) and [N19](NOTES.md)
 The repair was both halves — the canvas now accumulates a **net** displacement rather than
 setting a flag on the first move, and a test drags a node out and back to where it started.
 
-**Two rows are short.** The shell became a real `DockControl` on 2026-08-30 (`E8-T2`), and the
+**One row is short.** The shell became a real `DockControl` on 2026-08-30 (`E8-T2`), and the
 two-step landing is the interesting part: the panes had to be extracted into `UserControl`s
 first, because a `Tool`'s content is a template and inline pane markup silently loses the
 window's `x:Name`s ([N34](NOTES.md)). Two further defects looked exactly like working code — a
 pane bound against the wrong `DataContext` draws its heading over an empty list ([N35](NOTES.md)),
 and `Owner is not null` reports every pane as showing so *Reset layout* restored nothing
-([N36](NOTES.md)). Group is not built; align and note both landed on 2026-08-30 (`E8-T6`). And the measured number that had a harness and no schedule now has both: a nightly runs
+([N36](NOTES.md)). Align, note and group all landed on 2026-08-30, which closes `E8-T6` — and
+the two annotations forced the format's first extension since it was written, decided by
+[ADR-0016](adr/0016-no-dynamo-interoperability.md) rather than by preference: the version a file
+carries is the minimum version that can *read* it, so a graph with neither notes nor groups is
+still version 1 to the byte ([N38](NOTES.md)). And the measured number that had a harness and no
+schedule now has both: a nightly runs
 `bench/Spark.Benchmarks` and `--canvas-benchmark` against committed budgets, leaving `E8-T15`
 short only its first execution on a hosted runner (`E1-T21`,
 [ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md)).

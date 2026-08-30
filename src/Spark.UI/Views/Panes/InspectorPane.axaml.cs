@@ -28,6 +28,17 @@ public sealed partial class InspectorPane : UserControl
     /// </remarks>
     public event EventHandler? NoteEdited;
 
+    /// <summary>Raised when the selected group's title has been changed and committed.</summary>
+    public event EventHandler? GroupRenamed;
+
+    private void OnGroupTitleCommitted(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel model && model.CommitGroupTitle())
+        {
+            GroupRenamed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
     private void OnNoteCommitted(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainWindowViewModel model && model.CommitNoteText())

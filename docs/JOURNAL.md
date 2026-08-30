@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-30 21:45 +0530
+**Last updated:** 2026-08-30 22:50 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1 and M1.5 are both done.** M1.6 is deferred for want of a C++ toolchain; the work in flight is **M2's remainder** |
 | **Working on** | Nothing. Between steps, part way through queue **9** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **9**, `E8-T6` step **(c)** — notes drawn, selected, dragged, deleted and edited |
+| **Last completed step** | Queue **9**, `E8-T6` step **(d)** — group. **`E8-T6` is `Done`** |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | `E8-T6` step **(d)** — **group**, the last of the three and the one that closes `E8-T6`. Follow the note precedent exactly, because a group is the same kind of object: a canvas annotation with no `NodeId`, no ports and no provenance, carried in `GraphDocument` and never in `Graph`. `CanvasGroup` needs a title, a rectangle, and **the identities of the nodes it contains** — that last one is the only place it differs from a note, and it is the design question: store **node ids** rather than a rectangle-at-save-time, because a group that re-derives its members from geometry silently gains and loses them when nodes are dragged. The `notes` array precedent says add a `groups` array and leave `MinimumReaderVersion` returning 2 (groups and notes both need a v2 reader; there is no reason to invent a v3 for a second field landing the same week). Then draw it behind the notes, drag it **with its members**, and delete it *without* deleting them — that last is the one users get burned by elsewhere and is worth a named test. Reuse `CanvasNote`'s shape wherever it fits rather than paraphrasing it. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1106**: Geometry.Tests 402, Engine.Tests 300, UI.Tests 280, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | **Fix zoom-to-fit at startup**, a regression `E8-T2` step (b) introduced and the `E8-T6` step (d) screenshot caught. `--graph curves --screenshot` now reads `zoom 100%, 7/18 nodes drawn`; before the dock it read `zoom 35%, 18/18`. Cause: `GraphCanvas.ZoomToFit` opens with `if (Bounds.Width < 1 || Bounds.Height < 1) { return; }` and inside a `DockControl` the canvas has not been laid out by the time `Opened` fires, so the fit is silently skipped and the transform stays at its default. **Do not fix it by calling `ZoomToFit` later from the window** — that puts the shell's startup order into the window's head and the next container change breaks it again. Make the *canvas* honour the request: record it and perform it on the next arrange when the bounds are still degenerate. Verify with a headless test that calls `ZoomToFit` on an unlaid-out canvas and asserts the transform changed after layout, and with the screenshot showing 18/18 nodes again. Then write it up — **a guard that returns silently is a bug waiting for a layout change**, which is [N26](NOTES.md)'s and [N33](NOTES.md)'s shape a third time. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1130**: Geometry.Tests 402, Engine.Tests 305, UI.Tests 299, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -719,3 +719,47 @@ an overlapping node, a selected note carrying the same accent ring a node gets, 
 pane editing its text.
 
 **Cost.** About an hour and a quarter.
+
+### 2026-08-30 — Group, which closes `E8-T6` — and a regression the screenshot caught
+
+**`E8-T6` step (d), and with it `E8-T6`.** Pan, zoom, box select, drag, wire, unwire, delete,
+group, note and align: all of it.
+
+**A group stores which nodes it contains and derives its rectangle.** The alternative — store a
+rectangle, decide membership by containment — is what most editors do, and it is why a node can
+quietly join a group it was merely dragged past, or leave one it was nudged out of, with no record
+in the file of what the group used to hold. Membership by identity means a node leaves a group only
+when somebody says so. `AGroupsMembershipDoesNotChangeWhenANodeIsDraggedOutOfItsFrame` and
+`ANodeDraggedIntoAFrameDoesNotJoinTheGroup` pin both directions.
+
+**Only the title strip takes a click**, and this is the decision that makes groups usable rather
+than infuriating. A group's rectangle is mostly the gap between its own nodes. A frame that took
+clicks across all of it would make a node inside a group unclickable and a marquee inside one
+impossible — which is the gesture people reach for most once nodes are grouped.
+`OnlyTheTitleStripTakesTheClick` is the guard.
+
+**Deleting a group keeps its nodes.** Named, tested, and the one users arrive expecting to go
+wrong.
+
+**The format grew a second array and did not grow a second version.** Groups are version 2, the
+same as notes: inventing a 3 for the second field to land in the same week would refuse a file to
+a reader that can in fact read it. Written up together with the version rule itself as
+[N38](NOTES.md#n38--a-format-version-is-the-minimum-version-that-can-read-the-file-not-a-stamp-of-the-writer),
+because the rule is now load-bearing for two fields rather than one and the next person to add a
+third should not have to re-derive it.
+
+**Verified.** Build clean with `-warnaserror`; **1130 tests, 0 failures** (1106 + 24);
+`dotnet format` clean. The screenshot shows a group framing `Plane.XY` with its title in the strip,
+the accent selection ring a node gets, and the properties pane reading *1 node. Deleting the group
+leaves them where they are.* over an editable title.
+
+**The screenshot also caught something that is not about groups at all.** The frame statistics read
+`zoom 100%, 7/18 nodes drawn`. Before the shell became a `DockControl` they read `zoom 35%, 18/18`.
+**Zoom-to-fit at startup stopped fitting when the dock landed**, and I did not notice at the time
+because the picture was *expected* to change and I read the dock chrome instead of the numbers.
+`GraphCanvas.ZoomToFit` returns silently when its `Bounds` are still zero, and inside Dock the
+canvas is laid out later than it was inside a `Grid`. That is the next step rather than a quiet fix
+here, because it is a separate defect with a separate lesson — **a guard that returns silently is a
+bug that waits for a layout change** — and folding it into a group commit would hide both.
+
+**Cost.** About an hour and a half.

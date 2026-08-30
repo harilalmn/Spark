@@ -1159,3 +1159,32 @@ try { body(window, canvas); } finally { window.Close(); }
 
 **Close every headless window you open**, in a `finally`. The cost is one line; the alternative is
 a class of failure that appears to come from somewhere else entirely.
+
+---
+
+## N38 — A format version is the minimum version that can *read* the file, not a stamp of the writer
+
+When `.spark` grew notes and then groups, the obvious move was to bump `CurrentFormatVersion` to 2
+and write 2 from then on. That is wrong, and what makes it wrong is a constraint two documents
+away from the format:
+[ADR-0016](adr/0016-no-dynamo-interoperability.md) requires a graph referencing a missing package
+to re-save **byte-identically**. Stamping every save with the writer's version rewrites the first
+line of every version-1 graph in existence the first time somebody opens one.
+
+So `GraphDocument.MinimumReaderVersion` derives the version from the **content**:
+
+- no notes and no groups → `1`, and the file is byte-for-byte what earlier builds wrote;
+- either of them → `2`, which a version-1 build refuses loudly.
+
+Refusing is the point. A version-1 reader does not know the `notes` key exists; it would open the
+file, show the graph correctly, and throw every note away on the next save. **A reader that
+silently drops what it does not understand is worse than one that will not open the file at all.**
+
+Two consequences worth keeping:
+
+- **New arrays are omitted when empty, never written as `[]`.** `"notes": []` would add two lines
+  to the diff of every graph that has never had a note in it, and ADR-0017 bought text precisely
+  for the diffs.
+- **Fields landing in the same release share a version.** Groups arrived days after notes and both
+  are version 2. Inventing a version 3 for the second one would refuse a file to a reader that can
+  in fact read it.
