@@ -102,6 +102,21 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _watchRank = string.Empty;
 
+    /// <summary>
+    /// The code block being edited, or null when the selection is not one.
+    /// </summary>
+    /// <remarks>
+    /// The source is edited in the properties pane for now, the way a note's text is. The real
+    /// editing surface is `E6-T11`'s AvaloniaEdit host with `E6-T7`'s wire-typed completion, and
+    /// putting the text box here first gets a working code block on screen without waiting for it
+    /// — a code block you cannot type into is not a code block.
+    /// </remarks>
+    [ObservableProperty]
+    private CanvasNode? _selectedCodeBlock;
+
+    [ObservableProperty]
+    private string _scriptText = string.Empty;
+
     [ObservableProperty]
     private LibraryEntryViewModel? _selectedLibraryEntry;
 
@@ -186,7 +201,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             try
             {
-                opened = CanvasDocument.Open(File.ReadAllText(startupDocumentPath), _session.Library);
+                opened = CanvasDocument.Open(File.ReadAllText(startupDocumentPath), _session.Library, _session.Scripts);
             }
             catch (SparkFileException error)
             {
@@ -386,7 +401,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         try
         {
-            AdoptGraph(CanvasDocument.Open(text, _session.Library));
+            AdoptGraph(CanvasDocument.Open(text, _session.Library, _session.Scripts));
             GraphReplaced?.Invoke(this, EventArgs.Empty);
             return true;
         }
@@ -608,6 +623,81 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Places a new code block on the canvas and selects it.
+    /// </summary>
+    /// <param name="x">Where to put it.</param>
+    /// <param name="y">Where to put it.</param>
+    /// <returns>The new node's slot, or −1 when scripting is off.</returns>
+    /// <remarks>
+    /// <b>This is the first thing in the application that touches Roslyn</b>, and it does so by
+    /// asking the session to enable scripting rather than by referencing the compiler. A session
+    /// that never places a code block never loads it, which is `E6-T14`.
+    /// </remarks>
+    public int PlaceCodeBlock(double x, double y)
+    {
+        if (_session.Scripts is null && !_session.ScriptingAllowed)
+        {
+            StatusText = "Scripting is switched off, so a code block cannot be placed.";
+            return -1;
+        }
+
+        IScriptNodeFactory scripts = _session.EnableScripting();
+        const string Starter = "return a;";
+
+        _placementOrdinal++;
+        int slot = _graph.Add(NodeDefinition.FromScript(scripts.Create(Starter), Starter), x, y);
+        RecordEdit("Add code block");
+
+        return slot;
+    }
+
+    /// <summary>
+    /// Shows a selected code block's source in the properties pane, or clears it.
+    /// </summary>
+    /// <param name="node">The node, or null.</param>
+    public void ShowCodeBlock(CanvasNode? node)
+    {
+        SelectedCodeBlock = node;
+        ScriptText = node is null ? string.Empty : ScriptOf(node) ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Recompiles the selected code block against the edited source.
+    /// </summary>
+    /// <returns>True when the script changed and the node was rebuilt.</returns>
+    /// <remarks>
+    /// <b>Rebuilding replaces the node's definition, which changes its ports</b> — that is the
+    /// point of a code block and it is also why this is not a literal edit. A wire into a port
+    /// that no longer exists cannot survive, so the graph drops it; a wire into a port that still
+    /// exists by name does survive, which is what makes editing a script tolerable rather than
+    /// destructive.
+    /// </remarks>
+    public bool CommitScriptText()
+    {
+        if (SelectedCodeBlock is not { } node || _session.Scripts is not { } scripts)
+        {
+            return false;
+        }
+
+        if (ScriptOf(node) == ScriptText)
+        {
+            return false;
+        }
+
+        if (!_graph.ReplaceDefinition(node, NodeDefinition.FromScript(scripts.Create(ScriptText), ScriptText)))
+        {
+            return false;
+        }
+
+        RecordEdit("Edit code block");
+        return true;
+    }
+
+    /// <summary>The source behind a canvas node, or null when it is not a code block.</summary>
+    private string? ScriptOf(CanvasNode node) =>
+        _graph.Engine.Node(node.Id).Definition.Script;
+
     /// <summary>Rebuilds the inspector for the current canvas selection.</summary>
     /// <param name="selection">The selected slots.</param>
     public void ShowSelection(IReadOnlyCollection<int> selection)
@@ -619,6 +709,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         SelectedGroup = null;
         WatchText = string.Empty;
         WatchRank = string.Empty;
+        SelectedCodeBlock = null;
+        ScriptText = string.Empty;
 
         if (selection.Count != 1)
         {
@@ -640,6 +732,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         SelectionTitle = node.Title;
         SelectionDescription = BuildSelectionDescription(node, instance);
+
+        if (ScriptOf(node) is not null)
+        {
+            ShowCodeBlock(node);
+        }
 
         WatchRank = node.ResultSummary is null ? string.Empty : CanvasGraph.RankLine(node);
         WatchText = _lastResult is null ? string.Empty : CanvasGraph.Expand(_lastResult.Value(node.Id));
@@ -826,7 +923,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         try
         {
-            AdoptGraph(CanvasDocument.Open(snapshot, _session.Library), evaluate: true, resetHistory: false);
+            AdoptGraph(CanvasDocument.Open(snapshot, _session.Library, _session.Scripts), evaluate: true, resetHistory: false);
         }
         catch (SparkFileException error)
         {

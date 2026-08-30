@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 15:40 +0530
+**Last updated:** 2026-08-31 16:40 +0530
 **Protocol version:** 2
 
 ---
@@ -19,9 +19,9 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2 and M3 are done** — M3 closed on 2026-08-31. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. Next is **M4, the C# code block** |
 | **Working on** | Nothing. Between steps, inside M4 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | M4 step **(b)** — the Roslyn pipeline: reference catalogue, semantic port inference, named-tuple outputs, resident cache |
+| **Last completed step** | M4 step **(c)** — a code block on the canvas: placed, edited, compiled, evaluated |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M4 step **(c)**: **`E6-T14` the code-block node in the shell** — the pipeline works and nothing in the application can reach it yet. Wire `ScriptNodeFactory` into `SparkSession`/`Spark.Host` so the shell has one, pass it to `CanvasDocument.Open`, and add a toolbar action that places a code block. **The canvas already has everything else it needs**: a code block is a node with ports, and `E8-T19`'s double-click search box was built anticipating exactly this. The editing surface is `E6-T11`/`E6-T12` and is a separate step — for now the script can be edited in the properties pane the way a note's text is, which reuses `CommitNoteText`'s shape and gets a working code block on screen without the AvaloniaEdit host. |
+| **Next action** | M4 step **(d)**: **safety before polish** — `E6-T17` cancel a runaway script and `E6-T4` the guard weaver, in that order. A code block can currently contain `while(true){}` and take the application with it, and that is the one defect in what has been built that a user can hit by accident on their first afternoon. `E6-T17` needs the invocation to observe the evaluation's `CancellationToken`, which means threading it into `NodeDefinitionSource.Invoke`; `E6-T4` rewrites the syntax tree to bound loop iterations and recursion depth before compiling. **Note the honest limit the row already records**: `StackOverflowException` cannot be caught in .NET and terminates the process ([R11](PRD.md#12-risks)), so recursion depth has to be bounded by the weaver rather than caught by the runner. Then `E6-T15` — clear callback registries before unload — pairs with `E6-T3`, and neither is urgent while assemblies are never unloaded at all. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1390**: Geometry.Tests 584, Engine.Tests 340, UI.Tests 341, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
@@ -1535,3 +1535,40 @@ user fixes a semicolon, and reports the failure when it runs — which is where 
 **Verified.** Build clean with `-warnaserror`; **1390 tests, 0 failures** (1376 + 14);
 `dotnet format` clean. The inference tests are the ones to keep: they assert the four cases that
 distinguish a semantic answer from a syntactic one.
+
+### 2026-08-31 — A code block on the canvas, end to end
+
+**M4 step (c).** The pipeline compiled and ran in a test; nothing in the application could reach
+it. Now a **Code block** button places one, its source is edited in the properties pane, and it
+evaluates.
+
+**The screenshot is the verification and it shows the whole chain working.** A `CodeBlock` node in
+the Script category with one input port `a` and — from
+`return (doubled: a * 2, squared: a * a);` — **two named output ports, `doubled` and `squared`**.
+The properties pane holds the source in a monospace box, the preview bubble under the node reads
+`rank 0 · one value / 42`, and the status bar says `Ran 1 (18 cached)`: the code block compiled and
+evaluated while everything else came from the provenance cache, which is exactly the behaviour
+`E6-T9` exists for.
+
+**Roslyn is still not loaded until somebody asks for it.** `SparkSession.Scripts` is null until
+`EnableScripting()` is called, and the first call is `PlaceCodeBlock`. A session that never places
+one never touches the compiler — `E6-T14`, honoured in the only place it can be.
+
+**`DisableScripting` is one-way**, and that is deliberate. A switch that any code path could
+reverse would not be a trust boundary; `--no-script` has to mean *not in this session*, not *not
+yet*.
+
+**Editing a script changes a node's ports, which is unlike every other edit in the application.**
+`ReplaceDefinition` rebuilds the node and **re-makes its wires by port name rather than by index** —
+indices shift when a script gains an identifier, and reconnecting by index would silently rewire
+the graph to something the user never drew. Wires into ports that no longer exist are lost, which
+is inherent: a script that stops mentioning `radius` has no `radius` port.
+
+**The properties pane is the editing surface for now and it is meant to be replaced.** `E6-T11`'s
+AvaloniaEdit host and `E6-T7`'s wire-typed completion are the real answer. A plain text box gets a
+working code block on screen without waiting for them, and **a code block you cannot type into is
+not a code block** — the ordering follows from that rather than from what was convenient.
+
+**Verified.** Build clean with `-warnaserror`; **1390 tests, 0 failures**; `dotnet format` clean;
+and the screenshot above, which is the only thing that could have shown the tuple ports arriving on
+the canvas.

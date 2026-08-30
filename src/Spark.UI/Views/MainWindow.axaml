@@ -66,6 +66,7 @@
           is ever offered and then ignored.
         -->
         <Button Classes="toolbar" Content="New note" Click="OnAddNote" />
+        <Button Classes="toolbar" Content="Code block" Click="OnAddCodeBlock" />
         <Button Classes="toolbar" Content="Group" Click="OnGroupSelection" x:Name="GroupButton" />
 
         <Button Classes="toolbar" Content="Align ▾" x:Name="AlignButton">

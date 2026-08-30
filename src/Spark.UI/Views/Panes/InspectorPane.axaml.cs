@@ -31,6 +31,17 @@ public sealed partial class InspectorPane : UserControl
     /// <summary>Raised when the selected group's title has been changed and committed.</summary>
     public event EventHandler? GroupRenamed;
 
+    /// <summary>Raised when a code block's source has been changed and committed.</summary>
+    public event EventHandler? ScriptEdited;
+
+    private void OnScriptCommitted(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel model && model.CommitScriptText())
+        {
+            ScriptEdited?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
     private void OnGroupTitleCommitted(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainWindowViewModel model && model.CommitGroupTitle())

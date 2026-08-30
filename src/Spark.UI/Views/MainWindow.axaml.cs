@@ -86,6 +86,16 @@ public sealed partial class MainWindow : Window
         _inspectorPane.NoteEdited += (_, _) => Canvas.NoteTextEdited();
         _inspectorPane.GroupRenamed += (_, _) => Canvas.GroupTitleEdited();
 
+        // A code block's ports change when its script does, so the canvas has to rebuild its
+        // structure rather than merely repaint - which is the one way editing a script differs
+        // from editing a note.
+        _inspectorPane.ScriptEdited += (_, _) =>
+        {
+            Canvas.RefreshStructure();
+            Canvas.InvalidateVisual();
+            _ = Model?.EvaluateAsync();
+        };
+
         DataContextChanged += OnDataContextChanged;
         Opened += OnOpened;
     }
@@ -192,6 +202,28 @@ public sealed partial class MainWindow : Window
         }
 
         UpdateAlignAvailability();
+    }
+
+    /// <summary>Places a code block where a new node would go.</summary>
+    private void OnAddCodeBlock(object? sender, RoutedEventArgs e)
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        Canvas.SuggestPlacement(model.PlacementOrdinal, out double x, out double y);
+
+        int slot = model.PlaceCodeBlock(x, y);
+        if (slot < 0)
+        {
+            return;
+        }
+
+        Canvas.RefreshStructure();
+        Canvas.SelectOnly(slot);
+        Canvas.Focus();
+        _ = model.EvaluateAsync();
     }
 
     /// <summary>Frames the selected nodes in a group.</summary>

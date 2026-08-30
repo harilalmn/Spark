@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Spark.Api;
 using Spark.Engine;
 using Spark.Geometry;
 
@@ -46,6 +47,60 @@ public sealed class SparkSession : IDisposable
         Graph = new Graph();
         _context = new EvaluationContext(tolerance, scheduler ?? new ParallelEvaluationScheduler());
     }
+
+    /// <summary>
+    /// How a code block's source becomes a node definition, or <see langword="null"/> when
+    /// scripting is switched off.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Created lazily, so a session that never opens a code block never loads Roslyn.</b> That
+    /// is <c>E6-T14</c>'s requirement — <i>a graph with no script nodes must never load
+    /// Spark.Scripting</i> — and the only place it can be honoured is here, because this is where
+    /// the host decides what a document may contain.
+    /// </para>
+    /// <para>
+    /// Setting it to null is what <c>--no-script</c> does. A graph containing a code block then
+    /// refuses to open, naming the node, rather than opening with the node missing: a Spark graph
+    /// is executable code, and quietly dropping the executable parts would be worse than refusing.
+    /// </para>
+    /// </remarks>
+    public IScriptNodeFactory? Scripts { get; private set; }
+
+    /// <summary>Turns scripting on, building the factory if it has not been built.</summary>
+    /// <returns>The factory.</returns>
+    /// <exception cref="ObjectDisposedException">The session has been disposed.</exception>
+    public IScriptNodeFactory EnableScripting()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (!ScriptingAllowed)
+        {
+            throw new InvalidOperationException(
+                "Scripting has been switched off for this session and cannot be switched back on.");
+        }
+
+        // The first touch of ScriptNodeFactory is the first touch of Roslyn, which is why this is
+        // a method rather than a field initialiser.
+        return Scripts ??= new Spark.Scripting.ScriptNodeFactory();
+    }
+
+    /// <summary>Turns scripting off — what <c>--no-script</c> means.</summary>
+    /// <remarks>
+    /// Once refused it stays refused: <see cref="EnableScripting"/> will not undo it. A switch that
+    /// could be reversed by any code path that wanted to would not be a trust boundary.
+    /// </remarks>
+    public void DisableScripting()
+    {
+        Scripts = null;
+        ScriptingAllowed = false;
+    }
+
+    /// <summary>
+    /// Whether scripting may be turned on at all. False once <see cref="DisableScripting"/> has
+    /// been called.
+    /// </summary>
+    public bool ScriptingAllowed { get; private set; } = true;
 
     /// <summary>The definitions that can be placed.</summary>
     public NodeLibrary Library { get; }

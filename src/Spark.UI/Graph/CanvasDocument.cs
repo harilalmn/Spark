@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Spark.Api;
 using Spark.Engine;
 
 namespace Spark.UI.Graph;
@@ -58,18 +59,22 @@ public static class CanvasDocument
     /// <summary>Reads the text of a `.spark` file into a canvas graph.</summary>
     /// <param name="text">The file's text.</param>
     /// <param name="library">The library to bind the file's nodes against.</param>
+    /// <param name="scripts">
+    /// How a code block's source becomes a definition, or <see langword="null"/> when scripting is
+    /// off — in which case a document containing one is refused rather than opened without it.
+    /// </param>
     /// <returns>The graph, with every node back where it was.</returns>
     /// <exception cref="ArgumentNullException">Either argument is <see langword="null"/>.</exception>
     /// <exception cref="SparkFileException">
     /// The text is not a graph, is from a newer format version, or names a node that is not loaded.
     /// </exception>
-    public static CanvasGraph Open(string text, NodeLibrary library)
+    public static CanvasGraph Open(string text, NodeLibrary library, IScriptNodeFactory? scripts = null)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(library);
 
         GraphDocument document = SparkFile.Read(text);
-        Spark.Engine.Graph engine = document.Restore(library);
+        Spark.Engine.Graph engine = document.Restore(library, scripts);
         CanvasGraph graph = new(engine);
 
         // Adopted in the document's order, which is sorted by identity — so the draw order of a

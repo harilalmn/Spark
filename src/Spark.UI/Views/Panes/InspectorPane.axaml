@@ -27,6 +27,18 @@
                VerticalAlignment="Stretch"
                LostFocus="OnNoteCommitted" />
 
+      <!-- A code block's source. A plain TextBox for now: the real surface is the AvaloniaEdit
+           host with wire-typed completion (E6-T11, E6-T7), and a code block you cannot type into
+           is not a code block, so this comes first and is replaced rather than extended. -->
+      <TextBox Grid.Row="3" Margin="10,0,10,10"
+               IsVisible="{Binding SelectedCodeBlock, Converter={x:Static ObjectConverters.IsNotNull}}"
+               Text="{Binding ScriptText, Mode=TwoWay}"
+               AcceptsReturn="True"
+               TextWrapping="NoWrap"
+               FontFamily="Cascadia Code,Consolas,monospace"
+               VerticalAlignment="Stretch"
+               LostFocus="OnScriptCommitted" />
+
       <!-- A group's title, on the same principle as a note's text. -->
       <TextBox Grid.Row="3" Margin="10,0,10,10" VerticalAlignment="Top"
                IsVisible="{Binding SelectedGroup, Converter={x:Static ObjectConverters.IsNotNull}}"

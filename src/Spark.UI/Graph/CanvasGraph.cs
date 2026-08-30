@@ -531,6 +531,68 @@ public sealed class CanvasGraph
         _notes.Add(note);
     }
 
+    /// <summary>
+    /// Swaps a node's definition for another, which is what editing a code block does.
+    /// </summary>
+    /// <param name="node">The node to rebuild.</param>
+    /// <param name="definition">Its new definition.</param>
+    /// <returns>True when the node was rebuilt.</returns>
+    /// <exception cref="ArgumentNullException">Either argument is null.</exception>
+    /// <remarks>
+    /// <b>Ports change, so wires can be lost, and that is inherent rather than a shortcoming.</b>
+    /// A code block whose script no longer mentions <c>radius</c> has no <c>radius</c> port and
+    /// nothing can be connected to it. Wires into ports that survive by name are kept, which is
+    /// what makes editing a script tolerable: renaming one identifier does not detach the other
+    /// five.
+    /// </remarks>
+    public bool ReplaceDefinition(CanvasNode node, NodeDefinition definition)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        ArgumentNullException.ThrowIfNull(definition);
+
+        int slot = SlotOf(node.Id);
+        if (slot < 0)
+        {
+            return false;
+        }
+
+        // The wires are read before the node is rebuilt, then re-made by port *name* — indices
+        // move when a script gains an identifier, and reconnecting by index would silently rewire
+        // the graph to something the user never drew.
+        List<(NodeId Source, int SourcePort, string TargetPort)> incoming = [];
+        foreach (Wire wire in Engine.Wires())
+        {
+            if (wire.Target == node.Id && wire.TargetPort < node.Inputs.Count)
+            {
+                incoming.Add((wire.Source, wire.SourcePort, node.Inputs[wire.TargetPort].Name));
+            }
+        }
+
+        double x = node.X;
+        double y = node.Y;
+
+        Remove(slot);
+        Edit(() => Engine.AddNode(definition, node.Id));
+
+        int rebuilt = Adopt(Engine.Node(node.Id), x, y);
+        CanvasNode replacement = _nodes[rebuilt];
+
+        foreach ((NodeId source, int sourcePort, string portName) in incoming)
+        {
+            for (int i = 0; i < replacement.Inputs.Count; i++)
+            {
+                if (replacement.Inputs[i].Name == portName)
+                {
+                    Edit(() => Engine.LoadWire(source, sourcePort, node.Id, i));
+                    break;
+                }
+            }
+        }
+
+        _wiresDirty = true;
+        return true;
+    }
+
     /// <summary>Removes a note.</summary>
     /// <param name="note">The note to remove.</param>
     /// <returns>True when it was there to remove.</returns>
