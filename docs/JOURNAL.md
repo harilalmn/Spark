@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 14:30 +0530
+**Last updated:** 2026-08-31 15:40 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2 and M3 are done** — M3 closed on 2026-08-31. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. Next is **M4, the C# code block** |
 | **Working on** | Nothing. Between steps, inside M4 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | M4 step **(a)** — the script-node seam: `IScriptNodeFactory`, per-instance definitions, format v3 |
+| **Last completed step** | M4 step **(b)** — the Roslyn pipeline: reference catalogue, semantic port inference, named-tuple outputs, resident cache |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M4 step **(b)**: **the Roslyn pipeline in `Spark.Scripting`** — the first real implementation of `IScriptNodeFactory`. Cheapest first: **`E6-T2` the reference catalog**, because nothing compiles without references and getting them wrong produces errors that look like the user's fault. Then **`E6-T5` semantic input-port inference** — compile once against the prelude, collect `CS0103`/`CS0117`, take the identifiers in source order. Then **`E6-T8` named-tuple outputs**. `E6-T3` the collectible load context can wait a step: a definition that never unloads is a leak, not a wrong answer, and `E6-T15`'s warning — delegates into user code pin the context — is the thing to get right when it lands. **Keep the stub factory in `ScriptNodeSeamTests`**: it tests the seam without Roslyn and should go on doing that. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1376**: Geometry.Tests 584, Engine.Tests 340, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | M4 step **(c)**: **`E6-T14` the code-block node in the shell** — the pipeline works and nothing in the application can reach it yet. Wire `ScriptNodeFactory` into `SparkSession`/`Spark.Host` so the shell has one, pass it to `CanvasDocument.Open`, and add a toolbar action that places a code block. **The canvas already has everything else it needs**: a code block is a node with ports, and `E8-T19`'s double-click search box was built anticipating exactly this. The editing surface is `E6-T11`/`E6-T12` and is a separate step — for now the script can be edited in the properties pane the way a note's text is, which reuses `CommitNoteText`'s shape and gets a working code block on screen without the AvaloniaEdit host. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1390**: Geometry.Tests 584, Engine.Tests 340, UI.Tests 341, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -1481,3 +1481,57 @@ lesson from the original, that lesson is the part worth keeping.
 `dotnet format` clean. The seam is tested with a stub factory containing no compiler at all, which
 is the point: none of it waits on Roslyn, and it should go on testing the seam after the real
 factory exists.
+
+### 2026-08-31 — The Roslyn pipeline: a code block that compiles and runs
+
+**M4 step (b)** — `E6-T2`, `E6-T5`, `E6-T8`, `E6-T9`. A code block now compiles C#, infers its
+ports, and runs.
+
+**`E6-T5` — port inference is semantic and it earns the choice.** The script is compiled once
+against the prelude with nothing declared; every identifier it expected from outside comes back as
+`CS0103` or `CS0117`, and those, in source order, are the input ports. The row argued this beats a
+syntax walk and the tests show exactly where: **a local is not a port, a lambda parameter is not a
+port, and `Point3d` is not a port** — each of those is a case a syntax walk has to re-implement
+scoping to get right, and each is one line of test here. *An identifier that resolves to anything at
+all is not an input* is the whole rule, and only the compiler can apply it.
+
+**`E6-T8` — outputs are read from the syntax, and that was forced rather than chosen.** The first
+version reflected over `TupleElementNamesAttribute` on the compiled entry point and found nothing,
+every time: tuple element names are a compile-time fiction, and the generated method returns
+`object`, so by the time there is an assembly the names are gone. Reading the return statement's
+syntax is not a compromise — **tuple element names *are* syntax**, and
+`return (area: a, perimeter: p);` says what the ports are called in the only place that information
+ever exists.
+
+**Inputs are `dynamic`, and that is a placeholder with a date on it.** Declaring them `object` is
+what a first attempt does and it does not compile — `a * 2` is not an operation on `object`, so the
+friendliest possible code block would reject the simplest possible script. `E6-T6` replaces it: once
+a port is wired the upstream type is known and the declaration becomes
+`Point3d centre = (Point3d)__in[0];`, which is also what makes `E6-T7`'s wire-typed IntelliSense
+possible, because completion needs a type to offer members from.
+
+**Two hours of that step went to one error message**, and it is worth recording:
+`Missing compiler required member 'Microsoft.CSharp.RuntimeBinder.CSharpArgumentInfo.Create'`.
+`dynamic` binds through `Microsoft.CSharp`, which is not loaded until something touches it — so a
+catalogue built by sweeping loaded assemblies misses it, and every script with an input port fails
+with a message that names nothing the user wrote. **Touching the type was not enough**; the
+assembly's location has to be added by name. That is exactly the failure mode `E6-T2`'s row
+predicted — *a missing reference produces errors that look like the user's fault* — arriving in the
+implementation of the row that predicted it.
+
+**`E6-T2` — the catalogue reads without locking**, swapping an immutable snapshot, so a compile in
+flight finishes against the references it started with. That is what `E7-T9`'s auto-reload will need
+and it is cheaper to build now than to retrofit. Its version is in the compile-cache key, because a
+script whose text has not changed still has to recompile when the assemblies underneath it have —
+otherwise a user who has just fixed a bug in their own library keeps getting the old behaviour with
+no way to explain it.
+
+**`E6-T9` — the same script compiles once**, which is what makes a slider feeding a code block feel
+live: every drag is an invocation of an assembly already loaded.
+
+**A script that does not compile still yields a node.** It keeps its place and its wires while the
+user fixes a semicolon, and reports the failure when it runs — which is where they are looking.
+
+**Verified.** Build clean with `-warnaserror`; **1390 tests, 0 failures** (1376 + 14);
+`dotnet format` clean. The inference tests are the ones to keep: they assert the four cases that
+distinguish a semantic answer from a syntactic one.

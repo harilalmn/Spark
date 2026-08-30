@@ -354,14 +354,14 @@ Everything else in this file is a plan, not a claim.
 | ID | Task | Status | Notes |
 |---|---|---|---|
 | E6-T1 | Port `ScriptRewriter` and `SourceMap` from RCS | Open | |
-| E6-T2 | Port `ReferenceCatalog` | Open | **The biggest single time-saver in the port campaign.** Its non-locking read is also what lets [E7-T9](#e7--packages-and-extensibility) offer auto-reload: users can rebuild their library in Visual Studio while Spark is open |
+| E6-T2 | Port `ReferenceCatalog` | Done | **The biggest single time-saver in the port campaign.** Its non-locking read is also what lets [E7-T9](#e7--packages-and-extensibility) offer auto-reload: users can rebuild their library in Visual Studio while Spark is open |
 | E6-T3 | Port `ScriptLoadContext` | Open | |
 | E6-T4 | Port `GuardWeaver` | Open | Bounds loop iterations and recursion depth |
-| E6-T5 | Semantic input-port inference | Open | Compile once against the prelude, collect `CS0103`/`CS0117` diagnostics, take the identifiers in source order. Materially more robust than a syntax walk, because Roslyn has already resolved locals, aliases, globals members and type parameters — all of which a walker gets wrong. Port identity is the **variable name**, so reordering usages does not rewire |
+| E6-T5 | Semantic input-port inference | Done | Compile once against the prelude, collect `CS0103`/`CS0117` diagnostics, take the identifiers in source order. Materially more robust than a syntax walk, because Roslyn has already resolved locals, aliases, globals members and type parameters — all of which a walker gets wrong. Port identity is the **variable name**, so reordering usages does not rewire |
 | E6-T6 | Typed input injection | Open | Once a port is connected the upstream type is known, so inject `Point3d center = (Point3d)__in[0];` rather than `object` |
 | E6-T7 | Wire-typed IntelliSense | Open | Type `center.` inside a code block and get `Point3d` members. **The single most compelling thing Spark can demo that Dynamo cannot** |
-| E6-T8 | Named-tuple output ports | Open | `return (area: a, perimeter: p);` gives ports `area` and `perimeter`. Idiomatic C#, statically analysable, no invented syntax. A plain final expression gives one `result` port. Rejected: inferring from "locals never subsequently read", because adding a debug line would silently change the port set |
-| E6-T9 | Resident compile cache | Open | Same script, different inputs, zero compilation. This is what makes a slider feeding a code block feel live |
+| E6-T8 | Named-tuple output ports | Done | `return (area: a, perimeter: p);` gives ports `area` and `perimeter`. Idiomatic C#, statically analysable, no invented syntax. A plain final expression gives one `result` port. Rejected: inferring from "locals never subsequently read", because adding a debug line would silently change the port set |
+| E6-T9 | Resident compile cache | Done | Same script, different inputs, zero compilation. This is what makes a slider feeding a code block feel live |
 | E6-T10 | Persistent on-disk compile cache | Open | Kills Roslyn cold start on reopen. Keyed on `Hash(normalizedText, inputPortTypes, referenceCatalogVersion, langVersion)`, so identical text in ten nodes compiles once |
 | E6-T11 | AvaloniaEdit editor host | Open | AvalonEdit → AvaloniaEdit is a close API port and mostly mechanical |
 | E6-T12 | Rework completion-popup placement and focus for Avalonia | Open | **Budget rework here specifically** — this is where AvalonEdit and AvaloniaEdit diverge most |
