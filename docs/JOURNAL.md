@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-30 22:50 +0530
+**Last updated:** 2026-08-30 23:25 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1 and M1.5 are both done.** M1.6 is deferred for want of a C++ toolchain; the work in flight is **M2's remainder** |
 | **Working on** | Nothing. Between steps, part way through queue **9** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **9**, `E8-T6` step **(d)** — group. **`E8-T6` is `Done`** |
+| **Last completed step** | The zoom-to-fit regression, fixed and written up as [N39](NOTES.md) |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **Fix zoom-to-fit at startup**, a regression `E8-T2` step (b) introduced and the `E8-T6` step (d) screenshot caught. `--graph curves --screenshot` now reads `zoom 100%, 7/18 nodes drawn`; before the dock it read `zoom 35%, 18/18`. Cause: `GraphCanvas.ZoomToFit` opens with `if (Bounds.Width < 1 || Bounds.Height < 1) { return; }` and inside a `DockControl` the canvas has not been laid out by the time `Opened` fires, so the fit is silently skipped and the transform stays at its default. **Do not fix it by calling `ZoomToFit` later from the window** — that puts the shell's startup order into the window's head and the next container change breaks it again. Make the *canvas* honour the request: record it and perform it on the next arrange when the bounds are still degenerate. Verify with a headless test that calls `ZoomToFit` on an unlaid-out canvas and asserts the transform changed after layout, and with the screenshot showing 18/18 nodes again. Then write it up — **a guard that returns silently is a bug waiting for a layout change**, which is [N26](NOTES.md)'s and [N33](NOTES.md)'s shape a third time. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1130**: Geometry.Tests 402, Engine.Tests 305, UI.Tests 299, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | Queue **9**'s next item: **`E8-T10` — watch nodes.** Read the `E8-T10` row in [TASKS.md](TASKS.md) first. The shape to aim for: a *Watch* node shows the value on its input, live, on the canvas — so it is a node the evaluator runs like any other, and the thing that is new is that its **result has to reach the canvas**. `CanvasNode.ResultSummary` and `CanvasGraph.Summarise` already exist and are already applied from `EvaluationResult`, so the question is presentation and not plumbing: decide whether a watch is a node that draws its summary large, or a node whose summary goes in a panel. **Prefer the first** — the value belongs where the graph is, which is the entire argument for a node-based editor — and it reuses the `ResultSummary` path rather than adding a second one. Check what `Summarise` does with a long list before designing the box, because that is what a watch is usually pointed at. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1133**: Geometry.Tests 402, Engine.Tests 305, UI.Tests 302, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -763,3 +763,40 @@ here, because it is a separate defect with a separate lesson — **a guard that 
 bug that waits for a layout change** — and folding it into a group commit would hide both.
 
 **Cost.** About an hour and a half.
+
+### 2026-08-30 — The fit that was asked for and dropped
+
+**A regression, not a feature.** `E8-T2` step (b) introduced it; the `E8-T6` step (d) screenshot
+caught it three commits later. `--graph curves --screenshot` read `zoom 100%, 7/18 nodes drawn`
+where before the dock it read `zoom 35%, 18/18`.
+
+**The cause is one line that was correct.** `GraphCanvas.ZoomToFit` opened with
+`if (Bounds.Width < 1 || Bounds.Height < 1) { return; }`, which is true — you cannot fit a graph
+into a control with no size — and was fine for months. Then Dock began laying its content out later
+than the `Grid` had, the startup fit started arriving before the canvas's first arrange, the guard
+did its job, and the request evaporated.
+
+**The repair is to make the impossible request pending rather than discarded**, and to put it on
+the canvas rather than re-timing the call from the window. Asking the shell to call `ZoomToFit`
+later would put the container's layout schedule into the window's head, and the next container
+change would break it again in exactly the same silent way. `ArrangeOverride` performs a deferred
+fit at the first arrange that produces a real size, once — a canvas that re-fitted on every arrange
+would throw away the user's pan every time a pane was resized, which is a worse bug than the one
+being fixed. There is a test for that too.
+
+**Verified.** Build clean; **1133 tests, 0 failures** (1130 + 3); `dotnet format` clean.
+**AGENTS.md step 7, done properly:** `AFitAskedForBeforeLayoutHappensOnceThereIsALayout` was run
+against the reverted fix and **went red**, then green with it restored. The screenshot now reads
+`zoom 37%, 18/18 nodes drawn` — 37 rather than the old 35 because the dock chrome takes a little
+of the pane, which is the honest difference.
+
+**What this cost, and the lesson.** Three commits of a shell that opened wrong, and it was visible
+in every screenshot I took in that time. The number was in the corner of each one and I read the
+chrome instead, because the picture was *supposed* to have changed. Written up as
+[N39](NOTES.md#n39--a-guard-that-returns-silently-is-a-bug-waiting-for-a-layout-change): **when a
+precondition cannot be met yet, decide between refusing loudly and deferring — returning quietly
+is neither, and it is the one that survives every test you have.** That is the fourth note in this
+file about an API that answers *nothing* where it means something specific, so it is stated as a
+rule rather than as another anecdote.
+
+**Cost.** Twenty-five minutes, against three commits of being wrong.

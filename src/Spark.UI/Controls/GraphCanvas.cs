@@ -135,6 +135,7 @@ public sealed class GraphCanvas : Control
 
     private CanvasGraph _graph = new();
     private bool _indexDirty = true;
+    private bool _fitPending;
 
     private InteractionMode _mode;
     private Point _pointerAnchor;
@@ -339,15 +340,51 @@ public sealed class GraphCanvas : Control
     }
 
     /// <summary>Frames the whole graph in the control, with a margin.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A fit asked for before the control has been laid out is remembered, not dropped.</b> It
+    /// cannot be performed — the fit needs a width and a height, and there are none yet — but
+    /// returning quietly makes the caller's request disappear, and the caller has no way to know.
+    /// That is exactly what happened when the shell became a <c>DockControl</c>: Dock lays its
+    /// content out later than the <c>Grid</c> did, so the startup fit began arriving before the
+    /// first arrange, and the application opened at 100% showing a third of the graph. Nothing
+    /// failed; a guard returned.
+    /// </para>
+    /// <para>
+    /// Honoured by the <i>canvas</i> rather than re-timed by the window on purpose. Asking the
+    /// shell to call this later would put the container's layout schedule into the window's head,
+    /// and the next container change would break it again in the same silent way.
+    /// </para>
+    /// </remarks>
     public void ZoomToFit()
     {
         if (Bounds.Width < 1 || Bounds.Height < 1)
         {
+            _fitPending = true;
             return;
         }
 
+        _fitPending = false;
         _transform.FitTo(_graph.ComputeBounds(), Bounds.Width, Bounds.Height);
         InvalidateVisual();
+    }
+
+    /// <inheritdoc/>
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        Size arranged = base.ArrangeOverride(finalSize);
+
+        // The first arrange that produces a real size is where a deferred fit belongs. Checked
+        // against `finalSize` rather than `Bounds`, because Bounds is not updated until after
+        // this returns and a fit measured against the previous size would be a frame late.
+        if (_fitPending && finalSize.Width >= 1 && finalSize.Height >= 1)
+        {
+            _fitPending = false;
+            _transform.FitTo(_graph.ComputeBounds(), finalSize.Width, finalSize.Height);
+            InvalidateVisual();
+        }
+
+        return arranged;
     }
 
     /// <inheritdoc/>

@@ -1188,3 +1188,36 @@ Two consequences worth keeping:
 - **Fields landing in the same release share a version.** Groups arrived days after notes and both
   are version 2. Inventing a version 3 for the second one would refuse a file to a reader that can
   in fact read it.
+
+---
+
+## N39 — A guard that returns silently is a bug waiting for a layout change
+
+`GraphCanvas.ZoomToFit` began:
+
+```csharp
+if (Bounds.Width < 1 || Bounds.Height < 1) { return; }
+```
+
+which is correct — you cannot fit a graph into a control with no size — and was fine for months.
+Then the shell became a `DockControl`, Dock laid its content out later than the `Grid` had, and the
+startup fit began arriving **before the canvas's first arrange**. The guard did its job, the
+request evaporated, and the application opened at 100% showing a third of the graph.
+
+**Nothing failed.** No exception, no warning, no red test, and the gate that eventually noticed was
+a human reading `zoom 100%, 7/18 nodes drawn` in the corner of a screenshot that was expected to
+look different for an unrelated reason — three commits later. The screenshot said so the whole
+time.
+
+The repair is to make the impossible request **pending** rather than discarded: record it, and
+perform it on the first arrange that produces a real size. And to put it on the *canvas* rather
+than re-timing the call from the window — asking the shell to call `ZoomToFit` later would put the
+container's layout schedule into the window's head, and the next container change would break it
+again exactly as silently.
+
+This is [N26](#n26--two-benchmarks-were-wrong-before-they-were-right-and-the-numbers-said-so-both-times)
+and [N33](#n33--roslyn-completion-fails-silently-twice-before-it-works) and
+[N35](#n35--dock-puts-the-dockable-on-the-panes-datacontext-and-compiled-bindings-say-nothing-about-it)
+a fourth time, and the pattern is stable enough to state as a rule: **when a precondition cannot be
+met yet, decide between *refuse loudly* and *defer*. Returning quietly is neither, and it is the
+one that survives every test you have.**
