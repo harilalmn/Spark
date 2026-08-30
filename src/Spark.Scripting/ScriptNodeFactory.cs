@@ -85,15 +85,21 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     public int CachedScripts => _compiled.Count;
 
     /// <inheritdoc/>
-    public NodeDefinitionSource Create(string script)
+    public NodeDefinitionSource Create(string script, IReadOnlyDictionary<string, Type>? inputTypes = null)
     {
         ArgumentNullException.ThrowIfNull(script);
 
-        // `E6-T9`: same script, different inputs, zero compilation. This is what makes a slider
+        // `E6-T9`: same script, same input types, zero compilation. This is what makes a slider
         // feeding a code block feel live - the compile happens once and every subsequent drag is
-        // an invocation of an assembly that is already loaded.
-        return _compiled.GetOrAdd(CacheKey(script), _ => Compile(script));
+        // an invocation of an assembly that is already loaded. Changing what is *wired* into a
+        // block does recompile it, once per combination of types, which is `E6-T6`'s price and is
+        // paid while the user is drawing a wire rather than while they are running the graph.
+        IReadOnlyDictionary<string, Type> known = inputTypes ?? EmptyTypes;
+
+        return _compiled.GetOrAdd(CacheKey(script, known), _ => Compile(script, known));
     }
+
+    private static readonly Dictionary<string, Type> EmptyTypes = [];
 
     /// <summary>
     /// The cache key: the script's text, the references it compiles against, and the language
@@ -115,32 +121,62 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// classify it as binary and silently skip it.
     /// </para>
     /// </remarks>
-    private string CacheKey(string script)
+    private string CacheKey(string script, IReadOnlyDictionary<string, Type> inputTypes)
     {
         byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(
             script + "\u0000" + _references.Version.ToString(CultureInfo.InvariantCulture)
             + "\u0000" + _guards.IterationLimit.ToString(CultureInfo.InvariantCulture)
-            + "\u0000" + _guards.DepthLimit.ToString(CultureInfo.InvariantCulture)));
+            + "\u0000" + _guards.DepthLimit.ToString(CultureInfo.InvariantCulture)
+            + "\u0000" + Describe(inputTypes)));
 
         return Convert.ToHexString(hash);
     }
 
     /// <summary>A short, stable content hash for the node's key.</summary>
-    private static string ContentHash(string script)
+    /// <remarks>
+    /// <b>The input types are in it as well as the text</b> (`E6-T6`). The evaluation cache keys on
+    /// the node's key, and the same source with a <c>double</c> wired in does not compute the same
+    /// thing as the same source with a <c>Point3d</c> wired in - two nodes that hashed the same
+    /// would serve each other's results.
+    /// </remarks>
+    private static string ContentHash(string script, IReadOnlyDictionary<string, Type> inputTypes)
     {
         // Normalised on line endings only. Whitespace inside a line is meaningful in verbatim
         // strings, so trimming it would make two scripts that behave differently hash the same.
-        byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(script.ReplaceLineEndings("\n")));
+        byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(
+            script.ReplaceLineEndings("\n") + "\u0000" + Describe(inputTypes)));
 
         return Convert.ToHexString(hash)[..12];
     }
 
-    private NodeDefinitionSource Compile(string script)
+    /// <summary>The known input types as one stable string, for the two hashes that need them.</summary>
+    /// <remarks>
+    /// Ordered by name rather than by the dictionary's own enumeration, which has no order worth
+    /// relying on: two callers that learnt the same types in a different sequence must produce the
+    /// same key, or the compile cache misses every time a wire is redrawn.
+    /// </remarks>
+    private static string Describe(IReadOnlyDictionary<string, Type> inputTypes) =>
+        inputTypes.Count == 0
+            ? string.Empty
+            : string.Join(
+                "\u0000",
+                inputTypes
+                    .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                    .Select(pair => pair.Key + "=" + (ScriptTypeName.Of(pair.Value) ?? "dynamic")));
+
+    private NodeDefinitionSource Compile(string script, IReadOnlyDictionary<string, Type> inputTypes)
     {
         string[] inputs = InferInputs(script);
-        ScriptPort[] inputPorts = [.. inputs.Select(name => new ScriptPort(name, typeof(object)))];
 
-        string source = Wrap(script, inputs);
+        // A port carries the type the wire into it carries, when there is one. That is what puts a
+        // real type label on the port (`E8-T18`) and gives the port a rank, and it is the same fact
+        // the declaration below is generated from - read once, so the two cannot disagree.
+        ScriptPort[] inputPorts =
+        [
+            .. inputs.Select(name => new ScriptPort(name, DeclaredType(name, inputTypes) ?? typeof(object))),
+        ];
+
+        string source = Wrap(script, inputs, inputTypes);
 
         // `E6-T4`: the guards go in *between* parsing and compiling, which is the only moment they
         // can. Woven statements carry no trivia, so the tree the compiler sees has exactly the line
@@ -150,7 +186,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
                 CSharpSyntaxTree.ParseText(source).GetRoot()));
 
         CSharpCompilation compilation = CSharpCompilation.Create(
-            "SparkScript_" + ContentHash(script),
+            "SparkScript_" + ContentHash(script, inputTypes),
             [tree],
             _references.References,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Release));
@@ -167,7 +203,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
 
             return new NodeDefinitionSource(
                 "CodeBlock",
-                ContentHash(script),
+                ContentHash(script, inputTypes),
                 inputPorts,
                 [new ScriptPort("result", typeof(object))],
                 (_, _) => throw new InvalidOperationException(message));
@@ -190,7 +226,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
 
         return new NodeDefinitionSource(
             "CodeBlock",
-            ContentHash(script),
+            ContentHash(script, inputTypes),
             inputPorts,
             outputPorts,
             (arguments, cancellationToken) =>
@@ -210,7 +246,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     {
         CSharpCompilation probe = CSharpCompilation.Create(
             "SparkProbe",
-            [CSharpSyntaxTree.ParseText(Wrap(script, []))],
+            [CSharpSyntaxTree.ParseText(Wrap(script, [], EmptyTypes))],
             _references.References,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
@@ -333,22 +369,28 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Inputs are declared <c>dynamic</c>, and that is a placeholder with a date on it.</b>
-    /// Declaring them <c>object</c> is what a first attempt does and it does not compile:
-    /// <c>a * 2</c> is not an operation on <c>object</c>, so the friendliest possible code block —
-    /// one that reads like C# — would reject the simplest possible script. <c>dynamic</c> defers
-    /// that to the runtime binder and the script reads as intended.
+    /// <b>An unwired input is declared <c>dynamic</c>, and that is the honest answer rather than a
+    /// placeholder.</b> Declaring it <c>object</c> is what a first attempt does and it does not
+    /// compile: <c>a * 2</c> is not an operation on <c>object</c>, so the friendliest possible code
+    /// block — one that reads like C# — would reject the simplest possible script. <c>dynamic</c>
+    /// defers that to the runtime binder and the script reads as intended. There is no type to use
+    /// until something is connected, so there is nothing better to write.
     /// </para>
     /// <para>
-    /// <b>`E6-T6` replaces it with the real answer</b>: once a port is connected the upstream type
-    /// is known, so the declaration becomes <c>Point3d centre = (Point3d)__in[0];</c> — statically
-    /// typed, faster, and the thing that makes `E6-T7`'s wire-typed IntelliSense possible at all,
-    /// because completion needs a type to offer members from. Until a port is wired there is no
-    /// type to use, so <c>dynamic</c> remains the honest answer for an unconnected port even
-    /// afterwards.
+    /// <b>A wired input is declared with the type the wire carries</b> (`E6-T6`):
+    /// <c>Point3d centre = ScriptInput.As&lt;Point3d&gt;(__in[0], "centre");</c>. Statically typed,
+    /// bound at compile time rather than by the runtime binder, and — the reason the row exists —
+    /// the thing that makes `E6-T7`'s wire-typed IntelliSense possible at all, because completion
+    /// needs a type to offer members from.
+    /// </para>
+    /// <para>
+    /// <b>The conversion goes through <see cref="ScriptInput.As{T}"/> rather than a cast</b>, for
+    /// the reasons that type records: a cast's failure message names two CLR types and no port, and
+    /// it refuses an <see cref="int"/> where the script wants a <see cref="double"/> — which is the
+    /// commonest thing a graph delivers.
     /// </para>
     /// </remarks>
-    private string Wrap(string script, IReadOnlyList<string> inputs)
+    private string Wrap(string script, IReadOnlyList<string> inputs, IReadOnlyDictionary<string, Type> inputTypes)
     {
         StringBuilder source = new();
         source.AppendLine(_references.Prelude());
@@ -370,8 +412,18 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
 
         for (int i = 0; i < inputs.Count; i++)
         {
-            source.Append("dynamic ").Append(inputs[i]).Append(" = __in[")
-                .Append(i.ToString(CultureInfo.InvariantCulture)).AppendLine("];");
+            string index = i.ToString(CultureInfo.InvariantCulture);
+            string? spelt = ScriptTypeName.Of(DeclaredType(inputs[i], inputTypes) ?? typeof(object));
+
+            if (DeclaredType(inputs[i], inputTypes) is null || spelt is null)
+            {
+                source.Append("dynamic ").Append(inputs[i]).Append(" = __in[").Append(index).AppendLine("];");
+                continue;
+            }
+
+            source.Append(spelt).Append(' ').Append(inputs[i])
+                .Append(" = global::Spark.Scripting.ScriptInput.As<").Append(spelt).Append(">(__in[")
+                .Append(index).Append("], \"").Append(inputs[i]).AppendLine("\");");
         }
 
         source.AppendLine(script);
@@ -380,6 +432,21 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
 
         return source.ToString();
     }
+
+    /// <summary>
+    /// The type a port should be declared with, or null when there is nothing better than
+    /// <c>dynamic</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A type that cannot be spelt in source is the same as no type at all</b>, and is treated
+    /// as such rather than as an error: an internal type or an anonymous type is a perfectly
+    /// reasonable thing for a wire to carry, and the block should still work. See
+    /// <see cref="ScriptTypeName"/> for what cannot be spelt and why.
+    /// </remarks>
+    private static Type? DeclaredType(string port, IReadOnlyDictionary<string, Type> inputTypes) =>
+        inputTypes.TryGetValue(port, out Type? type) && type != typeof(object) && ScriptTypeName.Of(type) is not null
+            ? type
+            : null;
 
     /// <summary>The compiler's complaints, as one message a user can act on.</summary>
     private static string Describe(IEnumerable<Diagnostic> diagnostics)

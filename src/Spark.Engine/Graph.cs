@@ -279,6 +279,49 @@ public sealed class Graph
     /// <exception cref="KeyNotFoundException">No node has that identity.</exception>
     public IReadOnlyList<Wire> OutgoingWires(NodeId id) => [.. _outgoing[id]];
 
+    /// <summary>
+    /// What the graph knows about a node's inputs: the type carried by the wire into each port, by
+    /// port name.
+    /// </summary>
+    /// <param name="id">The node identity.</param>
+    /// <returns>
+    /// One entry per <i>wired</i> input port. An unwired port is absent rather than present with a
+    /// null, because *nothing is connected* and *something typed as object is connected* are
+    /// different facts and only the first justifies falling back to <c>dynamic</c>.
+    /// </returns>
+    /// <exception cref="KeyNotFoundException">No node has that identity.</exception>
+    /// <remarks>
+    /// <b>Keyed by name because a code block's port indices are not stable</b> (`E6-T6`). Which
+    /// identifiers become ports, and in what order, comes out of compiling the script — so the
+    /// caller that wants to compile it cannot know an index yet, and inserting one identifier moves
+    /// every index after it. A name survives both.
+    /// </remarks>
+    public IReadOnlyDictionary<string, Type> InputTypes(NodeId id)
+    {
+        NodeInstance node = _nodes[id];
+        Dictionary<string, Type> types = new(StringComparer.Ordinal);
+
+        foreach (Wire wire in _incoming[id])
+        {
+            if (wire.TargetPort < 0 || wire.TargetPort >= node.Definition.Inputs.Count)
+            {
+                continue;
+            }
+
+            NodeInstance upstream = _nodes[wire.Source];
+
+            if (wire.SourcePort < 0 || wire.SourcePort >= upstream.Definition.Outputs.Count)
+            {
+                continue;
+            }
+
+            types[node.Definition.Inputs[wire.TargetPort].Name] =
+                upstream.Definition.Outputs[wire.SourcePort].ValueType;
+        }
+
+        return types;
+    }
+
     /// <summary>Sets a node's lacing, marking it and everything downstream dirty.</summary>
     /// <param name="id">The node identity.</param>
     /// <param name="lacing">The new lacing.</param>

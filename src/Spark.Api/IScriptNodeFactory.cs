@@ -26,19 +26,42 @@ public interface IScriptNodeFactory
     /// Builds the node definition a piece of script describes.
     /// </summary>
     /// <param name="script">The source the user typed. Never null; may be empty.</param>
+    /// <param name="inputTypes">
+    /// What the graph already knows about the script's inputs: the type carried by the wire into
+    /// each port, by port name. Ports that are not wired are absent. Null means nothing is known,
+    /// which is the case for a block that has just been placed.
+    /// </param>
     /// <returns>
     /// The definition, whose ports are whatever the script's free identifiers and return shape
     /// imply.
     /// </returns>
     /// <exception cref="System.ArgumentNullException"><paramref name="script"/> is null.</exception>
     /// <remarks>
+    /// <para>
     /// <b>A script that does not compile still produces a definition.</b> A node that vanished
     /// from the canvas because of a typo would take its wires with it, and the user would have to
     /// rebuild them after fixing a semicolon. The definition a broken script yields carries the
     /// ports that could still be inferred and reports the compilation failure when it is evaluated
     /// — which is where a failure belongs, because that is where the user is looking.
+    /// </para>
+    /// <para>
+    /// <b>The types are keyed by port name rather than by index</b> (<c>E6-T6</c>). The caller
+    /// cannot know the indices: which identifiers become ports, and in what order, is decided by
+    /// compiling the script, which is what this method is for. A name is also the only key that
+    /// survives an edit — inserting one identifier moves every index after it.
+    /// </para>
+    /// <para>
+    /// <b>What knowing a type buys.</b> An input declared <c>dynamic</c> is bound at run time, is
+    /// slower, and — the part that matters — offers a code editor nothing to complete against. A
+    /// wired port's type is known, so the declaration becomes
+    /// <c>Point3d centre = …;</c> and typing <c>centre.</c> can list the members of
+    /// <c>Point3d</c>. An unwired port has no type to use, so <c>dynamic</c> remains the honest
+    /// answer for it.
+    /// </para>
     /// </remarks>
-    NodeDefinitionSource Create(string script);
+    NodeDefinitionSource Create(
+        string script,
+        System.Collections.Generic.IReadOnlyDictionary<string, System.Type>? inputTypes = null);
 }
 
 /// <summary>

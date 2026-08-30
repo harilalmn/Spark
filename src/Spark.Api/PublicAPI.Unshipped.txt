@@ -18,7 +18,7 @@ Spark.Api.Displayable.Geometry.get -> object!
 Spark.Api.IEvaluationScheduler
 Spark.Api.IEvaluationScheduler.Run(System.Collections.Generic.IReadOnlyList<System.Action!>! operations, System.Threading.CancellationToken cancellationToken) -> void
 Spark.Api.IScriptNodeFactory
-Spark.Api.IScriptNodeFactory.Create(string! script) -> Spark.Api.NodeDefinitionSource
+Spark.Api.IScriptNodeFactory.Create(string! script, System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>? inputTypes = null) -> Spark.Api.NodeDefinitionSource
 Spark.Api.KeepStructureAttribute
 Spark.Api.KeepStructureAttribute.KeepStructureAttribute() -> void
 Spark.Api.LacingMode

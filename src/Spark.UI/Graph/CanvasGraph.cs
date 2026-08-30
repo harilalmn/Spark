@@ -336,6 +336,17 @@ public sealed class CanvasGraph
     public Spark.Engine.Graph Engine { get; }
 
     /// <summary>
+    /// How a code block's source becomes a definition, when scripting is on.
+    /// </summary>
+    /// <remarks>
+    /// <b>Set this and code blocks re-type themselves as they are wired up</b> (`E6-T6`). Leave it
+    /// null and they keep whatever definition they were built with, which is what a graph with no
+    /// scripting in it wants — the canvas must not reach for Roslyn on behalf of a document that
+    /// has no scripts in it, which is the whole of `E6-T14`.
+    /// </remarks>
+    public IScriptNodeFactory? Scripts { get; set; }
+
+    /// <summary>
     /// A scope every mutation is run inside, or null to mutate directly.
     /// </summary>
     /// <remarks>
@@ -560,11 +571,34 @@ public sealed class CanvasGraph
         // move when a script gains an identifier, and reconnecting by index would silently rewire
         // the graph to something the user never drew.
         List<(NodeId Source, int SourcePort, string TargetPort)> incoming = [];
+        List<(string SourcePort, NodeId Target, int TargetPort)> outgoing = [];
+
         foreach (Wire wire in Engine.Wires())
         {
             if (wire.Target == node.Id && wire.TargetPort < node.Inputs.Count)
             {
                 incoming.Add((wire.Source, wire.SourcePort, node.Inputs[wire.TargetPort].Name));
+            }
+
+            // **Outgoing wires are kept for the same reason and were not, until `E6-T6` made this
+            // path run on every connect rather than only on an edit.** Removing the node takes
+            // everything downstream of a code block with it, so renaming one identifier silently
+            // detached the rest of the graph from it.
+            if (wire.Source == node.Id && wire.SourcePort < node.Outputs.Count)
+            {
+                outgoing.Add((node.Outputs[wire.SourcePort].Name, wire.Target, wire.TargetPort));
+            }
+        }
+
+        // Group membership is restored too. `Remove` takes the node out of every group it is in
+        // and deletes a group that empties — correct for a deletion, wrong for a replacement, and
+        // otherwise a code block would fall out of its group when its script was edited.
+        List<CanvasGroup> memberships = [];
+        foreach (CanvasGroup group in _groups)
+        {
+            if (group.Contains(node.Id))
+            {
+                memberships.Add(group);
             }
         }
 
@@ -587,6 +621,28 @@ public sealed class CanvasGraph
                     break;
                 }
             }
+        }
+
+        foreach ((string portName, NodeId target, int targetPort) in outgoing)
+        {
+            for (int i = 0; i < replacement.Outputs.Count; i++)
+            {
+                if (replacement.Outputs[i].Name == portName && Engine.TryGetNode(target, out _))
+                {
+                    Edit(() => Engine.LoadWire(node.Id, i, target, targetPort));
+                    break;
+                }
+            }
+        }
+
+        foreach (CanvasGroup group in memberships)
+        {
+            if (!_groups.Contains(group))
+            {
+                _groups.Add(group);
+            }
+
+            group.Add(node.Id);
         }
 
         _wiresDirty = true;
@@ -770,6 +826,7 @@ public sealed class CanvasGraph
         if (result.Accepted)
         {
             _wiresDirty = true;
+            Retype(_nodes[input.NodeIndex].Id);
         }
 
         return result.Accepted;
@@ -785,19 +842,68 @@ public sealed class CanvasGraph
             return false;
         }
 
+        NodeId target = _nodes[wire.To.NodeIndex].Id;
         bool removed = false;
         Edit(() => removed = Engine.Disconnect(new Wire(
             _nodes[wire.From.NodeIndex].Id,
             wire.From.PortIndex,
-            _nodes[wire.To.NodeIndex].Id,
+            target,
             wire.To.PortIndex)));
 
         if (removed)
         {
             _wiresDirty = true;
+            Retype(target);
         }
 
         return removed;
+    }
+
+    /// <summary>
+    /// Rebuilds a code block against the types now wired into it, if that changes anything
+    /// (`E6-T6`).
+    /// </summary>
+    /// <param name="id">The node whose inputs have just changed.</param>
+    /// <returns>True when the node was rebuilt.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>This is what makes a code block's inputs statically typed.</b> Until a wire lands there
+    /// is no type to declare, so the block is compiled with <c>dynamic</c> inputs; once one does,
+    /// the upstream port's type is known and the block is recompiled with a real declaration —
+    /// which is what a code editor needs before it can complete <c>centre.</c> into the members of
+    /// <c>Point3d</c> (`E6-T7`).
+    /// </para>
+    /// <para>
+    /// <b>It refuses to do anything when nothing changed</b>, and that is not an optimisation. A
+    /// rebuild removes the node and puts it back, so its slot moves; doing that on every wire in
+    /// the graph would renumber the canvas constantly for no reason. The definition's key already
+    /// carries a hash of the source *and* of the input types, so comparing keys asks exactly the
+    /// right question.
+    /// </para>
+    /// </remarks>
+    public bool Retype(NodeId id)
+    {
+        if (Scripts is not { } scripts || !Engine.TryGetNode(id, out NodeInstance? instance))
+        {
+            return false;
+        }
+
+        if (instance!.Definition.Script is not { } script)
+        {
+            return false;
+        }
+
+        NodeDefinition rebuilt = NodeDefinition.FromScript(
+            scripts.Create(script, Engine.InputTypes(id)), script);
+
+        if (rebuilt.Key == instance.Definition.Key)
+        {
+            return false;
+        }
+
+        int slot = SlotOf(id);
+
+        return slot >= 0 && ReplaceDefinition(_nodes[slot], rebuilt);
     }
 
     /// <summary>Sets the literal on an unwired input port.</summary>

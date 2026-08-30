@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 20:40 +0530
+**Last updated:** 2026-08-31 22:15 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2 and M3 are done** — M3 closed on 2026-08-31. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. Next is **M4, the C# code block** |
 | **Working on** | Nothing. Between steps, inside M4 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E6-T4`, the guard weaver** — woven between parsing and compiling, so `while (true) { }` stops on cancellation and recursion stops before the stack does. `E6-T17` closes with it. Also fixed a latent catalogue bug the new tests exposed ([N43](NOTES.md)) and the raw NUL byte the previous entry claimed to have removed |
+| **Last completed step** | **`E6-T6`, typed input injection** — a wired port is declared with the type the wire carries, so `centre.X` resolves at compile time and `E6-T7` becomes possible. Fixed two defects it exposed in `ReplaceDefinition` ([N45](NOTES.md)) |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M4 step **(e)**: **`E6-T6`, typed input injection.** Once a port is wired the upstream type is known, so the generated declaration becomes `Point3d centre = (Point3d)__in[0];` rather than `dynamic centre = __in[0];` — statically typed, faster, and **the thing that makes `E6-T7`'s wire-typed IntelliSense possible at all**, because completion needs a type to offer members from. `dynamic` stays the honest answer for an *unconnected* port. The port types have to reach the factory, so `IScriptNodeFactory.Create` grows an overload taking the known input types, and those types join the compile-cache key — two nodes with the same text and differently-typed inputs are different assemblies. After it: `E6-T7` (the signature differentiator), then `E6-T1`'s source map, `E6-T10`, the editor rows `E6-T11`/`E6-T12`/`E6-T13`, `E6-T15`, and the rest of `E6-T16`. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1411**: Geometry.Tests 584, UI.Tests 359, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | M4 step **(f)**: **`E6-T7`, wire-typed IntelliSense** — the signature differentiator, and the half of `E6-T6` a user actually sees. `ScriptCompletion` already completes against a compilation; what it needs now is to be given the *same* wrapped source the factory compiles, typed declarations and all, so that `centre.` inside a code block lists `Point3d`'s members. **The invariant `E6-T13` states is the thing to hold**: completion must agree with the compiler — same references, same imports, same generated frame — and a list that disagrees is worse than no list. That argues for extracting the wrapping out of `ScriptNodeFactory` so both callers use one implementation rather than two that drift. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1431**: Geometry.Tests 584, UI.Tests 379, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -1742,3 +1742,53 @@ hang reads as an infrastructure problem rather than as this regression.
 **A help topic, `concepts.code-blocks`**, which the code block had been missing since it landed —
 writing one, ports from free identifiers, named-tuple outputs, and a section on exactly what stops
 a loop, quoting the messages a user will actually see.
+
+### 2026-08-31 — Typed inputs: what a wire teaches a code block
+
+**`E6-T6`.** An input port with nothing wired into it has no type, so a code block declares it
+`dynamic` and finds out at run time. Once a wire lands, the upstream port's type is known and there
+is no longer any excuse: the block is recompiled with `Point3d centre = …;` and
+`centre.X` resolves at compile time. That is the row's own justification, but it is not the reason
+it is worth doing — **`E6-T7`'s wire-typed IntelliSense is impossible without it**, because
+completion needs a type to offer members from and `dynamic` offers none.
+
+**Keyed by port name, not by index, and that is forced rather than chosen.** Which identifiers
+become ports, and in what order, is decided by *compiling the script* — so the caller that wants to
+compile it cannot know an index yet. A name is also the only key that survives an edit: inserting
+one identifier moves every index after it.
+
+**The types are in the content hash.** The evaluation cache keys on the node's key, and the same
+source over a `double` does not compute what the same source over a `Point3d` computes. Two blocks
+that hashed the same would serve each other's results.
+
+**The conversion is `ScriptInput.As<T>` rather than a cast**, and the reason is the message.
+`(Point3d)__in[0]` fails with *Unable to cast object of type 'System.String' to type
+'Spark.Geometry.Point3d'* — two CLR types, no port, no node, nothing to act on. It also refuses an
+`int` where the script wants a `double`, which is the commonest thing a graph delivers, so the
+typed path would have felt *worse* than `dynamic` rather than better. `As<T>` widens what a graph
+widens and otherwise says *the port 'centre' received a String, but the script uses it as a
+Point3d*.
+
+**A type that source cannot name is the same as no type.** An internal type, an anonymous type, an
+open generic — `ScriptTypeName.Of` returns null for each, and null means *use dynamic*. Emitting a
+name that will not compile, inside a file the user cannot see, is the worst thing this code could
+do; refusing is a first-class answer and is tested as one.
+
+**Two defects this exposed, and neither is in the new code.** `CanvasGraph.ReplaceDefinition`
+rebuilds a node by removing it and adding it back, and removal correctly drops the node's wires and
+its group membership. It restored the wires *in* — visibly the hard case — and nothing else. So
+editing a code block's source had always **silently detached everything downstream of it** and
+dropped it out of its group. It ran once per deliberate edit, so nobody caught it. `E6-T6` makes the
+same path run on every connect, where a defect like that is not a bug but an unusable feature. Both
+are fixed and both have a test; the general shape is [N45](NOTES.md).
+
+**Where the re-typing is triggered from.** The canvas, not the engine: `CanvasGraph.Scripts` is the
+factory, null when scripting is off, and `Retype` runs after a connect or a disconnect and **does
+nothing when the definition's key is unchanged** — which is not an optimisation, because a rebuild
+moves a node's slot and doing that on every wire in the graph would renumber the canvas for no
+reason. Opening a document re-types afterwards rather than during, because a code block is restored
+before its wires exist and at that moment nothing is connected.
+
+**Verified.** Build clean with `-warnaserror`, zero warnings; **1431 tests, 0 failures**
+(UI 359 → 379); `dotnet format --verify-no-changes` clean; docs harness green. Reverted the
+outgoing-wire restoration once and watched `RetypingKeepsTheWiresLeavingTheBlock` go red.

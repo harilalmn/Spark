@@ -263,7 +263,9 @@ public sealed class ScriptNodeSeamTests
     /// <summary>A factory whose one script is whatever the test wants it to be.</summary>
     private sealed class RecordingFactory(ScriptInvocation invoke) : IScriptNodeFactory
     {
-        public NodeDefinitionSource Create(string script)
+        public NodeDefinitionSource Create(
+            string script,
+            System.Collections.Generic.IReadOnlyDictionary<string, Type>? inputTypes = null)
         {
             ArgumentNullException.ThrowIfNull(script);
 
@@ -278,7 +280,9 @@ public sealed class ScriptNodeSeamTests
 
     private sealed class StubFactory : IScriptNodeFactory
     {
-        public NodeDefinitionSource Create(string script)
+        public NodeDefinitionSource Create(
+            string script,
+            System.Collections.Generic.IReadOnlyDictionary<string, Type>? inputTypes = null)
         {
             ArgumentNullException.ThrowIfNull(script);
 

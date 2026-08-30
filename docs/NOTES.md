@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N43, N44 added)
+**Last updated:** 2026-08-31 (N45 added)
 
 ---
 
@@ -1346,3 +1346,26 @@ enclosing method is now allocating a closure regardless.
 every language feature that exists to forbid such references. `static` is the one C# has today;
 the next one will need the same treatment, and it will announce itself the same way — as a
 compiler error naming a generated identifier.
+
+
+## N45 — Rebuilding a node is not the same as deleting and re-adding it, and the difference is everything attached to it
+
+`CanvasGraph.ReplaceDefinition` swaps a node's definition by removing the node and adding it back
+under the same identity. Removal is thorough, correctly: it drops the node's wires and takes it out
+of every group, and deletes a group it emptied.
+
+That was written for one caller — editing a code block's source — and it restored the wires
+*into* the node by port name, which was visibly the hard case. It restored nothing else. So editing
+a script silently detached everything **downstream** of the block, and dropped the block out of any
+group it was in. Nobody noticed, because the path ran once per deliberate edit and the user was
+looking at the properties pane rather than at the wire they had drawn ten minutes earlier.
+
+`E6-T6` made the same path run **every time a wire lands on a code block**, and a defect that
+happens on a deliberate edit is a bug while a defect that happens on every connect is unusable.
+
+**The general rule:** a remove-then-add rebuild has to restore everything the removal was correct
+to destroy, and *everything* means every relationship anything else holds by identity — wires in,
+wires out, group membership, and whatever the next feature attaches. The safer shape is a real
+in-place swap on the engine's `NodeInstance`; it was not taken here because resizing a node's
+literal array is engine surgery and this is a canvas concern. **The list is therefore a list, and
+it will need adding to.**

@@ -80,6 +80,29 @@ for (var i = 0; i < count; i++)
 return points;
 ```
 
+## What a wire teaches the block
+
+**Before anything is connected, an input port has no type**, so Spark declares it `dynamic`: the
+script reads like C#, and what `radius` turns out to be is worked out while the graph runs.
+
+**Once you wire something in, the port has a type, and the block is recompiled with it.** Wire a
+`Point.ByCoordinates` into a port called `centre` and the block is compiled as though you had
+written `Point3d centre = …;` — so this works:
+
+```csharp
+return centre.X + centre.Y;
+```
+
+and it works because the compiler knows what `centre` is, not because it found out at run time.
+The port label on the canvas changes to match, and pulling the wire out puts the port back to
+`dynamic`, because an unwired port has no type to claim.
+
+Numbers are widened where a graph would expect them to be: an integer arriving on a port the
+script uses as a `double` is converted rather than refused. When something genuinely wrong
+arrives, the message names the port rather than two CLR types:
+
+> The port 'centre' received a String, but the script uses it as a Point3d.
+
 ## Loops, and what stops them
 
 **A code block that never finishes would otherwise never be stoppable.** .NET has no safe way to

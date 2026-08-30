@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-31 (E6 guard weaving)
+**Last updated:** 2026-08-31 (E6 typed inputs)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -562,8 +562,10 @@ diverge most; rework is budgeted there specifically.
 - [ ] Input ports are inferred **semantically** — compile once against the prelude, collect
       `CS0103`/`CS0117`, take the identifiers in source order (**E6-T5**).
 - [ ] Port identity is the variable name, so reordering usages does not rewire (**E6-T5**).
-- [ ] Once a port is connected, the rewriter injects a typed local rather than `object`
-      (**E6-T6**).
+- [x] Once a port is connected, the rewriter injects a typed local rather than `object`
+      (**E6-T6**) — done 2026-08-31. Keyed by port *name*, because the indices are an output of
+      compiling rather than an input to it, and carried in the content hash, because the same
+      source over a `double` is not the same node as the same source over a `Point3d`.
 - [ ] **IntelliSense inside the code block resolves members of the upstream wire's type**
       (**E6-T7**).
 - [ ] Output ports come from a named tuple return; a plain final expression gives one

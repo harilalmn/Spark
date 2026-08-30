@@ -645,6 +645,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         IScriptNodeFactory scripts = _session.EnableScripting();
         const string Starter = "return a;";
 
+        // Scripting may have been switched on by this very call, so the canvas learns about the
+        // factory here rather than only at `AdoptGraph` — otherwise the first code block placed in
+        // a session would never re-type itself when a wire landed on it.
+        _graph.Scripts = scripts;
+
         _placementOrdinal++;
         int slot = _graph.Add(NodeDefinition.FromScript(scripts.Create(Starter), Starter), x, y);
         RecordEdit("Add code block");
@@ -685,7 +690,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             return false;
         }
 
-        if (!_graph.ReplaceDefinition(node, NodeDefinition.FromScript(scripts.Create(ScriptText), ScriptText)))
+        // The types already wired in are carried across the edit, by port *name* — so a block that
+        // was typed against a `Point3d` stays typed against it when another line is added, rather
+        // than falling back to `dynamic` until the wire is redrawn.
+        NodeDefinitionSource rebuilt = scripts.Create(ScriptText, _graph.Engine.InputTypes(node.Id));
+
+        if (!_graph.ReplaceDefinition(node, NodeDefinition.FromScript(rebuilt, ScriptText)))
         {
             return false;
         }
@@ -870,6 +880,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private void AdoptGraph(CanvasGraph graph, bool evaluate = true, bool resetHistory = true)
     {
         _graph = graph;
+
+        // `E6-T6`: the canvas re-types a code block as it is wired up, and it needs the factory to
+        // do it. Null when scripting is off, which is exactly when it must not reach for Roslyn.
+        graph.Scripts = _session.Scripts;
 
         // Every edit the canvas or the inspector makes runs inside the session's mutation gate,
         // which cancels the run in flight first. Without it an edit lands in the middle of a

@@ -75,7 +75,7 @@ public static class CanvasDocument
 
         GraphDocument document = SparkFile.Read(text);
         Spark.Engine.Graph engine = document.Restore(library, scripts);
-        CanvasGraph graph = new(engine);
+        CanvasGraph graph = new(engine) { Scripts = scripts };
 
         // Adopted in the document's order, which is sorted by identity — so the draw order of a
         // reopened graph is stable rather than an accident of how it was built the first time.
@@ -113,6 +113,33 @@ public static class CanvasDocument
             graph.AdoptGroup(restored);
         }
 
+        // `E6-T6`, and the order is forced: a code block is restored before the wires exist, so at
+        // that moment nothing is connected and every input is `dynamic`. The types are only knowable
+        // once the whole document is back, which is here. Re-typing is a no-op for a block whose
+        // inputs are all unwired, so a graph with no wires into its code blocks pays nothing.
+        foreach (NodeId id in ScriptNodes(engine))
+        {
+            graph.Retype(id);
+        }
+
         return graph;
+    }
+
+    /// <summary>The identities of every node in a graph that came from a script.</summary>
+    /// <param name="engine">The restored graph.</param>
+    /// <returns>The code blocks, in the graph's own order.</returns>
+    private static IReadOnlyList<NodeId> ScriptNodes(Spark.Engine.Graph engine)
+    {
+        List<NodeId> found = [];
+
+        foreach (NodeInstance node in engine.Nodes())
+        {
+            if (node.Definition.Script is not null)
+            {
+                found.Add(node.Id);
+            }
+        }
+
+        return found;
     }
 }
