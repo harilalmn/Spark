@@ -275,6 +275,96 @@ public static class GeometryJson
                 Member(writer, "second", v.Second);
                 break;
 
+            case Brep v:
+                Open(writer, nameof(Brep));
+
+                // Nine arrays, written as nine arrays. A BRep's whole design is that its
+                // relationships are indices into flat arrays with no cycles, so the serialised form
+                // is the in-memory form - which is what makes this the one geometry type whose
+                // round trip needs no reconstruction step at all.
+                writer.WriteStartArray("points");
+
+                foreach (Point3d point in v.Points())
+                {
+                    Write(writer, point);
+                }
+
+                writer.WriteEndArray();
+                writer.WriteStartArray("curves");
+
+                foreach (Curve curve in v.Curves())
+                {
+                    Write(writer, curve);
+                }
+
+                writer.WriteEndArray();
+                writer.WriteStartArray("surfaces");
+
+                foreach (Surface surface in v.Surfaces())
+                {
+                    Write(writer, surface);
+                }
+
+                writer.WriteEndArray();
+                writer.WriteStartArray("vertices");
+
+                foreach (BrepVertex vertex in v.Vertices())
+                {
+                    writer.WriteNumberValue(vertex.Point);
+                }
+
+                writer.WriteEndArray();
+                writer.WriteStartArray("edges");
+
+                foreach (BrepEdge edge in v.Edges())
+                {
+                    writer.WriteNumberValue(edge.Start);
+                    writer.WriteNumberValue(edge.End);
+                    writer.WriteNumberValue(edge.Curve);
+                }
+
+                writer.WriteEndArray();
+                writer.WriteStartArray("trims");
+
+                foreach (BrepTrim trim in v.Trims())
+                {
+                    writer.WriteNumberValue(trim.Edge);
+                    writer.WriteNumberValue(trim.IsReversed ? 1 : 0);
+                }
+
+                writer.WriteEndArray();
+                writer.WriteStartArray("loops");
+
+                foreach (BrepLoop loop in v.Loops())
+                {
+                    writer.WriteNumberValue(loop.FirstTrim);
+                    writer.WriteNumberValue(loop.TrimCount);
+                    writer.WriteNumberValue((int)loop.Kind);
+                }
+
+                writer.WriteEndArray();
+                writer.WriteStartArray("faces");
+
+                foreach (BrepFace face in v.Faces())
+                {
+                    writer.WriteNumberValue(face.Surface);
+                    writer.WriteNumberValue(face.FirstLoop);
+                    writer.WriteNumberValue(face.LoopCount);
+                    writer.WriteNumberValue(face.IsReversed ? 1 : 0);
+                }
+
+                writer.WriteEndArray();
+                writer.WriteStartArray("shells");
+
+                foreach (BrepShell shell in v.Shells())
+                {
+                    writer.WriteNumberValue(shell.FirstFace);
+                    writer.WriteNumberValue(shell.FaceCount);
+                }
+
+                writer.WriteEndArray();
+                break;
+
             case MeshFace v:
                 Open(writer, nameof(MeshFace));
                 writer.WriteNumber("a", v.A);
@@ -540,6 +630,7 @@ public static class GeometryJson
                 ReadInterval(element, "sweep")),
             nameof(RuledSurface) => new RuledSurface(
                 ReadCurve(element, "first"), ReadCurve(element, "second")),
+            nameof(Brep) => ReadBrep(element),
             nameof(MeshFace) => new MeshFace(
                 element.GetProperty("a").GetInt32(),
                 element.GetProperty("b").GetInt32(),
@@ -720,6 +811,87 @@ public static class GeometryJson
     private static Vector3d Vector(JsonElement element, string name) => (Vector3d)Read(element.GetProperty(name));
 
     private static Plane ReadPlane(JsonElement element, string name) => (Plane)Read(element.GetProperty(name));
+
+    private static Brep ReadBrep(JsonElement element)
+    {
+        List<Point3d> points = [];
+
+        foreach (JsonElement point in element.GetProperty("points").EnumerateArray())
+        {
+            points.Add((Point3d)Read(point));
+        }
+
+        List<Curve> curves = [];
+
+        foreach (JsonElement curve in element.GetProperty("curves").EnumerateArray())
+        {
+            curves.Add((Curve)Read(curve));
+        }
+
+        List<Surface> surfaces = [];
+
+        foreach (JsonElement surface in element.GetProperty("surfaces").EnumerateArray())
+        {
+            surfaces.Add((Surface)Read(surface));
+        }
+
+        List<BrepVertex> vertices = [];
+
+        foreach (JsonElement vertex in element.GetProperty("vertices").EnumerateArray())
+        {
+            vertices.Add(new BrepVertex(vertex.GetInt32()));
+        }
+
+        JsonElement edgeValues = element.GetProperty("edges");
+        List<BrepEdge> edges = [];
+
+        for (int i = 0; i + 2 < edgeValues.GetArrayLength(); i += 3)
+        {
+            edges.Add(new BrepEdge(
+                edgeValues[i].GetInt32(), edgeValues[i + 1].GetInt32(), edgeValues[i + 2].GetInt32()));
+        }
+
+        JsonElement trimValues = element.GetProperty("trims");
+        List<BrepTrim> trims = [];
+
+        for (int i = 0; i + 1 < trimValues.GetArrayLength(); i += 2)
+        {
+            trims.Add(new BrepTrim(trimValues[i].GetInt32(), trimValues[i + 1].GetInt32() != 0));
+        }
+
+        JsonElement loopValues = element.GetProperty("loops");
+        List<BrepLoop> loops = [];
+
+        for (int i = 0; i + 2 < loopValues.GetArrayLength(); i += 3)
+        {
+            loops.Add(new BrepLoop(
+                loopValues[i].GetInt32(),
+                loopValues[i + 1].GetInt32(),
+                (BrepLoopKind)loopValues[i + 2].GetInt32()));
+        }
+
+        JsonElement faceValues = element.GetProperty("faces");
+        List<BrepFace> faces = [];
+
+        for (int i = 0; i + 3 < faceValues.GetArrayLength(); i += 4)
+        {
+            faces.Add(new BrepFace(
+                faceValues[i].GetInt32(),
+                faceValues[i + 1].GetInt32(),
+                faceValues[i + 2].GetInt32(),
+                faceValues[i + 3].GetInt32() != 0));
+        }
+
+        JsonElement shellValues = element.GetProperty("shells");
+        List<BrepShell> shells = [];
+
+        for (int i = 0; i + 1 < shellValues.GetArrayLength(); i += 2)
+        {
+            shells.Add(new BrepShell(shellValues[i].GetInt32(), shellValues[i + 1].GetInt32()));
+        }
+
+        return new Brep(points, curves, surfaces, vertices, edges, trims, loops, faces, shells);
+    }
 
     private static Mesh ReadMesh(JsonElement element)
     {

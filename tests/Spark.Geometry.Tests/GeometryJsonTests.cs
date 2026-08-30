@@ -96,6 +96,10 @@ public sealed class GeometryJsonTests
             Point3d.Origin,
             Vector3d.ZAxis,
             new Interval(0.0, 2.0)),
+        // A cylinder rather than a box, because its seam edge is used twice by one face - once
+        // each way - which is the relationship a round trip is most likely to lose.
+        [typeof(Brep)] = BrepPrimitives.Cylinder(Plane.WorldXY, 2.0, 5.0),
+
         // A mesh with every optional channel populated and a quad *and* a triangle in it, because
         // the channels and the triangle-versus-quad sentinel are the two things a round trip can
         // silently drop.
@@ -134,6 +138,26 @@ public sealed class GeometryJsonTests
     {
         [typeof(Curve)] = "abstract; its concrete subclasses each have a sample",
         [typeof(Surface)] = "abstract; its concrete subclasses each have a sample",
+        [typeof(BrepBuilder)] = "a builder, not a value. What it produces is a Brep, which has a sample",
+
+        // The six topology records are indices into one Brep's arrays. Saved on their own they
+        // would be numbers with no index space to mean anything in - and a reader could not tell
+        // a valid one from a corrupt one, because there is nothing to check them against. They
+        // round-trip inside a Brep, where they have a meaning.
+        [typeof(BrepVertex)] = "a component of a Brep: an index into its arrays, meaningless alone",
+        [typeof(BrepEdge)] = "a component of a Brep; see BrepVertex",
+        [typeof(BrepTrim)] = "a component of a Brep; see BrepVertex",
+        [typeof(BrepLoop)] = "a component of a Brep; see BrepVertex",
+        [typeof(BrepFace)] = "a component of a Brep; see BrepVertex",
+        [typeof(BrepShell)] = "a component of a Brep; see BrepVertex",
+        [typeof(BrepPrimitives)] = "a static class of constructions, not a value",
+        [typeof(BrepFaceView)] =
+            "a ref struct navigator over a Brep. It cannot be stored on the heap by construction, "
+            + "which is the same reason it cannot be serialised - and there is nothing in it that "
+            + "the Brep does not already hold",
+        [typeof(BrepLoopView)] = "a ref struct navigator; see BrepFaceView",
+        [typeof(BrepEdgeView)] = "a ref struct navigator; see BrepFaceView",
+        [typeof(BrepShellView)] = "a ref struct navigator; see BrepFaceView",
         [typeof(MeshBuilder)] =
             "a sink that collects a tessellation into a Mesh. It has no state worth saving - what "
             + "it produces does, and that is a Mesh, which has a sample",
@@ -310,6 +334,13 @@ public sealed class GeometryJsonTests
 
     private static void AssertSame(object expected, object actual)
     {
+        if (expected is Brep brep)
+        {
+            AssertSameBrep(brep, (Brep)actual);
+
+            return;
+        }
+
         if (expected is Mesh mesh)
         {
             AssertSameMesh(mesh, (Mesh)actual);
@@ -349,6 +380,60 @@ public sealed class GeometryJsonTests
                 Assert.Equal(expected, actual);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Two BReps are the same when all nine of their arrays are.
+    /// </summary>
+    /// <remarks>
+    /// <b>Element by element, and the geometry sampled rather than compared.</b> The topology
+    /// records are plain value types and compare exactly; the curves and surfaces they point at do
+    /// not have value equality, for the reason those types record. Comparing counts alone would
+    /// pass a round trip that dropped every trim's direction.
+    /// </remarks>
+    private static void AssertSameBrep(Brep expected, Brep actual)
+    {
+        Assert.Equal(expected.VertexCount, actual.VertexCount);
+        Assert.Equal(expected.EdgeCount, actual.EdgeCount);
+        Assert.Equal(expected.TrimCount, actual.TrimCount);
+        Assert.Equal(expected.LoopCount, actual.LoopCount);
+        Assert.Equal(expected.FaceCount, actual.FaceCount);
+        Assert.Equal(expected.ShellCount, actual.ShellCount);
+
+        Assert.Equal(expected.Vertices(), actual.Vertices());
+        Assert.Equal(expected.Edges(), actual.Edges());
+        Assert.Equal(expected.Trims(), actual.Trims());
+        Assert.Equal(expected.Loops(), actual.Loops());
+        Assert.Equal(expected.Faces(), actual.Faces());
+        Assert.Equal(expected.Shells(), actual.Shells());
+
+        Point3d[] points = expected.Points();
+        Point3d[] readBack = actual.Points();
+
+        for (int index = 0; index < points.Length; index++)
+        {
+            Assert.True(points[index].EqualsWithin(readBack[index]));
+        }
+
+        Curve[] curves = expected.Curves();
+        Curve[] readCurves = actual.Curves();
+
+        for (int index = 0; index < curves.Length; index++)
+        {
+            AssertSameCurve(curves[index], readCurves[index]);
+        }
+
+        Surface[] surfaces = expected.Surfaces();
+        Surface[] readSurfaces = actual.Surfaces();
+
+        for (int index = 0; index < surfaces.Length; index++)
+        {
+            AssertSameSurface(surfaces[index], readSurfaces[index]);
+        }
+
+        // And the property the whole model exists to have survived the trip.
+        Assert.Equal(expected.IsSolid, actual.IsSolid);
+        Assert.Empty(actual.Validate());
     }
 
     /// <summary>

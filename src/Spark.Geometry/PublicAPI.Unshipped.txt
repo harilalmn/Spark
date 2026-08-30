@@ -46,6 +46,138 @@ Spark.Geometry.BoundingVolumeHierarchy.NearestTo(in Spark.Geometry.Point3d point
 Spark.Geometry.BoundingVolumeHierarchy.NodeCount.get -> int
 Spark.Geometry.BoundingVolumeHierarchy.Query(in Spark.Geometry.BoundingBox region, System.Collections.Generic.List<int>! results, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> void
 Spark.Geometry.BoundingVolumeHierarchy.Query(in Spark.Geometry.Ray ray, System.Collections.Generic.List<int>! results) -> void
+Spark.Geometry.Brep
+Spark.Geometry.Brep.BoundingBox.get -> Spark.Geometry.BoundingBox
+Spark.Geometry.Brep.Brep(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>! curves, System.Collections.Generic.IReadOnlyList<Spark.Geometry.Surface!>! surfaces, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepVertex>! vertices, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepEdge>! edges, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepTrim>! trims, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepLoop>! loops, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepFace>! faces, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepShell>! shells) -> void
+Spark.Geometry.Brep.Curves() -> Spark.Geometry.Curve![]!
+Spark.Geometry.Brep.Edge(int index) -> Spark.Geometry.BrepEdgeView
+Spark.Geometry.Brep.EdgeCount.get -> int
+Spark.Geometry.Brep.Edges() -> Spark.Geometry.BrepEdge[]!
+Spark.Geometry.Brep.Face(int index) -> Spark.Geometry.BrepFaceView
+Spark.Geometry.Brep.FaceCount.get -> int
+Spark.Geometry.Brep.Faces() -> Spark.Geometry.BrepFace[]!
+Spark.Geometry.Brep.IsSolid.get -> bool
+Spark.Geometry.Brep.IsUntrimmed.get -> bool
+Spark.Geometry.Brep.Loop(int index) -> Spark.Geometry.BrepLoopView
+Spark.Geometry.Brep.LoopCount.get -> int
+Spark.Geometry.Brep.Loops() -> Spark.Geometry.BrepLoop[]!
+Spark.Geometry.Brep.Points() -> Spark.Geometry.Point3d[]!
+Spark.Geometry.Brep.Shell(int index) -> Spark.Geometry.BrepShellView
+Spark.Geometry.Brep.ShellCount.get -> int
+Spark.Geometry.Brep.Shells() -> Spark.Geometry.BrepShell[]!
+Spark.Geometry.Brep.Surfaces() -> Spark.Geometry.Surface![]!
+Spark.Geometry.Brep.TrimCount.get -> int
+Spark.Geometry.Brep.Trims() -> Spark.Geometry.BrepTrim[]!
+Spark.Geometry.Brep.Validate() -> System.Collections.Generic.IReadOnlyList<string!>!
+Spark.Geometry.Brep.VertexCount.get -> int
+Spark.Geometry.Brep.VertexPoint(int index) -> Spark.Geometry.Point3d
+Spark.Geometry.Brep.Vertices() -> Spark.Geometry.BrepVertex[]!
+Spark.Geometry.BrepBuilder
+Spark.Geometry.BrepBuilder.AddEdge(int start, int end, Spark.Geometry.Curve! curve) -> int
+Spark.Geometry.BrepBuilder.AddFace(Spark.Geometry.Surface! surface, System.Collections.Generic.IReadOnlyList<int>! loops, bool isReversed = false) -> int
+Spark.Geometry.BrepBuilder.AddLineEdge(int start, int end) -> int
+Spark.Geometry.BrepBuilder.AddLoop(System.Collections.Generic.IReadOnlyList<(int Edge, bool IsReversed)>! edges, Spark.Geometry.BrepLoopKind kind = Spark.Geometry.BrepLoopKind.Outer) -> int
+Spark.Geometry.BrepBuilder.AddVertex(in Spark.Geometry.Point3d point) -> int
+Spark.Geometry.BrepBuilder.BrepBuilder() -> void
+Spark.Geometry.BrepBuilder.Build() -> Spark.Geometry.Brep!
+Spark.Geometry.BrepBuilder.CloseShell() -> int
+Spark.Geometry.BrepEdge
+Spark.Geometry.BrepEdge.BrepEdge() -> void
+Spark.Geometry.BrepEdge.BrepEdge(int Start, int End, int Curve) -> void
+Spark.Geometry.BrepEdge.Curve.get -> int
+Spark.Geometry.BrepEdge.Curve.init -> void
+Spark.Geometry.BrepEdge.Deconstruct(out int Start, out int End, out int Curve) -> void
+Spark.Geometry.BrepEdge.End.get -> int
+Spark.Geometry.BrepEdge.End.init -> void
+Spark.Geometry.BrepEdge.Equals(Spark.Geometry.BrepEdge other) -> bool
+Spark.Geometry.BrepEdge.Start.get -> int
+Spark.Geometry.BrepEdge.Start.init -> void
+Spark.Geometry.BrepEdgeView
+Spark.Geometry.BrepEdgeView.AdjacentFaces() -> int[]!
+Spark.Geometry.BrepEdgeView.BrepEdgeView() -> void
+Spark.Geometry.BrepEdgeView.Curve.get -> Spark.Geometry.Curve!
+Spark.Geometry.BrepEdgeView.Edge.get -> Spark.Geometry.BrepEdge
+Spark.Geometry.BrepEdgeView.EndPoint.get -> Spark.Geometry.Point3d
+Spark.Geometry.BrepEdgeView.Index.get -> int
+Spark.Geometry.BrepEdgeView.StartPoint.get -> Spark.Geometry.Point3d
+Spark.Geometry.BrepFace
+Spark.Geometry.BrepFace.BrepFace() -> void
+Spark.Geometry.BrepFace.BrepFace(int Surface, int FirstLoop, int LoopCount, bool IsReversed) -> void
+Spark.Geometry.BrepFace.Deconstruct(out int Surface, out int FirstLoop, out int LoopCount, out bool IsReversed) -> void
+Spark.Geometry.BrepFace.Equals(Spark.Geometry.BrepFace other) -> bool
+Spark.Geometry.BrepFace.FirstLoop.get -> int
+Spark.Geometry.BrepFace.FirstLoop.init -> void
+Spark.Geometry.BrepFace.IsReversed.get -> bool
+Spark.Geometry.BrepFace.IsReversed.init -> void
+Spark.Geometry.BrepFace.LoopCount.get -> int
+Spark.Geometry.BrepFace.LoopCount.init -> void
+Spark.Geometry.BrepFace.Surface.get -> int
+Spark.Geometry.BrepFace.Surface.init -> void
+Spark.Geometry.BrepFaceView
+Spark.Geometry.BrepFaceView.BrepFaceView() -> void
+Spark.Geometry.BrepFaceView.Face.get -> Spark.Geometry.BrepFace
+Spark.Geometry.BrepFaceView.Index.get -> int
+Spark.Geometry.BrepFaceView.IsReversed.get -> bool
+Spark.Geometry.BrepFaceView.Loop(int position) -> Spark.Geometry.BrepLoopView
+Spark.Geometry.BrepFaceView.LoopCount.get -> int
+Spark.Geometry.BrepFaceView.NormalAt(double u, double v) -> Spark.Geometry.Vector3d
+Spark.Geometry.BrepFaceView.OuterLoop() -> Spark.Geometry.BrepLoopView
+Spark.Geometry.BrepFaceView.Surface.get -> Spark.Geometry.Surface!
+Spark.Geometry.BrepLoop
+Spark.Geometry.BrepLoop.BrepLoop() -> void
+Spark.Geometry.BrepLoop.BrepLoop(int FirstTrim, int TrimCount, Spark.Geometry.BrepLoopKind Kind) -> void
+Spark.Geometry.BrepLoop.Deconstruct(out int FirstTrim, out int TrimCount, out Spark.Geometry.BrepLoopKind Kind) -> void
+Spark.Geometry.BrepLoop.Equals(Spark.Geometry.BrepLoop other) -> bool
+Spark.Geometry.BrepLoop.FirstTrim.get -> int
+Spark.Geometry.BrepLoop.FirstTrim.init -> void
+Spark.Geometry.BrepLoop.Kind.get -> Spark.Geometry.BrepLoopKind
+Spark.Geometry.BrepLoop.Kind.init -> void
+Spark.Geometry.BrepLoop.TrimCount.get -> int
+Spark.Geometry.BrepLoop.TrimCount.init -> void
+Spark.Geometry.BrepLoopKind
+Spark.Geometry.BrepLoopKind.Inner = 1 -> Spark.Geometry.BrepLoopKind
+Spark.Geometry.BrepLoopKind.Outer = 0 -> Spark.Geometry.BrepLoopKind
+Spark.Geometry.BrepLoopView
+Spark.Geometry.BrepLoopView.BrepLoopView() -> void
+Spark.Geometry.BrepLoopView.Edge(int position) -> Spark.Geometry.BrepEdgeView
+Spark.Geometry.BrepLoopView.Index.get -> int
+Spark.Geometry.BrepLoopView.Kind.get -> Spark.Geometry.BrepLoopKind
+Spark.Geometry.BrepLoopView.Loop.get -> Spark.Geometry.BrepLoop
+Spark.Geometry.BrepLoopView.Trim(int position) -> Spark.Geometry.BrepTrim
+Spark.Geometry.BrepLoopView.TrimCount.get -> int
+Spark.Geometry.BrepLoopView.VertexIndices() -> int[]!
+Spark.Geometry.BrepPrimitives
+Spark.Geometry.BrepShell
+Spark.Geometry.BrepShell.BrepShell() -> void
+Spark.Geometry.BrepShell.BrepShell(int FirstFace, int FaceCount) -> void
+Spark.Geometry.BrepShell.Deconstruct(out int FirstFace, out int FaceCount) -> void
+Spark.Geometry.BrepShell.Equals(Spark.Geometry.BrepShell other) -> bool
+Spark.Geometry.BrepShell.FaceCount.get -> int
+Spark.Geometry.BrepShell.FaceCount.init -> void
+Spark.Geometry.BrepShell.FirstFace.get -> int
+Spark.Geometry.BrepShell.FirstFace.init -> void
+Spark.Geometry.BrepShellView
+Spark.Geometry.BrepShellView.BrepShellView() -> void
+Spark.Geometry.BrepShellView.Face(int position) -> Spark.Geometry.BrepFaceView
+Spark.Geometry.BrepShellView.FaceCount.get -> int
+Spark.Geometry.BrepShellView.Index.get -> int
+Spark.Geometry.BrepShellView.Shell.get -> Spark.Geometry.BrepShell
+Spark.Geometry.BrepTrim
+Spark.Geometry.BrepTrim.BrepTrim() -> void
+Spark.Geometry.BrepTrim.BrepTrim(int Edge, bool IsReversed) -> void
+Spark.Geometry.BrepTrim.Deconstruct(out int Edge, out bool IsReversed) -> void
+Spark.Geometry.BrepTrim.Edge.get -> int
+Spark.Geometry.BrepTrim.Edge.init -> void
+Spark.Geometry.BrepTrim.Equals(Spark.Geometry.BrepTrim other) -> bool
+Spark.Geometry.BrepTrim.IsReversed.get -> bool
+Spark.Geometry.BrepTrim.IsReversed.init -> void
+Spark.Geometry.BrepVertex
+Spark.Geometry.BrepVertex.BrepVertex() -> void
+Spark.Geometry.BrepVertex.BrepVertex(int Point) -> void
+Spark.Geometry.BrepVertex.Deconstruct(out int Point) -> void
+Spark.Geometry.BrepVertex.Equals(Spark.Geometry.BrepVertex other) -> bool
+Spark.Geometry.BrepVertex.Point.get -> int
+Spark.Geometry.BrepVertex.Point.init -> void
 Spark.Geometry.Circle
 Spark.Geometry.Circle.Centre.get -> Spark.Geometry.Point3d
 Spark.Geometry.Circle.Circle(in Spark.Geometry.Plane plane, double radius) -> void
@@ -490,6 +622,14 @@ override Spark.Geometry.Arc.Trimmed(in Spark.Geometry.Interval domain) -> Spark.
 override Spark.Geometry.BoundingBox.Equals(object? obj) -> bool
 override Spark.Geometry.BoundingBox.GetHashCode() -> int
 override Spark.Geometry.BoundingBox.ToString() -> string!
+override Spark.Geometry.Brep.ToString() -> string!
+override Spark.Geometry.BrepEdge.GetHashCode() -> int
+override Spark.Geometry.BrepFace.GetHashCode() -> int
+override Spark.Geometry.BrepLoop.GetHashCode() -> int
+override Spark.Geometry.BrepShell.GetHashCode() -> int
+override Spark.Geometry.BrepShell.ToString() -> string!
+override Spark.Geometry.BrepTrim.GetHashCode() -> int
+override Spark.Geometry.BrepVertex.GetHashCode() -> int
 override Spark.Geometry.Circle.Domain.get -> Spark.Geometry.Interval
 override Spark.Geometry.Circle.IsClosed.get -> bool
 override Spark.Geometry.Circle.LengthAt(double parameter) -> double
@@ -669,6 +809,20 @@ static Spark.Geometry.BoundingBox.operator !=(in Spark.Geometry.BoundingBox left
 static Spark.Geometry.BoundingBox.operator ==(in Spark.Geometry.BoundingBox left, in Spark.Geometry.BoundingBox right) -> bool
 static Spark.Geometry.BoundingVolumeHierarchy.Build(System.Collections.Generic.IReadOnlyList<Spark.Geometry.BoundingBox>! boxes) -> Spark.Geometry.BoundingVolumeHierarchy!
 static Spark.Geometry.BoundingVolumeHierarchy.Build(System.ReadOnlySpan<Spark.Geometry.BoundingBox> boxes) -> Spark.Geometry.BoundingVolumeHierarchy!
+static Spark.Geometry.BrepEdge.operator !=(Spark.Geometry.BrepEdge left, Spark.Geometry.BrepEdge right) -> bool
+static Spark.Geometry.BrepEdge.operator ==(Spark.Geometry.BrepEdge left, Spark.Geometry.BrepEdge right) -> bool
+static Spark.Geometry.BrepFace.operator !=(Spark.Geometry.BrepFace left, Spark.Geometry.BrepFace right) -> bool
+static Spark.Geometry.BrepFace.operator ==(Spark.Geometry.BrepFace left, Spark.Geometry.BrepFace right) -> bool
+static Spark.Geometry.BrepLoop.operator !=(Spark.Geometry.BrepLoop left, Spark.Geometry.BrepLoop right) -> bool
+static Spark.Geometry.BrepLoop.operator ==(Spark.Geometry.BrepLoop left, Spark.Geometry.BrepLoop right) -> bool
+static Spark.Geometry.BrepPrimitives.Box(in Spark.Geometry.Plane plane, double length = 1, double width = 1, double height = 1) -> Spark.Geometry.Brep!
+static Spark.Geometry.BrepPrimitives.Cylinder(in Spark.Geometry.Plane plane, double radius = 1, double height = 1) -> Spark.Geometry.Brep!
+static Spark.Geometry.BrepShell.operator !=(Spark.Geometry.BrepShell left, Spark.Geometry.BrepShell right) -> bool
+static Spark.Geometry.BrepShell.operator ==(Spark.Geometry.BrepShell left, Spark.Geometry.BrepShell right) -> bool
+static Spark.Geometry.BrepTrim.operator !=(Spark.Geometry.BrepTrim left, Spark.Geometry.BrepTrim right) -> bool
+static Spark.Geometry.BrepTrim.operator ==(Spark.Geometry.BrepTrim left, Spark.Geometry.BrepTrim right) -> bool
+static Spark.Geometry.BrepVertex.operator !=(Spark.Geometry.BrepVertex left, Spark.Geometry.BrepVertex right) -> bool
+static Spark.Geometry.BrepVertex.operator ==(Spark.Geometry.BrepVertex left, Spark.Geometry.BrepVertex right) -> bool
 static Spark.Geometry.Circle.ByCentreNormalRadius(in Spark.Geometry.Point3d centre, in Spark.Geometry.Vector3d normal, double radius) -> Spark.Geometry.Circle!
 static Spark.Geometry.Circle.ByCentreRadius(in Spark.Geometry.Point3d centre, double radius) -> Spark.Geometry.Circle!
 static Spark.Geometry.Circle.ByPlaneRadius(in Spark.Geometry.Plane plane, double radius) -> Spark.Geometry.Circle!
@@ -836,3 +990,14 @@ virtual Spark.Geometry.Curve.ParameterAtLength(double distance) -> double
 virtual Spark.Geometry.Curve.Tessellate(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Point3d[]!
 virtual Spark.Geometry.Surface.Area.get -> double
 virtual Spark.Geometry.Surface.BoundingBox.get -> Spark.Geometry.BoundingBox
+~override Spark.Geometry.BrepEdge.Equals(object obj) -> bool
+~override Spark.Geometry.BrepEdge.ToString() -> string
+~override Spark.Geometry.BrepFace.Equals(object obj) -> bool
+~override Spark.Geometry.BrepFace.ToString() -> string
+~override Spark.Geometry.BrepLoop.Equals(object obj) -> bool
+~override Spark.Geometry.BrepLoop.ToString() -> string
+~override Spark.Geometry.BrepShell.Equals(object obj) -> bool
+~override Spark.Geometry.BrepTrim.Equals(object obj) -> bool
+~override Spark.Geometry.BrepTrim.ToString() -> string
+~override Spark.Geometry.BrepVertex.Equals(object obj) -> bool
+~override Spark.Geometry.BrepVertex.ToString() -> string

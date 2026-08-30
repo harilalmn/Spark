@@ -16,13 +16,13 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1, M1.5, M2, M3 and M4 are done.** **M5 is open**: the surface layer landed 2026-08-31; `NurbsSurface`, `Mesh`, tessellation and the shaded viewport remain. M1.6 is deferred |
-| **Working on** | Nothing. Between steps, inside M5 |
+| **Milestone** | **M1, M1.5, M2, M3 and M4 are done. M5 is substantially done** — surfaces, `NurbsSurface`, `Mesh`, tessellation, the shaded viewport and all four interchange formats landed 2026-08-31; the software renderer and CI visual regression (`E11-T16`) are **deferred past M6** deliberately. **M6 is open**: BRep and exact solid operations |
+| **Working on** | Nothing. Between steps, inside M6 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E2-T34` and `E2-T35`, the mesh formats** — OBJ meshes, STL read and write with welding, PLY with colours, and binary glTF. The CLI dispatches on the extension, and a second golden example graph is checked in |
+| **Last completed step** | **`E2-T22` and `E2-T23`, opening M6** — the index-based BRep model, its builder, its `ref struct` navigators, validation, and a box and a cylinder built from them. **The winding was wrong on first writing and the tests caught it**, which is the failure mode the whole layer exists to make visible |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **M6 opens with BRep topology.** M5's remaining rows — the software renderer and CI visual regression (`E11-T16`) — are **deferred to after M6**, and the reason is stated rather than assumed: they guard the viewport against regression, and the viewport is not what the milestone that follows depends on. **Take `E2-T22` first**: `BrepVertex`, `BrepEdge`, `BrepTrim`, `BrepLoop`, `BrepFace`, `BrepShell`, `Brep`, **index-based** — arrays and int indices, no object references — then `E2-T23`'s `BrepBuilder` and `readonly ref struct` navigators, then `E2-T28`'s `IBrepKernel` with `Capabilities` and `Result<T>`. The data model never crosses the seam; the operations do. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1641**: Geometry.Tests 733, UI.Tests 437, Engine.Tests 343, Viewport.Tests 74, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph surfaces --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | M6 step **(b)**: **`E2-T28`, `IBrepKernel` with `Capabilities` and `Result<T>`.** The seam itself. **Operations cross it; the data model never does** — in front are every value type, analytic and NURBS evaluation, the `Brep`/`Mesh` model and its validation, mesh tessellation, bounding boxes, transforms and all serialization; behind are intersection, extrude/revolve/loft/sweep/offset/thicken/shell, fillet/chamfer/split/trim, boolean, sew/heal, and `Brep` tessellation. **`Capabilities` is what greys a button out** rather than letting a user find out by pressing it, and `Result<T>` is what makes a refusal a value rather than an exception — an exact kernel refuses often and legitimately. **Exactly two crossings, `Import` and `Materialise`** ([ADR-0021](adr/0021-brep-kernel-residency.md)), and **round-trip is not identity: no test may assert that it is.** Then a first provider — and the shape of it is `Q15`'s question, which wants a human. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1667**: Geometry.Tests 757, UI.Tests 437, Engine.Tests 343, Viewport.Tests 74, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph surfaces --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -2265,3 +2265,60 @@ and it produces four surfaces. Exporting it writes 1,296 STL facets, 675 PLY ver
 **Verified.** Build clean with `-warnaserror`; **1641 tests, 0 failures** (Geometry 718 → 733,
 UI 435 → 437); `dotnet format` clean; docs harness green; and all four formats written from the
 command line against the checked-in example.
+
+### 2026-08-31 — M6 opens: BRep topology, and a winding the tests caught
+
+**`E2-T22` and `E2-T23`, taken together** because the index model without its navigators is correct
+and unusable, which is the whole of the second row.
+
+**Everything is contiguous, and that is the layout's one real idea.** Trims within a loop, loops
+within a face, faces within a shell: each is an offset and a count rather than a list of indices.
+A whole BRep is nine flat arrays with no indirection and no cycles — which serialises with no
+reconstruction step, is immutable without a graph walk, and is **the shape that marshals across a C
+ABI in one copy**, which is what [ADR-0020](adr/0020-occt-via-c-abi-shim.md) chose for the OCCT
+shim. The decision was made at M0 for reasons that have now been paid for twice.
+
+**Validation returns a list and the constructor checks nothing, on purpose.** A constructor that
+threw on a malformed BRep would make it impossible to *read* one in order to find out what is wrong
+with it — which is exactly what a repair tool does. So `Brep` takes any nine arrays, `Validate`
+reports every problem in one pass, and `BrepBuilder` is what code that is *making* a model uses,
+because there an index out of range is a bug to report at the line that wrote it.
+
+**`IsSolid` is the topological form of the question `MeshTopology.IsClosed` asks**: every edge used
+exactly twice, once forwards and once backwards. It catches a hole and a face wound backwards with
+the same count, which is the same trick the mesh layer uses and is worth having in both places.
+
+**`BrepPrimitives` builds a box and a cylinder**, and they exist so the kernel seam has something to
+be tested against before a provider does. The cylinder is the interesting one: **three faces and two
+vertices**, where the same shape as a mesh is hundreds of triangles and an approximation. Its seam
+edge is used twice by *one* face — once each way — which is precisely the case that makes a trim's
+direction flag necessary and that an implementation using two seam edges gets subtly wrong.
+
+**The winding was wrong on first writing, and the tests are what said so.** `ABoxIsASolid` and
+`ACylindersSeamIsUsedBothWaysByOneFace` both failed: the box's bottom loop ran the obvious circuit
+seen from *above*, and the rule is anticlockwise seen from **outside**, so all four of its trims
+reverse. The cylinder's wall used the top circle forwards where the cap already did. Both models
+looked entirely plausible, validated clean, and were not solids — which is the failure mode this
+whole layer exists to make visible, arriving on the day the layer was written.
+
+**The navigators are `readonly ref struct`s.** A pair of registers, no allocation, and the compiler
+will not let one escape to the heap and outlive the model it points into. `BrepFaceView.NormalAt` is
+the one that matters most: a face may be the *reverse* of its surface — that is how one surface
+serves the inner and outer walls of a shelled solid — so code asking the surface directly would get
+the right answer on half a model.
+
+**What this BRep cannot do is stated on the types rather than discovered.** A trim carries no
+parameter-space curve, because that needs the planar layer's `Curve2d` (`E2-T13`), so a face's
+boundary is described in three dimensions and only an *untrimmed* face can be tessellated —
+`IsUntrimmed` says which kind a model is. And every operation that makes new topology — boolean,
+fillet, extrude, sew, heal — is behind the kernel seam (`E2-T28`) and is not here. What is here is
+the model, its construction, its validation, its measurement and its serialization, which is exactly
+the half `E2-T28` says never crosses.
+
+**Verified.** Build clean with `-warnaserror`; **1667 tests, 0 failures** (Geometry 733 → 757);
+`dotnet format` clean; docs harness green. `E2-T31` went red on `Brep` until it serialised — nine
+arrays written as nine arrays, which is the one geometry type whose round trip needs no
+reconstruction at all — with a **cylinder** as the sample rather than a box, because its
+twice-used seam edge is the relationship a round trip is most likely to lose. The six topology
+records are excluded from serialisation with the reason that they are indices into one model's
+arrays and mean nothing outside it.
