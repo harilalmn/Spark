@@ -211,6 +211,70 @@ public static class GeometryJson
                 Number(writer, "sweepAngle", v.SweepAngle.Radians);
                 break;
 
+            // Surfaces. Each writes what its constructor takes and nothing derived, which is what
+            // makes a round trip a fact about the arguments rather than about the maths.
+            case PlaneSurface v:
+                Open(writer, nameof(PlaneSurface));
+                Member(writer, "plane", v.Plane);
+                Member(writer, "domainU", v.DomainU);
+                Member(writer, "domainV", v.DomainV);
+                break;
+
+            case SphericalSurface v:
+                Open(writer, nameof(SphericalSurface));
+                Member(writer, "frame", v.Frame);
+                Number(writer, "radius", v.Radius);
+                Member(writer, "domainU", v.DomainU);
+                Member(writer, "domainV", v.DomainV);
+                break;
+
+            case CylindricalSurface v:
+                Open(writer, nameof(CylindricalSurface));
+                Member(writer, "frame", v.Frame);
+                Number(writer, "radius", v.Radius);
+                Member(writer, "domainU", v.DomainU);
+                Member(writer, "domainV", v.DomainV);
+                break;
+
+            case ConicalSurface v:
+                Open(writer, nameof(ConicalSurface));
+                Member(writer, "frame", v.Frame);
+                Number(writer, "radius", v.Radius);
+                Number(writer, "halfAngle", v.HalfAngle.Radians);
+                Member(writer, "domainU", v.DomainU);
+                Member(writer, "domainV", v.DomainV);
+                break;
+
+            case ToroidalSurface v:
+                Open(writer, nameof(ToroidalSurface));
+                Member(writer, "frame", v.Frame);
+                Number(writer, "majorRadius", v.MajorRadius);
+                Number(writer, "minorRadius", v.MinorRadius);
+                Member(writer, "domainU", v.DomainU);
+                Member(writer, "domainV", v.DomainV);
+                break;
+
+            case ExtrusionSurface v:
+                Open(writer, nameof(ExtrusionSurface));
+                Member(writer, "profile", v.Profile);
+                Member(writer, "direction", v.Direction);
+                Member(writer, "height", v.DomainV);
+                break;
+
+            case RevolutionSurface v:
+                Open(writer, nameof(RevolutionSurface));
+                Member(writer, "profile", v.Profile);
+                Member(writer, "axisOrigin", v.AxisOrigin);
+                Member(writer, "axis", v.Axis);
+                Member(writer, "sweep", v.DomainU);
+                break;
+
+            case RuledSurface v:
+                Open(writer, nameof(RuledSurface));
+                Member(writer, "first", v.First);
+                Member(writer, "second", v.Second);
+                break;
+
             case KnotVector v:
                 Open(writer, nameof(KnotVector));
                 writer.WriteNumber("degree", v.Degree);
@@ -333,6 +397,41 @@ public static class GeometryJson
                 Number(element, "yRadius"),
                 Angle.FromRadians(Number(element, "startAngle")),
                 Angle.FromRadians(Number(element, "sweepAngle"))),
+            nameof(PlaneSurface) => new PlaneSurface(
+                ReadPlane(element, "plane"), ReadInterval(element, "domainU"), ReadInterval(element, "domainV")),
+            nameof(SphericalSurface) => new SphericalSurface(
+                ReadPlane(element, "frame"),
+                Number(element, "radius"),
+                ReadInterval(element, "domainU"),
+                ReadInterval(element, "domainV")),
+            nameof(CylindricalSurface) => new CylindricalSurface(
+                ReadPlane(element, "frame"),
+                Number(element, "radius"),
+                ReadInterval(element, "domainU"),
+                ReadInterval(element, "domainV")),
+            nameof(ConicalSurface) => new ConicalSurface(
+                ReadPlane(element, "frame"),
+                Number(element, "radius"),
+                Angle.FromRadians(Number(element, "halfAngle")),
+                ReadInterval(element, "domainU"),
+                ReadInterval(element, "domainV")),
+            nameof(ToroidalSurface) => new ToroidalSurface(
+                ReadPlane(element, "frame"),
+                Number(element, "majorRadius"),
+                Number(element, "minorRadius"),
+                ReadInterval(element, "domainU"),
+                ReadInterval(element, "domainV")),
+            nameof(ExtrusionSurface) => new ExtrusionSurface(
+                ReadCurve(element, "profile"),
+                Vector(element, "direction"),
+                ReadInterval(element, "height")),
+            nameof(RevolutionSurface) => new RevolutionSurface(
+                ReadCurve(element, "profile"),
+                Point(element, "axisOrigin"),
+                Vector(element, "axis"),
+                ReadInterval(element, "sweep")),
+            nameof(RuledSurface) => new RuledSurface(
+                ReadCurve(element, "first"), ReadCurve(element, "second")),
             nameof(KnotVector) => ReadKnotVector(element),
             nameof(NurbsCurve) => ReadNurbsCurve(element),
             nameof(PolyLine) => ReadPolyLine(element),
@@ -506,4 +605,10 @@ public static class GeometryJson
     private static Vector3d Vector(JsonElement element, string name) => (Vector3d)Read(element.GetProperty(name));
 
     private static Plane ReadPlane(JsonElement element, string name) => (Plane)Read(element.GetProperty(name));
+
+    private static Interval ReadInterval(JsonElement element, string name) =>
+        (Interval)Read(element.GetProperty(name));
+
+    private static Curve ReadCurve(JsonElement element, string name) =>
+        (Curve)Read(element.GetProperty(name));
 }

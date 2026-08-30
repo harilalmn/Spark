@@ -73,6 +73,32 @@ public sealed class GeometryJsonTests
             new Line(new Point3d(0.0, 0.0, 0.0), new Point3d(1.0, 0.0, 0.0)),
             new Line(new Point3d(1.0, 0.0, 0.0), new Point3d(1.0, 2.0, 0.0)),
         ]),
+
+        // Surfaces. Each sample uses a *patch* rather than a whole sphere or torus wherever the
+        // type allows one, because a partial domain is what a round trip can actually get wrong:
+        // a whole one round-trips through a default and looks correct whatever was written.
+        [typeof(PlaneSurface)] = new PlaneSurface(
+            Plane.WorldXY, new Interval(-1.0, 2.0), new Interval(0.5, 4.0)),
+        [typeof(SphericalSurface)] = new SphericalSurface(
+            Plane.WorldXY, 2.5, new Interval(0.2, 3.0), new Interval(-0.5, 1.1)),
+        [typeof(CylindricalSurface)] = new CylindricalSurface(
+            Plane.WorldXZ, 1.5, new Interval(0.1, 2.0), new Interval(-1.0, 3.0)),
+        [typeof(ConicalSurface)] = new ConicalSurface(
+            Plane.WorldXY, 1.25, Angle.FromRadians(0.35), new Interval(0.0, 2.5), new Interval(0.0, 4.0)),
+        [typeof(ToroidalSurface)] = new ToroidalSurface(
+            Plane.WorldXY, 5.0, 1.5, new Interval(0.0, 2.0), new Interval(0.5, 3.5)),
+        [typeof(ExtrusionSurface)] = new ExtrusionSurface(
+            new Line(new Point3d(0.0, 0.0, 0.0), new Point3d(3.0, 0.0, 0.0)),
+            new Vector3d(0.0, 0.0, 1.0),
+            new Interval(0.0, 4.0)),
+        [typeof(RevolutionSurface)] = new RevolutionSurface(
+            new Line(new Point3d(2.0, 0.0, 0.0), new Point3d(2.0, 0.0, 5.0)),
+            Point3d.Origin,
+            Vector3d.ZAxis,
+            new Interval(0.0, 2.0)),
+        [typeof(RuledSurface)] = new RuledSurface(
+            new Line(new Point3d(0.0, 0.0, 0.0), new Point3d(3.0, 0.0, 0.0)),
+            new Line(new Point3d(0.0, 4.0, 1.0), new Point3d(3.0, 4.0, 1.0))),
     };
 
     /// <summary>
@@ -83,6 +109,7 @@ public sealed class GeometryJsonTests
     private static readonly Dictionary<Type, string> Excluded = new()
     {
         [typeof(Curve)] = "abstract; its concrete subclasses each have a sample",
+        [typeof(Surface)] = "abstract; its concrete subclasses each have a sample",
         [typeof(BoundingVolumeHierarchy)] =
             "an index over other things, derived and rebuildable in microseconds. Storing it "
             + "would mean storing a second copy of the boxes and a promise that they still agree",
@@ -250,6 +277,13 @@ public sealed class GeometryJsonTests
 
     private static void AssertSame(object expected, object actual)
     {
+        if (expected is Surface surface)
+        {
+            AssertSameSurface(surface, (Surface)actual);
+
+            return;
+        }
+
         if (expected is Curve curve)
         {
             AssertSameCurve(curve, (Curve)actual);
@@ -274,6 +308,40 @@ public sealed class GeometryJsonTests
             default:
                 Assert.Equal(expected, actual);
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Two surfaces are the same when they occupy the same positions over the same domains.
+    /// </summary>
+    /// <remarks>
+    /// <b>The same reasoning as <see cref="AssertSameCurve"/>, for the same reason.</b> Equality on
+    /// surfaces is deliberately not defined — two surfaces that describe the same sheet under
+    /// different parameterisations are a tolerance question — so sameness is asserted the only way
+    /// it is defined: sample the grid and compare. A reference-equality assertion would pass on a
+    /// type that came back with the wrong radius and the right frame, because the frame is what
+    /// <c>ToString</c> shows.
+    /// </remarks>
+    private static void AssertSameSurface(Surface expected, Surface actual)
+    {
+        Assert.Equal(expected.GetType(), actual.GetType());
+        Assert.Equal(expected.DomainU.Min, actual.DomainU.Min, 12);
+        Assert.Equal(expected.DomainU.Max, actual.DomainU.Max, 12);
+        Assert.Equal(expected.DomainV.Min, actual.DomainV.Min, 12);
+        Assert.Equal(expected.DomainV.Max, actual.DomainV.Max, 12);
+        Assert.Equal(expected.Area, actual.Area, 9);
+
+        for (int i = 0; i <= 5; i++)
+        {
+            for (int j = 0; j <= 5; j++)
+            {
+                double u = expected.DomainU.Denormalise(i / 5.0);
+                double v = expected.DomainV.Denormalise(j / 5.0);
+
+                Assert.True(
+                    expected.PointAt(u, v).EqualsWithin(actual.PointAt(u, v)),
+                    $"the surfaces differ at ({u}, {v})");
+            }
         }
     }
 

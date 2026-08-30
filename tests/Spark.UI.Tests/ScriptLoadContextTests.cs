@@ -43,9 +43,10 @@ public sealed class ScriptLoadContextTests
 
         WeakReference context = factory.Unload();
 
-        Collect();
-
-        Assert.False(context.IsAlive, "the script load context is still alive after Unload");
+        Assert.True(
+            Collected(context),
+            "the script load context is still alive after Unload, so the assemblies it holds can "
+            + "never be released");
     }
 
     /// <summary>
@@ -62,9 +63,9 @@ public sealed class ScriptLoadContextTests
 
         WeakReference context = factory.Unload();
 
-        Collect();
-
-        Assert.True(context.IsAlive, "the context should still be alive while a definition holds it");
+        Assert.False(
+            Collected(context),
+            "the context should still be alive while a definition holds it");
 
         // And the definition still works, which is the other half: unloading the factory's cache
         // must not break a node that is on somebody's canvas.
@@ -134,19 +135,38 @@ public sealed class ScriptLoadContextTests
     }
 
     /// <summary>
-    /// Collects hard enough for a collectible context to actually go.
+    /// Collects until a weak reference goes dead, or until it is fair to say it will not.
     /// </summary>
+    /// <returns>True when the reference died.</returns>
     /// <remarks>
-    /// An unload completes over several collections: finalisers run between them, and the context
-    /// itself is only released once the assemblies in it are. One <c>GC.Collect</c> is not enough
-    /// and the documented shape of this loop is a bounded retry rather than a single call.
+    /// <para>
+    /// <b>An unload is not synchronous and cannot be made so.</b> It completes over several
+    /// collections — finalisers run between them, and the context is only released once every
+    /// assembly in it is — and how many it takes depends on what else the process is doing. A fixed
+    /// number of <c>GC.Collect</c> calls is enough when this file runs alone and **was not** when
+    /// it ran inside the whole suite, which is exactly the flake a GC assertion invites.
+    /// </para>
+    /// <para>
+    /// So the loop is bounded by time and exits as soon as the answer is known: a pass is fast, and
+    /// a genuine failure costs the whole budget once. <b>The negative case uses the same helper</b>,
+    /// which is what stops it passing merely because the collector had not got round to it yet.
+    /// </para>
     /// </remarks>
-    private static void Collect()
+    private static bool Collected(WeakReference reference)
     {
-        for (int attempt = 0; attempt < 10; attempt++)
+        for (int attempt = 0; attempt < 40; attempt++)
         {
-            GC.Collect();
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
             GC.WaitForPendingFinalizers();
+
+            if (!reference.IsAlive)
+            {
+                return true;
+            }
+
+            Thread.Sleep(25);
         }
+
+        return false;
     }
 }

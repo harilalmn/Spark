@@ -16,13 +16,13 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1, M1.5, M2, M3 and M4 are done** — M4 closed on 2026-08-31 but for `E6-T14`'s docked script node. M1.6 is deferred. Next is **M5, surfaces and meshes** |
-| **Working on** | Nothing. **Between milestones**: M4 closed, M5 not started |
+| **Milestone** | **M1, M1.5, M2, M3 and M4 are done.** **M5 is open**: the surface layer landed 2026-08-31; `NurbsSurface`, `Mesh`, tessellation and the shaded viewport remain. M1.6 is deferred |
+| **Working on** | Nothing. Between steps, inside M5 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E6-T3`, `E6-T15` and the rest of `E6-T16`, closing M4** — a collectible load context, a registry cleared before unload proven by a weak reference that dies, and a graph that is opened, drawn and not run until somebody says so |
+| **Last completed step** | **`E2-T17` and `E2-T18`, opening M5** — the `Surface` contract and all eight analytic surfaces, cross-checked against closed forms they do not use. The degeneracy test at a sphere's pole is the part worth reading |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **Open M5 with the surface layer**, which is the spine everything else in the milestone hangs from and the prerequisite for M6's BRep faces. In order: a `Surface` base beside `Curve` with the same contract discipline — `PointAt`, `NormalAt`, a two-dimensional domain, closure, exclusions named on the type — then the analytic surfaces, then `NurbsSurface`. After the surfaces: `Mesh`, tessellation, `RenderPackage` streaming and the shaded viewport. **Settle the contract against the parity register first, as `E2-T41` did for curves** — the `AtLength` family was cheap to have from the first commit and would have been expensive to retrofit. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1487**: Geometry.Tests 584, UI.Tests 435, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | M5 step **(b)**: **`E2-T19`, `NurbsSurface`.** `KnotVector` and `NurbsCurve` are both already here, so this is the tensor-product extension of code that exists rather than new mathematics: two knot vectors, a control net, optional weights, de Boor in both directions, derivatives from the same recurrence. **Then `ToNurbsSurface` on the analytic types**, which `E2-T17` deliberately left out until there was something to convert to — sphere, cylinder, cone and torus are all *exactly* representable as rational NURBS, and being exact is the whole reason they are first-class types rather than approximations. After it: **`E2-T20`, `Mesh`**, then `E2-T26` tessellation and the shaded viewport. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1704**: Geometry.Tests 652, UI.Tests 435, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -1987,3 +1987,61 @@ collectible context and the trust posture.
 **Verified.** Build clean with `-warnaserror`; **1487 tests, 0 failures** (UI 415 → 435);
 `dotnet format` clean; docs harness green. The registry-clear ordering was reverted once and two
 tests went red.
+
+### 2026-08-31 — M5 opens: the surface layer
+
+**`E2-T17` and `E2-T18`.** `Surface` beside `Curve`, and eight concrete surfaces on it: plane,
+sphere, cylinder, cone, torus, extrusion, revolution and ruled. This is the spine of M5 and the
+prerequisite for M6's BRep faces, so it was taken first and taken whole rather than one type at a
+time.
+
+**The contract mirrors `Curve` on purpose, and differs only where a surface differs.** Sealed types
+over a `private protected` base, so the set is closed to the assembly and a tessellator can know
+every one there is. Two domains rather than one, neither assumed to be [0, 1]. Wrapping in a closed
+direction, exactly as a curve wraps. And **numeric derivatives with analytic overrides**: every
+surface *can* be differentiated by central differences, so a new type is correct before it is fast,
+and every analytic type overrides because central differences cost about half the available
+precision.
+
+**Iso-curves are real `Curve` objects.** Arc length, division, tessellation to a tolerance and the
+bounding box all work on them with no second implementation — and that is why `Surface` has a
+`TransformedBy`: an iso-curve has to be transformable, which it can only be if its surface is.
+
+**Three things the row asked for are deliberately not built, and say so on the type.** `Trim` needs
+the planar layer (`E2-T13`); `ToNurbsSurface` needs `NurbsSurface` (`E2-T19`); surface/surface
+intersection is exact-kernel work behind `E2-T28`'s seam. Each is a row, not an omission.
+
+**The degeneracy test was the one genuinely subtle piece.** A sphere's pole has no normal, and the
+obvious check — *is the cross product zero* — fails twice over. At `v = π/2` exactly, `cos v` is
+6.1e-17 rather than 0, so nothing is zero and a normal is confidently returned where there is none.
+And the two derivatives at a pole are still perfectly *perpendicular*, so a ratio of the cross
+product to the product of the lengths is order one and passes as well. What works is comparing one
+derivative's length to the other's: at a pole one has collapsed and the other has not.
+
+**Two closed forms were deliberately not written, and both were tempting.** A cone's lateral area is
+measured along the **slant**, and the obvious version measured along the axis is short by exactly
+`sec α` while looking entirely plausible. An extrusion has no closed form worth having at all —
+*length × height* is right only when the sweep is perpendicular to the profile, and extruding a line
+along its own direction gives a surface of zero area that the formula says is twelve. Both have a
+test, and the extrusion type carries a note saying why it does *not* override `Area`.
+
+**The sphere, the cylinder, the cone and the torus refuse a non-uniform scale.** The kernel has no
+ellipsoid, so returning a sphere of some averaged radius would be wrong in a way nothing downstream
+could detect. Refusing is the honest answer and all four give it in the same words.
+
+**`E2-T31` earned itself again.** The reflection-driven round-trip test went red the moment the
+eight new types existed — *these public geometry types have no serialization sample* — which is
+precisely what it is for. All eight now serialise, and surfaces are compared **by sampling their
+grid** rather than by equality, for the same reason curves are: equality on a surface is a tolerance
+question, and `Assert.Equal` on two records compares what `ToString` shows, which would pass a
+surface that came back with the right frame and the wrong radius.
+
+**One flake fixed on the way.** `UnloadingReleasesTheScriptAssemblies` passed alone and failed
+inside the full suite: an unload completes over several collections and how many depends on what
+else the process is doing. It now polls to a deadline and exits as soon as the answer is known,
+**and the negative case uses the same helper** — which is what stops *the context is still alive*
+passing merely because the collector had not got round to it.
+
+**Verified.** Build clean with `-warnaserror`; **1704 tests, 0 failures** (Geometry 584 → 652);
+`dotnet format` clean; docs harness green; and the UI suite run three times over to confirm the
+unload assertion is stable.

@@ -176,6 +176,35 @@ public abstract class Curve
         EvaluateDerivative(CheckParameter(parameter)).Normalised();
 
     /// <summary>
+    /// The first derivative at a parameter: the curve's velocity in its own parameterisation.
+    /// </summary>
+    /// <param name="parameter">A parameter in <see cref="Domain"/>.</param>
+    /// <returns>The derivative, which is <b>not</b> a unit vector.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown when <paramref name="parameter"/> is not finite, or lies outside <see cref="Domain"/>
+    /// on a curve that is not closed.
+    /// </exception>
+    /// <remarks>
+    /// <b>This is not <see cref="TangentAt"/>, and the difference is the whole reason both exist.</b>
+    /// A tangent is a direction and is normalised; a derivative carries the speed of the
+    /// parameterisation as well, and losing it makes a surface built on this curve wrong. A surface
+    /// of revolution's <c>∂S/∂v</c> is exactly this vector, rotated — normalise it and the surface's
+    /// area, curvature and normal are all subtly off, because the parameterisation is no longer the
+    /// one the surface says it has.
+    /// </remarks>
+    public Vector3d DerivativeAt(double parameter) => EvaluateDerivative(CheckParameter(parameter));
+
+    /// <summary>The second derivative at a parameter, in the curve's own parameterisation.</summary>
+    /// <param name="parameter">A parameter in <see cref="Domain"/>.</param>
+    /// <returns>The second derivative.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown when <paramref name="parameter"/> is not finite, or lies outside <see cref="Domain"/>
+    /// on a curve that is not closed.
+    /// </exception>
+    public Vector3d SecondDerivativeAt(double parameter) =>
+        EvaluateSecondDerivative(CheckParameter(parameter));
+
+    /// <summary>
     /// The unit principal normal at a parameter: the direction the curve is turning towards.
     /// </summary>
     /// <remarks>
