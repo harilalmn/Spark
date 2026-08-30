@@ -13,6 +13,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using Spark.UI.Canvas;
 using Spark.UI.Controls;
 using Spark.UI.Graph;
 using Spark.UI.Shell;
@@ -71,6 +72,10 @@ public sealed partial class MainWindow : Window
         // evaluation would be doing it on the thread it draws on (ADR-0005).
         Canvas.GraphChanged += OnCanvasGraphChanged;
         Canvas.SelectionChanged += OnCanvasSelectionChanged;
+
+        // Nothing is selected yet, so Align starts disabled. Left to the first SelectionChanged
+        // it would start enabled over an empty selection and do nothing when pressed.
+        UpdateAlignAvailability();
 
         // The library pane cannot see the canvas, and should not: where a node lands depends on
         // what is already on the surface. It asks, and the window is what knows both halves.
@@ -164,8 +169,48 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private void OnCanvasSelectionChanged(object? sender, EventArgs e) =>
+    private void OnCanvasSelectionChanged(object? sender, EventArgs e)
+    {
         Model?.ShowSelection(Canvas.Selection);
+        UpdateAlignAvailability();
+    }
+
+    /// <summary>
+    /// Enables the align menu, and its two distribute items, for the selection there actually is.
+    /// </summary>
+    /// <remarks>
+    /// Done here rather than by binding because the selection lives on the canvas, not on the view
+    /// model: it is a canvas gesture's state, and lifting it into the document model to make a
+    /// binding possible would be the tail wagging the dog. The window already knows both halves,
+    /// which is the same argument that put node placement here.
+    /// </remarks>
+    private void UpdateAlignAvailability()
+    {
+        int selected = Canvas.Selection.Count;
+
+        AlignButton.IsEnabled = selected >= CanvasAlignment.MinimumToAlign;
+        DistributeHorizontally.IsEnabled = selected >= CanvasAlignment.MinimumToDistribute;
+        DistributeVertically.IsEnabled = selected >= CanvasAlignment.MinimumToDistribute;
+    }
+
+    /// <summary>
+    /// Applies the alignment the clicked menu item names.
+    /// </summary>
+    /// <remarks>
+    /// The operation travels on the item's <c>Tag</c> as the enum's own name, parsed back here.
+    /// Eight nearly identical handlers would be the alternative, and the parse fails loudly at the
+    /// first click if a Tag is ever misspelt — which a set of eight handlers would not.
+    /// </remarks>
+    private void OnAlign(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: string name })
+        {
+            return;
+        }
+
+        Canvas.AlignSelection(Enum.Parse<CanvasAlign>(name));
+        UpdateStatus();
+    }
 
     private void OnRun(object? sender, RoutedEventArgs e)
     {

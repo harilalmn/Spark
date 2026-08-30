@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-30 17:40 +0530
+**Last updated:** 2026-08-30 19:15 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1 and M1.5 are both done.** M1.6 is deferred for want of a C++ toolchain; the work in flight is **M2's remainder** |
 | **Working on** | Nothing. Between steps, part way through queue **9** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **9**, `E8-T2` step **(b)** — the shell is a real `DockControl` driven by `WorkspaceLayout`. **`E8-T2` is `Done`** |
+| **Last completed step** | Queue **9**, `E8-T6` step **(a)** — **align**: six alignments, two distributions, one toolbar flyout |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | Queue **9**'s next item: **`E8-T6` — group, note and align on the canvas.** Read the `E8-T6` row in [TASKS.md](TASKS.md) first; the canvas already has selection, the `SceneIndex` and undo over whole-document snapshots, so all three operations are edits to the document rather than new machinery. Take **align** first — it is the smallest of the three, it needs no new document type, and it proves the edit-plus-undo path before group and note add one. Before starting, decide whether a group is a document object or a canvas annotation, because that decision is expensive to reverse and `E8-T6` does not make it for you. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1058** after step (b): Geometry.Tests 402, Engine.Tests 289, UI.Tests 243, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | `E8-T6` step **(b)** — **notes**, and with them the decision step (a) was able to defer. A note is a rectangle of text on the canvas that the engine never evaluates, and it has to survive save and open, so **the `.spark` format has to carry it**. Answer the question in this order: a note is a **canvas annotation**, not a document object — it has no `NodeId`, no ports and no provenance, and giving it one would put a thing that cannot evaluate into the evaluator's model. So it belongs beside the node *positions* in `GraphDocument`, which is already the precedent for data the engine writes and never reads (`Graph/CanvasDocument.cs` says so in as many words). Start by reading `src/Spark.Engine/GraphDocument.cs` and `SparkFile.cs` to see what a format addition costs — **check whether it needs a version bump and whether an older file still opens**, because that is the part that is expensive to get wrong. Then a `CanvasNote` on `CanvasGraph`, drawing in `GraphCanvas.Render` beneath the nodes, and round-trip tests. **Group is step (c)** and rides on the same format work. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1076**: Geometry.Tests 402, Engine.Tests 289, UI.Tests 261, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -587,3 +587,45 @@ test but is never written to disk, so a dragged arrangement does not survive a r
 now a queue item rather than an implication.
 
 **Cost.** About an hour and a half, of which the tests were half and worth it twice over.
+
+### 2026-08-30 — Align, and a headless failure that came from somewhere else
+
+**`E8-T6` step (a) — align.** Queue **9**'s second item, taken in three steps because group and
+note need something align does not: a file format that carries an object the engine never reads.
+Align moves nodes, and nodes already save and already undo, so it is the slice that stands alone.
+
+**`src/Spark.UI/Canvas/CanvasAlignment.cs`** is six alignments and two distributions as arithmetic
+over `CanvasBounds` — no Avalonia type in the signature, so every case is a unit test rather than a
+window and a gesture, which is the same argument that keeps `SceneIndex` and the LOD rules pure.
+`GraphCanvas.AlignSelection` adds the three things arithmetic cannot know: which nodes are
+selected, that the spatial index has to be told, and that the edit does not require a run — a
+position is not in a node's provenance, exactly as a drag already argues.
+
+**Two decisions worth their sentences.** *Distribution equalises gaps, not centres*: a node's
+height is its port count, so no two are alike, and evenly spaced centres leave a wide node visibly
+crowding its neighbours while the arithmetic insists everything is even. And *one toolbar button
+with a flyout, not eight buttons* — aligning is occasional, and eight of them would push the
+things used every minute off the end of the bar. The button disables below two selected nodes and
+the two distribute items below three, so nothing on it is ever offered and then ignored.
+
+**Align does not need the group question answered.** The journal flagged *is a group a document
+object or a canvas annotation* as expensive to reverse. It is, and it is still open — but it
+belongs to the steps where the file format actually changes, and deciding it early would have been
+deciding it with less information.
+
+**The thing that cost the time was not align.** Five of the seven new canvas tests failed with
+`ObjectDisposedException` thrown inside `DrawText`, on a stack naming `FontManager` and the
+control's `Render` and nothing in the test file. The cause is that a headless window left open has
+its pending frame drained during the session's teardown, after the application — fonts included —
+has been disposed. It presents as flakiness in the new code: it lands on whichever tests are still
+draining, so adding an unrelated class can turn green tests red. One `finally { window.Close(); }`
+fixes it. [N37](NOTES.md#n37--a-headless-window-left-open-renders-after-the-fonts-are-gone).
+
+**Verified.** Build clean with `-warnaserror`; **1076 tests, 0 failures** (1058 + 18);
+`dotnet format` clean. **AGENTS.md step 7:** `AligningTwiceRecordsOneEdit` is the named guard —
+revert the *did anything actually move* check and it goes red, which is the N19 lesson the drag
+gesture already had to learn, arriving here from a second direction. `AnAlignedNodeIsHitTestableWhereItNowIs`
+is the guard for the index update, and it is the bug this epic has already been bitten by once.
+The screenshot shows **Align ▾** on the toolbar, correctly greyed with nothing selected.
+
+**Cost.** About an hour, of which the headless teardown was half.

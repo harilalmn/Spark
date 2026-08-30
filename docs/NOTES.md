@@ -1133,3 +1133,29 @@ dock.VisibleDockables?.Contains(tool) == true
 The general shape: **a predicate that is wrong only in the direction that looks like success will
 survive every screenshot you take of it.** This one was found by a unit test asserting the
 round trip — hide, restore, and check — which is the assertion a screenshot cannot make.
+
+---
+
+## N37 — A headless window left open renders after the fonts are gone
+
+A test that shows an Avalonia window through `HeadlessUnitTestSession` and **does not close it**
+can fail with an `ObjectDisposedException` raised inside `DrawText`. The stack names
+`FontManager`, `TextFormatterImpl` and the control's own `Render`, and nothing in the test file.
+
+The sequence is: the test body invalidates the visual (any edit does), the dispatch ends with that
+render job still queued, and the session's teardown drains the queue from
+`Dispatcher.ResetForUnitTests` **after** disposing the application — fonts included. The frame is
+then drawn against a disposed font manager.
+
+It is worth writing down because of how it presents. The failure is **not deterministic per test**:
+it lands on whichever tests happen to still be draining when teardown runs, so adding an unrelated
+test class can turn five green tests red and reverting one line can turn them green again. That
+reads as flakiness in the new code, and it is not.
+
+```csharp
+window.Show();
+try { body(window, canvas); } finally { window.Close(); }
+```
+
+**Close every headless window you open**, in a `finally`. The cost is one line; the alternative is
+a class of failure that appears to come from somewhere else entirely.

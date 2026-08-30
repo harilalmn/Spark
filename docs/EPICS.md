@@ -673,7 +673,9 @@ another.
 - [ ] The canvas is one control over a retained `SceneIndex`, with a hybrid overlay for the
       node under interaction (**E8-T3**, **E8-T4**, **E8-T5**).
 - [ ] Pan, zoom, box select, drag, wire, unwire, delete, group, note and align all work
-      (**E8-T6**).
+      (**E8-T6**). *Everything but group and note, as of 2026-08-30. Align is six alignments
+      and two distributions behind one toolbar flyout; the distributions equalise gaps rather
+      than centres, because a node's height is its port count and no two are alike.*
 - [x] LOD below 40% zoom (**E8-T7**).
 - [ ] A 2000-node synthetic graph pans and zooms at 60 fps, benchmarked nightly from M2
       (**E8-T15**). *The nightly exists and the budget is this criterion stated as a number —
@@ -727,7 +729,7 @@ first, because a `Tool`'s content is a template and inline pane markup silently 
 window's `x:Name`s ([N34](NOTES.md)). Two further defects looked exactly like working code — a
 pane bound against the wrong `DataContext` draws its heading over an empty list ([N35](NOTES.md)),
 and `Owner is not null` reports every pane as showing so *Reset layout* restored nothing
-([N36](NOTES.md)). Group, note and align are not built (`E8-T6`). And the measured number that had a harness and no schedule now has both: a nightly runs
+([N36](NOTES.md)). Group and note are not built; align landed on 2026-08-30 (`E8-T6`). And the measured number that had a harness and no schedule now has both: a nightly runs
 `bench/Spark.Benchmarks` and `--canvas-benchmark` against committed budgets, leaving `E8-T15`
 short only its first execution on a hosted runner (`E1-T21`,
 [ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md)).

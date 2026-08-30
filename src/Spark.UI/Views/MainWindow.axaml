@@ -58,6 +58,32 @@
         <Button Classes="toolbar" Content="Open…" Click="OnOpenGraph" />
         <Button Classes="toolbar" Content="Save as…" Click="OnSaveGraph" />
 
+        <!--
+          One button with a flyout rather than eight buttons. Aligning is occasional and its
+          eight forms are a family; spending an eighth of the toolbar on them would push the
+          things used every minute off the end of it. The whole button disables below two
+          selected nodes, and the two distribute items disable below three, so nothing on it
+          is ever offered and then ignored.
+        -->
+        <Button Classes="toolbar" Content="Align ▾" x:Name="AlignButton">
+          <Button.Flyout>
+            <MenuFlyout>
+              <MenuItem Header="Align left" Click="OnAlign" Tag="Left" />
+              <MenuItem Header="Align centres" Click="OnAlign" Tag="HorizontalCentres" />
+              <MenuItem Header="Align right" Click="OnAlign" Tag="Right" />
+              <Separator />
+              <MenuItem Header="Align top" Click="OnAlign" Tag="Top" />
+              <MenuItem Header="Align middles" Click="OnAlign" Tag="VerticalCentres" />
+              <MenuItem Header="Align bottom" Click="OnAlign" Tag="Bottom" />
+              <Separator />
+              <MenuItem Header="Distribute horizontally" Click="OnAlign"
+                        Tag="DistributeHorizontally" x:Name="DistributeHorizontally" />
+              <MenuItem Header="Distribute vertically" Click="OnAlign"
+                        Tag="DistributeVertically" x:Name="DistributeVertically" />
+            </MenuFlyout>
+          </Button.Flyout>
+        </Button>
+
         <Border Width="1" Margin="6,2" Background="{DynamicResource SparkBorderHairlineBrush}" />
 
         <!-- The tooltip names the step, so a user can see what Ctrl+Z is about to reverse before

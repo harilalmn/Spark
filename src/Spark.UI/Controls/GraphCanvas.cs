@@ -1243,6 +1243,94 @@ public sealed class GraphCanvas : Control
     }
 
     /// <summary>
+    /// Whether an alignment would be meaningful over the current selection.
+    /// </summary>
+    /// <param name="align">The operation.</param>
+    /// <returns>True when there are enough nodes selected for it to mean something.</returns>
+    public bool CanAlignSelection(CanvasAlign align) =>
+        CanvasAlignment.IsApplicable(align, _selection.Count);
+
+    /// <summary>
+    /// Lines up or spreads out the selected nodes.
+    /// </summary>
+    /// <param name="align">Which operation to apply.</param>
+    /// <returns>True when at least one node actually moved.</returns>
+    /// <remarks>
+    /// <para>
+    /// Reported as an edit that does <b>not</b> require a run, for the same reason a drag is: a
+    /// position is not in a node's provenance, so nothing downstream of it can evaluate
+    /// differently afterwards.
+    /// </para>
+    /// <para>
+    /// <b>An alignment that moves nothing records nothing.</b> Aligning an already-aligned column
+    /// is a thing users do constantly — it is how you check — and putting a step on the undo stack
+    /// whose undo moves nothing reads as undo being broken. That is N19 in the shape the drag
+    /// gesture already had to learn.
+    /// </para>
+    /// </remarks>
+    public bool AlignSelection(CanvasAlign align)
+    {
+        if (!CanAlignSelection(align))
+        {
+            return false;
+        }
+
+        // The spatial index is rebuilt inside Render, so a canvas that has never painted has a
+        // stale one - and an alignment can be invoked from a menu before any frame is drawn.
+        EnsureIndex();
+
+        // Sorted so that the operation is a function of the geometry and not of the order the
+        // user happened to click in. Distribute is the case that would notice.
+        List<int> slots = [.. _selection];
+        slots.Sort();
+
+        List<CanvasBounds> boxes = new(slots.Count);
+        foreach (int slot in slots)
+        {
+            if (slot < 0 || slot >= _graph.Nodes.Count)
+            {
+                return false;
+            }
+
+            boxes.Add(_graph.Nodes[slot].Bounds);
+        }
+
+        IReadOnlyList<(double X, double Y)> placed = CanvasAlignment.Apply(align, boxes);
+        bool moved = false;
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            CanvasNode node = _graph.Nodes[slots[i]];
+            (double x, double y) = placed[i];
+
+            if (node.X == x && node.Y == y)
+            {
+                continue;
+            }
+
+            node.X = x;
+            node.Y = y;
+            _index.Update(slots[i], node.Bounds);
+            moved = true;
+        }
+
+        if (!moved)
+        {
+            return false;
+        }
+
+        _wireVisuals.Clear();
+        InvalidateVisual();
+        // Labelled without a node count, unlike Move and Delete. Those name an amount of work;
+        // an alignment names an arrangement, and "Undo Align left" says everything "Undo Align
+        // left 3 nodes" would while reading like English.
+        GraphChanged?.Invoke(
+            this, new GraphEditedEventArgs(CanvasAlignment.Describe(align), affectsEvaluation: false));
+
+        return true;
+    }
+
+    /// <summary>
     /// Deletes the selected wire if there is one, otherwise every selected node.
     /// </summary>
     /// <remarks>
