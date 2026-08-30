@@ -66,7 +66,7 @@ public sealed class CodeEditorSpikeTests
         using ScriptCompletion completion = new([typeof(Point3d).Assembly]);
 
         IReadOnlyList<ScriptCompletionItem> items =
-            await completion.CompleteAsync(Snippet, Snippet.Length, TestContext.Current.CancellationToken);
+            await completion.CompleteAsync(Snippet, Snippet.Length, cancellationToken: TestContext.Current.CancellationToken);
 
         string[] names = [.. items.Select(item => item.DisplayText)];
 
@@ -152,13 +152,13 @@ public sealed class CodeEditorSpikeTests
         using ScriptCompletion completion = new([typeof(Point3d).Assembly]);
 
         Stopwatch first = Stopwatch.StartNew();
-        await completion.CompleteAsync(Snippet, Snippet.Length, TestContext.Current.CancellationToken);
+        await completion.CompleteAsync(Snippet, Snippet.Length, cancellationToken: TestContext.Current.CancellationToken);
         first.Stop();
 
         Stopwatch steady = Stopwatch.StartNew();
         for (int i = 0; i < 10; i++)
         {
-            await completion.CompleteAsync(Snippet, Snippet.Length, TestContext.Current.CancellationToken);
+            await completion.CompleteAsync(Snippet, Snippet.Length, cancellationToken: TestContext.Current.CancellationToken);
         }
 
         steady.Stop();

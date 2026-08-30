@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2 and M3 are done** — M3 closed on 2026-08-31. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. Next is **M4, the C# code block** |
 | **Working on** | Nothing. Between steps, inside M4 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E6-T6`, typed input injection** — a wired port is declared with the type the wire carries, so `centre.X` resolves at compile time and `E6-T7` becomes possible. Fixed two defects it exposed in `ReplaceDefinition` ([N45](NOTES.md)) |
+| **Last completed step** | **`E6-T7`, the language service half** — completion takes the block's ports and their wire types, so `centre.` lists what is wired in. The row stays `In progress` because there is no editor to show it in |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M4 step **(f)**: **`E6-T7`, wire-typed IntelliSense** — the signature differentiator, and the half of `E6-T6` a user actually sees. `ScriptCompletion` already completes against a compilation; what it needs now is to be given the *same* wrapped source the factory compiles, typed declarations and all, so that `centre.` inside a code block lists `Point3d`'s members. **The invariant `E6-T13` states is the thing to hold**: completion must agree with the compiler — same references, same imports, same generated frame — and a list that disagrees is worse than no list. That argues for extracting the wrapping out of `ScriptNodeFactory` so both callers use one implementation rather than two that drift. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1431**: Geometry.Tests 584, UI.Tests 379, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | M4 step **(g)**: **the code block editor — `E6-T11`, `E6-T12`, `E6-T13`.** Host AvaloniaEdit in the properties pane in place of the plain text box, drive `ScriptCompletion` from it with the selected node's ports, and place the popup. **`E6-T13`'s invariant is the acceptance test**: the completion list and the compiler must be given the same references, the same imports and the same declarations, so the one wrap belongs in one place rather than in two that drift. Closing these also closes `E6-T7`. The M1.5 spike already proved AvaloniaEdit hosts headlessly and that the caret survives scrolling ([N33](NOTES.md)), so the risk here is placement and focus, which is where AvalonEdit and AvaloniaEdit diverge most. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1436**: Geometry.Tests 584, UI.Tests 384, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -1792,3 +1792,32 @@ before its wires exist and at that moment nothing is connected.
 **Verified.** Build clean with `-warnaserror`, zero warnings; **1431 tests, 0 failures**
 (UI 359 → 379); `dotnet format --verify-no-changes` clean; docs harness green. Reverted the
 outgoing-wire restoration once and watched `RetypingKeepsTheWiresLeavingTheBlock` go red.
+
+### 2026-08-31 — Completion that follows the wires
+
+**`E6-T7`, the language service half.** A code block's port is called `centre` and nothing in the
+text says what a `centre` is. `ScriptCompletion.CompleteAsync` now takes the block's ports and what
+the graph knows each one carries, so typing `centre.` lists the members of whatever is wired in.
+That is the demo this project has been describing since M0, and it is now a passing test rather
+than a claim.
+
+**The declarations go in as a one-line prefix of top-level statements, not as the generated
+frame.** The completion document is parsed as `SourceCodeKind.Script`, which is what makes a bare
+`var p = new Point3d(…);` parse at all ([N33](NOTES.md)); wrapping the snippet in the class and
+method the compiler sees would need `Regular` and would give that up. One line, because the caret
+offset is what an editor sends and gets back, and a newline here would move every line of the
+user's snippet relative to what Roslyn is looking at. The caret is shifted by the prefix's length,
+and there is a test that would otherwise pass by completing whatever happens to sit under the
+unshifted offset.
+
+**An unwired port completes as `dynamic`, and the negative test is the important one.** The
+compiler will declare it `dynamic`, so offering `Point3d`'s members there would be a promise the
+compile does not keep — `E6-T13`'s invariant, that a list which disagrees with the compiler is
+worse than no list, is either held here or lost here.
+
+**`E6-T7` stays `In progress`, on purpose.** There is no editor in the application yet, so nothing
+a user can see has changed. The row closes with `E6-T11` and `E6-T12`, and saying so is cheaper
+than a row that reads `Done` and demos nothing.
+
+**Verified.** Build clean with `-warnaserror`; **1436 tests, 0 failures** (UI 379 → 384);
+`dotnet format` clean; docs harness green.

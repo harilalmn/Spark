@@ -103,18 +103,47 @@ public sealed class ScriptCompletion : IDisposable
     /// </summary>
     /// <param name="code">The snippet, as the editor currently holds it.</param>
     /// <param name="caret">The caret offset, in characters from the start.</param>
+    /// <param name="inputs">
+    /// The block's input ports and what the graph knows they carry, by name (`E6-T7`). A port whose
+    /// type is unknown — nothing wired into it — maps to <see langword="null"/> and is completed
+    /// against <c>dynamic</c>, which is what the compiler will declare it as.
+    /// </param>
     /// <param name="cancellationToken">Cancels a slow request — a keystroke supersedes it.</param>
     /// <returns>The candidates, in Roslyn's own order.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="code"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown when <paramref name="caret"/> is outside the snippet.
     /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the thing Spark can demonstrate that Dynamo cannot</b> (`E6-T7`). Wire a point
+    /// into a port called <c>centre</c>, type <c>centre.</c>, and the list is
+    /// <see cref="object"/>'s members no longer — it is whatever the wire carries. The port names
+    /// and types come from the graph, so the list follows the wires rather than the text.
+    /// </para>
+    /// <para>
+    /// <b>The declarations are prepended as ordinary statements and the caret is moved with
+    /// them</b>, rather than the snippet being wrapped in the generated class and method. That
+    /// keeps the document a script, which is what makes a bare <c>var p = new Point3d(…);</c> parse
+    /// at all — and it keeps the only difference between what completion sees and what the compiler
+    /// sees down to a frame that contributes no names of its own. `E6-T13`'s invariant is that a
+    /// completion list which disagrees with the compiler is worse than no list, and this is where
+    /// that is either held or lost.
+    /// </para>
+    /// </remarks>
     public async Task<IReadOnlyList<ScriptCompletionItem>> CompleteAsync(
-        string code, int caret, CancellationToken cancellationToken = default)
+        string code,
+        int caret,
+        IReadOnlyDictionary<string, Type?>? inputs = null,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(code);
         ArgumentOutOfRangeException.ThrowIfNegative(caret);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(caret, code.Length);
+
+        string prefix = Declarations(inputs);
+        code = prefix + code;
+        caret += prefix.Length;
 
         // A completion request is over the text as it is *now*, so the document is replaced
         // rather than edited: an editor sends a new snapshot on every keystroke anyway, and
@@ -151,6 +180,48 @@ public sealed class ScriptCompletion : IDisposable
                 item.SortText)),
         ];
     }
+
+    /// <summary>The declarations a block's ports contribute, as one line of script.</summary>
+    /// <remarks>
+    /// <b>One line, deliberately.</b> A caret offset is what the editor sends and what it gets back
+    /// in an error message, and every newline here would move every line of the user's snippet
+    /// relative to what Roslyn is looking at — the same reasoning that keeps
+    /// <see cref="GuardWeaver"/>'s woven statements trivia-free.
+    /// </remarks>
+    private static string Declarations(IReadOnlyDictionary<string, Type?>? inputs)
+    {
+        if (inputs is null || inputs.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        System.Text.StringBuilder line = new();
+
+        foreach ((string name, Type? type) in inputs.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            if (!IsIdentifier(name))
+            {
+                continue;
+            }
+
+            string? spelt = type is null || type == typeof(object) ? null : ScriptTypeName.Of(type);
+
+            // `default!` rather than `null`, because a port may carry a struct and `Point3d p =
+            // null;` does not compile - and a declaration that does not compile takes the whole
+            // completion list down with it, silently.
+            line.Append(spelt is null
+                ? "dynamic " + name + " = null; "
+                : spelt + " " + name + " = default!; ");
+        }
+
+        return line.ToString();
+    }
+
+    /// <summary>Whether a port name can be a C# identifier, so a declaration of it will compile.</summary>
+    private static bool IsIdentifier(string name) =>
+        name.Length > 0
+        && (char.IsLetter(name[0]) || name[0] == '_')
+        && name.All(c => char.IsLetterOrDigit(c) || c == '_');
 
     /// <inheritdoc/>
     public void Dispose() => _workspace.Dispose();
