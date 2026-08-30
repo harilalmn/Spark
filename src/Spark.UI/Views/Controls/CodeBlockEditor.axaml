@@ -1,0 +1,57 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ae="using:AvaloniaEdit"
+             xmlns:controls="using:Spark.UI.Views.Controls"
+             x:Class="Spark.UI.Views.Controls.CodeBlockEditor"
+             x:DataType="controls:CodeBlockEditor"
+             x:CompileBindings="False"
+             ClipToBounds="True">
+
+  <!--
+    The completion list is a Border on a Canvas over the editor, not a Popup.
+
+    A Popup is the obvious choice and it can extend past the pane's edge, which is worth having in
+    a narrow inspector. It is not worth what it costs here: a Popup needs a window overlay layer,
+    which the headless session used by every test in this project does not provide, so every
+    assertion about placement, filtering and key handling would have to be made against a running
+    application by hand. An in-tree overlay is testable, and the list is clipped to the pane rather
+    than to the screen - a trade this project makes the same way everywhere else.
+  -->
+  <Panel>
+    <ae:TextEditor Name="Editor"
+                   FontFamily="Cascadia Code,Consolas,monospace"
+                   FontSize="12"
+                   ShowLineNumbers="True"
+                   HorizontalScrollBarVisibility="Auto"
+                   VerticalScrollBarVisibility="Auto" />
+
+    <Canvas Name="CompletionLayer" IsHitTestVisible="False">
+      <Border Name="CompletionFrame"
+              IsVisible="False"
+              Background="{DynamicResource ThemeBackgroundBrush}"
+              BorderBrush="{DynamicResource ThemeBorderMidBrush}"
+              BorderThickness="1"
+              CornerRadius="2"
+              MaxHeight="220"
+              MinWidth="180">
+        <ListBox Name="CompletionList"
+                 SelectionMode="Single"
+                 Background="Transparent"
+                 BorderThickness="0">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="{Binding Kind}"
+                           Opacity="0.55"
+                           FontSize="10"
+                           MinWidth="56"
+                           VerticalAlignment="Center" />
+                <TextBlock Text="{Binding DisplayText}" VerticalAlignment="Center" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Border>
+    </Canvas>
+  </Panel>
+</UserControl>

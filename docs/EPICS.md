@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-31 (E6 typed inputs)
+**Last updated:** 2026-08-31 (E6 the editor)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -566,8 +566,11 @@ diverge most; rework is budgeted there specifically.
       (**E6-T6**) — done 2026-08-31. Keyed by port *name*, because the indices are an output of
       compiling rather than an input to it, and carried in the content hash, because the same
       source over a `double` is not the same node as the same source over a `Point3d`.
-- [ ] **IntelliSense inside the code block resolves members of the upstream wire's type**
-      (**E6-T7**).
+- [x] **IntelliSense inside the code block resolves members of the upstream wire's type**
+      (**E6-T7**) — done 2026-08-31, with the editor that shows it (**E6-T11**, **E6-T12**).
+      Wire a point into a port called `centre`, type `centre.`, and the list is `Point3d`'s
+      members. An unwired port lists nothing, because the compiler will declare it `dynamic`
+      and a list that disagrees with the compiler is worse than no list.
 - [ ] Output ports come from a named tuple return; a plain final expression gives one
       `result` port (**E6-T8**).
 - [ ] Compilation is cached on `Hash(normalizedText, inputPortTypes, referenceCatalogVersion,

@@ -31,6 +31,7 @@ public sealed class SparkSession : IDisposable
     private CancellationTokenSource? _inFlight;
     private EvaluationContext _context;
     private bool _disposed;
+    private Spark.Scripting.ScriptCompletion? _completion;
 
     /// <summary>Creates a session with the built-in node library imported.</summary>
     /// <param name="tolerance">The document tolerance, hashed into every cache key.</param>
@@ -85,6 +86,36 @@ public sealed class SparkSession : IDisposable
         return Scripts ??= new Spark.Scripting.ScriptNodeFactory();
     }
 
+    /// <summary>
+    /// The completion service a code block's editor asks, built once and shared.
+    /// </summary>
+    /// <returns>The service, or null when scripting is off.</returns>
+    /// <exception cref="ObjectDisposedException">The session has been disposed.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Built from the factory's own reference catalogue</b> (`E6-T13`), which is the whole of
+    /// that row: a completion list assembled from a different set of references than the compile
+    /// offers members of types the script cannot use and hides members of types it can, and the
+    /// user believes it.
+    /// </para>
+    /// <para>
+    /// <b>Lazy for the same reason <see cref="Scripts"/> is.</b> Roslyn's completion layer composes
+    /// its host services through MEF on first use and is the most expensive thing in the
+    /// application to touch; a session that never opens a code block never pays for it.
+    /// </para>
+    /// </remarks>
+    public Spark.Scripting.ScriptCompletion? Completion()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (Scripts is not Spark.Scripting.ScriptNodeFactory factory)
+        {
+            return null;
+        }
+
+        return _completion ??= new Spark.Scripting.ScriptCompletion(factory.References);
+    }
+
     /// <summary>Turns scripting off — what <c>--no-script</c> means.</summary>
     /// <remarks>
     /// Once refused it stays refused: <see cref="EnableScripting"/> will not undo it. A switch that
@@ -92,6 +123,8 @@ public sealed class SparkSession : IDisposable
     /// </remarks>
     public void DisableScripting()
     {
+        _completion?.Dispose();
+        _completion = null;
         Scripts = null;
         ScriptingAllowed = false;
     }
@@ -248,6 +281,7 @@ public sealed class SparkSession : IDisposable
 
         _disposed = true;
         CancelInFlight();
+        _completion?.Dispose();
         _runs.Dispose();
     }
 

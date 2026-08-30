@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N46 added)
+**Last updated:** 2026-08-31 (N47 added)
 
 ---
 
@@ -1397,3 +1397,31 @@ same measurement.
 - **Measure a fix before believing it.** The repair looked like it worked because the thing it was
   measured against was broken for an unrelated reason. A test written at that moment would have
   passed, for the wrong reason, and pinned a hundred lines of code nothing could falsify.
+
+## N47 — A `Popup` costs the headless test session, and the trade is not close
+
+The completion list wants to be an Avalonia `Popup`. A popup can extend past its parent's bounds,
+which matters in an inspector pane narrow enough that a member list is clipped to about twenty
+characters.
+
+It does not work in the headless session every UI test in this project runs in:
+`Unable to create IPopupImpl and no overlay layer is found for the target control`. A popup needs a
+window overlay layer, and the headless platform does not supply one.
+
+**The failure is worse than it looks, and that is the part worth recording.** Setting `IsOpen`
+throws *after* the property has taken its value, and the control opened the list from a
+fire-and-forget `_ = RequestCompletionAsync()` — so `IsCompletionOpen` answered `true` while an
+exception was being swallowed into an abandoned task. Eight of the twelve tests **passed over a
+thrown exception**. Only the two that awaited the request saw it.
+
+The list is a `Border` on a `Canvas` inside the control instead. It is clipped to the pane, which
+is a real loss, and everything about it is testable: placement, filtering, what each key does, and
+that a click on the list reaches the list while a click through the empty part of the layer reaches
+the editor.
+
+**The general rule this belongs to:** when a framework feature cannot be exercised by the harness,
+the cost is not the feature — it is every future assertion about it becoming a manual check on a
+running application. That is the same reasoning ADR-0013 used to make the canvas one hand-drawn
+control, and it comes out the same way here. **And check what a fire-and-forget task is hiding
+before trusting a green run**: `_ = SomethingAsync()` in a UI handler converts an exception into a
+test that passes.

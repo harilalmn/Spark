@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2 and M3 are done** — M3 closed on 2026-08-31. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. Next is **M4, the C# code block** |
 | **Working on** | Nothing. Between steps, inside M4 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E6-T13`** — the completion/compiler invariant, `ScriptTextRepair` deleted after measuring that it changed nothing, and the accumulating-document bug that measurement exposed ([N46](NOTES.md)) |
+| **Last completed step** | **`E6-T11`, `E6-T12`, closing `E6-T7`** — a real code editor in the inspector with a completion list built from the wires. The list is an in-tree overlay rather than a `Popup`, because a `Popup` cannot be tested headlessly and failed by passing ([N47](NOTES.md)) |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M4 step **(g)(ii)**: **the editor itself — `E6-T11` and `E6-T12`.** Replace the plain `TextBox` in the inspector with an AvaloniaEdit `TextEditor`, C# highlighting, and a completion popup driven from the selected block's ports. **Budget the rework in the popup**, which is where AvalonEdit and AvaloniaEdit diverge most: placement against the caret rectangle, and giving focus back to the editor so typing continues through the list. Keep Roslyn out of the control — the view model asks, the control draws. Closing these closes `E6-T7`, and it is the M4 demoable. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1442**: Geometry.Tests 584, UI.Tests 390, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | M4 step **(h)**: the remaining `E6` rows, in this order — **`E6-T10`** the persistent on-disk compile cache (kills Roslyn cold start on reopen; key is already `Hash(text, inputTypes, catalogueVersion, guardLimits)`), **`E6-T3`** and **`E6-T15`** the collectible load context and clearing callback registries before unload, **`E6-T16`**'s remaining half (`--no-script`, the script-node banner, no auto-run on open, the per-origin content-hash allowlist), and **`E6-T1`**'s source map, which is cheap now that the weaver moves no lines. Then M4 is done and **M5** opens with surfaces. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1454**: Geometry.Tests 584, UI.Tests 402, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -1859,3 +1859,42 @@ anything about *how*. And the list and the compiler share a catalogue.
 **Verified.** Build clean with `-warnaserror`; **1442 tests, 0 failures** (UI 384 → 390);
 `dotnet format` clean; docs harness green. Reverted the one-document fix once and watched
 `CompletionKeepsAnsweringAcrossRequests` go red.
+
+### 2026-08-31 — The editor, and `E6-T7` closes: completion that follows the wires, on screen
+
+**`E6-T11` and `E6-T12`, and with them `E6-T7`.** The inspector's plain text box is gone.
+`CodeBlockEditor` is an AvaloniaEdit host with C# highlighting, line numbers and a completion list
+built from the ports the graph knows about — so placing a code block, wiring a point into `centre`
+and typing `centre.` now lists `Point3d`'s members **in the application**, which is what the row
+always meant and what three earlier steps could only assert in a unit test.
+
+**The list is not a `Popup`, and that decision is the step's finding.** A popup can extend past the
+pane's edge, which a narrow inspector wants. It cannot be tested: the headless session every UI test
+here runs in has no window overlay layer, and `IsOpen = true` throws. **The way that failure
+presented is the part worth remembering** — the setter throws *after* the property has taken its
+value, and the control opens the list from a fire-and-forget task, so `IsCompletionOpen` answered
+`true` while the exception went into an abandoned `Task`. Eight of twelve tests passed *over a
+thrown exception*; only the two that awaited the request saw it. [N47](NOTES.md). The list is now a
+`Border` on a `Canvas` inside the control: clipped to the pane, which is a real loss, and every
+behaviour asserted rather than looked at.
+
+**Placement is the M1.5 spike's C3 finding, turned into a guard.** `GetVisualPosition` answers in
+the text view's document coordinates, so the scroll offset comes off; without it the list is right
+on the first screenful and further wrong with every line scrolled. `CompletionOrigin` is readable
+for exactly that test, and taking the subtraction out turns it red.
+
+**The keyboard is the other half of `E6-T12`.** The editor keeps focus while the list is open and
+forwards Up, Down, Enter, Tab and Escape to it, so typing never stops. Committing **replaces what
+was typed** rather than inserting after it — get that wrong and `centre.Di` + Enter gives
+`centre.DiDistanceTo`, which reads as an engine that does not understand its own list. Filtering is
+local rather than a fresh request per keystroke, and a prefix matching nothing closes the list,
+because a rectangle with nothing in it sitting over the user's code is worse than no list.
+
+**And a plain answer to a question the row did not ask.** An empty completion answer does not open
+an empty box, and a block with no completion source at all — an inspector in a session with
+scripting off — never reaches for a compiler.
+
+**Verified.** Build clean with `-warnaserror`; **1454 tests, 0 failures** (UI 390 → 402);
+`dotnet format` clean; docs harness green; and the application runs — `--graph curves --screenshot`
+draws 18 nodes, 15 wires, 4 buffer sets, with the OpenGL viewport reporting ready. The scroll-offset
+subtraction was reverted once and its test went red.

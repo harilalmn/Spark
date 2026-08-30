@@ -81,6 +81,12 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     {
     }
 
+    /// <summary>
+    /// The catalogue every script here compiles against, so completion can be built from the same
+    /// one (`E6-T13`).
+    /// </summary>
+    public ReferenceCatalog References => _references;
+
     /// <summary>How many scripts the resident cache is holding.</summary>
     public int CachedScripts => _compiled.Count;
 

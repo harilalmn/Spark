@@ -80,6 +80,19 @@ for (var i = 0; i < count; i++)
 return points;
 ```
 
+## The editor
+
+The source is edited in the **Properties** pane. It is a real code editor: C# syntax highlighting,
+line numbers, and a completion list.
+
+**Type a dot, or press Ctrl+Space, and the list opens at the caret.** Keep typing to narrow it —
+`centre.Di` selects `DistanceTo` — then **Enter** or **Tab** to accept, **Escape** to dismiss, and
+the arrow keys to move through it. The editor keeps the keyboard the whole time, so the list never
+interrupts typing.
+
+Editing is committed when the editor loses focus. That is when the block is recompiled, its ports
+are worked out again, and the graph re-runs.
+
 ## What a wire teaches the block
 
 **Before anything is connected, an input port has no type**, so Spark declares it `dynamic`: the
@@ -96,6 +109,12 @@ return centre.X + centre.Y;
 and it works because the compiler knows what `centre` is, not because it found out at run time.
 The port label on the canvas changes to match, and pulling the wire out puts the port back to
 `dynamic`, because an unwired port has no type to claim.
+
+**This is what the completion list is built from.** With a point wired into `centre`, typing
+`centre.` lists `X`, `Y`, `Z`, `DistanceTo` and the rest of `Point3d`. With nothing wired in, it
+lists nothing — not because Spark is being unhelpful, but because the block really will be compiled
+with that input as `dynamic`, and a list that promised members the compiler will not find would be
+worse than no list at all. **Wire the port first, and the editor knows what you are working with.**
 
 Numbers are widened where a graph would expect them to be: an integer arriving on a port the
 script uses as a `double` is converted rather than refused. When something genuinely wrong

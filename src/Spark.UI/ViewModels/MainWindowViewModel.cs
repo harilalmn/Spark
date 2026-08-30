@@ -5,14 +5,17 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Spark.Api;
 using Spark.Engine;
 using Spark.Host;
+using Spark.Scripting;
 using Spark.UI.Graph;
 using Spark.UI.Shell;
+using Spark.UI.Views.Controls;
 using Spark.Viewport;
 
 namespace Spark.UI.ViewModels;
@@ -702,6 +705,40 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         RecordEdit("Edit code block");
         return true;
+    }
+
+    /// <summary>
+    /// The completions available at a caret inside the selected code block (`E6-T7`).
+    /// </summary>
+    /// <param name="code">The source as the editor holds it.</param>
+    /// <param name="caret">The caret offset.</param>
+    /// <param name="cancellationToken">Cancels a request a later keystroke has superseded.</param>
+    /// <returns>The candidates, or nothing when there is no code block or no scripting.</returns>
+    /// <remarks>
+    /// <b>The ports come from the graph, which is the whole point.</b> The completion list is built
+    /// against the types the wires carry, so a port called <c>centre</c> with a point wired into it
+    /// completes as a <c>Point3d</c> — and one with nothing wired into it completes as
+    /// <c>dynamic</c>, because that is what the compiler will make of it.
+    /// </remarks>
+    public async Task<IReadOnlyList<CodeCompletionCandidate>> CompleteScriptAsync(
+        string code, int caret, CancellationToken cancellationToken)
+    {
+        if (SelectedCodeBlock is not { } node || _session.Completion() is not { } completion)
+        {
+            return [];
+        }
+
+        Dictionary<string, Type?> ports = new(StringComparer.Ordinal);
+
+        foreach (PortDefinition port in _graph.Engine.Node(node.Id).Definition.Inputs)
+        {
+            ports[port.Name] = port.ValueType == typeof(object) ? null : port.ValueType;
+        }
+
+        IReadOnlyList<ScriptCompletionItem> items =
+            await completion.CompleteAsync(code, caret, ports, cancellationToken).ConfigureAwait(true);
+
+        return [.. items.Select(item => new CodeCompletionCandidate(item.DisplayText, item.Kind))];
     }
 
     /// <summary>The source behind a canvas node, or null when it is not a code block.</summary>
