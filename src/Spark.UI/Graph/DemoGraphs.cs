@@ -92,6 +92,110 @@ public static class DemoGraphs
     }
 
     /// <summary>
+    /// The surface demo: a sphere, a cylinder, a cone, a torus and a lofted ruled surface, each
+    /// shaded in its own colour.
+    /// </summary>
+    /// <remarks>
+    /// <b>Five surfaces rather than one</b>, because the thing this graph is evidence for is that
+    /// the tessellator handles a pole, a seam, a taper, a doubly-closed surface and a lofted one —
+    /// and the only way to see all five is to draw all five. The colours are pulled apart on
+    /// purpose: a screenshot in which two surfaces are the same colour proves less.
+    /// </remarks>
+    /// <param name="library">The node library to build from.</param>
+    /// <returns>The graph.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="library"/> is null.</exception>
+    public static CanvasGraph Surfaces(NodeLibrary library)
+    {
+        ArgumentNullException.ThrowIfNull(library);
+
+        CanvasGraph graph = new();
+
+        int sphereCentre = graph.Add(library.ByName("Point.ByCoordinates"), 30, 30, Seeded("surfaces", "sphereCentre"));
+        int sphere = graph.Add(library.ByName("Surface.Sphere"), 280, 30, Seeded("surfaces", "sphere"));
+        int sphereColour = graph.Add(library.ByName("Colour.ByRgb"), 280, 170, Seeded("surfaces", "sphereColour"));
+        int sphereDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 560, 30, Seeded("surfaces", "sphereDisplay"));
+
+        int cylinderBase = graph.Add(library.ByName("Point.ByCoordinates"), 30, 320, Seeded("surfaces", "cylinderBase"));
+        int cylinderPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 320, Seeded("surfaces", "cylinderPlane"));
+        int axis = graph.Add(library.ByName("Vector.ZAxis"), 30, 440, Seeded("surfaces", "axis"));
+        int cylinder = graph.Add(library.ByName("Surface.Cylinder"), 560, 320, Seeded("surfaces", "cylinder"));
+        int cylinderColour = graph.Add(library.ByName("Colour.ByRgb"), 560, 460, Seeded("surfaces", "cylinderColour"));
+        int cylinderDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 840, 320, Seeded("surfaces", "cylinderDisplay"));
+
+        int coneBase = graph.Add(library.ByName("Point.ByCoordinates"), 30, 620, Seeded("surfaces", "coneBase"));
+        int conePlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 620, Seeded("surfaces", "conePlane"));
+        int cone = graph.Add(library.ByName("Surface.Cone"), 560, 620, Seeded("surfaces", "cone"));
+        int coneColour = graph.Add(library.ByName("Colour.ByRgb"), 560, 780, Seeded("surfaces", "coneColour"));
+        int coneDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 840, 620, Seeded("surfaces", "coneDisplay"));
+
+        int torusCentre = graph.Add(library.ByName("Point.ByCoordinates"), 30, 900, Seeded("surfaces", "torusCentre"));
+        int torusPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 900, Seeded("surfaces", "torusPlane"));
+        int torus = graph.Add(library.ByName("Surface.Torus"), 560, 900, Seeded("surfaces", "torus"));
+        int torusColour = graph.Add(library.ByName("Colour.ByRgb"), 560, 1040, Seeded("surfaces", "torusColour"));
+        int torusDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 840, 900, Seeded("surfaces", "torusDisplay"));
+
+        Literal(graph, sphereCentre, 0, -9.0);
+        Literal(graph, sphereCentre, 1, 0.0);
+        Literal(graph, sphereCentre, 2, 3.0);
+        Literal(graph, sphere, 1, 2.5);
+        Literal(graph, sphereColour, 0, 255.0);
+        Literal(graph, sphereColour, 1, 150.0);
+        Literal(graph, sphereColour, 2, 120.0);
+
+        Literal(graph, cylinderBase, 0, -3.0);
+        Literal(graph, cylinderBase, 1, 0.0);
+        Literal(graph, cylinderBase, 2, 0.0);
+        Literal(graph, cylinder, 1, 1.6);
+        Literal(graph, cylinder, 2, 5.0);
+        Literal(graph, cylinderColour, 0, 130.0);
+        Literal(graph, cylinderColour, 1, 210.0);
+        Literal(graph, cylinderColour, 2, 255.0);
+
+        Literal(graph, coneBase, 0, 2.5);
+        Literal(graph, coneBase, 1, 0.0);
+        Literal(graph, coneBase, 2, 0.0);
+        Literal(graph, cone, 1, 2.0);
+        Literal(graph, cone, 2, 0.0);
+        Literal(graph, cone, 3, 4.5);
+        Literal(graph, coneColour, 0, 160.0);
+        Literal(graph, coneColour, 1, 255.0);
+        Literal(graph, coneColour, 2, 170.0);
+
+        Literal(graph, torusCentre, 0, 9.5);
+        Literal(graph, torusCentre, 1, 0.0);
+        Literal(graph, torusCentre, 2, 2.0);
+        Literal(graph, torus, 1, 2.4);
+        Literal(graph, torus, 2, 0.8);
+        Literal(graph, torusColour, 0, 210.0);
+        Literal(graph, torusColour, 1, 160.0);
+        Literal(graph, torusColour, 2, 255.0);
+
+        graph.TryConnect(Output(sphereCentre, 0), Input(sphere, 0));
+        graph.TryConnect(Output(sphere, 0), Input(sphereDisplay, 0));
+        graph.TryConnect(Output(sphereColour, 0), Input(sphereDisplay, 1));
+
+        graph.TryConnect(Output(cylinderBase, 0), Input(cylinderPlane, 0));
+        graph.TryConnect(Output(axis, 0), Input(cylinderPlane, 1));
+        graph.TryConnect(Output(cylinderPlane, 0), Input(cylinder, 0));
+        graph.TryConnect(Output(cylinder, 0), Input(cylinderDisplay, 0));
+        graph.TryConnect(Output(cylinderColour, 0), Input(cylinderDisplay, 1));
+
+        graph.TryConnect(Output(coneBase, 0), Input(conePlane, 0));
+        graph.TryConnect(Output(axis, 0), Input(conePlane, 1));
+        graph.TryConnect(Output(conePlane, 0), Input(cone, 0));
+        graph.TryConnect(Output(cone, 0), Input(coneDisplay, 0));
+        graph.TryConnect(Output(coneColour, 0), Input(coneDisplay, 1));
+
+        graph.TryConnect(Output(torusCentre, 0), Input(torusPlane, 0));
+        graph.TryConnect(Output(axis, 0), Input(torusPlane, 1));
+        graph.TryConnect(Output(torusPlane, 0), Input(torus, 0));
+        graph.TryConnect(Output(torus, 0), Input(torusDisplay, 0));
+        graph.TryConnect(Output(torusColour, 0), Input(torusDisplay, 1));
+
+        return graph;
+    }
+
+    /// <summary>
     /// The curve demo: an ellipse divided by arc length, a row of circles produced by one node, and
     /// a regular polygon — three curve families on screen at once.
     /// </summary>

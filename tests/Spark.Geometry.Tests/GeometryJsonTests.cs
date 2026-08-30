@@ -134,6 +134,11 @@ public sealed class GeometryJsonTests
     {
         [typeof(Curve)] = "abstract; its concrete subclasses each have a sample",
         [typeof(Surface)] = "abstract; its concrete subclasses each have a sample",
+        [typeof(MeshBuilder)] =
+            "a sink that collects a tessellation into a Mesh. It has no state worth saving - what "
+            + "it produces does, and that is a Mesh, which has a sample",
+        [typeof(Tessellation)] = "a static class of operations, not a value",
+        [typeof(SurfaceConversion)] = "a static class of operations, not a value",
         [typeof(MeshTopology)] =
             "adjacency derived from a mesh and rebuildable from it in one pass. Storing it would "
             + "mean storing a second description of the same faces and a promise that the two "

@@ -54,6 +54,10 @@ public readonly record struct StartupOptions(
     public bool IsCurveGraph =>
         string.Equals(Graph, "curves", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>True when the window should open the surface demo.</summary>
+    public bool IsSurfaceGraph =>
+        string.Equals(Graph, "surfaces", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>True when the window should run the canvas benchmark and then exit.</summary>
     public bool IsBenchmark => BenchmarkFrames > 0;
 

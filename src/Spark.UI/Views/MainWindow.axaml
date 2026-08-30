@@ -98,6 +98,7 @@
                 ToolTip.Tip="{Binding RedoDescription}" />
         <Button Classes="toolbar" Content="Demo graph" Click="OnLoadDemo" />
         <Button Classes="toolbar" Content="Curves" Click="OnLoadCurves" />
+        <Button Classes="toolbar" Content="Surfaces" Click="OnLoadSurfaces" />
         <Button Classes="toolbar" Content="Run" Click="OnRun" />
       </StackPanel>
     </Border>

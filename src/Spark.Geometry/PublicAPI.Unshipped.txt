@@ -111,6 +111,10 @@ Spark.Geometry.ExtrusionSurface.ExtrusionSurface(Spark.Geometry.Curve! profile, 
 Spark.Geometry.ExtrusionSurface.ExtrusionSurface(Spark.Geometry.Curve! profile, in Spark.Geometry.Vector3d direction, in Spark.Geometry.Interval height) -> void
 Spark.Geometry.ExtrusionSurface.Profile.get -> Spark.Geometry.Curve!
 Spark.Geometry.GeometryJson
+Spark.Geometry.ITessellationSink
+Spark.Geometry.ITessellationSink.AddQuad(int a, int b, int c, int d) -> void
+Spark.Geometry.ITessellationSink.AddTriangle(int a, int b, int c) -> void
+Spark.Geometry.ITessellationSink.AddVertex(in Spark.Geometry.Point3d position, in Spark.Geometry.Vector3d normal, in Spark.Geometry.UV textureCoordinate) -> int
 Spark.Geometry.Interval
 Spark.Geometry.Interval.Clamp(double value) -> double
 Spark.Geometry.Interval.Denormalise(double t) -> double
@@ -171,6 +175,14 @@ Spark.Geometry.Mesh.VertexCount.get -> int
 Spark.Geometry.Mesh.Vertices() -> Spark.Geometry.Point3d[]!
 Spark.Geometry.Mesh.Volume() -> double
 Spark.Geometry.Mesh.WithVertexNormals() -> Spark.Geometry.Mesh!
+Spark.Geometry.MeshBuilder
+Spark.Geometry.MeshBuilder.AddQuad(int a, int b, int c, int d) -> void
+Spark.Geometry.MeshBuilder.AddTriangle(int a, int b, int c) -> void
+Spark.Geometry.MeshBuilder.AddVertex(in Spark.Geometry.Point3d position, in Spark.Geometry.Vector3d normal, in Spark.Geometry.UV textureCoordinate) -> int
+Spark.Geometry.MeshBuilder.Build() -> Spark.Geometry.Mesh!
+Spark.Geometry.MeshBuilder.FaceCount.get -> int
+Spark.Geometry.MeshBuilder.MeshBuilder() -> void
+Spark.Geometry.MeshBuilder.VertexCount.get -> int
 Spark.Geometry.MeshFace
 Spark.Geometry.MeshFace.A.get -> int
 Spark.Geometry.MeshFace.B.get -> int
@@ -345,6 +357,7 @@ Spark.Geometry.Surface.PointAt(double u, double v) -> Spark.Geometry.Point3d
 Spark.Geometry.Surface.PointAt(in Spark.Geometry.UV uv) -> Spark.Geometry.Point3d
 Spark.Geometry.Surface.PrincipalCurvatures(double u, double v) -> (double Minimum, double Maximum)
 Spark.Geometry.SurfaceConversion
+Spark.Geometry.Tessellation
 Spark.Geometry.Tolerance
 Spark.Geometry.Tolerance.Angular.get -> Spark.Geometry.Angle
 Spark.Geometry.Tolerance.AreEqual(double a, double b) -> bool
@@ -462,6 +475,7 @@ abstract Spark.Geometry.Surface.TransformedBy(in Spark.Geometry.Transform transf
 const Spark.Geometry.CurveOffset.OffsetSamples = 200 -> int
 const Spark.Geometry.GeometryJson.CurrentVersion = 1 -> int
 const Spark.Geometry.MeshFace.NoVertex = -1 -> int
+const Spark.Geometry.Tessellation.MaximumSamplesPerDirection = 512 -> int
 override Spark.Geometry.Angle.Equals(object? obj) -> bool
 override Spark.Geometry.Angle.GetHashCode() -> int
 override Spark.Geometry.Angle.ToString() -> string!
@@ -742,6 +756,8 @@ static Spark.Geometry.SurfaceConversion.ToNurbsSurface(this Spark.Geometry.Cylin
 static Spark.Geometry.SurfaceConversion.ToNurbsSurface(this Spark.Geometry.PlaneSurface! surface) -> Spark.Geometry.NurbsSurface!
 static Spark.Geometry.SurfaceConversion.ToNurbsSurface(this Spark.Geometry.SphericalSurface! surface) -> Spark.Geometry.NurbsSurface!
 static Spark.Geometry.SurfaceConversion.ToNurbsSurface(this Spark.Geometry.ToroidalSurface! surface) -> Spark.Geometry.NurbsSurface!
+static Spark.Geometry.Tessellation.Tessellate(Spark.Geometry.Surface! surface, Spark.Geometry.ITessellationSink! sink, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> void
+static Spark.Geometry.Tessellation.ToMesh(this Spark.Geometry.Surface! surface, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Mesh!
 static Spark.Geometry.Tolerance.Default.get -> Spark.Geometry.Tolerance
 static Spark.Geometry.Tolerance.ForScale(double characteristicLength) -> Spark.Geometry.Tolerance
 static Spark.Geometry.Tolerance.operator !=(Spark.Geometry.Tolerance left, Spark.Geometry.Tolerance right) -> bool

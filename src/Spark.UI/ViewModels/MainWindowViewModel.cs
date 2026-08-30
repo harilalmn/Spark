@@ -253,7 +253,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         _graph = opened
-            ?? (string.Equals(startupGraph, "curves", StringComparison.OrdinalIgnoreCase)
+            ?? (string.Equals(startupGraph, "surfaces", StringComparison.OrdinalIgnoreCase)
+                ? DemoGraphs.Surfaces(_session.Library)
+                : string.Equals(startupGraph, "curves", StringComparison.OrdinalIgnoreCase)
                 ? DemoGraphs.Curves(_session.Library)
                 : DemoGraphs.Demo(_session.Library));
         AdoptGraph(_graph);
@@ -341,6 +343,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public void LoadDemo()
     {
         AdoptGraph(DemoGraphs.Demo(_session.Library));
+        GraphReplaced?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Replaces the document with the surface demo graph.</summary>
+    [RelayCommand]
+    public void LoadSurfaces()
+    {
+        AdoptGraph(DemoGraphs.Surfaces(_session.Library));
         GraphReplaced?.Invoke(this, EventArgs.Empty);
     }
 

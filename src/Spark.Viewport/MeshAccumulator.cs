@@ -38,6 +38,32 @@ internal sealed class MeshAccumulator
         _indices.Add(start + 2);
     }
 
+    /// <summary>Adds a triangle whose three vertices carry their own normals.</summary>
+    /// <remarks>
+    /// <b>The one place this accumulator is not flat-shaded, and it is the case that needs it.</b>
+    /// Everything else it builds is a small faceted marker where a shared vertex normal would round
+    /// the shape into a lump; a tessellated surface is the opposite — it carries the surface's exact
+    /// normals, and shading it flat would make a sphere look like a golf ball for no reason. The
+    /// vertices are still written per triangle rather than shared, because the caller has no index
+    /// buffer to give and welding here would cost a hash per vertex.
+    /// </remarks>
+    internal void AddShadedTriangle(
+        Vector3 a, Vector3 normalA, Vector3 b, Vector3 normalB, Vector3 c, Vector3 normalC)
+    {
+        int start = _positions.Count / 3;
+
+        Write(a, Unit(normalA));
+        Write(b, Unit(normalB));
+        Write(c, Unit(normalC));
+
+        _indices.Add(start);
+        _indices.Add(start + 1);
+        _indices.Add(start + 2);
+    }
+
+    private static Vector3 Unit(Vector3 normal) =>
+        normal.LengthSquared() > 1e-20f ? Vector3.Normalize(normal) : Vector3.UnitZ;
+
     /// <summary>Adds a quad as two triangles, with a stated normal, plus its four edges.</summary>
     internal void AddQuad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 normal)
     {

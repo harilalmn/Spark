@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3 and M4 are done.** **M5 is open**: the surface layer landed 2026-08-31; `NurbsSurface`, `Mesh`, tessellation and the shaded viewport remain. M1.6 is deferred |
 | **Working on** | Nothing. Between steps, inside M5 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E2-T20`, `Mesh`** — indexed vertices, tri and quad faces in one struct, optional channels, and a lazily built halfedge adjacency that *describes* a malformed mesh rather than refusing to build one |
+| **Last completed step** | **`E2-T26`, tessellation and the shaded viewport** — a surface becomes a mesh to a tolerance and the viewport draws it smoothly. Seams and poles are welded, which is what makes a tessellated sphere closed rather than merely convincing |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M5 step **(d)**: **`E2-T26`, tessellation and `ITessellationSink`.** Turn a `Surface` into a `Mesh` to a tolerance — the curve half already exists as `Curve.Tessellate`, so this is the surface half. **The sink is the part that matters for the viewport**: a tessellator that returns a `Mesh` allocates the whole thing before anything can be drawn, and a sink lets the viewport stream triangles into a buffer it already owns (`E9`). Adaptive in both directions, seeded from the surface's own span structure the way `Curve` seeds from its knots, and **a degenerate corner must not produce zero-area triangles** — a sphere's pole is the case. Then the shaded viewport, and `E2-T34`/`E2-T35` for the mesh formats. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1751**: Geometry.Tests 699, UI.Tests 435, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | M5 step **(e)**: **`E2-T34` and `E2-T35`, the mesh formats.** `ObjWriter` already writes curves as polylines; extend it to meshes, then STL and PLY read and write, then glTF write. **An OBJ reader is still deliberately out** (`E2-T34`'s recorded decision: it would have to take a position on materials); STL and PLY are the two whose readers are honest, because their files contain geometry and nothing else. After it, the last of M5: the software renderer and CI visual regression (`E11-T16`), and then **M6 opens with BRep topology** — `E2-T22`, `E2-T23`, `E2-T28`. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1626**: Geometry.Tests 718, UI.Tests 435, Engine.Tests 343, Viewport.Tests 74, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph surfaces --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -2151,3 +2151,56 @@ serialised — with a sample carrying **every** optional channel and both a quad
 because the channels and the triangle sentinel are the two things a round trip can silently drop —
 and `MeshTopology` is excluded with the reason every derived index gets: storing it would mean
 storing a second description of the same faces and a promise that the two still agree.
+
+### 2026-08-31 — Tessellation, and a sphere that shades like a sphere
+
+**`E2-T26`, and with it the shaded viewport.** A `Surface` becomes a `Mesh` to a tolerance, and the
+viewport draws it.
+
+**Adaptive in each direction on a tensor grid**, refined until the chord sag is inside tolerance.
+The limitation is stated rather than hidden: a surface with one tight feature gets refinement across
+the whole row and column containing it, where a genuinely adaptive scheme would refine only there.
+That is a later row; this is what the viewport needs now.
+
+**Sag is probed at several parameters in the *other* direction, not one.** Measuring a cone's
+u-direction sag along a single v samples either the narrow end or the wide one and under-refines the
+other, and the failure looks like a tessellator that mostly works. Three probes cost three
+evaluations per test and remove the whole class of it. There is a test that measures a cone's wide
+end specifically.
+
+**Seams and poles are welded, and that is the decision that makes the output worth anything.** On a
+closed direction the last column of samples *is* the first; on a degenerate row every sample is the
+same point. Emitted as distinct vertices, a sphere looks perfect from every angle, has naked edges
+everywhere it should not, reports a nonsense volume and cannot be booleaned — and none of that is
+visible except by asking the topology. So a closed direction reuses the first column's indices, a
+collapsed row becomes one vertex with a fan around it, and a cell touching a pole is emitted as a
+**triangle** rather than a quad naming one vertex twice. **The price is the texture seam**, which is
+a texturing concern and the right thing to give up.
+
+**A pole has no normal and every triangle that meets it needs one.** Refusing leaves a hole where a
+sphere's cap should be; inventing the axis is wrong on a cone whose apex is off-axis. Stepping a
+thousandth of a span into the surface gives the limit the surface is approaching, which is the
+answer a renderer wants.
+
+**The sink is what the viewport actually wanted.** A tessellator returning a `Mesh` allocates the
+whole thing before anything can be drawn, and the renderer then copies it again. `ITessellationSink`
+takes vertices by index, so a pole can be one vertex used by a whole fan and a seam can be one
+column used from both sides — a sink taking whole triangles by position could express neither.
+`MeshBuilder` is the reference implementation and the one the tests measure.
+
+**And the viewport draws it smoothly.** `SceneBuilder` tessellates a surface at a display tolerance
+derived from its own bounding box — the kernel's 1e-6 would give a one-unit sphere hundreds of
+thousands of facets for something a few hundred pixels across — and streams triangles with the
+surface's *own* normals. Two details matter: the mesh is triangulated at the drawable rather than at
+the accumulator, because `AddQuad` also emits the quad's four edges and a surface would be drawn
+with its whole tessellation grid as wireframe over the shading; and a new `AddShadedTriangle` keeps
+the per-vertex normals, because everything else the accumulator builds is a faceted marker where
+flat shading is right and a sphere is the case where it is not.
+
+**Nine surface nodes and a `--graph surfaces` demo make it visible**, and the screenshot is the
+evidence: a smooth sphere, a cylinder, a cone and a torus, each shaded in its own colour, 2,552
+distinct colours in the frame where the curve demo has 53.
+
+**Verified.** Build clean with `-warnaserror`; **1626 tests, 0 failures** (Geometry 699 → 718,
+Viewport 69 → 74); `dotnet format` clean; docs harness green; and
+`--graph surfaces --screenshot` renders all four with the OpenGL viewport reporting ready.

@@ -15,6 +15,7 @@ Spark.Nodes.Core.Plane
 Spark.Nodes.Core.Point
 Spark.Nodes.Core.PolyCurve
 Spark.Nodes.Core.PolyLine
+Spark.Nodes.Core.Surface
 Spark.Nodes.Core.Text
 Spark.Nodes.Core.Vector
 Spark.Nodes.Core.Watch
@@ -86,6 +87,21 @@ static Spark.Nodes.Core.PolyLine.ByClosedPoints(System.Collections.Generic.IRead
 static Spark.Nodes.Core.PolyLine.ByPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.PolyLine!
 static Spark.Nodes.Core.PolyLine.ByRectangle(Spark.Geometry.Plane plane, double width = 1, double length = 1) -> Spark.Geometry.PolyLine!
 static Spark.Nodes.Core.PolyLine.ByRegularPolygon(Spark.Geometry.Plane plane, double radius = 1, int sides = 6) -> Spark.Geometry.PolyLine!
+static Spark.Nodes.Core.Surface.Area(Spark.Geometry.Surface! surface) -> double
+static Spark.Nodes.Core.Surface.ByPlaneSize(Spark.Geometry.Plane plane, double width = 1, double height = 1) -> Spark.Geometry.PlaneSurface!
+static Spark.Nodes.Core.Surface.ClosestPoint(Spark.Geometry.Surface! surface, Spark.Geometry.Point3d point) -> Spark.Geometry.Point3d
+static Spark.Nodes.Core.Surface.Cone(Spark.Geometry.Plane plane, double baseRadius = 1, double topRadius = 0, double height = 1) -> Spark.Geometry.ConicalSurface!
+static Spark.Nodes.Core.Surface.Cylinder(Spark.Geometry.Plane plane, double radius = 1, double height = 1) -> Spark.Geometry.CylindricalSurface!
+static Spark.Nodes.Core.Surface.Extrude(Spark.Geometry.Curve! curve, Spark.Geometry.Vector3d direction) -> Spark.Geometry.ExtrusionSurface!
+static Spark.Nodes.Core.Surface.IsoCurve(Spark.Geometry.Surface! surface, double v = 0.5) -> Spark.Geometry.Curve!
+static Spark.Nodes.Core.Surface.Loft(Spark.Geometry.Curve! first, Spark.Geometry.Curve! second) -> Spark.Geometry.RuledSurface!
+static Spark.Nodes.Core.Surface.NormalAtParameter(Spark.Geometry.Surface! surface, double u = 0.5, double v = 0.5) -> Spark.Geometry.Vector3d
+static Spark.Nodes.Core.Surface.PointAtParameter(Spark.Geometry.Surface! surface, double u = 0.5, double v = 0.5) -> Spark.Geometry.Point3d
+static Spark.Nodes.Core.Surface.Revolve(Spark.Geometry.Curve! curve, Spark.Geometry.Point3d axisOrigin, Spark.Geometry.Vector3d axisDirection, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.RevolutionSurface!
+static Spark.Nodes.Core.Surface.Sphere(Spark.Geometry.Point3d centre, double radius = 1) -> Spark.Geometry.SphericalSurface!
+static Spark.Nodes.Core.Surface.ToMesh(Spark.Geometry.Surface! surface, double tolerance = 0.01) -> Spark.Geometry.Mesh!
+static Spark.Nodes.Core.Surface.ToNurbs(Spark.Geometry.SphericalSurface! surface) -> Spark.Geometry.NurbsSurface!
+static Spark.Nodes.Core.Surface.Torus(Spark.Geometry.Plane plane, double majorRadius = 2, double minorRadius = 0.5) -> Spark.Geometry.ToroidalSurface!
 static Spark.Nodes.Core.Text.Concat(string! first = "", string! second = "") -> string!
 static Spark.Nodes.Core.Text.FromNumber(double value = 0, int decimals = 3) -> string!
 static Spark.Nodes.Core.Text.JoinList(object? items, string! separator = ", ") -> string!

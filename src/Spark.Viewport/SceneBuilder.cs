@@ -167,6 +167,14 @@ public sealed class SceneBuilder
                 Record(key, new CurveDrawable(curve), colour, wrapped);
                 return;
 
+            case Surface surface:
+                Record(key, new MeshDrawable(surface.ToMesh(DisplayTolerance(surface.BoundingBox))), colour, wrapped);
+                return;
+
+            case Spark.Geometry.Mesh drawn:
+                Record(key, new MeshDrawable(drawn), colour, wrapped);
+                return;
+
             default:
                 UnrenderableCount++;
                 return;
@@ -300,6 +308,71 @@ public sealed class SceneBuilder
                 mesh.AddEdge(ToVector(_points[index - 1]), ToVector(_points[index]));
             }
         }
+    }
+
+    /// <summary>
+    /// A mesh, drawn as its faces with the normals it carries.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The mesh is triangulated here rather than at the accumulator</b>, because a quad is two
+    /// triangles and the accumulator's <c>AddQuad</c> also emits the quad's four edges — which is
+    /// right for a plane patch and wrong for a surface, where it would draw the whole tessellation
+    /// grid as wireframe over the shading.
+    /// </para>
+    /// <para>
+    /// <b>Vertex normals are used when the mesh has them and computed per face when it does not.</b>
+    /// A tessellated surface carries exact normals and shading it flat would make a sphere look
+    /// faceted for no reason; a mesh from a file often has none, and a face normal is the only
+    /// honest answer there.
+    /// </para>
+    /// </remarks>
+    private sealed class MeshDrawable(Spark.Geometry.Mesh mesh) : Drawable
+    {
+        internal override Bounds3 Extend(Bounds3 bounds) =>
+            bounds.Union(ToVector(mesh.BoundingBox.Min)).Union(ToVector(mesh.BoundingBox.Max));
+
+        internal override void Emit(MeshAccumulator accumulator, float marker)
+        {
+            Spark.Geometry.Mesh triangles = mesh.Triangulated();
+            Vector3d[]? normals = triangles.Normals();
+
+            for (int index = 0; index < triangles.FaceCount; index++)
+            {
+                MeshFace face = triangles.Face(index);
+
+                if (normals is null)
+                {
+                    accumulator.AddTriangle(
+                        ToVector(triangles.Vertex(face.A)),
+                        ToVector(triangles.Vertex(face.B)),
+                        ToVector(triangles.Vertex(face.C)));
+
+                    continue;
+                }
+
+                accumulator.AddShadedTriangle(
+                    ToVector(triangles.Vertex(face.A)), ToVector(normals[face.A]),
+                    ToVector(triangles.Vertex(face.B)), ToVector(normals[face.B]),
+                    ToVector(triangles.Vertex(face.C)), ToVector(normals[face.C]));
+            }
+        }
+    }
+
+    /// <summary>
+    /// The sag a surface is tessellated to for display.
+    /// </summary>
+    /// <remarks>
+    /// <b>Derived from the geometry, not taken from the kernel default</b>, for the reason
+    /// <see cref="CurveDrawable"/> records: the kernel's 1e-6 would tessellate a one-unit sphere
+    /// into hundreds of thousands of facets for something a few hundred pixels across. A thousandth
+    /// of the bounding box's diagonal is invisible at any sane zoom.
+    /// </remarks>
+    private static Tolerance DisplayTolerance(in Spark.Geometry.BoundingBox bounds)
+    {
+        double diagonal = bounds.Min.DistanceTo(bounds.Max);
+
+        return new Tolerance(Math.Max(diagonal * 0.001, 1e-12), Angle.FromDegrees(0.5), 1e-12);
     }
 
     private sealed class PlanePatch(Spark.Geometry.Plane plane) : Drawable
