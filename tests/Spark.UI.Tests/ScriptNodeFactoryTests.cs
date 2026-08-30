@@ -1,7 +1,9 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using Microsoft.CodeAnalysis;
 using Spark.Api;
 using Spark.Scripting;
 
@@ -264,6 +266,27 @@ public sealed class ScriptNodeFactoryTests
         catalogue.Add([typeof(ScriptNodeFactoryTests).Assembly.Location]);
 
         Assert.NotEqual(before, catalogue.Version);
+    }
+
+    /// <summary>
+    /// <b>The two assemblies <c>dynamic</c> needs are named rather than hoped for.</b> The catalogue
+    /// is otherwise built from what the process has already loaded, and neither of these is loaded
+    /// by anything a user does — so a host that had touched neither compiled <c>return count * 2;</c>
+    /// and was told <c>Missing compiler required member 'Binder.BinaryOperation'</c>, a message that
+    /// names the binder while the assembly actually absent is the one underneath it.
+    /// </summary>
+    [Fact]
+    public void TheCatalogueNamesTheAssembliesDynamicNeeds()
+    {
+        string[] paths =
+        [
+            .. new ReferenceCatalog().References
+                .OfType<PortableExecutableReference>()
+                .Select(reference => Path.GetFileName(reference.FilePath) ?? string.Empty),
+        ];
+
+        Assert.Contains("Microsoft.CSharp.dll", paths, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("System.Linq.Expressions.dll", paths, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>An unreadable path is skipped rather than taking the whole catalogue down.</summary>

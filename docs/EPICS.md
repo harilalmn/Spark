@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-30
+**Last updated:** 2026-08-31 (E6 guard weaving)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -572,8 +572,14 @@ diverge most; rework is budgeted there specifically.
       langVersion)`, **resident** so a slider feeding a code block feels live, and
       **persistent on disk** so reopening a file does not pay Roslyn cold start. Identical
       text in ten nodes compiles once (**E6-T9**, **E6-T10**).
-- [ ] Guard weaving bounds loop iterations and recursion depth, and a deliberately infinite
-      loop is cancelled rather than hanging (**E6-T4**, **E6-T17**).
+- [x] Guard weaving bounds loop iterations and recursion depth, and a deliberately infinite
+      loop is cancelled rather than hanging (**E6-T4**, **E6-T17**) — done 2026-08-31. The
+      rewrite happens between parsing and compiling, which is the only moment it can, and it
+      also guards `goto`, because a label and a jump are the second way to write a loop.
+      **Two limits are stated rather than discovered**: recursion through an expression-bodied
+      lambda is not counted, because bracketing a body needs its return type and only a lambda
+      declines to state one; and recursion inside a library the script calls is not our code to
+      rewrite. Both still end in `R11`.
 - [ ] Callback registries are cleared before unload, because delegates into user code pin
       the collectible context (**E6-T15**).
 - [ ] Opening a graph never auto-runs it: Manual mode plus a banner listing script nodes and

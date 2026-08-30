@@ -105,6 +105,13 @@ public sealed class ReferenceCatalog
         // than hoped for.
         TryAdd(byPath, typeof(Microsoft.CSharp.RuntimeBinder.Binder).Assembly.Location);
 
+        // And the call site the binder dispatches through, which lives in System.Linq.Expressions
+        // and is a *second* assembly `dynamic` needs. Found the same way as the first: a test class
+        // that had loaded neither compiled `return count * 2;` and was told
+        // "Missing compiler required member 'Binder.BinaryOperation'" - a message that names the
+        // binder while the assembly actually missing is the one underneath it.
+        TryAdd(byPath, typeof(System.Runtime.CompilerServices.CallSite).Assembly.Location);
+
         // Everything already loaded, which covers the framework, Spark.Api and Spark.Geometry
         // without anybody naming them. Dynamic assemblies have no location and are skipped.
         foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())

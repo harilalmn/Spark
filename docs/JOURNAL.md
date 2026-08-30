@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 18:05 +0530
+**Last updated:** 2026-08-31 20:40 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2 and M3 are done** — M3 closed on 2026-08-31. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. Next is **M4, the C# code block** |
 | **Working on** | Nothing. Between steps, inside M4 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **D16** — Windows is the only OS Spark will ever support, recorded with the two things it reopens as **Q15**. Documentation only. The step before it was M4 **(d)(i)**, `E6-T17`'s cancellation seam, which is still `In progress` — an infinite loop still hangs |
+| **Last completed step** | **`E6-T4`, the guard weaver** — woven between parsing and compiling, so `while (true) { }` stops on cancellation and recursion stops before the stack does. `E6-T17` closes with it. Also fixed a latent catalogue bug the new tests exposed ([N43](NOTES.md)) and the raw NUL byte the previous entry claimed to have removed |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | Back to M4 step **(d)(ii)**: **`E6-T4`, the guard weaver** — the half that makes step (d)(i) do anything. Rewrite the syntax tree before compiling so every loop body tests the token and counts its iterations against a ceiling, and so recursion depth is bounded. **The channel is already there**: the generated entry point is `Run(object[] __in, CancellationToken __token)`, so a woven check is `__token.ThrowIfCancellationRequested()` against a parameter already in scope. **Note the honest limit the row records**: `StackOverflowException` cannot be caught in .NET and terminates the process ([R11](PRD.md#12-risks)), so depth must be *bounded by the weaver*, never caught by the runner. Closing `E6-T4` also closes `E6-T17` and ticks the shared EPICS criterion, and it is the first user-facing behaviour here, so it needs a help topic with a worked example. **Separately, and not for a coding session: Q15 wants a human.** It is what blocks M1.6, and answering it is cheaper than installing WSL. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1396**: Geometry.Tests 584, Engine.Tests 343, UI.Tests 344, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | M4 step **(e)**: **`E6-T6`, typed input injection.** Once a port is wired the upstream type is known, so the generated declaration becomes `Point3d centre = (Point3d)__in[0];` rather than `dynamic centre = __in[0];` — statically typed, faster, and **the thing that makes `E6-T7`'s wire-typed IntelliSense possible at all**, because completion needs a type to offer members from. `dynamic` stays the honest answer for an *unconnected* port. The port types have to reach the factory, so `IScriptNodeFactory.Create` grows an overload taking the known input types, and those types join the compile-cache key — two nodes with the same text and differently-typed inputs are different assemblies. After it: `E6-T7` (the signature differentiator), then `E6-T1`'s source map, `E6-T10`, the editor rows `E6-T11`/`E6-T12`/`E6-T13`, `E6-T15`, and the rest of `E6-T16`. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1411**: Geometry.Tests 584, UI.Tests 359, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -1672,3 +1672,73 @@ and Q15 may keep the Linux job anyway.
 
 **Verified.** Docs harness green — 5 checks, which is what covers `Last updated` lines, relative
 links and ADR citations across the four documents touched. No code changed, so no other gate applies.
+
+### 2026-08-31 — The guard weaver: `while (true) { }` finally stops
+
+**`E6-T4`, and `E6-T17` closes with it.** The cancellation seam has existed since two steps ago and
+did nothing: a token reached the generated `Run(object[] __in, CancellationToken __token)`, and
+nothing the C# compiler emits ever reads a token. So a script already inside a loop still hung the
+evaluation thread, and .NET has no safe thread abort to fall back on. **The only place a check can
+go is inside the loop, and the only moment it can be put there is between parsing and compiling.**
+
+**What is woven.** A `CSharpSyntaxRewriter` over the generated tree adds four things: a
+`ScriptGuard.Tick(__token)` at the top of every `for`, `foreach`, `while` and `do` body — which
+tests the token *and* counts the iteration; the same before every `goto`, because a label and a jump
+are the second way to write an unbounded loop and a weaver that only looked at loop keywords would
+miss it entirely; `Enter`/`try`/`finally`/`Exit` around every local function body; and a
+`ScriptGuard.Begin(…)` at the top of the entry point, so the budget is **per invocation** rather
+than per node or per session.
+
+**The two ceilings do different jobs and only one of them is really a safety net.** Cancellation is
+what a user experiences. The hundred-million-iteration ceiling is for when nobody is watching —
+`spark run` in a build — and is deliberately generous, because a ceiling low enough to catch a bad
+script is low enough to break a good one. **The depth ceiling is the only one with no alternative**:
+`StackOverflowException` cannot be caught in .NET, so depth has to be bounded *before* the stack
+runs out rather than caught after ([R11](PRD.md#12-risks)).
+
+**Two things the plan did not contain, and both are the interesting half.**
+
+- **A `static` local function is exactly what a woven guard cannot live in.** `static` is a promise
+  not to capture, and `__token` is a capture — so an ordinary `static int total() { for (…) … }`
+  would have failed with `CS8421` naming a parameter the user never wrote, because of a rewrite
+  they did not know had happened. The weaver drops the modifier. That only widens what is legal.
+  [N44](NOTES.md).
+- **Every woven statement carries no trivia at all**, so the tree the compiler sees has exactly the
+  line count the text did. That is not tidiness: it is the property `E6-T1`'s source map will be
+  built on, it is free today and expensive to reconstruct later, and it is **asserted** by
+  `WeavingDoesNotMoveAnyLine` rather than intended.
+
+**Two limits are stated on the type rather than left to be discovered.** Recursion through an
+expression-bodied *lambda* is not bounded — bracketing a body means turning it into a block, which
+needs the return type, and a lambda is the one construct that declines to state one; local functions
+do state theirs, which is why they are covered. Recursion inside a library the script calls is not
+bounded either, because it is not our code to rewrite. Both still end in `R11`, and the help topic
+says so in the same words.
+
+**A latent bug the new tests exposed, and it had nothing to do with guards.** `GuardWeaverTests`
+is the first test class that compiles a script *before anything else in the process has run*, and
+every script with an input port failed: `Missing compiler required member
+'Microsoft.CSharp.RuntimeBinder.Binder.BinaryOperation'`. The catalogue names `Microsoft.CSharp`
+explicitly and sweeps up whatever else is loaded — but `dynamic` needs a **second** assembly,
+`System.Linq.Expressions`, for the call site the binder dispatches through, and nothing had loaded
+it. **The diagnostic names the assembly that is present, not the one that is absent**, which is
+what made it cost what it did. Now named by `typeof(...).Assembly.Location` like the first, with a
+test that asserts both are in the catalogue. [N43](NOTES.md).
+
+**The NUL byte is gone this time.** The previous entry says `ScriptNodeFactory.cs`'s cache-key
+separator was replaced; it was not — the raw NUL was still in the file at `c383acb`, and grep still
+classified it as binary and silently skipped it in every content search. It is now `"\u0000"`, an
+escape rather than a character, which keeps the separator unambiguous and makes the file text.
+**Trusting the tree over the journal, as the protocol says.**
+
+**Verified, and the revert is the part worth reading.** Build clean with `-warnaserror`, zero
+warnings; **1411 tests, 0 failures** (UI 344 → 359); `dotnet format --verify-no-changes` clean; docs
+harness green. With the single `Weave` call taken out, the guard tests do not merely go red —
+`UnboundedRecursionIsStoppedBeforeTheStackOverflows` **ends the test process**, which is `R11`
+demonstrated rather than described. The tests that assert a *stop* therefore run on a worker with a
+twenty-second deadline: a guard test that fails by hanging is worse than no test, because on CI a
+hang reads as an infrastructure problem rather than as this regression.
+
+**A help topic, `concepts.code-blocks`**, which the code block had been missing since it landed —
+writing one, ports from free identifiers, named-tuple outputs, and a section on exactly what stops
+a loop, quoting the messages a user will actually see.

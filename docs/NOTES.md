@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-30 (N42 added)
+**Last updated:** 2026-08-31 (N43, N44 added)
 
 ---
 
@@ -1303,3 +1303,46 @@ by an exception *type* and the call is made reflectively, the wrapper silently c
 Nothing fails; the wrong branch is simply taken. `Assert.Throws<T>` is exact rather than assignable,
 which makes it the right tool to pin this down — `ScriptNodeFactoryTests
 .AScriptsExceptionIsNotWrappedByReflection` fails outright if the wrapper comes back.
+
+
+## N43 — `Missing compiler required member 'Binder.BinaryOperation'` names the wrong assembly
+
+A code block with an input port declares it `dynamic`, and the compiler then needs two assemblies
+that nothing else in the process has a reason to load: `Microsoft.CSharp`, which holds the binder,
+and `System.Linq.Expressions`, which holds the `CallSite` the binder dispatches through. The
+reference catalogue is built from *what is already loaded*, so both can be missing.
+
+Only the first was named explicitly. The second went unnoticed for as long as it did because the
+existing scripting tests share a process with tests that pull in `System.Linq.Expressions` for
+their own reasons — so the missing reference was invisible until a **new test class** compiled
+`return count * 2;` before anything else had.
+
+**The trap is the diagnostic.** It says `Missing compiler required member
+'Microsoft.CSharp.RuntimeBinder.Binder.BinaryOperation'`, which names a type that *is* referenced.
+Half an hour went into the wrong assembly on the strength of that sentence. The member is missing
+because the assembly it forwards into is absent, and the message never mentions it.
+
+**The general rule this belongs to:** a catalogue built by sweeping loaded assemblies is
+order-dependent, and order-dependence in a test process is hidden by every other test. Anything the
+generated code needs is named by `typeof(...).Assembly.Location`, not hoped for — and the way to
+find out whether it really is named is a test class that touches nothing else.
+
+## N44 — A `static` local function is exactly what a woven guard cannot live in
+
+`E6-T4` weaves `ScriptGuard.Tick(__token)` into every loop body, and `__token` is a parameter of
+the generated entry point. `static` on a local function or a lambda is a promise not to capture
+anything from the enclosing scope — which is precisely what a woven check does.
+
+So a user who wrote a perfectly ordinary `static int total() { for (…) … }` would have got
+`CS8421: a static local function cannot contain a reference to '__token'`, naming an identifier
+they had never seen, in code they had written correctly, because of a rewrite they did not know
+happened. That is the worst class of error a code block can produce.
+
+The weaver drops the modifier. Dropping it only widens what is legal — nothing that compiled
+before stops compiling — and the only thing lost is an allocation guarantee on a lambda whose
+enclosing method is now allocating a closure regardless.
+
+**The general shape:** a rewrite that adds a reference to enclosing state is incompatible with
+every language feature that exists to forbid such references. `static` is the one C# has today;
+the next one will need the same treatment, and it will announce itself the same way — as a
+compiler error naming a generated identifier.
