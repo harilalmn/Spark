@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2 and M3 are done** — M3 closed on 2026-08-31. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. Next is **M4, the C# code block** |
 | **Working on** | Nothing. Between steps, inside M4 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E6-T7`, the language service half** — completion takes the block's ports and their wire types, so `centre.` lists what is wired in. The row stays `In progress` because there is no editor to show it in |
+| **Last completed step** | **`E6-T13`** — the completion/compiler invariant, `ScriptTextRepair` deleted after measuring that it changed nothing, and the accumulating-document bug that measurement exposed ([N46](NOTES.md)) |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M4 step **(g)**: **the code block editor — `E6-T11`, `E6-T12`, `E6-T13`.** Host AvaloniaEdit in the properties pane in place of the plain text box, drive `ScriptCompletion` from it with the selected node's ports, and place the popup. **`E6-T13`'s invariant is the acceptance test**: the completion list and the compiler must be given the same references, the same imports and the same declarations, so the one wrap belongs in one place rather than in two that drift. Closing these also closes `E6-T7`. The M1.5 spike already proved AvaloniaEdit hosts headlessly and that the caret survives scrolling ([N33](NOTES.md)), so the risk here is placement and focus, which is where AvalonEdit and AvaloniaEdit diverge most. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1436**: Geometry.Tests 584, UI.Tests 384, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | M4 step **(g)(ii)**: **the editor itself — `E6-T11` and `E6-T12`.** Replace the plain `TextBox` in the inspector with an AvaloniaEdit `TextEditor`, C# highlighting, and a completion popup driven from the selected block's ports. **Budget the rework in the popup**, which is where AvalonEdit and AvaloniaEdit diverge most: placement against the caret rectangle, and giving focus back to the editor so typing continues through the list. Keep Roslyn out of the control — the view model asks, the control draws. Closing these closes `E6-T7`, and it is the M4 demoable. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1442**: Geometry.Tests 584, UI.Tests 390, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -1821,3 +1821,41 @@ than a row that reads `Done` and demos nothing.
 
 **Verified.** Build clean with `-warnaserror`; **1436 tests, 0 failures** (UI 379 → 384);
 `dotnet format` clean; docs harness green.
+
+### 2026-08-31 — The completion invariant, a repair that was deleted, and the bug it was hiding
+
+**`E6-T13`, and it is the most useful step of the day for a reason that is not in the row.**
+
+**The invariant half landed as written.** `ScriptCompletion` gains a constructor over a
+`ReferenceCatalog` — the same catalogue a code block compiles against — so the list and the compiler
+are given the same references and the same imports from one source rather than two that drift. A
+list that disagrees with the compiler is worse than no list, because the user believes it, and
+taking both from one object is the only way to be certain they cannot.
+
+**The other half was withdrawn on measurement.** The row asks for a port of CADScript's
+`ScriptTextRepair`: balance the delimiters a user has not closed yet, so the parser can see past
+them. It was written — a proper one, ignoring braces inside strings, comments, verbatim strings and
+character literals — and then, *before being trusted*, measured against eight half-typed snippets
+with it and without it. **It made no difference to a single one.** Roslyn recovers from an unclosed
+brace, bracket, parenthesis and lambda body unaided. Kept, it would have been a hundred lines with
+a dozen tests that pass whatever the completion engine does. **It was deleted.** Porting was always
+a strategy and never the deliverable.
+
+**And the measurement found the real defect, which nothing else would have.** In the first run
+*every* snippet after the first missed, with and without the repair — which is not the shape a
+repair-shaped problem has. `ScriptCompletion` was adding a Roslyn `Document` per request and
+removing none, and two script documents in one project are two sets of top-level statements: from
+the second request on, the semantic model sees duplicate definitions and completion returns
+**nothing**. Not an error and not a slow list. It survived because every M1.5 spike test built its
+own instance, so no test ever made a second request. **An editor makes one request per keystroke**,
+so the code block's headline feature would have worked exactly once per code block. One document,
+replaced through `TryApplyChanges`. [N46](NOTES.md).
+
+**What is left is three tests that can fail.** Completion still answers on the tenth request — a
+loop, because one call could never catch it, and it goes red the moment the old shape comes back.
+Completion answers inside unfinished text — the user-facing guarantee, asserted without claiming
+anything about *how*. And the list and the compiler share a catalogue.
+
+**Verified.** Build clean with `-warnaserror`; **1442 tests, 0 failures** (UI 384 → 390);
+`dotnet format` clean; docs harness green. Reverted the one-document fix once and watched
+`CompletionKeepsAnsweringAcrossRequests` go red.

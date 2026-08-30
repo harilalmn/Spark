@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N45 added)
+**Last updated:** 2026-08-31 (N46 added)
 
 ---
 
@@ -1369,3 +1369,31 @@ wires out, group membership, and whatever the next feature attaches. The safer s
 in-place swap on the engine's `NodeInstance`; it was not taken here because resizing a node's
 literal array is engine surgery and this is a canvas concern. **The list is therefore a list, and
 it will need adding to.**
+
+## N46 — A Roslyn workspace that gains a document per keystroke goes quiet, not slow
+
+`ScriptCompletion` answered each request by adding a new `Document` to its `AdhocWorkspace` and
+never removing one. The comment above it said this was deliberate — *an editor sends a new snapshot
+on every keystroke anyway* — and it is wrong in a way that is invisible from one call.
+
+Two script documents in one project are two sets of **top-level statements**. From the second
+request onwards the semantic model is looking at duplicate definitions, and completion returns an
+empty list. Not an error, not a slow list: **nothing**.
+
+It survived because every test in the M1.5 spike constructed its own `ScriptCompletion`, so no test
+ever made a second request against the same instance. The application would have made thousands.
+
+**It was found by accident, and by the only method that could have found it.** A repair utility was
+written to make half-typed text parseable, and before trusting it, it was measured with and
+without — eight snippets, hit or miss. Everything after the first snippet missed *either way*,
+which is not what a repair-shaped problem looks like. Reusing one document made seven of the eight
+hit with the repair **and without it**, which retired the repair and exposed the real defect in the
+same measurement.
+
+**Two rules, and the second is the one worth carrying:**
+
+- One document, replaced through `TryApplyChanges`, is not an optimisation over one per request. It
+  is the correct behaviour and the other is wrong.
+- **Measure a fix before believing it.** The repair looked like it worked because the thing it was
+  measured against was broken for an unrelated reason. A test written at that moment would have
+  passed, for the wrong reason, and pinned a hundred lines of code nothing could falsify.

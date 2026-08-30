@@ -50,6 +50,7 @@ public sealed class ScriptCompletion : IDisposable
 {
     private readonly AdhocWorkspace _workspace;
     private readonly ProjectId _projectId;
+    private DocumentId? _documentId;
 
     /// <summary>
     /// Creates a completion service over a set of referenced assemblies.
@@ -60,6 +61,31 @@ public sealed class ScriptCompletion : IDisposable
     /// </param>
     /// <param name="usings">Namespaces treated as already imported, as a code block's would be.</param>
     public ScriptCompletion(IEnumerable<Assembly>? references = null, IEnumerable<string>? usings = null)
+        : this(Metadata(references), usings ?? ["System", "Spark.Geometry"])
+    {
+    }
+
+    /// <summary>
+    /// Creates a completion service over the same catalogue a code block compiles against
+    /// (`E6-T13`).
+    /// </summary>
+    /// <param name="catalogue">The references and imports the compiler is using.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="catalogue"/> is null.</exception>
+    /// <remarks>
+    /// <b>This constructor is the invariant, not a convenience.</b> A completion list built from a
+    /// different set of references than the compile is a list that offers members of types the
+    /// script cannot use and hides members of types it can — and a list that disagrees with the
+    /// compiler is worse than no list, because the user believes it. Taking both from one
+    /// <see cref="ReferenceCatalog"/> is the only way to be sure they cannot drift; the assembly
+    /// overload above remains for the spike tests, which are deliberately about Roslyn rather than
+    /// about Spark.
+    /// </remarks>
+    public ScriptCompletion(ReferenceCatalog catalogue)
+        : this(Referenced(catalogue), Imports(catalogue))
+    {
+    }
+
+    private ScriptCompletion(ImmutableArray<MetadataReference> metadata, IEnumerable<string> usings)
     {
         // MefHostServices.DefaultAssemblies is the workspace layer only, and completion lives in
         // the *Features* layer. Composing without these, CompletionService.GetService returns
@@ -73,21 +99,12 @@ public sealed class ScriptCompletion : IDisposable
             Assembly.Load("Microsoft.CodeAnalysis.CSharp.Workspaces"),
         ]));
 
-        ImmutableArray<MetadataReference> metadata =
-        [
-            .. Assemblies(references)
-                .Select(assembly => assembly.Location)
-                .Where(location => !string.IsNullOrEmpty(location) && File.Exists(location))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Select(location => (MetadataReference)MetadataReference.CreateFromFile(location)),
-        ];
-
         ProjectInfo project = ProjectInfo
             .Create(ProjectId.CreateNewId(), VersionStamp.Create(), "Script", "Script", LanguageNames.CSharp)
             .WithMetadataReferences(metadata)
             .WithCompilationOptions(new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
-                usings: [.. usings ?? ["System", "Spark.Geometry"]]))
+                usings: [.. usings]))
 
             // A code block is a *script*, not a compilation unit, and Roslyn has to be told:
             // parsed as SourceCodeKind.Regular, `var p = new Point3d(...);` at the top of a file
@@ -145,19 +162,18 @@ public sealed class ScriptCompletion : IDisposable
         code = prefix + code;
         caret += prefix.Length;
 
-        // A completion request is over the text as it is *now*, so the document is replaced
-        // rather than edited: an editor sends a new snapshot on every keystroke anyway, and
-        // keeping a document alive across them would buy incremental reuse this spike is not
-        // measuring.
+        // **One document, replaced in place, and it has to be one.** The first version added a
+        // fresh document per request and never removed any, which is what an editor sending a
+        // snapshot per keystroke would do thousands of times. It looked correct because every
+        // spike test made its own instance: two script documents in one project are two sets of
+        // top-level statements, so the second request onwards the semantic model is looking at
+        // duplicate definitions and completion quietly returns nothing (N46).
+        //
         // The *document* carries its own SourceCodeKind and it defaults to Regular; the project's
         // parse options do not override it. Miss this and a snippet is parsed as a compilation
         // unit, every statement is a syntax error, and completion returns an empty list without
         // complaining — which is a far more expensive failure than an exception would have been.
-        Document document = _workspace.AddDocument(DocumentInfo.Create(
-            DocumentId.CreateNewId(_projectId),
-            "Script.csx",
-            loader: TextLoader.From(TextAndVersion.Create(SourceText.From(code), VersionStamp.Create())),
-            sourceCodeKind: SourceCodeKind.Script));
+        Document document = Replace(code);
 
         CompletionService? service = CompletionService.GetService(document);
 
@@ -179,6 +195,45 @@ public sealed class ScriptCompletion : IDisposable
                 item.Tags.Length > 0 ? item.Tags[0] : string.Empty,
                 item.SortText)),
         ];
+    }
+
+    /// <summary>Puts the current text into the one script document, creating it once.</summary>
+    /// <remarks>
+    /// <c>TryApplyChanges</c> is what keeps the document's identity across
+    /// edits, which is also what lets Roslyn reuse everything it has already parsed and bound. The
+    /// alternative — a new document per keystroke — is not merely slower; it is wrong, for the
+    /// reason the caller records.
+    /// </remarks>
+    private Document Replace(string code)
+    {
+        SourceText text = SourceText.From(code);
+
+        if (_documentId is null)
+        {
+            Document created = _workspace.AddDocument(DocumentInfo.Create(
+                DocumentId.CreateNewId(_projectId),
+                "Script.csx",
+                loader: TextLoader.From(TextAndVersion.Create(text, VersionStamp.Create())),
+                sourceCodeKind: SourceCodeKind.Script));
+
+            _documentId = created.Id;
+
+            return created;
+        }
+
+        Solution updated = _workspace.CurrentSolution.WithDocumentText(_documentId, text);
+
+        // A refused apply would leave the workspace holding the previous snapshot and answer the
+        // completion against text the user has moved on from - a stale list rather than no list,
+        // which is the worse of the two.
+        if (!_workspace.TryApplyChanges(updated))
+        {
+            throw new InvalidOperationException(
+                "Roslyn refused to update the script document, so the completion would have been "
+                + "taken against text the editor no longer holds.");
+        }
+
+        return _workspace.CurrentSolution.GetDocument(_documentId)!;
     }
 
     /// <summary>The declarations a block's ports contribute, as one line of script.</summary>
@@ -225,6 +280,29 @@ public sealed class ScriptCompletion : IDisposable
 
     /// <inheritdoc/>
     public void Dispose() => _workspace.Dispose();
+
+    private static ImmutableArray<MetadataReference> Metadata(IEnumerable<Assembly>? references) =>
+    [
+        .. Assemblies(references)
+            .Select(assembly => assembly.Location)
+            .Where(location => !string.IsNullOrEmpty(location) && File.Exists(location))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(location => (MetadataReference)MetadataReference.CreateFromFile(location)),
+    ];
+
+    private static ImmutableArray<MetadataReference> Referenced(ReferenceCatalog catalogue)
+    {
+        ArgumentNullException.ThrowIfNull(catalogue);
+
+        return catalogue.References;
+    }
+
+    private static IEnumerable<string> Imports(ReferenceCatalog catalogue)
+    {
+        ArgumentNullException.ThrowIfNull(catalogue);
+
+        return catalogue.Imports;
+    }
 
     private static IEnumerable<Assembly> Assemblies(IEnumerable<Assembly>? references)
     {
