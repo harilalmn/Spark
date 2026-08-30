@@ -108,6 +108,19 @@ Spark.Geometry.Interval.Min.get -> double
 Spark.Geometry.Interval.Normalise(double value) -> double
 Spark.Geometry.Interval.Reversed() -> Spark.Geometry.Interval
 Spark.Geometry.Interval.Union(in Spark.Geometry.Interval other) -> Spark.Geometry.Interval
+Spark.Geometry.KnotVector
+Spark.Geometry.KnotVector.BasisFunctions(int span, double parameter) -> double[]!
+Spark.Geometry.KnotVector.ControlPointCount.get -> int
+Spark.Geometry.KnotVector.Count.get -> int
+Spark.Geometry.KnotVector.Degree.get -> int
+Spark.Geometry.KnotVector.Domain.get -> Spark.Geometry.Interval
+Spark.Geometry.KnotVector.Equals(Spark.Geometry.KnotVector? other) -> bool
+Spark.Geometry.KnotVector.FindSpan(double parameter) -> int
+Spark.Geometry.KnotVector.IsClamped.get -> bool
+Spark.Geometry.KnotVector.KnotVector(int degree, System.Collections.Generic.IReadOnlyList<double>! knots) -> void
+Spark.Geometry.KnotVector.Multiplicity(double knot, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> int
+Spark.Geometry.KnotVector.ToArray() -> double[]!
+Spark.Geometry.KnotVector.this[int index].get -> double
 Spark.Geometry.Line
 Spark.Geometry.Line.Direction.get -> Spark.Geometry.Vector3d
 Spark.Geometry.Line.Line(in Spark.Geometry.Point3d start, in Spark.Geometry.Point3d end) -> void
@@ -339,6 +352,9 @@ override Spark.Geometry.EllipseCurve.Trimmed(in Spark.Geometry.Interval domain) 
 override Spark.Geometry.Interval.Equals(object? obj) -> bool
 override Spark.Geometry.Interval.GetHashCode() -> int
 override Spark.Geometry.Interval.ToString() -> string!
+override Spark.Geometry.KnotVector.Equals(object? obj) -> bool
+override Spark.Geometry.KnotVector.GetHashCode() -> int
+override Spark.Geometry.KnotVector.ToString() -> string!
 override Spark.Geometry.Line.Domain.get -> Spark.Geometry.Interval
 override Spark.Geometry.Line.IsClosed.get -> bool
 override Spark.Geometry.Line.LengthAt(double parameter) -> double
@@ -449,6 +465,7 @@ static Spark.Geometry.GeometryJson.Serialize(object! value, bool indented = fals
 static Spark.Geometry.Interval.Unit.get -> Spark.Geometry.Interval
 static Spark.Geometry.Interval.operator !=(in Spark.Geometry.Interval left, in Spark.Geometry.Interval right) -> bool
 static Spark.Geometry.Interval.operator ==(in Spark.Geometry.Interval left, in Spark.Geometry.Interval right) -> bool
+static Spark.Geometry.KnotVector.CreateClamped(int degree, int controlPoints) -> Spark.Geometry.KnotVector!
 static Spark.Geometry.Line.ByStartPointDirectionLength(in Spark.Geometry.Point3d start, in Spark.Geometry.Vector3d direction, double length) -> Spark.Geometry.Line!
 static Spark.Geometry.Line.ByStartPointEndPoint(in Spark.Geometry.Point3d start, in Spark.Geometry.Point3d end) -> Spark.Geometry.Line!
 static Spark.Geometry.Plane.ByOriginNormal(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal) -> Spark.Geometry.Plane

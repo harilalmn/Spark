@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-29
+**Last updated:** 2026-08-31
 
 **M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
 a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
@@ -28,10 +28,16 @@ Three distinctions still do the work in what follows:
   reparameterisation), the graph engine and replicator, the reflection importer with its
   two-way diff, the Avalonia shell, the immediate-mode canvas, the GL viewport, 57 nodes in
   `Spark.Nodes.Core`, a `.spark` file a graph survives a round trip through byte for byte, and a
-  64-step undo stack over that same file format.
-- **What is not.** No surfaces, meshes, BRep or solids. No `NurbsCurve`. No `spark run`. No
-  packages and no code block. And **no OCCT**: there is no `native/` directory and no
-  `Spark.Geometry.Occt` project.
+  64-step undo stack over that same file format. **1,196 tests over seven projects** as of
+  2026-08-30.
+- **What is not.** No surfaces, meshes, BRep or solids. No `NurbsCurve` — though its knot vector
+  landed on 2026-08-30 and the curve is next. No packages and no code block. And **no OCCT**:
+  there is no `native/` directory and no `Spark.Geometry.Occt` project.
+- **M2 finished on 2026-08-30.** Real docking (`E8-T2`), group, note and align (`E8-T6`), watch
+  nodes and preview bubbles (`E8-T10`) and `spark run` (`E12-T5`) all landed that day, which was
+  the whole of what the milestone still owed. The shell is a `DockControl` whose presets rearrange
+  it, the canvas annotates and aligns, a node's rank is visible where the graph is, and a graph
+  evaluates from the command line with no window and prints what its watches saw.
 - **Gates are not review, and this project now has its own proof three times over.** The
   kernel's first slice passed all three gates and was rejected on review ([NOTES N18](NOTES.md)).
   The curve layer's mutation sweep then found a test that could not fail and a branch that could

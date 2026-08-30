@@ -211,6 +211,18 @@ public static class GeometryJson
                 Number(writer, "sweepAngle", v.SweepAngle.Radians);
                 break;
 
+            case KnotVector v:
+                Open(writer, nameof(KnotVector));
+                writer.WriteNumber("degree", v.Degree);
+                writer.WriteStartArray("knots");
+                foreach (double knot in v.ToArray())
+                {
+                    writer.WriteNumberValue(knot);
+                }
+
+                writer.WriteEndArray();
+                break;
+
             case PolyLine v:
                 Open(writer, nameof(PolyLine));
                 writer.WriteStartArray("points");
@@ -297,6 +309,7 @@ public static class GeometryJson
                 Number(element, "yRadius"),
                 Angle.FromRadians(Number(element, "startAngle")),
                 Angle.FromRadians(Number(element, "sweepAngle"))),
+            nameof(KnotVector) => ReadKnotVector(element),
             nameof(PolyLine) => ReadPolyLine(element),
             nameof(PolyCurve) => ReadPolyCurve(element),
             _ => throw new NotSupportedException(
@@ -330,6 +343,26 @@ public static class GeometryJson
             m[4], m[5], m[6], m[7],
             m[8], m[9], m[10], m[11],
             m[12], m[13], m[14], m[15]);
+    }
+
+    /// <summary>
+    /// Reads a knot vector, which re-checks every invariant on the way in.
+    /// </summary>
+    /// <remarks>
+    /// The constructor is the only way to make one, so a hand-edited or corrupted file cannot
+    /// produce a vector that a curve would then evaluate into nonsense — it produces an exception
+    /// naming what is wrong with it instead.
+    /// </remarks>
+    private static KnotVector ReadKnotVector(JsonElement element)
+    {
+        List<double> knots = [];
+
+        foreach (JsonElement knot in element.GetProperty("knots").EnumerateArray())
+        {
+            knots.Add(knot.GetDouble());
+        }
+
+        return new KnotVector(element.GetProperty("degree").GetInt32(), knots);
     }
 
     private static PolyLine ReadPolyLine(JsonElement element)

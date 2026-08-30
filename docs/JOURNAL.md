@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 02:00 +0530
+**Last updated:** 2026-08-31 02:50 +0530
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 and M1.5 are both done.** M1.6 is deferred for want of a C++ toolchain; the work in flight is **M2's remainder** |
-| **Working on** | Nothing. **Queue 9 is finished**, and with it what was left of M2 |
+| **Working on** | Nothing. Between steps, at the start of M3 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **9**, `E12-T5` — `spark run`, and the value rendering moved into `Spark.Api.ValueText` |
+| **Last completed step** | Queue **10**, `E2-T10` step **(a)** — `KnotVector`: invariants, span search and basis functions |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | Queue **10** — **M3, NURBS curves**, starting at `E2-T10`. This is an **XL** item and the first geometry work in a while, so **start by reading, not by typing**: the `E2-T10` row in [TASKS.md](TASKS.md), the `E2` section of [EPICS.md](EPICS.md), and what `Spark.Geometry`'s existing `Curve` hierarchy already promises — `NurbsCurve` has to satisfy the same `Curve` contract that `Ray`, `Circle` and `PolyLine` already do, and the tessellation path and the serialization round-trip test both apply to it the day it exists. **Take the smallest first slice that a test can prove**: the data (control points, weights, knots, degree) with its invariants enforced in the constructor, and a knot-vector validity check, before any evaluation. `Curve.PointAt` on a de Boor evaluation is the second slice, not the first. Before starting, re-derive the queue from [TODO.md](TODO.md) — queue 9 is done and the two documents should be made to agree. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1171**: Geometry.Tests 402, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | `E2-T10` step **(b)**: **`NurbsCurve` itself**, on top of the knot vector. It must satisfy the whole `Curve` contract at once, because `Curve` is abstract over all of it — `Domain` (the knot vector's), `IsClosed`, `Evaluate`, `EvaluateDerivative`, `EvaluateSecondDerivative`, `Reversed`, `Trimmed`, `TransformedBy`. **Work in homogeneous coordinates**: store control points as weighted 4-vectors, evaluate with de Boor there, and project at the end — a rational curve evaluated by dividing at each step is both slower and less accurate, and the derivative formula only comes out clean in homogeneous form (the quotient rule on `C(t) = A(t)/w(t)`). **Weights must be positive**, refused in the constructor, or the denominator can reach zero inside the domain and the curve has a pole in it. Prove it against curves that already exist: a degree-1 `NurbsCurve` through two points must agree with `Line`, and a rational quadratic with weights `1, cos(θ/2), 1` must agree with `Arc` to tolerance — **those two tests are worth more than any number of self-consistent ones**, because they check the curve against geometry this repository already trusts. Expect `GeometryJsonTests` to fail the moment the type exists; that is it working. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1196**: Geometry.Tests 427, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -119,7 +119,7 @@ the two disagree.**
 | 7 | **The C2VGeometry test harvest**, timeboxed to one week with a hard stop. Harvest assertions, not generators | `E2-T32` | L | **Blocked** — needs the C2VGeometry source, which is not in this repository and not on this machine. Skipped 2026-08-30 |
 | 8 | **M1.5 spike (c): AvaloniaEdit plus a Roslyn completion popup** — the last unproven part of M1.5, gating M4 | `E11-T21` | M | **Done** 2026-08-30 |
 | 9 | ~~**What is left of M2** — real docking (`E8-T2`), group/note/align (`E8-T6`), watch nodes (`E8-T10`), `spark run` (`E12-T5`)~~ | | L | **Done** 2026-08-30 |
-| 10 | **M3 — NURBS curves** *(next)* | `E2-T10` … | XL | Open |
+| 10 | **M3 — NURBS curves** *(in progress)* — `KnotVector` done 2026-08-30; `NurbsCurve` next | `E2-T10` … | XL | Open |
 | + | **Persist the workspace layout between sessions** — `WorkspaceLayout` already serialises and round-trips under test; nothing writes it. A dragged arrangement dies with the window, which is the one thing a dock is for | `E8-T2`-adjacent | S | Open |
 | + | **A guard that no test project reports zero tests** — one line, and it catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)) | `E11`-adjacent | S | Open, take it with the next CI change |
 
@@ -925,3 +925,45 @@ needs it to mean — the longest a summary can be, ellipsis included.
 
 **Cost.** Fifty minutes. **Queue 9 is finished**: `E8-T2`, `E8-T6`, `E8-T10` and `E12-T5`'s `run`
 are all done, which is what was left of M2.
+
+### 2026-08-30 — M3 begins underneath the curve, at the knot vector
+
+**Queue 10, `E2-T10` step (a).** The first geometry work in a while, and the first slice is
+deliberately not the curve.
+
+**`Curve` is abstract over six members** — `Domain`, `IsClosed`, `Evaluate`,
+`EvaluateDerivative`, `EvaluateSecondDerivative`, `Reversed`, `Trimmed`, `TransformedBy` — so
+**a `NurbsCurve` cannot exist half-built.** There is no slice of it that compiles and does less.
+What there is instead is the piece underneath it, and that piece happens to be the one that
+matters most: almost every hard-to-diagnose spline fault is a knot-vector fault, and every one of
+them is arithmetic that needs no curve, no control points and no evaluation to test.
+
+**`KnotVector` owns the invariants** — non-decreasing, finite, at least `2p + 2` knots, interior
+multiplicity at most `degree`, end multiplicity at most `degree + 1`, and a domain that is not a
+point — enforced in the constructor and never re-checked, which is what lets the curve be written
+assuming they hold. It also owns the two things that are always subtly wrong: `Domain`, which runs
+between the **interior** end knots and not the first and last, and `FindSpan`, whose special case
+at the very last parameter is the difference between evaluating at `t = 1` and reading past the
+control points.
+
+**Equality is exact, and that is a decision.** A knot vector is data: two vectors are the same or
+they are not, and a tolerant `Equals` would let `a == b` and `b == c` fail to imply `a == c`. Where
+the tolerant question is the right one — *is this end knot repeated `degree + 1` times, after a
+refinement has drifted the arithmetic* — `Multiplicity` takes a `Tolerance` and answers it.
+
+**The reflection round-trip test caught the new type within seconds of it existing**, which is
+`E2-T31` doing exactly what it was built for: *a new type that forgets serialization fails the
+build*. It has now earned itself on the first type added since it was written. Adding the sample
+then failed a second time, on `Assert.Equal` falling through to reference equality — which is how
+the type came to have value equality at all. **Two gates in sequence each told me something I had
+not thought about**, and neither was a test I wrote.
+
+**Verified.** Build clean with `-warnaserror`; **1196 tests, 0 failures** (1171 + 25);
+`dotnet format` clean. The basis functions are asserted to be a partition of unity at 41 parameters
+across four degrees, and non-negative across the domain — the two properties whose failure looks
+like a modelling mistake rather than a kernel one.
+
+**Also done: the documents caught up with reality.** `TODO.md` still said M2 was outstanding and
+quoted a test count from two days and 244 tests ago.
+
+**Cost.** Fifty minutes.

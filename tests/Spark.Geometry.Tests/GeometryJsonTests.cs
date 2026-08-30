@@ -27,6 +27,11 @@ public sealed class GeometryJsonTests
         [typeof(Quaternion)] = Quaternion.ByAxisAngle(new Vector3d(1.0, 2.0, 3.0), Angle.FromDegrees(37.0)),
         [typeof(Angle)] = Angle.FromDegrees(123.75),
         [typeof(Interval)] = new Interval(-4.0, 9.5),
+
+        // Deliberately not the uniform clamped default: repeated end knots, an unequal interior
+        // spacing and a non-zero start are all things a round trip can get wrong while a tidy
+        // 0..1 vector survives by accident.
+        [typeof(KnotVector)] = new KnotVector(3, [2, 2, 2, 2, 3.5, 5, 7, 7, 7, 7]),
         [typeof(Tolerance)] = new Tolerance(1e-7, Angle.FromDegrees(0.01), 1e-11),
         [typeof(BoundingBox)] = new BoundingBox(new Point3d(-1.0, -2.0, -3.0), new Point3d(4.0, 5.0, 6.0)),
         [typeof(Plane)] = Plane.ByOriginXAxisYAxis(
