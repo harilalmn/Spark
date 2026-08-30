@@ -96,6 +96,26 @@ public sealed class GeometryJsonTests
             Point3d.Origin,
             Vector3d.ZAxis,
             new Interval(0.0, 2.0)),
+        // A mesh with every optional channel populated and a quad *and* a triangle in it, because
+        // the channels and the triangle-versus-quad sentinel are the two things a round trip can
+        // silently drop.
+        [typeof(MeshFace)] = new MeshFace(3, 1, 4, 1),
+        [typeof(Mesh)] = new Mesh(
+            [
+                new Point3d(0.0, 0.0, 0.0),
+                new Point3d(1.0, 0.0, 0.0),
+                new Point3d(1.0, 1.0, 0.0),
+                new Point3d(0.0, 1.0, 0.0),
+                new Point3d(0.5, 0.5, 1.0),
+            ],
+            [new MeshFace(0, 1, 2, 3), new MeshFace(0, 1, 4)],
+            [
+                Vector3d.ZAxis, Vector3d.ZAxis, Vector3d.ZAxis, Vector3d.ZAxis,
+                new Vector3d(0.0, -1.0, 1.0).Normalised(),
+            ],
+            [new UV(0, 0), new UV(1, 0), new UV(1, 1), new UV(0, 1), new UV(0.5, 0.5)],
+            [0xFF0000FFu, 0x00FF00FFu, 0x0000FFFFu, 0xFFFFFFFFu, 0x808080FFu]),
+
         // A rational sample, because a non-rational one round-trips through the weightless path and
         // would never exercise the weights at all.
         [typeof(NurbsSurface)] = new SphericalSurface(
@@ -114,6 +134,10 @@ public sealed class GeometryJsonTests
     {
         [typeof(Curve)] = "abstract; its concrete subclasses each have a sample",
         [typeof(Surface)] = "abstract; its concrete subclasses each have a sample",
+        [typeof(MeshTopology)] =
+            "adjacency derived from a mesh and rebuildable from it in one pass. Storing it would "
+            + "mean storing a second description of the same faces and a promise that the two "
+            + "still agree - which is the shape of every bug an index has",
         [typeof(BoundingVolumeHierarchy)] =
             "an index over other things, derived and rebuildable in microseconds. Storing it "
             + "would mean storing a second copy of the boxes and a promise that they still agree",
@@ -281,6 +305,13 @@ public sealed class GeometryJsonTests
 
     private static void AssertSame(object expected, object actual)
     {
+        if (expected is Mesh mesh)
+        {
+            AssertSameMesh(mesh, (Mesh)actual);
+
+            return;
+        }
+
         if (expected is Surface surface)
         {
             AssertSameSurface(surface, (Surface)actual);
@@ -312,6 +343,51 @@ public sealed class GeometryJsonTests
             default:
                 Assert.Equal(expected, actual);
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Two meshes are the same when every vertex, face and channel matches.
+    /// </summary>
+    /// <remarks>
+    /// <b>Element by element rather than by equality</b>, because a mesh is a reference type with
+    /// no value equality — and defining one would be defining that two meshes with the same
+    /// geometry in a different vertex order are different, which is true and not what a round trip
+    /// is asking. The channels are checked for *presence* as well as contents: dropping an empty
+    /// channel and dropping a populated one look the same from a length comparison alone.
+    /// </remarks>
+    private static void AssertSameMesh(Mesh expected, Mesh actual)
+    {
+        Assert.Equal(expected.VertexCount, actual.VertexCount);
+        Assert.Equal(expected.FaceCount, actual.FaceCount);
+        Assert.Equal(expected.QuadCount, actual.QuadCount);
+        Assert.Equal(expected.HasNormals, actual.HasNormals);
+        Assert.Equal(expected.HasTextureCoordinates, actual.HasTextureCoordinates);
+        Assert.Equal(expected.HasColours, actual.HasColours);
+
+        for (int i = 0; i < expected.VertexCount; i++)
+        {
+            Assert.True(expected.Vertex(i).EqualsWithin(actual.Vertex(i)));
+        }
+
+        for (int i = 0; i < expected.FaceCount; i++)
+        {
+            Assert.Equal(expected.Face(i), actual.Face(i));
+        }
+
+        if (expected.Normals() is { } normals)
+        {
+            Assert.Equal(normals, actual.Normals());
+        }
+
+        if (expected.TextureCoordinates() is { } uvs)
+        {
+            Assert.Equal(uvs, actual.TextureCoordinates());
+        }
+
+        if (expected.Colours() is { } colours)
+        {
+            Assert.Equal(colours, actual.Colours());
         }
     }
 

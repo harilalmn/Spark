@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3 and M4 are done.** **M5 is open**: the surface layer landed 2026-08-31; `NurbsSurface`, `Mesh`, tessellation and the shaded viewport remain. M1.6 is deferred |
 | **Working on** | Nothing. Between steps, inside M5 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E2-T19`, `NurbsSurface` and the exact conversions** — plane, cylinder, cone, sphere and torus convert to rational NURBS with no approximation error. The finding is that *exact* covers the sheet and not the parameterisation ([N48](NOTES.md)) |
+| **Last completed step** | **`E2-T20`, `Mesh`** — indexed vertices, tri and quad faces in one struct, optional channels, and a lazily built halfedge adjacency that *describes* a malformed mesh rather than refusing to build one |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M5 step **(c)**: **`E2-T20`, `Mesh`.** Indexed vertices, triangle *and* quad faces, optional normals, UVs and colours, and a **lazily built halfedge adjacency** — lazy because most meshes are produced, drawn and discarded without anybody asking a topological question, and building adjacency for them would be pure cost. It is the type tessellation writes into (`E2-T26`), the type the viewport draws, and the type every mesh format reads and writes, so its contract is worth settling before any of the three. After it: `E2-T26` tessellation and `ITessellationSink`, then the shaded viewport. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1722**: Geometry.Tests 670, UI.Tests 435, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | M5 step **(d)**: **`E2-T26`, tessellation and `ITessellationSink`.** Turn a `Surface` into a `Mesh` to a tolerance — the curve half already exists as `Curve.Tessellate`, so this is the surface half. **The sink is the part that matters for the viewport**: a tessellator that returns a `Mesh` allocates the whole thing before anything can be drawn, and a sink lets the viewport stream triangles into a buffer it already owns (`E9`). Adaptive in both directions, seeded from the surface's own span structure the way `Curve` seeds from its knots, and **a degenerate corner must not produce zero-area triangles** — a sphere's pole is the case. Then the shaded viewport, and `E2-T34`/`E2-T35` for the mesh formats. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1751**: Geometry.Tests 699, UI.Tests 435, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -2094,3 +2094,60 @@ patch converts to a patch, which is what trimming and a BRep face rely on.
 tests went red; `E2-T31` went red again on the new type until `NurbsSurface` serialised, with a
 **rational** sample, because a non-rational one takes the weightless path and never exercises the
 weights.
+
+### 2026-08-31 — `Mesh`, and a halfedge structure that describes malformed meshes rather than refusing them
+
+**`E2-T20`.** The type three separate things meet at — tessellation writes it, the viewport draws
+it, and every mesh format reads and writes it — so its contract was settled before any of the three
+rather than after one of them.
+
+**Triangles and quads in one struct.** `MeshFace` carries four indices with `D = -1` on a triangle.
+The other convention, repeating `C` in `D`, makes a degenerate quad and a triangle
+indistinguishable and gives four edges where there are three. Two separate face *types* would
+double every loop, and splitting quads at the boundary would lose the quad structure permanently —
+a tessellated NURBS surface is naturally quads with triangles at the poles.
+
+**Three decisions in the measurement code are worth more than they look.**
+
+- **A quad's normal is Newell's, not the cross product of its first three corners.** A warped quad
+  has no single plane, and the three-corner version gives a normal that *flips* depending on which
+  corner the winding is listed from. There is a test that starts the same quad at two corners.
+- **Vertex normals are area-weighted**, so a vertex where one large face meets three slivers does
+  not point almost entirely at the slivers. It costs nothing: an unnormalised Newell normal already
+  has twice the face's area as its length.
+- **`Volume` is signed, and stays signed.** A closed mesh wound inwards reports a negative volume,
+  which is the cheapest reliable way to notice a mesh that will shade inside-out. Wrapping it in an
+  absolute value would throw away the only cheap detector there is.
+
+**Colours are packed `uint`s and that is a layering decision, not a preference.** `Rgba` lives in
+`Spark.Api` beside `Appearance` because the kernel carries no styling (`E2-T1`), and `Spark.Api`
+references the kernel — so the kernel cannot reference it back. **But a scanned or baked vertex
+colour is data rather than styling**, and a PLY carrying them would otherwise be read lossily. So
+they are here as `0xRRGGBBAA`, the packing every format already uses, with the conversion left as
+one line at the display layer. The alternative — a second colour type in the kernel that has to
+agree with the first — is worse than the shift.
+
+**The adjacency is lazy and it is the part with the strongest opinion.** Most meshes are produced,
+drawn and discarded without anybody asking a topological question, and building a halfedge
+structure for them roughly doubles what a mesh costs. So `Mesh.Topology` builds once, on demand,
+and keeps it.
+
+**And it describes a malformed mesh rather than refusing to build.** Three faces on one edge is not
+a manifold and it is also exactly what a careless boolean produces; a structure that threw would
+leave the caller no way to *find* the problem. So the third halfedge gets no twin, it is counted,
+and `IsManifold` says so. The same reasoning gives naked edges — the diagnostic a *show me the
+hole* tool draws — and `IsConsistentlyWound`, which has to be a separate question from `IsClosed`
+because a closed mesh can still be wound inconsistently, and that mesh shades inside-out in patches
+and reports a nonsense volume.
+
+**One deliberate slowness, recorded on the method.** `FacesAroundVertex` scans rather than walking
+the halfedge fan. The fan is faster and stops at a boundary or a non-manifold vertex, silently
+returning *some* of the faces — and on a mesh that may be neither closed nor manifold, which is the
+only kind worth defending against, the complete answer is worth more than the quick one.
+
+**Verified.** Build clean with `-warnaserror`; **1751 tests, 0 failures** (Geometry 670 → 699);
+`dotnet format` clean; docs harness green. `E2-T31` went red on `Mesh` and `MeshFace` until both
+serialised — with a sample carrying **every** optional channel and both a quad and a triangle,
+because the channels and the triangle sentinel are the two things a round trip can silently drop —
+and `MeshTopology` is excluded with the reason every derived index gets: storing it would mean
+storing a second description of the same faces and a promise that the two still agree.

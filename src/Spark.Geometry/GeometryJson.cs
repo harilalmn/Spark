@@ -275,6 +275,76 @@ public static class GeometryJson
                 Member(writer, "second", v.Second);
                 break;
 
+            case MeshFace v:
+                Open(writer, nameof(MeshFace));
+                writer.WriteNumber("a", v.A);
+                writer.WriteNumber("b", v.B);
+                writer.WriteNumber("c", v.C);
+                writer.WriteNumber("d", v.D);
+                break;
+
+            case Mesh v:
+                Open(writer, nameof(Mesh));
+                writer.WriteStartArray("vertices");
+
+                foreach (Point3d vertex in v.Vertices())
+                {
+                    Write(writer, vertex);
+                }
+
+                writer.WriteEndArray();
+                writer.WriteStartArray("faces");
+
+                // Four numbers per face, flat. A nested object per face would be four times the
+                // bytes for a mesh where the face list is most of the file.
+                foreach (MeshFace face in v.Faces())
+                {
+                    writer.WriteNumberValue(face.A);
+                    writer.WriteNumberValue(face.B);
+                    writer.WriteNumberValue(face.C);
+                    writer.WriteNumberValue(face.D);
+                }
+
+                writer.WriteEndArray();
+
+                if (v.Normals() is { } meshNormals)
+                {
+                    writer.WriteStartArray("normals");
+
+                    foreach (Vector3d normal in meshNormals)
+                    {
+                        Write(writer, normal);
+                    }
+
+                    writer.WriteEndArray();
+                }
+
+                if (v.TextureCoordinates() is { } meshUvs)
+                {
+                    writer.WriteStartArray("textureCoordinates");
+
+                    foreach (UV uv in meshUvs)
+                    {
+                        Write(writer, uv);
+                    }
+
+                    writer.WriteEndArray();
+                }
+
+                if (v.Colours() is { } meshColours)
+                {
+                    writer.WriteStartArray("colours");
+
+                    foreach (uint colour in meshColours)
+                    {
+                        writer.WriteNumberValue(colour);
+                    }
+
+                    writer.WriteEndArray();
+                }
+
+                break;
+
             case NurbsSurface v:
                 Open(writer, nameof(NurbsSurface));
                 Member(writer, "knotsU", v.KnotsU);
@@ -470,6 +540,12 @@ public static class GeometryJson
                 ReadInterval(element, "sweep")),
             nameof(RuledSurface) => new RuledSurface(
                 ReadCurve(element, "first"), ReadCurve(element, "second")),
+            nameof(MeshFace) => new MeshFace(
+                element.GetProperty("a").GetInt32(),
+                element.GetProperty("b").GetInt32(),
+                element.GetProperty("c").GetInt32(),
+                element.GetProperty("d").GetInt32()),
+            nameof(Mesh) => ReadMesh(element),
             nameof(NurbsSurface) => ReadNurbsSurface(element),
             nameof(KnotVector) => ReadKnotVector(element),
             nameof(NurbsCurve) => ReadNurbsCurve(element),
@@ -644,6 +720,63 @@ public static class GeometryJson
     private static Vector3d Vector(JsonElement element, string name) => (Vector3d)Read(element.GetProperty(name));
 
     private static Plane ReadPlane(JsonElement element, string name) => (Plane)Read(element.GetProperty(name));
+
+    private static Mesh ReadMesh(JsonElement element)
+    {
+        List<Point3d> vertices = [];
+
+        foreach (JsonElement vertex in element.GetProperty("vertices").EnumerateArray())
+        {
+            vertices.Add((Point3d)Read(vertex));
+        }
+
+        List<MeshFace> faces = [];
+        JsonElement flat = element.GetProperty("faces");
+
+        for (int i = 0; i + 3 < flat.GetArrayLength(); i += 4)
+        {
+            faces.Add(new MeshFace(
+                flat[i].GetInt32(), flat[i + 1].GetInt32(), flat[i + 2].GetInt32(), flat[i + 3].GetInt32()));
+        }
+
+        List<Vector3d>? normals = null;
+
+        if (element.TryGetProperty("normals", out JsonElement normalElements))
+        {
+            normals = [];
+
+            foreach (JsonElement normal in normalElements.EnumerateArray())
+            {
+                normals.Add((Vector3d)Read(normal));
+            }
+        }
+
+        List<UV>? uvs = null;
+
+        if (element.TryGetProperty("textureCoordinates", out JsonElement uvElements))
+        {
+            uvs = [];
+
+            foreach (JsonElement uv in uvElements.EnumerateArray())
+            {
+                uvs.Add((UV)Read(uv));
+            }
+        }
+
+        List<uint>? colours = null;
+
+        if (element.TryGetProperty("colours", out JsonElement colourElements))
+        {
+            colours = [];
+
+            foreach (JsonElement colour in colourElements.EnumerateArray())
+            {
+                colours.Add(colour.GetUInt32());
+            }
+        }
+
+        return new Mesh(vertices, faces, normals, uvs, colours);
+    }
 
     private static NurbsSurface ReadNurbsSurface(JsonElement element)
     {
