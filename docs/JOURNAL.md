@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3 and M4 are done.** **M5 is open**: the surface layer landed 2026-08-31; `NurbsSurface`, `Mesh`, tessellation and the shaded viewport remain. M1.6 is deferred |
 | **Working on** | Nothing. Between steps, inside M5 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E2-T17` and `E2-T18`, opening M5** — the `Surface` contract and all eight analytic surfaces, cross-checked against closed forms they do not use. The degeneracy test at a sphere's pole is the part worth reading |
+| **Last completed step** | **`E2-T19`, `NurbsSurface` and the exact conversions** — plane, cylinder, cone, sphere and torus convert to rational NURBS with no approximation error. The finding is that *exact* covers the sheet and not the parameterisation ([N48](NOTES.md)) |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M5 step **(b)**: **`E2-T19`, `NurbsSurface`.** `KnotVector` and `NurbsCurve` are both already here, so this is the tensor-product extension of code that exists rather than new mathematics: two knot vectors, a control net, optional weights, de Boor in both directions, derivatives from the same recurrence. **Then `ToNurbsSurface` on the analytic types**, which `E2-T17` deliberately left out until there was something to convert to — sphere, cylinder, cone and torus are all *exactly* representable as rational NURBS, and being exact is the whole reason they are first-class types rather than approximations. After it: **`E2-T20`, `Mesh`**, then `E2-T26` tessellation and the shaded viewport. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1704**: Geometry.Tests 652, UI.Tests 435, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | M5 step **(c)**: **`E2-T20`, `Mesh`.** Indexed vertices, triangle *and* quad faces, optional normals, UVs and colours, and a **lazily built halfedge adjacency** — lazy because most meshes are produced, drawn and discarded without anybody asking a topological question, and building adjacency for them would be pure cost. It is the type tessellation writes into (`E2-T26`), the type the viewport draws, and the type every mesh format reads and writes, so its contract is worth settling before any of the three. After it: `E2-T26` tessellation and `ITessellationSink`, then the shaded viewport. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1722**: Geometry.Tests 670, UI.Tests 435, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -2045,3 +2045,52 @@ passing merely because the collector had not got round to it.
 **Verified.** Build clean with `-warnaserror`; **1704 tests, 0 failures** (Geometry 584 → 652);
 `dotnet format` clean; docs harness green; and the UI suite run three times over to confirm the
 unload assertion is stable.
+
+### 2026-08-31 — `NurbsSurface`, and what "exact" actually covers
+
+**`E2-T19`, and most of it was already written.** A NURBS surface is a tensor product, so its basis
+functions are the curve's evaluated in two directions — which is why the first move was to take
+`BasisDerivatives` off `NurbsCurve` and put it on `KnotVector`, where it belonged. Two callers of
+one implementation of de Boor's A2.3, rather than two copies with somewhere to drift.
+
+**What the surface adds over the curve is small and worth naming.** Weights are held homogeneously
+once at construction, so evaluation is a four-dimensional weighted sum and one divide. The bounding
+box is the control net's, **exactly**, by the convex-hull property — no sampling, no padding, no
+possibility of a bulge escaping it, which is a genuinely better answer than the base class's. And
+every affine transform is exact, because the basis functions do not depend on where the control
+points are; a NURBS surface takes the non-uniform scale that every analytic surface refuses.
+
+**`ToNurbsSurface` came with it, exact, for five types.** Plane, cylinder, cone, sphere and torus.
+Everything rests on one fact — three control points with weights `1, cos(θ/2), 1` reproduce a
+circular arc of sweep θ exactly — and on two details that are easy to lose: **the weight is
+`cos(θ/2)` and not `cos θ`**, and **the corner control point is the tangent intersection at
+`r / cos(θ/2)`, not the arc's midpoint**. Either mistake gives a curve through the right end points
+that bulges wrongly in between, which is exactly the shape a sparse test does not see.
+
+**The finding is what "exact" does and does not cover, and it cost six failing tests to state
+properly.** The first version asserted that the original and the converted surface agree point for
+point at the same parameter. They do not, and the code was right: **a rational quadratic's parameter
+is a projective function of the angle rather than the angle**. Halfway along a quarter circle's span
+is the arc's midpoint; a quarter of the way along is not 22.5°. There is no representation that is
+both exact and angle-parameterised, and every kernel makes this trade the same way.
+
+**So the assertion changed to the right one: the implicit equation.** *Every point of a converted
+sphere is exactly one radius from the centre*, at 1e-9, over an odd grid. It is a statement about the
+sheet rather than about the parameterisation, and it is **stronger** — breaking the weight
+deliberately turns eight tests red where the point-for-point version would have caught six. The
+grid is odd on purpose: an even one lands on span boundaries, which is precisely where a wrong
+rational construction is still right, because the control points are on the curve there.
+[N48](NOTES.md).
+
+**And the difference is pinned rather than only documented.** `TheParameterisationIsNotPreserved`
+asserts that the two surfaces *disagree* at a quarter of the way into a span, so a future change
+that quietly reparameterised — and therefore stopped being exact — turns it red.
+
+**What is preserved is the domain and therefore the extent**: the corners and edges line up and a
+patch converts to a patch, which is what trimming and a BRep face rely on.
+
+**Verified.** Build clean with `-warnaserror`; **1722 tests, 0 failures** (Geometry 652 → 670);
+`dotnet format` clean; docs harness green. The arc weight was broken deliberately once and eight
+tests went red; `E2-T31` went red again on the new type until `NurbsSurface` serialised, with a
+**rational** sample, because a non-rational one takes the weightless path and never exercises the
+weights.

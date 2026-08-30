@@ -160,6 +160,20 @@ Spark.Geometry.NurbsCurve.Weights() -> double[]!
 Spark.Geometry.NurbsCurve.WithDegreeElevated(int by = 1) -> Spark.Geometry.NurbsCurve!
 Spark.Geometry.NurbsCurve.WithKnotInserted(double knot, int times = 1) -> Spark.Geometry.NurbsCurve!
 Spark.Geometry.NurbsCurve.WithKnotRemoved(double knot, int times = 1, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> (Spark.Geometry.NurbsCurve! Curve, int Removed)
+Spark.Geometry.NurbsSurface
+Spark.Geometry.NurbsSurface.ControlPoint(int i, int j) -> Spark.Geometry.Point3d
+Spark.Geometry.NurbsSurface.ControlPointCountU.get -> int
+Spark.Geometry.NurbsSurface.ControlPointCountV.get -> int
+Spark.Geometry.NurbsSurface.ControlPoints() -> Spark.Geometry.Point3d[,]!
+Spark.Geometry.NurbsSurface.DegreeU.get -> int
+Spark.Geometry.NurbsSurface.DegreeV.get -> int
+Spark.Geometry.NurbsSurface.IsRational.get -> bool
+Spark.Geometry.NurbsSurface.KnotsU.get -> Spark.Geometry.KnotVector!
+Spark.Geometry.NurbsSurface.KnotsV.get -> Spark.Geometry.KnotVector!
+Spark.Geometry.NurbsSurface.NurbsSurface(Spark.Geometry.KnotVector! knotsU, Spark.Geometry.KnotVector! knotsV, Spark.Geometry.Point3d[,]! controlPoints) -> void
+Spark.Geometry.NurbsSurface.NurbsSurface(Spark.Geometry.KnotVector! knotsU, Spark.Geometry.KnotVector! knotsV, Spark.Geometry.Point3d[,]! controlPoints, double[,]? weights) -> void
+Spark.Geometry.NurbsSurface.Weight(int i, int j) -> double
+Spark.Geometry.NurbsSurface.Weights() -> double[,]!
 Spark.Geometry.Plane
 Spark.Geometry.Plane.ClosestPoint(in Spark.Geometry.Point3d point) -> Spark.Geometry.Point3d
 Spark.Geometry.Plane.Contains(in Spark.Geometry.Point3d point, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
@@ -281,6 +295,7 @@ Spark.Geometry.Surface.NormalAt(double u, double v) -> Spark.Geometry.Vector3d
 Spark.Geometry.Surface.PointAt(double u, double v) -> Spark.Geometry.Point3d
 Spark.Geometry.Surface.PointAt(in Spark.Geometry.UV uv) -> Spark.Geometry.Point3d
 Spark.Geometry.Surface.PrincipalCurvatures(double u, double v) -> (double Minimum, double Maximum)
+Spark.Geometry.SurfaceConversion
 Spark.Geometry.Tolerance
 Spark.Geometry.Tolerance.Angular.get -> Spark.Geometry.Angle
 Spark.Geometry.Tolerance.AreEqual(double a, double b) -> bool
@@ -468,6 +483,13 @@ override Spark.Geometry.NurbsCurve.Reversed() -> Spark.Geometry.Curve!
 override Spark.Geometry.NurbsCurve.ToString() -> string!
 override Spark.Geometry.NurbsCurve.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
 override Spark.Geometry.NurbsCurve.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
+override Spark.Geometry.NurbsSurface.BoundingBox.get -> Spark.Geometry.BoundingBox
+override Spark.Geometry.NurbsSurface.DomainU.get -> Spark.Geometry.Interval
+override Spark.Geometry.NurbsSurface.DomainV.get -> Spark.Geometry.Interval
+override Spark.Geometry.NurbsSurface.IsClosedU.get -> bool
+override Spark.Geometry.NurbsSurface.IsClosedV.get -> bool
+override Spark.Geometry.NurbsSurface.ToString() -> string!
+override Spark.Geometry.NurbsSurface.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Surface!
 override Spark.Geometry.Plane.Equals(object? obj) -> bool
 override Spark.Geometry.Plane.GetHashCode() -> int
 override Spark.Geometry.Plane.ToString() -> string!
@@ -607,6 +629,7 @@ static Spark.Geometry.NurbsCurve.ApproximatePoints(System.Collections.Generic.IR
 static Spark.Geometry.NurbsCurve.ByPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.NurbsCurve!
 static Spark.Geometry.NurbsCurve.FitPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance), int degree = 3) -> (Spark.Geometry.NurbsCurve! Curve, double Deviation, bool Fits)
 static Spark.Geometry.NurbsCurve.InterpolatePoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, int degree = 3) -> Spark.Geometry.NurbsCurve!
+static Spark.Geometry.NurbsSurface.ByCorners(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! corners) -> Spark.Geometry.NurbsSurface!
 static Spark.Geometry.Plane.ByOriginNormal(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal) -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.ByOriginNormalXAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal, in Spark.Geometry.Vector3d xAxis) -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.ByOriginXAxisYAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d xAxis, in Spark.Geometry.Vector3d yAxis) -> Spark.Geometry.Plane
@@ -658,6 +681,11 @@ static Spark.Geometry.Quaternion.operator ==(in Spark.Geometry.Quaternion left, 
 static Spark.Geometry.Ray.ByTwoPoints(in Spark.Geometry.Point3d from, in Spark.Geometry.Point3d towards) -> Spark.Geometry.Ray
 static Spark.Geometry.Ray.operator !=(in Spark.Geometry.Ray left, in Spark.Geometry.Ray right) -> bool
 static Spark.Geometry.Ray.operator ==(in Spark.Geometry.Ray left, in Spark.Geometry.Ray right) -> bool
+static Spark.Geometry.SurfaceConversion.ToNurbsSurface(this Spark.Geometry.ConicalSurface! surface) -> Spark.Geometry.NurbsSurface!
+static Spark.Geometry.SurfaceConversion.ToNurbsSurface(this Spark.Geometry.CylindricalSurface! surface) -> Spark.Geometry.NurbsSurface!
+static Spark.Geometry.SurfaceConversion.ToNurbsSurface(this Spark.Geometry.PlaneSurface! surface) -> Spark.Geometry.NurbsSurface!
+static Spark.Geometry.SurfaceConversion.ToNurbsSurface(this Spark.Geometry.SphericalSurface! surface) -> Spark.Geometry.NurbsSurface!
+static Spark.Geometry.SurfaceConversion.ToNurbsSurface(this Spark.Geometry.ToroidalSurface! surface) -> Spark.Geometry.NurbsSurface!
 static Spark.Geometry.Tolerance.Default.get -> Spark.Geometry.Tolerance
 static Spark.Geometry.Tolerance.ForScale(double characteristicLength) -> Spark.Geometry.Tolerance
 static Spark.Geometry.Tolerance.operator !=(Spark.Geometry.Tolerance left, Spark.Geometry.Tolerance right) -> bool

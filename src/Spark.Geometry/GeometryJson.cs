@@ -275,6 +275,44 @@ public static class GeometryJson
                 Member(writer, "second", v.Second);
                 break;
 
+            case NurbsSurface v:
+                Open(writer, nameof(NurbsSurface));
+                Member(writer, "knotsU", v.KnotsU);
+                Member(writer, "knotsV", v.KnotsV);
+                writer.WriteNumber("countU", v.ControlPointCountU);
+                writer.WriteNumber("countV", v.ControlPointCountV);
+                writer.WriteStartArray("controlPoints");
+
+                // Flattened row-major, u outermost, which is the same order the net is indexed in.
+                // Writing a nested array would look tidier and would let a hand-edited file get the
+                // two dimensions out of step with `countU` and `countV`, which nothing could catch.
+                for (int i = 0; i < v.ControlPointCountU; i++)
+                {
+                    for (int j = 0; j < v.ControlPointCountV; j++)
+                    {
+                        Write(writer, v.ControlPoint(i, j));
+                    }
+                }
+
+                writer.WriteEndArray();
+
+                if (v.IsRational)
+                {
+                    writer.WriteStartArray("weights");
+
+                    for (int i = 0; i < v.ControlPointCountU; i++)
+                    {
+                        for (int j = 0; j < v.ControlPointCountV; j++)
+                        {
+                            writer.WriteNumberValue(v.Weight(i, j));
+                        }
+                    }
+
+                    writer.WriteEndArray();
+                }
+
+                break;
+
             case KnotVector v:
                 Open(writer, nameof(KnotVector));
                 writer.WriteNumber("degree", v.Degree);
@@ -432,6 +470,7 @@ public static class GeometryJson
                 ReadInterval(element, "sweep")),
             nameof(RuledSurface) => new RuledSurface(
                 ReadCurve(element, "first"), ReadCurve(element, "second")),
+            nameof(NurbsSurface) => ReadNurbsSurface(element),
             nameof(KnotVector) => ReadKnotVector(element),
             nameof(NurbsCurve) => ReadNurbsCurve(element),
             nameof(PolyLine) => ReadPolyLine(element),
@@ -605,6 +644,43 @@ public static class GeometryJson
     private static Vector3d Vector(JsonElement element, string name) => (Vector3d)Read(element.GetProperty(name));
 
     private static Plane ReadPlane(JsonElement element, string name) => (Plane)Read(element.GetProperty(name));
+
+    private static NurbsSurface ReadNurbsSurface(JsonElement element)
+    {
+        KnotVector knotsU = (KnotVector)Read(element.GetProperty("knotsU"));
+        KnotVector knotsV = (KnotVector)Read(element.GetProperty("knotsV"));
+
+        int countU = element.GetProperty("countU").GetInt32();
+        int countV = element.GetProperty("countV").GetInt32();
+
+        JsonElement points = element.GetProperty("controlPoints");
+        Point3d[,] net = new Point3d[countU, countV];
+
+        for (int i = 0; i < countU; i++)
+        {
+            for (int j = 0; j < countV; j++)
+            {
+                net[i, j] = (Point3d)Read(points[(i * countV) + j]);
+            }
+        }
+
+        if (!element.TryGetProperty("weights", out JsonElement weightElements))
+        {
+            return new NurbsSurface(knotsU, knotsV, net);
+        }
+
+        double[,] weights = new double[countU, countV];
+
+        for (int i = 0; i < countU; i++)
+        {
+            for (int j = 0; j < countV; j++)
+            {
+                weights[i, j] = weightElements[(i * countV) + j].GetDouble();
+            }
+        }
+
+        return new NurbsSurface(knotsU, knotsV, net, weights);
+    }
 
     private static Interval ReadInterval(JsonElement element, string name) =>
         (Interval)Read(element.GetProperty(name));

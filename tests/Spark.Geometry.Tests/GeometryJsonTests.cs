@@ -96,6 +96,10 @@ public sealed class GeometryJsonTests
             Point3d.Origin,
             Vector3d.ZAxis,
             new Interval(0.0, 2.0)),
+        // A rational sample, because a non-rational one round-trips through the weightless path and
+        // would never exercise the weights at all.
+        [typeof(NurbsSurface)] = new SphericalSurface(
+            Plane.WorldXY, 2.5, new Interval(0.2, 3.0), new Interval(-0.5, 1.1)).ToNurbsSurface(),
         [typeof(RuledSurface)] = new RuledSurface(
             new Line(new Point3d(0.0, 0.0, 0.0), new Point3d(3.0, 0.0, 0.0)),
             new Line(new Point3d(0.0, 4.0, 1.0), new Point3d(3.0, 4.0, 1.0))),

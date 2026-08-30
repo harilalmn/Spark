@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N47 added)
+**Last updated:** 2026-08-31 (N48 added)
 
 ---
 
@@ -1425,3 +1425,31 @@ running application. That is the same reasoning ADR-0013 used to make the canvas
 control, and it comes out the same way here. **And check what a fire-and-forget task is hiding
 before trusting a green run**: `_ = SomethingAsync()` in a UI handler converts an exception into a
 test that passes.
+
+## N48 — "Exact" for a NURBS conversion means the sheet, never the parameterisation
+
+A sphere, a cylinder, a cone and a torus are all rational quadrics, so each converts to a NURBS
+surface with **no approximation error at all**. That is the whole reason `ToNurbsSurface` exists:
+a BRep kernel converts everything to one representation constantly, and a conversion that fitted
+instead of converting would make that quietly destructive.
+
+**It is easy to over-claim what that exactness covers.** The first version of the conversion tests
+asserted `original.PointAt(u, v) == converted.PointAt(u, v)` on a grid. Six of them failed, and the
+code was right: **a rational quadratic traces a circular arc exactly, and its parameter is a
+projective function of the angle rather than the angle.** Halfway along a quarter circle's knot span
+is the arc's midpoint; a quarter of the way along is not 22.5°. There is no way to have both — a
+representation whose parameter *is* the angle is not a polynomial or rational one, and would not be
+exact.
+
+**What is preserved is the domain, and therefore the extent.** The knot vectors span the original's
+domains, so the corners and edges line up and a patch converts to a patch. That is what trimming and
+a BRep face actually rely on.
+
+**Two things follow for anything that compares two surfaces:**
+
+- **Assert the implicit equation, not the parameterisation.** *Every point is one radius from the
+  centre* is a statement about the sheet that a wrong construction cannot satisfy and that does not
+  care how the surface is parameterised. It is also stronger: it caught a deliberately broken weight
+  in eight tests where a point-for-point comparison would have caught it in six.
+- **Sample on an odd grid.** An even grid lands on span boundaries, which is exactly where a wrong
+  rational construction is still right, because the control points are on the curve there.

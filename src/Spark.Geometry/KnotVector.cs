@@ -323,6 +323,113 @@ public sealed class KnotVector : IEquatable<KnotVector>
         return basis;
     }
 
+    /// <summary>
+    /// The non-zero basis functions and their derivatives at a parameter — de Boor's A2.3.
+    /// </summary>
+    /// <param name="span">The knot span.</param>
+    /// <param name="parameter">The parameter.</param>
+    /// <param name="order">The highest derivative wanted, at most the degree.</param>
+    /// <returns>
+    /// A table indexed by derivative order then by basis index, <c>[order + 1][Degree + 1]</c>.
+    /// </returns>
+    internal double[][] BasisDerivatives(int span, double parameter, int order)
+    {
+        int p = Degree;
+        double[,] ndu = new double[p + 1, p + 1];
+        double[] left = new double[p + 1];
+        double[] right = new double[p + 1];
+
+        ndu[0, 0] = 1.0;
+
+        for (int j = 1; j <= p; j++)
+        {
+            left[j] = parameter - this[span + 1 - j];
+            right[j] = this[span + j] - parameter;
+
+            double saved = 0.0;
+            for (int r = 0; r < j; r++)
+            {
+                // The lower triangle holds the knot differences; the upper holds the basis values.
+                // Storing both in one table is what makes A2.3 cheap, and is also why it reads
+                // like nothing else in this file.
+                ndu[j, r] = right[r + 1] + left[j - r];
+                double temp = ndu[j, r] == 0.0 ? 0.0 : ndu[r, j - 1] / ndu[j, r];
+
+                ndu[r, j] = saved + (right[r + 1] * temp);
+                saved = left[j - r] * temp;
+            }
+
+            ndu[j, j] = saved;
+        }
+
+        double[][] derivatives = new double[order + 1][];
+        for (int k = 0; k <= order; k++)
+        {
+            derivatives[k] = new double[p + 1];
+        }
+
+        for (int j = 0; j <= p; j++)
+        {
+            derivatives[0][j] = ndu[j, p];
+        }
+
+        double[,] a = new double[2, p + 1];
+
+        for (int r = 0; r <= p; r++)
+        {
+            int s1 = 0;
+            int s2 = 1;
+            a[0, 0] = 1.0;
+
+            for (int k = 1; k <= order; k++)
+            {
+                double d = 0.0;
+                int rk = r - k;
+                int pk = p - k;
+
+                if (r >= k)
+                {
+                    a[s2, 0] = a[s1, 0] / ndu[pk + 1, rk];
+                    d = a[s2, 0] * ndu[rk, pk];
+                }
+
+                int j1 = rk >= -1 ? 1 : -rk;
+                int j2 = r - 1 <= pk ? k - 1 : p - r;
+
+                for (int j = j1; j <= j2; j++)
+                {
+                    a[s2, j] = (a[s1, j] - a[s1, j - 1]) / ndu[pk + 1, rk + j];
+                    d += a[s2, j] * ndu[rk + j, pk];
+                }
+
+                if (r <= pk)
+                {
+                    a[s2, k] = -a[s1, k - 1] / ndu[pk + 1, r];
+                    d += a[s2, k] * ndu[r, pk];
+                }
+
+                derivatives[k][r] = d;
+
+                (s1, s2) = (s2, s1);
+            }
+        }
+
+        // The factor p!/(p-k)!, applied last. Folding it into the recurrence would multiply it in
+        // repeatedly, which is the classic way this algorithm comes out wrong by a factorial.
+        int factor = p;
+        for (int k = 1; k <= order; k++)
+        {
+            for (int j = 0; j <= p; j++)
+            {
+                derivatives[k][j] *= factor;
+            }
+
+            factor *= p - k;
+        }
+
+        return derivatives;
+    }
+
     /// <summary>Whether another vector has the same degree and exactly the same knots.</summary>
     /// <param name="other">The other vector.</param>
     /// <returns>True when they are the same vector.</returns>
