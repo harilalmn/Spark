@@ -35,6 +35,25 @@
       "y": 900
     },
     {
+      "id": "2230bf8a-7ad2-7cc2-677d-a662d9f811a2",
+      "key": "Spark.Nodes.Core/Point.ByCoordinates",
+      "lacing": "Auto",
+      "x": 30,
+      "y": 1180,
+      "literals": [
+        {
+          "port": 0,
+          "kind": "number",
+          "value": 14
+        },
+        {
+          "port": 1,
+          "kind": "number",
+          "value": -1.5
+        }
+      ]
+    },
+    {
       "id": "25d895f0-4217-768a-0897-16fc764cb24e",
       "key": "Spark.Nodes.Core/Point.ByCoordinates",
       "lacing": "Auto",
@@ -50,6 +69,49 @@
           "port": 2,
           "kind": "number",
           "value": 3
+        }
+      ]
+    },
+    {
+      "id": "2a8ff748-1c77-457c-9b8f-66e39458ec45",
+      "key": "Spark.Nodes.Core/Solid.Box",
+      "lacing": "Auto",
+      "x": 560,
+      "y": 1180,
+      "literals": [
+        {
+          "port": 1,
+          "kind": "number",
+          "value": 3
+        },
+        {
+          "port": 2,
+          "kind": "number",
+          "value": 3
+        },
+        {
+          "port": 3,
+          "kind": "number",
+          "value": 3
+        }
+      ]
+    },
+    {
+      "id": "2decd91d-21f6-07a0-98c4-91fdb8e210b0",
+      "key": "Spark.Nodes.Core/Colour.ByRgb",
+      "lacing": "Auto",
+      "x": 560,
+      "y": 1320,
+      "literals": [
+        {
+          "port": 1,
+          "kind": "number",
+          "value": 230
+        },
+        {
+          "port": 2,
+          "kind": "number",
+          "value": 140
         }
       ]
     },
@@ -71,6 +133,13 @@
           "value": 170
         }
       ]
+    },
+    {
+      "id": "4f3f9932-e043-06ad-1e65-da6595bf73cc",
+      "key": "Spark.Nodes.Core/Display.ByGeometryColour",
+      "lacing": "Auto",
+      "x": 840,
+      "y": 1180
     },
     {
       "id": "67236161-b502-5c7f-7df7-cc6ab834d890",
@@ -205,6 +274,13 @@
       ]
     },
     {
+      "id": "b779e340-8bdd-f568-2eff-af0e8319c057",
+      "key": "Spark.Nodes.Core/Plane.ByOriginNormal",
+      "lacing": "Auto",
+      "x": 280,
+      "y": 1180
+    },
+    {
       "id": "c5de2d65-3757-615d-c1d3-7240c0d441a1",
       "key": "Spark.Nodes.Core/Colour.ByRgb",
       "lacing": "Auto",
@@ -279,10 +355,28 @@
       "targetPort": 1
     },
     {
+      "source": "2230bf8a-7ad2-7cc2-677d-a662d9f811a2",
+      "sourcePort": 0,
+      "target": "b779e340-8bdd-f568-2eff-af0e8319c057",
+      "targetPort": 0
+    },
+    {
       "source": "25d895f0-4217-768a-0897-16fc764cb24e",
       "sourcePort": 0,
       "target": "7e0efcdf-863a-2d99-85f8-a2bdf7c2219f",
       "targetPort": 0
+    },
+    {
+      "source": "2a8ff748-1c77-457c-9b8f-66e39458ec45",
+      "sourcePort": 0,
+      "target": "4f3f9932-e043-06ad-1e65-da6595bf73cc",
+      "targetPort": 0
+    },
+    {
+      "source": "2decd91d-21f6-07a0-98c4-91fdb8e210b0",
+      "sourcePort": 0,
+      "target": "4f3f9932-e043-06ad-1e65-da6595bf73cc",
+      "targetPort": 1
     },
     {
       "source": "3df46632-4a95-0d43-d9f9-af5414645b0d",
@@ -294,6 +388,12 @@
       "source": "67236161-b502-5c7f-7df7-cc6ab834d890",
       "sourcePort": 0,
       "target": "81a3f4e2-f631-dc16-0413-659e3b1faba0",
+      "targetPort": 1
+    },
+    {
+      "source": "67236161-b502-5c7f-7df7-cc6ab834d890",
+      "sourcePort": 0,
+      "target": "b779e340-8bdd-f568-2eff-af0e8319c057",
       "targetPort": 1
     },
     {
@@ -348,6 +448,12 @@
       "source": "a76a60cf-8657-37b4-fa80-de573fd7c5b5",
       "sourcePort": 0,
       "target": "a563e3f3-7b0b-1a14-6bca-541c82cc3f6b",
+      "targetPort": 0
+    },
+    {
+      "source": "b779e340-8bdd-f568-2eff-af0e8319c057",
+      "sourcePort": 0,
+      "target": "2a8ff748-1c77-457c-9b8f-66e39458ec45",
       "targetPort": 0
     },
     {

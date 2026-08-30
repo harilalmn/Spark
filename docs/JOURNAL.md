@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3 and M4 are done. M5 is substantially done** — surfaces, `NurbsSurface`, `Mesh`, tessellation, the shaded viewport and all four interchange formats landed 2026-08-31; the software renderer and CI visual regression (`E11-T16`) are **deferred past M6** deliberately. **M6 is open**: BRep and exact solid operations |
 | **Working on** | Nothing. Between steps, inside M6 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E2-T22` and `E2-T23`, opening M6** — the index-based BRep model, its builder, its `ref struct` navigators, validation, and a box and a cylinder built from them. **The winding was wrong on first writing and the tests caught it**, which is the failure mode the whole layer exists to make visible |
+| **Last completed step** | **`E2-T28`, the kernel seam** — `IBrepKernel`, `KernelResult<T>`, `BrepCapabilities`, residency that is *provably* lazy, an ambient `BrepKernel.Current`, eleven solid nodes and a help topic. The no-provider kernel tessellates an untrimmed shape and refuses everything else by name |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M6 step **(b)**: **`E2-T28`, `IBrepKernel` with `Capabilities` and `Result<T>`.** The seam itself. **Operations cross it; the data model never does** — in front are every value type, analytic and NURBS evaluation, the `Brep`/`Mesh` model and its validation, mesh tessellation, bounding boxes, transforms and all serialization; behind are intersection, extrude/revolve/loft/sweep/offset/thicken/shell, fillet/chamfer/split/trim, boolean, sew/heal, and `Brep` tessellation. **`Capabilities` is what greys a button out** rather than letting a user find out by pressing it, and `Result<T>` is what makes a refusal a value rather than an exception — an exact kernel refuses often and legitimately. **Exactly two crossings, `Import` and `Materialise`** ([ADR-0021](adr/0021-brep-kernel-residency.md)), and **round-trip is not identity: no test may assert that it is.** Then a first provider — and the shape of it is `Q15`'s question, which wants a human. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1667**: Geometry.Tests 757, UI.Tests 437, Engine.Tests 343, Viewport.Tests 74, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph surfaces --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | M6 step **(c)**: **the OCCT provider.** An `opencascade:x64-windows` build is running through vcpkg on this machine — check `.occt-build.log`. **Two of `Q15`'s three parts are decided and recorded in this session** (see the log entry): the C-ABI shim stays, and `M1.6-C1`/`C2`'s two-operating-system requirement is void under **D16**. Next: a `native/spark_occt` C-ABI shim built with CMake + Ninja + MSVC exposing `Import`, `Materialise`, the three booleans and `Tessellate`; then `Spark.Geometry.Occt` with `LibraryImport` and a `BrepResidency` over the handle. **`M1.6-C2` is the criterion that matters** — one boolean end to end — and it is the only one that can reopen ADR-0020. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1680**: Geometry.Tests 757, UI.Tests 437, Engine.Tests 356, Viewport.Tests 74, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph surfaces --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). **The GPU read-back is currently failing** and is the first thing to re-check when the machine is quiet. |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -2322,3 +2322,69 @@ reconstruction at all — with a **cylinder** as the sample rather than a box, b
 twice-used seam edge is the relationship a round trip is most likely to lose. The six topology
 records are excluded from serialisation with the reason that they are indices into one model's
 arrays and mean nothing outside it.
+
+### 2026-08-31 — The kernel seam, and residency that is provably lazy
+
+**`E2-T28`.** `IBrepKernel`, `KernelResult<T>`, `BrepCapabilities`, `BrepResidency`, and a
+no-provider kernel that does exactly one thing.
+
+**A refusal is a value, because an exact kernel refuses constantly and correctly.** A fillet whose
+radius does not fit, a boolean of two solids that do not touch, a loft between profiles that cannot
+be matched — none of those is exceptional, and an exception would make the ordinary case cost a
+stack trace. `KernelResult<T>` carries a `SparkDiagnostic` rather than a string, so a kernel failure
+reaches the canvas exactly the way every other failure does: on the node, with a code, with a help
+topic. **Reading the value of a refusal throws with the reason in the message**, rather than handing
+back a null that fails somewhere else.
+
+**`UnavailableBrepKernel` is a null object, not a null reference**, and it is doing two jobs. It
+means no call site needs a null check and none can forget one. And it is what keeps
+[ADR-0021](adr/0021-brep-kernel-residency.md)'s requirement — *`Spark.Geometry` must remain useful
+with no native component present* — **testable**: a seam whose only implementation was the provider
+could not be exercised without one.
+
+**It does one real thing: it tessellates an untrimmed shape.** That is not a special case sneaking
+past the seam. A face whose only loop is its surface's own boundary **is** a surface, and
+tessellating a surface is `E2-T26`, which is in front of the seam by ADR-0003's own split. What
+needs a provider is a *trimmed* face, and that is what it refuses, by name.
+
+**And it flips per face, which the first version did not.** A box has exactly one reversed face —
+its bottom — and flipping the *finished* mesh, which is shorter and was what I wrote, turns the
+other five over as well. The test said `the volume came out -24`, which is the right magnitude and
+the wrong sign, and is precisely the sort of failure a mesh renders convincingly.
+
+**Residency is implemented and its laziness is asserted rather than described.** `BrepResidency` is
+the opaque hold; `Brep(BrepResidency)` builds a shape that has not been read out; and **every
+structural member of `Brep` goes through the `Raw*` accessors**, which materialise on the way past.
+That last part is what makes *lazily, on structural demand* a property of the code — a member
+reading a field directly would silently work on an empty model — and a counting fake residency
+proves both halves: nothing is read until something asks, and six different questions read once.
+
+**`Brep.NativeBytes` exists for a consequence rather than for symmetry.** ADR-0021 records that an
+evaluation cache evicting by *managed* size cannot see a provider's heap, so a graph holding two
+hundred resident shapes reports megabytes while holding gigabytes. The number is visible **without
+materialising**, which is the only way a cache could use it.
+
+**The kernel is ambient, and that is the one place in Spark that is.** A node is a plain public
+static method discovered by reflection (ADR-0005): it has no constructor to receive a kernel
+through, and a kernel *parameter* would appear on the canvas as a port on every solid node that
+nobody would ever wire. `BrepKernel.Current` defaults to the no-provider kernel, so there is no
+unset state. It is deliberately per-process rather than per-session, because two providers would be
+two native heaps whose shapes could not be mixed.
+
+**Eleven solid nodes and a help topic.** `Solid.Box` and `Solid.Cylinder` are constructions and work
+with no provider; `Union`, `Difference`, `Intersection`, `Extrude`, `FilletAll` and `Hollow` are
+operations and refuse without one. `Solid.Volume` measures the *tessellation* and the node's
+documentation says so — a node reporting an exact figure it had not computed would be worse than one
+that names which it is. The viewport draws a `Brep` through the kernel rather than around it.
+
+**Verified.** Build clean with `-warnaserror`; **1680 tests, 0 failures** (Engine 343 → 356);
+`dotnet format` clean; docs harness green; and the surfaces demo now evaluates 25 nodes into 5
+buffer sets, the fifth being a solid.
+
+**One thing not verified this time, and it is worth saying rather than glossing.** The GPU
+read-back — `--screenshot`'s viewport image — returned *the GL context produced no frame* on four
+attempts, on the curve demo as well as the surface one, having worked an hour earlier on the same
+code path. An OCCT build is saturating every core of this machine in the background, which is the
+obvious explanation and is not a proven one. **The shell image still writes and the status line
+still reports the buffer sets**, so the evaluation half is evidenced; the render half is not, and
+will be re-checked when the machine is quiet.

@@ -128,6 +128,12 @@ public static class DemoGraphs
         int coneColour = graph.Add(library.ByName("Colour.ByRgb"), 560, 780, Seeded("surfaces", "coneColour"));
         int coneDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 840, 620, Seeded("surfaces", "coneDisplay"));
 
+        int boxBase = graph.Add(library.ByName("Point.ByCoordinates"), 30, 1180, Seeded("surfaces", "boxBase"));
+        int boxPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 1180, Seeded("surfaces", "boxPlane"));
+        int box = graph.Add(library.ByName("Solid.Box"), 560, 1180, Seeded("surfaces", "box"));
+        int boxColour = graph.Add(library.ByName("Colour.ByRgb"), 560, 1320, Seeded("surfaces", "boxColour"));
+        int boxDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 840, 1180, Seeded("surfaces", "boxDisplay"));
+
         int torusCentre = graph.Add(library.ByName("Point.ByCoordinates"), 30, 900, Seeded("surfaces", "torusCentre"));
         int torusPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 900, Seeded("surfaces", "torusPlane"));
         int torus = graph.Add(library.ByName("Surface.Torus"), 560, 900, Seeded("surfaces", "torus"));
@@ -185,6 +191,22 @@ public static class DemoGraphs
         graph.TryConnect(Output(conePlane, 0), Input(cone, 0));
         graph.TryConnect(Output(cone, 0), Input(coneDisplay, 0));
         graph.TryConnect(Output(coneColour, 0), Input(coneDisplay, 1));
+
+        Literal(graph, boxBase, 0, 14.0);
+        Literal(graph, boxBase, 1, -1.5);
+        Literal(graph, boxBase, 2, 0.0);
+        Literal(graph, box, 1, 3.0);
+        Literal(graph, box, 2, 3.0);
+        Literal(graph, box, 3, 3.0);
+        Literal(graph, boxColour, 0, 255.0);
+        Literal(graph, boxColour, 1, 230.0);
+        Literal(graph, boxColour, 2, 140.0);
+
+        graph.TryConnect(Output(boxBase, 0), Input(boxPlane, 0));
+        graph.TryConnect(Output(axis, 0), Input(boxPlane, 1));
+        graph.TryConnect(Output(boxPlane, 0), Input(box, 0));
+        graph.TryConnect(Output(box, 0), Input(boxDisplay, 0));
+        graph.TryConnect(Output(boxColour, 0), Input(boxDisplay, 1));
 
         graph.TryConnect(Output(torusCentre, 0), Input(torusPlane, 0));
         graph.TryConnect(Output(axis, 0), Input(torusPlane, 1));

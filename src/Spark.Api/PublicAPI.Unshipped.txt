@@ -7,6 +7,25 @@ Spark.Api.Appearance.Visible.get -> bool
 Spark.Api.Appearance.WithColour(Spark.Api.Rgba colour) -> Spark.Api.Appearance!
 Spark.Api.Appearance.WithLineWeight(double lineWeight) -> Spark.Api.Appearance!
 Spark.Api.Appearance.WithVisible(bool visible) -> Spark.Api.Appearance!
+Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.Boolean = 1 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.Chamfer = 64 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.Extrude = 2 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.Fillet = 32 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.Heal = 2048 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.Iges = 16384 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.Loft = 8 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.MeshBoolean = 32768 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.None = 0 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.Offset = 256 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.Revolve = 4 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.Sew = 1024 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.Shell = 128 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.Split = 512 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.Step = 8192 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.Sweep = 16 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepCapabilities.Tessellate = 4096 -> Spark.Api.BrepCapabilities
+Spark.Api.BrepKernel
 Spark.Api.DiagnosticSeverity
 Spark.Api.DiagnosticSeverity.Error = 2 -> Spark.Api.DiagnosticSeverity
 Spark.Api.DiagnosticSeverity.Information = 0 -> Spark.Api.DiagnosticSeverity
@@ -15,12 +34,34 @@ Spark.Api.Displayable
 Spark.Api.Displayable.Appearance.get -> Spark.Api.Appearance!
 Spark.Api.Displayable.Displayable(object! geometry, Spark.Api.Appearance! appearance) -> void
 Spark.Api.Displayable.Geometry.get -> object!
+Spark.Api.IBrepKernel
+Spark.Api.IBrepKernel.Capabilities.get -> Spark.Api.BrepCapabilities
+Spark.Api.IBrepKernel.Chamfer(Spark.Geometry.Brep! solid, System.Collections.Generic.IReadOnlyList<int>! edges, double distance, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.IBrepKernel.Difference(Spark.Geometry.Brep! first, Spark.Geometry.Brep! second, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.IBrepKernel.Extrude(Spark.Geometry.Curve! profile, in Spark.Geometry.Vector3d direction, bool cap, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.IBrepKernel.Fillet(Spark.Geometry.Brep! solid, System.Collections.Generic.IReadOnlyList<int>! edges, double radius, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.IBrepKernel.Heal(Spark.Geometry.Brep! shape, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.IBrepKernel.Intersection(Spark.Geometry.Brep! first, Spark.Geometry.Brep! second, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.IBrepKernel.Loft(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>! profiles, bool closed, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.IBrepKernel.Name.get -> string!
+Spark.Api.IBrepKernel.Revolve(Spark.Geometry.Curve! profile, in Spark.Geometry.Point3d axisOrigin, in Spark.Geometry.Vector3d axisDirection, Spark.Geometry.Angle angle, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.IBrepKernel.Sew(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>! pieces, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.IBrepKernel.Shell(Spark.Geometry.Brep! solid, System.Collections.Generic.IReadOnlyList<int>! facesToOpen, double thickness, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.IBrepKernel.Tessellate(Spark.Geometry.Brep! shape, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Mesh!>
+Spark.Api.IBrepKernel.Union(Spark.Geometry.Brep! first, Spark.Geometry.Brep! second, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.IEvaluationScheduler
 Spark.Api.IEvaluationScheduler.Run(System.Collections.Generic.IReadOnlyList<System.Action!>! operations, System.Threading.CancellationToken cancellationToken) -> void
 Spark.Api.IScriptNodeFactory
 Spark.Api.IScriptNodeFactory.Create(string! script, System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>? inputTypes = null) -> Spark.Api.NodeDefinitionSource
 Spark.Api.KeepStructureAttribute
 Spark.Api.KeepStructureAttribute.KeepStructureAttribute() -> void
+Spark.Api.KernelDiagnostics
+Spark.Api.KernelResult<T>
+Spark.Api.KernelResult<T>.Diagnostic.get -> Spark.Api.SparkDiagnostic?
+Spark.Api.KernelResult<T>.IsSuccess.get -> bool
+Spark.Api.KernelResult<T>.KernelResult() -> void
+Spark.Api.KernelResult<T>.TryGetValue(out T value) -> bool
+Spark.Api.KernelResult<T>.Value.get -> T
 Spark.Api.LacingMode
 Spark.Api.LacingMode.Auto = 0 -> Spark.Api.LacingMode
 Spark.Api.LacingMode.CrossProduct = 3 -> Spark.Api.LacingMode
@@ -70,6 +111,7 @@ Spark.Api.Rgba.Green.get -> byte
 Spark.Api.Rgba.Red.get -> byte
 Spark.Api.Rgba.Rgba() -> void
 Spark.Api.Rgba.Rgba(byte red, byte green, byte blue, byte alpha = 255) -> void
+Spark.Api.ScriptInvocation
 Spark.Api.ScriptPort
 Spark.Api.ScriptPort.Deconstruct(out string! Name, out System.Type! ValueType, out string? Description) -> void
 Spark.Api.ScriptPort.Description.get -> string?
@@ -109,7 +151,26 @@ Spark.Api.SparkNodeAttribute.DefaultLacing.set -> void
 Spark.Api.SparkNodeAttribute.Name.get -> string?
 Spark.Api.SparkNodeAttribute.Name.set -> void
 Spark.Api.SparkNodeAttribute.SparkNodeAttribute() -> void
+Spark.Api.UnavailableBrepKernel
+Spark.Api.UnavailableBrepKernel.Capabilities.get -> Spark.Api.BrepCapabilities
+Spark.Api.UnavailableBrepKernel.Chamfer(Spark.Geometry.Brep! solid, System.Collections.Generic.IReadOnlyList<int>! edges, double distance, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.UnavailableBrepKernel.Difference(Spark.Geometry.Brep! first, Spark.Geometry.Brep! second, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.UnavailableBrepKernel.Extrude(Spark.Geometry.Curve! profile, in Spark.Geometry.Vector3d direction, bool cap, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.UnavailableBrepKernel.Fillet(Spark.Geometry.Brep! solid, System.Collections.Generic.IReadOnlyList<int>! edges, double radius, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.UnavailableBrepKernel.Heal(Spark.Geometry.Brep! shape, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.UnavailableBrepKernel.Intersection(Spark.Geometry.Brep! first, Spark.Geometry.Brep! second, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.UnavailableBrepKernel.Loft(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>! profiles, bool closed, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.UnavailableBrepKernel.Name.get -> string!
+Spark.Api.UnavailableBrepKernel.Revolve(Spark.Geometry.Curve! profile, in Spark.Geometry.Point3d axisOrigin, in Spark.Geometry.Vector3d axisDirection, Spark.Geometry.Angle angle, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.UnavailableBrepKernel.Sew(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>! pieces, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.UnavailableBrepKernel.Shell(Spark.Geometry.Brep! solid, System.Collections.Generic.IReadOnlyList<int>! facesToOpen, double thickness, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.UnavailableBrepKernel.Tessellate(Spark.Geometry.Brep! shape, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Mesh!>
+Spark.Api.UnavailableBrepKernel.UnavailableBrepKernel() -> void
+Spark.Api.UnavailableBrepKernel.Union(Spark.Geometry.Brep! first, Spark.Geometry.Brep! second, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.ValueText
+const Spark.Api.KernelDiagnostics.Refused = "SPK1081" -> string!
+const Spark.Api.KernelDiagnostics.SolidsTopic = "concepts.solids" -> string!
+const Spark.Api.KernelDiagnostics.Unavailable = "SPK1080" -> string!
 const Spark.Api.NodeCategories.Curve = "Curve" -> string!
 const Spark.Api.NodeCategories.Custom = "Custom" -> string!
 const Spark.Api.NodeCategories.Display = "Display" -> string!
@@ -131,7 +192,12 @@ override Spark.Api.ScriptPort.GetHashCode() -> int
 override Spark.Api.SparkDiagnostic.ToString() -> string!
 override Spark.Api.SparkList.ToString() -> string!
 static Spark.Api.Appearance.Default.get -> Spark.Api.Appearance!
+static Spark.Api.BrepKernel.Current.get -> Spark.Api.IBrepKernel!
+static Spark.Api.BrepKernel.Install(Spark.Api.IBrepKernel! kernel) -> void
+static Spark.Api.BrepKernel.Reset() -> void
 static Spark.Api.Displayable.Unwrap(object? value) -> object?
+static Spark.Api.KernelResult<T>.Failure(Spark.Api.SparkDiagnostic! diagnostic) -> Spark.Api.KernelResult<T>
+static Spark.Api.KernelResult<T>.Success(T value) -> Spark.Api.KernelResult<T>
 static Spark.Api.NodeDefinitionSource.operator !=(Spark.Api.NodeDefinitionSource left, Spark.Api.NodeDefinitionSource right) -> bool
 static Spark.Api.NodeDefinitionSource.operator ==(Spark.Api.NodeDefinitionSource left, Spark.Api.NodeDefinitionSource right) -> bool
 static Spark.Api.Rgba.operator !=(Spark.Api.Rgba left, Spark.Api.Rgba right) -> bool
@@ -142,13 +208,13 @@ static Spark.Api.SparkDiagnostic.FormatElementPath(System.Collections.Generic.IR
 static Spark.Api.SparkList.Empty(int rank) -> Spark.Api.SparkList!
 static Spark.Api.SparkList.Of(params object?[]! items) -> Spark.Api.SparkList!
 static Spark.Api.SparkList.RankOf(object? value) -> int
+static Spark.Api.UnavailableBrepKernel.Instance.get -> Spark.Api.UnavailableBrepKernel!
 static Spark.Api.ValueText.Full(object? value) -> string!
 static Spark.Api.ValueText.Shape(int rank, int count) -> string!
 static Spark.Api.ValueText.Shape(object? value) -> string!
 static Spark.Api.ValueText.Summary(object? value) -> string?
+virtual Spark.Api.ScriptInvocation.Invoke(object?[]! arguments, System.Threading.CancellationToken cancellationToken) -> object?[]!
 ~override Spark.Api.NodeDefinitionSource.Equals(object obj) -> bool
 ~override Spark.Api.NodeDefinitionSource.ToString() -> string
 ~override Spark.Api.ScriptPort.Equals(object obj) -> bool
 ~override Spark.Api.ScriptPort.ToString() -> string
-Spark.Api.ScriptInvocation
-virtual Spark.Api.ScriptInvocation.Invoke(object?[]! arguments, System.Threading.CancellationToken cancellationToken) -> object?[]!

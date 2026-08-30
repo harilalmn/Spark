@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
 
 namespace Spark.Geometry;
 
@@ -40,16 +41,20 @@ namespace Spark.Geometry;
 /// </remarks>
 public sealed class Brep
 {
-    private readonly Point3d[] _points;
-    private readonly Curve[] _curves;
-    private readonly Surface[] _surfaces;
-    private readonly BrepVertex[] _vertices;
-    private readonly BrepEdge[] _edges;
-    private readonly BrepTrim[] _trims;
-    private readonly BrepLoop[] _loops;
-    private readonly BrepFace[] _faces;
-    private readonly BrepShell[] _shells;
+    private readonly BrepResidency? _residency;
+    private readonly Lock _gate = new();
 
+    private Point3d[] _points;
+    private Curve[] _curves;
+    private Surface[] _surfaces;
+    private BrepVertex[] _vertices;
+    private BrepEdge[] _edges;
+    private BrepTrim[] _trims;
+    private BrepLoop[] _loops;
+    private BrepFace[] _faces;
+    private BrepShell[] _shells;
+
+    private bool _materialised;
     private BoundingBox _boundingBox;
     private bool _boundingBoxComputed;
 
@@ -101,25 +106,84 @@ public sealed class Brep
         _loops = [.. loops];
         _faces = [.. faces];
         _shells = [.. shells];
+        _materialised = true;
     }
 
+    /// <summary>
+    /// Creates a BRep whose shape lives in a kernel provider
+    /// ([ADR-0021](../../docs/adr/0021-brep-kernel-residency.md)).
+    /// </summary>
+    /// <param name="residency">The provider's hold on the shape.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="residency"/> is null.</exception>
+    /// <remarks>
+    /// <b>Nothing is read out of the provider here, and that is the whole point.</b> A chain of ten
+    /// operations builds ten of these and materialises once, at the end, when something finally
+    /// asks a structural question. Materialising eagerly would re-sew and re-tolerance the model at
+    /// every step, and the user would watch their geometry drift under an idle graph.
+    /// </remarks>
+    public Brep(BrepResidency residency)
+    {
+        ArgumentNullException.ThrowIfNull(residency);
+
+        _residency = residency;
+        _points = [];
+        _curves = [];
+        _surfaces = [];
+        _vertices = [];
+        _edges = [];
+        _trims = [];
+        _loops = [];
+        _faces = [];
+        _shells = [];
+    }
+
+    /// <summary>
+    /// Whether this shape still lives in a provider and has not been read out yet.
+    /// </summary>
+    /// <remarks>
+    /// <b>For diagnostics and for the evaluation cache, not for logic.</b> Every other member of
+    /// this type materialises before answering, so no caller has to ask — and one that branched on
+    /// it would be branching on *when* a question was asked rather than on what the shape is.
+    /// </remarks>
+    public bool IsResident
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _residency is not null && !_materialised;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Roughly how much provider memory this shape holds.
+    /// </summary>
+    /// <remarks>
+    /// The evaluation cache evicts by estimated size, and one that could see only managed bytes
+    /// would hold gigabytes of a provider's heap while reporting megabytes — which
+    /// [ADR-0021](../../docs/adr/0021-brep-kernel-residency.md) records as the consequence that
+    /// changes `NFR-4`.
+    /// </remarks>
+    public long NativeBytes => _residency?.NativeBytes ?? 0L;
+
     /// <summary>How many vertices there are.</summary>
-    public int VertexCount => _vertices.Length;
+    public int VertexCount => RawVertices.Length;
 
     /// <summary>How many edges there are.</summary>
-    public int EdgeCount => _edges.Length;
+    public int EdgeCount => RawEdges.Length;
 
     /// <summary>How many trims there are.</summary>
-    public int TrimCount => _trims.Length;
+    public int TrimCount => RawTrims.Length;
 
     /// <summary>How many loops there are.</summary>
-    public int LoopCount => _loops.Length;
+    public int LoopCount => RawLoops.Length;
 
     /// <summary>How many faces there are.</summary>
-    public int FaceCount => _faces.Length;
+    public int FaceCount => RawFaces.Length;
 
     /// <summary>How many shells there are.</summary>
-    public int ShellCount => _shells.Length;
+    public int ShellCount => RawShells.Length;
 
     /// <summary>The box containing every vertex and every face's surface.</summary>
     /// <remarks>
@@ -135,12 +199,12 @@ public sealed class Brep
             {
                 BoundingBox box = BoundingBox.Empty;
 
-                foreach (Point3d point in _points)
+                foreach (Point3d point in RawPoints)
                 {
                     box = box.Union(point);
                 }
 
-                foreach (Surface surface in _surfaces)
+                foreach (Surface surface in RawSurfaces)
                 {
                     box = box.Union(surface.BoundingBox);
                 }
@@ -155,70 +219,70 @@ public sealed class Brep
 
     /// <summary>A copy of the vertex positions.</summary>
     /// <returns>The points, in index order.</returns>
-    public Point3d[] Points() => [.. _points];
+    public Point3d[] Points() => [.. RawPoints];
 
     /// <summary>A copy of the edge curves.</summary>
     /// <returns>The curves, in index order.</returns>
-    public Curve[] Curves() => [.. _curves];
+    public Curve[] Curves() => [.. RawCurves];
 
     /// <summary>A copy of the face surfaces.</summary>
     /// <returns>The surfaces, in index order.</returns>
-    public Surface[] Surfaces() => [.. _surfaces];
+    public Surface[] Surfaces() => [.. RawSurfaces];
 
     /// <summary>A copy of the vertices.</summary>
     /// <returns>The vertices, in index order.</returns>
-    public BrepVertex[] Vertices() => [.. _vertices];
+    public BrepVertex[] Vertices() => [.. RawVertices];
 
     /// <summary>A copy of the edges.</summary>
     /// <returns>The edges, in index order.</returns>
-    public BrepEdge[] Edges() => [.. _edges];
+    public BrepEdge[] Edges() => [.. RawEdges];
 
     /// <summary>A copy of the trims.</summary>
     /// <returns>The trims, in index order.</returns>
-    public BrepTrim[] Trims() => [.. _trims];
+    public BrepTrim[] Trims() => [.. RawTrims];
 
     /// <summary>A copy of the loops.</summary>
     /// <returns>The loops, in index order.</returns>
-    public BrepLoop[] Loops() => [.. _loops];
+    public BrepLoop[] Loops() => [.. RawLoops];
 
     /// <summary>A copy of the faces.</summary>
     /// <returns>The faces, in index order.</returns>
-    public BrepFace[] Faces() => [.. _faces];
+    public BrepFace[] Faces() => [.. RawFaces];
 
     /// <summary>A copy of the shells.</summary>
     /// <returns>The shells, in index order.</returns>
-    public BrepShell[] Shells() => [.. _shells];
+    public BrepShell[] Shells() => [.. RawShells];
 
     /// <summary>A navigator over one face.</summary>
     /// <param name="index">The face index.</param>
     /// <returns>A view that can walk to its loops, trims, edges and surface.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The index is outside the model.</exception>
-    public BrepFaceView Face(int index) => new(this, Check(index, _faces.Length, nameof(index)));
+    public BrepFaceView Face(int index) => new(this, Check(index, RawFaces.Length, nameof(index)));
 
     /// <summary>A navigator over one loop.</summary>
     /// <param name="index">The loop index.</param>
     /// <returns>A view that can walk to its trims and its face.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The index is outside the model.</exception>
-    public BrepLoopView Loop(int index) => new(this, Check(index, _loops.Length, nameof(index)));
+    public BrepLoopView Loop(int index) => new(this, Check(index, RawLoops.Length, nameof(index)));
 
     /// <summary>A navigator over one edge.</summary>
     /// <param name="index">The edge index.</param>
     /// <returns>A view that can walk to its vertices, its curve and the faces along it.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The index is outside the model.</exception>
-    public BrepEdgeView Edge(int index) => new(this, Check(index, _edges.Length, nameof(index)));
+    public BrepEdgeView Edge(int index) => new(this, Check(index, RawEdges.Length, nameof(index)));
 
     /// <summary>A navigator over one shell.</summary>
     /// <param name="index">The shell index.</param>
     /// <returns>A view that can walk to its faces.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The index is outside the model.</exception>
-    public BrepShellView Shell(int index) => new(this, Check(index, _shells.Length, nameof(index)));
+    public BrepShellView Shell(int index) => new(this, Check(index, RawShells.Length, nameof(index)));
 
     /// <summary>The position of one vertex.</summary>
     /// <param name="index">The vertex index.</param>
     /// <returns>Its point.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The index is outside the model.</exception>
     public Point3d VertexPoint(int index) =>
-        _points[_vertices[Check(index, _vertices.Length, nameof(index))].Point];
+        RawPoints[RawVertices[Check(index, RawVertices.Length, nameof(index))].Point];
 
     /// <summary>
     /// Every structural problem with this model, or nothing when it is sound.
@@ -240,62 +304,62 @@ public sealed class Brep
     {
         List<string> problems = [];
 
-        for (int index = 0; index < _vertices.Length; index++)
+        for (int index = 0; index < RawVertices.Length; index++)
         {
-            if (_vertices[index].Point < 0 || _vertices[index].Point >= _points.Length)
+            if (RawVertices[index].Point < 0 || RawVertices[index].Point >= RawPoints.Length)
             {
-                problems.Add(Say($"Vertex {index} names point {_vertices[index].Point}, and there are {_points.Length}."));
+                problems.Add(Say($"Vertex {index} names point {RawVertices[index].Point}, and there are {RawPoints.Length}."));
             }
         }
 
-        for (int index = 0; index < _edges.Length; index++)
+        for (int index = 0; index < RawEdges.Length; index++)
         {
-            BrepEdge edge = _edges[index];
+            BrepEdge edge = RawEdges[index];
 
-            if (edge.Curve < 0 || edge.Curve >= _curves.Length)
+            if (edge.Curve < 0 || edge.Curve >= RawCurves.Length)
             {
-                problems.Add(Say($"Edge {index} names curve {edge.Curve}, and there are {_curves.Length}."));
+                problems.Add(Say($"Edge {index} names curve {edge.Curve}, and there are {RawCurves.Length}."));
             }
 
-            if (edge.Start < 0 || edge.Start >= _vertices.Length || edge.End < 0 || edge.End >= _vertices.Length)
+            if (edge.Start < 0 || edge.Start >= RawVertices.Length || edge.End < 0 || edge.End >= RawVertices.Length)
             {
-                problems.Add(Say($"Edge {index} names vertices {edge.Start} and {edge.End}, and there are {_vertices.Length}."));
-            }
-        }
-
-        for (int index = 0; index < _trims.Length; index++)
-        {
-            if (_trims[index].Edge < 0 || _trims[index].Edge >= _edges.Length)
-            {
-                problems.Add(Say($"Trim {index} names edge {_trims[index].Edge}, and there are {_edges.Length}."));
+                problems.Add(Say($"Edge {index} names vertices {edge.Start} and {edge.End}, and there are {RawVertices.Length}."));
             }
         }
 
-        for (int index = 0; index < _loops.Length; index++)
+        for (int index = 0; index < RawTrims.Length; index++)
         {
-            BrepLoop loop = _loops[index];
+            if (RawTrims[index].Edge < 0 || RawTrims[index].Edge >= RawEdges.Length)
+            {
+                problems.Add(Say($"Trim {index} names edge {RawTrims[index].Edge}, and there are {RawEdges.Length}."));
+            }
+        }
+
+        for (int index = 0; index < RawLoops.Length; index++)
+        {
+            BrepLoop loop = RawLoops[index];
 
             if (loop.TrimCount < 1)
             {
                 problems.Add(Say($"Loop {index} has {loop.TrimCount} trims; a loop needs at least one."));
             }
 
-            if (loop.FirstTrim < 0 || loop.FirstTrim + loop.TrimCount > _trims.Length)
+            if (loop.FirstTrim < 0 || loop.FirstTrim + loop.TrimCount > RawTrims.Length)
             {
-                problems.Add(Say($"Loop {index} spans trims {loop.FirstTrim}..{loop.FirstTrim + loop.TrimCount - 1}, and there are {_trims.Length}."));
+                problems.Add(Say($"Loop {index} spans trims {loop.FirstTrim}..{loop.FirstTrim + loop.TrimCount - 1}, and there are {RawTrims.Length}."));
                 continue;
             }
 
             ValidateLoopIsClosed(index, loop, problems);
         }
 
-        for (int index = 0; index < _faces.Length; index++)
+        for (int index = 0; index < RawFaces.Length; index++)
         {
-            BrepFace face = _faces[index];
+            BrepFace face = RawFaces[index];
 
-            if (face.Surface < 0 || face.Surface >= _surfaces.Length)
+            if (face.Surface < 0 || face.Surface >= RawSurfaces.Length)
             {
-                problems.Add(Say($"Face {index} names surface {face.Surface}, and there are {_surfaces.Length}."));
+                problems.Add(Say($"Face {index} names surface {face.Surface}, and there are {RawSurfaces.Length}."));
             }
 
             if (face.LoopCount < 1)
@@ -303,9 +367,9 @@ public sealed class Brep
                 problems.Add(Say($"Face {index} has {face.LoopCount} loops; a face needs an outer one."));
             }
 
-            if (face.FirstLoop < 0 || face.FirstLoop + face.LoopCount > _loops.Length)
+            if (face.FirstLoop < 0 || face.FirstLoop + face.LoopCount > RawLoops.Length)
             {
-                problems.Add(Say($"Face {index} spans loops {face.FirstLoop}..{face.FirstLoop + face.LoopCount - 1}, and there are {_loops.Length}."));
+                problems.Add(Say($"Face {index} spans loops {face.FirstLoop}..{face.FirstLoop + face.LoopCount - 1}, and there are {RawLoops.Length}."));
                 continue;
             }
 
@@ -313,7 +377,7 @@ public sealed class Brep
 
             for (int loop = face.FirstLoop; loop < face.FirstLoop + face.LoopCount; loop++)
             {
-                if (_loops[loop].Kind == BrepLoopKind.Outer)
+                if (RawLoops[loop].Kind == BrepLoopKind.Outer)
                 {
                     outer++;
                 }
@@ -325,13 +389,13 @@ public sealed class Brep
             }
         }
 
-        for (int index = 0; index < _shells.Length; index++)
+        for (int index = 0; index < RawShells.Length; index++)
         {
-            BrepShell shell = _shells[index];
+            BrepShell shell = RawShells[index];
 
-            if (shell.FaceCount < 1 || shell.FirstFace < 0 || shell.FirstFace + shell.FaceCount > _faces.Length)
+            if (shell.FaceCount < 1 || shell.FirstFace < 0 || shell.FirstFace + shell.FaceCount > RawFaces.Length)
             {
-                problems.Add(Say($"Shell {index} spans faces {shell.FirstFace}..{shell.FirstFace + shell.FaceCount - 1}, and there are {_faces.Length}."));
+                problems.Add(Say($"Shell {index} spans faces {shell.FirstFace}..{shell.FirstFace + shell.FaceCount - 1}, and there are {RawFaces.Length}."));
             }
         }
 
@@ -354,17 +418,17 @@ public sealed class Brep
     {
         get
         {
-            if (_edges.Length == 0)
+            if (RawEdges.Length == 0)
             {
                 return false;
             }
 
-            int[] forwards = new int[_edges.Length];
-            int[] backwards = new int[_edges.Length];
+            int[] forwards = new int[RawEdges.Length];
+            int[] backwards = new int[RawEdges.Length];
 
-            foreach (BrepTrim trim in _trims)
+            foreach (BrepTrim trim in RawTrims)
             {
-                if (trim.Edge < 0 || trim.Edge >= _edges.Length)
+                if (trim.Edge < 0 || trim.Edge >= RawEdges.Length)
                 {
                     return false;
                 }
@@ -379,7 +443,7 @@ public sealed class Brep
                 }
             }
 
-            for (int index = 0; index < _edges.Length; index++)
+            for (int index = 0; index < RawEdges.Length; index++)
             {
                 if (forwards[index] != 1 || backwards[index] != 1)
                 {
@@ -404,7 +468,7 @@ public sealed class Brep
     {
         get
         {
-            foreach (BrepFace face in _faces)
+            foreach (BrepFace face in RawFaces)
             {
                 if (face.LoopCount != 1)
                 {
@@ -419,34 +483,152 @@ public sealed class Brep
     /// <inheritdoc/>
     public override string ToString() => string.Create(
         CultureInfo.InvariantCulture,
-        $"Brep({_shells.Length} shells, {_faces.Length} faces, {_edges.Length} edges, {_vertices.Length} vertices)");
+        $"Brep({RawShells.Length} shells, {RawFaces.Length} faces, {RawEdges.Length} edges, {RawVertices.Length} vertices)");
 
-    /// <summary>The arrays, for the views and the builder. Never handed to a caller.</summary>
-    internal Point3d[] RawPoints => _points;
+    /// <summary>
+    /// The arrays, for the views and the builder. Never handed to a caller, and the one place a
+    /// resident shape is read out of its provider.
+    /// </summary>
+    /// <remarks>
+    /// <b>Every structural question in this type goes through one of these</b>, which is what makes
+    /// *lazily, on structural demand* a property of the code rather than a promise in a comment: a
+    /// member that read a field directly would be a member that silently worked on an empty model.
+    /// </remarks>
+    internal Point3d[] RawPoints
+    {
+        get
+        {
+            Materialise();
 
-    /// <inheritdoc cref="RawPoints"/>
-    internal Curve[] RawCurves => _curves;
-
-    /// <inheritdoc cref="RawPoints"/>
-    internal Surface[] RawSurfaces => _surfaces;
-
-    /// <inheritdoc cref="RawPoints"/>
-    internal BrepVertex[] RawVertices => _vertices;
-
-    /// <inheritdoc cref="RawPoints"/>
-    internal BrepEdge[] RawEdges => _edges;
-
-    /// <inheritdoc cref="RawPoints"/>
-    internal BrepTrim[] RawTrims => _trims;
-
-    /// <inheritdoc cref="RawPoints"/>
-    internal BrepLoop[] RawLoops => _loops;
+            return _points;
+        }
+    }
 
     /// <inheritdoc cref="RawPoints"/>
-    internal BrepFace[] RawFaces => _faces;
+    internal Curve[] RawCurves
+    {
+        get
+        {
+            Materialise();
+
+            return _curves;
+        }
+    }
 
     /// <inheritdoc cref="RawPoints"/>
-    internal BrepShell[] RawShells => _shells;
+    internal Surface[] RawSurfaces
+    {
+        get
+        {
+            Materialise();
+
+            return _surfaces;
+        }
+    }
+
+    /// <inheritdoc cref="RawPoints"/>
+    internal BrepVertex[] RawVertices
+    {
+        get
+        {
+            Materialise();
+
+            return _vertices;
+        }
+    }
+
+    /// <inheritdoc cref="RawPoints"/>
+    internal BrepEdge[] RawEdges
+    {
+        get
+        {
+            Materialise();
+
+            return _edges;
+        }
+    }
+
+    /// <inheritdoc cref="RawPoints"/>
+    internal BrepTrim[] RawTrims
+    {
+        get
+        {
+            Materialise();
+
+            return _trims;
+        }
+    }
+
+    /// <inheritdoc cref="RawPoints"/>
+    internal BrepLoop[] RawLoops
+    {
+        get
+        {
+            Materialise();
+
+            return _loops;
+        }
+    }
+
+    /// <inheritdoc cref="RawPoints"/>
+    internal BrepFace[] RawFaces
+    {
+        get
+        {
+            Materialise();
+
+            return _faces;
+        }
+    }
+
+    /// <inheritdoc cref="RawPoints"/>
+    internal BrepShell[] RawShells
+    {
+        get
+        {
+            Materialise();
+
+            return _shells;
+        }
+    }
+
+    /// <summary>Reads the shape out of its provider, once.</summary>
+    /// <remarks>
+    /// <b>Locked, because a resident BRep is a value that several evaluation threads may reach at
+    /// once</b> — the replicator's whole design is that a value can be read without a lock, and a
+    /// lazily-materialised one is the single place in the geometry layer where that is not free.
+    /// Materialising twice would be wasteful; materialising *while* another thread read the arrays
+    /// would be a torn model.
+    /// </remarks>
+    private void Materialise()
+    {
+        if (_materialised)
+        {
+            return;
+        }
+
+        lock (_gate)
+        {
+            if (_materialised)
+            {
+                return;
+            }
+
+            BrepData data = _residency!.Materialise();
+
+            _points = [.. data.Points];
+            _curves = [.. data.Curves];
+            _surfaces = [.. data.Surfaces];
+            _vertices = [.. data.Vertices];
+            _edges = [.. data.Edges];
+            _trims = [.. data.Trims];
+            _loops = [.. data.Loops];
+            _faces = [.. data.Faces];
+            _shells = [.. data.Shells];
+
+            _materialised = true;
+        }
+    }
 
     /// <summary>
     /// Whether a loop's trims run end to end, each starting where the last one finished.
@@ -464,14 +646,14 @@ public sealed class Brep
 
         for (int position = 0; position < loop.TrimCount; position++)
         {
-            BrepTrim trim = _trims[loop.FirstTrim + position];
+            BrepTrim trim = RawTrims[loop.FirstTrim + position];
 
-            if (trim.Edge < 0 || trim.Edge >= _edges.Length)
+            if (trim.Edge < 0 || trim.Edge >= RawEdges.Length)
             {
                 return;
             }
 
-            BrepEdge edge = _edges[trim.Edge];
+            BrepEdge edge = RawEdges[trim.Edge];
             int start = trim.IsReversed ? edge.End : edge.Start;
             int end = trim.IsReversed ? edge.Start : edge.End;
 
@@ -500,9 +682,9 @@ public sealed class Brep
 
     private void ValidateEdgeUse(List<string> problems)
     {
-        int[] uses = new int[_edges.Length];
+        int[] uses = new int[RawEdges.Length];
 
-        foreach (BrepTrim trim in _trims)
+        foreach (BrepTrim trim in RawTrims)
         {
             if (trim.Edge >= 0 && trim.Edge < uses.Length)
             {

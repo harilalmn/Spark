@@ -139,6 +139,13 @@ public sealed class GeometryJsonTests
         [typeof(Curve)] = "abstract; its concrete subclasses each have a sample",
         [typeof(Surface)] = "abstract; its concrete subclasses each have a sample",
         [typeof(BrepBuilder)] = "a builder, not a value. What it produces is a Brep, which has a sample",
+        [typeof(BrepData)] =
+            "the nine arrays a resident Brep is read out into. It is a transport between a provider "
+            + "and a Brep, not a value anybody holds - and what it becomes, a Brep, has a sample",
+        [typeof(BrepResidency)] =
+            "abstract, and it is a *hold on a shape living somewhere else* (ADR-0021). A provider's "
+            + "handle is opaque by design and is invisible in serialisation; what serialises is the "
+            + "materialised model",
 
         // The six topology records are indices into one Brep's arrays. Saved on their own they
         // would be numbers with no index space to mean anything in - and a reader could not tell

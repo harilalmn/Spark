@@ -175,6 +175,26 @@ public sealed class SceneBuilder
                 Record(key, new MeshDrawable(drawn), colour, wrapped);
                 return;
 
+            case Brep solid:
+                // **Through the kernel, not around it.** Tessellating a trimmed face is behind the
+                // seam (ADR-0021), so the viewport asks whichever provider is installed - and with
+                // none, the no-provider kernel still draws an untrimmed shape, because that is a
+                // surface and surfaces are in front of the seam. A shape it cannot draw is counted
+                // unrenderable rather than drawn wrongly.
+                KernelResult<Spark.Geometry.Mesh> tessellated =
+                    BrepKernel.Current.Tessellate(solid, DisplayTolerance(solid.BoundingBox));
+
+                if (tessellated.TryGetValue(out Spark.Geometry.Mesh? fromSolid))
+                {
+                    Record(key, new MeshDrawable(fromSolid), colour, wrapped);
+                }
+                else
+                {
+                    UnrenderableCount++;
+                }
+
+                return;
+
             default:
                 UnrenderableCount++;
                 return;

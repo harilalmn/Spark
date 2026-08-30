@@ -307,6 +307,9 @@ public sealed class CanvasGraphTests
         }
 
         Assert.Equal(4, surfaces);
+
+        // And one solid, which is the seam reaching the canvas.
+        Assert.Contains(opened.Engine.Nodes(), node => result.Value(node.Id) is Spark.Geometry.Brep);
     }
 
     /// <summary>The checked-in example opens into the graph it was written from.</summary>

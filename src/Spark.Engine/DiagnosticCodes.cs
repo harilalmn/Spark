@@ -89,6 +89,8 @@ public static class DiagnosticCodes
         [DuplicateReplicationGuide] = LacingTopic,
         [LongestEmptyPropagated] = LacingTopic,
         [NodeThrewAtDepthZero] = LacingTopic,
+        [KernelUnavailable] = SolidsTopic,
+        [KernelRefused] = SolidsTopic,
         [MalformedGraphFile] = FileTopic,
         [UnreadableFormatVersion] = FileTopic,
         [UnknownNodeDefinition] = FileTopic,
@@ -150,4 +152,25 @@ public static class DiagnosticCodes
     /// save time, where the user still has the value, rather than at load time when it is gone.
     /// </summary>
     public const string UnwritableLiteral = "SPK1063";
+
+    /// <summary>
+    /// The help topic for exact solid operations and the kernel that performs them.
+    /// </summary>
+    public const string SolidsTopic = KernelDiagnostics.SolidsTopic;
+
+    /// <summary>
+    /// An exact solid operation was asked for and no kernel provider is installed.
+    /// </summary>
+    /// <remarks>
+    /// <b>Declared here and defined in <c>Spark.Api</c>.</b> The seam is a contract, so
+    /// <see cref="Spark.Api.IBrepKernel"/> and its refusals live in the contract assembly — which
+    /// cannot reference this one. Re-exporting the constant is what keeps the `SPK####` space in a
+    /// single place, so the coverage test still sees every code that exists.
+    /// </remarks>
+    public const string KernelUnavailable = KernelDiagnostics.Unavailable;
+
+    /// <summary>
+    /// A kernel provider refused an operation: the geometry does not permit what was asked.
+    /// </summary>
+    public const string KernelRefused = KernelDiagnostics.Refused;
 }

@@ -15,6 +15,7 @@ Spark.Nodes.Core.Plane
 Spark.Nodes.Core.Point
 Spark.Nodes.Core.PolyCurve
 Spark.Nodes.Core.PolyLine
+Spark.Nodes.Core.Solid
 Spark.Nodes.Core.Surface
 Spark.Nodes.Core.Text
 Spark.Nodes.Core.Vector
@@ -87,6 +88,18 @@ static Spark.Nodes.Core.PolyLine.ByClosedPoints(System.Collections.Generic.IRead
 static Spark.Nodes.Core.PolyLine.ByPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.PolyLine!
 static Spark.Nodes.Core.PolyLine.ByRectangle(Spark.Geometry.Plane plane, double width = 1, double length = 1) -> Spark.Geometry.PolyLine!
 static Spark.Nodes.Core.PolyLine.ByRegularPolygon(Spark.Geometry.Plane plane, double radius = 1, int sides = 6) -> Spark.Geometry.PolyLine!
+static Spark.Nodes.Core.Solid.Box(Spark.Geometry.Plane plane, double length = 1, double width = 1, double height = 1) -> Spark.Geometry.Brep!
+static Spark.Nodes.Core.Solid.Cylinder(Spark.Geometry.Plane plane, double radius = 1, double height = 1) -> Spark.Geometry.Brep!
+static Spark.Nodes.Core.Solid.Difference(Spark.Geometry.Brep! solid, Spark.Geometry.Brep! cutter) -> Spark.Geometry.Brep!
+static Spark.Nodes.Core.Solid.Extrude(Spark.Geometry.Curve! profile, Spark.Geometry.Vector3d direction) -> Spark.Geometry.Brep!
+static Spark.Nodes.Core.Solid.FaceCount(Spark.Geometry.Brep! solid) -> int
+static Spark.Nodes.Core.Solid.FilletAll(Spark.Geometry.Brep! solid, double radius = 0.1) -> Spark.Geometry.Brep!
+static Spark.Nodes.Core.Solid.Hollow(Spark.Geometry.Brep! solid, double thickness = 0.1) -> Spark.Geometry.Brep!
+static Spark.Nodes.Core.Solid.Intersection(Spark.Geometry.Brep! first, Spark.Geometry.Brep! second) -> Spark.Geometry.Brep!
+static Spark.Nodes.Core.Solid.IsClosed(Spark.Geometry.Brep! solid) -> bool
+static Spark.Nodes.Core.Solid.ToMesh(Spark.Geometry.Brep! solid, double tolerance = 0.01) -> Spark.Geometry.Mesh!
+static Spark.Nodes.Core.Solid.Union(Spark.Geometry.Brep! first, Spark.Geometry.Brep! second) -> Spark.Geometry.Brep!
+static Spark.Nodes.Core.Solid.Volume(Spark.Geometry.Brep! solid) -> double
 static Spark.Nodes.Core.Surface.Area(Spark.Geometry.Surface! surface) -> double
 static Spark.Nodes.Core.Surface.ByPlaneSize(Spark.Geometry.Plane plane, double width = 1, double height = 1) -> Spark.Geometry.PlaneSurface!
 static Spark.Nodes.Core.Surface.ClosestPoint(Spark.Geometry.Surface! surface, Spark.Geometry.Point3d point) -> Spark.Geometry.Point3d
