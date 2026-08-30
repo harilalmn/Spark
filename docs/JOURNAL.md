@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 10:50 +0530
+**Last updated:** 2026-08-31 12:10 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5 and M2 are done** — M2 closed on 2026-08-30. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. The work in flight is **M3, NURBS curves** |
 | **Working on** | Nothing. Between steps, inside M3 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | The `E2-T10` row split into nine, so what is done and what is not are separately visible |
+| **Last completed step** | `E2-T55`, `E2-T56` and `E2-T57` — knot removal, fit to tolerance, and split |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E2-T55` — knot removal**, now that it has a row of its own. It is the inverse of insertion and **the only operation in this family allowed to change the curve**, which is the whole difficulty: insertion, trimming and elevation all promise *nothing changed* and can be tested by asserting exactly that, and this one cannot. It needs a `Tolerance` and a stated rule for what *unchanged enough to drop a knot* means — Wolters' removal test or an equivalent, with the deviation bound **named rather than assumed**. Write the rule down before the code. Two tests carry the weight: removing a knot that was just inserted returns the original control points (a knot with nothing to say can always go), and removing one that matters is **refused** rather than performed badly. When it lands, revisit [E2-T53](TASKS.md)'s remark that elevation is exact but not minimal — that sentence becomes actionable rather than merely true. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1313**: Geometry.Tests 543, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | M3's remaining rows outside the NURBS family: **`E2-T12` curve offset and fillet**, **`E5-T13` curated List/Math/String/Logic node categories**, and **`E5-T16` watch and preview node definitions** — check `E5-T16` first, because `Watch.Value` and the preview bubbles landed on 2026-08-30 and the row may already be satisfied, in which case closing it is a documentation step and not work. Take `E2-T12` next: offset is the one with a real decision in it — an offset of a NURBS curve is **not** a NURBS curve in general, so it has to be approximated to a tolerance, and `E2-T56` now exists to do exactly that. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1335**: Geometry.Tests 565, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -1332,3 +1332,50 @@ removal different from everything around it. That was already the register's con
 what made splitting the cell possible at all: the material was there, it simply had nowhere to sit.
 
 **No gates beyond `Spark.Docs.Verify`** — nothing changed but documentation.
+
+### 2026-08-31 — Knot removal, split and fit-to-tolerance, and two more premises of mine
+
+**Three rows in one step**, because split and fit are thin layers over things already proved and
+only knot removal had a decision in it.
+
+**`E2-T55` — removal is the only operation here allowed to change the curve.** Insertion, trimming
+and elevation are all tested by asserting *nothing moved*; removal cannot be, because moving the
+curve slightly is the point. So the tolerance is a parameter and **the deviation is measured, not
+bounded**: the textbook check uses Wolters' algebraic bound in the middle of the recurrence and
+reports success without ever measuring, which makes the tolerance the caller passed not quite the
+tolerance they got. Here the candidate is built, the two curves are sampled against each other, and
+the removal is kept only if the measured deviation is inside. `Reduced` measures every candidate
+against the **original** rather than the previous step, so a hundred removals each just inside
+tolerance cannot accumulate past it — and that is asserted.
+
+**It did not work the first time and the tests said so loudly** — all eight red, zero removals. The
+cause was `first` and `last`: I had them as multiplicity offsets when A5.8 defines them as
+`r − p` and `r − s`. Rewritten faithfully, all eight passed.
+
+**`E2-T53`'s remark is now actionable.** Degree elevation was *exact but not minimal*;
+`ReducingAnElevatedCurveTakesBackWhatElevationAdded` shows reduction taking the redundant control
+points back off without moving the curve.
+
+**`E2-T57` — split is two trims**, and therefore exact for free. Both halves keep their share of the
+original parameter range, so `Left.Domain.Max == Right.Domain.Min == t` and a caller's existing
+parameters still mean something.
+
+**`E2-T56` — the loop is the difficulty, not the algebra**, and it turned out to be more difficult
+than the row predicted. The stated risk was that raising the count on noisy data never terminates
+usefully; the cap and the honest `Fits = false` handle that. **The unstated one bit instead: more
+control points do not always fit better.** As the count nears the number of points the system is
+nearly square and the normal equations ill-conditioned — on a fifty-point wave the deviation falls
+to **0.0037 at forty control points and rises to 0.33 at forty-nine**. A search trusting
+monotonicity returns a visibly worse curve than one it had already computed, and no care in the
+caller could detect it. The search now keeps the **best measured** result rather than the last, and
+a test drives it to the end deliberately to prove it.
+
+**Two of my test premises were wrong again, and both were tolerances I chose instead of measured.**
+I asked a cubic to fit that wave within 1e-3 when its floor is 0.0037, and asserted a
+never-worse property against counts the search never visits. Both are now written from measurements
+with the numbers in the comments. That is three steps running in which the code was right and my
+expectations were not; the pattern is specific enough to name — **a tolerance in a test is a
+measurement, not a preference**.
+
+**Verified.** Build clean with `-warnaserror`; **1335 tests, 0 failures** (1313 + 22);
+`dotnet format` clean.

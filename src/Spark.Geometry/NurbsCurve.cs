@@ -35,6 +35,16 @@ public sealed class NurbsCurve : Curve
     private readonly double[] _weights;
 
     /// <summary>The homogeneous control points, as (wx, wy, wz, w).</summary>
+    /// <summary>
+    /// How many parameters a removal candidate is compared against the original at.
+    /// </summary>
+    /// <remarks>
+    /// Enough that a deviation confined to one span cannot slip between samples on any curve a
+    /// person draws, and few enough that removing a hundred knots is not noticeable. A bound-based
+    /// test would need none of these and would also not mean what the caller's tolerance says.
+    /// </remarks>
+    private const int DeviationSamples = 128;
+
     private readonly double[,] _homogeneous;
 
     /// <summary>
@@ -394,6 +404,353 @@ public sealed class NurbsCurve : Curve
         return current;
     }
 
+    /// <summary>
+    /// Cuts the curve in two at a parameter.
+    /// </summary>
+    /// <param name="parameter">Where to cut, strictly inside <see cref="Curve.Domain"/>.</param>
+    /// <returns>The piece before the cut and the piece after it.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The parameter is not strictly inside the domain — cutting at an end would give one empty
+    /// piece, which is not two curves.
+    /// </exception>
+    /// <remarks>
+    /// Two trims, and therefore exact: <see cref="Trimmed"/> raises the cut to full multiplicity
+    /// and keeps the control points on its side. Both halves keep their own share of the original
+    /// parameter range rather than being reparameterised to 0..1, so a caller holding a parameter
+    /// from before the cut can still use it on whichever half it fell in — and
+    /// <c>Split(t).Left.Domain.Max == Split(t).Right.Domain.Min == t</c>, which is what makes the
+    /// two halves rejoinable.
+    /// </remarks>
+    public (NurbsCurve Left, NurbsCurve Right) Split(double parameter)
+    {
+        Interval domain = Domain;
+
+        if (!(parameter > domain.Min) || !(parameter < domain.Max))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(parameter),
+                parameter,
+                $"A split must be strictly inside the domain {domain.Min} to {domain.Max}. Cutting "
+                + "at an end produces one empty piece, which is not a split.");
+        }
+
+        return (
+            (NurbsCurve)Trimmed(new Interval(domain.Min, parameter)),
+            (NurbsCurve)Trimmed(new Interval(parameter, domain.Max)));
+    }
+
+    /// <summary>
+    /// Removes a knot if the curve can spare it, and says how many times it managed.
+    /// </summary>
+    /// <param name="knot">The knot to remove, which must be an interior knot of this curve.</param>
+    /// <param name="times">How many times to try. At least 1.</param>
+    /// <param name="tolerance">
+    /// How far the curve may move. A removal that would move it further is refused.
+    /// </param>
+    /// <returns>
+    /// The curve with as many removals as were within tolerance, and how many that was — which may
+    /// be zero, and zero is an ordinary answer rather than a failure.
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="times"/> is less than 1.</exception>
+    /// <exception cref="ArgumentException"><paramref name="knot"/> is not an interior knot.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the only operation in this family allowed to change the curve, and that is the
+    /// whole difficulty.</b> Insertion, trimming and elevation all promise that nothing moved and
+    /// can be tested by asserting exactly that. Removal cannot: a knot is removable only if the
+    /// curve happens to be smooth enough across it to be described without one, and *smooth enough*
+    /// is a judgement that needs a number. So the number is a parameter, the caller supplies it,
+    /// and there is no ambient default anywhere in this assembly to fall back on
+    /// ([ADR-0010](../../docs/adr/0010-tolerance-is-a-parameter.md)).
+    /// </para>
+    /// <para>
+    /// <b>The deviation is computed, not assumed.</b> The classic implementations use Wolters'
+    /// bound — a cheap algebraic quantity that <i>bounds</i> how far the curve could move — and
+    /// then report success without ever measuring. That is faster and it means the tolerance the
+    /// caller passed is not quite the tolerance they got. Here the candidate curve is built, the
+    /// two are sampled against each other, and the removal is kept only if the measured deviation
+    /// is inside the tolerance. It costs an evaluation sweep per attempt and it makes the parameter
+    /// mean what it says.
+    /// </para>
+    /// <para>
+    /// <b>Removal is attempted and refused, never performed badly.</b> A caller who asks to remove
+    /// three knots and gets one back has a curve that is still exactly what they had; a caller who
+    /// gets three back and a curve that has visibly moved has a bug they will find much later, in
+    /// geometry. The count returned is how the caller learns which happened.
+    /// </para>
+    /// </remarks>
+    public (NurbsCurve Curve, int Removed) WithKnotRemoved(
+        double knot, int times = 1, in Tolerance tolerance = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(times, 1);
+
+        Interval domain = Domain;
+        if (knot <= domain.Min || knot >= domain.Max)
+        {
+            throw new ArgumentException(
+                $"{knot.ToString("R", CultureInfo.InvariantCulture)} is not an interior knot of this "
+                + $"curve, whose domain is {domain.Min} to {domain.Max}. The end knots are what clamp "
+                + "the curve to its first and last control points and cannot be removed.",
+                nameof(knot));
+        }
+
+        NurbsCurve current = this;
+        int removed = 0;
+
+        for (int attempt = 0; attempt < times; attempt++)
+        {
+            if (current.Knots.Multiplicity(knot, tolerance) == 0)
+            {
+                break;
+            }
+
+            if (current.RemoveOnce(knot) is not { } candidate)
+            {
+                break;
+            }
+
+            if (!Deviates(this, candidate, tolerance))
+            {
+                current = candidate;
+                removed++;
+                continue;
+            }
+
+            break;
+        }
+
+        return (current, removed);
+    }
+
+    /// <summary>
+    /// Removes every interior knot the curve can spare, leaving the smallest representation of it
+    /// that is within tolerance.
+    /// </summary>
+    /// <param name="tolerance">How far the curve may move in total.</param>
+    /// <returns>The reduced curve, and how many knots went.</returns>
+    /// <remarks>
+    /// What makes <see cref="WithDegreeElevated"/>'s output minimal rather than merely exact, and
+    /// what a refinement pipeline needs at the end of it. Deviation is measured against <b>this</b>
+    /// curve throughout rather than against the previous step, so a hundred removals each just
+    /// inside tolerance cannot accumulate into one that is far outside it.
+    /// </remarks>
+    public (NurbsCurve Curve, int Removed) Reduced(in Tolerance tolerance = default)
+    {
+        NurbsCurve current = this;
+        int removed = 0;
+
+        // Interior knots only, and re-read every pass because removing one renumbers the rest.
+        bool progress = true;
+        while (progress)
+        {
+            progress = false;
+
+            foreach (double knot in current.DistinctSpans()[1..^1])
+            {
+                if (current.RemoveOnce(knot) is not { } candidate || Deviates(this, candidate, tolerance))
+                {
+                    continue;
+                }
+
+                current = candidate;
+                removed++;
+                progress = true;
+                break;
+            }
+        }
+
+        return (current, removed);
+    }
+
+    /// <summary>
+    /// One removal attempt, by the inverse of Boehm's blend. Null when the arithmetic cannot be
+    /// run at all — a knot that is not there, or a curve already at its minimum size.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Insertion computes each new control point as a blend of two old ones. Removal runs that
+    /// backwards from both ends of the affected window towards the middle, which produces two
+    /// estimates of where they meet; the curve is removable exactly when those estimates agree.
+    /// </para>
+    /// <para>
+    /// <b>The agreement is not tested here.</b> The textbook algorithm checks it against a
+    /// tolerance in the middle of the recurrence and abandons the removal if it fails. This builds
+    /// the candidate regardless and lets the caller measure the finished curve, because the
+    /// mid-recurrence check bounds the deviation rather than measuring it — and the difference
+    /// between those two is the difference between the caller's tolerance meaning what it says and
+    /// nearly meaning it.
+    /// </para>
+    /// </remarks>
+    private NurbsCurve? RemoveOnce(double knot)
+    {
+        int p = Degree;
+        int n = _controlPoints.Length - 1;
+        double[] u = Knots.ToArray();
+        int m = u.Length - 1;
+
+        // r is the index of the last knot equal to the one being removed, s its multiplicity.
+        int r = -1;
+        for (int i = 0; i <= m; i++)
+        {
+            if (u[i] == knot)
+            {
+                r = i;
+            }
+        }
+
+        if (r < 0)
+        {
+            return null;
+        }
+
+        int s = 0;
+        for (int i = 0; i <= m; i++)
+        {
+            if (u[i] == knot)
+            {
+                s++;
+            }
+        }
+
+        int order = p + 1;
+        int first = r - p;
+        int last = r - s;
+
+        // The window has to have a control point either side of it to blend against. Without one,
+        // the knot is structurally part of the clamping rather than something the curve chose.
+        if (first - 1 < 0 || last + 1 > n || n < p + 1)
+        {
+            return null;
+        }
+
+        double[,] temp = new double[(2 * p) + 2, 4];
+
+        for (int c = 0; c < 4; c++)
+        {
+            temp[0, c] = _homogeneous[first - 1, c];
+            temp[last + 1 - first + 1, c] = _homogeneous[last + 1, c];
+        }
+
+        int i0 = first;
+        int j0 = last;
+        int ii = 1;
+        int jj = last - first + 1;
+
+        while (j0 - i0 > 0)
+        {
+            double denominatorI = u[i0 + order] - u[i0];
+            double denominatorJ = u[j0 + order] - u[j0];
+
+            if (denominatorI == 0.0 || denominatorJ == 0.0)
+            {
+                return null;
+            }
+
+            double alphaI = (knot - u[i0]) / denominatorI;
+            double alphaJ = (knot - u[j0]) / denominatorJ;
+
+            if (alphaI == 0.0 || alphaJ == 1.0)
+            {
+                return null;
+            }
+
+            for (int c = 0; c < 4; c++)
+            {
+                temp[ii, c] = (_homogeneous[i0, c] - ((1.0 - alphaI) * temp[ii - 1, c])) / alphaI;
+                temp[jj, c] = (_homogeneous[j0, c] - (alphaJ * temp[jj + 1, c])) / (1.0 - alphaJ);
+            }
+
+            i0++;
+            ii++;
+            j0--;
+            jj--;
+        }
+
+        // Write the blended points back over the window, then drop one control point and one knot.
+        double[,] moved = new double[n + 1, 4];
+        Array.Copy(_homogeneous, moved, _homogeneous.Length);
+
+        int a = first;
+        int b = last;
+        while (b - a > 0)
+        {
+            for (int c = 0; c < 4; c++)
+            {
+                moved[a, c] = temp[a - first + 1, c];
+                moved[b, c] = temp[b - first + 1, c];
+            }
+
+            a++;
+            b--;
+        }
+
+        int gone = ((2 * r) - s - p) / 2;
+
+        double[,] reduced = new double[n, 4];
+        for (int i = 0, k = 0; i <= n; i++)
+        {
+            if (i == gone)
+            {
+                continue;
+            }
+
+            for (int c = 0; c < 4; c++)
+            {
+                reduced[k, c] = moved[i, c];
+            }
+
+            k++;
+        }
+
+        double[] fewer = new double[m];
+        Array.Copy(u, fewer, r);
+        Array.Copy(u, r + 1, fewer, r, m - r);
+
+        // A weight that has gone non-positive means the inverse blend produced something that is
+        // not a curve at all, which happens on a knot that was never removable.
+        for (int i = 0; i < n; i++)
+        {
+            if (!double.IsFinite(reduced[i, 3]) || reduced[i, 3] <= 0.0)
+            {
+                return null;
+            }
+        }
+
+        try
+        {
+            return FromHomogeneous(reduced, new KnotVector(p, fewer));
+        }
+        catch (ArgumentException)
+        {
+            // The reduced vector can fail its own invariants — too few knots for the degree, most
+            // often. That is a refusal, not an error: the curve cannot spare this knot.
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Whether two curves are further apart than a tolerance allows, measured rather than bounded.
+    /// </summary>
+    private static bool Deviates(NurbsCurve original, NurbsCurve candidate, in Tolerance tolerance)
+    {
+        Interval a = original.Domain;
+        Interval b = candidate.Domain;
+
+        for (int i = 0; i <= DeviationSamples; i++)
+        {
+            double u = (double)i / DeviationSamples;
+            Point3d onOriginal = original.PointAt(a.Min + (a.Length * u));
+            Point3d onCandidate = candidate.PointAt(b.Min + (b.Length * u));
+
+            if (!onOriginal.EqualsWithin(onCandidate, tolerance))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>One application of Boehm's algorithm.</summary>
     private NurbsCurve InsertOnce(double knot)
     {
@@ -716,6 +1073,120 @@ public sealed class NurbsCurve : Curve
         }
 
         return new NurbsCurve(control, knots);
+    }
+
+    /// <summary>
+    /// The smallest curve that fits a set of points within a tolerance, or the closest it could get.
+    /// </summary>
+    /// <param name="points">The points to fit, at least three.</param>
+    /// <param name="tolerance">How far the curve may sit from any point.</param>
+    /// <param name="degree">The degree. At least 1.</param>
+    /// <returns>
+    /// The curve, the worst distance from any point to it, and whether that is inside the
+    /// tolerance.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="points"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="degree"/> is less than 1.</exception>
+    /// <exception cref="ArgumentException">There are fewer than three points.</exception>
+    /// <remarks>
+    /// <para>
+    /// The friendly signature — <i>fit these points within 0.1 mm</i> — over
+    /// <see cref="ApproximatePoints"/>. It raises the control-point count until the worst deviation
+    /// is inside the tolerance, and <b>the loop is the whole difficulty, not the algebra</b>.
+    /// </para>
+    /// <para>
+    /// <b>On noisy data the loop does not terminate anywhere useful.</b> Every extra control point
+    /// buys a little accuracy, so the count climbs until it equals the number of points — at which
+    /// point the answer is an interpolation, faithfully reproducing the noise, dressed as a fit.
+    /// So the search stops at <c>points.Count - 1</c> and **reports** rather than pretending: the
+    /// returned <c>Fits</c> is false and the deviation is the one actually achieved. A caller who
+    /// ignores it gets the best available curve, which is the right failure; a caller who reads it
+    /// learns their tolerance was not achievable and can decide what that means.
+    /// </para>
+    /// <para>
+    /// The search doubles rather than stepping, then walks back one at a time. Stepping from the
+    /// minimum is O(n) fits on data that needs many control points, and a fit is a least-squares
+    /// solve; doubling reaches the same answer in a logarithmic number of them and the linear walk
+    /// at the end recovers the exact minimum.
+    /// </para>
+    /// <para>
+    /// <b>It keeps the best measured result, not the last one, because more control points do not
+    /// always fit better.</b> As the count approaches the number of points the system becomes
+    /// nearly square and the normal equations become ill-conditioned — on a fifty-point wave the
+    /// deviation falls to 0.0037 at forty control points and rises again to 0.33 at forty-nine.
+    /// Trusting monotonicity there returns a visibly worse curve than one already computed, and no
+    /// amount of care in the caller could detect it.
+    /// </para>
+    /// </remarks>
+    public static (NurbsCurve Curve, double Deviation, bool Fits) FitPoints(
+        IReadOnlyList<Point3d> points, in Tolerance tolerance = default, int degree = 3)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+        ArgumentOutOfRangeException.ThrowIfLessThan(degree, 1);
+
+        if (points.Count < 3)
+        {
+            throw new ArgumentException("Fitting needs at least three points.", nameof(points));
+        }
+
+        int most = points.Count - 1;
+        int fewest = Math.Min(degree + 1, most);
+
+        NurbsCurve best = ApproximatePoints(points, fewest, degree);
+        double deviation = Worst(best, points);
+        int bestCount = fewest;
+
+        // Doubling until it fits, keeping the best measured result rather than the last one.
+        for (int count = fewest; count < most && tolerance.IsGreaterThan(deviation, 0.0);)
+        {
+            count = Math.Min(count * 2, most);
+
+            NurbsCurve candidate = ApproximatePoints(points, count, degree);
+            double candidateDeviation = Worst(candidate, points);
+
+            if (candidateDeviation < deviation)
+            {
+                best = candidate;
+                deviation = candidateDeviation;
+                bestCount = count;
+            }
+        }
+
+        if (tolerance.IsGreaterThan(deviation, 0.0))
+        {
+            return (best, deviation, false);
+        }
+
+        // Walk back to the fewest control points that still fit, so the answer is the smallest
+        // curve meeting the tolerance rather than the first the doubling happened to reach.
+        for (int fewerCount = bestCount - 1; fewerCount >= fewest; fewerCount--)
+        {
+            NurbsCurve candidate = ApproximatePoints(points, fewerCount, degree);
+            double candidateDeviation = Worst(candidate, points);
+
+            if (tolerance.IsGreaterThan(candidateDeviation, 0.0))
+            {
+                break;
+            }
+
+            best = candidate;
+            deviation = candidateDeviation;
+        }
+
+        return (best, deviation, true);
+    }
+
+    /// <summary>The furthest any point sits from a curve.</summary>
+    private static double Worst(NurbsCurve curve, IReadOnlyList<Point3d> points)
+    {
+        double worst = 0.0;
+
+        foreach (Point3d point in points)
+        {
+            worst = Math.Max(worst, curve.DistanceTo(point));
+        }
+
+        return worst;
     }
 
     /// <summary>

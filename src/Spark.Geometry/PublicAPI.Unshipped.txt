@@ -133,9 +133,12 @@ Spark.Geometry.NurbsCurve.IsRational.get -> bool
 Spark.Geometry.NurbsCurve.Knots.get -> Spark.Geometry.KnotVector!
 Spark.Geometry.NurbsCurve.NurbsCurve(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! controlPoints, Spark.Geometry.KnotVector! knots, System.Collections.Generic.IReadOnlyList<double>? weights = null) -> void
 Spark.Geometry.NurbsCurve.NurbsCurve(int degree, System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! controlPoints, System.Collections.Generic.IReadOnlyList<double>! knots, System.Collections.Generic.IReadOnlyList<double>? weights = null) -> void
+Spark.Geometry.NurbsCurve.Reduced(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> (Spark.Geometry.NurbsCurve! Curve, int Removed)
+Spark.Geometry.NurbsCurve.Split(double parameter) -> (Spark.Geometry.NurbsCurve! Left, Spark.Geometry.NurbsCurve! Right)
 Spark.Geometry.NurbsCurve.Weights() -> double[]!
 Spark.Geometry.NurbsCurve.WithDegreeElevated(int by = 1) -> Spark.Geometry.NurbsCurve!
 Spark.Geometry.NurbsCurve.WithKnotInserted(double knot, int times = 1) -> Spark.Geometry.NurbsCurve!
+Spark.Geometry.NurbsCurve.WithKnotRemoved(double knot, int times = 1, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> (Spark.Geometry.NurbsCurve! Curve, int Removed)
 Spark.Geometry.Plane
 Spark.Geometry.Plane.ClosestPoint(in Spark.Geometry.Point3d point) -> Spark.Geometry.Point3d
 Spark.Geometry.Plane.Contains(in Spark.Geometry.Point3d point, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
@@ -489,6 +492,7 @@ static Spark.Geometry.Line.ByStartPointDirectionLength(in Spark.Geometry.Point3d
 static Spark.Geometry.Line.ByStartPointEndPoint(in Spark.Geometry.Point3d start, in Spark.Geometry.Point3d end) -> Spark.Geometry.Line!
 static Spark.Geometry.NurbsCurve.ApproximatePoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, int controlPoints, int degree = 3) -> Spark.Geometry.NurbsCurve!
 static Spark.Geometry.NurbsCurve.ByPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.NurbsCurve!
+static Spark.Geometry.NurbsCurve.FitPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance), int degree = 3) -> (Spark.Geometry.NurbsCurve! Curve, double Deviation, bool Fits)
 static Spark.Geometry.NurbsCurve.InterpolatePoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, int degree = 3) -> Spark.Geometry.NurbsCurve!
 static Spark.Geometry.Plane.ByOriginNormal(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal) -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.ByOriginNormalXAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal, in Spark.Geometry.Vector3d xAxis) -> Spark.Geometry.Plane
