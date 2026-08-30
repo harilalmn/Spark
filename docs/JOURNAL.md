@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 06:20 +0530
+**Last updated:** 2026-08-31 07:00 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5 and M2 are done** — M2 closed on 2026-08-30. M1.6 is deferred for want of a C++ toolchain. The work in flight is **M3, NURBS curves** |
 | **Working on** | Nothing. Between steps, inside M3 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **10**, `E2-T10` step **(e)** — degree elevation by Bézier decomposition |
+| **Last completed step** | The flaky signed-angle property, diagnosed from its seed and fixed ([N40](NOTES.md)) |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **Fix the flaky property test**, before any more feature work. `ValueLayerProperties.TheSignedAngleBetweenTwoVectorsDoesNotDependOnTheirLengths` failed once during the degree-elevation gates and passed five times out of five afterwards, in a project this session has not touched. **A gate that fails at random is worse than no gate**: the next session runs it, sees red, and has to work out whether it inherited a broken tree — which is exactly the cost the journal exists to remove. The suspect is the second assertion, `Math.Sign(atUnitLength.Radians) == Math.Sign(atOtherLengths.Radians)`: when the generated turn puts the two vectors nearly parallel the signed angle is legitimately about zero, and rounding can land one side at +1e-17 and the other at −1e-17 — `EqualsWithin` passes and the sign assertion fails. **Confirm it before changing it**, by seeding the generator or by reproducing with a near-zero turn; a guess that happens to make the failure stop is not a fix. The repair is to assert the sign only where the angle is far enough from zero and π for a sign to mean anything. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1281**: Geometry.Tests 512, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | Back to `E2-T10`, step **(f)**: **fit and interpolate**, which are the last two on the row and belong together because they are the same problem twice — *global interpolation* puts a curve exactly through a set of points, *approximation* puts one near them with fewer control points. Start with **interpolation**, which is the one with an exact answer: choose parameters for the points (chord-length is the standard and beats uniform badly on unevenly spaced data), build the clamped knot vector by averaging them, assemble the banded basis matrix and solve. **The test writes itself and is decisive:** the resulting curve must pass through every input point to within tolerance — which is a property, not an example, so run it over generated point sets as well as fixed ones. Then approximation on top, which needs least squares and a stated tolerance. **Before starting, split the `E2-T10` row in TASKS.md** — it has absorbed six steps and what is done is no longer legible inside one cell. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1282**: Geometry.Tests 512, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -1126,3 +1126,39 @@ not a fix.
 described above and nothing else; `dotnet format` clean.
 
 **Cost.** Forty minutes.
+
+### 2026-08-30 — The flake, diagnosed from its seed rather than guessed at
+
+**Not a feature step.** The degree-elevation gates threw one failure in
+`Spark.Geometry.Properties`, a project this session had not touched, and then passed five runs out
+of five. A gate that fails at random is worse than no gate, so it came before more feature work.
+
+**I guessed twice and was wrong twice.** Both guesses were that the generated turn had landed near a
+multiple of 360°, making the two vectors nearly parallel or nearly opposed. I wrote a hand-rolled
+search over the generator's own space — **four hundred thousand trials** — and it found nothing,
+because a uniform draw over −720°..720° essentially never produces the value that matters.
+
+**Running the suite forty times and reading CsCheck's counterexample took two minutes and gave the
+answer outright.** The turn was `-3.844e-15°`. Vanishingly small, not near anything. The two vectors
+are the same direction to within about `1e-17` radians, and scaling them by `0.01` and `4.05e-5`
+sends the cross product to *exactly zero*. So `Math.Sign(+1e-17)` is 1, `Math.Sign(0.0)` is **0**,
+and the assertion read *no sign at all* as *the opposite sign*. The property under test — that the
+angle does not depend on the lengths — held the entire time. **The code was right and the assertion
+beside it was over-strict**, which is why the failure was rare and looked like nothing.
+
+**The fix guards the sign comparison** by the angular tolerance already in the file: below it, two
+directions are the same as far as this assembly is concerned, so their relative sign is not a fact
+about the geometry. Written up as
+[N40](NOTES.md#n40--mathsign-of-a-near-zero-value-is-a-third-answer-not-the-other-sign), whose
+second lesson is the expensive one: **do not guess at a randomised failure — the seed is the
+evidence.**
+
+**Verified.** `CsCheck_Seed=3Y_SvlbuBiDf` reproduces the failure with the guard reverted and passes
+with it, which is AGENTS.md step 7 exactly. Then **thirty consecutive clean runs** of the suite,
+because one clean run proves nothing about a test that failed one time in forty. Build clean with
+`-warnaserror`; **1282 tests, 0 failures**; `dotnet format` clean.
+`ASignedAngleTooSmallToHaveASignIsNotAsserted` pins the counterexample as an ordinary test, so the
+case survives even if CsCheck's seed format ever changes.
+
+**Cost.** Thirty-five minutes, twenty of them spent on two wrong guesses that a two-minute loop
+would have skipped.

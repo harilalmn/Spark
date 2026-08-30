@@ -253,6 +253,53 @@ public sealed class ValueLayerProperties
             Assert.True(vector.Normalised().IsUnit(GeometryGenerators.Dimensionless)));
     }
 
+    /// <summary>
+    /// The counterexample that made
+    /// <see cref="TheSignedAngleBetweenTwoVectorsDoesNotDependOnTheirLengths"/> fail at random,
+    /// pinned as an ordinary test.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The generator drew a turn of <c>-3.844e-15°</c> — vanishingly small, and nothing like the
+    /// near-360° case a person would have guessed at. The two vectors are then the same direction
+    /// to within about <c>1e-17</c> radians, and scaling them by <c>0.01</c> and <c>4.05e-5</c>
+    /// sends the cross product to <b>exactly zero</b>. <c>Math.Sign</c> then answers <c>0</c>,
+    /// which is not the opposite sign — it is no sign at all, and the original assertion read that
+    /// as a disagreement about direction.
+    /// </para>
+    /// <para>
+    /// <b>The magnitude property held throughout</b>, which is why the failure was rare and looked
+    /// like nothing: the thing being tested was fine and the assertion beside it was over-strict.
+    /// Found by running the suite forty times and reading CsCheck's counterexample rather than by
+    /// guessing — the first two guesses, both about angles near a multiple of 360°, survived four
+    /// hundred thousand trials of a hand-rolled search and were wrong.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void ASignedAngleTooSmallToHaveASignIsNotAsserted()
+    {
+        Vector3d axis = new(-0.14958244638723028, 0.919029222119718, -0.36470588235294116);
+        Angle turn = Angle.FromDegrees(-3.844e-15);
+
+        Vector3d a = axis;
+        Vector3d b = axis.Rotate(PerpendicularTo(axis), turn);
+
+        Assert.True(a.Cross(b).TryNormalise(out Vector3d reference));
+
+        Angle atUnitLength = a.SignedAngleTo(b, reference);
+        Angle atOtherLengths = (a * 0.01).SignedAngleTo(b * 4.047492879802625E-05, reference);
+
+        // The real property survives the case entirely.
+        Assert.True(atUnitLength.EqualsWithin(atOtherLengths));
+
+        // And the angle is below the tolerance at which two directions are the same, which is
+        // exactly why its sign carries nothing.
+        Assert.True(
+            atUnitLength.EqualsWithin(Angle.Zero, GeometryGenerators.Dimensionless),
+            $"The angle is {atUnitLength.Radians}, which is above the tolerance — so this is no "
+            + "longer the case that produced the flake and the guard it justifies needs revisiting.");
+    }
+
     [Fact]
     public void TheSignedAngleBetweenTwoVectorsDoesNotDependOnTheirLengths()
     {
@@ -270,8 +317,19 @@ public sealed class ValueLayerProperties
                 Angle atUnitLength = a.SignedAngleTo(b, reference);
                 Angle atOtherLengths = (a * firstScale).SignedAngleTo(b * secondScale, reference);
 
+                // The property. It holds everywhere, including where the sign below does not.
                 Assert.True(atUnitLength.EqualsWithin(atOtherLengths));
-                Assert.Equal(Math.Sign(atUnitLength.Radians), Math.Sign(atOtherLengths.Radians));
+
+                // The sign is only a fact about the geometry when the angle is far enough from
+                // zero for one to exist. Below the angular tolerance the two vectors are the same
+                // direction as far as this assembly is concerned, and scaling can send the cross
+                // product to exactly zero — at which point Math.Sign answers 0, which is neither
+                // sign and is not a disagreement about direction. See
+                // ASignedAngleTooSmallToHaveASignIsNotAsserted below for the case that found this.
+                if (!atUnitLength.EqualsWithin(Angle.Zero, GeometryGenerators.Dimensionless))
+                {
+                    Assert.Equal(Math.Sign(atUnitLength.Radians), Math.Sign(atOtherLengths.Radians));
+                }
             });
     }
 

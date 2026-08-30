@@ -1221,3 +1221,41 @@ and [N33](#n33--roslyn-completion-fails-silently-twice-before-it-works) and
 a fourth time, and the pattern is stable enough to state as a rule: **when a precondition cannot be
 met yet, decide between *refuse loudly* and *defer*. Returning quietly is neither, and it is the
 one that survives every test you have.**
+
+---
+
+## N40 — `Math.Sign` of a near-zero value is a third answer, not the other sign
+
+`ValueLayerProperties.TheSignedAngleBetweenTwoVectorsDoesNotDependOnTheirLengths` failed roughly
+once in forty runs, in a project nothing had touched. The counterexample, once captured:
+
+```
+Axis = (-0.1495…, 0.9190…, -0.3647…)   Turn = -3.844e-15°   scales 0.01 and 4.05e-5
+```
+
+The turn is **vanishingly small**, so the two vectors are the same direction to within about
+`1e-17` radians. Scaling them sends the cross product to *exactly zero*, and the angle comes back
+as `0.0`. The assertion was:
+
+```csharp
+Assert.Equal(Math.Sign(atUnitLength.Radians), Math.Sign(atOtherLengths.Radians));
+```
+
+`Math.Sign(+1e-17)` is 1 and `Math.Sign(0.0)` is **0** — and 0 is not the opposite sign, it is
+*no sign*. The assertion read a value too small to have a direction as a disagreement about
+direction. The property being tested — that the angle does not depend on the lengths — held
+throughout, which is why the failure was rare and looked like nothing.
+
+**Two lessons, and the second is the expensive one.**
+
+**A sign is only a fact when the magnitude is above the tolerance.** Guard the comparison, or use a
+three-way test that treats zero as its own case. This is the same shape as
+[N26](#n26--two-benchmarks-were-wrong-before-they-were-right-and-the-numbers-said-so-both-times)'s
+three-way partition, from the assertion side.
+
+**Do not guess at a randomised failure.** Two plausible hypotheses here — both about angles near a
+multiple of 360° — survived *four hundred thousand* trials of a hand-rolled search and were wrong,
+because CsCheck deliberately generates values like `1e-15` that a uniform draw essentially never
+produces. Running the suite forty times and reading the printed counterexample took two minutes and
+gave the answer outright. **The generator's seed is the evidence; a reproduction that stops failing
+is not the same as a cause.**
