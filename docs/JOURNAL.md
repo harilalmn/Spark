@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 05:45 +0530
+**Last updated:** 2026-08-31 06:20 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5 and M2 are done** — M2 closed on 2026-08-30. M1.6 is deferred for want of a C++ toolchain. The work in flight is **M3, NURBS curves** |
 | **Working on** | Nothing. Between steps, inside M3 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **10**, `E2-T10` step **(d)** — `Curve.ClosestPoint`, on every curve type |
+| **Last completed step** | Queue **10**, `E2-T10` step **(e)** — degree elevation by Bézier decomposition |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | `E2-T10` step **(e)**: **degree elevation**, which is the last structural operation the row needs before fit and interpolate — those two are approximation problems and belong together in their own step. Elevation raises a curve's degree while keeping its shape exactly, and it is what makes two curves of different degrees joinable, which every loft and sweep in M5 will want. **The test is the same shape as knot insertion's and just as decisive: nothing changed.** Elevate and every sampled point must be identical to ten decimal places, the degree up by one, and the control-point count up by the number of distinct spans. Work on the homogeneous points again, for the reason insertion did. **Then reconsider the queue** — `E2-T10` has been four steps and is still not closed, and it may be worth splitting the row in TASKS.md so that what is done and what is not are separately visible rather than buried in one long cell. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1272**: Geometry.Tests 503, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | **Fix the flaky property test**, before any more feature work. `ValueLayerProperties.TheSignedAngleBetweenTwoVectorsDoesNotDependOnTheirLengths` failed once during the degree-elevation gates and passed five times out of five afterwards, in a project this session has not touched. **A gate that fails at random is worse than no gate**: the next session runs it, sees red, and has to work out whether it inherited a broken tree — which is exactly the cost the journal exists to remove. The suspect is the second assertion, `Math.Sign(atUnitLength.Radians) == Math.Sign(atOtherLengths.Radians)`: when the generated turn puts the two vectors nearly parallel the signed angle is legitimately about zero, and rounding can land one side at +1e-17 and the other at −1e-17 — `EqualsWithin` passes and the sign assertion fails. **Confirm it before changing it**, by seeding the generator or by reproducing with a near-zero turn; a guess that happens to make the failure stop is not a fix. The repair is to assert the sign only where the angle is far enough from zero and π for a sign to mean anything. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1281**: Geometry.Tests 512, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -119,7 +119,7 @@ the two disagree.**
 | 7 | **The C2VGeometry test harvest**, timeboxed to one week with a hard stop. Harvest assertions, not generators | `E2-T32` | L | **Blocked** — needs the C2VGeometry source, which is not in this repository and not on this machine. Skipped 2026-08-30 |
 | 8 | **M1.5 spike (c): AvaloniaEdit plus a Roslyn completion popup** — the last unproven part of M1.5, gating M4 | `E11-T21` | M | **Done** 2026-08-30 |
 | 9 | ~~**What is left of M2** — real docking (`E8-T2`), group/note/align (`E8-T6`), watch nodes (`E8-T10`), `spark run` (`E12-T5`)~~ | | L | **Done** 2026-08-30 |
-| 10 | **M3 — NURBS curves** *(in progress)* — knot vector, curve, insertion, exact trim and closest point all done 2026-08-30; degree elevation next | `E2-T10` … | XL | Open |
+| 10 | **M3 — NURBS curves** *(in progress)* — knot vector, curve, insertion, exact trim, closest point and degree elevation all done 2026-08-30; knot removal, fit and interpolate remain | `E2-T10` … | XL | Open |
 | + | **Persist the workspace layout between sessions** — `WorkspaceLayout` already serialises and round-trips under test; nothing writes it. A dragged arrangement dies with the window, which is the one thing a dock is for | `E8-T2`-adjacent | S | Open |
 | + | **A guard that no test project reports zero tests** — one line, and it catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)) | `E11`-adjacent | S | Open, take it with the next CI change |
 
@@ -1087,5 +1087,42 @@ search has to agree with arithmetic that cannot be wrong.
 `dotnet format` clean. All 36 passed first time, which is unusual enough to be worth saying — the
 derivatives they lean on were themselves checked against central differences two steps ago, and
 that is what a foundation being right looks like from above.
+
+**Cost.** Forty minutes.
+
+### 2026-08-30 — Degree elevation, and a flake the gates coughed up
+
+**`E2-T10` step (e).** Elevation by **Bézier decomposition**: insert knots until every interior one
+has multiplicity `degree`, which turns the curve into a chain of Bézier segments sharing endpoints;
+elevate each segment, where the rule is a one-line blend; reassemble. The direct algorithm is faster
+and considerably longer, and all of its extra complexity is in *avoiding* the decomposition — a
+trade worth making later, with a benchmark, and not now.
+
+**It is exact but not minimal, and saying so is the point.** Decomposing raises every interior knot
+to full multiplicity and nothing here lowers it again, so a curve that was smooth across a knot
+comes back describing the same shape with more control points than it needs. That is a
+representation cost, not a geometric one — every sampled point is identical to ten decimal places.
+Removing it needs knot removal, which carries a tolerance question — *how nearly equal must two
+curves be before a knot may be dropped?* — and answering that casually inside an operation whose
+whole promise is that it changes nothing would be the worst place in the kernel to put an
+approximation.
+
+**Nine tests, all green first time**, including two that check elevation against something other
+than itself: a line stays a line when elevated to degree 3, and the rational quarter circle is still
+a circle to nine places — which a blend done on the projected points instead of the homogeneous ones
+would fail. `ElevatingAndTrimmingCommute` is the one I would keep if I could keep only one: two
+operations that each claim to preserve shape had better agree with each other.
+
+**The gates coughed up something that is not mine.**
+`ValueLayerProperties.TheSignedAngleBetweenTwoVectorsDoesNotDependOnTheirLengths` failed once,
+in `Spark.Geometry.Properties` — a project this session has not touched — and then passed five runs
+out of five. **A gate that fails at random is worse than no gate**, because the next session runs
+it, sees red, and has to work out whether it inherited a broken tree, which is precisely the cost
+the journal exists to remove. So it is the next step rather than a footnote, and the *Next action*
+says to confirm the cause before changing anything: a guess that happens to make a failure stop is
+not a fix.
+
+**Verified.** Build clean with `-warnaserror`; **1281 tests** with the one intermittent failure
+described above and nothing else; `dotnet format` clean.
 
 **Cost.** Forty minutes.

@@ -274,6 +274,126 @@ public sealed class NurbsCurve : Curve
         return current;
     }
 
+    /// <summary>
+    /// Raises the curve's degree, leaving its shape completely unchanged.
+    /// </summary>
+    /// <param name="by">How many degrees to add. At least 1.</param>
+    /// <returns>A curve of higher degree occupying exactly the same points.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="by"/> is less than 1.</exception>
+    /// <remarks>
+    /// <para>
+    /// Done by <b>Bézier decomposition</b>: insert knots until every interior knot has multiplicity
+    /// <c>degree</c>, which turns the curve into a chain of Bézier segments sharing endpoints;
+    /// elevate each segment, where the rule is a one-line blend
+    /// (<c>Qᵢ = (i/(p+1))·Pᵢ₋₁ + (1 − i/(p+1))·Pᵢ</c>); then reassemble. The direct algorithm is
+    /// faster and considerably longer, and its extra complexity is entirely in <i>avoiding</i> the
+    /// decomposition — which is a trade worth making later, with a benchmark, and not now.
+    /// </para>
+    /// <para>
+    /// <b>The result is exact but not minimal.</b> Decomposing raises every interior knot to full
+    /// multiplicity and nothing here lowers it again, so a curve that was smooth across a knot comes
+    /// back describing the same shape with more control points than it needs. That is a
+    /// representation cost and not a geometric one — every sampled point is identical — and removing
+    /// it needs knot removal, which is a separate operation with its own tolerance question:
+    /// <i>how nearly equal must two curves be before a knot may be dropped?</i> Answering that
+    /// casually here would put an approximation inside an operation whose whole promise is that it
+    /// changes nothing.
+    /// </para>
+    /// </remarks>
+    public NurbsCurve WithDegreeElevated(int by = 1)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(by, 1);
+
+        NurbsCurve current = this;
+        for (int i = 0; i < by; i++)
+        {
+            current = current.ElevateOnce();
+        }
+
+        return current;
+    }
+
+    /// <summary>One degree of elevation, through a Bézier decomposition.</summary>
+    private NurbsCurve ElevateOnce()
+    {
+        int p = Degree;
+        NurbsCurve bezier = AsBezierSegments();
+
+        int segments = (bezier._controlPoints.Length - 1) / p;
+        int count = (segments * (p + 1)) + 1;
+        double[,] raised = new double[count, 4];
+
+        for (int segment = 0; segment < segments; segment++)
+        {
+            int from = segment * p;
+            int to = segment * (p + 1);
+
+            // The two endpoints are interpolated exactly; every interior point is a blend of the
+            // two it sits between. Written on the homogeneous components, for the reason knot
+            // insertion is: blending projected points is right for a non-rational curve only.
+            for (int c = 0; c < 4; c++)
+            {
+                raised[to, c] = bezier._homogeneous[from, c];
+                raised[to + p + 1, c] = bezier._homogeneous[from + p, c];
+            }
+
+            for (int i = 1; i <= p; i++)
+            {
+                double alpha = (double)i / (p + 1);
+
+                for (int c = 0; c < 4; c++)
+                {
+                    raised[to + i, c] =
+                        (alpha * bezier._homogeneous[from + i - 1, c])
+                        + ((1.0 - alpha) * bezier._homogeneous[from + i, c]);
+                }
+            }
+        }
+
+        double[] breaks = bezier.DistinctSpans();
+        double[] knots = new double[count + p + 2];
+        int index = 0;
+
+        for (int i = 0; i < p + 2; i++)
+        {
+            knots[index++] = breaks[0];
+        }
+
+        for (int b = 1; b < breaks.Length - 1; b++)
+        {
+            for (int i = 0; i < p + 1; i++)
+            {
+                knots[index++] = breaks[b];
+            }
+        }
+
+        for (int i = 0; i < p + 2; i++)
+        {
+            knots[index++] = breaks[^1];
+        }
+
+        return FromHomogeneous(raised, new KnotVector(p + 1, knots));
+    }
+
+    /// <summary>
+    /// The same curve with every interior knot at full multiplicity — a chain of Bézier segments.
+    /// </summary>
+    private NurbsCurve AsBezierSegments()
+    {
+        NurbsCurve current = this;
+
+        foreach (double knot in DistinctSpans()[1..^1])
+        {
+            int missing = Degree - current.Knots.Multiplicity(knot);
+            if (missing > 0)
+            {
+                current = current.WithKnotInserted(knot, missing);
+            }
+        }
+
+        return current;
+    }
+
     /// <summary>One application of Boehm's algorithm.</summary>
     private NurbsCurve InsertOnce(double knot)
     {

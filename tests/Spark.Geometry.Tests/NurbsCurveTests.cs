@@ -571,6 +571,141 @@ public sealed class NurbsCurveTests
         Assert.True(new NurbsCurve(shut, KnotVector.CreateClamped(2, 4)).IsClosed);
     }
 
+    /// <summary>
+    /// <b>Degree elevation changes nothing about the curve</b>, which is the only thing it is for.
+    /// The same assertion knot insertion is proved by, and just as decisive: the representation
+    /// changes and the geometry does not.
+    /// </summary>
+    [Theory]
+    [InlineData(false, 1)]
+    [InlineData(true, 1)]
+    [InlineData(false, 2)]
+    [InlineData(true, 3)]
+    public void ElevatingTheDegreeChangesNothingAboutTheCurve(bool rational, int by)
+    {
+        NurbsCurve original = Sample(rational);
+        NurbsCurve raised = original.WithDegreeElevated(by);
+
+        Assert.Equal(original.Degree + by, raised.Degree);
+        Assert.Equal(original.Domain.Min, raised.Domain.Min, 12);
+        Assert.Equal(original.Domain.Max, raised.Domain.Max, 12);
+
+        for (int i = 0; i <= 200; i++)
+        {
+            double u = original.Domain.Min + (original.Domain.Length * i / 200.0);
+            Point3d before = original.PointAt(u);
+            Point3d after = raised.PointAt(u);
+
+            Assert.Equal(before.X, after.X, 10);
+            Assert.Equal(before.Y, after.Y, 10);
+            Assert.Equal(before.Z, after.Z, 10);
+        }
+    }
+
+    /// <summary>
+    /// A line stays a line. Elevating a degree-1 curve to degree 3 and comparing against
+    /// <see cref="Line"/> checks the blend against geometry rather than against itself.
+    /// </summary>
+    [Fact]
+    public void ElevatingALineKeepsItStraight()
+    {
+        Point3d start = new(1, 2, 3);
+        Point3d end = new(7, -4, 11);
+
+        NurbsCurve raised = NurbsCurve.ByPoints([start, end]).WithDegreeElevated(2);
+        Line line = new(start, end);
+
+        Assert.Equal(3, raised.Degree);
+
+        for (int i = 0; i <= 20; i++)
+        {
+            double u = i / 20.0;
+            Point3d onCurve = raised.PointAt(raised.Domain.Min + (raised.Domain.Length * u));
+            Point3d onLine = line.PointAt(line.Domain.Min + (line.Domain.Length * u));
+
+            Assert.True(onCurve.EqualsWithin(onLine), $"At u = {u}: {onCurve} vs {onLine}.");
+        }
+    }
+
+    /// <summary>
+    /// The rational quarter circle stays a circle after elevation — the strongest external check
+    /// available, because a blend done on the projected points instead of the homogeneous ones
+    /// produces something that is nearly circular and is not.
+    /// </summary>
+    [Fact]
+    public void ElevatingTheArcKeepsItACircle()
+    {
+        const double radius = 5.0;
+        double weight = Math.Cos(Math.PI / 4);
+
+        NurbsCurve arc = new(
+            2,
+            [new Point3d(radius, 0, 0), new Point3d(radius, radius, 0), new Point3d(0, radius, 0)],
+            [0, 0, 0, 1, 1, 1],
+            [1.0, weight, 1.0]);
+
+        NurbsCurve raised = arc.WithDegreeElevated();
+
+        Assert.Equal(3, raised.Degree);
+
+        for (int i = 0; i <= 40; i++)
+        {
+            Point3d p = raised.PointAt(i / 40.0);
+            Assert.Equal(radius, p.DistanceTo(Point3d.Origin), 9);
+        }
+    }
+
+    /// <summary>
+    /// A clamped curve stays clamped, so it still passes through its first and last control
+    /// points — the property everything downstream assumes.
+    /// </summary>
+    [Fact]
+    public void AnElevatedCurveIsStillClampedToItsEnds()
+    {
+        NurbsCurve original = Sample(rational: true);
+        NurbsCurve raised = original.WithDegreeElevated();
+
+        Assert.True(raised.Knots.IsClamped);
+        Assert.True(raised.ControlPoints()[0].EqualsWithin(original.ControlPoints()[0]));
+        Assert.True(raised.ControlPoints()[^1].EqualsWithin(original.ControlPoints()[^1]));
+    }
+
+    /// <summary>
+    /// Elevation and trimming commute: elevate then trim, or trim then elevate, and the same
+    /// piece of curve comes out. Two operations that each claim to preserve shape had better
+    /// agree with each other.
+    /// </summary>
+    [Fact]
+    public void ElevatingAndTrimmingCommute()
+    {
+        NurbsCurve original = Sample(rational: true);
+        Interval whole = original.Domain;
+        Interval wanted = new(
+            whole.Min + (whole.Length * 0.2), whole.Min + (whole.Length * 0.75));
+
+        Curve elevatedThenTrimmed = original.WithDegreeElevated().Trimmed(wanted);
+        Curve trimmedThenElevated =
+            ((NurbsCurve)original.Trimmed(wanted)).WithDegreeElevated();
+
+        for (int i = 0; i <= 100; i++)
+        {
+            double t = wanted.Min + (wanted.Length * i / 100.0);
+            Point3d a = elevatedThenTrimmed.PointAt(t);
+            Point3d b = trimmedThenElevated.PointAt(t);
+
+            Assert.Equal(a.X, b.X, 9);
+            Assert.Equal(a.Y, b.Y, 9);
+            Assert.Equal(a.Z, b.Z, 9);
+        }
+    }
+
+    [Fact]
+    public void ElevatingByLessThanOneIsRefused()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => Sample(rational: false).WithDegreeElevated(0));
+    }
+
     /// <summary>A degree-3 curve, rational or not, with an interior knot so it has two spans.</summary>
     private static NurbsCurve Sample(bool rational)
     {
