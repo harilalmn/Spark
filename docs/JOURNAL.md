@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 05:00 +0530
+**Last updated:** 2026-08-31 05:45 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5 and M2 are done** — M2 closed on 2026-08-30. M1.6 is deferred for want of a C++ toolchain. The work in flight is **M3, NURBS curves** |
 | **Working on** | Nothing. Between steps, inside M3 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | Queue **10**, `E2-T10` step **(c)** — knot insertion, and `Trimmed` made exact |
+| **Last completed step** | Queue **10**, `E2-T10` step **(d)** — `Curve.ClosestPoint`, on every curve type |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | `E2-T10` step **(d)**: **`ClosestPoint` on a NURBS curve**, which is the operation the rest of the kernel waits on — `Curve.ClosestPoint` is what mesh work, picking and intersection seeding all reach for, and the `E2-T33` property *ClosestPoint is never farther than any sampled point* is already written as a criterion. Check what `Curve` already provides: the other curves may have a shared fallback to reuse or improve rather than a per-type implementation to add. The standard approach is a coarse sample to bracket, then **Newton on the dot product** `(C(t) − P) · C'(t) = 0`, which needs the second derivative — already implemented and already tested against central differences. **Two traps:** the iteration must be clamped to the domain or it walks off a clamped curve's end and returns a parameter that does not exist; and a closed or nearly-closed curve has two solutions, so the bracketing sample has to be fine enough to find the right basin rather than the first one. Verify against the property directly — sample a few thousand points on the curve and assert none is nearer than the answer. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1236**: Geometry.Tests 467, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | `E2-T10` step **(e)**: **degree elevation**, which is the last structural operation the row needs before fit and interpolate — those two are approximation problems and belong together in their own step. Elevation raises a curve's degree while keeping its shape exactly, and it is what makes two curves of different degrees joinable, which every loft and sweep in M5 will want. **The test is the same shape as knot insertion's and just as decisive: nothing changed.** Elevate and every sampled point must be identical to ten decimal places, the degree up by one, and the control-point count up by the number of distinct spans. Work on the homogeneous points again, for the reason insertion did. **Then reconsider the queue** — `E2-T10` has been four steps and is still not closed, and it may be worth splitting the row in TASKS.md so that what is done and what is not are separately visible rather than buried in one long cell. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1272**: Geometry.Tests 503, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 42, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -119,7 +119,7 @@ the two disagree.**
 | 7 | **The C2VGeometry test harvest**, timeboxed to one week with a hard stop. Harvest assertions, not generators | `E2-T32` | L | **Blocked** — needs the C2VGeometry source, which is not in this repository and not on this machine. Skipped 2026-08-30 |
 | 8 | **M1.5 spike (c): AvaloniaEdit plus a Roslyn completion popup** — the last unproven part of M1.5, gating M4 | `E11-T21` | M | **Done** 2026-08-30 |
 | 9 | ~~**What is left of M2** — real docking (`E8-T2`), group/note/align (`E8-T6`), watch nodes (`E8-T10`), `spark run` (`E12-T5`)~~ | | L | **Done** 2026-08-30 |
-| 10 | **M3 — NURBS curves** *(in progress)* — `KnotVector`, `NurbsCurve`, knot insertion and exact trimming done 2026-08-30; closest point next | `E2-T10` … | XL | Open |
+| 10 | **M3 — NURBS curves** *(in progress)* — knot vector, curve, insertion, exact trim and closest point all done 2026-08-30; degree elevation next | `E2-T10` … | XL | Open |
 | + | **Persist the workspace layout between sessions** — `WorkspaceLayout` already serialises and round-trips under test; nothing writes it. A dragged arrangement dies with the window, which is the one thing a dock is for | `E8-T2`-adjacent | S | Open |
 | + | **A guard that no test project reports zero tests** — one line, and it catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)) | `E11`-adjacent | S | Open, take it with the next CI change |
 
@@ -1055,3 +1055,37 @@ place are what it was standing in for. `TwoAbuttingTrimsCoverTheWholeCurvesLengt
 generator for one.
 
 **Cost.** Fifty minutes, a third of it on the extraction window.
+
+### 2026-08-30 — Closest point, and it belonged on `Curve`
+
+**`E2-T10` step (d).** The step was written as *closest point on a NURBS curve*, and the first
+thing looking found was that **there was no `Curve.ClosestPoint` at all** — not on the base class,
+not on `Line`, not anywhere. So it landed where it belongs, and every curve type gained one at
+once.
+
+**Two stages, because neither works alone.** Newton finds *a* stationary point of the distance and
+there are usually several; on a closed curve the wrong one is the far side. So a coarse sweep
+brackets the basin first, proportional to `TessellationSeedSpans` so a curve made of many pieces
+gets a proportionally finer bracket, and Newton then refines on `(C(t) − P) · C′(t) = 0` — the root
+where the vector to the point is perpendicular to the tangent, which is what *nearest* means.
+
+**Three guards, each for a specific failure.** Every iterate is **clamped to the domain**, or a
+point off the end of an open curve drives the iteration past the last parameter and the answer
+comes back as a parameter the curve does not have — which then throws somewhere else, in a caller
+that did nothing wrong. A step that **does not improve the distance is rejected**, because Newton
+near an inflection can overshoot into a worse basin and return a point further away than the one it
+started from. And the iteration count is capped, so a pathological curve cannot spin.
+
+**The property is the test, and it is the whole test.** `E2-T33` states it: *ClosestPoint is never
+farther than any sampled point.* Two thousand samples per probe, six probes, **eight curve types** —
+line, circle, arc, ellipse, polyline, polycurve, and NURBS both rational and not. That one
+assertion fails for every way the search can go wrong, which is why it is worth more than any
+number of hand-picked cases. `Line` answers in closed form and is the cross-check: the general
+search has to agree with arithmetic that cannot be wrong.
+
+**Verified.** Build clean with `-warnaserror`; **1272 tests, 0 failures** (1236 + 36);
+`dotnet format` clean. All 36 passed first time, which is unusual enough to be worth saying — the
+derivatives they lean on were themselves checked against central differences two steps ago, and
+that is what a foundation being right looks like from above.
+
+**Cost.** Forty minutes.

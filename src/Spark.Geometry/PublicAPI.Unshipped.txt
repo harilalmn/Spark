@@ -69,7 +69,9 @@ Spark.Geometry.CoordinateSystem.YAxis.get -> Spark.Geometry.Vector3d
 Spark.Geometry.CoordinateSystem.ZAxis.get -> Spark.Geometry.Vector3d
 Spark.Geometry.Curve
 Spark.Geometry.Curve.BoundingBox.get -> Spark.Geometry.BoundingBox
+Spark.Geometry.Curve.ClosestPoint(in Spark.Geometry.Point3d point) -> Spark.Geometry.Point3d
 Spark.Geometry.Curve.CoordinateSystemAt(double parameter) -> Spark.Geometry.CoordinateSystem
+Spark.Geometry.Curve.DistanceTo(in Spark.Geometry.Point3d point) -> double
 Spark.Geometry.Curve.DivideByLength(double length) -> Spark.Geometry.Point3d[]!
 Spark.Geometry.Curve.DivideEqually(int segments) -> Spark.Geometry.Point3d[]!
 Spark.Geometry.Curve.EndPoint.get -> Spark.Geometry.Point3d
@@ -364,6 +366,7 @@ override Spark.Geometry.Interval.ToString() -> string!
 override Spark.Geometry.KnotVector.Equals(object? obj) -> bool
 override Spark.Geometry.KnotVector.GetHashCode() -> int
 override Spark.Geometry.KnotVector.ToString() -> string!
+override Spark.Geometry.Line.ClosestParameter(in Spark.Geometry.Point3d point) -> double
 override Spark.Geometry.Line.Domain.get -> Spark.Geometry.Interval
 override Spark.Geometry.Line.IsClosed.get -> bool
 override Spark.Geometry.Line.LengthAt(double parameter) -> double
@@ -605,6 +608,7 @@ static Spark.Geometry.Vector3d.operator -(in Spark.Geometry.Vector3d left, in Sp
 static Spark.Geometry.Vector3d.operator -(in Spark.Geometry.Vector3d value) -> Spark.Geometry.Vector3d
 static Spark.Geometry.Vector3d.operator /(in Spark.Geometry.Vector3d vector, double divisor) -> Spark.Geometry.Vector3d
 static Spark.Geometry.Vector3d.operator ==(in Spark.Geometry.Vector3d left, in Spark.Geometry.Vector3d right) -> bool
+virtual Spark.Geometry.Curve.ClosestParameter(in Spark.Geometry.Point3d point) -> double
 virtual Spark.Geometry.Curve.LengthAt(double parameter) -> double
 virtual Spark.Geometry.Curve.ParameterAtLength(double distance) -> double
 virtual Spark.Geometry.Curve.Tessellate(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Point3d[]!

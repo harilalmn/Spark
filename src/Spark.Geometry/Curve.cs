@@ -246,6 +246,126 @@ public abstract class Curve
         return CoordinateSystem.ByOriginXAxisYAxis(Evaluate(valid), tangent, NormalAt(valid));
     }
 
+    /// <summary>
+    /// The parameter of the point on the curve nearest a given point.
+    /// </summary>
+    /// <param name="point">The point to measure from.</param>
+    /// <returns>A parameter inside <see cref="Domain"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Two stages, because neither works alone. A coarse sweep brackets the answer — Newton finds
+    /// <i>a</i> stationary point of the distance and there are usually several, so it has to be
+    /// started in the right basin, and on a closed curve the wrong basin is the far side. Newton
+    /// then refines, on <c>f(t) = (C(t) − P) · C′(t)</c>, whose root is the parameter where the
+    /// vector to the point is perpendicular to the tangent — the definition of nearest.
+    /// </para>
+    /// <para>
+    /// <b>Every iterate is clamped to the domain.</b> Unclamped, a point off the end of an open
+    /// curve drives the iteration past the last parameter, and the answer comes back as a
+    /// parameter the curve does not have — which then throws somewhere else entirely, in a caller
+    /// that did nothing wrong.
+    /// </para>
+    /// <para>
+    /// The sweep is proportional to <see cref="TessellationSeedSpans"/>, so a curve made of many
+    /// pieces gets a proportionally finer bracket. Overridden by curves with a closed form: a
+    /// projection onto a line needs no search, and iterating for one would be slower and less
+    /// accurate than the arithmetic it is approximating.
+    /// </para>
+    /// </remarks>
+    public virtual double ClosestParameter(in Point3d point)
+    {
+        Interval domain = Domain;
+        int samples = Math.Max(MinimumClosestPointSamples, TessellationSeedSpans * 8);
+
+        double best = domain.Min;
+        double bestDistance = double.PositiveInfinity;
+
+        for (int i = 0; i <= samples; i++)
+        {
+            double t = domain.Min + (domain.Length * i / samples);
+            double distance = Evaluate(t).DistanceSquaredTo(point);
+
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = t;
+            }
+        }
+
+        return RefineClosest(best, point);
+    }
+
+    /// <summary>The point on the curve nearest a given point.</summary>
+    /// <param name="point">The point to measure from.</param>
+    /// <returns>The nearest point on the curve.</returns>
+    public Point3d ClosestPoint(in Point3d point) => Evaluate(ClosestParameter(point));
+
+    /// <summary>The distance from a point to the nearest point on the curve.</summary>
+    /// <param name="point">The point to measure from.</param>
+    /// <returns>The distance, never negative.</returns>
+    public double DistanceTo(in Point3d point) => ClosestPoint(point).DistanceTo(point);
+
+    /// <summary>
+    /// Newton's method on the perpendicularity condition, from a bracketed start.
+    /// </summary>
+    /// <param name="start">A parameter already known to be in the right basin.</param>
+    /// <param name="point">The point being measured from.</param>
+    /// <returns>The refined parameter, inside the domain.</returns>
+    /// <remarks>
+    /// <para>
+    /// <c>f(t) = (C − P) · C′</c> and <c>f′(t) = |C′|² + (C − P) · C″</c>. The second derivative is
+    /// what makes this converge quadratically instead of linearly, and it is why the derivative
+    /// tests matter: an error there would show up here as an answer that is <i>almost</i> right.
+    /// </para>
+    /// <para>
+    /// <b>A step that does not improve the distance is rejected and the iteration stops.</b> Newton
+    /// on a curve with an inflection near the answer can overshoot into a worse basin, and an
+    /// unguarded implementation returns a point further away than the one it started from — which
+    /// breaks the only property anybody checks: that nothing sampled is nearer.
+    /// </para>
+    /// </remarks>
+    private double RefineClosest(double start, in Point3d point)
+    {
+        Interval domain = Domain;
+        double t = start;
+        double distance = Evaluate(t).DistanceSquaredTo(point);
+
+        for (int iteration = 0; iteration < ClosestPointIterations; iteration++)
+        {
+            Vector3d offset = Evaluate(t) - point;
+            Vector3d first = EvaluateDerivative(t);
+            Vector3d second = EvaluateSecondDerivative(t);
+
+            double f = offset.Dot(first);
+            double df = first.Dot(first) + offset.Dot(second);
+
+            if (df == 0.0)
+            {
+                break;
+            }
+
+            double next = Math.Clamp(t - (f / df), domain.Min, domain.Max);
+            double nextDistance = Evaluate(next).DistanceSquaredTo(point);
+
+            if (nextDistance >= distance)
+            {
+                break;
+            }
+
+            bool converged = Math.Abs(next - t) <= Math.Abs(domain.Length) * 1e-14;
+
+            t = next;
+            distance = nextDistance;
+
+            if (converged)
+            {
+                break;
+            }
+        }
+
+        return t;
+    }
+
     /// <summary>The arc length from the start of the curve to a parameter.</summary>
     /// <param name="parameter">A parameter in <see cref="Domain"/>.</param>
     /// <returns>A distance along the curve, between zero and <see cref="Length"/>.</returns>
@@ -632,6 +752,19 @@ public abstract class Curve
                 nameof(domain), domain, $"A trim domain must lie inside the curve's domain {whole}.");
         }
     }
+
+    /// <summary>
+    /// The fewest samples the closest-point sweep takes before refining, however few spans a curve
+    /// has. A straight line needs two; a curve that doubles back needs enough to find both lobes.
+    /// </summary>
+    private const int MinimumClosestPointSamples = 64;
+
+    /// <summary>
+    /// How many Newton steps the closest-point refinement takes at most. Quadratic convergence
+    /// from a bracketed start reaches machine precision in well under this; the cap is there so a
+    /// pathological curve cannot spin.
+    /// </summary>
+    private const int ClosestPointIterations = 32;
 
     /// <summary>
     /// Integrates the curve's speed between two parameters with a ten-point Gauss–Legendre rule per

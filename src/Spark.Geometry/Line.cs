@@ -117,6 +117,21 @@ public sealed class Line : Curve
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Closed form: the projection of the point onto the segment, clamped to it. The base class
+    /// would sample and then iterate to the same answer, more slowly and less precisely — a line
+    /// is the one curve where the search is approximating arithmetic that is already exact.
+    /// </remarks>
+    public override double ClosestParameter(in Point3d point)
+    {
+        Vector3d span = _end - _start;
+        double lengthSquared = span.Dot(span);
+
+        // A zero-length line is refused at construction, so this cannot divide by zero.
+        return Math.Clamp((point - _start).Dot(span) / lengthSquared, 0.0, 1.0);
+    }
+
+    /// <inheritdoc/>
     public override Point3d[] Tessellate(in Tolerance tolerance = default) => [_start, _end];
 
     /// <inheritdoc/>

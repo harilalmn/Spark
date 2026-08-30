@@ -233,6 +233,10 @@ serves mesh booleans, viewport picking and intersection seeding alike.
 - [ ] Property-based tests from M1: `T.Inverse().Inverse() == T`; union volume ≥ max input
       volume; `Split(t)` rejoined equals the original; **tessellation of a closed solid is
       watertight**; `ClosestPoint` never farther than any sampled point (**E2-T33**).
+      *The `ClosestPoint` property holds as of 2026-08-30, asserted over all eight curve types
+      against two thousand samples apiece — and it is the whole test, because it fails for every
+      way the search can go wrong. `Split(t)` rejoined is proved for NURBS by two abutting trims;
+      the volume and watertightness properties wait on solids.*
 - [ ] The C2VGeometry test harvest is **timeboxed to one week with a hard stop**; anything
       needing a `Shape` is discarded without argument (**E2-T32**).
 - [ ] Clipper2 stays isolated behind a single internal file, and CI asserts no native
