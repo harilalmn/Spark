@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 08:30 +0530
+**Last updated:** 2026-08-31 09:15 +0530
 **Protocol version:** 2
 
 ---
@@ -16,14 +16,14 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1, M1.5 and M2 are done** — M2 closed on 2026-08-30. M1.6 is deferred for want of a C++ toolchain. The work in flight is **M3, NURBS curves** |
+| **Milestone** | **M1, M1.5 and M2 are done** — M2 closed on 2026-08-30. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. The work in flight is **M3, NURBS curves** |
 | **Working on** | Nothing. Between steps, inside M3 |
 | **Step status** | `CLEAN` |
 | **Last completed step** | Queue **10**, `E2-T10` step **(f)** — interpolation, and a closest-point defect it uncovered |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
 | **Next action** | `E2-T10` step **(g)**: **approximation** — a least-squares fit through many points with **fewer** control points than points, to a stated tolerance. It is interpolation's sibling and reuses most of it: the same chord-length parameters, the same averaged knots, but a rectangular basis matrix solved as `NᵀN · P = NᵀQ` with the two end points interpolated exactly and the interior fitted. **The tolerance is the design question, not the algebra**: decide whether the caller says *how many control points* or *how close*, and if the latter, the loop that raises the count until the worst deviation is inside it needs a stated cap so a noisy input cannot ask for a control point per sample. **Reuse `SolveInPlace`**, which is already there and already pivots. Then `E2-T10` is close to done and the row should be split in TASKS.md — it has absorbed seven steps and one cell is no longer a readable place to record them. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1301**: Geometry.Tests 531, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
-| **Blocked on** | Nothing. **Two things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), and watching the first nightly benchmark run. |
+| **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
 
@@ -88,9 +88,22 @@ Discovered the hard way, and each one costs an hour if rediscovered.
   ```
   which should total **952 passing, 0 failed** across seven projects. See
   [AGENTS.md](../AGENTS.md#before-you-commit).
-- **No C++ toolchain.** `cmake`, `ninja`, `vcpkg`, `cl` and `g++` are all absent. **M1.6 /
-  `E13-T1` cannot be started here** — `M1.6-C1` is a real build on two operating systems. This is
-  an environment gap, not a scheduling choice, and it is why the queue routes around M1.6.
+- **A C++ toolchain exists as of 2026-08-31, and it is half of what M1.6 needs.** Installed and
+  **verified by compiling, not by looking**: CMake 4.4.3 and Ninja 1.13.2 on `PATH`, vcpkg at
+  `C:\dev\vcpkg` with `VCPKG_ROOT` set, and MSVC 14.51.36231 inside Visual Studio Community 2026
+  (`C:\Program Files\Microsoft Visual Studio\18\Community`). A CMake + Ninja + MSVC project
+  configures, builds, links and runs; `_MSVC_LANG` reports `202002`, so the standard really is
+  applied — `__cplusplus` reads `199711` under MSVC without `/Zc:__cplusplus` and means nothing.
+  `cl.exe` is **not** on the ambient `PATH` by design; a build has to source
+  `VC\Auxiliary\Build\vcvars64.bat` first, which is what CI does too.
+- **There is still no Linux, so `M1.6-C1` is still not satisfiable here.** WSL is not installed and
+  `M1.6-C1` is a real OCCT build on **two** operating systems. The Windows leg can now be attempted
+  locally; the Linux leg needs `wsl --install -d Ubuntu` and a reboot, or a CI runner. **Do not
+  record M1.6 as unblocked** — it is half unblocked, and the half that is missing is the half that
+  makes the criterion a cross-platform claim.
+- **vcpkg has not yet built a port here.** It bootstraps and reports its version; nothing has
+  exercised it against a real package, let alone OCCT's. That is the first thing to try when M1.6
+  is picked up, before anything harder.
 - **No `gh` CLI**, so CI results cannot be read from here. A run's outcome has to be pasted in.
 - **The nightly benchmark workflow has never run on a hosted runner.** `E8-T15` closes on its
   first green run, and the canvas step is the part that might not survive a runner with no GPU.
@@ -125,9 +138,12 @@ the two disagree.**
 
 **Deferred, with a reason rather than by omission:**
 
-- **M1.6 / `E13-T1`** — no C++ toolchain in this environment. Its criteria are written
-  ([TASKS.md](TASKS.md#m16--the-passfail-criteria-written-before-the-spike)); the spike itself
-  needs a machine with cmake, ninja and vcpkg.
+- **M1.6 / `E13-T1`** — **half unblocked as of 2026-08-31.** The Windows toolchain is installed
+  and verified by an actual compile; WSL is not, so `M1.6-C1`'s *two operating systems* cannot be
+  met on this machine yet. Its criteria are written
+  ([TASKS.md](TASKS.md#m16--the-passfail-criteria-written-before-the-spike)). The Windows leg is
+  now startable; whether to start it before the Linux one is a scheduling question and no longer
+  an environment one.
 - **Watching the first nightly** (`E8-T15`) — needs a CI result, which needs `gh` or a paste.
 - **The six counsel questions** (`Q13`) — not engineering work.
 
@@ -1211,3 +1227,38 @@ now in the test.
 **Cost.** An hour and a half, half of it on the closest-point defect, which was worth every minute:
 it was live in `Curve` for two steps and would have been found eventually by something much less
 convenient than a test.
+
+### 2026-08-31 — The C++ toolchain exists, and M1.6 is half unblocked
+
+**Not a code step.** An environment change, recorded because the journal's *Environment facts* told
+the next session something that is no longer true — and that section is the one place here where a
+false fact costs a whole session.
+
+**What is installed:** CMake 4.4.3 and Ninja 1.13.2 on `PATH` via winget; vcpkg cloned to
+`C:\dev\vcpkg`, bootstrapped, with `VCPKG_ROOT` and `VCPKG_DISABLE_METRICS` set as user variables;
+and the **Desktop development with C++** workload added to the Visual Studio Community 2026 that
+was already there, which is what brings MSVC 14.51.36231 and `cl.exe`. The diagnosis worth keeping
+is that Visual Studio was present all along and simply had no C++ workload — `vswhere` reported an
+installation happily while `cl` was absent, which is why the check that matters is
+`vswhere -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64` rather than *is VS
+installed*.
+
+**Verified by compiling, not by looking.** `cl.exe` existing on disk is not the claim worth
+recording. A CMake project configures with the **Ninja** generator against MSVC, builds, links and
+runs — the same generator and compiler `M1.6-C1` will use. One detail nearly went into the note
+wrong: the probe printed `__cplusplus` as `199711`, which reads exactly like the C++20 setting
+being ignored. It is MSVC's documented behaviour without `/Zc:__cplusplus`; `_MSVC_LANG` reports
+`202002` and the standard is applied. **Thirty seconds of checking stopped a false fact entering
+the environment notes.**
+
+**M1.6 is half unblocked, and the journal says exactly that.** `M1.6-C1` is an OCCT build on **two**
+operating systems. WSL is not installed, so the Linux leg still cannot run here. *M1.6 is
+unblocked* would have been the convenient sentence and the wrong one — the missing half is
+precisely the half that makes the criterion a cross-platform claim. *Blocked on* now names
+`wsl --install -d Ubuntu` as a third thing needing a human, beside the OBJ viewer and the nightly.
+
+**Also recorded, because it is the cheapest thing that could fail:** vcpkg has never built a port
+here. It bootstraps and reports a version; nothing has exercised it against a real package. That is
+the first thing to try when M1.6 is picked up.
+
+**No gates beyond `Spark.Docs.Verify`** — nothing changed but documentation.
