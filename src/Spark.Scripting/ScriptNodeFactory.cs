@@ -48,6 +48,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
 {
     private readonly ReferenceCatalog _references;
     private readonly GuardWeaver _guards;
+    private readonly ScriptAssemblyCache _persistent;
     private readonly ConcurrentDictionary<string, NodeDefinitionSource> _compiled = new(StringComparer.Ordinal);
 
     /// <summary>Creates a factory over a reference catalogue.</summary>
@@ -55,6 +56,19 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// <exception cref="ArgumentNullException"><paramref name="references"/> is null.</exception>
     public ScriptNodeFactory(ReferenceCatalog references) : this(references, new GuardWeaver())
     {
+    }
+
+    /// <summary>Creates a factory whose compiled assemblies outlive the process (`E6-T10`).</summary>
+    /// <param name="references">The assemblies scripts compile against.</param>
+    /// <param name="guards">The weaver that bounds loops and recursion.</param>
+    /// <param name="persistent">The on-disk cache, or one constructed over null to disable it.</param>
+    /// <exception cref="ArgumentNullException">Any argument is null.</exception>
+    public ScriptNodeFactory(ReferenceCatalog references, GuardWeaver guards, ScriptAssemblyCache persistent)
+        : this(references, guards)
+    {
+        ArgumentNullException.ThrowIfNull(persistent);
+
+        _persistent = persistent;
     }
 
     /// <summary>Creates a factory over a reference catalogue and a weaver with chosen ceilings.</summary>
@@ -74,6 +88,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
 
         _references = references;
         _guards = guards;
+        _persistent = new ScriptAssemblyCache();
     }
 
     /// <summary>Creates a factory over a fresh catalogue of what is already loaded.</summary>
@@ -138,6 +153,25 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         return Convert.ToHexString(hash);
     }
 
+    /// <summary>
+    /// The key an entry is filed under on disk, which is not the resident key (`E6-T10`).
+    /// </summary>
+    /// <remarks>
+    /// <b>The resident key carries the catalogue's <i>version</i>, which is a per-process
+    /// counter.</b> It is 0 in every fresh process, so on disk it would let two different sets of
+    /// references share an entry. This carries the catalogue's fingerprint instead, and the
+    /// generator's version, so an entry compiled by a build that wrapped scripts differently is a
+    /// miss rather than a wrong answer.
+    /// </remarks>
+    private string DiskKey(string script, IReadOnlyDictionary<string, Type> inputTypes) =>
+        ScriptAssemblyCache.Key(
+            script.ReplaceLineEndings("\n"),
+            Describe(inputTypes),
+            _guards.IterationLimit.ToString(CultureInfo.InvariantCulture),
+            _guards.DepthLimit.ToString(CultureInfo.InvariantCulture),
+            _references.Fingerprint,
+            ScriptAssemblyCache.GeneratorVersion.ToString(CultureInfo.InvariantCulture));
+
     /// <summary>A short, stable content hash for the node's key.</summary>
     /// <remarks>
     /// <b>The input types are in it as well as the text</b> (`E6-T6`). The evaluation cache keys on
@@ -172,6 +206,17 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
 
     private NodeDefinitionSource Compile(string script, IReadOnlyDictionary<string, Type> inputTypes)
     {
+        // `E6-T10`: a script compiled on a previous run is not compiled again, and neither of the
+        // two Roslyn passes happens - the input names, which are what the first pass exists to
+        // learn, were written down beside the assembly.
+        string diskKey = DiskKey(script, inputTypes);
+
+        if (_persistent.TryRead(diskKey, out CachedScript cached)
+            && Bind(cached.Assembly) is { } restored)
+        {
+            return Definition(script, inputTypes, cached.Inputs, restored);
+        }
+
         string[] inputs = InferInputs(script);
 
         // A port carries the type the wire into it carries, when there is one. That is what puts a
@@ -182,14 +227,14 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             .. inputs.Select(name => new ScriptPort(name, DeclaredType(name, inputTypes) ?? typeof(object))),
         ];
 
-        string source = Wrap(script, inputs, inputTypes);
+        WrappedScript wrapped = Wrap(script, inputs, inputTypes);
 
         // `E6-T4`: the guards go in *between* parsing and compiling, which is the only moment they
         // can. Woven statements carry no trivia, so the tree the compiler sees has exactly the line
         // count the text did and a diagnostic still lands on the user's line.
         SyntaxTree tree = CSharpSyntaxTree.Create(
             (CSharpSyntaxNode)_guards.Weave(
-                CSharpSyntaxTree.ParseText(source).GetRoot()));
+                CSharpSyntaxTree.ParseText(wrapped.Source).GetRoot()));
 
         CSharpCompilation compilation = CSharpCompilation.Create(
             "SparkScript_" + ContentHash(script, inputTypes),
@@ -205,7 +250,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             // `E6`'s stated behaviour: a script that does not compile still yields a definition,
             // so the node keeps its place and its wires while the user fixes a semicolon. The
             // failure is reported when it is evaluated, which is where they are looking.
-            string message = Describe(emitted.Diagnostics);
+            string message = Describe(emitted.Diagnostics, wrapped.Map);
 
             return new NodeDefinitionSource(
                 "CodeBlock",
@@ -215,18 +260,39 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
                 (_, _) => throw new InvalidOperationException(message));
         }
 
-        assembly.Position = 0;
-        Assembly loaded = Assembly.Load(assembly.ToArray());
-        MethodInfo method = loaded.GetType("SparkGenerated.Block")!.GetMethod("Run")!;
+        byte[] emittedBytes = assembly.ToArray();
 
-        // `E6-T17`: bound as a delegate rather than called through `MethodInfo.Invoke`, and that is
-        // not only about speed. Reflective invocation wraps whatever the script threw in a
-        // `TargetInvocationException` - and the replicator recognises a bare
-        // `OperationCanceledException` as cancellation while a wrapped one becomes an ordinary node
-        // failure. Cancelling a runaway script would then report that the script "failed", and the
-        // evaluation would carry on.
-        Func<object?[], CancellationToken, object?> entry =
-            method.CreateDelegate<Func<object?[], CancellationToken, object?>>();
+        if (Bind(emittedBytes) is not { } entry)
+        {
+            return new NodeDefinitionSource(
+                "CodeBlock",
+                ContentHash(script, inputTypes),
+                inputPorts,
+                [new ScriptPort("result", typeof(object))],
+                (_, _) => throw new InvalidOperationException(
+                    "The script compiled but its entry point could not be bound."));
+        }
+
+        _persistent.Write(diskKey, emittedBytes, inputs);
+
+        return Definition(script, inputTypes, inputs, entry);
+    }
+
+    /// <summary>Builds the definition around an entry point, however it was obtained.</summary>
+    /// <remarks>
+    /// Shared by the compile path and the cache path on purpose: the two must produce the same
+    /// definition, and the surest way to hold that is for there to be one place that builds it.
+    /// </remarks>
+    private static NodeDefinitionSource Definition(
+        string script,
+        IReadOnlyDictionary<string, Type> inputTypes,
+        IReadOnlyList<string> inputs,
+        Func<object?[], CancellationToken, object?> entry)
+    {
+        ScriptPort[] inputPorts =
+        [
+            .. inputs.Select(name => new ScriptPort(name, DeclaredType(name, inputTypes) ?? typeof(object))),
+        ];
 
         ScriptPort[] outputPorts = OutputsOf(script);
 
@@ -237,6 +303,39 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             outputPorts,
             (arguments, cancellationToken) =>
                 Unpack(entry(arguments, cancellationToken), outputPorts.Length));
+    }
+
+    /// <summary>Loads an emitted assembly and binds its entry point.</summary>
+    /// <remarks>
+    /// <b>Bound as a delegate rather than called through <c>MethodInfo.Invoke</c>, and that is not
+    /// only about speed.</b> Reflective invocation wraps whatever the script threw in a
+    /// <c>TargetInvocationException</c> — and the replicator recognises a bare
+    /// <see cref="OperationCanceledException"/> as cancellation while a wrapped one becomes an
+    /// ordinary node failure. Cancelling a runaway script would then report that the script
+    /// "failed", and the evaluation would carry on ([N42](../../docs/NOTES.md)).
+    /// <para>
+    /// Null when the bytes are not a Spark script assembly at all, which is what a cache entry from
+    /// a different build of the generator looks like.
+    /// </para>
+    /// </remarks>
+    private static Func<object?[], CancellationToken, object?>? Bind(byte[] assembly)
+    {
+        try
+        {
+            MethodInfo? method = Assembly.Load(assembly)
+                .GetType("SparkGenerated.Block")
+                ?.GetMethod("Run");
+
+            return method?.CreateDelegate<Func<object?[], CancellationToken, object?>>();
+        }
+        catch (Exception failure) when (failure is BadImageFormatException
+            or ArgumentException
+            or MissingMethodException
+            or TypeLoadException
+            or FileLoadException)
+        {
+            return null;
+        }
     }
 
     /// <summary>
@@ -252,7 +351,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     {
         CSharpCompilation probe = CSharpCompilation.Create(
             "SparkProbe",
-            [CSharpSyntaxTree.ParseText(Wrap(script, [], EmptyTypes))],
+            [CSharpSyntaxTree.ParseText(Wrap(script, [], EmptyTypes).Source)],
             _references.References,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
@@ -396,7 +495,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// commonest thing a graph delivers.
     /// </para>
     /// </remarks>
-    private string Wrap(string script, IReadOnlyList<string> inputs, IReadOnlyDictionary<string, Type> inputTypes)
+    private WrappedScript Wrap(string script, IReadOnlyList<string> inputs, IReadOnlyDictionary<string, Type> inputTypes)
     {
         StringBuilder source = new();
         source.AppendLine(_references.Prelude());
@@ -432,12 +531,38 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
                 .Append(index).Append("], \"").Append(inputs[i]).AppendLine("\");");
         }
 
+        // `E6-T1`: everything the frame adds goes *before* the user's first line, so mapping a
+        // diagnostic back is a subtraction rather than a table - and the guard weaver adds no
+        // lines at all, which is what keeps it one.
+        ScriptSourceMap map = new(Lines(source));
+
         source.AppendLine(script);
         source.AppendLine("}");
         source.AppendLine("}");
 
-        return source.ToString();
+        return new WrappedScript(source.ToString(), map);
     }
+
+    /// <summary>How many lines a builder holds.</summary>
+    private static int Lines(StringBuilder source)
+    {
+        int lines = 0;
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            if (source[i] == (char)10)
+            {
+                lines++;
+            }
+        }
+
+        return lines;
+    }
+
+    /// <summary>The generated source, and the map back to what the user typed.</summary>
+    /// <param name="Source">What the compiler is given.</param>
+    /// <param name="Map">How to turn a diagnostic's line into the user's line.</param>
+    private readonly record struct WrappedScript(string Source, ScriptSourceMap Map);
 
     /// <summary>
     /// The type a port should be declared with, or null when there is nothing better than
@@ -455,13 +580,18 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             : null;
 
     /// <summary>The compiler's complaints, as one message a user can act on.</summary>
-    private static string Describe(IEnumerable<Diagnostic> diagnostics)
+    /// <remarks>
+    /// <b>Every message is placed on the user's own line</b> (`E6-T1`). Roslyn reports a position in
+    /// the generated source, which is the script plus a prelude the user has never seen — so
+    /// <c>(14,9): ; expected</c> in a four-line script names a line that does not exist for them.
+    /// </remarks>
+    private static string Describe(IEnumerable<Diagnostic> diagnostics, ScriptSourceMap map)
     {
         string[] errors =
         [
             .. diagnostics
                 .Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
-                .Select(d => d.GetMessage(CultureInfo.InvariantCulture))
+                .Select(d => Place(d, map))
                 .Distinct(StringComparer.Ordinal)
                 .Take(5),
         ];
@@ -469,5 +599,16 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         return errors.Length == 0
             ? "The script did not compile."
             : "The script did not compile: " + string.Join("; ", errors);
+    }
+
+    /// <summary>One diagnostic, on the line the user is looking at.</summary>
+    private static string Place(Diagnostic diagnostic, ScriptSourceMap map)
+    {
+        FileLinePositionSpan span = diagnostic.Location.GetLineSpan();
+        string message = diagnostic.GetMessage(CultureInfo.InvariantCulture);
+
+        return diagnostic.Location.IsInSource
+            ? map.Place(span.StartLinePosition.Line + 1, span.StartLinePosition.Character + 1, message)
+            : message;
     }
 }

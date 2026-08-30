@@ -89,6 +89,61 @@ public sealed class ReferenceCatalog
         return System.Math.Max(0, added);
     }
 
+    /// <summary>
+    /// A hash of the references themselves, stable across runs (`E6-T10`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Version"/> answers *did this change*; this answers *is this the same*</b>, and
+    /// the on-disk compile cache needs the second. A counter that starts at zero in every process
+    /// would let two different sets of references share a cache entry across runs — the script's
+    /// text would match, the counter would match, and the assembly loaded would have been compiled
+    /// against something else.
+    /// </para>
+    /// <para>
+    /// Derived from each reference's path, length and last-write time, sorted, because that is what
+    /// changes when a user rebuilds their node library — and it costs one directory read rather
+    /// than hashing a hundred megabytes of assemblies to learn the same thing.
+    /// </para>
+    /// </remarks>
+    public string Fingerprint
+    {
+        get
+        {
+            List<string> parts = [];
+
+            foreach (MetadataReference reference in _current.References)
+            {
+                if (reference is not PortableExecutableReference { FilePath: { } path })
+                {
+                    continue;
+                }
+
+                try
+                {
+                    FileInfo file = new(path);
+
+                    parts.Add(string.Create(
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        $"{path}|{file.Length}|{file.LastWriteTimeUtc.Ticks}"));
+                }
+                catch (Exception failure) when (failure is IOException or UnauthorizedAccessException or ArgumentException)
+                {
+                    // A reference that cannot be stat'd contributes its path alone. It is still in
+                    // the fingerprint, so its presence or absence still changes the answer.
+                    parts.Add(path);
+                }
+            }
+
+            parts.Sort(StringComparer.Ordinal);
+
+            byte[] hash = System.Security.Cryptography.SHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes(string.Join(Environment.NewLine, parts)));
+
+            return Convert.ToHexString(hash);
+        }
+    }
+
     /// <summary>The prelude a script is wrapped in: the imports, one per line.</summary>
     /// <returns>The using directives, newline separated.</returns>
     public string Prelude() =>

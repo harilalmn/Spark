@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2 and M3 are done** — M3 closed on 2026-08-31. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. Next is **M4, the C# code block** |
 | **Working on** | Nothing. Between steps, inside M4 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E6-T11`, `E6-T12`, closing `E6-T7`** — a real code editor in the inspector with a completion list built from the wires. The list is an in-tree overlay rather than a `Popup`, because a `Popup` cannot be tested headlessly and failed by passing ([N47](NOTES.md)) |
+| **Last completed step** | **`E6-T10` and `E6-T1`** — a compile cache that survives the process, keyed on a fingerprint of the references rather than the per-process version counter the row named, and compile errors placed on the user's own line |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M4 step **(h)**: the remaining `E6` rows, in this order — **`E6-T10`** the persistent on-disk compile cache (kills Roslyn cold start on reopen; key is already `Hash(text, inputTypes, catalogueVersion, guardLimits)`), **`E6-T3`** and **`E6-T15`** the collectible load context and clearing callback registries before unload, **`E6-T16`**'s remaining half (`--no-script`, the script-node banner, no auto-run on open, the per-origin content-hash allowlist), and **`E6-T1`**'s source map, which is cheap now that the weaver moves no lines. Then M4 is done and **M5** opens with surfaces. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1454**: Geometry.Tests 584, UI.Tests 402, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | M4 step **(h)(ii)**, the last of `E6`: **`E6-T3`** the collectible `ScriptLoadContext`, **`E6-T15`** clearing callback registries before unload, and the rest of **`E6-T16`** — the `--no-script` CLI flag, the script-node banner, no auto-run on open, and the per-origin content-hash allowlist. **`E6-T15` carries DoodleSharp's warning**: a delegate into user code pins a collectible context, so an uncleaned registry means the ALC never unloads and the proof is a weak reference that has to go dead. Then M4 closes and **M5 opens with surfaces**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1467**: Geometry.Tests 584, UI.Tests 415, Engine.Tests 343, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -1898,3 +1898,43 @@ scripting off — never reaches for a compiler.
 `dotnet format` clean; docs harness green; and the application runs — `--graph curves --screenshot`
 draws 18 nodes, 15 wires, 4 buffer sets, with the OpenGL viewport reporting ready. The scroll-offset
 subtraction was reverted once and its test went red.
+
+### 2026-08-31 — The compile cache that survives the process, and errors on the user's line
+
+**`E6-T10` and `E6-T1`, taken together because they share the wrapper.**
+
+**The source map is one subtraction, and it is only one because two earlier steps kept it one.**
+Everything the generated frame adds — the prelude's `using` lines, the namespace, the class, the
+method, the cancellation check, the guard budget, one declaration per port — goes *before* the
+user's first line; and the guard weaver adds no lines at all, because its statements carry no
+trivia. So the user's line is the diagnostic's line minus a constant, rather than a table of ranges
+somebody has to maintain. A compile error now reads *line 3, column 9: ; expected* instead of naming
+a line in the teens that the user has never seen. **A position genuinely inside the frame maps to 0
+and is reported unplaced** — blaming it on the user's first line would send them to inspect code
+that is correct.
+
+**The persistent cache could not use the key the row specifies, and finding that out is the step.**
+`E6-T10` says `Hash(normalizedText, inputPortTypes, referenceCatalogVersion, langVersion)`. The
+catalogue's *version* is a counter of how many times it has changed **in this process**, so it is 0
+in every fresh one — which is exactly the situation the on-disk cache exists for. Two different sets
+of references would have shared an entry across runs: same text, same counter, wrong assembly. The
+disk key carries `ReferenceCatalog.Fingerprint` instead — every reference's path, length and
+last-write time, sorted and hashed — plus the guard limits and a `GeneratorVersion` constant that
+must be bumped whenever the generated frame changes.
+
+**Only the input names are written beside the assembly**, and the reason is worth stating: they are
+the one thing that cost a compilation to learn (`E6-T5` infers them from what the compiler says is
+undefined). Output ports come from the script's syntax and cost nothing; an input's *type* is
+already in the key, so a cached assembly cannot be read back under types it was not compiled for.
+An entry is therefore two small files, and reading it back skips **both** Roslyn passes rather than
+one.
+
+**Every failure in the cache is a miss.** A read-only directory, a full disk, a file half-written by
+a process that was killed, an assembly emitted by a build whose frame has since changed — all have
+the same right answer, which is to compile it. Three tests corrupt an entry deliberately: truncated
+bytes, a missing ports file, and no cache directory at all.
+
+**Verified.** Build clean with `-warnaserror`; **1467 tests, 0 failures** (UI 402 → 415);
+`dotnet format` clean; docs harness green. The cache is tested across **two factories over one
+directory**, because a single factory would answer from the resident cache and prove nothing — two
+is the shape of the case the row exists for, which is closing Spark and opening the graph again.

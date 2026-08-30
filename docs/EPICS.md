@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-31 (E6 the editor)
+**Last updated:** 2026-08-31 (E6 caching and source map)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -573,10 +573,13 @@ diverge most; rework is budgeted there specifically.
       and a list that disagrees with the compiler is worse than no list.
 - [ ] Output ports come from a named tuple return; a plain final expression gives one
       `result` port (**E6-T8**).
-- [ ] Compilation is cached on `Hash(normalizedText, inputPortTypes, referenceCatalogVersion,
+- [x] Compilation is cached on `Hash(normalizedText, inputPortTypes, referenceCatalogVersion,
       langVersion)`, **resident** so a slider feeding a code block feels live, and
       **persistent on disk** so reopening a file does not pay Roslyn cold start. Identical
-      text in ten nodes compiles once (**E6-T9**, **E6-T10**).
+      text in ten nodes compiles once (**E6-T9**, **E6-T10**) — done 2026-08-31. **The
+      disk key is not the resident key**: `referenceCatalogVersion` is a per-process counter
+      and is 0 in every fresh process, so on disk it carries a fingerprint of the reference
+      files instead.
 - [x] Guard weaving bounds loop iterations and recursion depth, and a deliberately infinite
       loop is cancelled rather than hanging (**E6-T4**, **E6-T17**) — done 2026-08-31. The
       rewrite happens between parsing and compiling, which is the only moment it can, and it
