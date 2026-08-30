@@ -7,12 +7,15 @@ Spark.Nodes.Core.Curve
 Spark.Nodes.Core.Display
 Spark.Nodes.Core.Ellipse
 Spark.Nodes.Core.Line
+Spark.Nodes.Core.ListNodes
+Spark.Nodes.Core.Logic
 Spark.Nodes.Core.Math
 Spark.Nodes.Core.Number
 Spark.Nodes.Core.Plane
 Spark.Nodes.Core.Point
 Spark.Nodes.Core.PolyCurve
 Spark.Nodes.Core.PolyLine
+Spark.Nodes.Core.Text
 Spark.Nodes.Core.Vector
 Spark.Nodes.Core.Watch
 const Spark.Nodes.Core.Number.MaximumRangeCount = 1000000 -> int
@@ -45,6 +48,23 @@ static Spark.Nodes.Core.Ellipse.ByPlaneRadii(Spark.Geometry.Plane plane, double 
 static Spark.Nodes.Core.Ellipse.ByPlaneRadiiAngles(Spark.Geometry.Plane plane, double xRadius, double yRadius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.EllipseCurve!
 static Spark.Nodes.Core.Line.ByStartPointDirectionLength(Spark.Geometry.Point3d start, Spark.Geometry.Vector3d direction, double length = 1) -> Spark.Geometry.Line!
 static Spark.Nodes.Core.Line.ByStartPointEndPoint(Spark.Geometry.Point3d start, Spark.Geometry.Point3d end) -> Spark.Geometry.Line!
+static Spark.Nodes.Core.ListNodes.Count(object? list) -> int
+static Spark.Nodes.Core.ListNodes.FirstItem(object? list) -> object?
+static Spark.Nodes.Core.ListNodes.Flatten(object? list) -> Spark.Api.SparkList!
+static Spark.Nodes.Core.ListNodes.GetItemAtIndex(object? list, int index = 0) -> object?
+static Spark.Nodes.Core.ListNodes.Join(object? first, object? second) -> Spark.Api.SparkList!
+static Spark.Nodes.Core.ListNodes.LastItem(object? list) -> object?
+static Spark.Nodes.Core.ListNodes.OfRepeatedItem(object? value, int count = 1) -> Spark.Api.SparkList!
+static Spark.Nodes.Core.ListNodes.Reverse(object? list) -> Spark.Api.SparkList!
+static Spark.Nodes.Core.ListNodes.TakeItems(object? list, int count = 1) -> Spark.Api.SparkList!
+static Spark.Nodes.Core.ListNodes.UniqueItems(object? list) -> Spark.Api.SparkList!
+static Spark.Nodes.Core.Logic.And(bool a = false, bool b = false) -> bool
+static Spark.Nodes.Core.Logic.Equal(double a = 0, double b = 0, double tolerance = 1E-09) -> bool
+static Spark.Nodes.Core.Logic.GreaterThan(double a = 0, double b = 0) -> bool
+static Spark.Nodes.Core.Logic.If(bool condition = false, object? whenTrue = null, object? whenFalse = null) -> object?
+static Spark.Nodes.Core.Logic.LessThan(double a = 0, double b = 0) -> bool
+static Spark.Nodes.Core.Logic.Not(bool value = false) -> bool
+static Spark.Nodes.Core.Logic.Or(bool a = false, bool b = false) -> bool
 static Spark.Nodes.Core.Math.Add(double a = 0, double b = 0) -> double
 static Spark.Nodes.Core.Math.Cos(double degrees = 0) -> double
 static Spark.Nodes.Core.Math.Divide(double a = 0, double b = 1) -> double
@@ -66,6 +86,12 @@ static Spark.Nodes.Core.PolyLine.ByClosedPoints(System.Collections.Generic.IRead
 static Spark.Nodes.Core.PolyLine.ByPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.PolyLine!
 static Spark.Nodes.Core.PolyLine.ByRectangle(Spark.Geometry.Plane plane, double width = 1, double length = 1) -> Spark.Geometry.PolyLine!
 static Spark.Nodes.Core.PolyLine.ByRegularPolygon(Spark.Geometry.Plane plane, double radius = 1, int sides = 6) -> Spark.Geometry.PolyLine!
+static Spark.Nodes.Core.Text.Concat(string! first = "", string! second = "") -> string!
+static Spark.Nodes.Core.Text.FromNumber(double value = 0, int decimals = 3) -> string!
+static Spark.Nodes.Core.Text.JoinList(object? items, string! separator = ", ") -> string!
+static Spark.Nodes.Core.Text.Length(string! text = "") -> int
+static Spark.Nodes.Core.Text.ToNumber(string! text = "0") -> double
+static Spark.Nodes.Core.Text.Value(string! value = "") -> string!
 static Spark.Nodes.Core.Vector.ByCoordinates(double x = 0, double y = 0, double z = 0) -> Spark.Geometry.Vector3d
 static Spark.Nodes.Core.Vector.ByTwoPoints(Spark.Geometry.Point3d start, Spark.Geometry.Point3d end) -> Spark.Geometry.Vector3d
 static Spark.Nodes.Core.Vector.Length(Spark.Geometry.Vector3d vector) -> double

@@ -82,6 +82,7 @@ Spark.Geometry.Curve.PointAt(double parameter) -> Spark.Geometry.Point3d
 Spark.Geometry.Curve.PointAtLength(double distance) -> Spark.Geometry.Point3d
 Spark.Geometry.Curve.StartPoint.get -> Spark.Geometry.Point3d
 Spark.Geometry.Curve.TangentAt(double parameter) -> Spark.Geometry.Vector3d
+Spark.Geometry.CurveOffset
 Spark.Geometry.EllipseCurve
 Spark.Geometry.EllipseCurve.Centre.get -> Spark.Geometry.Point3d
 Spark.Geometry.EllipseCurve.Plane.get -> Spark.Geometry.Plane
@@ -332,6 +333,7 @@ abstract Spark.Geometry.Curve.IsClosed.get -> bool
 abstract Spark.Geometry.Curve.Reversed() -> Spark.Geometry.Curve!
 abstract Spark.Geometry.Curve.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
 abstract Spark.Geometry.Curve.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
+const Spark.Geometry.CurveOffset.OffsetSamples = 200 -> int
 const Spark.Geometry.GeometryJson.CurrentVersion = 1 -> int
 override Spark.Geometry.Angle.Equals(object? obj) -> bool
 override Spark.Geometry.Angle.GetHashCode() -> int
@@ -479,6 +481,8 @@ static Spark.Geometry.CoordinateSystem.ByPlane(in Spark.Geometry.Plane plane) ->
 static Spark.Geometry.CoordinateSystem.Identity.get -> Spark.Geometry.CoordinateSystem
 static Spark.Geometry.CoordinateSystem.operator !=(in Spark.Geometry.CoordinateSystem left, in Spark.Geometry.CoordinateSystem right) -> bool
 static Spark.Geometry.CoordinateSystem.operator ==(in Spark.Geometry.CoordinateSystem left, in Spark.Geometry.CoordinateSystem right) -> bool
+static Spark.Geometry.CurveOffset.FilletLines(Spark.Geometry.Line! first, Spark.Geometry.Line! second, double radius) -> (Spark.Geometry.Arc! Fillet, Spark.Geometry.Line! First, Spark.Geometry.Line! Second)
+static Spark.Geometry.CurveOffset.Offset(Spark.Geometry.Curve! curve, double distance, in Spark.Geometry.Vector3d normal, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> (Spark.Geometry.Curve! Curve, bool Exact)
 static Spark.Geometry.EllipseCurve.ByPlaneRadii(in Spark.Geometry.Plane plane, double xRadius, double yRadius) -> Spark.Geometry.EllipseCurve!
 static Spark.Geometry.EllipseCurve.ByPlaneRadiiAngles(in Spark.Geometry.Plane plane, double xRadius, double yRadius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.EllipseCurve!
 static Spark.Geometry.GeometryJson.Deserialize(string! json) -> object!

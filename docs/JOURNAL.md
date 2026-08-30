@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 12:10 +0530
+**Last updated:** 2026-08-31 13:30 +0530
 **Protocol version:** 2
 
 ---
@@ -16,13 +16,13 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1, M1.5 and M2 are done** — M2 closed on 2026-08-30. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. The work in flight is **M3, NURBS curves** |
-| **Working on** | Nothing. Between steps, inside M3 |
+| **Milestone** | **M1, M1.5, M2 and M3 are done** — M3 closed on 2026-08-31. M1.6 is deferred; its Windows toolchain now exists but its Linux leg does not. Next is **M4, the C# code block** |
+| **Working on** | Nothing. **M3 is done** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | `E2-T55`, `E2-T56` and `E2-T57` — knot removal, fit to tolerance, and split |
+| **Last completed step** | `E2-T12`, `E5-T13` and `E5-T16` — offset and fillet, the curated categories, and the watch row. **M3 is complete** |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M3's remaining rows outside the NURBS family: **`E2-T12` curve offset and fillet**, **`E5-T13` curated List/Math/String/Logic node categories**, and **`E5-T16` watch and preview node definitions** — check `E5-T16` first, because `Watch.Value` and the preview bubbles landed on 2026-08-30 and the row may already be satisfied, in which case closing it is a documentation step and not work. Take `E2-T12` next: offset is the one with a real decision in it — an offset of a NURBS curve is **not** a NURBS curve in general, so it has to be approximated to a tolerance, and `E2-T56` now exists to do exactly that. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1335**: Geometry.Tests 565, Engine.Tests 318, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
+| **Next action** | **M4 — the C# code block**, which is epic [E6](EPICS.md). Read the `E6` rows in [TASKS.md](TASKS.md) before anything else, and re-read the **M1.5 spike (c)** journal entry and `CodeEditorSpikeTests` — that spike exists precisely to de-risk this milestone and its findings are executable. The hard part is **not** the editor: it is that a code block needs a **per-instance node definition**, and the engine has none — every `NodeDefinition` today is imported once from an assembly and shared. A block whose ports change as the user types is a definition that belongs to one node instance. Decide that shape first, because it reaches into `Graph`, the cache key and the `.spark` format, and it is far more expensive to change later than the Roslyn work is. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1368**: Geometry.Tests 584, Engine.Tests 332, UI.Tests 327, Viewport.Tests 69, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph curves --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -134,7 +134,8 @@ the two disagree.**
 | 7 | **The C2VGeometry test harvest**, timeboxed to one week with a hard stop. Harvest assertions, not generators | `E2-T32` | L | **Blocked** — needs the C2VGeometry source, which is not in this repository and not on this machine. Skipped 2026-08-30 |
 | 8 | **M1.5 spike (c): AvaloniaEdit plus a Roslyn completion popup** — the last unproven part of M1.5, gating M4 | `E11-T21` | M | **Done** 2026-08-30 |
 | 9 | ~~**What is left of M2** — real docking (`E8-T2`), group/note/align (`E8-T6`), watch nodes (`E8-T10`), `spark run` (`E12-T5`)~~ | | L | **Done** 2026-08-30 |
-| 10 | **M3 — NURBS curves** *(in progress)* — `E2-T10`, `E2-T50` … `E2-T54` all **done**: knot vector, curve, insertion, exact trim, closest point, degree elevation, interpolation, approximation. Remaining: knot removal (`E2-T55`), fit to tolerance (`E2-T56`), split (`E2-T57`) | `E2-T10`, `E2-T50`–`E2-T57` | XL | Open |
+| 10 | ~~**M3 — NURBS curves**~~ | `E2-T10`, `E2-T12`, `E2-T50`–`E2-T57`, `E5-T13`, `E5-T16` | XL | **Done** 2026-08-31 |
+| 11 | **M4 — the C# code block** *(next)* | `E6` | L | Open |
 | + | **Persist the workspace layout between sessions** — `WorkspaceLayout` already serialises and round-trips under test; nothing writes it. A dragged arrangement dies with the window, which is the one thing a dock is for | `E8-T2`-adjacent | S | Open |
 | + | **A guard that no test project reports zero tests** — one line, and it catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)) | `E11`-adjacent | S | Open, take it with the next CI change |
 
@@ -1379,3 +1380,49 @@ measurement, not a preference**.
 
 **Verified.** Build clean with `-warnaserror`; **1335 tests, 0 failures** (1313 + 22);
 `dotnet format` clean.
+
+### 2026-08-31 — Offset, fillet, the curated categories, and M3 closes
+
+**Three rows, and the milestone.** `E2-T12`, `E5-T13`, `E5-T16`.
+
+**`E2-T12` — offset and fillet, in a class of their own.** Neither fits on `Curve`: an offset needs
+a plane to happen in, so *offset by 5* is not a curve on its own in three dimensions, and a fillet
+is a relationship between two curves rather than a property of either. Putting them on the base
+would mean a wrong signature or a method most curves throw from.
+
+**The offset of a NURBS curve is not a NURBS curve** — a fact about the mathematics, not a
+limitation here — so `Offset` takes a tolerance and fits, on `E2-T56`, which had landed an hour
+earlier and is exactly what it needed. Lines, circles and arcs *are* answered exactly, and that
+matters more than it looks: a fitted circle is a circle only to within a tolerance, and everything
+downstream that asks *is this an arc?* would start saying no.
+
+**Two things are stated as absent rather than approximated.** An offset that self-intersects is not
+repaired, because trimming the loops needs curve-curve intersection and that is not built — the
+result is the true offset locus, loops included. And fillet is **two lines only**: a general
+curve-curve fillet is a tangency problem that needs intersection to find the corner at all, and
+approximating it now would produce something that looks like the feature and is not. The lines come
+back trimmed, because a fillet that leaves the original corner in place is not what anybody asked
+for.
+
+**`E5-T13` — the curated categories, and one design fact runs through the List half.** Every input
+is `[KeepStructure]`, because these are the nodes that look *at* a list rather than *through* it: a
+replicating port hands `List.Count` one item at a time and it answers 1 for every element,
+producing a list of ones where a number was expected, silently. `Logic.Equal` takes a tolerance and
+defaults it away from zero — a node answering false to `0.1 + 0.2 == 0.3` is technically correct
+and useless. Text renders and parses in the invariant culture always, or graphs produce files that
+differ by locale and undo what ADR-0017 bought by choosing text.
+
+**`E5-T16` closed without a commit of its own**, because `E8-T10` had already built it: `Watch.Value`
+and the preview bubbles landed on 2026-08-30. Checking before working was worth the two minutes it
+took, and the row now says why it closes rather than merely that it did.
+
+**M3 is complete.** `E2-T10`, `E2-T12`, `E2-T50` … `E2-T57`, `E5-T13`, `E5-T16` — the knot vector,
+the curve, insertion, exact trimming, closest point on every curve type, degree elevation,
+interpolation, approximation, knot removal, fit to tolerance, split, offset, fillet, and the
+curated node categories.
+
+**Verified.** Build clean with `-warnaserror`; **1368 tests, 0 failures** (1335 + 33);
+`dotnet format` clean. The offset tests assert the one property that defines the operation — every
+point of the offset is the offset distance from the original — rather than comparing against a
+hand-computed shape, and the fillet tests check tangency directly by measuring the arc's centre
+against both original lines.
