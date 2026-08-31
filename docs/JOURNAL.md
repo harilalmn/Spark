@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 19:00 +0530
+**Last updated:** 2026-08-31 19:35 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E12-T18` — the About box.** One licence notice in `ProductNotice`, printed by both `spark --version` and the dialog. **The row was miscategorised as needing a person**; what it needed was a dialog. `IBrepKernel.Description` added as a **default interface member**, so the change is additive. |
+| **Last completed step** | **`E11-T4`, `E11-T5` — node-to-topic coverage both ways.** Forward was true by construction and is now asserted; **reverse was checked by nothing** — `curves.md` had named ten nodes since M0 and no test read them. Proven to fail by renaming an entry. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E11-T4` and `E11-T5` — node-to-topic coverage, both directions.** Forward (*a node with no topic fails the build*) is already true by construction, because pages are generated, and wants asserting so it stays true if generation is ever replaced. Reverse (*a `nodes:` entry naming a node that no longer exists fails the build*) is the one that catches renames and is not true yet — `curves.md` names ten nodes and nothing checks them. Then `E7-T12`, collapse selection to custom node. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1882** over **nine** projects: Geometry.Tests 763, UI.Tests 466, Engine.Tests 414, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E7-T12` — collapse selection to custom node.** The engine half is built and tested (`E7-T11`): `.sparkcustom` is the graph format plus an interface block, ports come from Input/Output nodes, recursion is refused at build with the containment path. What is missing is the gesture — take a selection, cut it out, and **infer the interface from the wires that crossed the boundary**. `E7-T13`'s save-side refusal belongs with it, because collapse is what can build a recursive definition by accident. After that the epic's remainder is network-facing (`E7-T1`, `E7-T2`, `E7-T8`, `E7-T10`) and then **M8**. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1886** over **nine** projects: Geometry.Tests 763, UI.Tests 470, Engine.Tests 414, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T18`'s About box was on this list and should not have been** — it needed a dialog, which is code, and it is done. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3464,3 +3464,37 @@ installer, which needs a signing identity, and is genuinely blocked.
 **Verified.** Build clean at 0 warnings. `Engine.Tests` 405 -> 414. Suite **1,882** over nine
 projects, 0 failed, 0 skipped. `dotnet format` clean. `spark --version` run and read; the About box
 captured and read.
+
+### 2026-08-31 - `E11-T4`, `E11-T5`: coverage in both directions, and one of them was checking nothing
+
+**What.** `NodeTopicCoverageTests`, four checks. Forward: every built-in node resolves to a help
+topic. Reverse: every node named in a topic's front matter still exists.
+
+**Both directions, because they fail differently and neither implies the other.** A node with no
+topic ships undocumented; a topic naming a node that is gone sends a reader to a page about
+something that no longer exists. DoodleSharp had both at once and neither was visible until
+somebody wrote a reflection diff.
+
+**The forward direction is already true by construction** — the reference pages are generated
+from the live library, so a node cannot lack one. It is asserted anyway, and the reason is worth
+keeping: the property that matters is *every node has a topic*, not *we generate pages*. Asserting
+the mechanism rather than the property is how a guarantee quietly turns into an implementation
+detail that somebody later replaces.
+
+**The reverse direction was checked by nothing at all.** `curves.md` has listed ten node names in
+its front matter since M0 and no test had ever read them. It now accepts either a full
+`Package/Name` or a bare name, because a bare name is what an author reasonably writes, and rejects
+anything matching neither.
+
+**Proven to fail before being trusted**, by renaming one entry to `List.CountRenamedAway`: it
+reports *concepts.lists names 'List.CountRenamedAway'*, naming both the topic and the dangling
+node. And a fourth test asserts that at least ten node names appear in front matter at all, so the
+reverse check can never pass by walking an empty list — which is the shape of every
+cannot-fail test this project has found so far.
+
+**A small thing worth noting.** The reverse check passed on its first run, which means the node
+names written into `lists.md` earlier today were all correct against the real library. That was
+luck rather than method, and it is now method.
+
+**Verified.** Build clean at 0 warnings. `UI.Tests` 466 -> 470. Suite **1,886** over nine projects,
+0 failed, 0 skipped. `dotnet format` clean.
