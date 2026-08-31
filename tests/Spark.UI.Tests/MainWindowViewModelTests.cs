@@ -134,7 +134,7 @@ public sealed class MainWindowViewModelTests
 
         Assert.All(model.Inspector, port => Assert.True(port.IsWired));
         Assert.All(model.Inspector, port => Assert.False(port.IsEditable));
-        Assert.All(model.Inspector, port => Assert.EndsWith("(wired)", port.Label, StringComparison.Ordinal));
+        Assert.All(model.Inspector, port => Assert.EndsWith("wired", port.TypeLine, StringComparison.Ordinal));
     }
 
     /// <summary>

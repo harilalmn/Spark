@@ -269,9 +269,33 @@ public sealed class XmlDocumentation
         return name.Replace('+', '.');
     }
 
+    /// <summary>
+    /// Flattens a documentation fragment to one line of prose, keeping what the cross-reference
+    /// tags <i>name</i>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Every tag used to be dropped whole, and the empty ones carry the nouns.</b>
+    /// <c>&lt;paramref name="start"/&gt;</c> and <c>&lt;see cref="…"/&gt;</c> have no content of
+    /// their own, so removing them removed the word — <c>Number.Range</c>'s description arrived in
+    /// the properties panel as <i>"A list of numbers from up to , stepping by . is included when
+    /// the step lands on it"</i>, which reads as a broken sentence and was reported as one. The
+    /// name is in the attribute, so it is taken from there.
+    /// </para>
+    /// <para>
+    /// <b>A hand-written scan rather than an XML parse</b>, and it stays that way. The input is a
+    /// fragment, not a document; it may contain entities and unbalanced markup from a third-party
+    /// assembly; and the job is one line of prose rather than a tree. A parser here would have to
+    /// be defended against every malformed file in every package a user installs, and the cost of
+    /// being wrong is a slightly worse tooltip.
+    /// </para>
+    /// </remarks>
+    /// <param name="xml">The fragment, as read from the documentation file.</param>
+    /// <returns>One line, with runs of whitespace collapsed and the ends trimmed.</returns>
     private static string Collapse(string xml)
     {
         StringBuilder builder = new(xml.Length);
+        StringBuilder tag = new(32);
         bool inTag = false;
         bool lastWasSpace = true;
 
@@ -280,17 +304,26 @@ public sealed class XmlDocumentation
             if (character == '<')
             {
                 inTag = true;
+                tag.Clear();
                 continue;
             }
 
             if (character == '>')
             {
                 inTag = false;
+
+                if (ReferencedName(tag.ToString()) is { } name)
+                {
+                    builder.Append(name);
+                    lastWasSpace = false;
+                }
+
                 continue;
             }
 
             if (inTag)
             {
+                tag.Append(character);
                 continue;
             }
 
@@ -310,5 +343,70 @@ public sealed class XmlDocumentation
         }
 
         return builder.ToString().Trim();
+    }
+
+    /// <summary>
+    /// The word a cross-reference tag stands for, or null when the tag stands for nothing.
+    /// </summary>
+    /// <remarks>
+    /// Only the tags that are <i>empty by definition</i> are named here. <c>&lt;c&gt;</c>,
+    /// <c>&lt;b&gt;</c> and <c>&lt;para&gt;</c> wrap text that flows through on its own, so
+    /// emitting anything for them would duplicate it.
+    /// </remarks>
+    /// <param name="tag">The text between the angle brackets.</param>
+    /// <returns>The word, or null.</returns>
+    private static string? ReferencedName(string tag)
+    {
+        string trimmed = tag.TrimStart();
+
+        if (trimmed.StartsWith("paramref", StringComparison.Ordinal)
+            || trimmed.StartsWith("typeparamref", StringComparison.Ordinal))
+        {
+            return Attribute(trimmed, "name");
+        }
+
+        if (!trimmed.StartsWith("see", StringComparison.Ordinal)
+            && !trimmed.StartsWith("seealso", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        // `langword` is written out as it stands - `null`, `true` - and a cref is reduced to its
+        // last segment, because "M:Spark.Geometry.Curve.PointAt" in a sentence is noise and
+        // "PointAt" is the word the author meant.
+        if (Attribute(trimmed, "langword") is { } langword)
+        {
+            return langword;
+        }
+
+        if (Attribute(trimmed, "cref") is not { } cref)
+        {
+            return null;
+        }
+
+        int colon = cref.IndexOf(':', StringComparison.Ordinal);
+        string body = colon >= 0 ? cref[(colon + 1)..] : cref;
+
+        int parenthesis = body.IndexOf('(', StringComparison.Ordinal);
+        if (parenthesis >= 0)
+        {
+            body = body[..parenthesis];
+        }
+
+        int dot = body.LastIndexOf('.');
+        return dot >= 0 && dot < body.Length - 1 ? body[(dot + 1)..] : body;
+    }
+
+    private static string? Attribute(string tag, string name)
+    {
+        int at = tag.IndexOf(name + "=\"", StringComparison.Ordinal);
+        if (at < 0)
+        {
+            return null;
+        }
+
+        int start = at + name.Length + 2;
+        int end = tag.IndexOf('"', start);
+        return end > start ? tag[start..end] : null;
     }
 }

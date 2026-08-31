@@ -11,7 +11,7 @@ now exists and matches it. The **90-row case table** in [section 6](#6-the-case-
 over on every build: once against the values it specifies, and once to check that every diagnostic
 it raises carries a help topic.
 **Owner:** `graph-engine`
-**Last updated:** 2026-09-01
+**Last updated:** 2026-09-02
 
 > This topic is both an end-user help page and the executable specification for Spark's
 > replication engine. The [case table](#the-case-table) at the end is consumed directly as
@@ -42,9 +42,13 @@ There are two entirely reasonable answers, and Spark cannot guess which one you 
   so on. Pair them up.
 - **One hundred circles.** Every point with every radius. All combinations.
 
-So you choose. Every node has a **lacing mode**, set on the node itself (right-click →
-Lacing), and it decides which of those answers you get. There are five modes, and the two
-above are called **Longest** and **Cross Product**.
+So you choose. Every node has a **lacing mode**, and it decides which of those answers you
+get. There are five modes, and the two above are called **Longest** and **Cross Product**.
+
+**Where you change it:** select the node, and use the **Lacing** dropdown at the top of the
+Properties pane. It is one undo step, and the graph re-runs when you change it — lacing is
+part of a node's cache key, so the node and everything downstream of it produce different
+answers.
 
 That is the whole idea. Everything below is precision.
 

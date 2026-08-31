@@ -18,11 +18,11 @@ this file says what is happening.
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | **The client’s list of eleven, taken ahead of the Help pass because the client asked for it directly.** Four steps, in this order: **(A)** the canvas gestures — `E8-T26` marquee visibility and window-versus-crossing, `E8-T27` double-click places a code block, `E8-T28` the orange selection halo. **(B)** the library — `E8-T29`, Create/Action/Query subgroups with coloured rails and icons, plus row spacing. **(C)** the properties pane — `E8-T30` compact spec-sheet rows, `E8-T31` a lacing selector. **(D)** the shell chrome — `E8-T32` menu bar, ribbon and logo, and `E3-T13` run modes. |
-| **Step status** | `IN PROGRESS` — steps **A and B are committed**; step **C** has not started. |
-| **Last completed step** | **`E8-T29` — step B of the client's list: the library splits three ways.** Every category now holds Create / Action / Query blocks with Dynamo's glyphs and a coloured rail. The classification does not exist to be read — a Spark node is a static method on a static facade, identical to reflection whatever it means — so `NodeImporter` infers it from the ports and the name and `SparkNodeAttribute.Kind` overrides it, which twenty-four first-party nodes use. **2196 tests.** |
-| **Working tree** | Clean. Step C has not started. |
-| **Next action** | **Step C of the client's list: the properties pane.** `E8-T30` — the pane is the client's fourth complaint and the type dropdown is the specific one: it is full-width, under the value box, and with several inputs it will dominate the pane. Rebuild the rows as a compact spec sheet — name and type in one tight left column, value on the right, the code-block type picker a small dropdown beside the port name, sections separated by thin rules. **The client chose this shape over stacked cards.** `E8-T31` — **lacing cannot be changed anywhere**: `Graph.SetLacing` exists and nothing in the UI calls it, so the pane prints `Lacing: Longest` as prose and offers no way to alter it. A selector at the top of the pane, an undo step, and a re-run. **Then D**: `E8-T32` (menu bar, ribbon, logo, window icon) and `E3-T13` (run modes — Manual, Automatic, Periodic). *The Help pass still follows the list, with the two owed items: the* `tessellate` *verb is not wired into* `.github/workflows/nightly.yml`*, and the new nodes from* `E4-T13` *and* `E8-T25` *have XML docs but no help topic.* |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2196**: Geometry.Tests 763, UI.Tests 652, Engine.Tests 476, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 15, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, and `dotnet run --project src/Spark.Desktop -- --graph demo --library curve --select 3 --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
+| **Step status** | `IN PROGRESS` - steps **A, B and C are committed**; step **D**, the last, has not started. |
+| **Last completed step** | **`E8-T30` and `E8-T31` - step C of the client's list: the properties pane, and lacing you can reach.** Lacing could not be changed anywhere at all - `Graph.SetLacing` had existed since `E4-T6` and nothing in the shell called it - and now has a selector, an undo step and a re-run. The pane is a compact spec sheet and the type dropdown moved into the label column. `XmlDocumentation` was dropping `paramref` and `see` whole, which is why `Number.Range`'s description read as a broken sentence. **2207 tests.** |
+| **Working tree** | Clean. Step D has not started. |
+| **Next action** | **Step D, the last of the client's list: the shell chrome.** `E8-T32` - the toolbar is twenty-six buttons across two wrapped rows and the client asked for **all of them in a proper menu bar**, with a **top ribbon carrying the logo** above it and the **logo as the window icon**. There is no logo anywhere in this repository; the client's answer when asked was *design a Spark mark*, so one is authored here and is swappable by replacing one file. `E3-T13` - **run modes**: Manual, Automatic and Periodic in a dropdown, as Dynamo has. Automatic is what the shell does today, unconditionally: every path that reaches `MainWindowViewModel.EvaluateAsync` after an edit becomes a `RequestRun` the mode can gate, while the Run button keeps calling `EvaluateAsync` directly. **After D the client's list is done**, and the queue returns to the Help pass: `E10-T3` (the help index), then `E11-T2`'s XML `<example>` half, then E10-T9/T10/T12/T14. *The two owed items still stand: the* `tessellate` *verb is not wired into* `.github/workflows/nightly.yml`*, and the new nodes from* `E4-T13` *and* `E8-T25` *have XML docs but no help topic.* |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2207**: Geometry.Tests 763, UI.Tests 659, Engine.Tests 480, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 15, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, and `dotnet run --project src/Spark.Desktop -- --graph demo --library curve --select 3 --screenshot PREFIX`. **Check the counts** - [N30](NOTES.md) - **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -4845,3 +4845,70 @@ not exist.
 nine test executables **2196 passed / 0 failed / 0 skipped** (Engine 476, UI 652); `dotnet format`
 clean; `--graph demo --library curve --screenshot` read by eye, three times, which is how the two
 findings above were found.
+
+
+### 2026-09-02 - The client's list, step C: the properties pane, and lacing you can reach (`E8-T30`, `E8-T31`)
+
+**`E8-T31` is the one that matters, and it is a gap rather than a bug.** The client wrote
+*"Lacing cannot be changed anywhere"*, and they were right in the strongest possible sense:
+`Graph.SetLacing` has existed since `E4-T6`, the mode round-trips through the file, `E3-T8`'s
+cache keys on it, the replicator obeys it, and the whole of `lacing.md` - 917 lines, written
+before the code - specifies it. **Nothing in the shell ever called it.** The pane printed
+`Lacing: Longest` into the node description as prose, which is the worst of both: it tells a user
+a setting exists and then offers no way to reach it.
+
+**All five modes are offered, `Auto` included.** Auto is not a replication algorithm - it means
+"use whatever this node's author chose" - and leaving it out of the list would make going back to
+the author's answer impossible once any mode had been picked. The line under the selector says
+what Auto resolves to *for this node*, because two nodes both on Auto can lace differently and
+that is the one fact about it a user has to be told.
+
+**The guard is the part that would have been a bug.** The pane pushes the selected node's mode
+into the bound property, and to a change handler that assignment is indistinguishable from a user
+choosing it in the dropdown. Without `_showingLacing`, every single click on a node would have
+recorded "Set lacing" on the undo stack and started a run. `SelectingANodeIsNotAnEdit` is that
+test.
+
+**`E8-T30`: the type dropdown was the client's specific complaint, and they were right about the
+shape of it.** It was full-width, on a row of its own, under the value box. One is tolerable; a
+node with six inputs is six of them, and the pane becomes a column of dropdowns with the values it
+is actually about squeezed between them. It is now a small control **in the left column**, in the
+place the static type label occupies on every other node's row - so declaring a type costs no
+extra row and no extra width, and the row is the same height whether a port has one or not.
+
+**Three things only the capture could find**, and all three were found by looking rather than by
+testing - `InspectorPane` cannot be shown headlessly at all (`E6-T20`, and the cause is Avalonia's).
+
+**(1)** The `(wired)` marker was on the *name*, which is the half of the row that cannot afford
+it: in a 92-pixel column `direction (wired)` trims to `direction (wi...`, and a node with three
+wired inputs is a column of identical prefixes. It moved to the type line - `Point3d - wired` -
+where the text is short and the name always fits.
+
+**(2)** `from the wire` did not fit the dropdown once the dropdown moved into that column. It
+reads `from wire`. It still names a *source* rather than a type, which was the whole point of the
+wording.
+
+**(3) And one that was a real defect in the text itself.** `Number.Range`'s description arrived
+in the pane as *"A list of numbers from up to , stepping by . is included when the step lands on
+it"*. `XmlDocumentation.Collapse` dropped every tag whole - and the *empty* tags are the ones
+carrying the nouns. `<paramref name="start"/>`, `<see cref="..."/>` and `<see langword="..."/>`
+now contribute the word they name, a cref reduced to its last segment. Asserted against the
+shipped library rather than only against fixtures: no first-party description contains stranded
+punctuation.
+
+**A latent flake was found and fixed on the way.** `LibraryKindGroupViewModel` built its glyph
+`Geometry` in its constructor, and building a `Geometry` needs Avalonia's render interface. That
+made `MainWindowViewModel`'s constructor throw in every test with no rendering platform - and it
+had been passing only because some other test class happened to initialise the platform first,
+which is a coin flip on a machine that schedules differently. The glyph resolves on access now.
+`NodeKindGlyphs` had the same shape and was made `Lazy` in step B for the same reason; this was
+the second instance of one mistake.
+
+**Documented.** `concepts/lacing.md` said lacing was set by *right-click, Lacing*, which was never
+built; it now names the Properties pane, says it is one undo step, and says why it re-runs.
+
+**Verified.** `dotnet build Spark.slnx --no-incremental -warnaserror` clean, **0 warnings**; the
+nine test executables **2207 passed / 0 failed / 0 skipped** (Engine 480, UI 659); `dotnet format`
+clean; and five captures - the demo graph, a node with three wired inputs, and a lone code block
+opened from a file written for the purpose, because a code block's ports are the only place the
+type dropdown appears.

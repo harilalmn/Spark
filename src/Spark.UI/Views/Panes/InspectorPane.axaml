@@ -8,9 +8,9 @@
 
   <Border Classes="pane">
     <!--
-      Row 3 is the port list and row 4 is the editing surface, and they are SEPARATE ROWS because
+      Row 4 is the port list and row 5 is the editing surface, and they are SEPARATE ROWS because
       they were not. The note box, the code editor, the group title box and the port list all sat
-      on row 3: the first three hide themselves and are mutually exclusive, but the port list has
+      on one row: the first three hide themselves and are mutually exclusive, but the port list has
       no condition and is declared last, so it was drawn over the top of the code editor. Selecting
       a code block put its ports in the pane and its source nowhere, and a person trying to write
       one could not find anywhere to type.
@@ -18,20 +18,107 @@
       A code block wants BOTH at once - the ports are how you see what your identifiers turned
       into - so the fix is two rows rather than hiding one of them.
     -->
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto">
       <TextBlock Grid.Row="0" Classes="paneTitle" Text="PROPERTIES" />
 
-      <TextBlock Grid.Row="1" Margin="10,0,10,4" TextWrapping="Wrap"
-                 Text="{Binding SelectionTitle}" />
+      <StackPanel Grid.Row="1" Margin="10,0,10,8" Spacing="2">
+        <TextBlock Classes="primary" FontWeight="SemiBold" TextWrapping="Wrap"
+                   Text="{Binding SelectionTitle}" />
+        <TextBlock Classes="muted" FontSize="11" TextWrapping="Wrap"
+                   Text="{Binding SelectionDescription}" />
+      </StackPanel>
 
-      <TextBlock Grid.Row="2" Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
-                 Text="{Binding SelectionDescription}" />
+      <!--
+        E8-T31: the lacing selector, and before it there was no way to change lacing anywhere at
+        all. `Graph.SetLacing` has existed since E4-T6, the mode round-trips through the file, the
+        cache keys on it and the replicator obeys it - and this pane printed `Lacing: Longest` as a
+        sentence in the description, which told a user about a setting and then offered no way to
+        reach it. The sentence is gone; this replaces it.
+
+        The note underneath appears for `Auto` only. Auto is the one mode whose behaviour is not in
+        its own name - it means "use whatever this node's author chose", and two nodes both on Auto
+        can lace differently - so it is the one that needs a line of explanation. "Longest means
+        longest" under a selector reading Longest would be noise.
+      -->
+      <StackPanel Grid.Row="2" Margin="10,0,10,8" Spacing="3"
+                  IsVisible="{Binding CanSetLacing}">
+        <Border Height="1" Margin="0,0,0,6" Background="{DynamicResource SparkBorderHairlineBrush}" />
+        <Grid ColumnDefinitions="92,*">
+          <TextBlock Grid.Column="0" Classes="muted" VerticalAlignment="Center" Text="Lacing"
+                     ToolTip.Tip="How this node pairs up its inputs when more than one of them arrives as a list." />
+          <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" FontSize="11"
+                    AutomationProperties.Name="Lacing"
+                    ItemsSource="{Binding LacingChoices}"
+                    SelectedItem="{Binding SelectedLacing, Mode=TwoWay}" />
+        </Grid>
+        <TextBlock Classes="muted" FontSize="10" TextWrapping="Wrap"
+                   IsVisible="{Binding LacingNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                   Text="{Binding LacingNote}" />
+      </StackPanel>
+
+      <!--
+        E8-T30: the inputs, as a compact spec sheet.
+
+        THE TYPE DROPDOWN USED TO BE A FULL-WIDTH CONTROL ON A ROW OF ITS OWN, UNDER THE VALUE BOX.
+        One of those is tolerable; a node with six inputs is six of them, and the pane becomes a
+        column of dropdowns with the values it is actually about squeezed between them. The client
+        said so. It is now a small control in the left column, in the place the static type label
+        occupies on every other node's row - so declaring a type costs no extra row and no extra
+        width, and the row height is the same whether the port has one or not.
+      -->
+      <StackPanel Grid.Row="3" Margin="10,0,10,0" Spacing="4"
+                  IsVisible="{Binding HasInputs}">
+        <Border Height="1" Background="{DynamicResource SparkBorderHairlineBrush}" />
+        <TextBlock Classes="paneTitle" Margin="0,2,0,2" Text="INPUTS" />
+      </StackPanel>
+
+      <ItemsControl Grid.Row="4" Margin="10,0,10,10" ItemsSource="{Binding Inspector}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:PortLiteralViewModel">
+            <Grid ColumnDefinitions="92,*" Margin="0,0,0,5">
+              <!-- The type is on the row, not only in the tooltip. A box labelled "radius"
+                   does not tell anybody what belongs in it, and a tooltip answers a question
+                   the user has to have thought to ask. -->
+              <StackPanel Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" Spacing="1"
+                          ToolTip.Tip="{Binding Description}">
+                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+
+                <TextBlock Classes="muted" FontSize="10"
+                           IsVisible="{Binding !CanDeclareType}"
+                           TextTrimming="CharacterEllipsis"
+                           Text="{Binding TypeLine}" />
+
+                <!-- E6-T11: the type dropdown, on a code block's ports only.
+
+                     An unwired code block port is `dynamic`, so completion offered the members of
+                     `object` - Equals, GetHashCode, ToString - which is worse than offering nothing
+                     because it looks like an answer. This is where a user says what the port is
+                     before anything is wired to it, which is exactly when they are writing the code
+                     that needs completing. -->
+                <ComboBox FontSize="10" Padding="4,1" MinHeight="0"
+                          HorizontalAlignment="Stretch"
+                          AutomationProperties.Name="Port type"
+                          IsVisible="{Binding CanDeclareType}"
+                          ToolTip.Tip="The type this port takes. Set it to complete against something real before a wire is drawn."
+                          ItemsSource="{Binding Source={x:Static vm:PortLiteralViewModel.TypeChoices}}"
+                          SelectedItem="{Binding DeclaredTypeName, Mode=TwoWay}" />
+              </StackPanel>
+
+              <TextBox Grid.Column="1" VerticalAlignment="Top"
+                       IsEnabled="{Binding IsEditable}"
+                       Text="{Binding Text, Mode=TwoWay}"
+                       LostFocus="OnLiteralCommitted"
+                       KeyDown="OnLiteralKeyDown" />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
 
       <!-- A note's text. Edited here rather than on the canvas: the canvas is one immediate-mode
            surface that hosts no controls (ADR-0013), so a caret in it would mean writing a text
            editor to avoid writing a binding. Shown only when a note is selected, off the same
            property that holds the note - one source of truth rather than two that can disagree. -->
-      <TextBox Grid.Row="4" Margin="10,0,10,10"
+      <TextBox Grid.Row="5" Margin="10,0,10,10"
                IsVisible="{Binding SelectedNote, Converter={x:Static ObjectConverters.IsNotNull}}"
                Text="{Binding NoteText, Mode=TwoWay}"
                AcceptsReturn="True"
@@ -43,65 +130,22 @@
            built from the types the wires carry (E6-T11, E6-T12, E6-T7). The text is pushed in and
            read back by the pane rather than bound, because a two-way binding onto a document the
            user is typing into buys nothing and invites a feedback loop. -->
-      <controls:CodeBlockEditor Name="ScriptEditor" Grid.Row="4" Margin="10,0,10,10"
+      <controls:CodeBlockEditor Name="ScriptEditor" Grid.Row="5" Margin="10,0,10,10"
                                 IsVisible="{Binding SelectedCodeBlock, Converter={x:Static ObjectConverters.IsNotNull}}"
                                 VerticalAlignment="Stretch" />
 
       <!-- A group's title, on the same principle as a note's text. -->
-      <TextBox Grid.Row="4" Margin="10,0,10,10" VerticalAlignment="Top"
+      <TextBox Grid.Row="5" Margin="10,0,10,10" VerticalAlignment="Top"
                IsVisible="{Binding SelectedGroup, Converter={x:Static ObjectConverters.IsNotNull}}"
                Text="{Binding GroupTitle, Mode=TwoWay}"
                LostFocus="OnGroupTitleCommitted" />
 
-      <!-- Editing a value here writes the literal through the engine graph, which marks the
-           node and everything downstream dirty, and starts a run off the UI thread. -->
-      <ItemsControl Grid.Row="3" Margin="10,0,10,10" ItemsSource="{Binding Inspector}">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="vm:PortLiteralViewModel">
-            <Grid ColumnDefinitions="90,*" RowDefinitions="Auto,Auto" Margin="0,0,0,6">
-              <!-- The type is on the row, not only in the tooltip. A box labelled "radius"
-                   does not tell anybody what belongs in it, and a tooltip answers a question
-                   the user has to have thought to ask. -->
-              <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"
-                          ToolTip.Tip="{Binding Description}">
-                <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding Label}" />
-                <TextBlock Classes="muted" FontSize="10" Opacity="0.8" Text="{Binding TypeName}" />
-              </StackPanel>
-              <TextBox Grid.Row="0" Grid.Column="1" IsEnabled="{Binding IsEditable}"
-                       Text="{Binding Text, Mode=TwoWay}"
-                       LostFocus="OnLiteralCommitted"
-                       KeyDown="OnLiteralKeyDown" />
-
-              <!-- E6-T11: the type dropdown, on a code block's ports only.
-
-                   An unwired code block port is `dynamic`, so completion offered the members of
-                   `object` - Equals, GetHashCode, ToString - which is worse than offering nothing
-                   because it looks like an answer. This is where a user says what the port is
-                   before anything is wired to it, which is exactly when they are writing the code
-                   that needs completing.
-
-                   It sits UNDER the value box rather than beside it. The row is already 90px of
-                   label and a box, and a third column would squeeze both in a pane a user is
-                   entitled to make narrow. Declaring a type is also much rarer than typing a
-                   value, so it is the one that gives way. -->
-              <ComboBox Grid.Row="1" Grid.Column="1"
-                        Margin="0,4,0,0"
-                        HorizontalAlignment="Stretch"
-                        FontSize="11"
-                        IsVisible="{Binding CanDeclareType}"
-                        ToolTip.Tip="The type this port takes. Set it to complete against something real before a wire is drawn."
-                        ItemsSource="{Binding Source={x:Static vm:PortLiteralViewModel.TypeChoices}}"
-                        SelectedItem="{Binding DeclaredTypeName, Mode=TwoWay}" />
-            </Grid>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-
       <!-- The watch panel. A bubble on the canvas is a glance and is cut at sixty characters;
            this is where somebody goes to read the value. Read-only and selectable, because the
            thing people do with a watched value next is copy part of it. -->
-      <StackPanel Grid.Row="5" Margin="10,0,10,10"
+      <StackPanel Grid.Row="6" Margin="10,0,10,10" Spacing="3"
                   IsVisible="{Binding WatchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+        <Border Height="1" Margin="0,0,0,3" Background="{DynamicResource SparkBorderHairlineBrush}" />
         <TextBlock Classes="paneTitle" Text="WATCH" Margin="0,0,0,2" />
         <TextBlock Classes="muted" FontSize="10" Text="{Binding WatchRank}" Margin="0,0,0,4" />
         <TextBox Text="{Binding WatchText, Mode=OneWay}"
@@ -114,7 +158,7 @@
       <!-- E6-T16: a graph containing a code block is opened, drawn, and not run. The banner is
            where the user is told so, and where they say otherwise. Saying it in the diagnostics
            pane would read as a failure, which this is not. -->
-      <Border Grid.Row="5" Margin="10,0,10,10" Padding="8" CornerRadius="3"
+      <Border Grid.Row="6" Margin="10,0,10,10" Padding="8" CornerRadius="3"
               IsVisible="{Binding ScriptBanner, Converter={x:Static ObjectConverters.IsNotNull}}"
               Background="{DynamicResource ThemeAccentBrush4}"
               BorderBrush="{DynamicResource ThemeBorderMidBrush}"
@@ -130,9 +174,13 @@
         </StackPanel>
       </Border>
 
-      <TextBlock Grid.Row="6" Classes="paneTitle" Text="DIAGNOSTICS" />
-      <TextBlock Grid.Row="7" Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
-                 Text="{Binding DiagnosticsText}" />
+      <Border Grid.Row="7" Height="1" Margin="10,0,10,6"
+              Background="{DynamicResource SparkBorderHairlineBrush}" />
+      <StackPanel Grid.Row="8" Margin="0,0,0,4">
+        <TextBlock Classes="paneTitle" Text="DIAGNOSTICS" />
+        <TextBlock Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
+                   Text="{Binding DiagnosticsText}" />
+      </StackPanel>
     </Grid>
   </Border>
 </UserControl>

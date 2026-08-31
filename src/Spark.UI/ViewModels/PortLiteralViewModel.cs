@@ -123,21 +123,31 @@ public sealed partial class PortLiteralViewModel : ObservableObject
     /// whatever is wired into it.
     /// </summary>
     /// <remarks>
-    /// Worded as a sentence rather than as a type name because it names a *source*, not a type.
+    /// Worded as a source rather than as a type name, because it names a *source*, not a type.
     /// "anything" would be wrong — an unwired port is `dynamic` and a wired one is whatever the
-    /// wire carries, and neither of those is a choice the user made.
+    /// wire carries, and neither of those is a choice the user made. It read "from the wire" until
+    /// the dropdown moved into the narrow label column (<c>E8-T30</c>), where two words fit and
+    /// four did not.
     /// </remarks>
-    public const string NotDeclared = "from the wire";
+    public const string NotDeclared = "from wire";
 
     /// <summary>
-    /// The label the panel shows: the port name, marked when a wire is feeding it.
+    /// The second line of the row: the port's type, marked when a wire is feeding it.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// A wired port keeps whatever literal was last typed into it, and showing that value in a
     /// disabled box with no explanation reads as the editor having forgotten the wire. The marker
     /// is the explanation.
+    /// </para>
+    /// <para>
+    /// <b>It used to be on the name, and the name is the half that cannot afford it.</b> The label
+    /// column is narrow by design (<c>E8-T30</c>), so <c>direction (wired)</c> trimmed to
+    /// <c>direction (wi…</c> and a row full of those is a column of identical prefixes. The type
+    /// line underneath is short, so the marker rides there and the name always fits.
+    /// </para>
     /// </remarks>
-    public string Label => IsWired ? Name + " (wired)" : Name;
+    public string TypeLine => IsWired ? TypeName + " · wired" : TypeName;
 
     /// <summary>
     /// Parses the text and, if it is valid for the port's type, commits it.

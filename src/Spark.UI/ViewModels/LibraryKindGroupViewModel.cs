@@ -40,7 +40,6 @@ public sealed partial class LibraryKindGroupViewModel : ObservableObject
         Label = NodeKindGlyphs.LabelOf(kind);
         Description = NodeKindGlyphs.DescriptionOf(kind);
         Rail = NodeKindGlyphs.BrushOf(kind);
-        Glyph = NodeKindGlyphs.GeometryOf(kind);
     }
 
     /// <summary>Which of the three this block is.</summary>
@@ -59,7 +58,15 @@ public sealed partial class LibraryKindGroupViewModel : ObservableObject
     public IBrush Rail { get; }
 
     /// <summary>The glyph drawn at the head of the block, in a sixteen-by-sixteen box.</summary>
-    public Avalonia.Media.Geometry Glyph { get; }
+    /// <remarks>
+    /// <b>Resolved on access rather than in the constructor, and that is not a micro-optimisation.</b>
+    /// Building a <c>Geometry</c> needs Avalonia's render interface, and this view model is built
+    /// while the library is loaded - which happens in tests that have no rendering platform at all.
+    /// Constructing it eagerly made <c>MainWindowViewModel</c>'s constructor throw in those, and it
+    /// passed only when some other test class had happened to initialise the platform first, which
+    /// is a flake waiting for a machine with different scheduling.
+    /// </remarks>
+    public Avalonia.Media.Geometry Glyph => NodeKindGlyphs.GeometryOf(Kind);
 
     /// <summary>How many entries the block holds, shown beside its label.</summary>
     public int Count => Entries.Count;

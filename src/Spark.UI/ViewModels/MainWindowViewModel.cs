@@ -143,6 +143,27 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// — a code block you cannot type into is not a code block.
     /// </remarks>
     [ObservableProperty]
+    private bool _canSetLacing;
+
+    [ObservableProperty]
+    private string _selectedLacing = LacingNames.Auto;
+
+    [ObservableProperty]
+    private string _lacingNote = string.Empty;
+
+    /// <summary>
+    /// True while <see cref="ShowSelection"/> is pushing the selected node's lacing into
+    /// <see cref="SelectedLacing"/>, so the change handler knows the user did not do it.
+    /// </summary>
+    /// <remarks>
+    /// Without this, selecting a node would <i>write</i> that node's own lacing back onto it as an
+    /// undo step and a re-run - one per click, on every node, forever.
+    /// </remarks>
+    private bool _showingLacing;
+
+    private int _lacingSlot = -1;
+
+    [ObservableProperty]
     private CanvasNode? _selectedCodeBlock;
 
     [ObservableProperty]
@@ -1417,12 +1438,16 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         ArgumentNullException.ThrowIfNull(selection);
 
         Inspector.Clear();
+        OnPropertyChanged(nameof(HasInputs));
         SelectedNote = null;
         SelectedGroup = null;
         WatchText = string.Empty;
         WatchRank = string.Empty;
         SelectedCodeBlock = null;
         ScriptText = string.Empty;
+        CanSetLacing = false;
+        LacingNote = string.Empty;
+        _lacingSlot = -1;
 
         if (selection.Count != 1)
         {
@@ -1444,6 +1469,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         SelectionTitle = node.Title;
         SelectionDescription = BuildSelectionDescription(node, instance);
+
+        // Pushed rather than bound, and guarded, because assigning the property is indistinguishable
+        // from a user choosing that value in the dropdown.
+        _lacingSlot = slot;
+        _showingLacing = true;
+        SelectedLacing = LacingNames.Of(instance.Lacing);
+        _showingLacing = false;
+        CanSetLacing = true;
+        LacingNote = DescribeLacing(instance);
 
         if (ScriptOf(node) is not null)
         {
@@ -1474,7 +1508,90 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 isCodeBlock ? DeclareInputType : null,
                 declared.TryGetValue(port.Name, out Type? declaredType) ? declaredType : null));
         }
+
+        OnPropertyChanged(nameof(HasInputs));
     }
+
+    /// <summary>
+    /// Whether the selected node has any input ports, which is what shows the INPUTS heading.
+    /// </summary>
+    /// <remarks>
+    /// A property rather than a binding onto <c>Inspector.Count</c>, because a compiled binding
+    /// will not turn an <c>int</c> into an <c>IsVisible</c> and a heading over an empty list is a
+    /// row that says nothing. Raised by hand wherever <see cref="Inspector"/> is refilled - the
+    /// collection's own notifications are about its items, not about whether it has any.
+    /// </remarks>
+    public bool HasInputs => Inspector.Count > 0;
+
+    /// <summary>
+    /// The five lacing modes, in the words the panel writes them.
+    /// </summary>
+    /// <remarks>
+    /// <b>All five, including <c>Auto</c>.</b> Auto is not a replication algorithm - it means "use
+    /// whatever this node's author chose" - and leaving it out would make going back to the
+    /// author's answer impossible once a mode had been picked. <see cref="LacingNote"/> is what
+    /// says which algorithm Auto lands on for the selected node, because two nodes both on Auto can
+    /// lace differently and that is the one thing about it a user has to be told.
+    /// </remarks>
+    public IReadOnlyList<string> LacingChoices { get; } = LacingNames.All;
+
+    /// <summary>
+    /// Applies a lacing chosen in the properties pane, records it, and re-runs (<c>E8-T31</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Lacing could not be changed anywhere before this.</b> <c>Graph.SetLacing</c> has existed
+    /// since <c>E4-T6</c>, the mode round-trips through the file, the cache keys on it and the
+    /// replicator obeys it - and nothing in the shell ever called it. The panel printed
+    /// <c>Lacing: Longest</c> as a sentence, which told a user about a setting and then offered no
+    /// way to reach it.
+    /// </para>
+    /// <para>
+    /// It re-runs, because lacing is in the cache key: the node and everything downstream of it
+    /// produce different answers, and a control whose effect only shows up on the next unrelated
+    /// edit is a control nobody trusts.
+    /// </para>
+    /// </remarks>
+    /// <param name="value">The chosen mode's name.</param>
+    partial void OnSelectedLacingChanged(string value)
+    {
+        if (_showingLacing || !CanSetLacing || _lacingSlot < 0 || _lacingSlot >= _graph.Nodes.Count)
+        {
+            return;
+        }
+
+        if (!LacingNames.TryParse(value, out LacingMode mode))
+        {
+            return;
+        }
+
+        NodeId id = _graph.Nodes[_lacingSlot].Id;
+
+        if (_graph.Engine.Node(id).Lacing == mode)
+        {
+            return;
+        }
+
+        _graph.Engine.SetLacing(id, mode);
+        RecordEdit("Set lacing");
+        LacingNote = DescribeLacing(_graph.Engine.Node(id));
+        _ = EvaluateAsync();
+    }
+
+    /// <summary>
+    /// The line under the lacing selector: what <c>Auto</c> resolves to here, or nothing.
+    /// </summary>
+    /// <remarks>
+    /// Shown only for <c>Auto</c>, and only because Auto is the one mode whose behaviour is not in
+    /// its own name. Repeating "Longest means longest" under a selector reading <i>Longest</i>
+    /// would be noise.
+    /// </remarks>
+    /// <param name="instance">The selected node.</param>
+    /// <returns>The note, or an empty string.</returns>
+    private static string DescribeLacing(NodeInstance instance) =>
+        instance.Lacing == LacingMode.Auto
+            ? "Auto uses this node's own default, which is " + LacingNames.Of(instance.EffectiveLacing) + "."
+            : string.Empty;
 
     /// <summary>
     /// Declares the type of a code block's input port, and re-runs the graph (<c>E6-T11</c>).
@@ -1808,6 +1925,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             }
 
             Inspector.Clear();
+            OnPropertyChanged(nameof(HasInputs));
             return;
         }
     }
@@ -1842,8 +1960,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         StringBuilder builder = new();
         builder.Append(node.Description ?? "No description.");
-        builder.Append("\n\nLacing: ").Append(instance.EffectiveLacing);
-
         if (node.Message is { } message)
         {
             builder.Append("\n\n").Append(message);
