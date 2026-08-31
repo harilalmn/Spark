@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N63-N67 added)
+**Last updated:** 2026-08-31 (N63-N69 added)
 
 ---
 
@@ -1904,3 +1904,39 @@ The whole create-compile-unload now happens in a `NoInlining` helper that return
 not enough. Every local on the path, including the factory that made it, has to be out of scope
 before the assertion, and "out of scope" means *in a frame that has returned*, not *past its last
 use*.
+
+## N68 — A package install is an unzip, and an unzip writes wherever the archive says
+
+A `.nupkg` is a zip, and installing one is extracting it. A zip entry's name is **data supplied by
+whoever built the archive**, and nothing stops it being `../../something`: an extractor that joins
+that onto a destination and writes the result has turned *install a package* into *write an
+arbitrary file*, with the application's own privileges, before a single line of the package's code
+has run.
+
+`NuGetPackageClient.Extract` therefore resolves each entry to a full path and refuses anything that
+does not start with the destination. **The check is on the resolved path, not on the entry name**,
+because `a/../../b` is the same attack spelled differently and a name-based check that looks for
+`..` misses it.
+
+**Proven load-bearing rather than assumed.** With the guard disabled, the test that installs a
+package containing `../../escaped.txt` reports *no exception was thrown* — the extract
+succeeded and wrote outside the package folder. With it, the install is refused, nothing is
+written, and the folder is not created.
+
+**The general shape:** every field of an archive, an image header or a file format is input from
+whoever produced the file, including the fields that look structural. An entry name reads like
+metadata and is a filename.
+
+## N69 — A NuGet folder name does not split at the first dot
+
+Packages are installed to `id.version`, matching NuGet's own convention. Recovering the identity
+from the folder name looks like `IndexOf('.')` and is not: **a package id contains dots too**, so
+`Acme.Nodes.Geometry.2.1.0` would come back as a package called `Acme` at version
+`Nodes.Geometry.2.1.0`.
+
+The split is before the **first segment that starts with a digit**, which is what the convention
+actually means. It is a named method rather than an inline expression precisely because the obvious
+version is wrong and would look right in review.
+
+It matters more than it sounds: the id is what `PackageLoadContext` is keyed on and what an
+uninstall names, so getting it wrong would produce a store that lists packages nobody can remove.

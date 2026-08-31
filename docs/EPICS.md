@@ -626,8 +626,10 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
 
 **Acceptance criteria**
 
-- [ ] A Spark package is a NuGet package tagged `spark` with a `tools/spark.json` manifest
-      (**E7-T1**).
+- [x] A Spark package is a NuGet package tagged `spark` with a `tools/spark.json` manifest
+      (**E7-T1**). *Built 2026-08-31. The manifest names the assemblies to load nodes from rather
+      than leaving them to be discovered, because a package's `lib` folder also holds everything it
+      depends on.*
 - [x] **One collectible ALC per package *version*** — not per package, which kills
       side-by-side, and not per assembly, which kills intra-package type identity
       (**E7-T3**). *Built 2026-08-31, with two versions of one package proven to load at once.*

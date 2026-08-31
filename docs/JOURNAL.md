@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 21:20 +0530
+**Last updated:** 2026-08-31 22:20 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E7-T12`, `E7-T13` — collapse a selection into a node.** The interface is inferred from the wires that crossed the boundary, one port per distinct source. **The architecture test caught the obvious placement**: the gesture belongs on the view model, not the canvas, because a view file may not name `Spark.Engine`. Verified in the app — the viewport is byte-identical before and after. |
+| **Last completed step** | **`E7-T1`, `E7-T2` — the package convention and the NuGet client.** A Spark package can be searched for and installed, verified against the real feed. Found [N68](NOTES.md): **a `.nupkg` is a zip and a zip entry name is attacker-supplied** — without the guard, installing a package writes outside its own folder, proven by disabling it. And [N69](NOTES.md): a NuGet folder name does not split at the first dot. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E7-T1` and `E7-T2` — the package convention and the NuGet client.** Everything in `E7` that does not need a network is now built: the load layer, placeholders, custom nodes and collapse. What remains is a Spark package being **a NuGet package tagged `spark` with a `tools/spark.json` manifest**, and `NuGet.Protocol`/`NuGet.Packaging` search-install-resolve on top of it — both already referenced by `Spark.Packages`. Then `E7-T8` (trust and disclosure, including **whether a package carries native binaries**), `E7-T9` (local DLLs, which must read **without locking** — unlike the package path) and `E7-T10` (the manager UI). **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1905** over **nine** projects: Geometry.Tests 763, UI.Tests 482, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E7-T8` — trust and install disclosure**, which is the row that makes install honest: publisher, downloads, licence, signature status, transitive dependencies, node count, and **whether the package contains native binaries**. That last one matters most here — Spark promises no native dependencies, a package may break that promise on its own behalf, and a user is entitled to know it is being broken for them. `PackageLoadContext` already knows where a native library would have to be, which is what makes the disclosure checkable rather than declared. Then `E7-T2`'s remaining half (**dependency resolution**), `E7-T9` (local DLLs, which must read **without locking**) and `E7-T10` (the manager UI). **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1929** over **nine** projects: Geometry.Tests 763, UI.Tests 482, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 36**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T18`'s About box was on this list and should not have been** — it needed a dialog, which is code, and it is done. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3595,3 +3595,58 @@ the run before the collapse. The graph's shape changed and its result did not.
 
 **Verified.** Build clean at 0 warnings. `UI.Tests` 470 -> 482. Suite **1,905** over nine projects,
 0 failed, 0 skipped. `dotnet format` clean. Architecture tests 15 green after the move.
+
+### 2026-08-31 - `E7-T1`, `E7-T2`: the package convention, and an unzip that writes anywhere
+
+**What.** `SparkPackageManifest`, `PackageStore` and `NuGetPackageClient` in `Spark.Packages`.
+Twenty-four new tests. **A Spark package can be searched for and installed.**
+
+**NuGet is the registry; this is the part that is ours.** Protocol, hosting, auth, SemVer, private
+feeds and nuget.org's reach come free from being an ordinary NuGet package. What NuGet cannot say
+is *which assemblies in here are node libraries*, and that is the whole job of `tools/spark.json`.
+Two things mark a Spark package and both are needed: the `spark` tag so it can be found, and the
+manifest so it can be loaded.
+
+**Assemblies are named, not discovered.** A package's `lib` folder holds everything it depends on
+as well as its own work, and reflecting over all of it would turn every public static method in
+somebody's maths helper into a node. The author says which of their assemblies are node libraries.
+
+**[N68](NOTES.md) is the finding, and it is the kind worth being blunt about.** A `.nupkg` is a
+zip, installing one is an extract, and **a zip entry's name is data supplied by whoever built the
+archive**. Nothing stops it being `../../something`. An extractor that joins that onto a
+destination has turned *install a package* into *write an arbitrary file*, with the application's
+privileges, **before any of the package's code has run**. The guard resolves each entry to a full
+path and refuses anything outside the destination - checked on the *resolved* path, because
+`a/../../b` is the same attack spelled differently and a name-based check for `..` misses it.
+
+**Proven load-bearing rather than assumed.** With the guard disabled, the test that installs a
+package containing `../../escaped.txt` reports *no exception was thrown*: the extract succeeded and
+wrote outside the folder.
+
+**[N69](NOTES.md) is smaller and would have looked right in review.** Recovering a package identity
+from an `id.version` folder name looks like `IndexOf('.')` and is not, because **a package id
+contains dots**: `Acme.Nodes.Geometry.2.1.0` would come back as `Acme` at version
+`Nodes.Geometry.2.1.0`. The split is before the first digit-led segment, and it is a named method
+for exactly that reason.
+
+**Install stages and then moves.** Extracting straight into the final folder would leave an
+interrupted download looking installed, and the next run would load half a package. The manifest is
+validated in staging, so a package that is not a Spark package never reaches the store at all.
+
+**The tests are arranged so a network is optional and a green run is never empty.** The install
+path runs against a **local folder feed** - NuGet reads a directory of `.nupkg` files as a feed -
+with a package built in the test, so the whole path is exercised offline and without installing a
+stranger's code as a side effect. The nuget.org tests return early when the feed is unreachable,
+and `TheOfflineHalfIsAlwaysChecked` exists so that a machine with no network still asserts
+something. **That they really query the feed was proven**, not assumed: inverting one assertion
+made it fail against live data.
+
+**A pleasing confirmation.** A tagged search for *newtonsoft* returns nothing, because no package
+on nuget.org carries the `spark` tag yet. That is the tag filter working: applied after the fact it
+would have returned the whole first page.
+
+**`E7-T2` stays `In progress`: dependency resolution is not built.** A package's own NuGet
+dependencies are not yet walked, so a package that needs another one installs without it.
+
+**Verified.** Build clean at 0 warnings. `Packages.Tests` 12 -> 36. Suite **1,929** over nine
+projects, 0 failed, 0 skipped. `dotnet format` clean. Searches ran against the real nuget.org.
