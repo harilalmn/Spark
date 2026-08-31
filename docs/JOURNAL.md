@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 15:05 +0530
+**Last updated:** 2026-09-01 15:45 +0530
 **Protocol version:** 2
 
 ---
@@ -19,9 +19,9 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The Help pass begins — two topics that claimed to predate their own code.** `lacing.md` and `design-language.md` both said *written before the engine/UI exists* about things that had existed for months. Retired by **re-reading each against its code** ([N84](NOTES.md)): lacing is fully executed, 90 cases run two ways; design-language is only partly, and now says so. `E10-T6`'s schema written down and enforced — the `related:` check was clean **by luck**. `E10-T4`'s guide written, and [N85](NOTES.md): the harness stopped it being filed as a topic. |
+| **Last completed step** | **A staged build for a hands-on, and a 15-second stall found in it.** The build runs and the solids demo renders what M6 promised. But it takes **18.2 s** against 2.1 s for points, while `spark export` does the same graph in **290 ms** and the evaluator in **31-77 ms**. Not the solver, not the evaluator, **not the scheduler** — parallel is the faster of the two. Recorded as `E12-T19` ([N86](NOTES.md)) rather than fixed in passing. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E10-T3`, the help index, then `E11-T2`'s remaining half.** `E10-T3` is the last structural row: a topic that introduces the others, so a reader who opens Help without a node selected lands somewhere that orients them rather than on an alphabetical list. The window already orders concepts before the node index, so what is missing is the page, not the plumbing. Then **`E11-T2`'s XML `<example>` half**: every ` ```csharp ` fence in the help already compiles, but `<example>` blocks in XML doc comments do not, and those are what the generated node pages show — a sample that does not compile is worse on a generated page than in a topic, because nobody proof-reads a generated page. After that the remaining Help rows are **`E10-T9`/`E10-T10`** (the quality of XML docs across `Spark.Api` and `Spark.Nodes.Core` — note CS1591 already forces them to *exist*, so this is about whether they are any good), **`E10-T12`** changelog fragments, and **`E10-T14`** the website, which waits on [Q8](PRD.md#14-open-questions). **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Next action** | **`E12-T19`: find where the fifteen seconds goes, before changing anything.** What is known: not the solver, not the evaluator, not the scheduler, and the graph produces **three objects**. What is not: whether it is `IBrepKernel` tessellation, the conversion into render packages, or the GL buffer build — and those are three different fixes. **Time them separately first**; the last two attempts at this shape both started with a wrong hypothesis ([N86](NOTES.md)). A `--graph solids` run with the viewport pane hidden would separate *scene build* from *upload* cheaply. **Then a budget**, because `bench/` has nothing on tessellation and that is why this was invisible. The Help pass resumes after it: `E10-T3` the help index, then `E11-T2`'s XML `<example>` half. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**2060** over **nine** projects: Geometry.Tests 763, UI.Tests 560, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 71**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
@@ -4375,3 +4375,49 @@ document.
 
 **Verified.** Build clean at 0 warnings. `UI.Tests` 546 -> 560. Suite **2,060** over nine projects,
 0 failed, 0 skipped. `dotnet format` clean.
+
+### 2026-09-01 — Staging a build for a hands-on, and finding a 15-second stall
+
+**What.** No code. A staged Release build, a question answered, and [N86](NOTES.md).
+
+**The build runs and the headline works.** `scripts/publish.ps1` stages 225 MB, the solids demo
+opens, and the viewport shows what M6 promised: a shelled cylinder unioned onto a plate, a plain
+box, a filleted box, all through OCCT. `spark.exe` in the same folder reports the kernel.
+
+**And opening that demo takes eighteen seconds.** Measured against its neighbours and against the
+same graph by every other route:
+
+| | |
+|---|---|
+| Desktop, points | 2.1 s |
+| Desktop, curves | 3.1 s |
+| **Desktop, solids** | **18.2 s** (15.1 / 22.2 / 19.1 over three runs) |
+| `spark export`, same file | **~290 ms** |
+| `GraphEvaluator.Evaluate`, same file, kernel installed | **31-77 ms** |
+
+**So it is not the solver and not the evaluator.** The CLI runs the same 26 nodes through the same
+provider and writes STEP in under a third of a second.
+
+**The first hypothesis was the scheduler and it was wrong.** The desktop runs the parallel scheduler
+and the CLI the sequential one, and `Q14` had already established that OCCT tolerates concurrency
+only under conditions. Timed side by side: sequential 77 ms, parallel 33 ms. **Parallel is the
+faster of the two.**
+
+**The probe that tested it was wronger, and nearly convincing.** Its first run reported 3 ms and
+76 ms — and **three diagnostics**, because the test host had never installed the kernel, so every
+solid operation failed instantly. Both numbers were real; neither was about solids. Printing the
+diagnostic count beside the timing is the only reason that did not become the answer.
+
+**What is left is the path between an evaluated solid and a frame** — tessellating a BRep into a
+mesh, and building the viewport's buffers — for **three objects**. `spark export` never goes
+there, because STEP carries BRep rather than triangles, which is exactly why the CLI does not show
+it.
+
+**This is the gap `E12-T12` named and did not measure.** That pass said in as many words that it did
+not cover the viewport's own render, and nothing in `bench/budgets.jsonc` touches tessellation. The
+one demo that exercises it is fifteen seconds slower than the two that do not, and **no test would
+have said so** — which is the more useful half of this entry. Recorded as `E12-T19` rather than
+fixed in passing, because it deserves the same discipline as the passes did: measure where the time
+goes before changing anything.
+
+**Verified.** No code changed. Suite unchanged at **2,060**.

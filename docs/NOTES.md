@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N63-N85 added)
+**Last updated:** 2026-09-01 (N63-N86 added)
 
 ---
 
@@ -2290,3 +2290,40 @@ the two ways to make the build pass were to move the file or to weaken the check
 Moving it was right, and the guide now says so in its own first paragraph so the next person does
 not repeat it. **The tempting fix — narrowing the harness to `docs/help/concepts/` — would have
 traded a real invariant for one file's convenience.**
+
+## N86 — The solids demo stalls for 15 seconds, and it is not the solver
+
+Staging a build for a hands-on and opening `--graph solids` took **18 seconds**. Measured against
+the other two demos and against the same graph through other paths:
+
+| | |
+|---|---|
+| Desktop, points demo | 2.1 s |
+| Desktop, curves demo | 3.1 s |
+| **Desktop, solids demo** | **18.2 s**, three runs 15.1 / 22.2 / 19.1 |
+| `spark export` on the same file, 4 runs | 649 ms cold, then **~290 ms** |
+| `GraphEvaluator.Evaluate` on the same file, kernel installed | **31-77 ms** |
+
+**So it is not the solid modelling and not the evaluator.** The CLI opens the same `.spark`, runs
+the same 26 nodes through the same OCCT provider and writes STEP in under a third of a second. The
+engine's own evaluation of it is under a tenth of that.
+
+**Nor is it the scheduler**, which was the first hypothesis, because the desktop runs
+`ParallelEvaluationScheduler` and the CLI runs `SequentialEvaluationScheduler`. Timed side by side
+on the same graph with the kernel installed: sequential 77 ms, parallel 33 ms. The parallel one is
+faster.
+
+**A probe that measures the wrong thing looks like an answer.** The first run of that comparison
+reported 3 ms and 76 ms — and **three diagnostics**, because the test host had not installed the
+kernel, so every solid operation failed immediately. Both numbers were real and neither was about
+solids. Asserting the diagnostic count is what caught it.
+
+**What is left is the path between an evaluated solid and a frame**: tessellating a BRep into a
+mesh and building the viewport's buffers. The status bar reports **three objects** for that graph,
+so it is fifteen seconds for three solids. `spark export` never goes there — STEP carries BRep,
+not triangles — which is exactly why the CLI does not show it.
+
+**This is the gap `E12-T12` named and did not measure.** That pass said in as many words that it did
+not cover *the viewport's own render*; nothing in `bench/budgets.jsonc` touches tessellation. The
+one demo that exercises it is fifteen seconds slower than the two that do not, and no test would
+have said so.
