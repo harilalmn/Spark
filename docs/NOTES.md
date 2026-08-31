@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N49-N59 added)
+**Last updated:** 2026-08-31 (N49-N61 added)
 
 ---
 
@@ -1685,3 +1685,45 @@ output and the harness's job is the documents somebody wrote.
 
 Worth recording because the same shape will recur: **anything the build copies into `artifacts/`
 becomes a second copy of a file some other gate has opinions about.**
+
+## N60 — OpenCascade is 23% of the payload, and the payload is 224 MB
+
+**R15 bracketed the installer growth at 40–160 MB uncompressed and unmeasured, and the whole
+bracket was about the wrong thing.** The first staged `win-x64` build weighs:
+
+| | |
+|---|---|
+| **total** | **224.4 MB** |
+| the solid-modelling kernel | 52.0 MB (58 native DLLs) |
+| everything else | 172.4 MB |
+
+**OpenCascade is 23% of it.** The other 77% is the framework-dependent .NET publish: Roslyn for
+code blocks, Avalonia and its Skia and HarfBuzz natives, and the rest of the managed surface — all
+of which was there before ADR-0020 and none of which anybody had weighed either.
+
+**Two things follow, and the second is the useful one.** The kernel's contribution is well inside
+R15's bracket and nowhere near the 100 MB that would have reopened *shipping OCCT by default*. And
+**if the installer is ever too big, OpenCascade is not where to look first** — which is the opposite
+of what R15's framing would have led somebody to do.
+
+**The kernel's number can come down and has not been made to.** The transitive DLL closure of
+`spark_occt.dll` is **45.1 MB** ([N53](NOTES.md)); the staging step copies all 52.0 MB because that
+is what the vcpkg port installed, and trimming to the closure is `E13-T17` work that has been
+measured rather than done. The 6.9 MB difference is `TKXMesh`, `TKRWMesh`, `TKBin*`, `TKXml*`,
+`TKOpenGl`, `TKMeshVS` and friends: real, and small next to the 172.4.
+
+## N61 — `--self-contained` is a licence decision here, not a packaging one
+
+`scripts/publish.ps1` publishes **framework-dependent**, with `PublishSingleFile=false` and
+`PublishTrimmed=false`, and it is worth writing down that this is not a default nobody revisited.
+
+The LGPL relink obligation needs OpenCascade to ship as **unmodified, replaceable shared
+libraries**. A single-file bundle that unpacks to a temp directory does not obviously preserve a
+user's ability to replace one; NativeAOT does not preserve it at all. So the two switches that
+would most obviously shrink or tidy the payload are the two that are foreclosed, and an
+architecture test (`NothingPublishesSingleFileOrNativeAot`) stops either being turned on by
+somebody optimising in good faith.
+
+**This is `E12-T8` constrained by a decision taken after it was written**, which is exactly the
+shape ADR-0020 warned its consequences would have. *Nothing here is legal advice — `Q13` item 2 is
+with counsel.*

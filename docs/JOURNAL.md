@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 09:25 +0530
+**Last updated:** 2026-08-31 10:05 +0530
 **Protocol version:** 2
 
 ---
@@ -16,14 +16,14 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1, M1.5, M2, M3 and M4 are done. M5 is substantially done** (the software renderer and CI visual regression, `E11-T16`, are **deferred past M6** deliberately). **M6 delivers its headline sentence** - solids that can be combined, filleted, shelled, **trimmed** and **exported to STEP**. **M1.6 was taken**: `C1`, `C2`, `C3`, `C7` and `C8` are answered and `C2` passed, so ADR-0020 stands |
-| **Working on** | Nothing. Between steps, inside M6 |
+| **Milestone** | **M1, M1.5, M2, M3 and M4 are done. M5 is substantially done** (the software renderer and CI visual regression, `E11-T16`, are **deferred past M6** deliberately). **M6 is complete as far as engineering goes**: solids that can be combined, filleted, shelled, trimmed and exported to STEP; the provider, its CI job, its licence obligations and its measured payload. **M1.6 is taken** — `C1` … `C9` are all answered and `C2` passed, so ADR-0020 stands. **What is left of M6 needs a person, not a commit** — see *Blocked on*. |
+| **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Draft angles, and the licence obligations met by the pipeline** — `E13-T8` closes, `E13-T16` lands everything that does not need counsel, and `E12-T18`'s command-line half. `THIRD-PARTY-NOTICES.md`, `licences/`, and a `spark_occt.buildkey.json` written beside the binaries recording exactly what they were built from, all staged with the binaries and asserted by four architecture tests. |
+| **Last completed step** | **`Q15` closed as `D18`, the native CI job, and the payload measured.** The ubuntu leg survives and never builds the provider; a `native` job on Windows builds the shim behind two caches and **fails on a non-zero skip count**. `scripts/publish.ps1` stages a folder that runs: **224.4 MB, of which OpenCascade is 52.0 MB — 23%**, which is the opposite of what R15's framing suggested. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M6 is down to **two pipeline rows and three things that need a person**. The rows: **`E13-T15`** (per-RID build and cache, keyed on `(occt-tag, vcpkg-baseline, shim-source-hash, rid)` — the key is written now, so what is left is the CI job that consumes it) and **`E13-T17`** (distribution, against the measured **45.1 MB**). Both are inseparable from **Q15(c)**, whether the ubuntu CI leg survives, which is a decision rather than a task. **The three that need a person**: `E13-T12`'s acceptance (a public corpus and a *third-party viewer*), `Q13`'s counsel questions, and `E12-T18`'s About box, which needs a dialog that does not exist yet. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1762**: Geometry.Tests 763, UI.Tests 439, Engine.Tests 367, Viewport.Tests 74, Geometry.Properties 43, **Geometry.Occt.Tests 56**, Architecture.Tests 15, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, and `spark export --open docs/examples/solids.spark --out OUT.step`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
-| **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ **or STEP** in a third-party viewer (M1's stated acceptance, and `E13-T12`'s), watching the first nightly benchmark run, and deciding **Q15(c)** — whether the ubuntu CI job survives now that **D16** has removed its release argument and `E13-T15` has priced its native half. |
+| **Next action** | **M6's engineering is done and the remaining rows want a person rather than a commit** — read *Blocked on*. If work continues without one, the largest honest item is **`E11-T16`**, the software renderer and the CI visual regression, deliberately deferred past M6 on 2026-08-31 and now the biggest thing M5 still owes. After that, M7. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`** — each is `In progress` for a stated reason that is not a missing commit. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1762**: Geometry.Tests 763, UI.Tests 439, Engine.Tests 367, Viewport.Tests 74, Geometry.Properties 43, **Geometry.Occt.Tests 56**, Architecture.Tests 15, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Blocked on** | **Four things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. **(4)** Opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance. *And still: watching the first nightly benchmark run.* |
 
 **Step status vocabulary**, and it means exactly this:
 
@@ -2703,3 +2703,65 @@ advice**.
 **Verified.** Shim builds with zero warnings; its C smoke test drafts a box and checks the face
 count stays six; build clean with `-warnaserror`; **1,762 tests, 0 failures, 0 skipped**
 (Geometry.Occt 54 → 56, Architecture 11 → 15); `dotnet format` clean; docs harness green.
+
+### 2026-08-31 — `Q15` closes, the shim gets a CI job, and the payload is finally weighed
+
+**`E13-T15` and `E13-T17`; `Q15(c)` decided and recorded as `D18`.** The last two rows of M6 that
+are engineering rather than an errand for a person.
+
+**`Q15(c)` was one question wearing two arguments, and only one of them survives D16.** The ubuntu
+CI leg was justified as a **rot-guard** — the thing that stopped cross-platform support decaying and
+kept ADR-0001's Avalonia investment real. D16 voids that completely: there is no option left to keep
+alive. But the leg has independently caught a real defect ([N28](NOTES.md)), and *that* is a
+different argument — a **second implementation of the same arithmetic**, on a different libc, a
+different floating-point library and a different culture default. It never depended on shipping a
+Linux build.
+
+**So the leg survives and never builds the provider.** Building OpenCascade for `linux-x64` in CI
+would cost an hour per cache miss to guard a platform nobody ships: the expensive half of the
+argument is exactly the half D16 killed. And because `Spark.Geometry.Occt.Tests` skips itself when
+the shim is absent, the ubuntu leg becomes a **standing test of the supported no-provider
+configuration** for nothing at all. **D18**, and `Q15` closes.
+
+**The native job caches twice, and the split matters.** OpenCascade is cached on
+`(occt-tag, vcpkg-baseline)` alone — editing the shim must not throw away an hour of dependency
+build — and the shim on the full `(occt-tag, vcpkg-baseline, shim-source-hash, rid)`, **the same key
+`build-native.ps1` writes beside the binaries**, because an artefact and the thing that identifies it
+must not be able to disagree.
+
+**And the job fails on a non-zero skip count**, which is the one failure this arrangement could
+otherwise hide: a green provider run that skipped everything looks exactly like a green provider run.
+
+**R15's bracket is measured, and it was about the wrong thing.** The staged `win-x64` payload:
+
+| | |
+|---|---|
+| **total** | **224.4 MB** |
+| the solid-modelling kernel | 52.0 MB (58 native DLLs) |
+| everything else | 172.4 MB |
+
+**OpenCascade is 23% of it.** The other 77% is the framework-dependent .NET publish — Roslyn,
+Avalonia, Skia, HarfBuzz — which was there before ADR-0020 and which nobody had weighed either. The
+kernel is well inside R15's 40–160 MB bracket and nowhere near the 100 MB that would have reopened
+shipping it by default. **If the installer is ever too big, OpenCascade is not where to look
+first**, which is the opposite of what R15's framing would have led somebody to do. [N60](NOTES.md).
+
+**The publish is framework-dependent on purpose, and that is a licence decision rather than a
+packaging one.** The LGPL relink obligation needs OpenCascade to ship unmodified and replaceable; a
+single-file bundle that unpacks to a temp directory does not obviously preserve that and NativeAOT
+does not preserve it at all. So the two switches that would most obviously shrink the payload are
+the two that are foreclosed, and `NothingPublishesSingleFileOrNativeAot` stops either being turned
+on by somebody optimising in good faith. [N61](NOTES.md).
+
+**Verified from the staged folder rather than from the build tree**, which is the only verification
+that means anything for a distribution row: `spark.exe --version` prints the OpenCascade version and
+the notice the exception requires; `spark.exe export --open docs/examples/solids.spark --out
+part.step` writes 9 solids and 74 faces; and `Spark.Desktop.exe --graph solids --screenshot` renders
+the drilled box-and-cylinder, the hollowed box and the rounded box, with 837 distinct colours.
+
+**What still needs a person, and no script can do:** the installer, code signing and the antivirus
+submissions, none of which can invent an identity to sign with. `E13-T12`'s acceptance — a public
+corpus and a third-party viewer. `Q13`'s counsel questions. `E12-T18`'s About box.
+
+**Verified.** Build clean with `-warnaserror`; **1,762 tests, 0 failures, 0 skipped**;
+`dotnet format` clean; docs harness green; the CI workflow parses and now has four jobs.

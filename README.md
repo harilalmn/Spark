@@ -226,6 +226,18 @@ hour-long dependency compile is a build that looks hung. It stages `artifacts/na
 which is gitignored, and the application finds it there without being told. Setting
 `SPARK_OCCT_PATH` overrides where it looks.
 
+**Staging a build that runs:**
+
+```powershell
+pwsh scripts/publish.ps1
+```
+
+That produces `artifacts/publish/win-x64/` — the application, `spark.exe`, the native provider, the
+licence texts and the notices — and prints what it weighs. **224.4 MB, of which OpenCascade is 52.0
+MB.** It is deliberately *not* self-contained, single-file or NativeAOT: the LGPL relink obligation
+needs OpenCascade to stay replaceable, and an architecture test stops anybody turning those on by
+accident. It is a folder that runs, not an installer.
+
 **Without it, Spark still runs.** The solid operations are greyed out and a graph that reaches one
 gets a sentence saying what is missing — that is a supported configuration, not a broken install
 ([ADR-0021](docs/adr/0021-brep-kernel-residency.md)). `Spark.Geometry.Occt.Tests` **skips** rather

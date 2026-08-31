@@ -1229,11 +1229,13 @@ which goes from 14 weeks to **20–24**.
       OpenCascade's own and meant for its developers; and the checker runs **on demand** through
       `OcctBrepKernel.Check` rather than in every Debug operation, because running it inside each
       one would make an exact kernel slower to answer a question nobody asked.*
-- [ ] The Linux CI leg still runs, on a **cached per-RID artefact keyed on
-      `(occt-tag, vcpkg-baseline, shim-source-hash, rid)`**, with the from-clean build nightly
-      (**E13-T15**). *ADR-0001 justified the rot-guard as a rot-guard because it was nearly
-      free. It is not free any more, and **without the cache it will not survive a busy PR
-      queue**.*
+- [x] The Linux CI leg still runs — **managed-only**, and the caching moves to the Windows
+      native job, keyed on `(occt-tag, vcpkg-baseline, shim-source-hash, rid)` (**E13-T15**,
+      **D18**). *This criterion assumed the Linux leg would need the provider. It does not:
+      **D16** voids the rot-guard argument entirely, and what survives — a second implementation
+      of the same arithmetic, on a different libc and a different culture default — never depended
+      on shipping Linux. So the expensive half is dropped and the cheap half is kept, and the leg
+      becomes a standing test of the supported no-provider configuration for nothing.*
 - [ ] STEP AP203/AP214/**AP242** and IGES read and write, validated against a public corpus and
       a **third-party viewer, never our own reader** (**E13-T12**). *OCCT wrote the exporter;
       that is not evidence our use of it is right.*

@@ -1,13 +1,22 @@
 name: CI
 
-# Windows is the v1 release target (decision D14). Linux is built and tested anyway,
-# because it is nearly free and it is the only thing that stops cross-platform support
-# rotting silently — which would quietly turn the Avalonia decision (ADR-0001) into
-# wasted effort. No Linux artefacts are published; the job exists to keep the option real.
+# Windows is the ONLY operating system Spark supports, ever (decision D16). The ubuntu leg
+# survives that decision and the reason has changed with it — see D18.
+#
+# It is no longer a rot-guard: there is no cross-platform option left to keep alive, so that
+# argument is void. What it is now is a SECOND IMPLEMENTATION OF THE SAME ARITHMETIC. A
+# different libc, a different floating-point library and a different culture default have
+# already caught a real defect here that Windows could not (NOTES.md N28), and that argument
+# never depended on shipping a Linux build.
+#
+# THE UBUNTU LEG NEVER BUILDS THE NATIVE PROVIDER, and that is what makes it affordable.
+# Building OpenCascade for linux-x64 would cost an hour of CI per cache miss to guard a
+# platform nobody ships. Instead the leg runs managed-only, and
+# `Spark.Geometry.Occt.Tests` skips itself — which turns it into a standing test of the
+# supported no-provider configuration (ADR-0021) for free.
 #
 # macOS is deliberately not built. Shipping there needs a paid Apple Developer account
-# and notarization in CI, and until that is arranged a macOS job would only ever be a
-# job we ignore.
+# and notarization in CI, and under D16 it is not shipped at all.
 
 on:
   push:
@@ -72,6 +81,106 @@ jobs:
       - name: No native binaries in Spark.Geometry
         shell: bash
         run: bash scripts/check-no-native-binaries.sh
+
+  native:
+    name: Native provider (win-x64)
+    runs-on: windows-latest
+
+    # E13-T15. The shim is built here and nowhere else. The cache key is exactly the build key
+    # `scripts/build-native.ps1` writes beside the binaries — (occt-tag, vcpkg-baseline,
+    # shim-source-hash, rid) — because the artefact and the thing that identifies it must not be
+    # able to disagree. R22 depends on that, and so does the steady-state cost: a run that changes
+    # nothing about the shim or the port downloads instead of building.
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      # The three parts of the key, computed before anything is built so the cache can be
+      # consulted first. `vcpkg.json` carries the OpenCascade version and the vcpkg baseline;
+      # the shim hash is over its own sources, because an edit that is not committed still
+      # changes the artefact.
+      - name: Compute the build key
+        id: key
+        shell: pwsh
+        run: |
+          $manifest = Get-Content native/spark_occt/vcpkg.json -Raw | ConvertFrom-Json
+          $occt = ($manifest.overrides | Where-Object { $_.name -eq 'opencascade' }).version
+          $baseline = $manifest.'builtin-baseline'
+
+          $files = Get-ChildItem -Path native/spark_occt/include, native/spark_occt/src -File |
+              Sort-Object -Property Name
+          $joined = ($files | ForEach-Object { (Get-FileHash -Algorithm SHA256 $_.FullName).Hash }) -join ''
+          $bytes = [System.Text.Encoding]::UTF8.GetBytes($joined)
+          $stream = New-Object System.IO.MemoryStream(, $bytes)
+          $shim = (Get-FileHash -Algorithm SHA256 -InputStream $stream).Hash.Substring(0, 16)
+
+          "occt=$occt"                                        >> $env:GITHUB_OUTPUT
+          "baseline=$baseline"                                >> $env:GITHUB_OUTPUT
+          "shim=$shim"                                        >> $env:GITHUB_OUTPUT
+          "key=occt-$occt-$($baseline.Substring(0,12))-$shim-win-x64" >> $env:GITHUB_OUTPUT
+
+      # The OpenCascade install is cached on its own key, without the shim hash: editing the
+      # shim must not throw away an hour of dependency build.
+      - name: Cache OpenCascade
+        id: occt
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\vcpkg\installed
+            C:\vcpkg\packages
+          key: occt-${{ steps.key.outputs.occt }}-${{ steps.key.outputs.baseline }}-win-x64
+
+      - name: Install OpenCascade
+        if: steps.occt.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          Write-Host 'Building OpenCascade from the pinned port. This takes about an hour.'
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install opencascade:x64-windows
+
+      - name: Build the shim
+        shell: pwsh
+        run: ./scripts/build-native.ps1 -VcpkgRoot $env:VCPKG_INSTALLATION_ROOT
+
+      # The staged payload, licences and build key together. E13-T17 measures against this.
+      - name: Measure the payload
+        shell: pwsh
+        run: |
+          $bytes = (Get-ChildItem artifacts/native/win-x64 -Recurse -File |
+              Measure-Object -Property Length -Sum).Sum
+          Write-Host ("staged payload: {0:N1} MB" -f ($bytes / 1MB))
+
+          $key = Get-Content artifacts/native/win-x64/spark_occt.buildkey.json -Raw
+          Write-Host $key
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spark_occt-win-x64
+          path: artifacts/native/win-x64
+          retention-days: 14
+
+      # And the provider's own tests, which SKIP on every other job and must not skip here.
+      # A green run that skipped everything is the failure this step exists to catch.
+      - name: Test the provider
+        shell: pwsh
+        run: |
+          dotnet build tests/Spark.Geometry.Occt.Tests --configuration Release
+          $output = & ./tests/Spark.Geometry.Occt.Tests/bin/Release/net10.0/Spark.Geometry.Occt.Tests.exe
+          $output | Write-Host
+
+          $summary = $output | Select-String -Pattern 'Total: (\d+).*Failed: (\d+).*Skipped: (\d+)'
+
+          if (-not $summary) { throw 'The provider tests printed no summary.' }
+
+          $failed = [int]$summary.Matches[0].Groups[2].Value
+          $skipped = [int]$summary.Matches[0].Groups[3].Value
+
+          if ($failed -ne 0) { throw "$failed provider test(s) failed." }
+          if ($skipped -ne 0) { throw "$skipped provider test(s) SKIPPED - the shim was not found." }
 
   format:
     name: Format
