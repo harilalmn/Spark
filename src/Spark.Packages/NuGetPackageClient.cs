@@ -9,6 +9,7 @@ using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
+using NuGet.Versioning;
 
 namespace Spark.Packages;
 
@@ -167,35 +168,20 @@ public sealed class NuGetPackageClient
 
             Directory.CreateDirectory(staging);
 
-            using (MemoryStream nupkg = new())
-            {
-                FindPackageByIdResource? source = await _repository
-                    .GetResourceAsync<FindPackageByIdResource>(cancellationToken).ConfigureAwait(false);
-
-                if (source is null)
-                {
-                    throw new SparkPackageException($"The feed at {Source} cannot serve package downloads.");
-                }
-
-                bool copied = await source.CopyNupkgToStreamAsync(
-                    identity.Id,
-                    NuGet.Versioning.NuGetVersion.Parse(identity.Version),
-                    nupkg,
-                    _cache,
-                    NullLogger.Instance,
-                    cancellationToken).ConfigureAwait(false);
-
-                if (!copied || nupkg.Length == 0)
-                {
-                    throw new SparkPackageException($"The feed at {Source} has no '{identity}'.");
-                }
-
-                nupkg.Position = 0;
-                Extract(nupkg, staging);
-            }
+            await DownloadIntoAsync(identity, staging, cancellationToken).ConfigureAwait(false);
 
             SparkPackageManifest manifest = ReadManifest(staging, identity);
-            PackageDisclosure disclosure = PackageInspector.Inspect(staging, identity);
+
+            IReadOnlyList<PackageIdentity> dependencies =
+                await StageDependenciesAsync(staging, cancellationToken).ConfigureAwait(false);
+
+            PackageDisclosure disclosure = PackageInspector.Inspect(staging, identity) with
+            {
+                // What will actually be installed, resolved and transitive, rather than the direct
+                // ids the nuspec happens to name. Agreeing to one package should not silently
+                // agree to five, and the only way to say how many is to have resolved them.
+                Dependencies = [.. dependencies.Select(dependency => dependency.ToString())],
+            };
 
             return new PendingInstall(identity, staging, store.FolderFor(identity), manifest, disclosure);
         }
@@ -232,6 +218,151 @@ public sealed class NuGetPackageClient
 
         pending.Commit();
         return pending.Manifest;
+    }
+
+    /// <summary>The folder inside a package that holds the dependencies installed with it.</summary>
+    /// <remarks>
+    /// <b>Inside the package's own folder rather than shared</b>, which is the trade-off this
+    /// layer already made: <i>a package version's folder is a copy of what it needs</i>. Two
+    /// packages depending on the same library each get their own copy, and in exchange removing a
+    /// package removes exactly what it brought, and no package can be broken by another's
+    /// uninstall. The dotted name keeps it out of the way of anything the package itself ships.
+    /// </remarks>
+    public const string DependencyFolder = ".deps";
+
+    /// <summary>The most dependencies one install will pull in before it refuses.</summary>
+    /// <remarks>
+    /// A ceiling rather than a promise about any particular package. A Spark package is a node
+    /// library; one that drags in eighty NuGet packages is either a mistake or something the user
+    /// should be told about before it lands on their disk, and either way stopping and saying so
+    /// is better than a download that appears to hang.
+    /// </remarks>
+    public const int DependencyCeiling = 64;
+
+    /// <summary>Downloads one package version and extracts it into a folder.</summary>
+    private async Task DownloadIntoAsync(
+        PackageIdentity identity, string folder, CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(folder);
+
+        using MemoryStream nupkg = new();
+
+        FindPackageByIdResource? source = await _repository
+            .GetResourceAsync<FindPackageByIdResource>(cancellationToken).ConfigureAwait(false);
+
+        if (source is null)
+        {
+            throw new SparkPackageException($"The feed at {Source} cannot serve package downloads.");
+        }
+
+        bool copied = await source.CopyNupkgToStreamAsync(
+            identity.Id,
+            NuGet.Versioning.NuGetVersion.Parse(identity.Version),
+            nupkg,
+            _cache,
+            NullLogger.Instance,
+            cancellationToken).ConfigureAwait(false);
+
+        if (!copied || nupkg.Length == 0)
+        {
+            throw new SparkPackageException($"The feed at {Source} has no '{identity}'.");
+        }
+
+        nupkg.Position = 0;
+        Extract(nupkg, folder);
+    }
+
+    /// <summary>
+    /// Walks the staged package's dependencies and stages them beside it (<c>E7-T2</c>).
+    /// </summary>
+    /// <param name="staging">The root package's staging folder.</param>
+    /// <param name="cancellationToken">Cancels the downloads.</param>
+    /// <returns>Everything staged, transitively, in the order it was resolved.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Breadth-first over the nuspec, because that is what a package declares.</b> Each level's
+    /// dependencies are read out of the <c>.nuspec</c> that was just extracted, so the walk sees
+    /// exactly what will be on disk rather than what a separate metadata query claims.
+    /// </para>
+    /// <para>
+    /// <b>The lowest version satisfying the range, which is NuGet's own rule.</b> Taking the
+    /// highest would mean two installs of the same package on different days quietly getting
+    /// different code, which is the behaviour that makes *it works on my machine* possible.
+    /// </para>
+    /// <para>
+    /// <b>A dependency that cannot be resolved is reported, not skipped.</b> The alternative is a
+    /// <c>TypeLoadException</c> at first use naming an assembly the user has never heard of, at a
+    /// moment when nothing on screen connects it to an install they did last week.
+    /// </para>
+    /// </remarks>
+    private async Task<IReadOnlyList<PackageIdentity>> StageDependenciesAsync(
+        string staging, CancellationToken cancellationToken)
+    {
+        List<PackageIdentity> staged = [];
+        HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
+        Queue<string> folders = new();
+        folders.Enqueue(staging);
+
+        string deps = Path.Combine(staging, DependencyFolder);
+
+        while (folders.Count > 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            foreach ((string id, VersionRange range) in PackageInspector.DependenciesIn(folders.Dequeue()))
+            {
+                if (!seen.Add(id))
+                {
+                    continue;
+                }
+
+                if (staged.Count >= DependencyCeiling)
+                {
+                    throw new SparkPackageException(
+                        $"This package needs more than {DependencyCeiling} other packages. That is "
+                        + "more than Spark will install in one step; it has not been installed.");
+                }
+
+                PackageIdentity resolved = await ResolveAsync(id, range, cancellationToken)
+                    .ConfigureAwait(false);
+
+                string folder = Path.Combine(deps, resolved.FolderName);
+
+                await DownloadIntoAsync(resolved, folder, cancellationToken).ConfigureAwait(false);
+
+                staged.Add(resolved);
+                folders.Enqueue(folder);
+            }
+        }
+
+        return staged;
+    }
+
+    /// <summary>Picks the lowest version on the feed that satisfies a range.</summary>
+    private async Task<PackageIdentity> ResolveAsync(
+        string id, VersionRange range, CancellationToken cancellationToken)
+    {
+        FindPackageByIdResource? source = await _repository
+            .GetResourceAsync<FindPackageByIdResource>(cancellationToken).ConfigureAwait(false);
+
+        if (source is null)
+        {
+            throw new SparkPackageException($"The feed at {Source} cannot serve package downloads.");
+        }
+
+        IEnumerable<NuGetVersion> versions = await source
+            .GetAllVersionsAsync(id, _cache, NullLogger.Instance, cancellationToken).ConfigureAwait(false);
+
+        NuGetVersion? best = range.FindBestMatch(versions.Where(version => !version.IsPrerelease));
+
+        if (best is null)
+        {
+            throw new SparkPackageException(
+                $"This package depends on '{id}' {range.PrettyPrint()}, and the feed at {Source} has "
+                + "no version that satisfies it. Nothing has been installed.");
+        }
+
+        return new PackageIdentity(id, best.ToNormalizedString());
     }
 
     private static void Sweep(string folder)

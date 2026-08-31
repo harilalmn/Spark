@@ -274,6 +274,137 @@ public sealed class PackageManagerTests : IDisposable
         Assert.True(store.IsInstalled(PackageIdentity.Create("ACME.NODES", "1.0.0")));
     }
 
+    /// <summary>
+    /// <b>A package laid out the way <c>dotnet pack</c> lays one out.</b> This is the shape every
+    /// package on nuget.org has, and it did not load at all until <c>E7-T2</c>: extraction is
+    /// verbatim, so the assembly lands at <c>lib/net10.0/Acme.Nodes.dll</c>, and a context that
+    /// looked only at the package root reported <i>has no assembly Acme.Nodes.dll</i>.
+    /// </summary>
+    /// <remarks>
+    /// Every other test in this file passed throughout, because every other test package is
+    /// hand-built flat. That is the whole reason this test exists in this shape.
+    /// </remarks>
+    [Fact]
+    public async Task APackageWithTheOrdinaryNuGetLayoutLoads()
+    {
+        PackageIdentity identity = PackageIdentity.Create("Acme.Packed", "1.0.0");
+        BuildPackedAround(identity, typeof(Spark.Nodes.Core.Point).Assembly, ["net10.0"]);
+
+        PackageStore store = new(_store);
+        await Client().InstallAsync(identity, store, TestContext.Current.CancellationToken);
+
+        NodeLibrary library = new();
+        PackageLoadReport report = new PackageManager(store, library).Load(identity);
+
+        Assert.Empty(report.Problems);
+        Assert.True(report.Nodes > 50, $"expected the packaged assembly's nodes, got {report.Nodes}");
+    }
+
+    /// <summary>
+    /// <b>Given several framework folders, the nearest is chosen</b> — not the first, not the
+    /// last, and not the alphabetically smallest. <c>NuGet.Frameworks</c> owns that decision here,
+    /// because choosing between <c>net8.0</c>, <c>netstandard2.0</c> and <c>net472</c> for a
+    /// <c>net10.0</c> host looks like three lines of string comparison and is not.
+    /// </summary>
+    [Fact]
+    public async Task TheNearestFrameworkFolderIsChosen()
+    {
+        PackageIdentity identity = PackageIdentity.Create("Acme.Multi", "1.0.0");
+
+        // netstandard2.0 first in the archive and net10.0 last, so a first-match rule would fail.
+        BuildPackedAround(
+            identity, typeof(Spark.Nodes.Core.Point).Assembly, ["netstandard2.0", "net472", "net10.0"]);
+
+        PackageStore store = new(_store);
+        await Client().InstallAsync(identity, store, TestContext.Current.CancellationToken);
+
+        PackageLoadContext context = new(identity, store.FolderFor(identity));
+
+        Assert.Equal(
+            Path.Combine(store.FolderFor(identity), "lib", "net10.0"),
+            context.ProbePaths[0]);
+
+        // And the package root stays last, so a flat package is still resolvable.
+        Assert.Equal(Path.GetFullPath(store.FolderFor(identity)), context.ProbePaths[^1]);
+    }
+
+    /// <summary>
+    /// A flat package — a private feed, a hand-assembled archive, a local build folder —
+    /// still resolves. Adding the <c>lib</c> convention must not remove the simple case.
+    /// </summary>
+    [Fact]
+    public async Task AFlatPackageStillResolves()
+    {
+        PackageIdentity identity = PackageIdentity.Create("Acme.Flat", "1.0.0");
+        BuildPackageAround(identity, typeof(Spark.Nodes.Core.Point).Assembly);
+
+        PackageStore store = new(_store);
+        await Client().InstallAsync(identity, store, TestContext.Current.CancellationToken);
+
+        PackageLoadContext context = new(identity, store.FolderFor(identity));
+
+        Assert.Equal(Path.GetFullPath(store.FolderFor(identity)), Assert.Single(context.ProbePaths));
+    }
+
+    /// <summary>
+    /// A <c>lib</c> folder holding nothing this build can use falls back to the package root rather
+    /// than resolving nothing at all.
+    /// </summary>
+    [Fact]
+    public async Task AnUnusableLibFolderFallsBackToTheRoot()
+    {
+        PackageIdentity identity = PackageIdentity.Create("Acme.Ancient", "1.0.0");
+        BuildPackedAround(identity, typeof(Spark.Nodes.Core.Point).Assembly, ["net20"], alsoFlat: true);
+
+        PackageStore store = new(_store);
+        await Client().InstallAsync(identity, store, TestContext.Current.CancellationToken);
+
+        NodeLibrary library = new();
+        PackageLoadReport report = new PackageManager(store, library).Load(identity);
+
+        Assert.Empty(report.Problems);
+        Assert.True(report.Nodes > 50, $"expected the flat copy to be found, got {report.Nodes}");
+    }
+
+    /// <summary>Builds a .nupkg with the assembly under lib/{tfm}, as dotnet pack does.</summary>
+    private void BuildPackedAround(
+        PackageIdentity identity,
+        System.Reflection.Assembly assembly,
+        string[] frameworks,
+        bool alsoFlat = false)
+    {
+        string simpleName = assembly.GetName().Name!;
+        string path = Path.Combine(_feed, $"{identity.Id}.{identity.Version}.nupkg");
+
+        using FileStream file = File.Create(path);
+        using ZipArchive archive = new(file, ZipArchiveMode.Create);
+
+        Write(archive, $"{identity.Id}.nuspec", $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+              <metadata>
+                <id>{identity.Id}</id>
+                <version>{identity.Version}</version>
+                <authors>Acme Ltd</authors>
+                <description>Packed the ordinary way.</description>
+                <tags>{SparkPackageManifest.Tag}</tags>
+              </metadata>
+            </package>
+            """);
+
+        Write(archive, SparkPackageManifest.PathInPackage, SparkPackageManifest.Write([simpleName]));
+
+        foreach (string framework in frameworks)
+        {
+            archive.CreateEntryFromFile(assembly.Location, $"lib/{framework}/{simpleName}.dll");
+        }
+
+        if (alsoFlat)
+        {
+            archive.CreateEntryFromFile(assembly.Location, simpleName + ".dll");
+        }
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static WeakReference LoadAndUnload(PackageStore store, PackageIdentity identity)
     {

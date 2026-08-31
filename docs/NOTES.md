@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N63-N76 added)
+**Last updated:** 2026-09-01 (N63-N78 added)
 
 ---
 
@@ -2085,3 +2085,40 @@ actually needs, and the test's own name is still what it checks.
 rather than the machinery's own guarantee, it passes until the machine is busy. Both of these were
 written by the same hand in the same sitting, and both were caught only by running the suite eight
 times in a row rather than once.
+
+## N77 — Every package test passed, and no real package could be installed
+
+`PackageLoadContext` resolved assemblies from exactly one path, `<folder>/<name>.dll`. Extraction is
+verbatim by design — *a package version's folder is a copy of the `.nupkg`'s contents* — and
+`dotnet pack` puts assemblies at `lib/{tfm}/Name.dll`. So **every package on nuget.org would have
+failed to load**, with the message *Package 'X' has no assembly 'Y.dll'*.
+
+Fifty-eight tests covered this layer. All of them passed. Every one of them built its package by
+hand, and every hand-built package put the assembly at the root, because that is the shortest thing
+to write in a test.
+
+**The test that found it was one sentence long**: build the package the way `dotnet pack` builds
+one, then load it. It went red immediately. The fix uses `FrameworkReducer` rather than a
+hand-written ordering, because choosing between `net8.0`, `netstandard2.0` and `net472` for a
+`net10.0` host looks like three lines of string comparison and is not.
+
+**The lesson is about fixtures, not about layout.** A test helper that constructs the subject in the
+convenient shape rather than the real one hides every defect that lives in the difference, and it
+hides them uniformly, so the suite's greenness is evidence of nothing. The dependency tests written
+straight afterwards build their packages with `lib/net10.0/`, and the final check installed a
+package genuinely produced by `dotnet pack` from a project written for the purpose.
+
+## N78 — Dependencies live inside the package's folder, and that is the trade-off restated
+
+`E7-T2` installs a package's dependencies into `.deps/<id>.<version>/` **inside the package's own
+folder**, rather than sharing one copy between packages the way NuGet's global packages folder does.
+
+Two packages depending on the same library therefore each get their own copy. That is the same
+trade-off this layer already made when it chose download-and-extract over restore, and the reasons
+are the same: **removing a package removes exactly what it brought**, no package can be broken by
+another package's uninstall, and the load context stays a rule about file existence in known folders
+rather than a resolver with a graph in it.
+
+The cost is disk. The thing bought is that `PackageLoadContext` remains readable, and that a
+question a user might ask — *what did installing this put on my machine* — has an answer that is one
+folder.

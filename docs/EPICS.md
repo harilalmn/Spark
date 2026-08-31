@@ -666,6 +666,13 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       the disclosure precedes the decision, and every field is read out of the package
       rather than declared by it. Signature is reported as present-but-unverified, never
       as signed.*
+- [x] Installing a package installs **what it needs**: its dependencies are resolved and
+      walked transitively, and packages are read the way NuGet writes them (**E7-T2**).
+      *Finished 2026-09-01, and it began with a blocking defect: the load context probed only
+      the package root, so no package built by `dotnet pack` could load at all. Dependencies
+      are resolved to the lowest version satisfying the range, which is NuGet's own rule, and
+      the disclosure lists what will actually be installed rather than the ids the nuspec
+      happens to name.*
 - [x] A package manager a person can use: search a feed, read what a package is, install it,
       and remove what is installed (**E7-T10**). *Built 2026-08-31. The disclosure is a gate
       rather than a notice — while one is pending the window offers exactly two answers —

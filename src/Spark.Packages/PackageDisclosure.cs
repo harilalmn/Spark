@@ -4,6 +4,8 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using NuGet.Frameworks;
+using NuGet.Versioning;
 
 namespace Spark.Packages;
 
@@ -263,6 +265,112 @@ public static class PackageInspector
             return null;
         }
     }
+
+    /// <summary>
+    /// What one extracted package declares it depends on, for the framework this build is
+    /// (<c>E7-T2</c>).
+    /// </summary>
+    /// <param name="folder">An extracted package folder.</param>
+    /// <returns>Each dependency once, with the version range it asks for.</returns>
+    /// <exception cref="ArgumentException"><paramref name="folder"/> is null or blank.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Only the nearest framework group, not every dependency in the file.</b> A nuspec groups
+    /// its dependencies by target framework, and a package that supports <c>net472</c> as well as
+    /// <c>net10.0</c> usually asks for different things in each — often a whole family of
+    /// compatibility shims this build has no use for. Taking the union would install them.
+    /// </para>
+    /// <para>
+    /// <b>An ungrouped dependency applies to everything</b>, which is what a nuspec written before
+    /// groups existed means, and what one written by hand usually means too.
+    /// </para>
+    /// </remarks>
+    public static IReadOnlyList<(string Id, VersionRange Range)> DependenciesIn(string folder)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(folder);
+
+        if (FindNuspec(folder) is not { } nuspec)
+        {
+            return [];
+        }
+
+        try
+        {
+            XDocument document = XDocument.Load(nuspec);
+
+            List<XElement> groups =
+            [
+                .. document.Descendants().Where(element => element.Name.LocalName == "group"),
+            ];
+
+            IEnumerable<XElement> chosen = groups.Count == 0
+                ? document.Descendants().Where(element => element.Name.LocalName == "dependency")
+                : Nearest(groups);
+
+            Dictionary<string, VersionRange> found = new(StringComparer.OrdinalIgnoreCase);
+
+            foreach (XElement dependency in chosen)
+            {
+                if (dependency.Attribute("id")?.Value is not { Length: > 0 } id)
+                {
+                    continue;
+                }
+
+                // A dependency with no version means "any", which is what NuGet means by it too.
+                found[id] = VersionRange.TryParse(dependency.Attribute("version")?.Value ?? string.Empty, out VersionRange? range)
+                    && range is not null
+                        ? range
+                        : VersionRange.All;
+            }
+
+            return [.. found.Select(entry => (entry.Key, entry.Value))];
+        }
+        catch (Exception failure) when (failure is System.Xml.XmlException
+            or IOException
+            or UnauthorizedAccessException)
+        {
+            // An unreadable nuspec means no dependencies are installed, and the package will fail
+            // loudly at load if it needed any. That is better than guessing at a file we could not
+            // parse and downloading whatever we thought we saw.
+            return [];
+        }
+    }
+
+    /// <summary>The dependency elements of the group nearest this build's framework.</summary>
+    private static IEnumerable<XElement> Nearest(List<XElement> groups)
+    {
+        Dictionary<NuGetFramework, XElement> byFramework = [];
+
+        foreach (XElement group in groups)
+        {
+            // A group with no targetFramework applies to everything.
+            NuGetFramework framework = group.Attribute("targetFramework")?.Value is { Length: > 0 } name
+                ? NuGetFramework.ParseFolder(name)
+                : NuGetFramework.AnyFramework;
+
+            if (!framework.IsUnsupported)
+            {
+                byFramework[framework] = group;
+            }
+        }
+
+        if (byFramework.Count == 0)
+        {
+            return [];
+        }
+
+        NuGetFramework? nearest = new FrameworkReducer().GetNearest(CurrentFramework, byFramework.Keys);
+
+        return nearest is not null && byFramework.TryGetValue(nearest, out XElement? chosen)
+            ? chosen.Descendants().Where(element => element.Name.LocalName == "dependency")
+            : [];
+    }
+
+    /// <summary>The framework this build of Spark is, as NuGet names it.</summary>
+    private static NuGetFramework CurrentFramework { get; } =
+        AppContext.TargetFrameworkName is { Length: > 0 } name
+            ? NuGetFramework.Parse(name)
+            : NuGetFramework.Parse("net10.0");
 
     private static string? FindNuspec(string folder)
     {

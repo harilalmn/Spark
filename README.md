@@ -326,6 +326,11 @@ did. Only then do you get the two buttons. Agreeing is recorded **per version**,
 asks again — a patch release can acquire a native dependency, which is exactly what this
 protects.
 
+Installing a package installs **what it needs**: its NuGet dependencies are resolved, walked
+transitively, and listed by name and version in the disclosure before you agree, because agreeing to
+one package should not silently agree to five. Packages are read the way NuGet writes them, so a
+library built with an ordinary `dotnet pack` works with nothing special done to it.
+
 A package's nodes join the library like any other, keyed by the package so two packages shipping
 an assembly of the same name cannot collide, and they have help the moment they load. *Remove*
 takes them out again; when the code cannot be released without a restart, Spark says so rather than
@@ -352,13 +357,13 @@ to it on its own** when no OpenGL context arrives; the switch exists so the fall
 reached deliberately, which is what a support conversation needs and what lets the path be
 photographed and checked rather than trusted.
 
-The suite is **1,997 tests** across nine projects. `Spark.Geometry.Tests` (763) and
+The suite is **2,010 tests** across nine projects. `Spark.Geometry.Tests` (763) and
 `Spark.Geometry.Properties` (43) cover the kernel by example and by CsCheck property
 respectively; `Spark.Engine.Tests` (414) covers the graph, the replicator and the importer;
 `Spark.UI.Tests` (528) drives the canvas headlessly with real pointer gestures;
 `Spark.Viewport.Tests` (108) covers the scene, the camera and the software rasteriser;
 `Spark.Geometry.Occt.Tests` (63) drives the OpenCascade provider and **skips itself** when the
-native shim is absent; `Spark.Packages.Tests` (58) installs real packages from real feeds;
+native shim is absent; `Spark.Packages.Tests` (71) installs real packages from real feeds;
 `Spark.Architecture.Tests` (15) enforces the reference graph below by reading `.csproj` files as
 XML; and `Spark.Docs.Verify` (5) checks these documents against the repository. The last two were deliberately stood up
 before the code they now guard: a gate added later is a gate that gets an exemption for

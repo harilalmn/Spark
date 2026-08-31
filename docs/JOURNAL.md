@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 04:30 +0530
+**Last updated:** 2026-09-01 06:05 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E7-T6` closes — the banner, and two tests that lied under load.** A graph naming an uninstalled package opens, keeps every node and wire, saves back byte for byte, and now **says which package is missing and offers to find it**. The ids are read off the placeholders, so the banner clears itself. It searches rather than installs, because installing from a banner would skip the disclosure. [N76](NOTES.md): two earlier tests asserted more than the code promises and only said so in a parallel run. |
+| **Last completed step** | **`E7-T2` closes — every package test passed, and no real package could be installed.** The load context probed only the package root while `dotnet pack` writes `lib/{tfm}/` ([N77](NOTES.md)). Fixed with `FrameworkReducer`, then dependencies: the nearest framework group walked transitively, resolved to the **lowest version satisfying the range**, installed into `.deps/` inside the package's own folder ([N78](NOTES.md)). **The disclosure lists what will actually be installed, with versions.** Verified with a package genuinely produced by `dotnet pack`. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E7-T2`'s remaining half: dependency resolution.** Installing a package currently installs **that package alone**; one declaring NuGet dependencies gets none of them, and the failure is a `TypeLoadException` at first use naming an assembly the user never heard of. The disclosure already reads and shows the dependency list, so the information is in hand — what is missing is walking it, resolving versions, and installing into the same folder the load context probes. **Decide and record whether each dependency is disclosed on its own line**, because agreeing to one package should not silently agree to five. Then `E7-T14`, **freeze**, and `E7` closes. After that **M8/`E12`** is all that is left before 1.0. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1997** over **nine** projects: Geometry.Tests 763, UI.Tests 528, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 58**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E7-T14`, freeze, and `E7` closes.** Every other row in the epic is `Done`. Freeze means deciding what in the package surface is now a promise — the manifest schema, the `tools/spark.json` shape, the node key format `Package/Name`, the `.deps` layout, the contract assembly list — and writing that down where a package author will read it, because after 1.0 a change to any of them breaks somebody's published package. **The authoring path is worth documenting at the same time**: this step proved it works by writing a `.csproj`, a `tools/spark.json` and running `dotnet pack`, and nothing in the repository tells anybody how. After that **M8/`E12`** is all that is left before 1.0: embedding, installer, portable zip, release workflow, performance and accessibility. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**2010** over **nine** projects: Geometry.Tests 763, UI.Tests 528, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 71**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T18`'s About box was on this list and should not have been** — it needed a dialog, which is code, and it is done. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3894,3 +3894,62 @@ file will save unchanged*, with **Find Acme.Nodes** beside it. A test asserts th
 back byte for byte. Build clean at 0 warnings. `UI.Tests` 523 -> 528. Suite **1,997** over nine
 projects, 0 failed, 0 skipped, and the UI suite run **eight times** to confirm the flakes are gone.
 `dotnet format` clean.
+
+### 2026-09-01 — `E7-T2` closes: every package test passed, and no real package could be installed
+
+**What.** NuGet-layout resolution in `PackageLoadContext`, a transitive dependency walk in
+`NuGetPackageClient`, `PackageInspector.DependenciesIn`, and thirteen tests. `E7`'s engineering
+rows are now all `Done` bar **freeze**.
+
+**It began with a blocking defect found while planning something else.** The context resolved
+assemblies from exactly one path, `<folder>/<name>.dll`. Extraction is verbatim by design, and
+`dotnet pack` puts assemblies at `lib/{tfm}/Name.dll` — so **every package on nuget.org would have
+failed to load**, saying *Package 'X' has no assembly 'Y.dll'*. Fifty-eight tests covered this
+layer and all of them passed, because every one built its package by hand and put the assembly at
+the root. [N77](NOTES.md) is about that rather than about layout: a fixture that constructs the
+subject in the convenient shape hides every defect living in the difference, and hides them
+uniformly, so the suite's greenness is evidence of nothing.
+
+**The test that found it was one sentence long** — build the package the way `dotnet pack` builds
+one, then load it — and it was written before the fix and went red immediately. `FrameworkReducer`
+picks the folder rather than a hand-written ordering, because choosing between `net8.0`,
+`netstandard2.0` and `net472` for a `net10.0` host looks like three lines of string comparison and
+is not. The package root stays last, so a flat folder from a private feed or a build directory
+still resolves.
+
+**Then dependencies.** The nuspec's **nearest framework group** is walked breadth-first — not every
+group, because a package supporting `net472` as well usually asks for a family of shims this build
+has no use for, and taking the union would install them. Each is resolved to the **lowest version
+satisfying the range**, which is NuGet's own rule: taking the highest would mean two installs on
+different days quietly getting different code.
+
+**The disclosure now lists what will actually be installed**, resolved and transitive, with
+versions. That was the question the last entry left open, and this is the answer: agreeing to one
+package should not silently agree to five, and the only way to say how many is to have resolved
+them. A dependency the feed cannot satisfy **refuses the whole install** rather than producing a
+`TypeLoadException` at first use naming an assembly the user never heard of.
+
+**[N78](NOTES.md): dependencies live inside the package's own folder**, at `.deps/<id>.<version>/`,
+rather than shared. Two packages needing the same library each get a copy. That is the trade-off
+this layer already made when it chose download-and-extract over restore, and the reasons are the
+same: removing a package removes exactly what it brought, no package can be broken by another's
+uninstall, and the load context stays a rule about file existence rather than a resolver.
+
+**Verified with a package that was actually packed.** A project written for the purpose — two node
+methods, a `tools/spark.json`, `dotnet pack` — produced `lib/net10.0/Acme.Nodes.dll`, which is
+precisely the shape that did not work an hour earlier. Spark found it on a folder feed, showed its
+disclosure with publisher and licence read out of the package, and after installing reported
+**Acme.Nodes 1.0.0 — 2 node(s)** with the status bar at **Library: 117 nodes**, 115 core and 2 from
+the package.
+
+**Also proven by inversion.** Disabling the dependency walk turns six of the nine dependency tests
+red; the layout test was red before its fix.
+
+**One honest note about the run.** A single failure appeared in one batch of the suite and was not
+reproduced in five subsequent runs; running the UI tests deliberately alongside two other test
+executables reproduced it as `C4SteadyStateCompletionIsInteractive`, a **wall-clock completion
+budget** that measured 344 ms on a machine running three test processes. It is doing its job —
+[N29](NOTES.md) already says wall-clock ceilings only catch step changes — and it is not touched.
+
+**Verified.** Build clean at 0 warnings. `Packages.Tests` 58 -> 71. Suite **2,010** over nine
+projects, 0 failed, 0 skipped. `dotnet format` clean.

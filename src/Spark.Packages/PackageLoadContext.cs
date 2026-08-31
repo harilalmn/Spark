@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+using NuGet.Frameworks;
 
 namespace Spark.Packages;
 
@@ -59,6 +62,7 @@ namespace Spark.Packages;
 public sealed class PackageLoadContext : AssemblyLoadContext
 {
     private readonly string _folder;
+    private readonly IReadOnlyList<string> _probe;
 
     /// <summary>Creates a collectible context for one package version.</summary>
     /// <param name="identity">The package and version this context holds.</param>
@@ -75,7 +79,14 @@ public sealed class PackageLoadContext : AssemblyLoadContext
 
         Identity = identity;
         _folder = Path.GetFullPath(folder);
+        _probe = ProbeFolders(_folder);
     }
+
+    /// <summary>
+    /// Where this context looks for an assembly, in order: the best <c>lib/{tfm}</c> for the
+    /// running framework, then the package root.
+    /// </summary>
+    public IReadOnlyList<string> ProbePaths => _probe;
 
     /// <summary>The package and version this context holds.</summary>
     public PackageIdentity Identity { get; }
@@ -98,11 +109,12 @@ public sealed class PackageLoadContext : AssemblyLoadContext
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(simpleName);
 
-        string path = Path.Combine(_folder, simpleName + ".dll");
-        if (!File.Exists(path))
+        if (Locate(simpleName) is not { } path)
         {
             throw new FileNotFoundException(
-                $"Package '{Identity}' has no assembly '{simpleName}.dll' in {_folder}.", path);
+                $"Package '{Identity}' has no assembly '{simpleName}.dll' in any of "
+                + string.Join(", ", _probe) + ".",
+                Path.Combine(_folder, simpleName + ".dll"));
         }
 
         return LoadFromAssemblyPath(path);
@@ -125,8 +137,7 @@ public sealed class PackageLoadContext : AssemblyLoadContext
             return null;
         }
 
-        string candidate = Path.Combine(_folder, assemblyName.Name + ".dll");
-        return File.Exists(candidate) ? LoadFromAssemblyPath(candidate) : null;
+        return Locate(assemblyName.Name) is { } candidate ? LoadFromAssemblyPath(candidate) : null;
     }
 
     /// <inheritdoc/>
@@ -147,10 +158,10 @@ public sealed class PackageLoadContext : AssemblyLoadContext
         string rid = RuntimeInformation.RuntimeIdentifier;
         string fileName = Path.GetFileName(unmanagedDllName);
 
-        string[] candidates =
+        List<string> candidates =
         [
             Path.Combine(_folder, "runtimes", rid, "native", fileName),
-            Path.Combine(_folder, fileName),
+            .. _probe.Select(folder => Path.Combine(folder, fileName)),
         ];
 
         foreach (string candidate in candidates)
@@ -163,4 +174,136 @@ public sealed class PackageLoadContext : AssemblyLoadContext
 
         return IntPtr.Zero;
     }
+
+    /// <summary>The first probe folder holding this assembly, or null.</summary>
+    private string? Locate(string? simpleName)
+    {
+        if (string.IsNullOrEmpty(simpleName))
+        {
+            return null;
+        }
+
+        foreach (string folder in _probe)
+        {
+            string candidate = Path.Combine(folder, simpleName + ".dll");
+
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Every folder this context resolves from: the package's own, then each dependency installed
+    /// with it.
+    /// </summary>
+    /// <remarks>
+    /// <b>The package's own folders come first</b>, so an assembly a package ships wins against one
+    /// of the same name it merely depends on. Dependencies are ordered by folder name so the list
+    /// is the same on every run — a probe order that varied would make one machine resolve a
+    /// duplicated assembly differently from another, with nothing on screen to explain it.
+    /// </remarks>
+    private static IReadOnlyList<string> ProbeFolders(string folder)
+    {
+        List<string> probe = [.. FoldersOfOnePackage(folder)];
+
+        // A dependency is an ordinary package folder with its own lib/{tfm} layout, so it is
+        // probed by exactly the same rule.
+        string deps = Path.Combine(folder, NuGetPackageClient.DependencyFolder);
+
+        if (Directory.Exists(deps))
+        {
+            foreach (string dependency in SafeDirectories(deps).OrderBy(path => path, StringComparer.Ordinal))
+            {
+                probe.AddRange(FoldersOfOnePackage(dependency));
+            }
+        }
+
+        return probe;
+    }
+
+    /// <summary>
+    /// Where one package's assemblies actually are: the best <c>lib/{tfm}</c> folder for the
+    /// running framework, then that package's root.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This was missing, and it meant no package built by <c>dotnet pack</c> could load.</b>
+    /// Extraction is verbatim, so a package laid out the ordinary way puts its assembly at
+    /// <c>lib/net10.0/Acme.Nodes.dll</c> — and a context that looked only at the package root
+    /// reported <i>has no assembly Acme.Nodes.dll</i> for every real package on nuget.org. Every
+    /// test passed anyway, because every test package was hand-built flat.
+    /// </para>
+    /// <para>
+    /// <b><c>FrameworkReducer</c> picks the folder, not a hand-written ordering.</b> Choosing
+    /// between <c>net8.0</c>, <c>netstandard2.0</c> and <c>net472</c> for a <c>net10.0</c> host is
+    /// exactly the sort of thing that looks like three lines of string comparison and is not; NuGet
+    /// already owns the answer, and the types are already referenced here.
+    /// </para>
+    /// <para>
+    /// <b>The package root stays in the list, last.</b> A flat folder is what a private feed, a
+    /// hand-assembled package or a local build directory looks like, and refusing those would be a
+    /// restriction nothing asked for.
+    /// </para>
+    /// </remarks>
+    private static IEnumerable<string> FoldersOfOnePackage(string folder)
+    {
+        string lib = Path.Combine(folder, "lib");
+
+        if (!Directory.Exists(lib))
+        {
+            return [folder];
+        }
+
+        Dictionary<NuGetFramework, string> byFramework = [];
+
+        foreach (string candidate in SafeDirectories(lib))
+        {
+            NuGetFramework parsed = NuGetFramework.ParseFolder(Path.GetFileName(candidate));
+
+            if (!parsed.IsUnsupported)
+            {
+                byFramework[parsed] = candidate;
+            }
+        }
+
+        if (byFramework.Count == 0)
+        {
+            return [folder];
+        }
+
+        NuGetFramework? nearest = new FrameworkReducer().GetNearest(Current, byFramework.Keys);
+
+        return nearest is not null && byFramework.TryGetValue(nearest, out string? chosen)
+            ? [chosen, folder]
+            : [folder];
+    }
+
+    private static IEnumerable<string> SafeDirectories(string folder)
+    {
+        try
+        {
+            return Directory.EnumerateDirectories(folder);
+        }
+        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// The framework this build of Spark is, as NuGet names it.
+    /// </summary>
+    /// <remarks>
+    /// Read from <see cref="AppContext.TargetFrameworkName"/> rather than hardcoded, so a Spark
+    /// retargeted to a later framework starts preferring that package folder without anybody
+    /// remembering to come back here.
+    /// </remarks>
+    private static NuGetFramework Current { get; } =
+        AppContext.TargetFrameworkName is { Length: > 0 } name
+            ? NuGetFramework.Parse(name)
+            : NuGetFramework.Parse("net10.0");
 }

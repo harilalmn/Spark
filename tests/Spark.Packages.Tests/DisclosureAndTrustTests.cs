@@ -98,12 +98,22 @@ public sealed class DisclosureAndTrustTests : IDisposable
         Assert.Empty(pending.Disclosure.NativeBinaries);
     }
 
-    /// <summary>Publisher, licence and dependencies are read from the package's own metadata.</summary>
+    /// <summary>
+    /// Publisher, licence and dependencies are read from the package's own metadata.
+    /// </summary>
+    /// <remarks>
+    /// <b>Both dependencies are published to the feed as well</b>, because since <c>E7-T2</c> a
+    /// prepare resolves and downloads them rather than only reading their names — so a
+    /// package naming something the feed does not have is refused, which is the subject of its own
+    /// test.
+    /// </remarks>
     [Fact]
     public async Task PublisherLicenceAndDependenciesComeFromThePackage()
     {
         PackageIdentity identity = PackageIdentity.Create("Acme.Nodes", "1.0.0");
-        BuildPackage(identity, dependencies: ["Newtonsoft.Json", "Acme.Core"]);
+        BuildPackage(PackageIdentity.Create("Acme.Support", "1.0.0"));
+        BuildPackage(PackageIdentity.Create("Acme.Core", "1.0.0"));
+        BuildPackage(identity, dependencies: ["Acme.Support", "Acme.Core"]);
 
         using PendingInstall pending = await Client().PrepareAsync(
             identity, new PackageStore(_store), TestContext.Current.CancellationToken);
@@ -111,7 +121,7 @@ public sealed class DisclosureAndTrustTests : IDisposable
         Assert.Equal("Acme Ltd", pending.Disclosure.Authors);
         Assert.Equal("MIT", pending.Disclosure.Licence);
         Assert.Equal(2, pending.Disclosure.Dependencies.Length);
-        Assert.Contains("Acme.Core", pending.Disclosure.Dependencies, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("Acme.Core 1.0.0", pending.Disclosure.Dependencies, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("Acme.Nodes", Assert.Single(pending.Disclosure.NodeAssemblies));
     }
 
