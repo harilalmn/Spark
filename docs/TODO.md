@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-31 (Q15 closed; M6 down to distribution)
+**Last updated:** 2026-08-31 (M6 finished)
 
 **M0, M1, M1.5, M2, M3 and M4 have landed; M5 is substantially done; and M6's provider is in.**
 The application opens, a graph evaluates, and geometry appears in the GPU viewport — curves,
@@ -81,32 +81,40 @@ for anything else.
 
 ---
 
-## Now — finish M6 behind the provider
+## Now — M6 is finished; what is next, and what is waiting on a person
 
-The provider landed on 2026-08-31 and the rows behind it did not all land with it. In priority
-order:
+**M6 is done.** Solids can be combined, filleted, shelled, trimmed and exported to STEP; every
+`E13` row that is engineering is `Done`; and `M1.6`'s nine criteria are all answered, with `C2` —
+the only one that could have reopened ADR-0020 — passed. The evidence is in
+[JOURNAL.md](JOURNAL.md)'s entries for 2026-08-31 and against each row in [TASKS.md](TASKS.md).
 
-- [x] **`E13-T12` — STEP and IGES** — landed 2026-08-31. `spark export --out part.step` writes
-      AP214 with the exact surfaces. **What is not done is the acceptance this row actually asks
-      for**: a public corpus and a *third-party viewer, never our own reader*. That is the top of
-      this list now, and it is the one item here **nobody in this repository can do alone**.
-- [x] **`E13-T7`'s other half — split and trim** — landed 2026-08-31. Split keeps every piece and
-      the test measures them adding back up; trim is a managed composition of split and a point
-      test.
-- [x] **`E13-T8`'s — offset and thicken** — landed 2026-08-31. **Draft is the only thing left in
-      that row.**
-- [ ] **`E13-T3`'s consumer.** `Brep.NativeBytes` reports a real figure and **the evaluation cache
-      does not read it** (NFR-4). A graph holding two hundred resident shapes still reports
-      megabytes while holding gigabytes — the number now exists, and the cache still evicts by
-      entry count.
-- [ ] **`M1.6-C6`, the `ShapeFix` policy.** It moved from *worth knowing* to *on the critical
-      path* when `ShapeFix_Face` and `ShapeFix_Solid` joined the import path.
-- [ ] **`E13-T15` and `Q15(c)` together.** Whether the Linux CI leg survives is now inseparable
-      from what a per-RID native build would cost, and D16 removed the release argument for it
-      while leaving the rot-guard argument standing.
-- [ ] **`E11-T16` — the software renderer and CI visual regression.** Deferred past M6 by decision
-      on 2026-08-31, on the ground that it guards the viewport and the viewport is not what M6
-      depended on. It is now the largest thing M5 still owes.
+**The next piece of work:**
+
+- [ ] **`E11-T16` — the software renderer and the CI visual regression.** Deferred past M6 by
+      decision on 2026-08-31, on the ground that it guards the viewport and the viewport was not
+      what M6 depended on. **It is now the largest thing M5 still owes**, and it is what makes
+      viewport output comparable across machines and therefore testable at all: GPU output is not
+      comparable, software output is ([ADR-0014](adr/0014-opengl-viewport-with-software-fallback.md)).
+- [ ] **M7.** See [EPICS.md](EPICS.md).
+
+**Waiting on a person, and no amount of further work substitutes:**
+
+- [ ] **`E13-T12`'s acceptance.** STEP output is checked by a round trip and by reading the file's
+      own text — it names `CYLINDRICAL_SURFACE` and `ADVANCED_FACE` and never names `POLY_LOOP`.
+      The row asks for **a public corpus and a third-party viewer, never our own reader**, because
+      OpenCascade wrote both ends of that round trip. **This is the single largest unclosed thing
+      in M6** and it is an errand, not a commit.
+- [ ] **`Q13`'s six counsel questions**, the first being whether `spark_occt` is a *work that uses
+      the Library* under the Open CASCADE exception or a derivative work under LGPL §5. *Nothing
+      in this repository is legal advice.*
+- [ ] **`E13-T17`'s installer, code signing and antivirus submissions.** The payload is staged and
+      measured — 224.4 MB, of which OpenCascade is 52.0 MB — and a script cannot invent an identity
+      to sign with.
+- [ ] **`E12-T18`'s About box.** The command-line half is done; the dialog does not exist yet.
+- [ ] **Opening an exported OBJ or STEP in a third-party viewer**, which is also M1's stated
+      acceptance and has never been done.
+- [ ] **Watching the first nightly benchmark run.** It is green locally end to end and has never
+      run on a hosted runner.
 
 ---
 
