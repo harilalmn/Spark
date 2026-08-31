@@ -295,6 +295,14 @@ public sealed partial class MainWindow : Window
             Model?.ShowSelection(Canvas.Selection);
         }
 
+        // Selection has two consequences, and the viewport is the second: the geometry a selected
+        // node produced is outlined in the accent colour. It falls out of node-keyed identity with
+        // no extra bookkeeping (E9-T9) and costs no GPU upload, because appearance is a uniform.
+        if (Model?.ShowSelectionInViewport(Canvas.Selection) == true)
+        {
+            Viewport.InvalidateGeometry();
+        }
+
         UpdateAlignAvailability();
     }
 
@@ -598,11 +606,39 @@ public sealed partial class MainWindow : Window
 
         Viewport.RequestCapture();
 
-        // Two dispatcher turns at background priority: one for the GL frame that services the
-        // capture request, one for it to have completed before the read.
-        DispatcherTimer.RunOnce(
-            () => DispatcherTimer.RunOnce(() => WriteCaptures(prefix), TimeSpan.FromMilliseconds(400)),
-            TimeSpan.FromMilliseconds(600));
+        // Wait for a frame, not for a clock. Which backend services the capture is not something
+        // this caller can predict - OpenGL may come up at once, or never - and the software
+        // fallback only commits after the viewport has waited out its patience for a GL callback
+        // that is not coming. A fixed delay was tuned to the GL case and silently produced no
+        // image at all on a machine where GL never initialises, which is precisely the machine the
+        // fallback exists for.
+        WaitForCapture(prefix, DateTime.UtcNow + TimeSpan.FromSeconds(6));
+    }
+
+    /// <summary>
+    /// Polls until a frame has been captured or the deadline passes, then writes the images.
+    /// </summary>
+    /// <param name="prefix">The file path prefix.</param>
+    /// <param name="deadline">When to give up and write whatever there is.</param>
+    /// <remarks>
+    /// Polling rather than an event, because the two backends signal completion in different
+    /// places and a caller that had to know which one was active would be back to guessing. The
+    /// deadline is generous: this path runs in CI, where a cold GPU driver is slower than anything
+    /// a developer sees, and the cost of waiting is a few seconds on a run that then exits.
+    /// </remarks>
+    private void WaitForCapture(string prefix, DateTime deadline)
+    {
+        if (Viewport.HasCapture || DateTime.UtcNow >= deadline)
+        {
+            WriteCaptures(prefix);
+            return;
+        }
+
+        // Ask again: a frame is only produced when one is requested, and a viewport with nothing
+        // changing produces none.
+        Viewport.RequestCapture();
+
+        DispatcherTimer.RunOnce(() => WaitForCapture(prefix, deadline), TimeSpan.FromMilliseconds(150));
     }
 
     private void WriteCaptures(string prefix)
@@ -651,7 +687,16 @@ public sealed partial class MainWindow : Window
         byte[]? pixels = Viewport.TakeCapture(out int glWidth, out int glHeight);
         if (pixels is null)
         {
+            // Print the status here too. This is the one case where a reader most needs to know
+            // what the viewport thought it was doing, and it was the one case that did not say:
+            // the status line came after the image was written, so the failure path skipped it.
             Console.WriteLine("no viewport read-back: neither backend produced a frame.");
+            Console.WriteLine(string.Create(
+                CultureInfo.InvariantCulture, $"viewport status: {Viewport.Status ?? "no GL callback ran"}"));
+            Console.WriteLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"software presenting: {Viewport.IsSoftwarePresenting}"));
+
             Close();
             return;
         }

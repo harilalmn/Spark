@@ -37,16 +37,35 @@ public sealed class ScriptLoadContextTests
     [Fact]
     public void UnloadingReleasesTheScriptAssemblies()
     {
-        ScriptNodeFactory factory = Factory();
-
-        Compile(factory);
-
-        WeakReference context = factory.Unload();
+        WeakReference context = CompileAndUnload();
 
         Assert.True(
             Collected(context),
             "the script load context is still alive after Unload, so the assemblies it holds can "
             + "never be released");
+    }
+
+    /// <summary>
+    /// Builds a factory, compiles into it and unloads it, all inside a frame that has ended by the
+    /// time the caller asserts.
+    /// </summary>
+    /// <returns>A weak reference to the context.</returns>
+    /// <remarks>
+    /// <b>The factory local was the last root, and it made this test intermittent.</b> `Compile`
+    /// was already isolated for exactly this reason, but the factory itself stayed live in the
+    /// asserting frame - under a debug JIT a local is rooted until its method returns, past the
+    /// point where the source says it is dead - so whether the context was collectable depended on
+    /// how hard the collector happened to work. It failed roughly one full-suite run in four,
+    /// which is the worst frequency there is: often enough to break a build, rare enough to be
+    /// dismissed as noise.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference CompileAndUnload()
+    {
+        ScriptNodeFactory factory = Factory();
+        Compile(factory);
+
+        return factory.Unload();
     }
 
     /// <summary>

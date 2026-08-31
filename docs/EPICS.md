@@ -849,7 +849,7 @@ unmaintained since around 2023 — a poor bet on a multi-year horizon.
       (**E9-T3**, **E9-T6**).
 - [ ] Tessellation is parallel and streams during a run (**E9-T7**).
 - [ ] Picking uses the kernel's BVH ray caster (**E9-T8**).
-- [ ] **Selection sync falls out of node-keyed identity with no extra bookkeeping** — the
+- [x] **Selection sync falls out of node-keyed identity with no extra bookkeeping** — the
       `(NodeId, PortIndex, ElementPath)` tuple keys viewport buffers, selection, diagnostics
       and the watch panel alike, and survives recomputation in a way an object ID would not
       (**E9-T9**).

@@ -126,6 +126,68 @@ public sealed class ViewportScene
         }
     }
 
+    /// <summary>
+    /// Marks the geometry produced by a set of nodes as selected, and everything else as not
+    /// (<c>E9-T9</c>).
+    /// </summary>
+    /// <param name="selectedNodeIds">
+    /// The node identifiers whose geometry is selected. Empty clears the selection.
+    /// </param>
+    /// <returns>True when anything actually changed, so a caller can skip a repaint.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="selectedNodeIds"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>This falls out of node-keyed identity with no extra bookkeeping</b>, which is the claim
+    /// <c>E9-T9</c> has made since M0 and the reason the key is a tuple rather than an opaque
+    /// handle. The canvas knows which nodes are selected; the scene is keyed by
+    /// <c>(NodeId, PortIndex)</c>; there is no third structure mapping one to the other and nothing
+    /// to keep in step.
+    /// </para>
+    /// <para>
+    /// <b>It costs no GPU work.</b> <see cref="RenderPackage.WithAppearance"/> shares the geometry
+    /// arrays, and the renderer's reconcile step recognises a package whose buffers are the same
+    /// object as one it has already uploaded. Appearance is a uniform, not a buffer. Selecting a
+    /// node with a million triangles on it re-uploads nothing.
+    /// </para>
+    /// </remarks>
+    public bool SetSelectedNodes(IReadOnlyCollection<string> selectedNodeIds)
+    {
+        ArgumentNullException.ThrowIfNull(selectedNodeIds);
+
+        HashSet<string> selected = new(selectedNodeIds, StringComparer.Ordinal);
+
+        lock (_gate)
+        {
+            List<KeyValuePair<GeometryKey, RenderPackage>>? changes = null;
+
+            foreach (KeyValuePair<GeometryKey, RenderPackage> entry in _packages)
+            {
+                bool wanted = selected.Contains(entry.Key.NodeId);
+                if (wanted == entry.Value.Appearance.IsSelected)
+                {
+                    continue;
+                }
+
+                (changes ??= []).Add(new KeyValuePair<GeometryKey, RenderPackage>(
+                    entry.Key,
+                    entry.Value.WithAppearance(entry.Value.Appearance with { IsSelected = wanted })));
+            }
+
+            if (changes is null)
+            {
+                return false;
+            }
+
+            foreach (KeyValuePair<GeometryKey, RenderPackage> change in changes)
+            {
+                _packages[change.Key] = change.Value;
+            }
+
+            Invalidate();
+            return true;
+        }
+    }
+
     /// <summary>Empties the scene.</summary>
     public void Clear()
     {

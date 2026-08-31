@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N63-N65 added)
+**Last updated:** 2026-08-31 (N63-N67 added)
 
 ---
 
@@ -1852,3 +1852,55 @@ they say to somebody looking at the API.
 **Proven without reverting anything:** a grep for `[NodePort(... Description ...)]` across
 `src/Spark.Nodes.Core/` returns **zero**, so the test asserting that more than nine ports in ten
 carry a description would have measured 0% before this change.
+
+## N66 — A screenshot that waited for a clock instead of a frame
+
+`--screenshot` requested a capture and then read it after a fixed 600 + 400 ms. That delay was
+tuned when the only backend was OpenGL on a warm driver, and it held for months. It stopped
+holding, and the failure was total: **no viewport image at all**, with the message *no viewport
+read-back: neither backend produced a frame.*
+
+**The cause was not what it looked like.** The obvious suspect was the software fallback, which by
+design commits only after 1.5 seconds have passed with no GL callback ([N64](#n64)) — longer
+than the capture waited. But the fallback was never reached: the real answer was that **OpenGL
+came up perfectly well, just later than one second** on a machine that had been running builds all
+day. The fixed delay had always been a race and had simply always won.
+
+**Two things made it hard to see, and one is worth fixing on its own.** The failure path printed
+*neither backend produced a frame* and then **returned before printing the viewport status** —
+so the single most useful line, `viewport status: no GL callback ran`, was emitted in every case
+except the one that needed it. The status is now printed on the failure path too, along with
+whether the software backend is presenting.
+
+**The fix is to wait for a frame rather than for a clock.** `ViewportControl.HasCapture` reports
+whether one has completed; `MainWindow` polls every 150 ms up to six seconds, re-requesting each
+time because a viewport with nothing changing produces no frames. Which backend services the
+capture is not something the caller can predict — GL may initialise at once, or never —
+and a delay tuned to one of them is a test of the machine's mood.
+
+**The general shape.** A fixed sleep standing in for a condition is a race that has not failed
+*yet*. It reads as settled because it has always passed, and the day it stops the symptom is an
+absence rather than an error.
+
+## N67 — The last root was the local in the asserting frame
+
+`ScriptLoadContextTests.UnloadingReleasesTheScriptAssemblies` failed roughly **one full-suite run
+in four** — the worst frequency there is: often enough to break a build, rare enough to be
+dismissed as noise. In isolation it passed every time.
+
+The test already knew about this class of problem. `Compile` is marked
+`MethodImplOptions.NoInlining` precisely so no local roots the compiled definition, and the class
+doc explains why. What it missed is that **the factory itself was still a live local in the
+asserting frame**: under a debug JIT a local is rooted until its method returns, past the point
+where the source says it is dead. Whether the context could be collected therefore depended on how
+hard the collector happened to work that run, which is why more assemblies loaded into the test
+process made it surface.
+
+The whole create-compile-unload now happens in a `NoInlining` helper that returns only the
+`WeakReference`, so nothing survives into the frame that asserts — the same shape
+`PackageLoadContextTests` uses. Four consecutive full-suite runs are clean.
+
+**Worth generalising:** for a collectible-context test, isolating the *thing being collected* is
+not enough. Every local on the path, including the factory that made it, has to be out of scope
+before the assertion, and "out of scope" means *in a frame that has returned*, not *past its last
+use*.

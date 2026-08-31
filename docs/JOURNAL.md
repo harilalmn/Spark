@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 19:35 +0530
+**Last updated:** 2026-08-31 20:15 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E11-T4`, `E11-T5` — node-to-topic coverage both ways.** Forward was true by construction and is now asserted; **reverse was checked by nothing** — `curves.md` had named ten nodes since M0 and no test read them. Proven to fail by renaming an entry. |
+| **Last completed step** | **`E9-T9` — selection reaches the viewport**, costing no GPU work because appearance is a uniform. Two defects found along the way: [N66](NOTES.md), a screenshot that waited for a **clock instead of a frame** and whose failure path skipped the one diagnostic that explained it; and [N67](NOTES.md), a **1-in-4 flaky** unload test rooted by a local in its own asserting frame. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
 | **Next action** | **`E7-T12` — collapse selection to custom node.** The engine half is built and tested (`E7-T11`): `.sparkcustom` is the graph format plus an interface block, ports come from Input/Output nodes, recursion is refused at build with the containment path. What is missing is the gesture — take a selection, cut it out, and **infer the interface from the wires that crossed the boundary**. `E7-T13`'s save-side refusal belongs with it, because collapse is what can build a recursive definition by accident. After that the epic's remainder is network-facing (`E7-T1`, `E7-T2`, `E7-T8`, `E7-T10`) and then **M8**. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1886** over **nine** projects: Geometry.Tests 763, UI.Tests 470, Engine.Tests 414, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1893** over **nine** projects: Geometry.Tests 763, UI.Tests 470, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T18`'s About box was on this list and should not have been** — it needed a dialog, which is code, and it is done. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3498,3 +3498,47 @@ luck rather than method, and it is now method.
 
 **Verified.** Build clean at 0 warnings. `UI.Tests` 466 -> 470. Suite **1,886** over nine projects,
 0 failed, 0 skipped. `dotnet format` clean.
+
+### 2026-08-31 - `E9-T9`, and two defects the step went looking for something else and found
+
+**What.** `ViewportScene.SetSelectedNodes`, called from the canvas's selection handler. Seven
+tests. Selecting a node now outlines the geometry it produced, in the accent colour, in the
+viewport.
+
+**The row's claim was that this falls out of node-keyed identity with no extra bookkeeping, and it
+did.** The scene is already keyed by `(NodeId, PortIndex)`; the canvas already knows which nodes
+are selected; there is no third structure mapping one to the other and therefore nothing to keep in
+step. **It also costs no GPU work**: `RenderPackage.WithAppearance` shares the geometry arrays, and
+the renderer's reconcile step already recognised a package whose buffers are the same object as one
+it had uploaded - *appearance is a uniform, not a buffer*. Selecting a node carrying a million
+triangles re-uploads nothing, and a test asserts the arrays are shared rather than copied.
+
+**The rendering half was already covered and I nearly re-proved it.** `E9-T12`'s golden image
+contains a selected box, so the accent tint and outline are asserted pixel for pixel already. Only
+the *driving* was missing, and that is what the new tests cover. Worth noticing before writing a
+second visual check for something a first one already held.
+
+**Then the screenshot stopped working, and it was not this change.** A verification run reported
+*no viewport read-back: neither backend produced a frame*. Stashing the selection work reproduced
+it, so it was older. [N66](NOTES.md) has it: `--screenshot` waited a **fixed** 600 + 400 ms, tuned
+when the only backend was GL on a warm driver, and OpenGL on a machine that had been building all
+day simply took longer than a second. The delay had always been a race and had always won until
+now.
+
+**The diagnostic that would have explained it was the one line that never printed.** The failure
+path said *neither backend produced a frame* and then returned **before** the `viewport status:`
+line - so the single most useful fact, `no GL callback ran`, was emitted in every case except the
+one that needed it. It now prints on the failure path too. The fix proper is to **wait for a frame
+rather than for a clock**: `HasCapture` reports completion, and the caller polls, re-requesting
+each time because a viewport with nothing changing produces no frames.
+
+**And one flaky test, fixed rather than re-run until green.** [N67](NOTES.md):
+`UnloadingReleasesTheScriptAssemblies` failed about **one full-suite run in four** and passed every
+time in isolation. `Compile` was already `NoInlining` for exactly this reason - but the **factory
+itself was still a live local in the asserting frame**, and under a debug JIT a local is rooted
+until its method returns. The whole create-compile-unload now happens in a `NoInlining` helper
+returning only the `WeakReference`. Four consecutive full-suite runs clean.
+
+**Verified.** Build clean at 0 warnings. `Viewport.Tests` 101 -> 108. Suite **1,893** over nine
+projects, 0 failed, 0 skipped. `dotnet format` clean. `--graph solids --screenshot` run again and
+the viewport image written and read.

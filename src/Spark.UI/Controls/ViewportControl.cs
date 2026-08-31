@@ -156,6 +156,15 @@ public sealed class ViewportControl : OpenGlControlBase
         RequestNextFrameRendering();
     }
 
+    /// <summary>Whether a capture has completed and is waiting to be taken.</summary>
+    /// <remarks>
+    /// Exists so a caller can <b>wait for a frame rather than for a clock</b>. Which backend
+    /// services a capture, and how long it takes to become ready, are not things a screenshot
+    /// caller can predict: OpenGL may initialise immediately, or never, and the software fallback
+    /// commits only after <see cref="GlPatience"/> has passed with no GL callback at all.
+    /// </remarks>
+    public bool HasCapture => _capture is not null;
+
     /// <summary>Takes the most recent read-back, if one has completed.</summary>
     /// <param name="width">The captured width in pixels.</param>
     /// <param name="height">The captured height in pixels.</param>

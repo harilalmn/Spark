@@ -971,6 +971,31 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             : null;
     }
 
+    /// <summary>
+    /// Highlights the geometry produced by the selected nodes in the viewport (<c>E9-T9</c>).
+    /// </summary>
+    /// <param name="selection">The selected canvas slots.</param>
+    /// <returns>True when the viewport needs a repaint.</returns>
+    /// <remarks>
+    /// Called from the same place the inspector is rebuilt, because selection is one event with two
+    /// consequences and splitting them is how the two drift apart.
+    /// </remarks>
+    public bool ShowSelectionInViewport(IReadOnlyCollection<int> selection)
+    {
+        ArgumentNullException.ThrowIfNull(selection);
+
+        List<string> nodes = [];
+        foreach (int slot in selection)
+        {
+            if (slot >= 0 && slot < _graph.Nodes.Count)
+            {
+                nodes.Add(_graph.Nodes[slot].Id.ToString());
+            }
+        }
+
+        return Scene.SetSelectedNodes(nodes);
+    }
+
     /// <summary>Rebuilds the inspector for the current canvas selection.</summary>
     /// <param name="selection">The selected slots.</param>
     public void ShowSelection(IReadOnlyCollection<int> selection)
