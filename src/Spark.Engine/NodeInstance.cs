@@ -15,7 +15,11 @@ namespace Spark.Engine;
 /// </remarks>
 public sealed class NodeInstance
 {
+    private static readonly Dictionary<string, Type> NoDeclaredTypes = [];
+
     private readonly object?[] _literals;
+
+    private Dictionary<string, Type>? _declaredInputTypes;
 
     internal NodeInstance(NodeId id, NodeDefinition definition)
     {
@@ -77,6 +81,46 @@ public sealed class NodeInstance
     /// <summary>A snapshot of every literal, in port order.</summary>
     /// <returns>A copy; mutating it does not affect the node.</returns>
     public IReadOnlyList<object?> Literals() => (object?[])_literals.Clone();
+
+    /// <summary>
+    /// The types the user has declared for this node's input ports, by port name.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Only a code block has these, and only because a wire is not the only way to learn a
+    /// type.</b> A code block's input types normally come from whatever is wired into it, which
+    /// costs nothing and is right whenever something *is* wired in. Before that, the port is
+    /// <c>dynamic</c> — and a user typing <c>radius.</c> into the editor is offered the members of
+    /// <c>object</c>, which is worse than useless because it looks like an answer.
+    /// </para>
+    /// <para>
+    /// <b>Keyed by name, for the reason <see cref="Graph.InputTypes"/> is</b>: a code block's port
+    /// indices move when its source gains an identifier, so an index would silently come to mean a
+    /// different port. A name survives an edit; that is also what makes a declaration outlive the
+    /// rebuild that applies it.
+    /// </para>
+    /// <para>
+    /// <b>A name with no port is kept rather than pruned.</b> Deleting a line and putting it back
+    /// is an ordinary thing to do while writing, and a declaration that evaporated in between
+    /// would have to be made again for no reason the user could see.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyDictionary<string, Type> DeclaredInputTypes =>
+        _declaredInputTypes ?? NoDeclaredTypes;
+
+    internal void SetDeclaredInputType(string portName, Type? type)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(portName);
+
+        if (type is null)
+        {
+            _declaredInputTypes?.Remove(portName);
+            return;
+        }
+
+        _declaredInputTypes ??= new Dictionary<string, Type>(StringComparer.Ordinal);
+        _declaredInputTypes[portName] = type;
+    }
 
     internal void SetLiteral(int portIndex, object? value)
     {

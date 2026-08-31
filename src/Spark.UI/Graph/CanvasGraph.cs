@@ -613,11 +613,23 @@ public sealed class CanvasGraph
             }
         }
 
+        // The declared input types are carried across for the same reason the wires and the group
+        // memberships are: `Remove` destroys the instance that holds them, and a declaration that
+        // vanished the moment the script was edited would be worse than not offering one. They are
+        // keyed by port name, so they survive the ports moving - which is the whole reason this
+        // method re-makes wires by name too.
+        List<KeyValuePair<string, Type>> declaredTypes = [.. Engine.DeclaredInputTypes(node.Id)];
+
         double x = node.X;
         double y = node.Y;
 
         Remove(slot);
         Edit(() => Engine.AddNode(definition, node.Id));
+
+        foreach ((string portName, Type declared) in declaredTypes)
+        {
+            Engine.SetDeclaredInputType(node.Id, portName, declared);
+        }
 
         int rebuilt = Adopt(Engine.Node(node.Id), x, y);
         CanvasNode replacement = _nodes[rebuilt];
@@ -929,6 +941,34 @@ public sealed class CanvasGraph
         }
 
         Edit(() => Engine.SetLiteral(_nodes[slot].Id, portIndex, value));
+    }
+
+    /// <summary>
+    /// Declares the type of a code block's input port, and rebuilds the block against it
+    /// (<c>E6-T11</c>).
+    /// </summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <param name="portName">The input port's name.</param>
+    /// <param name="type">The type to declare, or <see langword="null"/> to go back to the wire.</param>
+    /// <returns>True when the block was rebuilt, which is false when nothing actually changed.</returns>
+    /// <remarks>
+    /// <b>A declaration is only worth anything once the block has been recompiled against it</b>,
+    /// so this ends in <see cref="Retype"/> rather than merely recording the choice. That is also
+    /// what makes the effect visible: the port's type on the canvas changes, and the editor starts
+    /// completing against something real.
+    /// </remarks>
+    public bool SetDeclaredInputType(int slot, string portName, Type? type)
+    {
+        if (slot < 0 || slot >= _nodes.Count)
+        {
+            return false;
+        }
+
+        NodeId id = _nodes[slot].Id;
+
+        Edit(() => Engine.SetDeclaredInputType(id, portName, type));
+
+        return Retype(id);
     }
 
     /// <summary>Whether an input port already has a wire into it.</summary>

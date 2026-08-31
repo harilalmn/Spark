@@ -1428,6 +1428,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         WatchRank = node.ResultSummary is null ? string.Empty : CanvasGraph.RankLine(node);
         WatchText = _lastResult is null ? string.Empty : CanvasGraph.Expand(_lastResult.Value(node.Id));
 
+        // Only a code block's ports offer a type dropdown (`E6-T11`). Every other node's port type
+        // comes from the method it was imported from, and is not the user's to change.
+        bool isCodeBlock = instance.Definition.Script is not null;
+        IReadOnlyDictionary<string, Type> declared = _graph.Engine.DeclaredInputTypes(node.Id);
+
         for (int index = 0; index < instance.Definition.Inputs.Count; index++)
         {
             PortDefinition port = instance.Definition.Inputs[index];
@@ -1440,7 +1445,50 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 instance.Literal(index),
                 _graph.IsInputWired(slot, index),
                 port.Description,
-                CommitLiteral));
+                CommitLiteral,
+                isCodeBlock ? DeclareInputType : null,
+                declared.TryGetValue(port.Name, out Type? declaredType) ? declaredType : null));
+        }
+    }
+
+    /// <summary>
+    /// Declares the type of a code block's input port, and re-runs the graph (<c>E6-T11</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Rebuilding the block moves its slot</b>, exactly as editing its source does, so the panel
+    /// is rebuilt from the node's identity rather than from the slot the row was built against.
+    /// Without that, choosing a type on the second of two code blocks would repaint the panel for
+    /// whichever node had landed in that slot.
+    /// </para>
+    /// <para>
+    /// The re-run is the point of the whole thing arriving on screen: the port's type changes on
+    /// the canvas, and the editor starts completing against something real instead of
+    /// <c>object</c>.
+    /// </para>
+    /// </remarks>
+    /// <param name="editor">The row the choice was made on.</param>
+    /// <param name="type">The chosen type, or null to go back to the wire.</param>
+    private void DeclareInputType(PortLiteralViewModel editor, Type? type)
+    {
+        if (editor.Slot < 0 || editor.Slot >= _graph.Nodes.Count)
+        {
+            return;
+        }
+
+        NodeId id = _graph.Nodes[editor.Slot].Id;
+
+        if (!_graph.SetDeclaredInputType(editor.Slot, editor.Name, type))
+        {
+            return;
+        }
+
+        RecordEdit("Declare input type");
+
+        int rebuilt = _graph.SlotOf(id);
+        if (rebuilt >= 0)
+        {
+            ShowSelection([rebuilt]);
         }
     }
 

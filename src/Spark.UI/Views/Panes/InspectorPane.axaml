@@ -58,19 +58,40 @@
       <ItemsControl Grid.Row="3" Margin="10,0,10,10" ItemsSource="{Binding Inspector}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="vm:PortLiteralViewModel">
-            <Grid ColumnDefinitions="90,*" Margin="0,0,0,6">
+            <Grid ColumnDefinitions="90,*" RowDefinitions="Auto,Auto" Margin="0,0,0,6">
               <!-- The type is on the row, not only in the tooltip. A box labelled "radius"
                    does not tell anybody what belongs in it, and a tooltip answers a question
                    the user has to have thought to ask. -->
-              <StackPanel Grid.Column="0" VerticalAlignment="Center"
+              <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"
                           ToolTip.Tip="{Binding Description}">
                 <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding Label}" />
                 <TextBlock Classes="muted" FontSize="10" Opacity="0.8" Text="{Binding TypeName}" />
               </StackPanel>
-              <TextBox Grid.Column="1" IsEnabled="{Binding IsEditable}"
+              <TextBox Grid.Row="0" Grid.Column="1" IsEnabled="{Binding IsEditable}"
                        Text="{Binding Text, Mode=TwoWay}"
                        LostFocus="OnLiteralCommitted"
                        KeyDown="OnLiteralKeyDown" />
+
+              <!-- E6-T11: the type dropdown, on a code block's ports only.
+
+                   An unwired code block port is `dynamic`, so completion offered the members of
+                   `object` - Equals, GetHashCode, ToString - which is worse than offering nothing
+                   because it looks like an answer. This is where a user says what the port is
+                   before anything is wired to it, which is exactly when they are writing the code
+                   that needs completing.
+
+                   It sits UNDER the value box rather than beside it. The row is already 90px of
+                   label and a box, and a third column would squeeze both in a pane a user is
+                   entitled to make narrow. Declaring a type is also much rarer than typing a
+                   value, so it is the one that gives way. -->
+              <ComboBox Grid.Row="1" Grid.Column="1"
+                        Margin="0,4,0,0"
+                        HorizontalAlignment="Stretch"
+                        FontSize="11"
+                        IsVisible="{Binding CanDeclareType}"
+                        ToolTip.Tip="The type this port takes. Set it to complete against something real before a wire is drawn."
+                        ItemsSource="{Binding Source={x:Static vm:PortLiteralViewModel.TypeChoices}}"
+                        SelectedItem="{Binding DeclaredTypeName, Mode=TwoWay}" />
             </Grid>
           </DataTemplate>
         </ItemsControl.ItemTemplate>

@@ -285,9 +285,10 @@ public sealed class Graph
     /// </summary>
     /// <param name="id">The node identity.</param>
     /// <returns>
-    /// One entry per <i>wired</i> input port. An unwired port is absent rather than present with a
-    /// null, because *nothing is connected* and *something typed as object is connected* are
-    /// different facts and only the first justifies falling back to <c>dynamic</c>.
+    /// One entry per input port that has a type from somewhere: a wire into it, or a declaration
+    /// the user made. A port with neither is absent rather than present with a null, because
+    /// *nothing is known* and *something typed as object is connected* are different facts and only
+    /// the first justifies falling back to <c>dynamic</c>.
     /// </returns>
     /// <exception cref="KeyNotFoundException">No node has that identity.</exception>
     /// <remarks>
@@ -319,8 +320,64 @@ public sealed class Graph
                 upstream.Definition.Outputs[wire.SourcePort].ValueType;
         }
 
+        // A DECLARED TYPE BEATS THE WIRE'S, AND IS APPLIED LAST SO THAT IT DOES.
+        //
+        // The wire is the better source whenever there is one, which is why it goes first and why
+        // nothing here asks the user to declare anything. But a declaration is an instruction the
+        // user typed, and the one thing worse than not offering it is offering it and then quietly
+        // preferring something else - a user who has said "this is a Point3d" and is still being
+        // completed against `object` has no way to tell whether the setting did not take or the
+        // editor is broken.
+        //
+        // It also gives a real answer to the case the wire cannot: BEFORE anything is connected.
+        // That is when a code block is being written, which is exactly when completion is worth
+        // having, and it is the reason this exists at all.
+        //
+        // A declaration for a name that is not a port is skipped rather than added. The node keeps
+        // it (see NodeInstance.DeclaredInputTypes) because the source may get it back, but a type
+        // for a port that does not exist must not reach the compiler as if it did.
+        foreach ((string name, Type declared) in node.DeclaredInputTypes)
+        {
+            foreach (PortDefinition port in node.Definition.Inputs)
+            {
+                if (string.Equals(port.Name, name, StringComparison.Ordinal))
+                {
+                    types[name] = declared;
+                    break;
+                }
+            }
+        }
+
         return types;
     }
+
+    /// <summary>
+    /// Declares the type of a code block's input port, or clears the declaration
+    /// (<c>E6-T11</c>).
+    /// </summary>
+    /// <param name="id">The node identity.</param>
+    /// <param name="portName">The input port's name.</param>
+    /// <param name="type">The type to declare, or <see langword="null"/> to go back to the wire.</param>
+    /// <exception cref="KeyNotFoundException">No node has that identity.</exception>
+    /// <exception cref="ArgumentException"><paramref name="portName"/> is null or empty.</exception>
+    /// <remarks>
+    /// <b>This marks the node dirty but does not rebuild it.</b> Rebuilding a code block against
+    /// new input types is <c>NodeDefinition</c> work and belongs to whoever owns
+    /// the definitions — here, that is the canvas. The graph's job is to remember the declaration
+    /// and to say that the answer has changed.
+    /// </remarks>
+    public void SetDeclaredInputType(NodeId id, string portName, Type? type)
+    {
+        _nodes[id].SetDeclaredInputType(portName, type);
+        MarkDirty(id);
+    }
+
+    /// <summary>The types declared for a node's input ports, by port name.</summary>
+    /// <param name="id">The node identity.</param>
+    /// <returns>The declarations, which is usually empty.</returns>
+    /// <exception cref="KeyNotFoundException">No node has that identity.</exception>
+    public IReadOnlyDictionary<string, Type> DeclaredInputTypes(NodeId id) =>
+        _nodes[id].DeclaredInputTypes;
 
     /// <summary>Sets a node's lacing, marking it and everything downstream dirty.</summary>
     /// <param name="id">The node identity.</param>

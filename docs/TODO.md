@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-31 (M5 closed; M7 started; the Help harness and the help system built)
+**Last updated:** 2026-09-01 (E6-T18/T19 landed; E6-T20 opened against N90)
 
 **M0 through M6 have all landed. M7 has started.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -123,6 +123,16 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
       registries it has to empty do not exist until `E7-T2`.
 - [ ] **`E9-T7` and `E9-T8`** — parallel streamed tessellation, and picking through the
       kernel's BVH ray caster. Both are M2-era viewport work rather than anything M5 owed.
+- [ ] **`E6-T20` — a rendering test for the properties pane, and it is owed rather than wanted.**
+      Every properties-pane defect found by a person this session was a **rendering** defect: an
+      editor with no theme drew nothing, and four controls shared one grid row. Rendering is the
+      one thing the headless session cannot assert — showing `InspectorPane` with a bound view
+      model hangs the dispatcher. [N90](NOTES.md) bisects it: not the session, not the window, not
+      construction, not binding, and **not the pane's contents**, since it survives hiding the
+      editor and emptying the port list. Next thing to try is a captured frame of the row
+      `DataTemplate` alone in a bare `ItemsControl`. Until then the `App.axaml` theme fix and the
+      pane's layout are verified by a person's eyes, which fails AGENTS.md step 7 and is written
+      down here rather than left implied.
 - [ ] **M8, and 1.0.** See [EPICS.md](EPICS.md) `E12`. Note how much of it needs a person rather
       than a commit — the list below is most of the milestone.
 

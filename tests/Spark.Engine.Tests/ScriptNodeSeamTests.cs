@@ -278,6 +278,76 @@ public sealed class ScriptNodeSeamTests
         }
     }
 
+    /// <summary>
+    /// <b>A declared input type survives a save and reopen</b> (<c>E6-T11</c>).
+    /// </summary>
+    /// <remarks>
+    /// The declaration is the one thing about a code block that cannot be recovered from its
+    /// source — the ports come back from compiling the script, and the wire types come back from
+    /// the wires, but a type the user chose for an <i>unwired</i> port exists nowhere else. Losing
+    /// it on save would mean the setting worked until you closed the file.
+    /// </remarks>
+    [Fact]
+    public void ADeclaredInputTypeSurvivesBeingSavedAndReopened()
+    {
+        Graph graph = new();
+        NodeInstance block = graph.AddNode(
+            NodeDefinition.FromScript(new StubFactory().Create(Doubling), Doubling));
+
+        graph.SetDeclaredInputType(block.Id, "a", typeof(Spark.Geometry.Point3d));
+
+        string text = SparkFile.Write(GraphDocument.Capture(graph));
+
+        Assert.Contains("inputTypes", text, StringComparison.Ordinal);
+        Assert.Contains("point", text, StringComparison.Ordinal);
+
+        Graph reopened = SparkFile.Read(text).Restore(Library, new StubFactory());
+
+        Assert.Equal(
+            typeof(Spark.Geometry.Point3d),
+            reopened.Node(block.Id).DeclaredInputTypes["a"]);
+    }
+
+    /// <summary>
+    /// <b>A graph that declares nothing writes no <c>inputTypes</c> at all</b>, so every file
+    /// written before this existed is still byte-for-byte what this build writes.
+    /// </summary>
+    /// <remarks>
+    /// The same rule <c>frozen</c> follows, and for the same reason: <c>E7-T7</c>'s round trip is
+    /// an assertion about every file, not only about files written by the current build.
+    /// </remarks>
+    [Fact]
+    public void AGraphThatDeclaresNothingWritesNoInputTypes()
+    {
+        Graph graph = new();
+        graph.AddNode(NodeDefinition.FromScript(new StubFactory().Create(Doubling), Doubling));
+
+        Assert.DoesNotContain(
+            "inputTypes", SparkFile.Write(GraphDocument.Capture(graph)), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A token this build does not recognise costs the user that one setting and nothing else. It
+    /// is what a file written by a later version of Spark looks like, and refusing to open it would
+    /// lose a whole document over a dropdown.
+    /// </summary>
+    [Fact]
+    public void AnUnknownDeclaredTypeTokenIsSkippedRatherThanRefused()
+    {
+        Graph graph = new();
+        NodeInstance block = graph.AddNode(
+            NodeDefinition.FromScript(new StubFactory().Create(Doubling), Doubling));
+
+        graph.SetDeclaredInputType(block.Id, "a", typeof(Spark.Geometry.Point3d));
+
+        string text = SparkFile.Write(GraphDocument.Capture(graph))
+            .Replace("\"point\"", "\"tesseract\"", StringComparison.Ordinal);
+
+        Graph reopened = SparkFile.Read(text).Restore(Library, new StubFactory());
+
+        Assert.Empty(reopened.Node(block.Id).DeclaredInputTypes);
+    }
+
     private sealed class StubFactory : IScriptNodeFactory
     {
         public NodeDefinitionSource Create(

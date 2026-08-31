@@ -33,6 +33,11 @@ namespace Spark.Engine;
 /// Whether the node is frozen (<c>E7-T14</c>). Written only when true, so a file containing no
 /// frozen nodes is byte-for-byte what it was before freezing existed.
 /// </param>
+/// <param name="InputTypes">
+/// The types the user declared for a code block's input ports (<c>E6-T11</c>), sparsely — only
+/// ports that have one, and empty for every other kind of node. Written only when non-empty, for
+/// the reason <paramref name="Frozen"/> is.
+/// </param>
 public sealed record GraphDocumentNode(
     NodeId Id,
     NodeKey Key,
@@ -41,7 +46,30 @@ public sealed record GraphDocumentNode(
     double Y,
     IReadOnlyList<GraphLiteral> Literals,
     string? Script = null,
-    bool Frozen = false);
+    bool Frozen = false,
+    IReadOnlyList<GraphInputType>? InputTypes = null)
+{
+    /// <summary>
+    /// The declared input types, never null.
+    /// </summary>
+    /// <remarks>
+    /// The constructor parameter is nullable so that every existing call site keeps compiling and
+    /// keeps meaning what it meant. Callers read this.
+    /// </remarks>
+    public IReadOnlyList<GraphInputType> DeclaredInputTypes => InputTypes ?? [];
+}
+
+/// <summary>One type declared for a code block's input port (<c>E6-T11</c>).</summary>
+/// <param name="Name">
+/// The port's name. Named rather than indexed because a code block's port indices move when its
+/// source gains an identifier, so an index would silently come to mean a different port.
+/// </param>
+/// <param name="Token">
+/// The type, as one of <see cref="ScriptInputTypes"/>'s short tokens. A token rather than an
+/// assembly-qualified name: the latter would bind a saved graph to an assembly version, and this
+/// survives a rename, a move between assemblies and a framework bump.
+/// </param>
+public readonly record struct GraphInputType(string Name, string Token);
 
 /// <summary>One wire in a `.spark` file.</summary>
 /// <param name="Source">The node the wire leaves.</param>
@@ -386,6 +414,24 @@ public sealed class GraphDocument
                 literals.Add(new GraphLiteral(index, value));
             }
 
+            // A declaration for a type outside the catalogue is dropped rather than invented a
+            // spelling for. Nothing can put one there through the panel; this is the guard for a
+            // caller that reached the graph directly, and losing a setting beats writing a file
+            // that will not read back the same.
+            List<GraphInputType> declared = [];
+            foreach ((string name, Type type) in instance.DeclaredInputTypes)
+            {
+                if (ScriptInputTypes.TokenFor(type) is { } token)
+                {
+                    declared.Add(new GraphInputType(name, token));
+                }
+            }
+
+            // Sorted, so that two graphs holding the same declarations are the same bytes however
+            // the dictionary happened to enumerate. This is the same reason the file sorts its
+            // nodes by identity.
+            declared.Sort(static (left, right) => string.CompareOrdinal(left.Name, right.Name));
+
             nodes.Add(new GraphDocumentNode(
                 instance.Id,
                 instance.Definition.Key,
@@ -394,7 +440,8 @@ public sealed class GraphDocument
                 y,
                 literals,
                 instance.Definition.Script,
-                instance.IsFrozen));
+                instance.IsFrozen,
+                declared.Count > 0 ? declared : null));
         }
 
         List<GraphDocumentWire> wires =
@@ -476,10 +523,35 @@ public sealed class GraphDocument
                         helpTopicId: DiagnosticCodes.FileTopic));
                 }
 
-                definition = NodeDefinition.FromScript(scripts.Create(source), source);
+                // THE DECLARATIONS ARE RESOLVED BEFORE THE BLOCK IS COMPILED, NOT AFTER.
+                //
+                // Compiling with `dynamic` and re-typing afterwards would work, but it compiles
+                // the same script twice on every open of every graph that declares anything - and
+                // the second compile is the one whose result is kept. Passing them in means the
+                // definition is right the first time.
+                //
+                // An unrecognised token resolves to null and is skipped: a file written by a later
+                // version of Spark costs the user that setting, not the graph.
+                Dictionary<string, Type> declared = new(StringComparer.Ordinal);
+                foreach (GraphInputType entry in node.DeclaredInputTypes)
+                {
+                    if (ScriptInputTypes.Resolve(entry.Token) is { } declaredType)
+                    {
+                        declared[entry.Name] = declaredType;
+                    }
+                }
+
+                definition = NodeDefinition.FromScript(scripts.Create(source, declared), source);
                 graph.AddNode(definition, node.Id);
                 graph.SetLacing(node.Id, node.Lacing);
                 _ = graph.SetFrozen(node.Id, node.Frozen);
+
+                // Recorded on the instance as well, so that the declaration survives the next
+                // rebuild - which happens as soon as a wire lands on the block.
+                foreach ((string name, Type declaredType) in declared)
+                {
+                    graph.SetDeclaredInputType(node.Id, name, declaredType);
+                }
 
                 foreach (GraphLiteral literal in node.Literals)
                 {

@@ -318,6 +318,24 @@ public static class SparkFile
             writer.WriteString("script", script);
         }
 
+        // After the script and before the literals: the declarations are about the block's shape,
+        // the literals are about what was typed into it. Omitted entirely when there are none, so
+        // every graph that has never declared a type stays byte-identical to what earlier builds
+        // wrote - which is what keeps E7-T7's round trip an assertion about every file.
+        if (node.DeclaredInputTypes.Count > 0)
+        {
+            writer.WriteStartArray("inputTypes");
+            foreach (GraphInputType declared in node.DeclaredInputTypes)
+            {
+                writer.WriteStartObject();
+                writer.WriteString("name", declared.Name);
+                writer.WriteString("type", declared.Token);
+                writer.WriteEndObject();
+            }
+
+            writer.WriteEndArray();
+        }
+
         if (node.Literals.Count > 0)
         {
             writer.WriteStartArray("literals");
@@ -437,7 +455,31 @@ public static class SparkFile
         bool frozen = element.TryGetProperty("frozen", out JsonElement frozenElement)
             && frozenElement.ValueKind == JsonValueKind.True;
 
-        return new GraphDocumentNode(id, nodeKey, lacing, x, y, literals, script, frozen);
+        // A malformed entry is skipped rather than refused. The token is validated on the way in
+        // to the graph, not here, because "a type this build does not know" and "a type this file
+        // spelled wrongly" are the same thing from the reader's side and neither is worth losing
+        // a document over.
+        List<GraphInputType> inputTypes = [];
+        if (element.TryGetProperty("inputTypes", out JsonElement typeArray)
+            && typeArray.ValueKind == JsonValueKind.Array)
+        {
+            foreach (JsonElement entry in typeArray.EnumerateArray())
+            {
+                if (entry.TryGetProperty("name", out JsonElement nameElement)
+                    && nameElement.ValueKind == JsonValueKind.String
+                    && entry.TryGetProperty("type", out JsonElement typeElement)
+                    && typeElement.ValueKind == JsonValueKind.String
+                    && nameElement.GetString() is { Length: > 0 } declaredName
+                    && typeElement.GetString() is { Length: > 0 } declaredToken)
+                {
+                    inputTypes.Add(new GraphInputType(declaredName, declaredToken));
+                }
+            }
+        }
+
+        return new GraphDocumentNode(
+            id, nodeKey, lacing, x, y, literals, script, frozen,
+            inputTypes.Count > 0 ? inputTypes : null);
     }
 
     private static GraphLiteral ReadLiteral(JsonElement element)

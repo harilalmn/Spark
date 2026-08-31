@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Spark.Geometry;
@@ -22,14 +23,19 @@ namespace Spark.UI.ViewModels;
 public sealed partial class PortLiteralViewModel : ObservableObject
 {
     private readonly Action<PortLiteralViewModel, object?> _commit;
+    private readonly Action<PortLiteralViewModel, Type?>? _declare;
     private readonly Type _valueType;
 
+    private bool _applyingDeclaration;
 
     [ObservableProperty]
     private string _text = string.Empty;
 
     [ObservableProperty]
     private string? _error;
+
+    [ObservableProperty]
+    private string? _declaredTypeName;
 
     internal PortLiteralViewModel(
         int slot,
@@ -39,21 +45,27 @@ public sealed partial class PortLiteralViewModel : ObservableObject
         object? value,
         bool isWired,
         string? description,
-        Action<PortLiteralViewModel, object?> commit)
+        Action<PortLiteralViewModel, object?> commit,
+        Action<PortLiteralViewModel, Type?>? declare = null,
+        Type? declaredType = null)
     {
         Slot = slot;
         PortIndex = portIndex;
         Name = name;
         _valueType = valueType;
         _commit = commit;
+        _declare = declare;
         IsWired = isWired;
         Description = description;
         TypeName = Spark.UI.Graph.PortTypeName.Describe(valueType);
         IsEditable = !isWired && IsSupported(valueType);
+        CanDeclareType = declare is not null;
 
-        // Assigned through the backing field rather than the property, so the generated change
-        // notification does not fire before the object is fully built.
+        // Assigned through the backing fields rather than the properties, so the generated change
+        // notifications do not fire before the object is fully built — and, for the declaration,
+        // so that building the panel does not read as the user having chosen something.
         _text = Format(value);
+        _declaredTypeName = declaredType is null ? NotDeclared : NameOf(declaredType);
     }
 
     /// <summary>The node's slot on the canvas.</summary>
@@ -85,6 +97,37 @@ public sealed partial class PortLiteralViewModel : ObservableObject
 
     /// <summary>Whether the panel offers a text box for this port.</summary>
     public bool IsEditable { get; }
+
+    /// <summary>
+    /// Whether the panel offers a type dropdown for this port (<c>E6-T11</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Only a code block's ports get one.</b> Every other node's port type comes from the method
+    /// it was imported from and is not the user's to change; a dropdown there would be a control
+    /// that either does nothing or breaks the node.
+    /// </remarks>
+    public bool CanDeclareType { get; }
+
+    /// <summary>
+    /// The names the type dropdown offers, with <see cref="NotDeclared"/> first.
+    /// </summary>
+    /// <remarks>
+    /// The words are <see cref="Spark.UI.Graph.PortTypeName"/>'s, so the dropdown and the label
+    /// underneath it say the same thing — a dropdown reading <c>Double</c> above a label reading
+    /// <c>number</c> would make a user wonder which one the port actually is.
+    /// </remarks>
+    public static IReadOnlyList<string> TypeChoices { get; } = BuildChoices();
+
+    /// <summary>
+    /// What the dropdown shows when the user has declared nothing: the port takes its type from
+    /// whatever is wired into it.
+    /// </summary>
+    /// <remarks>
+    /// Worded as a sentence rather than as a type name because it names a *source*, not a type.
+    /// "anything" would be wrong — an unwired port is `dynamic` and a wired one is whatever the
+    /// wire carries, and neither of those is a choice the user made.
+    /// </remarks>
+    public const string NotDeclared = "from the wire";
 
     /// <summary>
     /// The label the panel shows: the port name, marked when a wire is feeding it.
@@ -122,6 +165,91 @@ public sealed partial class PortLiteralViewModel : ObservableObject
     }
 
     partial void OnTextChanged(string value) => Error = null;
+
+    /// <summary>
+    /// Declaring a type takes effect the moment it is chosen, unlike a literal, which waits for
+    /// focus to leave the box.
+    /// </summary>
+    /// <remarks>
+    /// <b>The asymmetry is deliberate.</b> A half-typed number is not a number, so a literal has to
+    /// wait until the user has stopped typing; a dropdown has no half-chosen state, and making
+    /// somebody click elsewhere to find out whether their choice worked would hide the one effect
+    /// worth seeing — the port's type changing on the canvas, and completion starting to work.
+    /// </remarks>
+    /// <param name="value">The chosen name.</param>
+    partial void OnDeclaredTypeNameChanged(string? value)
+    {
+        // Set while the panel is being built, or while it is putting the box back after a rebuild.
+        // Neither is a choice, and treating one as a choice would rebuild the node on selection.
+        if (_applyingDeclaration || _declare is null)
+        {
+            return;
+        }
+
+        // NULL IS NEVER A CHOICE A USER MADE, and this guard is not defensive tidiness.
+        //
+        // "The user declared nothing" is spelled `NotDeclared`, which is an entry in the list. A
+        // ComboBox, though, writes null back through a two-way SelectedItem binding whenever it
+        // cannot find the bound value among its items - which happens transiently while the
+        // control is being realised, before ItemsSource has been applied. Acting on that would
+        // silently clear a declaration the moment the panel was rebuilt, which is every time the
+        // selection changes.
+        if (value is null)
+        {
+            return;
+        }
+
+        _declare(this, TypeNamed(value));
+    }
+
+    /// <summary>
+    /// Puts the dropdown on a value without treating it as something the user chose.
+    /// </summary>
+    /// <param name="declaredType">The declared type, or null for <see cref="NotDeclared"/>.</param>
+    internal void ShowDeclaredType(Type? declaredType)
+    {
+        _applyingDeclaration = true;
+        try
+        {
+            DeclaredTypeName = declaredType is null ? NotDeclared : NameOf(declaredType);
+        }
+        finally
+        {
+            _applyingDeclaration = false;
+        }
+    }
+
+    /// <summary>The type a dropdown entry names, or null for <see cref="NotDeclared"/>.</summary>
+    private static Type? TypeNamed(string? choice)
+    {
+        if (choice is null || choice == NotDeclared)
+        {
+            return null;
+        }
+
+        foreach ((_, Type type) in Spark.Engine.ScriptInputTypes.Catalogue)
+        {
+            if (NameOf(type) == choice)
+            {
+                return type;
+            }
+        }
+
+        return null;
+    }
+
+    private static string NameOf(Type type) => Spark.UI.Graph.PortTypeName.Describe(type);
+
+    private static IReadOnlyList<string> BuildChoices()
+    {
+        List<string> choices = [NotDeclared];
+        foreach ((_, Type type) in Spark.Engine.ScriptInputTypes.Catalogue)
+        {
+            choices.Add(NameOf(type));
+        }
+
+        return choices;
+    }
 
     private bool TryParse(string text, out object? value)
     {

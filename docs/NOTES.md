@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N63-N89 added)
+**Last updated:** 2026-09-01 (N63-N90 added)
 
 ---
 
@@ -2449,3 +2449,45 @@ one behind the other.
 
 **Owed:** this is verified by a person's eyes and by nothing else. The regression test hung in the
 headless dispatcher and was deleted rather than left in the suite, which fails AGENTS.md step 7.
+
+---
+
+## N90 — `InspectorPane` cannot be rendered in the headless session, and it is not the pane's data
+
+A test that shows `InspectorPane` with a `MainWindowViewModel` as its data context **hangs the
+headless dispatcher**. It does not fail, it does not time out with a message: the run sits there
+until the harness kills it. This killed `InspectorLayoutTests`, which was deleted rather than left
+in the suite, and it is why the `App.axaml` fix in [N89](#n89) is verified by a person's eyes and
+nothing else.
+
+**It has now been bisected, which the first attempt never did.** In one run, in order, on the
+session's UI thread:
+
+| Step | Result |
+|---|---|
+| A `Window` holding a plain `ComboBox`, shown and captured | **ok** |
+| Constructing `InspectorPane` | **ok** |
+| Showing it in a `Window` with **no** data context, and capturing | **ok** |
+| Attaching the `MainWindowViewModel` | **ok** |
+| Capturing a frame with the data context attached | **hangs** |
+
+So it is neither the session, nor the window, nor the pane's construction, nor binding — it is
+rendering a bound pane. And it is **not** the pane's contents: the hang survives hiding the code
+editor (`ShowCodeBlock(null)`) *and* emptying the port list (`Inspector.Clear()`), so it happens
+with a pane that has almost nothing left to draw.
+
+**The view model must be built outside `HeadlessSession.Run`.** That much is [N71](#n71) and it is
+real — building it inside deadlocks before any of the above is reached. Doing so is necessary and
+not sufficient; the hang above is with the model already built.
+
+**What this costs, stated plainly.** Every defect in the properties pane this session — the
+invisible editor, the four controls sharing a grid row — is a rendering defect, and rendering is
+exactly what cannot be asserted here. The view-model tests pass either way; that is the whole
+lesson of [N88](#n88) and [N89](#n89) and it applies to this pane with no way round it yet.
+
+**Not chased further, on purpose.** The interactive application renders the pane correctly, so
+this is a test-harness problem rather than a product one, and it was found while shipping
+something else. It is a row in [TODO.md](TODO.md) rather than a note that pretends to be finished.
+The next thing to try is a captured frame of a *narrower* control — the row `DataTemplate` alone,
+hosted in a bare `ItemsControl` — to find out whether any bound Spark control renders here or only
+this pane does.

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 21:40 +0530
+**Last updated:** 2026-09-01 23:55 +0530
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Code block inputs: an explicit type per port.** The zero-input half is done and committed. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **A new code block has no inputs.** The starter was `return a;`, which compiles to a block with one input port called `a` that nobody asked for and that a user has no obvious way to remove - the answer, "delete the identifier from the source", being exactly what the starter failed to teach. An empty script is legal (zero inputs, one `result` output), so the starter is now one comment line stating the rule. Two tests, both watched red against the old starter. |
-| **Working tree** | Clean. |
-| **Next action** | **Code block inputs: zero by default, and a type per port.** Asked for directly by the client, who wanted `+`/`-` buttons with name and type dropdowns; they took the narrower option instead after the trade-off was put to them. **Names stay inferred from the code**, which keeps one source of truth and matches Dynamo - a declared name list is a second place a name lives, and `radus` in the code against `radius` in the list is a confusion the current design simply does not have. Two changes. **(1)** `PlaceCodeBlock`'s starter is `return a;`, which is why a new block arrives with an unwanted input `a`; it becomes something with no free identifiers. **(2)** A type dropdown on the port rows that already exist in the inspector, feeding `inputTypes` - which is **already plumbed end to end** (`CanvasGraph` to `Graph.InputTypes` to `ScriptNodeFactory.Create`), so this is a new source for an existing input, not new machinery. An explicit type **beats** the wire's, and must round-trip in `.spark`. **Start by reading how `InputTypes` merges**, because that is where precedence has to live. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, `dotnet test Spark.slnx` (**2071** over **nine** projects: Geometry.Tests 763, UI.Tests 573, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 15, Packages.Tests 71, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** - [N30](NOTES.md) - **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Working on** | **Nothing. The tree is clean and the gates are green.** |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`E6-T18` and `E6-T19` - code block inputs.** A new block now has **no** input ports (the starter was `return a;`), and every input port has a **type dropdown** defaulting to *from the wire*. The client asked for `+`/`-` buttons with name **and** type dropdowns; the trade-off was put to them and they took the narrower design, because declaring names would put a second source of truth beside the code. A declaration **beats** the wire, is held by port name, survives a rebuild, and round-trips as a short token. **2093 tests.** |
+| **Working tree** | Clean at the moment this was written. The step has not started. |
+| **Next action** | **`E6-T20` - a rendering test for the properties pane, which is owed.** Every properties-pane defect found by a person today was a **rendering** defect, and rendering is the one thing the headless session cannot assert: showing `InspectorPane` with a bound view model hangs the dispatcher. [N90](NOTES.md) has the bisection - not the session, not the window, not construction, not binding, and **not the pane's contents**, since it survives hiding the editor and emptying the port list. **Start with the narrower case**: capture a frame of the row `DataTemplate` alone, hosted in a bare `ItemsControl` with a hand-built `PortLiteralViewModel`, and find out whether **any** bound Spark control renders in this session or only this pane fails. If the narrow case renders, bisect the pane downward from the top; if it hangs too, the question is about the headless session itself and the answer may be that this class of test needs a real window. Also owed: a contrast test for the editor colours beside `PaletteContrastTests`, and the `tessellate` verb wired into `nightly.yml` (Windows runs it, the other legs pass `--no-tessellation`). |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, `dotnet test Spark.slnx` (**2093** over **nine** projects: Geometry.Tests 763, UI.Tests 573, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 15, Packages.Tests 71, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** - [N30](NOTES.md) - **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -4531,3 +4531,71 @@ visibility: I wrote one, it hung in the headless dispatcher, and I **deleted it*
 leave a hanging test in the suite. The `App.axaml` fix is therefore verified by a person's eyes
 and nothing else, which fails AGENTS.md step 7. A contrast test for the editor colours alongside
 `PaletteContrastTests` is owed too. Both are on the queue.
+
+### 2026-09-01 — `E6-T19`: a type per port, and the design the client asked for was not the one they took
+
+**What was asked.** "Allow multiple input for codeblock. provide + button to add new input and -
+button to remove input. Let the default be zero inputs. Provide dropdown for each input to set
+variable name and data type. You may suggest if there is a better way."
+
+**What was built, and why it is narrower.** The trade-off was put to the client before any code
+was written, with three options and the honest cost of each. They took the middle one.
+
+Declaring **names** in the panel would put a second source of truth beside the code. Today a port
+exists because the script uses a name it has not declared — one answer to "what are this block's
+inputs?", and the answer is the code. With a declared list, `radius` in the list against `radus`
+in the source is an unused input plus an undeclared identifier, and renaming through the dropdown
+has to rewrite the user's source. It is also how Dynamo works, and `DYNAMO-COVERAGE.md` treats
+that parity as a goal.
+
+Declaring **types** has no such problem, because there is nowhere else a type can be said. So:
+names stay inferred, and every input port gets a type dropdown.
+
+**Two changes, committed separately.**
+
+`E6-T18`: the starter script was `return a;`, which is why a new block arrived with an input `a`
+nobody asked for — and removing it requires already knowing that you delete an identifier from the
+source, which is exactly what the starter failed to teach. An empty script turns out to be legal
+(zero inputs, one `result` output), so the starter is one comment line stating the rule.
+
+`E6-T19`: a dropdown on each input row, defaulting to *from the wire*. Choosing a type recompiles
+the block immediately. **A declaration beats the wire** — the wire is the better source whenever
+there is one, which is why it is the default, but a setting that is quietly overruled is worse
+than no setting.
+
+**Where the pieces went, because the shape is the interesting part.** `inputTypes` was already
+plumbed end to end — `CanvasGraph.Retype`, then `Graph.InputTypes`, then
+`ScriptNodeFactory.Create` — so this is a **new source for an existing input**, not new machinery.
+`Graph.InputTypes` walks the wires first and overlays declarations last, which is how precedence is
+expressed. Declarations are held by port **name**, for the reason that method already gives: a code
+block's port indices move when its source gains an identifier. `ReplaceDefinition` carries them
+across a rebuild exactly as it already carries wires and group memberships. They round-trip as
+short tokens (`point`, not an assembly-qualified name), and an unrecognised token costs the
+setting, never the document.
+
+**Verified.** Three gates: clean `-warnaserror` build, **2093 passed / 0 failed**, format clean.
+Nine tests on the engine half, eight on the panel, three on the round trip — including that a
+declaration survives an edit to the script, that undo undoes it, and that a graph declaring
+nothing writes no `inputTypes` at all, so files written before this are byte-identical.
+
+**What the reversion check bought, twice.** `E6-T18`'s two tests were watched red against the old
+starter before it was committed. And building the panel test turned up a real defect no
+view-model test would have found on its own: a `ComboBox` writes **null** back through a two-way
+`SelectedItem` binding while it is being realised, before `ItemsSource` has been applied. Acting on
+that would have silently cleared a declaration every time the panel was rebuilt — which is every
+time the selection changes. "The user declared nothing" is spelled `NotDeclared`, an entry in the
+list; null is never a choice. Guarded, and `ANullFromTheBindingDoesNotClearTheDeclaration` holds it.
+
+**What could not be verified, stated rather than glossed.** The dropdown's *rendering* is verified
+by a person's eyes and by nothing else. A test that shows `InspectorPane` with a bound view model
+**hangs the headless dispatcher** — the same hang that killed `InspectorLayoutTests` earlier
+today. This time it was bisected properly ([N90](NOTES.md)): a plain `ComboBox` in a window renders,
+the pane constructs, the pane shows *unbound*, binding succeeds — and capturing a frame with the
+data context attached hangs. It is **not** the pane's contents; it survives hiding the code editor
+and emptying the port list, so the failing case is a pane with almost nothing left to draw. That
+is `E6-T20`, and it is on the queue rather than implied.
+
+**The pattern is now three sessions old.** The invisible editor, the dead viewport, the overlapping
+grid rows, and now this: every one of them lives in the gap between a view model that tests can
+reach and a surface that tests cannot. The view-model tests here are good and they would all have
+passed with the dropdown drawing nothing at all.

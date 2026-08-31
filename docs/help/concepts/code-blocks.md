@@ -120,7 +120,40 @@ The port label on the canvas changes to match, and pulling the wire out puts the
 `centre.` lists `X`, `Y`, `Z`, `DistanceTo` and the rest of `Point3d`. With nothing wired in, it
 lists nothing — not because Spark is being unhelpful, but because the block really will be compiled
 with that input as `dynamic`, and a list that promised members the compiler will not find would be
-worse than no list at all. **Wire the port first, and the editor knows what you are working with.**
+worse than no list at all. **Wire the port first, and the editor knows what you are working with —
+or tell it, which is the next section.**
+
+## Saying what a port is, before you wire it
+
+Wiring is not the only way to give a port a type, and it is the wrong way round when you are
+writing the code first. **Every input port on a code block has a type dropdown in the properties
+pane, underneath its value box.** It starts on *from the wire*, which is the behaviour above.
+Choose anything else and the block is recompiled immediately as though that type had been wired
+in — the port label on the canvas changes, and completion starts working straight away.
+
+So to write this before there is anything to wire into it:
+
+```csharp
+return centre.X + centre.Y;
+```
+
+put a code block down, type the line, and set `centre` to `Point3d` in the dropdown. Typing
+`centre.` now lists the members of a point.
+
+**A type you choose beats a type a wire brings.** The wire is the better source whenever there is
+one, which is why *from the wire* is the default — but a setting that was quietly overruled would
+be worse than no setting, so once you have said what a port is, that is what it is. Put the
+dropdown back to *from the wire* to hand it back.
+
+The choice is saved with the graph, and it survives editing the script: declarations are held by
+port **name**, so adding a line above does not move them onto the wrong port.
+
+**There is no button that adds an input.** A port appears because you used a name the code has not
+declared, and it disappears when you stop using it — the dropdown says what an existing port *is*,
+not whether it exists. That keeps one answer to "what are this block's inputs?", and the answer is
+the code.
+
+## What arrives, and what it is called
 
 Numbers are widened where a graph would expect them to be: an integer arriving on a port the
 script uses as a `double` is converted rather than refused. When something genuinely wrong
