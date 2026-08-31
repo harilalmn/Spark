@@ -58,6 +58,7 @@ public sealed class OcctBrepKernel : IBrepKernel
         | BrepCapabilities.Extrude
         | BrepCapabilities.Revolve
         | BrepCapabilities.Loft
+        | BrepCapabilities.Sweep
         | BrepCapabilities.Fillet
         | BrepCapabilities.Chamfer
         | BrepCapabilities.Shell
@@ -140,6 +141,44 @@ public sealed class OcctBrepKernel : IBrepKernel
 
             return (status, status == NativeMethods.Ok ? shape : IntPtr.Zero);
         });
+    }
+
+    /// <inheritdoc/>
+    public KernelResult<Brep> Sweep(Curve profile, Curve rail, bool cap, in Tolerance tolerance)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        ArgumentNullException.ThrowIfNull(rail);
+
+        double linear = tolerance.Linear;
+
+        using NativeBuffers buffers = new();
+        ModelDesc[] shape = [ModelWriter.FromCurves([profile]).Pin(buffers)];
+        ModelDesc[] path = [ModelWriter.FromCurves([rail]).Pin(buffers)];
+
+        int status = NativeMethods.spark_occt_sweep(
+            buffers.Pin(shape), buffers.Pin(path), cap ? 1 : 0, linear, out IntPtr result);
+
+        return Wrap(status, result, "sweep");
+    }
+
+    /// <inheritdoc/>
+    public KernelResult<Brep> Patch(IReadOnlyList<Curve> boundary, in Tolerance tolerance)
+    {
+        ArgumentNullException.ThrowIfNull(boundary);
+
+        if (boundary.Count == 0)
+        {
+            return KernelResult<Brep>.Failure(Refusal("patch", "There is no boundary to fill."));
+        }
+
+        double linear = tolerance.Linear;
+
+        using NativeBuffers buffers = new();
+        ModelDesc[] curves = [ModelWriter.FromCurves(boundary).Pin(buffers)];
+
+        int status = NativeMethods.spark_occt_patch(buffers.Pin(curves), linear, out IntPtr result);
+
+        return Wrap(status, result, "patch");
     }
 
     /// <inheritdoc/>

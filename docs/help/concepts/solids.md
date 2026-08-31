@@ -56,6 +56,8 @@ ships with Spark is **OpenCascade**.
 | `Solid.Split` | Cuts a solid into pieces and keeps **all** of them |
 | `Solid.Trim` | Cuts a solid and keeps only the piece a point is in |
 | `Solid.Extrude` | Sweeps a closed profile along a direction |
+| `Solid.Sweep` | Sweeps a profile along a curved path |
+| `Solid.Patch` | Fills a closed boundary with a surface |
 | `Solid.FilletAll` | Rounds every edge, to a radius |
 | `Solid.Hollow` | Turns a solid into a shell of a given wall thickness |
 | `Solid.Offset` | Moves every face outwards or inwards |

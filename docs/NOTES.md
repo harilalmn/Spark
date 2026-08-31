@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N49-N61 added)
+**Last updated:** 2026-08-31 (N49-N62 added)
 
 ---
 
@@ -1727,3 +1727,31 @@ somebody optimising in good faith.
 **This is `E12-T8` constrained by a decision taken after it was written**, which is exactly the
 shape ADR-0020 warned its consequences would have. *Nothing here is legal advice — `Q13` item 2 is
 with counsel.*
+
+## N62 — A profile is a wire, and reading the loop table made a polycurve exact
+
+`spark_occt`'s profile encoding is the same `spark_model_desc` a whole BRep uses, and `build_wires`
+was reading only the curve table: **one curve, one wire**. Everything else in the struct — the
+edges, the trims, the loops — was ignored on that path.
+
+**The consequence was an approximation nobody asked for.** A `PolyCurve` or a `PolyLine` has no
+single NURBS that represents it without work, so `ModelWriter` fell back to *interpolating* one
+through sampled points. Extruding a square drawn as four lines therefore produced a shape with a
+curved wall, several extra faces and a volume that was nearly but not exactly its area times its
+height — for a profile every piece of which was exactly representable.
+
+**The encoding already had the answer.** A loop is a list of trims, a trim names an edge, an edge
+names a curve: that is a circuit, which is what a wire is. Honouring the loop table on the profile
+path costs about forty lines and removes the fallback entirely for polycurves and polylines, which
+now go out as their own segments — lines as lines, arcs as arcs.
+
+**What proves it is a face count, not a tolerance.** A square extruded from four lines has **six
+planar faces**; the interpolated version had a NURBS wall. A mixed chain of line-arc-line extrudes
+into two planes and **one cylindrical surface**. Neither of those numbers is reachable by a spline
+that merely passes close to the right points, which is why they are the assertions rather than a
+distance.
+
+**The general lesson is about encodings rather than geometry.** When a format is shared between two
+paths and one path reads a subset of it, the subset is invisible: nothing fails, and the missing
+information is quietly replaced by a worse answer. The tell here was `ModelWriter.Approximated`
+being true for shapes that had no business being approximate.

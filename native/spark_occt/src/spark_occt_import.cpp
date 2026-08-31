@@ -887,8 +887,6 @@ namespace spark
     spark_status build_wires(
         const spark_model_desc& desc, double tolerance, std::vector<TopoDS_Shape>& into)
     {
-        (void)tolerance;
-
         std::string why;
 
         if (!tables_present(desc, why))
@@ -901,32 +899,89 @@ namespace spark
             return fail(SPARK_ERR_ARGUMENT, "A profile needs at least one curve.");
         }
 
-        for (int32_t i = 0; i < desc.curve_count; i++)
-        {
-            const Handle(Geom_Curve) curve = make_curve(
-                desc.curve_kinds[i],
-                desc.curve_ints + desc.curve_int_offsets[i],
-                span(desc.curve_int_offsets, i),
-                desc.curve_doubles + desc.curve_double_offsets[i],
-                span(desc.curve_double_offsets, i));
+        std::vector<TopoDS_Edge> edges;
+        const spark_status built = build_edges(desc, tolerance > 0.0 ? tolerance : 1.0e-6, edges);
 
-            if (curve.IsNull())
+        if (built != SPARK_OK)
+        {
+            return built;
+        }
+
+        // A PROFILE IS A WIRE, AND THE LOOP TABLE IS HOW IT SAYS SO. One curve per wire was the
+        // first version and it forced a polycurve through an *interpolating* NURBS conversion —
+        // an approximation, for a shape whose pieces were all exactly representable. The
+        // encoding already had a way to group edges into a circuit; it was simply not being read.
+        if (desc.loop_count > 0 && desc.loops != nullptr && desc.trims != nullptr)
+        {
+            for (int32_t l = 0; l < desc.loop_count; l++)
+            {
+                const int32_t firstTrim = desc.loops[(l * 3) + 0];
+                const int32_t trimCount = desc.loops[(l * 3) + 1];
+
+                if (trimCount <= 0)
+                {
+                    continue;
+                }
+
+                BRepBuilderAPI_MakeWire wire;
+
+                for (int32_t t = firstTrim; t < firstTrim + trimCount; t++)
+                {
+                    if (t < 0 || t >= desc.trim_count)
+                    {
+                        return fail(
+                            SPARK_ERR_ARGUMENT,
+                            "Loop " + std::to_string(l) + " names trim " + std::to_string(t)
+                                + ", which does not exist.");
+                    }
+
+                    const int32_t edgeIndex = desc.trims[(t * 2) + 0];
+                    const bool backwards = desc.trims[(t * 2) + 1] != 0;
+
+                    if (edgeIndex < 0 || edgeIndex >= static_cast<int32_t>(edges.size())
+                        || edges[static_cast<size_t>(edgeIndex)].IsNull())
+                    {
+                        return fail(
+                            SPARK_ERR_REFUSED,
+                            "Loop " + std::to_string(l) + " names an edge that could not be built.");
+                    }
+
+                    TopoDS_Edge edge = edges[static_cast<size_t>(edgeIndex)];
+
+                    if (backwards)
+                    {
+                        edge.Reverse();
+                    }
+
+                    wire.Add(edge);
+                }
+
+                if (!wire.IsDone())
+                {
+                    return fail(
+                        SPARK_ERR_REFUSED,
+                        "Loop " + std::to_string(l) + "'s edges do not form a connected wire.");
+                }
+
+                into.push_back(wire.Wire());
+            }
+
+            if (!into.empty())
+            {
+                return SPARK_OK;
+            }
+        }
+
+        // No loops: every curve is its own wire, which is what a single-curve profile means.
+        for (size_t i = 0; i < edges.size(); i++)
+        {
+            if (edges[i].IsNull())
             {
                 return fail(
-                    SPARK_ERR_UNSUPPORTED,
-                    "Curve " + std::to_string(i) + " is of a kind ("
-                        + std::to_string(desc.curve_kinds[i])
-                        + ") this build cannot rebuild, or its data did not describe one.");
+                    SPARK_ERR_REFUSED, "Curve " + std::to_string(i) + " made no edge.");
             }
 
-            BRepBuilderAPI_MakeEdge edge(curve);
-
-            if (!edge.IsDone())
-            {
-                return fail(SPARK_ERR_REFUSED, "Curve " + std::to_string(i) + " made no edge.");
-            }
-
-            BRepBuilderAPI_MakeWire wire(edge.Edge());
+            BRepBuilderAPI_MakeWire wire(edges[i]);
 
             if (!wire.IsDone())
             {

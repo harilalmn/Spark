@@ -25,7 +25,9 @@
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepLib.hxx>
 #include <BRepMesh_IncrementalMesh.hxx>
+#include <BRepFill_Filling.hxx>
 #include <BRepOffsetAPI_DraftAngle.hxx>
+#include <BRepOffsetAPI_MakePipe.hxx>
 #include <BRepOffsetAPI_MakeOffsetShape.hxx>
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepOffsetAPI_ThruSections.hxx>
@@ -71,6 +73,7 @@
 #include <TopLoc_Location.hxx>
 #include <TopoDS_Shell.hxx>
 #include <TopoDS_Solid.hxx>
+#include <BRepTools_WireExplorer.hxx>
 #include <TopoDS_Compound.hxx>
 #include <TopoDS_Iterator.hxx>
 #include <TopoDS_Wire.hxx>
@@ -1033,6 +1036,110 @@ extern "C" spark_status SPARK_OCCT_CALL spark_occt_revolve(
 
             return finished(revolve);
         }, out);
+    });
+}
+
+extern "C" spark_status SPARK_OCCT_CALL spark_occt_sweep(
+    const spark_model_desc* profile,
+    const spark_model_desc* rail,
+    int32_t cap,
+    double tolerance,
+    spark_shape** out)
+{
+    return guard("A sweep", [&]() -> spark_status
+    {
+        if (profile == nullptr || rail == nullptr || out == nullptr)
+        {
+            return fail(SPARK_ERR_ARGUMENT, "A sweep needs a profile, a rail and somewhere to go.");
+        }
+
+        std::vector<TopoDS_Shape> profiles;
+        spark_status status = spark::build_wires(*profile, tolerance, profiles);
+
+        if (status != SPARK_OK)
+        {
+            return status;
+        }
+
+        std::vector<TopoDS_Shape> rails;
+        status = spark::build_wires(*rail, tolerance, rails);
+
+        if (status != SPARK_OK)
+        {
+            return status;
+        }
+
+        if (profiles.size() != 1 || rails.size() != 1)
+        {
+            return fail(
+                SPARK_ERR_ARGUMENT,
+                "A sweep takes one profile and one rail, and was given "
+                    + std::to_string(profiles.size()) + " and " + std::to_string(rails.size()) + ".");
+        }
+
+        const TopoDS_Shape base = cap != 0 ? capped(profiles[0]) : profiles[0];
+
+        BRepOffsetAPI_MakePipe pipe(TopoDS::Wire(rails[0]), base);
+        pipe.Build();
+
+        return emit(finished(pipe), out);
+    });
+}
+
+extern "C" spark_status SPARK_OCCT_CALL spark_occt_patch(
+    const spark_model_desc* boundary, double tolerance, spark_shape** out)
+{
+    return guard("A patch", [&]() -> spark_status
+    {
+        if (boundary == nullptr || out == nullptr)
+        {
+            return fail(SPARK_ERR_ARGUMENT, "A patch needs a boundary and somewhere to go.");
+        }
+
+        std::vector<TopoDS_Shape> wires;
+        const spark_status status = spark::build_wires(*boundary, tolerance, wires);
+
+        if (status != SPARK_OK)
+        {
+            return status;
+        }
+
+        if (wires.empty())
+        {
+            return fail(SPARK_ERR_ARGUMENT, "A patch needs at least one boundary curve.");
+        }
+
+        // BRepFill_Filling takes edges rather than wires: it does not require the boundary to be
+        // a single connected circuit, which is the difference between a patch and a face. Every
+        // edge of every wire goes in.
+        BRepFill_Filling filling;
+        int32_t added = 0;
+
+        for (const TopoDS_Shape& wire : wires)
+        {
+            for (TopExp_Explorer it(wire, TopAbs_EDGE); it.More(); it.Next())
+            {
+                filling.Add(TopoDS::Edge(it.Value()), GeomAbs_C0);
+                added++;
+            }
+        }
+
+        if (added == 0)
+        {
+            return fail(SPARK_ERR_ARGUMENT, "The boundary contained no edges.");
+        }
+
+        filling.Build();
+
+        if (!filling.IsDone())
+        {
+            return fail(
+                SPARK_ERR_REFUSED,
+                "No surface could be fitted to that boundary: " + std::to_string(added)
+                    + " edge(s) were given.");
+        }
+
+        return emit(filling.Face(), out);
     });
 }
 

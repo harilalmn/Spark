@@ -79,7 +79,7 @@ typedef int32_t spark_status;
 #define SPARK_ERR_EXCEPTION     4 /**< OpenCascade raised. The message says what. */
 
 /** The ABI revision. Bumped whenever a signature or an encoding below changes. */
-#define SPARK_OCCT_ABI 5
+#define SPARK_OCCT_ABI 6
 
 /* --------------------------------------------------------------------------------------------
  * Geometry encodings
@@ -311,6 +311,28 @@ SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_revolve(
     double angle,
     double tolerance,
     spark_shape** out);
+
+/**
+ * Sweeps a profile along a rail.
+ *
+ * `profile` and `rail` are each a model carrying curves — and, if they carry loops, those loops
+ * are the wires. The profile is capped into a solid when `cap` is non-zero and it closes.
+ */
+SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_sweep(
+    const spark_model_desc* profile,
+    const spark_model_desc* rail,
+    int32_t cap,
+    double tolerance,
+    spark_shape** out);
+
+/**
+ * Fills a closed boundary with a surface that meets it.
+ *
+ * The boundary is a model carrying curves. Unlike a loft, which needs profiles in an order, this
+ * takes a single closed circuit and finds a surface for it — which is what a patch is.
+ */
+SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_patch(
+    const spark_model_desc* boundary, double tolerance, spark_shape** out);
 
 /** Lofts through the profiles, in the order the model carries them. */
 SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_loft(

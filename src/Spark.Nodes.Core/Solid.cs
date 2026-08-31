@@ -78,6 +78,30 @@ public static class Solid
     public static Brep Extrude(Spark.Geometry.Curve profile, Vector3d direction) =>
         Unwrap(BrepKernel.Current.Extrude(profile, direction, cap: true, Tolerance.Default));
 
+    /// <summary>Sweeps a profile along a path.</summary>
+    /// <param name="profile">The curve to sweep.</param>
+    /// <param name="rail">The path to sweep it along.</param>
+    /// <returns>The solid.</returns>
+    /// <remarks>
+    /// The general case of <see cref="Extrude"/>, which sweeps along a straight line. Use that
+    /// one when the path is straight — it needs no second curve and is what most graphs mean.
+    /// </remarks>
+    [return: NodePort("solid")]
+    public static Brep Sweep(Spark.Geometry.Curve profile, Spark.Geometry.Curve rail) =>
+        Unwrap(BrepKernel.Current.Sweep(profile, rail, cap: true, Tolerance.Default));
+
+    /// <summary>Fills a closed boundary with a surface.</summary>
+    /// <param name="boundary">The curves that bound it.</param>
+    /// <returns>The patch, as a one-faced shape.</returns>
+    /// <remarks>
+    /// <b>A patch is not a loft.</b> A loft goes *through* profiles in the order they are given;
+    /// a patch is handed a circuit and finds a surface that meets it. Asking for one when you
+    /// meant the other produces a plausible answer to the wrong question.
+    /// </remarks>
+    [return: NodePort("patch")]
+    public static Brep Patch(IReadOnlyList<Spark.Geometry.Curve> boundary) =>
+        Unwrap(BrepKernel.Current.Patch(boundary, Tolerance.Default));
+
     /// <summary>Cuts a solid into pieces and keeps all of them.</summary>
     /// <param name="solid">The solid to cut.</param>
     /// <param name="cutter">What to cut it with.</param>

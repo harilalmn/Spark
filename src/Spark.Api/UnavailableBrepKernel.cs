@@ -58,6 +58,14 @@ public sealed class UnavailableBrepKernel : IBrepKernel
         Refuse<Brep>("loft");
 
     /// <inheritdoc/>
+    public KernelResult<Brep> Sweep(Curve profile, Curve rail, bool cap, in Tolerance tolerance) =>
+        Refuse<Brep>("sweep");
+
+    /// <inheritdoc/>
+    public KernelResult<Brep> Patch(IReadOnlyList<Curve> boundary, in Tolerance tolerance) =>
+        Refuse<Brep>("patch");
+
+    /// <inheritdoc/>
     public KernelResult<Brep> Fillet(Brep solid, IReadOnlyList<int> edges, double radius, in Tolerance tolerance) =>
         Refuse<Brep>("fillet");
 

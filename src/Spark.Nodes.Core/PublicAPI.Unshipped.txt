@@ -99,7 +99,9 @@ static Spark.Nodes.Core.Solid.Hollow(Spark.Geometry.Brep! solid, double thicknes
 static Spark.Nodes.Core.Solid.Intersection(Spark.Geometry.Brep! first, Spark.Geometry.Brep! second) -> Spark.Geometry.Brep!
 static Spark.Nodes.Core.Solid.IsClosed(Spark.Geometry.Brep! solid) -> bool
 static Spark.Nodes.Core.Solid.Offset(Spark.Geometry.Brep! solid, double distance = 0.1) -> Spark.Geometry.Brep!
+static Spark.Nodes.Core.Solid.Patch(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>! boundary) -> Spark.Geometry.Brep!
 static Spark.Nodes.Core.Solid.Split(Spark.Geometry.Brep! solid, Spark.Geometry.Brep! cutter) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>!
+static Spark.Nodes.Core.Solid.Sweep(Spark.Geometry.Curve! profile, Spark.Geometry.Curve! rail) -> Spark.Geometry.Brep!
 static Spark.Nodes.Core.Solid.Thicken(Spark.Geometry.Brep! sheet, double thickness = 0.1) -> Spark.Geometry.Brep!
 static Spark.Nodes.Core.Solid.ToMesh(Spark.Geometry.Brep! solid, double tolerance = 0.01) -> Spark.Geometry.Mesh!
 static Spark.Nodes.Core.Solid.Trim(Spark.Geometry.Brep! solid, Spark.Geometry.Brep! cutter, Spark.Geometry.Point3d keep) -> Spark.Geometry.Brep!

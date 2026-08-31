@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 10:05 +0530
+**Last updated:** 2026-08-31 10:55 +0530
 **Protocol version:** 2
 
 ---
@@ -16,13 +16,13 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1, M1.5, M2, M3 and M4 are done. M5 is substantially done** (the software renderer and CI visual regression, `E11-T16`, are **deferred past M6** deliberately). **M6 is complete as far as engineering goes**: solids that can be combined, filleted, shelled, trimmed and exported to STEP; the provider, its CI job, its licence obligations and its measured payload. **M1.6 is taken** — `C1` … `C9` are all answered and `C2` passed, so ADR-0020 stands. **What is left of M6 needs a person, not a commit** — see *Blocked on*. |
-| **Working on** | Nothing. Between steps |
+| **Milestone** | **M1, M1.5, M2, M3, M4 and M6 are done. M5 is substantially done** — the software renderer and CI visual regression (`E11-T16`) are **deferred past M6** deliberately and are now the largest thing it still owes. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
+| **Working on** | Nothing. Between milestones |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`Q15` closed as `D18`, the native CI job, and the payload measured.** The ubuntu leg survives and never builds the provider; a `native` job on Windows builds the shim behind two caches and **fails on a non-zero skip count**. `scripts/publish.ps1` stages a folder that runs: **224.4 MB, of which OpenCascade is 52.0 MB — 23%**, which is the opposite of what R15's framing suggested. |
+| **Last completed step** | **Sweep, patch, and a profile that is a wire** — `E13-T9` closes, and `E13-T1`, `T5`, `T6` and `T10` close with it. Honouring the loop table on the profile path removed the last approximation: a polycurve goes out as its own segments, so a square extrudes into **six planar faces** rather than a spline wall. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **M6's engineering is done and the remaining rows want a person rather than a commit** — read *Blocked on*. If work continues without one, the largest honest item is **`E11-T16`**, the software renderer and the CI visual regression, deliberately deferred past M6 on 2026-08-31 and now the biggest thing M5 still owes. After that, M7. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`** — each is `In progress` for a stated reason that is not a missing commit. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1762**: Geometry.Tests 763, UI.Tests 439, Engine.Tests 367, Viewport.Tests 74, Geometry.Properties 43, **Geometry.Occt.Tests 56**, Architecture.Tests 15, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **M6 is finished.** The next piece of work is **`E11-T16`** — the software renderer and the CI visual regression — deliberately deferred past M6 on 2026-08-31 and now the biggest thing M5 still owes; it is what makes viewport output comparable across machines and therefore testable at all. After that, **M7**. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**: each is `In progress` for a stated reason that is not a missing commit, and all three are in *Blocked on*. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1769**: Geometry.Tests 763, UI.Tests 439, Engine.Tests 367, Viewport.Tests 74, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Four things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. **(4)** Opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance. *And still: watching the first nightly benchmark run.* |
 
 **Step status vocabulary**, and it means exactly this:
@@ -2765,3 +2765,44 @@ corpus and a third-party viewer. `Q13`'s counsel questions. `E12-T18`'s About bo
 
 **Verified.** Build clean with `-warnaserror`; **1,762 tests, 0 failures, 0 skipped**;
 `dotnet format` clean; docs harness green; the CI workflow parses and now has four jobs.
+
+### 2026-08-31 — Sweep, patch, and a profile that is a wire
+
+**`E13-T9` closes; `E13-T5`, `E13-T6`, `E13-T10` and `E13-T1` close with it.** Everything in `E13`
+that is engineering rather than an errand for a person is now `Done`.
+
+**A profile was a curve and should have been a wire, and the encoding already knew.** `build_wires`
+read only the curve table of a `spark_model_desc` — the edges, trims and loops were ignored on that
+path — so one Spark curve became one wire. Which meant a `PolyCurve` had to be squeezed into a
+single NURBS, and `ModelWriter` did it by **interpolating through sampled points**: an
+approximation, for a profile every piece of which was exactly representable.
+
+**Honouring the loop table costs about forty lines and removes the fallback entirely.** A loop is a
+list of trims, a trim names an edge, an edge names a curve — that is a circuit, which is what a wire
+is. Polycurves and polylines now go out as their own segments: lines as lines, arcs as arcs.
+
+**What proves it is a face count, not a tolerance.** A square extruded from four lines has **six
+planar faces**; the interpolated version had a curved wall. A chain of line-arc-line extrudes into
+two planes and **one cylindrical surface**. Neither number is reachable by a spline that merely
+passes close to the right points, which is why they are the assertions rather than a distance.
+[N62](NOTES.md).
+
+**Sweep and patch complete `§6.1`'s modelling members.** `spark_occt_sweep` is
+`BRepOffsetAPI_MakePipe` along a rail — the general case of extrude, kept as its own operation
+because the straight case is what most graphs want and needs no second curve. `spark_occt_patch` is
+`BRepFill_Filling`, and it takes **edges rather than a wire**, because a patch does not require its
+boundary to be one connected circuit.
+
+**A patch is not a loft, and the difference is worth a sentence in the node's documentation.** A
+loft goes *through* profiles in the order it is given them; a patch is handed a circuit and finds a
+surface that meets it. Asking for one when you meant the other produces a plausible answer to the
+wrong question, which is the worst kind.
+
+**Four rows closed by review rather than by code, and the review is the point.** `E13-T1` has all
+nine `M1.6` criteria answered — **six of the nine came back with the answer nobody was hoping for
+and every one of them cost nothing**, which is exactly what writing the criteria in advance was
+for. `E13-T6` needed nothing more for M6. `E13-T10`'s policy question is `M1.6-C6`, answered.
+Leaving a row `In progress` because nobody looked at it again is how a register stops being true.
+
+**Verified.** Shim builds with zero warnings; build clean with `-warnaserror`; **1,769 tests, 0
+failures, 0 skipped** (Geometry.Occt 56 → 63); `dotnet format` clean; docs harness green.

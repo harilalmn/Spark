@@ -34,11 +34,11 @@ public sealed class OcctBrepKernelTests
         Assert.True(Kernel.Capabilities.HasFlag(BrepCapabilities.Offset));
         Assert.True(Kernel.Capabilities.HasFlag(BrepCapabilities.Step));
 
+        Assert.True(Kernel.Capabilities.HasFlag(BrepCapabilities.Sweep));
+
         // Not claimed, and the absence is the assertion: a capability flag is what the node
         // library greys operations out on, so claiming one the ABI cannot do is worse than
-        // claiming nothing. `Sweep` needs a rail and there is no entry point for one;
-        // `MeshBoolean` is E2's and is deferred to 1.x.
-        Assert.False(Kernel.Capabilities.HasFlag(BrepCapabilities.Sweep));
+        // claiming nothing. `MeshBoolean` is E2's work and is deferred to 1.x.
         Assert.False(Kernel.Capabilities.HasFlag(BrepCapabilities.MeshBoolean));
     }
 

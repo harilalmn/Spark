@@ -244,6 +244,29 @@ public interface IBrepKernel
     /// <returns>The shape, or why not.</returns>
     KernelResult<Brep> Loft(IReadOnlyList<Curve> profiles, bool closed, in Tolerance tolerance);
 
+    /// <summary>Sweeps a profile along a rail.</summary>
+    /// <param name="profile">The curve to sweep.</param>
+    /// <param name="rail">The path to sweep it along.</param>
+    /// <param name="cap">Whether to close the ends into a solid.</param>
+    /// <param name="tolerance">The modelling tolerance.</param>
+    /// <returns>The swept shape, or why not.</returns>
+    /// <remarks>
+    /// The general case of <see cref="Extrude"/>, which is a sweep along a straight line. Kept
+    /// separate because the straight case is what most graphs want and needs no second curve.
+    /// </remarks>
+    KernelResult<Brep> Sweep(Curve profile, Curve rail, bool cap, in Tolerance tolerance);
+
+    /// <summary>Fills a closed boundary with a surface that meets it.</summary>
+    /// <param name="boundary">The curves that bound the patch.</param>
+    /// <param name="tolerance">The modelling tolerance.</param>
+    /// <returns>The patch, or why not.</returns>
+    /// <remarks>
+    /// <b>Unlike <see cref="Loft"/>, the boundary has no order.</b> A loft goes *through* profiles
+    /// in sequence; a patch is given a circuit and finds a surface for it. They are different
+    /// questions and a graph that asked one when it meant the other would get a plausible answer.
+    /// </remarks>
+    KernelResult<Brep> Patch(IReadOnlyList<Curve> boundary, in Tolerance tolerance);
+
     /// <summary>Rounds a solid's edges.</summary>
     /// <param name="solid">The solid.</param>
     /// <param name="edges">The indices of the edges to round.</param>

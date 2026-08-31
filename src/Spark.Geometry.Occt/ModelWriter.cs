@@ -117,7 +117,20 @@ internal sealed class ModelWriter
         return writer;
     }
 
-    /// <summary>Writes a profile: curves and nothing else, which is what a sweep takes.</summary>
+    /// <summary>Writes profiles: each curve becomes one wire, in order.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A profile is a wire, not a curve, and the loop table is how that is said.</b> Each
+    /// curve here becomes a loop containing its own edges, so the provider builds one wire per
+    /// profile whether that profile is a circle or a chain of eleven segments.
+    /// </para>
+    /// <para>
+    /// <b>That is what makes a polycurve exact.</b> A <see cref="PolyCurve"/> or a
+    /// <see cref="PolyLine"/> has no single NURBS that represents it without work, and the first
+    /// version of this <i>interpolated</i> one — an approximation, for a shape whose every piece
+    /// was exactly representable. Sending the pieces and letting them form a wire loses nothing.
+    /// </para>
+    /// </remarks>
     public static ModelWriter FromCurves(IReadOnlyList<Curve> curves)
     {
         ArgumentNullException.ThrowIfNull(curves);
@@ -127,10 +140,73 @@ internal sealed class ModelWriter
         foreach (Curve curve in curves)
         {
             ArgumentNullException.ThrowIfNull(curve);
-            writer.AddCurve(curve);
+            writer.AddProfile(curve);
         }
 
         return writer;
+    }
+
+    /// <summary>Adds one profile: its segments as edges, gathered into a loop.</summary>
+    private void AddProfile(Curve curve)
+    {
+        int firstTrim = _trims.Count / 2;
+        int segments = 0;
+
+        foreach (Curve piece in Pieces(curve))
+        {
+            int index = _curveKinds.Count;
+            AddCurve(piece);
+
+            // An edge with no vertices: the provider builds the curve's own ends, and the wire
+            // connects them by proximity. A profile carries no topology of its own to preserve.
+            _edges.Add(-1);
+            _edges.Add(-1);
+            _edges.Add(index);
+
+            _trims.Add((_edges.Count / 3) - 1);
+            _trims.Add(0);
+            segments++;
+        }
+
+        _loops.Add(firstTrim);
+        _loops.Add(segments);
+        _loops.Add(NativeMethods.LoopOuter);
+    }
+
+    /// <summary>
+    /// A curve's exactly-representable pieces: itself, unless it is a chain of others.
+    /// </summary>
+    private static IEnumerable<Curve> Pieces(Curve curve)
+    {
+        switch (curve)
+        {
+            case PolyCurve chain:
+                for (int i = 0; i < chain.SegmentCount; i++)
+                {
+                    foreach (Curve nested in Pieces(chain.SegmentAt(i)))
+                    {
+                        yield return nested;
+                    }
+                }
+
+                break;
+
+            case PolyLine polyline:
+                {
+                    Point3d[] points = polyline.Points();
+
+                    for (int i = 0; i + 1 < points.Length; i++)
+                    {
+                        yield return new Line(points[i], points[i + 1]);
+                    }
+
+                    break;
+                }
+
+            default:
+                yield return curve;
+                break;
+        }
     }
 
     /// <summary>Pins every table and fills the descriptor the ABI takes.</summary>
