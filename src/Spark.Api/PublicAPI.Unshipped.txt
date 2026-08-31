@@ -34,6 +34,62 @@ Spark.Api.Displayable
 Spark.Api.Displayable.Appearance.get -> Spark.Api.Appearance!
 Spark.Api.Displayable.Displayable(object! geometry, Spark.Api.Appearance! appearance) -> void
 Spark.Api.Displayable.Geometry.get -> object!
+Spark.Api.Help.HelpBlock
+Spark.Api.Help.HelpBlock.HelpBlock(Spark.Api.Help.HelpBlockKind kind, System.Collections.Generic.IReadOnlyList<Spark.Api.Help.HelpInline>? inlines = null, int level = 0, string? language = null, string? text = null, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<Spark.Api.Help.HelpInline>!>!>? rows = null) -> void
+Spark.Api.Help.HelpBlock.Inlines.get -> System.Collections.Generic.IReadOnlyList<Spark.Api.Help.HelpInline>!
+Spark.Api.Help.HelpBlock.Kind.get -> Spark.Api.Help.HelpBlockKind
+Spark.Api.Help.HelpBlock.Language.get -> string?
+Spark.Api.Help.HelpBlock.Level.get -> int
+Spark.Api.Help.HelpBlock.PlainText.get -> string!
+Spark.Api.Help.HelpBlock.Rows.get -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<Spark.Api.Help.HelpInline>!>!>!
+Spark.Api.Help.HelpBlock.Text.get -> string?
+Spark.Api.Help.HelpBlockKind
+Spark.Api.Help.HelpBlockKind.Code = 2 -> Spark.Api.Help.HelpBlockKind
+Spark.Api.Help.HelpBlockKind.Heading = 0 -> Spark.Api.Help.HelpBlockKind
+Spark.Api.Help.HelpBlockKind.ListItem = 3 -> Spark.Api.Help.HelpBlockKind
+Spark.Api.Help.HelpBlockKind.Paragraph = 1 -> Spark.Api.Help.HelpBlockKind
+Spark.Api.Help.HelpBlockKind.Quote = 4 -> Spark.Api.Help.HelpBlockKind
+Spark.Api.Help.HelpBlockKind.Rule = 6 -> Spark.Api.Help.HelpBlockKind
+Spark.Api.Help.HelpBlockKind.Table = 5 -> Spark.Api.Help.HelpBlockKind
+Spark.Api.Help.HelpDocument
+Spark.Api.Help.HelpDocument.Blocks.get -> System.Collections.Generic.IReadOnlyList<Spark.Api.Help.HelpBlock!>!
+Spark.Api.Help.HelpDocument.HasWorkedExample.get -> bool
+Spark.Api.Help.HelpDocument.HelpDocument(string! id, string! title, System.Collections.Generic.IReadOnlyList<Spark.Api.Help.HelpBlock!>! blocks, System.Collections.Generic.IReadOnlyList<string!>? nodes = null, System.Collections.Generic.IReadOnlyList<string!>? related = null, string? since = null) -> void
+Spark.Api.Help.HelpDocument.Id.get -> string!
+Spark.Api.Help.HelpDocument.Nodes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Spark.Api.Help.HelpDocument.PlainText() -> string!
+Spark.Api.Help.HelpDocument.Related.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Spark.Api.Help.HelpDocument.Since.get -> string?
+Spark.Api.Help.HelpDocument.Title.get -> string!
+Spark.Api.Help.HelpInline
+Spark.Api.Help.HelpInline.Deconstruct(out Spark.Api.Help.HelpInlineKind Kind, out string! Text, out string? Target) -> void
+Spark.Api.Help.HelpInline.Equals(Spark.Api.Help.HelpInline other) -> bool
+Spark.Api.Help.HelpInline.HelpInline() -> void
+Spark.Api.Help.HelpInline.HelpInline(Spark.Api.Help.HelpInlineKind Kind, string! Text, string? Target = null) -> void
+Spark.Api.Help.HelpInline.Kind.get -> Spark.Api.Help.HelpInlineKind
+Spark.Api.Help.HelpInline.Kind.init -> void
+Spark.Api.Help.HelpInline.Target.get -> string?
+Spark.Api.Help.HelpInline.Target.init -> void
+Spark.Api.Help.HelpInline.Text.get -> string!
+Spark.Api.Help.HelpInline.Text.init -> void
+Spark.Api.Help.HelpInlineKind
+Spark.Api.Help.HelpInlineKind.Code = 3 -> Spark.Api.Help.HelpInlineKind
+Spark.Api.Help.HelpInlineKind.Emphasis = 2 -> Spark.Api.Help.HelpInlineKind
+Spark.Api.Help.HelpInlineKind.Link = 4 -> Spark.Api.Help.HelpInlineKind
+Spark.Api.Help.HelpInlineKind.Strong = 1 -> Spark.Api.Help.HelpInlineKind
+Spark.Api.Help.HelpInlineKind.Text = 0 -> Spark.Api.Help.HelpInlineKind
+Spark.Api.Help.HelpLibrary
+Spark.Api.Help.HelpLibrary.Add(Spark.Api.Help.HelpDocument! topic) -> void
+Spark.Api.Help.HelpLibrary.AddRange(System.Collections.Generic.IEnumerable<Spark.Api.Help.HelpDocument!>! topics) -> void
+Spark.Api.Help.HelpLibrary.Count.get -> int
+Spark.Api.Help.HelpLibrary.ForNode(string? nodeKey) -> Spark.Api.Help.HelpDocument?
+Spark.Api.Help.HelpLibrary.HelpLibrary() -> void
+Spark.Api.Help.HelpLibrary.LoadDirectory(string! directory) -> int
+Spark.Api.Help.HelpLibrary.Problems.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Spark.Api.Help.HelpLibrary.Search(string? query, int limit = 25) -> System.Collections.Generic.IReadOnlyList<Spark.Api.Help.HelpDocument!>!
+Spark.Api.Help.HelpLibrary.Topics.get -> System.Collections.Generic.IReadOnlyList<Spark.Api.Help.HelpDocument!>!
+Spark.Api.Help.HelpLibrary.TryGet(string? id, out Spark.Api.Help.HelpDocument? topic) -> bool
+Spark.Api.Help.HelpMarkdown
 Spark.Api.IBrepKernel
 Spark.Api.IBrepKernel.Capabilities.get -> Spark.Api.BrepCapabilities
 Spark.Api.IBrepKernel.Chamfer(Spark.Geometry.Brep! solid, System.Collections.Generic.IReadOnlyList<int>! edges, double distance, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
@@ -202,6 +258,7 @@ const Spark.Api.NodeCategories.Solid = "Solid" -> string!
 const Spark.Api.ValueText.FullLength = 20000 -> int
 const Spark.Api.ValueText.SummaryLength = 60 -> int
 override Spark.Api.Displayable.ToString() -> string!
+override Spark.Api.Help.HelpInline.GetHashCode() -> int
 override Spark.Api.NodeDefinitionSource.GetHashCode() -> int
 override Spark.Api.Rgba.Equals(object? obj) -> bool
 override Spark.Api.Rgba.GetHashCode() -> int
@@ -214,6 +271,11 @@ static Spark.Api.BrepKernel.Current.get -> Spark.Api.IBrepKernel!
 static Spark.Api.BrepKernel.Install(Spark.Api.IBrepKernel! kernel) -> void
 static Spark.Api.BrepKernel.Reset() -> void
 static Spark.Api.Displayable.Unwrap(object? value) -> object?
+static Spark.Api.Help.HelpInline.operator !=(Spark.Api.Help.HelpInline left, Spark.Api.Help.HelpInline right) -> bool
+static Spark.Api.Help.HelpInline.operator ==(Spark.Api.Help.HelpInline left, Spark.Api.Help.HelpInline right) -> bool
+static Spark.Api.Help.HelpMarkdown.Parse(string! text, string! fallbackId = "topic") -> Spark.Api.Help.HelpDocument!
+static Spark.Api.Help.HelpMarkdown.ParseBody(string! markdown) -> System.Collections.Generic.IReadOnlyList<Spark.Api.Help.HelpBlock!>!
+static Spark.Api.Help.HelpMarkdown.ParseInlines(string! line) -> System.Collections.Generic.IReadOnlyList<Spark.Api.Help.HelpInline>!
 static Spark.Api.KernelResult<T>.Failure(Spark.Api.SparkDiagnostic! diagnostic) -> Spark.Api.KernelResult<T>
 static Spark.Api.KernelResult<T>.Success(T value) -> Spark.Api.KernelResult<T>
 static Spark.Api.NodeDefinitionSource.operator !=(Spark.Api.NodeDefinitionSource left, Spark.Api.NodeDefinitionSource right) -> bool
@@ -232,6 +294,8 @@ static Spark.Api.ValueText.Shape(int rank, int count) -> string!
 static Spark.Api.ValueText.Shape(object? value) -> string!
 static Spark.Api.ValueText.Summary(object? value) -> string?
 virtual Spark.Api.ScriptInvocation.Invoke(object?[]! arguments, System.Threading.CancellationToken cancellationToken) -> object?[]!
+~override Spark.Api.Help.HelpInline.Equals(object obj) -> bool
+~override Spark.Api.Help.HelpInline.ToString() -> string
 ~override Spark.Api.NodeDefinitionSource.Equals(object obj) -> bool
 ~override Spark.Api.NodeDefinitionSource.ToString() -> string
 ~override Spark.Api.ScriptPort.Equals(object obj) -> bool

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 14:30 +0530
+**Last updated:** 2026-08-31 15:20 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E7-T11`, `E7-T13`, `E7-T15` — custom nodes.** A user can define a node by drawing a graph. `.sparkcustom` is **the graph format plus one object**, spliced rather than re-serialised, so a definition also opens in the ordinary reader. Ports are drawn, not declared. Recursion is refused at build time with the containment path named. |
+| **Last completed step** | **`E10-T5`, `E10-T13` — the help model and the generated node reference.** Pages are generated **at runtime from the live library**, so they cannot drift. Found three parser defects and one **check that could hardly fail**: the harness accepted the bare string `.spark` anywhere in a topic as a worked example. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E7-T12` — collapse selection to custom node**, which is the half of custom nodes a user actually touches: take a selection, cut it out, and infer the interface from the wires that crossed the boundary. It is `Spark.UI` work over an engine layer that is already built and tested. **`E7-T13`'s save-side refusal belongs with it**, because collapse is what can construct a recursive definition by accident. After that the epic's remainder is network-facing (`E7-T1`, `E7-T2`, `E7-T8`, `E7-T10`). **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1839** over **nine** projects: Geometry.Tests 763, UI.Tests 448, Engine.Tests 389, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **The help pane and F1**, which is the half of `E10-T13` a user touches: a `Spark.UI` pane that draws a `HelpDocument`, a topic list joining the nine concept topics to the generated node pages, search over both, and **F1 on a selected node opening its page** — preferring a hand-written topic over the generated one, which `HelpLibrary.ForNode` already does. Then `E10-T11`, a topic per `SPK####` code: there are **18**, each already carrying a `HelpTopicId` that points at nothing. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1852** over **nine** projects: Geometry.Tests 763, UI.Tests 448, Engine.Tests 402, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Four things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. **(4)** Opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance. *And still: watching the first nightly benchmark run.* |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3183,3 +3183,52 @@ migration.
 
 **Verified.** Build clean at 0 warnings. `Engine.Tests` 377 -> 389. Suite **1,839** over nine
 projects, 0 failed, 0 skipped. `dotnet format` clean.
+
+### 2026-08-31 - `E10-T5`, `E10-T13`: the help model, and a check that could hardly fail
+
+**What.** `Spark.Api.Help` — `HelpDocument`, `HelpBlock`, `HelpInline`, `HelpMarkdown`,
+`HelpLibrary` — and `NodeReference` in `Spark.Engine`. Sixteen tests. **The Help pass has
+started, and it started with the harness and the generator, which is D19's own rule.**
+
+**The node reference is generated at runtime from the live library, not written to files.** That
+is the strongest available form of `E10-T5`: a page produced from the definition it describes
+cannot drift from it, because there is no second copy to drift. Add a node and it has a page;
+rename a port and the page renames with it. No build step, no stale file, nothing to forget.
+
+**And the content was already there.** CS1591 is an error on `Spark.Nodes.Core`, so every node
+already carries an XML summary and every port a description — the build refuses an assembly
+without them. `NodeReference` only arranges what exists, which is why the reference is complete on
+the day it is switched on. `DocGenerator`'s 1,478 hand-maintained entries are the counter-example
+this project keeps in view, and this is the shape that avoids them.
+
+**A hand-written Markdown subset rather than a package**, because `Spark.Api` is a contract
+assembly: every dependency it takes is inherited by every package author and can never be
+side-by-sided (ADR-0019). The subset is defined by what the topics already use, and it is checked
+against `docs/help/` rather than against a specification — a parser correct against a
+specification and wrong about `lacing.md` would be useless.
+
+**Three real defects, found by pointing the parser at the real corpus.**
+*One:* `HelpBlock.PlainText` ignored table rows, so every table was invisible to search — including the lacing case table, which is the most searched thing in the help. *Two:*
+`StringBuilder.AppendLine` writes `Environment.NewLine`, so a code fence produced different text on
+Windows and Linux; it is an explicit `'\n'` now, the same decision the `.spark` writer made for
+the same reason. *Three:* unterminated front matter consumed the entire document, so a topic with a
+typo in its header rendered as a blank page rather than as a topic with no front matter.
+
+**The finding worth more than the three fixes: a check that could hardly fail.** The docs harness
+has asserted since M0 that *every help topic contains a worked example*. Its implementation
+accepted the bare string `.spark` **anywhere in the file** — so any topic mentioning "a
+.spark file" passed, whether or not it showed anything at all. A stricter reading flagged
+`concepts/undo.md`, and looking at it settled the matter in the opposite direction from the one
+expected: **undo.md contains a perfectly good worked example**, a numbered walkthrough, which the
+old rule never noticed and a fence-only rule would have rejected. This is a node-graph tool and its
+best examples are walkthroughs.
+
+So the rule is now three shapes — a fenced block, a table, or a section headed *example* — applied in both places, and it was **proven to fail** before being trusted: a probe topic
+mentioning `.spark` in prose and showing nothing is now rejected, where the old rule accepted it.
+**The two implementations are separate and must be kept in step by hand**, and both say so;
+`Spark.Docs.Verify` deliberately references no Spark project so that it cannot constrain what it
+observes.
+
+**Verified.** Build clean at 0 warnings. `Engine.Tests` 389 -> 402. Suite **1,852** over nine
+projects, 0 failed, 0 skipped. `dotnet format` clean. The new public surface is declared in
+`PublicAPI.Unshipped.txt`, which is the ADR-0019 guard doing its job.

@@ -255,12 +255,61 @@ public sealed class DocumentationChecks
         return string.Join('\n', lines);
     }
 
+    /// <summary>
+    /// Whether a topic contains a worked example: a fenced code block, a pipe table, or a section
+    /// headed <i>example</i>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The third counts because <b>this is a node-graph tool</b> and its most useful examples are
+    /// walkthroughs — <i>place this node, wire it here, watch the viewport</i> — which contain no
+    /// code. Requiring a fence would force a snippet into topics where a snippet is the wrong
+    /// illustration.
+    /// </para>
+    /// <para>
+    /// <b>This used to accept the bare string <c>.spark</c> anywhere in the file, and that was a
+    /// check that could hardly fail:</b> any topic mentioning "a .spark file" passed, whether or
+    /// not it showed anything. <c>concepts/undo.md</c> passed on exactly that basis while
+    /// containing a perfectly good walkthrough the old rule never noticed and the new rule
+    /// recognises. A reference to a committed example graph still counts, but it now has to be a
+    /// link to a file rather than a mention of an extension.
+    /// </para>
+    /// <para>
+    /// <b>The same three rules live in <c>Spark.Api.Help.HelpDocument.HasWorkedExample</c>, and
+    /// the two have to be kept in step by hand.</b> That duplication is deliberate: this harness
+    /// references no Spark project, precisely so that it cannot constrain the thing it observes.
+    /// </para>
+    /// </remarks>
     private static bool ContainsExample(string text)
     {
-        // Either a fenced code sample, or a reference to a worked example graph. Both count:
-        // for a node-graph tool, an example graph is often the better illustration.
-        return text.Contains("```", StringComparison.Ordinal)
-            || text.Contains(".spark", StringComparison.Ordinal);
+        if (text.Contains("```", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        foreach (string line in text.Split('\n'))
+        {
+            string trimmed = line.Trim();
+
+            if (trimmed.StartsWith('|') && trimmed.EndsWith('|') && trimmed.Length > 2)
+            {
+                return true;
+            }
+
+            if (trimmed.StartsWith('#')
+                && trimmed.Contains("example", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (trimmed.Contains("](", StringComparison.Ordinal)
+                && trimmed.Contains(".spark", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static IEnumerable<string> HelpTopics()
