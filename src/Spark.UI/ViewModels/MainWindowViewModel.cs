@@ -813,7 +813,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         IScriptNodeFactory scripts = _session.EnableScripting();
-        const string Starter = "return a;";
+
+        // A NEW BLOCK HAS NO INPUTS, AND THE STARTER IS A COMMENT RATHER THAN CODE.
+        //
+        // It used to be `return a;`, which compiles to a block with one input port called `a`
+        // that nobody asked for. A user placing their first code block got a port they then had
+        // to work out how to get rid of - and the answer, "delete the identifier from the
+        // source", is exactly the thing the starter was failing to teach.
+        //
+        // An empty script is legal here: it compiles to zero inputs and one `result` output. So
+        // the starter is one line that states the rule which is otherwise invisible, because the
+        // question the first user of this asked was "where do I type the code?" and the second
+        // was "how do I get more inputs?". Both are answered by the sentence below.
+        const string Starter = "// Any name you have not declared becomes an input port.\n";
 
         // Scripting may have been switched on by this very call, so the canvas learns about the
         // factory here rather than only at `AdoptGraph` — otherwise the first code block placed in

@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes the code block in the running application.
 **Owner:** `scripting`
-**Last updated:** 2026-08-31
+**Last updated:** 2026-09-01
 
 > **Scope.** A code block is a node whose body is C# you type. Its input ports come from the
 > identifiers your code uses but does not declare; its output ports come from what it returns.
@@ -21,7 +21,13 @@ since: "0.1"
 ## Writing one
 
 Put a code block down with **Add code block** on the toolbar, or double-click empty canvas and
-pick it from the list. Type into the properties pane. The simplest useful block is one line:
+pick it from the list. Type into the properties pane.
+
+**A new block starts with no input ports.** You do not add one with a button; you add one by
+using a name the code has not declared. That is the whole rule, and everything below is it
+applied.
+
+The simplest useful block is one line:
 
 ```csharp
 return radius * 2;

@@ -59,4 +59,49 @@ public sealed class CodeBlockReachabilityTests
 
         Assert.NotNull(model.SelectedCodeBlock);
     }
+
+    /// <summary>
+    /// <b>And it starts with no input ports at all.</b>
+    /// </summary>
+    /// <remarks>
+    /// The starter used to be <c>return a;</c>, which compiles to a block with one input called
+    /// <c>a</c> that the user never asked for and has no obvious way to remove. Asked for directly:
+    /// "let the default be zero inputs". The starter is now a comment, and a comment has no free
+    /// identifiers.
+    /// </remarks>
+    [Fact]
+    public void AFreshCodeBlockHasNoInputs()
+    {
+        MainWindowViewModel model = new();
+
+        int slot = model.PlaceCodeBlock(0, 0);
+
+        Assert.Empty(model.Graph.Nodes[slot].Inputs);
+    }
+
+    /// <summary>
+    /// <b>Typing an undeclared name into it is what adds an input</b>, which is the rule the
+    /// starter comment states and the only way a user gets a port.
+    /// </summary>
+    [Fact]
+    public void TypingAnUndeclaredNameAddsAnInput()
+    {
+        MainWindowViewModel model = new();
+
+        int slot = model.PlaceCodeBlock(0, 0);
+
+        Assert.Empty(model.Graph.Nodes[slot].Inputs);
+
+        Spark.UI.Graph.CanvasNode node = model.Graph.Nodes[slot];
+
+        model.ShowCodeBlock(node);
+        model.ScriptText = "return radius * 2;";
+
+        Assert.True(model.CommitScriptText(), "the edit was not committed");
+
+        // Rebuilding replaces the node, so its slot moves. Its identity does not.
+        int rebuilt = model.Graph.SlotOf(node.Id);
+
+        Assert.Equal("radius", Assert.Single(model.Graph.Nodes[rebuilt].Inputs).Name);
+    }
 }
