@@ -29,6 +29,22 @@ This is not a nice-to-have and not a cleanup task for later. **A change whose do
 has not been updated is an unfinished change.** If you are short of time, do less work —
 not less documentation.
 
+**Amended by [D19](docs/PRD.md#13-decision-log) on 2026-08-31, and the amendment is narrow.** The
+sentence *everything is documented as end-user help topics* is **suspended until 1.0 ships**. The
+end-user Help — a topic per node family, the generated API reference, the in-product renderer and
+a topic per `SPK####` code — is written in one pass **after** 1.0 rather than step by step before
+it. **What is not suspended, and is what this rule means per step until then:** XML doc comments
+on the contract projects, and the project documents — PRD, EPICS, TASKS, TODO, NOTES, the ADRs
+and the journal. Those are mechanisms 1 and 2 below and both still fail a build. The blockquote
+is left exactly as written, because it is what the rule returns to the day 1.0 ships, and a rule
+that is edited rather than dated loses the fact that it was ever different.
+
+**The trap D19 sets, named here rather than only in the decision log, because this is the file a
+session actually reads.** Deferring the Help guarantees it gets written **in bulk**, and a bulk
+write with no harness in front of it is `DocGenerator` again — 1,478 hand-maintained entries that
+drifted until 101 of 108 public constructors rendered blank. `E11-T2`, `E11-T4`, `E11-T5` and
+`E11-T6` are therefore the **first** rows of the post-1.0 Help pass, not the last.
+
 Spark backs the rule with three mechanisms rather than trusting it, because a rule nobody
 enforces is a preference:
 

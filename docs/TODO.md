@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-31 (M6 finished)
+**Last updated:** 2026-08-31 (D19 — 1.0 first, then the Help; and the next-action task ID corrected)
 
 **M0, M1, M1.5, M2, M3 and M4 have landed; M5 is substantially done; and M6's provider is in.**
 The application opens, a graph evaluates, and geometry appears in the GPU viewport — curves,
@@ -88,14 +88,27 @@ for anything else.
 the only one that could have reopened ADR-0020 — passed. The evidence is in
 [JOURNAL.md](JOURNAL.md)'s entries for 2026-08-31 and against each row in [TASKS.md](TASKS.md).
 
+**The order to 1.0 is settled by [D19](PRD.md#13-decision-log): finish the product, then write the
+Help.** The end-user Help is **reordered, not descoped** — what that costs and what it must not
+break is [below](#after-10--the-help-pass), and the standing instruction in
+[AGENTS.md](../AGENTS.md#the-standing-instruction) is amended to match rather than left to be
+broken every step.
+
 **The next piece of work:**
 
-- [ ] **`E11-T16` — the software renderer and the CI visual regression.** Deferred past M6 by
-      decision on 2026-08-31, on the ground that it guards the viewport and the viewport was not
-      what M6 depended on. **It is now the largest thing M5 still owes**, and it is what makes
-      viewport output comparable across machines and therefore testable at all: GPU output is not
-      comparable, software output is ([ADR-0014](adr/0014-opengl-viewport-with-software-fallback.md)).
+- [ ] **`E9-T5` — the software renderer.** Then **`E9-T11`** (headless thumbnails) and
+      **`E9-T12`** (CI visual regression), which are the two things it exists to make possible.
+      Deferred past M6 by decision on 2026-08-31, on the ground that it guards the viewport and
+      the viewport was not what M6 depended on. **It is now the largest thing M5 still owes**, and
+      it is what makes viewport output comparable across machines and therefore testable at all:
+      GPU output is not comparable, software output is
+      ([ADR-0014](adr/0014-opengl-viewport-with-software-fallback.md)).
+      **Corrected 2026-08-31:** the previous revision of this line, and the journal's *Next
+      action* with it, named **`E11-T16`** for this work. `E11-T16` is the **benchmark suite**,
+      which is `In progress` for unrelated reasons. The rows are `E9-T5`, `E9-T11` and `E9-T12`,
+      all `Open`.
 - [ ] **M7.** See [EPICS.md](EPICS.md).
+- [ ] **M8, and 1.0.** See [EPICS.md](EPICS.md) `E12`.
 
 **Waiting on a person, and no amount of further work substitutes:**
 
@@ -115,6 +128,55 @@ the only one that could have reopened ADR-0020 — passed. The evidence is in
       acceptance and has never been done.
 - [ ] **Watching the first nightly benchmark run.** It is green locally end to end and has never
       run on a hosted runner.
+
+---
+
+## After 1.0 — the Help pass
+
+**Deferred by [D19](PRD.md#13-decision-log) on 2026-08-31, at the client's direction.** Not
+descoped. This section exists so that *later* does not quietly become *never*, which is the only
+failure mode a sequencing decision has.
+
+**What exists today:** nine concept topics under `docs/help/concepts/` (3,755 lines), three
+worked example graphs in `docs/examples/`, and XML doc comments on `Spark.Geometry`'s 387 public
+members. Two of the nine topics are `Specification` rather than `Current` — they were written
+ahead of their code, which is the pattern D19 is betting against.
+
+**What 1.0 therefore ships without, stated plainly so nobody is surprised at release:** a
+reference for **108 nodes** (one topic names ten of them; the rest name none), the generated API
+reference, an in-product help renderer — **F1 does nothing** — and a topic for any of the **18**
+`SPK####` diagnostic codes, every one of which already carries a `HelpTopicId` seam pointing at a
+document that does not exist.
+
+**The order within the pass is not free to choose, and this is the part D19 cannot reorder.**
+Deferring guarantees the Help is written **in bulk**, and a bulk write with nothing checking it is
+`DocGenerator` again. So the harness comes first:
+
+- [ ] **`E11-T2`** — compile every ` ```csharp ` fence and every XML `<example>`, with the exact
+      references a real code-block node gets. Two samples in `geometry-basics.md` were already
+      caught wrong by hand, and both read as perfectly plausible.
+- [ ] **`E11-T3`** — execute every example graph headlessly, asserting no node errors.
+- [ ] **`E11-T4`** — forward coverage: a node with no help topic fails the build.
+- [ ] **`E11-T5`** — reverse coverage: a `nodes:` entry naming a node that no longer exists fails
+      the build. This is what catches renames.
+- [ ] **`E11-T6`** — every `SPK####` code has a topic.
+
+Only then the writing:
+
+- [ ] **`E10-T3`, `E10-T6`** — the help index, and the front-matter schema the topics already
+      follow informally.
+- [ ] **`E10-T4`** — the topic authoring guide.
+- [ ] **`E10-T9`, `E10-T10`** — XML doc comments across `Spark.Api` and `Spark.Nodes.Core`. These
+      become runtime node tooltips as well as documentation, so they are worth more than their row
+      count suggests.
+- [ ] **`E10-T5`** — the generated API reference. Nobody writes it; nobody can forget it.
+      **`DocGenerator.cs` is explicitly not ported.**
+- [ ] **`E10-T13`** — the in-product Markdown help renderer, in `Spark.Api` and free of UI
+      dependencies so the harness can exercise it anywhere. This is what makes F1 do something.
+- [ ] **`E10-T7`** — more worked example graphs, openable from the help panel.
+- [ ] **`E10-T11`** — a topic per `SPK####` code.
+- [ ] **`E10-T12`** — per-PR changelog fragments.
+- [ ] **`E10-T14`** — the website. [PRD Q8](PRD.md#14-open-questions) is still unanswered.
 
 ---
 

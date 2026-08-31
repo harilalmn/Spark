@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-31 (M5 substantially done; M6 — the OpenCascade provider)
+**Last updated:** 2026-08-31 (D19 — the Help pass moves after 1.0; E10's status recounted against the tree)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -30,7 +30,7 @@ prove is ticked.
 | [E7](#e7--packages-and-extensibility) | Packages and extensibility | M7 | Not started |
 | [E8](#e8--ui-shell-and-node-canvas) | UI shell and node canvas | M2 | Partly done |
 | [E9](#e9--3d-viewport) | 3D viewport | M2, M5 | Partly done |
-| [E10](#e10--documentation) | Documentation | M0 onwards | Partly done |
+| [E10](#e10--documentation) | Documentation | M0 onwards; **the user-facing Help pass is post-1.0** ([D19](PRD.md#13-decision-log)) | Partly done |
 | [E11](#e11--quality-and-verification) | Quality and verification | M0 onwards | Partly done |
 | [E12](#e12--embedding-and-release) | Embedding and release | M8 | Not started |
 | [E13](#e13--occt-provider) | OCCT provider | M1.6, M6, M8 | In progress |
@@ -914,12 +914,30 @@ user needs. XML doc = what this member does.*
 - [x] `docs/NOTES.md` uses stable numbers that are never renumbered and never reused, with
       gaps left on deletion (**E10-T1**).
 
-**Status.** Partly done. As of 2026-08-27: the eight project documents exist and have been
-reconciled against the repository, twenty-one ADRs exist with an index — one of them, ADR-0009,
-superseded by ADR-0019 — and **three help topics exist**: `concepts/lacing.md`,
-`concepts/geometry-basics.md` (the first topic about the kernel) and
-`concepts/design-language.md`, the last of which is owned by `spark-ui`, landed alongside
-this reconciliation, and is recorded here rather than reviewed here.
+**Status.** Partly done, and **sequenced by [D19](PRD.md#13-decision-log) as of 2026-08-31: the
+end-user Help is written in one pass after 1.0 ships, not inside the milestones that build what
+it documents.** It is reordered, not descoped; the plan for the pass, and the reason its harness
+rows have to come first, are in [TODO.md](TODO.md#after-10--the-help-pass). The standing
+instruction in [AGENTS.md](../AGENTS.md#the-standing-instruction) is amended to match rather than
+left to be broken every step.
+
+**Counted 2026-08-31 against the tree rather than against this paragraph's predecessor, which had
+gone stale in both directions.** The eight project documents exist and have been reconciled,
+twenty-three ADRs exist with an index — one of them, ADR-0009, superseded by ADR-0019 — and
+**nine help topics exist**, not three: `concepts/lacing.md`, `concepts/geometry-basics.md`,
+`concepts/design-language.md`, `concepts/curves.md`, `concepts/files.md`,
+`concepts/finding-nodes.md`, `concepts/undo.md`, `concepts/code-blocks.md` and
+`concepts/solids.md` — 3,755 lines in total. **`docs/examples/` is no longer empty either**: it
+holds `curves.spark`, `surfaces.spark` and `solids.spark`, all three of which the application and
+the CLI open.
+
+**What that leaves, and it is the majority of a user-facing Help.** Thirty-five C# samples exist,
+in three of the nine topics; `solids.md` — the newest and most valuable subject — has none. One
+topic names nodes at all, and it names ten of **108**. There is no index, no generated reference,
+**no in-product renderer, so F1 does nothing**, and no topic for any of the **18** `SPK####`
+codes, each of which already carries a `HelpTopicId` seam pointing at a document that does not
+exist. Two of the nine topics are `Specification` rather than `Current`, having been written
+ahead of their code.
 
 **XML doc comments have started, and started where they are enforced.** All 487 public
 members of `Spark.Geometry` carry them — CS1591-as-error makes that structural rather than
@@ -928,8 +946,10 @@ conventions once instead of thirteen times. They are not minimal: they state uni
 behaviour at zero, `NaN` and `default`, and in several places why a member behaves as it
 does. `Spark.Api`, `Spark.Geometry.Io` and `Spark.Nodes.Core` are still empty projects.
 
-The rest of the help skeleton, the generated reference and the changelog fragments do not
-exist, and `docs/examples/` is an empty directory.
+The help index, the front-matter schema, the authoring guide, the generated reference, the
+in-product renderer and the changelog fragments do not exist. Every one of them is a row in the
+post-1.0 pass rather than a gap in the current milestone — which is what D19 changed, and the
+only thing it changed.
 
 **A caution the geometry topic had to observe, and every future topic must.** Its worked
 examples were run against the compiled assembly, not written from the signatures. Two of them

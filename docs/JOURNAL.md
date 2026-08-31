@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 10:55 +0530
+**Last updated:** 2026-08-31 08:32 +0530
 **Protocol version:** 2
 
 ---
@@ -16,12 +16,12 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1, M1.5, M2, M3, M4 and M6 are done. M5 is substantially done** — the software renderer and CI visual regression (`E11-T16`) are **deferred past M6** deliberately and are now the largest thing it still owes. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | Nothing. Between milestones |
+| **Milestone** | **M1, M1.5, M2, M3, M4 and M6 are done. M5 is substantially done** — the software renderer and CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) are **deferred past M6** deliberately and are now the largest thing it still owes. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
+| **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Sweep, patch, and a profile that is a wire** — `E13-T9` closes, and `E13-T1`, `T5`, `T6` and `T10` close with it. Honouring the loop table on the profile path removed the last approximation: a polycurve goes out as its own segments, so a square extrudes into **six planar faces** rather than a spline wall. |
+| **Last completed step** | **D19: 1.0 first, then the Help** — the client's sequencing decision recorded in `PRD.md` §13, with the `AGENTS.md` standing instruction it contradicts **amended and dated rather than quietly rewritten**. Documents only, no code. It also corrected a defect: *Next action* had named **`E11-T16`** for the software renderer, which is actually **`E9-T5`**. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **M6 is finished.** The next piece of work is **`E11-T16`** — the software renderer and the CI visual regression — deliberately deferred past M6 on 2026-08-31 and now the biggest thing M5 still owes; it is what makes viewport output comparable across machines and therefore testable at all. After that, **M7**. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**: each is `In progress` for a stated reason that is not a missing commit, and all three are in *Blocked on*. |
+| **Next action** | **Take `E9-T5` — the software renderer**, then `E9-T11` (headless thumbnails) and `E9-T12` (CI visual regression). All three are `Open` in `TASKS.md` under `E9`; the seam they plug into, `IViewportRenderer`, already exists and its XML docs already describe the software backend's three jobs. **Do not look for `E11-T16` — that is the benchmark suite**, and the mistake is recorded in the log entry for this step. After `E9`, **M7**, then **M8 and 1.0**. **The end-user Help is post-1.0 by D19** and its plan is [TODO.md](TODO.md#after-10--the-help-pass) — its harness rows come first. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**: each is `In progress` for a stated reason that is not a missing commit, and all three are in *Blocked on*. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1769**: Geometry.Tests 763, UI.Tests 439, Engine.Tests 367, Viewport.Tests 74, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Four things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. **(4)** Opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance. *And still: watching the first nightly benchmark run.* |
 
@@ -2806,3 +2806,63 @@ Leaving a row `In progress` because nobody looked at it again is how a register 
 
 **Verified.** Shim builds with zero warnings; build clean with `-warnaserror`; **1,769 tests, 0
 failures, 0 skipped** (Geometry.Occt 56 → 63); `dotnet format` clean; docs harness green.
+
+### 2026-08-31 — D19: 1.0 first, then the Help — and a next-action task ID that pointed at the wrong row
+
+**What.** No code. Five documents: **D19** in `docs/PRD.md` §13, an amendment to the standing
+instruction in `AGENTS.md`, a new *After 1.0 — the Help pass* section in `docs/TODO.md`, a
+recounted E10 status in `docs/EPICS.md`, and two corrected E10 rows in `docs/TASKS.md`.
+
+**Why.** The client was asked where the project stood and what the end-user Help looked like, and
+answered with an ordering: **finish the product, then complete the Help.** That is a sequencing
+decision, so it goes in the decision log rather than into a session's memory.
+
+**The thing that made this a step rather than a one-line note.** D19 **contradicts the standing
+instruction in `AGENTS.md`** — *everything is documented as end-user help topics, with worked
+examples* — which every milestone so far has followed. Left alone, that instruction would be
+violated by every step between here and 1.0, and this project has already written down why that
+is the worst outcome available: a rule nobody enforces is a preference. So the instruction is
+**amended and dated rather than quietly rewritten**, in the same shape D14 and ADR-0009 were
+handled: the blockquote is left exactly as written, because it is what the rule returns to on the
+day 1.0 ships, and a paragraph beneath it says what is suspended and what is not. **What is not
+suspended:** XML doc comments on the contract projects, and the project documents. Those are the
+two mechanisms that actually fail a build.
+
+**The trap, recorded in three places because it is the part the client's decision cannot
+reorder.** Deferring the Help guarantees it gets written **in bulk**, and a bulk write with no
+harness in front of it is `DocGenerator` again — 1,478 hand-maintained entries that drifted until
+101 of 108 public constructors rendered blank. So `E11-T2`, `E11-T4`, `E11-T5` and `E11-T6` are
+the **first** rows of the post-1.0 pass, not the last. E10 was designed around a Help that grew
+continuously; it no longer will, and the harness is what replaces the growth.
+
+**The defect this step actually found, and it was not what the step was for.** *Current state*
+and `TODO.md` both named **`E11-T16`** as the next piece of work — "the software renderer and the
+CI visual regression". `E11-T16` is the **benchmark suite, run nightly**, and it is `In progress`
+for reasons that have nothing to do with rendering. The software renderer is **`E9-T5`**, headless
+thumbnails **`E9-T11`**, CI visual regression **`E9-T12`**, all three `Open`. A resuming session
+following *Next action* verbatim would have opened the wrong row. Corrected in both files, with
+the correction stated on the TODO line rather than tidied away.
+
+**Two stale claims corrected while in there, both in the same direction — the documents
+understated the tree.** `EPICS.md` and `TASKS.md` said **three help topics exist** and that
+`docs/examples/` was **an empty directory**. There are **nine topics, 3,755 lines**, and three
+example graphs. `E10-T7` moves `Open` → `In progress` on the strength of that, and the summary
+counts follow: 133 done · 17 in progress · 108 open · 9 withdrawn.
+
+**What the Help genuinely is, now that it has been counted rather than recalled:** 35 C# samples
+across three of nine topics, `solids.md` with none, one topic naming ten of **108** nodes, no
+index, no generated reference, no in-product renderer — **F1 does nothing** — and no topic for
+any of the **18** `SPK####` codes, every one of which already carries a `HelpTopicId` seam
+pointing at a document that does not exist. That paragraph is in EPICS and TODO so that *ships
+without a Help* is a decision on the record and not a discovery at release.
+
+**Verified.** All three gates, before and after. `dotnet build Spark.slnx --no-incremental
+-warnaserror` clean, 0 warnings. The eight per-project executables: **1,769 passing, 0 failed,
+0 skipped** — Geometry.Tests 763, UI.Tests 439, Engine.Tests 367, Viewport.Tests 74,
+Geometry.Properties 43, **Geometry.Occt.Tests 63 with a zero skip count**, so the native provider
+was really exercised, Architecture.Tests 15, Docs.Verify 5. `dotnet format --verify-no-changes`
+clean. `Spark.Docs.Verify` was re-run **after** the Markdown edits specifically, because its
+link-resolution and `Last updated` checks are the only thing standing behind five edited
+documents — still 5/5.
+
+**Cost.** One step, documents only. **What it did not do:** touch `E9-T5`. That is the next step.
