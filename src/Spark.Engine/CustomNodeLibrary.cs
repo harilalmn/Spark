@@ -108,6 +108,15 @@ public sealed class CustomNodeLibrary
         CustomNodePorts.AddTo(_host);
     }
 
+    /// <summary>The definition built for a key.</summary>
+    /// <param name="key">The custom node's key.</param>
+    /// <returns>The definition.</returns>
+    /// <exception cref="KeyNotFoundException">
+    /// Nothing has been built under that key. Register the document and call
+    /// <see cref="Build"/> first.
+    /// </exception>
+    public NodeDefinition Definition(NodeKey key) => _host.Get(key);
+
     /// <summary>The keys of every custom node registered here.</summary>
     public IReadOnlyCollection<NodeKey> Keys => _documents.Keys;
 

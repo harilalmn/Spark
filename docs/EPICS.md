@@ -663,12 +663,15 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       literal: what comes out is a plain `NodeDefinition`, so nothing downstream — the
       replicator, the cache, the canvas, the writer — knows a custom node exists. A
       `.sparkcustom` file also opens in the ordinary graph reader, which is how you edit one.*
-- [ ] *Collapse selection to custom node* extracts a subgraph and infers its interface from
-      the cut wires (**E7-T12**).
-- [ ] Recursion is refused at save **and** at load, with the containment path reported
-      (**E7-T13**). *The load side is done 2026-08-31, direct and indirect, and the message names
-      the chain rather than saying "recursion detected". The save side waits on `E7-T12`, which is
-      what can build one by accident.*
+- [x] *Collapse selection to custom node* extracts a subgraph and infers its interface from
+      the cut wires (**E7-T12**). *Built 2026-08-31, and the inference is one port per distinct
+      crossing **source**, not per crossing wire — one node feeding three inner ports is one
+      value arriving. Verified in the running application: the viewport is byte-identical before
+      and after.*
+- [x] Recursion is refused at save **and** at load, with the containment path reported
+      (**E7-T13**). *Both sides done 2026-08-31. The load side catches a file that arrived
+      recursive; the save side catches one being made recursive, which in practice means a
+      collapse. Only the direct case is checkable at write time, and the method says so.*
 - [x] A `CustomViewKey` seam is reserved in the format now, so adding custom node UI later
       needs no format migration (**E7-T15**). *Reserved 2026-08-31, with a test asserting it round
       trips although nothing reads it — which is the whole point of reserving it.*
@@ -680,8 +683,9 @@ Placeholders followed the same day: a graph naming a package that is not install
 every key, literal and wire, and **re-saves byte for byte** — which is `E7`'s headline promise and
 is asserted rather than asserted-to. Custom nodes followed: `.sparkcustom` is the graph format plus one object, ports are drawn rather
 than declared, and recursion is refused at build time with the containment path named. Still
-absent: the NuGet client, the manifest convention, the install banner, *collapse selection to
-custom node*, and the package manager UI.
+absent: the NuGet client, the manifest convention, the install banner, the trust store, local DLL
+references and the package manager UI — which is to say, everything that needs a network.
+Everything that does not is built.
 
 ---
 

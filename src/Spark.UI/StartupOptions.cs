@@ -49,6 +49,11 @@ namespace Spark.UI;
 /// <c>--help-window</c>, this exists so the dialog can be photographed and therefore checked; a
 /// licence notice that lays out wrongly still satisfies every test that only reads its text.
 /// </param>
+/// <param name="CollapseFirst">
+/// How many of the graph's leading nodes to select and collapse into a custom node at startup
+/// (<c>--collapse N</c>), or zero. Aimed at the screenshot path: the gesture is a button, a button
+/// needs a click, and a click is the one thing a headless run cannot do.
+/// </param>
 /// <param name="BenchmarkZoom">
 /// A zoom to pin the benchmark at, or zero to sweep. Pinning is what separates "how much does the
 /// graph cost" from "how much does what is on screen cost", which is the claim ADR-0013 actually
@@ -64,7 +69,8 @@ public readonly record struct StartupOptions(
     bool NoScript = false,
     bool ForceSoftwareRenderer = false,
     string? HelpTopic = null,
-    bool OpenAbout = false)
+    bool OpenAbout = false,
+    int CollapseFirst = 0)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
     public static StartupOptions Default => new(0, 0, 0, null, null, null);
@@ -144,6 +150,7 @@ public readonly record struct StartupOptions(
         bool software = false;
         string? helpTopic = null;
         bool aboutWindow = false;
+        int collapseFirst = 0;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -190,6 +197,10 @@ public readonly record struct StartupOptions(
                     aboutWindow = true;
                     break;
 
+                case "--collapse" when i + 1 < args.Length:
+                    collapseFirst = ParseCount(args[++i], 0);
+                    break;
+
                 case "--help-window":
                     helpTopic = "nodes.index";
                     if (i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal))
@@ -213,7 +224,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, collapseFirst);
     }
 
     private static int ParseCount(string text, int fallback) =>

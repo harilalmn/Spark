@@ -335,6 +335,33 @@ public sealed partial class MainWindow : Window
         UpdateStatus();
     }
 
+    /// <summary>
+    /// Replaces the selected nodes with a single custom node (<c>E7-T12</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>The refusal is reported in the status bar rather than swallowed.</b> A selection nothing
+    /// reads cannot become a node, and a button that appears to do nothing is worse than one that
+    /// says why.
+    /// </remarks>
+    private void OnCollapseSelection(object? sender, RoutedEventArgs e)
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        int? slot = model.CollapseSelection(Canvas.Selection, out string? reason);
+
+        if (slot is null)
+        {
+            model.StatusText = reason ?? "The selection cannot be collapsed.";
+            return;
+        }
+
+        Canvas.CollapsedInto(slot.Value);
+        UpdateStatus();
+    }
+
     /// <summary>Puts a new note where a new node would go, and puts the caret in it.</summary>
     private void OnAddNote(object? sender, RoutedEventArgs e)
     {
@@ -358,6 +385,7 @@ public sealed partial class MainWindow : Window
 
         AlignButton.IsEnabled = selected >= CanvasAlignment.MinimumToAlign;
         GroupButton.IsEnabled = Canvas.CanGroupSelection();
+        CollapseButton.IsEnabled = Canvas.CanCollapseSelection();
         DistributeHorizontally.IsEnabled = selected >= CanvasAlignment.MinimumToDistribute;
         DistributeVertically.IsEnabled = selected >= CanvasAlignment.MinimumToDistribute;
     }
@@ -518,6 +546,16 @@ public sealed partial class MainWindow : Window
         // Before anything asks for a frame: the switch has to be in place before the first GL
         // callback, or a context is created and then abandoned.
         Viewport.ForceSoftwareRenderer = Options.ForceSoftwareRenderer;
+
+        if (Options.CollapseFirst > 0)
+        {
+            for (int slot = 0; slot < Options.CollapseFirst && slot < Canvas.Graph.Nodes.Count; slot++)
+            {
+                Canvas.SelectAlso(slot);
+            }
+
+            OnCollapseSelection(this, new RoutedEventArgs());
+        }
 
         if (Options.OpensHelp)
         {

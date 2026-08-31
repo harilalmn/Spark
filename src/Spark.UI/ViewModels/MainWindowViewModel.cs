@@ -48,6 +48,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     private readonly SparkSession _session = new();
     private HelpLibrary? _help;
+    private CustomNodeLibrary? _customNodes;
 
     private readonly HashSet<GeometryKey> _published = [];
     private readonly DocumentHistory _history = new();
@@ -994,6 +995,128 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         return Scene.SetSelectedNodes(nodes);
+    }
+
+    /// <summary>
+    /// The session's custom node library, over the same node library the canvas resolves against.
+    /// </summary>
+    /// <returns>The library, built once and reused.</returns>
+    /// <remarks>
+    /// <b>The same instance every time, deliberately.</b> A custom node built by collapsing a
+    /// selection has to be visible to the next collapse, so one can contain another - which is the
+    /// whole of what <i>graph-in-graph is the same mechanism</i> buys, and it only works if there
+    /// is one library rather than one per gesture.
+    /// </remarks>
+    public CustomNodeLibrary CustomNodes() => _customNodes ??= new CustomNodeLibrary(_session.Library);
+
+    /// <summary>The key handed out by the last call to <see cref="NextCustomNodeIdentity"/>.</summary>
+    public NodeKey LastCustomNodeKey { get; private set; }
+
+    /// <summary>
+    /// A name for the next custom node, unique within the session.
+    /// </summary>
+    /// <remarks>
+    /// Numbered rather than prompted. A dialog asking for a name before the user has seen what
+    /// they made is a question asked at the wrong moment; the node can be renamed once it exists.
+    /// </remarks>
+    public CustomNodeInterface NextCustomNodeIdentity()
+    {
+        CustomNodeLibrary customs = CustomNodes();
+
+        for (int ordinal = 1; ; ordinal++)
+        {
+            string name = "Custom." + ordinal.ToString(CultureInfo.InvariantCulture);
+            NodeKey key = new("Custom", name);
+
+            if (!_session.Library.TryGet(key, out _))
+            {
+                LastCustomNodeKey = key;
+
+                return new CustomNodeInterface(
+                    key.Package,
+                    key.Name,
+                    "A node made by collapsing a selection.",
+                    NodeCategories.Custom);
+            }
+
+            _ = customs;
+        }
+    }
+
+    /// <summary>
+    /// Replaces a selection with a single custom node that does what it did (<c>E7-T12</c>).
+    /// </summary>
+    /// <param name="selection">The selected canvas slots.</param>
+    /// <param name="reason">Why nothing happened, when the answer is null.</param>
+    /// <returns>The new node's slot, or null when the selection cannot be collapsed.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="selection"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Everything that can refuse happens before anything is removed.</b> Planning changes
+    /// nothing, and compiling is what discovers recursion, so a selection that cannot become a node
+    /// leaves the graph exactly as it was rather than half-collapsed.
+    /// </para>
+    /// <para>
+    /// <b>It lives here rather than on the canvas because the canvas is a view.</b> Inferring an
+    /// interface and building a definition are engine work, and
+    /// <c>Spark.Architecture.Tests</c> forbids a view file from naming <c>Spark.Engine</c> at all.
+    /// The canvas keeps the selection and is told the answer.
+    /// </para>
+    /// </remarks>
+    public int? CollapseSelection(IReadOnlyCollection<int> selection, out string? reason)
+    {
+        ArgumentNullException.ThrowIfNull(selection);
+
+        reason = null;
+
+        if (selection.Count == 0)
+        {
+            reason = "Select the nodes to collapse first.";
+            return null;
+        }
+
+        CustomNodeInterface identity = NextCustomNodeIdentity();
+
+        CollapsePlan? plan = CanvasCollapse.Plan(_graph, selection, identity);
+        if (plan is null)
+        {
+            reason = "Nothing outside the selection reads it, so the new node would have no "
+                + "outputs and could never be wired to anything.";
+            return null;
+        }
+
+        NodeDefinition definition;
+        try
+        {
+            CustomNodeLibrary customs = CustomNodes();
+            customs.Register(plan.Definition);
+            customs.Build();
+            definition = customs.Definition(identity.Key);
+        }
+        catch (Exception failure) when (failure is CustomNodeRecursionException or SparkFileException)
+        {
+            reason = failure.Message;
+            return null;
+        }
+
+        int slot = CanvasCollapse.Apply(_graph, plan, definition);
+        PublishCustomNode(definition);
+        return slot;
+    }
+
+    /// <summary>Adds a freshly built custom node to the library panel.</summary>
+    /// <param name="definition">The definition.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="definition"/> is null.</exception>
+    public void PublishCustomNode(NodeDefinition definition)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+
+        LibraryEntryViewModel entry = new(definition);
+        LibraryEntries.Add(entry);
+
+        // The help library, if one has been built, gets a page for it too - a node a user just made
+        // is exactly the one they are most likely to press F1 on.
+        _help?.Add(NodeReference.For(definition));
     }
 
     /// <summary>Rebuilds the inspector for the current canvas selection.</summary>

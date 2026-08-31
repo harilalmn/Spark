@@ -278,6 +278,28 @@ public sealed class GraphCanvas : Control
         InvalidateVisual();
     }
 
+    /// <summary>Adds a slot to the selection, leaving whatever else is selected alone.</summary>
+    /// <param name="slot">The slot. Out-of-range values are ignored.</param>
+    /// <remarks>
+    /// The programmatic half of shift-clicking. It exists so a multi-node selection can be made
+    /// without a pointer, which is what lets the collapse gesture be exercised from a command line
+    /// and therefore photographed.
+    /// </remarks>
+    public void SelectAlso(int slot)
+    {
+        if (slot < 0 || slot >= _graph.Nodes.Count)
+        {
+            return;
+        }
+
+        _selection.Add(slot);
+        _focusNode = slot;
+        _selectedWire = null;
+
+        InvalidateVisual();
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     /// <summary>Selects exactly one slot and gives it keyboard focus.</summary>
     /// <param name="slot">The slot, or −1 to select nothing.</param>
     public void SelectOnly(int slot)
@@ -1727,6 +1749,45 @@ public sealed class GraphCanvas : Control
     /// <summary>Whether there is a selection a group could be made from.</summary>
     /// <returns>True when at least one node is selected.</returns>
     public bool CanGroupSelection() => _selection.Count > 0;
+
+    /// <summary>
+    /// Reports that the selection has been collapsed into one node elsewhere, and selects it.
+    /// </summary>
+    /// <param name="slot">The new node's slot, or −1 when there is none.</param>
+    /// <remarks>
+    /// <b>The canvas does the selection bookkeeping and nothing else.</b> Working out the new
+    /// node's interface and building it are engine work, and a view that reached into
+    /// <c>Spark.Engine</c> to do them would break the layering rule <c>Spark.Architecture.Tests</c>
+    /// enforces — which is how this method came to exist rather than the obvious one. The gesture
+    /// itself lives on the view model.
+    /// </remarks>
+    public void CollapsedInto(int slot)
+    {
+        _selection.Clear();
+        _selectedWire = null;
+        _selectedNote = null;
+        _selectedGroup = null;
+
+        if (slot >= 0 && slot < _graph.Nodes.Count)
+        {
+            _selection.Add(slot);
+            _focusNode = slot;
+        }
+
+        InvalidateVisual();
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
+        GraphChanged?.Invoke(this, new GraphEditedEventArgs("Collapse to custom node", affectsEvaluation: true));
+    }
+
+    /// <summary>Whether the selection could become a custom node.</summary>
+    /// <returns>True when at least one node is selected.</returns>
+    /// <remarks>
+    /// Deliberately the same cheap test as grouping. Whether the selection <i>would</i> produce a
+    /// usable node needs the full plan, and running that on every selection change to decide
+    /// whether a button is enabled would be work done to answer a question the user has not asked.
+    /// The refusal, when it comes, names the reason.
+    /// </remarks>
+    public bool CanCollapseSelection() => _selection.Count > 0;
 
     /// <summary>Reports that the selected group's title has been edited elsewhere.</summary>
     public void GroupTitleEdited()

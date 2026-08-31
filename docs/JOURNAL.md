@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 20:15 +0530
+**Last updated:** 2026-08-31 21:20 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E9-T9` — selection reaches the viewport**, costing no GPU work because appearance is a uniform. Two defects found along the way: [N66](NOTES.md), a screenshot that waited for a **clock instead of a frame** and whose failure path skipped the one diagnostic that explained it; and [N67](NOTES.md), a **1-in-4 flaky** unload test rooted by a local in its own asserting frame. |
+| **Last completed step** | **`E7-T12`, `E7-T13` — collapse a selection into a node.** The interface is inferred from the wires that crossed the boundary, one port per distinct source. **The architecture test caught the obvious placement**: the gesture belongs on the view model, not the canvas, because a view file may not name `Spark.Engine`. Verified in the app — the viewport is byte-identical before and after. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E7-T12` — collapse selection to custom node.** The engine half is built and tested (`E7-T11`): `.sparkcustom` is the graph format plus an interface block, ports come from Input/Output nodes, recursion is refused at build with the containment path. What is missing is the gesture — take a selection, cut it out, and **infer the interface from the wires that crossed the boundary**. `E7-T13`'s save-side refusal belongs with it, because collapse is what can build a recursive definition by accident. After that the epic's remainder is network-facing (`E7-T1`, `E7-T2`, `E7-T8`, `E7-T10`) and then **M8**. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1893** over **nine** projects: Geometry.Tests 763, UI.Tests 470, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E7-T1` and `E7-T2` — the package convention and the NuGet client.** Everything in `E7` that does not need a network is now built: the load layer, placeholders, custom nodes and collapse. What remains is a Spark package being **a NuGet package tagged `spark` with a `tools/spark.json` manifest**, and `NuGet.Protocol`/`NuGet.Packaging` search-install-resolve on top of it — both already referenced by `Spark.Packages`. Then `E7-T8` (trust and disclosure, including **whether a package carries native binaries**), `E7-T9` (local DLLs, which must read **without locking** — unlike the package path) and `E7-T10` (the manager UI). **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1905** over **nine** projects: Geometry.Tests 763, UI.Tests 482, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T18`'s About box was on this list and should not have been** — it needed a dialog, which is code, and it is done. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3542,3 +3542,56 @@ returning only the `WeakReference`. Four consecutive full-suite runs clean.
 **Verified.** Build clean at 0 warnings. `Viewport.Tests` 101 -> 108. Suite **1,893** over nine
 projects, 0 failed, 0 skipped. `dotnet format` clean. `--graph solids --screenshot` run again and
 the viewport image written and read.
+
+### 2026-08-31 - `E7-T12`, `E7-T13`: collapse a selection into a node, and a layering rule that caught me
+
+**What.** `CanvasCollapse` in `Spark.UI/Graph/`, the gesture on the view model, a toolbar button,
+and the save-side half of `E7-T13`. Twelve tests. **Custom nodes are now something a user can
+reach**, rather than an engine capability with no door.
+
+**The interface is inferred from the wires that crossed the boundary**, which is the whole
+feature. A user selects a working piece of a graph and asks for it to be a node; what its ports are
+is not a question they should answer, because the graph already answered it. Anything wired in from
+outside is an input, anything read from outside is an output, anything wired entirely within is now
+private.
+
+**One port per distinct crossing *source*, not per crossing wire.** One node feeding three ports
+inside the selection is one value arriving, and three ports would make the user wire the same thing
+three times. Ports take the name of the inner port they attach to, so collapsing a
+`Circle.ByCentreRadius` gives a node with a `radius` rather than an `in0`.
+
+**Split into Plan and Apply**, because the inference is the part with judgement in it and the part
+worth testing, and because a plan that changes nothing can be shown to a user before it happens.
+Everything is expressed in `NodeId`s: removing the absorbed nodes renumbers every slot after them,
+and a plan holding slot indices would rewire whichever nodes moved into them.
+
+**The body is built by constructing a real `Graph` and capturing it**, rather than writing
+`GraphDocumentNode`s by hand. `GraphDocument.Capture` already knows to suppress a literal equal to
+its port's default and to refuse one a file cannot represent; a second copy of either rule is a
+rule that is only correct once. And the Input/Output nodes are **positioned deliberately** -
+`CustomNodePorts.Collect` orders ports by canvas Y then X, so their positions *are* the interface.
+
+**The architecture test caught a real mistake, which is what it is for.** The obvious place for the
+gesture was `GraphCanvas`, which owns the selection - so I put it there, and
+`NoViewFileReferencesTheEngine` went red: a view file must not name `Spark.Engine` at all
+(`E8-T11`). The rule's own failure message says where it belongs, *add what you need to CanvasGraph
+or to a view model instead*, and it is right. The gesture moved to `MainWindowViewModel`; the
+canvas keeps `CollapsedInto(slot)`, which does selection bookkeeping and nothing else. **The
+version that broke the rule worked**, which is exactly why the rule is a test rather than a
+paragraph.
+
+**`E7-T13`'s save side closes with it**, because collapse is what constructs a recursive definition
+by accident. `CustomNodeFile.Write` refuses a body naming its own key - writing it and refusing to
+open it afterwards would leave the user's work in a file nothing can load. **Only the direct case
+is checkable there** and the method says so: *A contains B contains A* needs every other definition
+to resolve, and a writer has no library.
+
+**Verified in the running application, not only headlessly.** `--collapse N` selects the first N
+nodes and presses the button, so the gesture can be photographed - a button needs a click, and a
+click is the one thing a headless run cannot do. Two nodes of the curves demo became `Custom.1`;
+the shell shows 17 nodes and 14 wires where there were 18 and 15, the properties pane names the new
+node, **18 nodes evaluated with no diagnostics**, and the viewport image is **byte-identical** to
+the run before the collapse. The graph's shape changed and its result did not.
+
+**Verified.** Build clean at 0 warnings. `UI.Tests` 470 -> 482. Suite **1,905** over nine projects,
+0 failed, 0 skipped. `dotnet format` clean. Architecture tests 15 green after the move.

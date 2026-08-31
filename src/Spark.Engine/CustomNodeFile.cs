@@ -76,6 +76,8 @@ public static class CustomNodeFile
     {
         ArgumentNullException.ThrowIfNull(document);
 
+        RefuseDirectRecursion(document);
+
         string graph = SparkFile.Write(document.Body);
 
         // Splice the interface in after the format version rather than re-serialising the graph
@@ -134,6 +136,39 @@ public static class CustomNodeFile
                 Text(block, "category"),
                 Text(block, "viewKey")),
             body);
+    }
+
+    /// <summary>
+    /// Refuses to write a definition whose body contains itself (<c>E7-T13</c>, the save side).
+    /// </summary>
+    /// <exception cref="CustomNodeRecursionException">The body names the node's own key.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Refused at save as well as at load, because those catch different mistakes.</b> The load
+    /// side catches a file that arrived recursive — hand-edited, or produced by an older build.
+    /// This side catches one being <i>made</i> recursive, and the way that happens in practice is
+    /// <c>E7-T12</c>: a user collapses a selection that already contains the node they are
+    /// collapsing into. Writing it and refusing to open it afterwards would be the worst of both,
+    /// because the user's work is then in a file nothing can load.
+    /// </para>
+    /// <para>
+    /// <b>Only the direct case is checkable here.</b> <i>A contains B contains A</i> needs every
+    /// other definition to resolve, and a writer has no library; that is
+    /// <see cref="CustomNodeLibrary.Build"/>'s job and it reports the whole containment path.
+    /// Saying so is better than implying this catches everything.
+    /// </para>
+    /// </remarks>
+    private static void RefuseDirectRecursion(CustomNodeDocument document)
+    {
+        NodeKey self = document.Interface.Key;
+
+        foreach (GraphDocumentNode node in document.Body.Nodes)
+        {
+            if (node.Key == self)
+            {
+                throw new CustomNodeRecursionException([self, self]);
+            }
+        }
     }
 
     private static string BuildInterfaceBlock(CustomNodeInterface node)

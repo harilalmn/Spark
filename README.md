@@ -293,6 +293,12 @@ it rather than a window grab, so it works over a locked session and in CI — an
 first two exist so that opening a particular graph can be checked without a human driving a file
 dialog.
 
+**Select some nodes and press *Collapse to node*** to turn them into one reusable custom node.
+Spark works out the new node's ports from the wires that crossed the selection: anything wired in
+from outside becomes an input, anything read from outside becomes an output, and the ports are
+named after the ports they attach to. The definition is an ordinary graph in an ordinary file
+(`.sparkcustom`), so you can open it and edit it like anything else.
+
 **Press F1 for help.** With a node selected it opens that node's reference page — what it takes,
 what it returns, what each port means and how it laces; with nothing selected it opens the index of
 every node currently loaded. The node pages are **generated from the nodes themselves at the moment
