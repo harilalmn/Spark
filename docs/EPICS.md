@@ -652,10 +652,13 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       null: a graph that quietly produced a value downstream of a missing package would compute a
       confident wrong answer, which is the one outcome worse than not computing. **The banner
       offering one-click install is still owed** and waits on `E7-T2` and `E7-T10`.*
-- [ ] Install shows publisher, downloads, licence, signature status, transitive
+- [x] Install shows publisher, downloads, licence, signature status, transitive
       dependencies, node count, and **whether the package contains native binaries** —
       users deserve to know when the no-native-dependencies promise is being broken on
-      their behalf (**E7-T8**).
+      their behalf (**E7-T8**). *Built 2026-08-31. Install became prepare-then-commit so
+      the disclosure precedes the decision, and every field is read out of the package
+      rather than declared by it. Signature is reported as present-but-unverified, never
+      as signed.*
 - [ ] Local DLLs prompt once and record a content hash; a changed hash re-prompts.
       Auto-reload on file change is offered, and reading a referenced assembly never locks
       it, so users can rebuild their library while Spark is open (**E7-T9**).

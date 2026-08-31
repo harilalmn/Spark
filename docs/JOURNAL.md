@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 22:20 +0530
+**Last updated:** 2026-08-31 23:05 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E7-T1`, `E7-T2` — the package convention and the NuGet client.** A Spark package can be searched for and installed, verified against the real feed. Found [N68](NOTES.md): **a `.nupkg` is a zip and a zip entry name is attacker-supplied** — without the guard, installing a package writes outside its own folder, proven by disabling it. And [N69](NOTES.md): a NuGet folder name does not split at the first dot. |
+| **Last completed step** | **`E7-T8` — the disclosure comes before the decision.** Install is prepare-then-commit, so a user sees publisher, licence, dependencies and **whether the package carries native binaries** before agreeing. Every field is read out of the package. **Signature is reported as *present but unverified*, never *signed***, because Spark builds no certificate chain. Trust is per version, not per publisher. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E7-T8` — trust and install disclosure**, which is the row that makes install honest: publisher, downloads, licence, signature status, transitive dependencies, node count, and **whether the package contains native binaries**. That last one matters most here — Spark promises no native dependencies, a package may break that promise on its own behalf, and a user is entitled to know it is being broken for them. `PackageLoadContext` already knows where a native library would have to be, which is what makes the disclosure checkable rather than declared. Then `E7-T2`'s remaining half (**dependency resolution**), `E7-T9` (local DLLs, which must read **without locking**) and `E7-T10` (the manager UI). **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1929** over **nine** projects: Geometry.Tests 763, UI.Tests 482, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 36**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E7-T5`'s purge half, which is now buildable.** The unload mechanism has been proven since `E7-T3`; what it could not do was purge, because the registries it has to empty did not exist. They do now — the package node library, the store and the trust store. The row's standard is **verify by weak reference**, and **restart is the documented default**: a live unload is an optimisation, never a promise. Then `E7-T9` (local DLLs, which must read **without locking**, unlike the package path) and `E7-T10` (the manager UI). `E7-T2`'s remaining half is **dependency resolution**. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1941** over **nine** projects: Geometry.Tests 763, UI.Tests 482, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 48**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T18`'s About box was on this list and should not have been** — it needed a dialog, which is code, and it is done. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3650,3 +3650,47 @@ dependencies are not yet walked, so a package that needs another one installs wi
 
 **Verified.** Build clean at 0 warnings. `Packages.Tests` 12 -> 36. Suite **1,929** over nine
 projects, 0 failed, 0 skipped. `dotnet format` clean. Searches ran against the real nuget.org.
+
+### 2026-08-31 - `E7-T8`: the disclosure comes before the decision
+
+**What.** `PackageDisclosure`, `PackageInspector`, `PendingInstall` and `PackageTrustStore`, and
+`NuGetPackageClient` restructured into prepare-then-commit. Twelve tests.
+
+**The row says install *shows* the user these things, and that word decides the shape.** A user
+cannot weigh a package's licence, its dependencies or whether it carries native binaries until
+those have been read out of it, and reading them means downloading it. So `PrepareAsync` downloads
+and extracts into a **staging folder** - somewhere `PackageStore` deliberately does not consider
+installed and `PackageLoadContext` will never load from - and the decision happens afterwards.
+`Commit` moves it into place; `Discard` throws it away; `Dispose` discards, so the ordinary
+`using` shape cannot leak a downloaded package into a folder nobody remembers.
+
+**Every field is read out of the package, never declared by it.** Publisher, licence, project URL
+and dependencies come from the `.nuspec`; node assemblies from the manifest. A disclosure a package
+could assert about itself would be worth nothing to the user it is shown to.
+
+**The native-binary check is the one this row exists for**, and it over-reports on purpose. Spark's
+own promise is no native dependencies; a package is entitled to break that on its own behalf -
+plenty of useful libraries are native - but not silently and not on the user's behalf. It looks
+both for NuGet's `runtimes/{rid}/native` convention **and** for native extensions anywhere in the
+tree, because a check that only knew the convention would report *no native binaries* for a package
+that had simply dropped a `.so` beside its managed files. Telling a user about a harmless file
+costs them a moment; missing a real one costs the promise.
+
+**Signature is reported as *present but unverified*, and the wording is the point.** Spark reads
+whether a signature entry exists. It does not build a certificate chain, check revocation, or
+decide who the signer is. Reporting *signed* would imply all three, and a user who read that would
+be relying on something nobody did.
+
+**Trust is per package *version*, not per publisher.** Agreeing to `Acme.Nodes 1.0.0` is not
+agreeing to `2.0.0`, because everything a user weighed can change between them - a patch release
+can acquire a native dependency, which is exactly the disclosure this protects. A per-publisher
+store would let that through silently. An unreadable trust file trusts nothing, which is the safe
+direction: the worst outcome is being asked again.
+
+**`InstallAsync` survives as prepare-then-commit** for callers with nobody to ask - a command line,
+a test, a scripted setup. Anything with a user in front of it should prepare and show them.
+
+**Verified.** Build clean at 0 warnings. `Packages.Tests` 36 -> 48. Suite **1,941** over nine
+projects, 0 failed, 0 skipped. `dotnet format` clean. The disclosure tests build packages that
+actually carry a licence, dependencies, a signature entry and a native binary, and assert those
+come back out.

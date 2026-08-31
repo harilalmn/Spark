@@ -131,28 +131,32 @@ public sealed class NuGetPackageClient
     }
 
     /// <summary>
-    /// Downloads a package version and extracts it into the store.
+    /// Downloads a package version, extracts it, and reports what it is — without installing it.
     /// </summary>
     /// <param name="identity">The package and version.</param>
-    /// <param name="store">Where to put it.</param>
+    /// <param name="store">Where it will go, if it is committed.</param>
     /// <param name="cancellationToken">Cancels the download.</param>
-    /// <returns>The manifest of the installed package.</returns>
+    /// <returns>
+    /// The prepared install. <b>Nothing is installed until <see cref="PendingInstall.Commit"/> is
+    /// called</b>, and a caller that never commits must <see cref="PendingInstall.Discard"/>.
+    /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="store"/> is null.</exception>
     /// <exception cref="SparkPackageException">
     /// The package does not exist on the feed, could not be downloaded, or is not a Spark package.
     /// </exception>
     /// <remarks>
-    /// <b>Extracted to a temporary folder and then moved into place.</b> An interrupted download
-    /// that had been writing straight into the final folder would leave a package that looks
-    /// installed and is not, and the next run would load half of it.
+    /// <b>Prepare and commit are separate because the disclosure is shown before the user
+    /// agrees</b> (<c>E7-T8</c>). A user cannot weigh a package's licence, its dependencies or
+    /// whether it carries native binaries until those have been read out of it, and reading them
+    /// means downloading it — so the download happens first and the decision second, with the
+    /// files parked somewhere they cannot be loaded from.
     /// </remarks>
-    public async Task<SparkPackageManifest> InstallAsync(
+    public async Task<PendingInstall> PrepareAsync(
         PackageIdentity identity, PackageStore store, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(store);
 
         string staging = store.FolderFor(identity) + ".installing";
-        string destination = store.FolderFor(identity);
 
         try
         {
@@ -170,8 +174,7 @@ public sealed class NuGetPackageClient
 
                 if (source is null)
                 {
-                    throw new SparkPackageException(
-                        $"The feed at {Source} cannot serve package downloads.");
+                    throw new SparkPackageException($"The feed at {Source} cannot serve package downloads.");
                 }
 
                 bool copied = await source.CopyNupkgToStreamAsync(
@@ -184,8 +187,7 @@ public sealed class NuGetPackageClient
 
                 if (!copied || nupkg.Length == 0)
                 {
-                    throw new SparkPackageException(
-                        $"The feed at {Source} has no '{identity}'.");
+                    throw new SparkPackageException($"The feed at {Source} has no '{identity}'.");
                 }
 
                 nupkg.Position = 0;
@@ -193,35 +195,60 @@ public sealed class NuGetPackageClient
             }
 
             SparkPackageManifest manifest = ReadManifest(staging, identity);
+            PackageDisclosure disclosure = PackageInspector.Inspect(staging, identity);
 
-            if (Directory.Exists(destination))
-            {
-                Directory.Delete(destination, recursive: true);
-            }
-
-            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-            Directory.Move(staging, destination);
-
-            return manifest;
+            return new PendingInstall(identity, staging, store.FolderFor(identity), manifest, disclosure);
         }
-        catch (Exception failure) when (failure is not SparkPackageException and not OperationCanceledException)
+        catch (Exception failure)
         {
-            throw new SparkPackageException($"'{identity}' could not be installed: {failure.Message}", failure);
+            // Anything that goes wrong leaves nothing behind: a staging folder that survived a
+            // failure is a package that looks half-installed to the next attempt.
+            Sweep(staging);
+
+            throw failure is SparkPackageException or OperationCanceledException
+                ? failure
+                : new SparkPackageException($"'{identity}' could not be installed: {failure.Message}", failure);
         }
-        finally
+    }
+
+    /// <summary>
+    /// Downloads and installs a package version, without showing anybody a disclosure first.
+    /// </summary>
+    /// <param name="identity">The package and version.</param>
+    /// <param name="store">Where to put it.</param>
+    /// <param name="cancellationToken">Cancels the download.</param>
+    /// <returns>The manifest of the installed package.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="store"/> is null.</exception>
+    /// <exception cref="SparkPackageException">The package could not be installed.</exception>
+    /// <remarks>
+    /// For callers with nobody to ask — a command line, a test, a scripted setup. Anything with a
+    /// user in front of it should use <see cref="PrepareAsync"/> and show them
+    /// <see cref="PendingInstall.Disclosure"/> first.
+    /// </remarks>
+    public async Task<SparkPackageManifest> InstallAsync(
+        PackageIdentity identity, PackageStore store, CancellationToken cancellationToken = default)
+    {
+        PendingInstall pending = await PrepareAsync(identity, store, cancellationToken).ConfigureAwait(false);
+
+        pending.Commit();
+        return pending.Manifest;
+    }
+
+    private static void Sweep(string folder)
+    {
+        if (!Directory.Exists(folder))
         {
-            if (Directory.Exists(staging))
-            {
-                try
-                {
-                    Directory.Delete(staging, recursive: true);
-                }
-                catch (Exception sweep) when (sweep is IOException or UnauthorizedAccessException)
-                {
-                    // A staging folder left behind is untidy, never wrong: the next install
-                    // replaces it, and IsInstalled ignores it because it is not the real folder.
-                }
-            }
+            return;
+        }
+
+        try
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException)
+        {
+            // Untidy, never wrong: the next attempt replaces it, and IsInstalled ignores it
+            // because it is not the folder a package is loaded from.
         }
     }
 
