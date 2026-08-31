@@ -44,6 +44,15 @@
                        Text="Enter places it here · Esc cancels" />
           </Grid>
         </Border>
+        <!-- E8-T5: the in-place value editor. A real TextBox, positioned over the field the
+             canvas drew, for the one node being typed into. The canvas is immediate-mode and
+             that is right for a thousand nodes and wrong for this one - a caret, a selection,
+             an input method and a clipboard are not things to re-implement in a draw loop. -->
+        <TextBox x:Name="FieldEditor" IsVisible="False"
+                 Padding="4,2"
+                 VerticalContentAlignment="Center"
+                 KeyDown="OnFieldEditorKeyDown"
+                 LostFocus="OnFieldEditorLostFocus" />
       </Canvas>
     </Panel>
   </Border>

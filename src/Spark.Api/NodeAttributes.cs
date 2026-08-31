@@ -186,6 +186,38 @@ public sealed class ShowsValueAttribute : Attribute
 }
 
 /// <summary>
+/// Declares that a node's first input is typed into a field on the node itself (<c>E8-T5</c>).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>An input node whose value lives in a side panel is a node you cannot read.</b> A graph with
+/// six numbers in it shows six identical boxes labelled <c>Number.Value</c>, and finding which one
+/// is the wall height means clicking each in turn. The value belongs on the node, next to its name,
+/// where it is read at a glance and changed without leaving the canvas.
+/// </para>
+/// <para>
+/// <b>Only the first input, and only when nothing is wired to it.</b> A wire wins over a literal
+/// everywhere else in Spark and does here too: a field that accepted a value which then had no
+/// effect would be worse than one that is not offered.
+/// </para>
+/// <para>
+/// <b>The field is a real control, not a drawing.</b> The canvas is immediate-mode
+/// ([ADR-0013](../../docs/adr/0013-immediate-mode-canvas.md)), which is right for a thousand nodes
+/// and wrong for the one being typed into — a caret, a selection, an input method and a clipboard
+/// are not things to re-implement. The node draws the value; editing it puts an Avalonia
+/// <c>TextBox</c> over that spot, which is the hybrid overlay this row exists for.
+/// </para>
+/// </remarks>
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+public sealed class NodeFieldAttribute : Attribute
+{
+    /// <summary>Creates the attribute.</summary>
+    public NodeFieldAttribute()
+    {
+    }
+}
+
+/// <summary>
 /// Declares that a node is driven by a slider drawn on the node itself (<c>E8-T25</c>).
 /// </summary>
 /// <remarks>

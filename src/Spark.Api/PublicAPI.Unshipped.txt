@@ -322,3 +322,5 @@ virtual Spark.Api.ScriptInvocation.Invoke(object?[]! arguments, System.Threading
 ~override Spark.Api.ScriptPort.ToString() -> string
 Spark.Api.NodeSliderAttribute
 Spark.Api.NodeSliderAttribute.NodeSliderAttribute() -> void
+Spark.Api.NodeFieldAttribute
+Spark.Api.NodeFieldAttribute.NodeFieldAttribute() -> void

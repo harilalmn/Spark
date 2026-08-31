@@ -20,6 +20,7 @@ public sealed partial class CanvasPane : UserControl
 {
     private double _createWorldX;
     private double _createWorldY;
+    private int _editingSlot = -1;
 
     /// <summary>Creates the pane.</summary>
     public CanvasPane()
@@ -27,6 +28,7 @@ public sealed partial class CanvasPane : UserControl
         InitializeComponent();
 
         CanvasControl.CreateRequested += OnCanvasCreateRequested;
+        CanvasControl.FieldEditRequested += OnCanvasFieldEditRequested;
     }
 
     /// <summary>
@@ -166,4 +168,95 @@ public sealed partial class CanvasPane : UserControl
     }
 
     private void OnCreateResultChosen(object? sender, TappedEventArgs e) => CommitCreateBox();
+    /// <summary>
+    /// Puts a real text box over the value field the canvas drew (<c>E8-T5</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the hybrid overlay <c>GraphCanvas</c>'s own remarks describe.</b> Every node is
+    /// drawn immediate-mode, which is what makes a large graph cheap; the one node being
+    /// interacted with gets a real Avalonia control positioned over the drawing, which is what
+    /// preserves input fidelity. One at a time, by construction — there is one editor.
+    /// </para>
+    /// <para>
+    /// <b>Sized to the field but floored at a usable height.</b> Zoomed a long way out the field is
+    /// a few pixels tall, and a text box that small is one nobody can type into; the editor stays
+    /// legible and simply covers more of the node than the field did.
+    /// </para>
+    /// </remarks>
+    /// <param name="sender">The canvas.</param>
+    /// <param name="e">Which node, what it holds, and where the field is on screen.</param>
+    private void OnCanvasFieldEditRequested(object? sender, CanvasFieldEditEventArgs e)
+    {
+        _editingSlot = e.Slot;
+
+        FieldEditor.Width = Math.Max(e.ScreenWidth, 60);
+        FieldEditor.Height = Math.Max(e.ScreenHeight, 22);
+
+        Avalonia.Controls.Canvas.SetLeft(FieldEditor, e.ScreenX);
+        Avalonia.Controls.Canvas.SetTop(FieldEditor, e.ScreenY);
+
+        FieldEditor.Text = e.Text;
+        FieldEditor.IsVisible = true;
+        FieldEditor.Focus();
+        FieldEditor.SelectAll();
+    }
+
+    /// <summary>
+    /// Enter commits, Escape abandons.
+    /// </summary>
+    /// <remarks>
+    /// <b>Escape has to close the editor without committing</b>, and closing it moves focus, which
+    /// raises <c>LostFocus</c> — which commits. So the slot is cleared <i>before</i> the editor is
+    /// hidden, and the commit path checks it. Without that, Escape would save the thing it was
+    /// asked to discard.
+    /// </remarks>
+    /// <param name="sender">The editor.</param>
+    /// <param name="e">The key.</param>
+    private void OnFieldEditorKeyDown(object? sender, KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Enter:
+                CommitFieldEditor();
+                e.Handled = true;
+                break;
+
+            case Key.Escape:
+                _editingSlot = -1;
+                CloseFieldEditor();
+                e.Handled = true;
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    private void OnFieldEditorLostFocus(object? sender, RoutedEventArgs e) => CommitFieldEditor();
+
+    private void CommitFieldEditor()
+    {
+        if (_editingSlot < 0)
+        {
+            return;
+        }
+
+        int slot = _editingSlot;
+        _editingSlot = -1;
+
+        CanvasControl.CommitFieldText(slot, FieldEditor.Text);
+        CloseFieldEditor();
+    }
+
+    private void CloseFieldEditor()
+    {
+        if (!FieldEditor.IsVisible)
+        {
+            return;
+        }
+
+        FieldEditor.IsVisible = false;
+        CanvasControl.Focus();
+    }
 }

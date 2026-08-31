@@ -58,6 +58,56 @@ public sealed class GraphEditedEventArgs(
 }
 
 /// <summary>
+/// A request to edit a node's value in place, raised by clicking the field drawn on it
+/// (<c>E8-T5</c>).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>The canvas says where and what, and hosts nothing.</b> It is an immediate-mode surface
+/// ([ADR-0013](../../docs/adr/0013-immediate-mode-canvas.md)) and a <c>Control</c> rather than a
+/// <c>Panel</c>, so it cannot hold a child even if it wanted one — which is the right shape
+/// anyway. A caret, a selection, an input method and a clipboard are not things to re-implement in
+/// a draw loop, so the pane over the canvas puts a real <c>TextBox</c> at the rectangle named here.
+/// </para>
+/// <para>
+/// The rectangle is in <b>control</b> coordinates, already through the pan and zoom, because that
+/// is the space the overlay is positioned in.
+/// </para>
+/// </remarks>
+/// <param name="slot">The node whose first input is being edited.</param>
+/// <param name="text">What the field currently holds, rendered invariantly.</param>
+/// <param name="screenX">The field's left edge in control coordinates.</param>
+/// <param name="screenY">Its top edge.</param>
+/// <param name="screenWidth">Its width, already scaled by the zoom.</param>
+/// <param name="screenHeight">Its height.</param>
+public sealed class CanvasFieldEditEventArgs(
+    int slot,
+    string text,
+    double screenX,
+    double screenY,
+    double screenWidth,
+    double screenHeight) : EventArgs
+{
+    /// <summary>The node whose first input is being edited.</summary>
+    public int Slot { get; } = slot;
+
+    /// <summary>What the field currently holds.</summary>
+    public string Text { get; } = text;
+
+    /// <summary>The field's left edge in control coordinates.</summary>
+    public double ScreenX { get; } = screenX;
+
+    /// <summary>Its top edge in control coordinates.</summary>
+    public double ScreenY { get; } = screenY;
+
+    /// <summary>Its width in control coordinates.</summary>
+    public double ScreenWidth { get; } = screenWidth;
+
+    /// <summary>Its height in control coordinates.</summary>
+    public double ScreenHeight { get; } = screenHeight;
+}
+
+/// <summary>
 /// A request to create a node at a point on the canvas, raised by double-clicking empty space.
 /// </summary>
 /// <remarks>
@@ -232,6 +282,9 @@ public sealed class GraphCanvas : Control
     /// slowest part of building a graph, and it gets slower with every package installed.
     /// </remarks>
     public event EventHandler<CanvasCreateRequestedEventArgs>? CreateRequested;
+
+    /// <summary>Raised when a node's in-place value field is clicked (<c>E8-T5</c>).</summary>
+    public event EventHandler<CanvasFieldEditEventArgs>? FieldEditRequested;
 
     private enum InteractionMode
     {
@@ -500,6 +553,26 @@ public sealed class GraphCanvas : Control
             e.Pointer.Capture(this);
             e.Handled = true;
             InvalidateVisual();
+            return;
+        }
+
+        // Before the node test, for the reason the slider is: the field lives inside the node's
+        // bounds, so testing the node first would make clicking a value box drag the node.
+        int field = HitTestField(world);
+        if (field >= 0)
+        {
+            _selection.Clear();
+            _selection.Add(field);
+            _selectedWire = null;
+            _selectedNote = null;
+            _selectedGroup = null;
+            _focusNode = field;
+
+            RequestFieldEdit(field);
+
+            e.Handled = true;
+            InvalidateVisual();
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
             return;
         }
 
@@ -1223,6 +1296,11 @@ public sealed class GraphCanvas : Control
                 DrawSlider(context, node, slot, drawsPortLabels);
             }
 
+            if (node.HasField)
+            {
+                DrawField(context, pens, node, slot, drawsPortLabels);
+            }
+
             DrawStateRings(context, pens, node, nodeRect, selected);
 
             if (slot == _focusNode && IsFocused)
@@ -1310,6 +1388,131 @@ public sealed class GraphCanvas : Control
             new Point(
                 Math.Clamp(thumbX - (text.Width / 2), node.X + 4, node.X + node.Width - 4 - text.Width),
                 y + CanvasNode.SliderThumbRadius + 1));
+    }
+
+    /// <summary>
+    /// Draws a node's in-place value field: a sunken box with the literal in it (<c>E8-T5</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>An input node whose value lives in a side panel is a node you cannot read.</b> Six
+    /// numbers in a graph are six identical boxes labelled <c>Number.Value</c>, and finding which
+    /// one is the wall height means clicking each in turn.
+    /// </para>
+    /// <para>
+    /// <b>A wired input shows no field.</b> The wire wins over the literal everywhere else in
+    /// Spark and does here: a box offering a value that would then be ignored is worse than no box.
+    /// The port row above still says the port is there and wired.
+    /// </para>
+    /// <para>
+    /// It is drawn on <c>surface.sunken</c>, the token the design language names for *inset wells:
+    /// text fields* — the same ground the code editor uses, so a place you can type into looks the
+    /// same everywhere in the application.
+    /// </para>
+    /// </remarks>
+    /// <param name="context">The drawing context.</param>
+    /// <param name="pens">The frame's pens.</param>
+    /// <param name="node">The node.</param>
+    /// <param name="slot">Its slot, for reading the literal.</param>
+    /// <param name="drawsLabels">Whether the zoom is high enough for the value text.</param>
+    private void DrawField(
+        DrawingContext context, in FramePens pens, CanvasNode node, int slot, bool drawsLabels)
+    {
+        if (_graph.IsInputWired(slot, 0))
+        {
+            return;
+        }
+
+        node.FieldBox(out double x, out double y, out double width, out double height);
+
+        Rect box = new(x, y, width, height);
+
+        context.DrawRectangle(
+            SparkPalette.Frozen(SparkPalette.SurfaceSunken), pens.NodeOutline, box, 3, 3);
+
+        if (!drawsLabels || _graph.FieldText(slot) is not { } text || text.Length == 0)
+        {
+            return;
+        }
+
+        FormattedText run = LabelRun(text);
+
+        // Clipped to the box rather than allowed to run over the node's edge. A long string is
+        // commoner here than anywhere else on a node, because this is the one place a user types
+        // arbitrary text onto the canvas.
+        using (context.PushClip(box))
+        {
+            context.DrawText(run, new Point(x + 5, y + ((height - run.Height) / 2)));
+        }
+    }
+
+    /// <summary>The slot whose in-place field is under a world point, or -1 (<c>E8-T5</c>).</summary>
+    /// <param name="world">The point, in world coordinates.</param>
+    /// <returns>The slot, or -1.</returns>
+    private int HitTestField(Point world)
+    {
+        for (int slot = _graph.Nodes.Count - 1; slot >= 0; slot--)
+        {
+            CanvasNode node = _graph.Nodes[slot];
+
+            if (!node.HasField || _graph.IsInputWired(slot, 0))
+            {
+                continue;
+            }
+
+            node.FieldBox(out double x, out double y, out double width, out double height);
+
+            if (world.X >= x && world.X <= x + width && world.Y >= y && world.Y <= y + height)
+            {
+                return slot;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>Asks the shell to put a real text box over a node's field.</summary>
+    /// <param name="slot">The node's slot.</param>
+    private void RequestFieldEdit(int slot)
+    {
+        if (_graph.FieldText(slot) is not { } text)
+        {
+            return;
+        }
+
+        _graph.Nodes[slot].FieldBox(out double x, out double y, out double width, out double height);
+
+        Point topLeft = new(_transform.ToScreenX(x), _transform.ToScreenY(y));
+        Point bottomRight = new(
+            _transform.ToScreenX(x + width), _transform.ToScreenY(y + height));
+
+        FieldEditRequested?.Invoke(this, new CanvasFieldEditEventArgs(
+            slot,
+            text,
+            topLeft.X,
+            topLeft.Y,
+            bottomRight.X - topLeft.X,
+            bottomRight.Y - topLeft.Y));
+    }
+
+    /// <summary>
+    /// Commits text typed into an in-place field, and reports it if it changed (<c>E8-T5</c>).
+    /// </summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <param name="text">What was typed.</param>
+    /// <remarks>
+    /// Public because the control that hosted the editing is the pane, not the canvas — the canvas
+    /// named the rectangle and has heard nothing since.
+    /// </remarks>
+    public void CommitFieldText(int slot, string? text)
+    {
+        if (!_graph.SetFieldText(slot, text))
+        {
+            return;
+        }
+
+        GraphChanged?.Invoke(this, new GraphEditedEventArgs("Set value", affectsEvaluation: true));
+        InvalidateVisual();
     }
 
     /// <summary>Renders a slider's value to as many decimals as its step justifies.</summary>

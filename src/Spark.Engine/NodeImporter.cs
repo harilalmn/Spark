@@ -548,6 +548,8 @@ public static class NodeImporter
             // have.
             bool hasSlider = candidate.Member.IsDefined(typeof(NodeSliderAttribute), inherit: false);
 
+            bool hasField = candidate.Member.IsDefined(typeof(NodeFieldAttribute), inherit: false);
+
             NodeDefinition definition = new(
                 new NodeKey(package, memberAttribute?.Name ?? name),
                 memberAttribute?.Name ?? name,
@@ -560,7 +562,8 @@ public static class NodeImporter
                 description: candidate.Description,
                 category: memberAttribute?.Category ?? typeAttribute?.Category ?? NodeCategories.Custom,
                 showsValue: showsValue,
-                hasSlider: hasSlider);
+                hasSlider: hasSlider,
+                hasField: hasField);
 
             nodes.Add(new ImportedNode(definition, candidate.Member));
         }

@@ -105,7 +105,13 @@ public static class Text
     /// <summary>Passes text through, so a graph has somewhere to type some.</summary>
     /// <param name="value">The text.</param>
     /// <returns>The same text.</returns>
+    /// <remarks>
+    /// <b>The text is typed on the node itself</b> (<c>E8-T5</c>), for the reason
+    /// <c>Number.Value</c>'s is: a label is what the node is *for*, and a graph full of boxes all
+    /// reading <c>String.Value</c> tells you nothing about which is which.
+    /// </remarks>
     [SparkNode(Name = "String.Value")]
+    [NodeField]
     [return: NodePort("text")]
     public static string Value(string value = "") => value ?? string.Empty;
 

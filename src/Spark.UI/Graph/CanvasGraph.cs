@@ -102,6 +102,12 @@ public sealed class CanvasNode
     /// <summary>Padding below the last port row.</summary>
     public const double BodyPadding = 10;
 
+    /// <summary>The height an in-place value field adds below the port rows, including padding.</summary>
+    public const double FieldHeight = 24;
+
+    /// <summary>The inset from either edge of the node to the field's box.</summary>
+    public const double FieldInset = 8;
+
     /// <summary>How many input ports a slider node must have: value, minimum, maximum, step.</summary>
     public const int SliderPorts = 4;
 
@@ -142,7 +148,8 @@ public sealed class CanvasNode
         IReadOnlyList<CanvasPortInfo> outputs,
         string? description,
         bool showsValue = false,
-        bool hasSlider = false)
+        bool hasSlider = false,
+        bool hasField = false)
     {
         Id = id;
         Title = title;
@@ -158,6 +165,10 @@ public sealed class CanvasNode
         // travels from an attribute the canvas never sees. A node that claims to be a slider and
         // is not shaped like one draws no slider - not a misleading one over the wrong ports.
         HasSlider = hasSlider && inputs.Count >= SliderPorts;
+
+        // Same check, same reason: the flag arrives from an attribute this layer never sees, and a
+        // node claiming a field it has no port for would draw an editor over nothing.
+        HasField = hasField && inputs.Count >= 1;
 
         // Roughly 6.6 px per character at 12 px semibold, plus the two 8 px header insets and room
         // for a state glyph. A title that overflows is clipped by the header, which reads as a bug.
@@ -239,6 +250,7 @@ public sealed class CanvasNode
         HeaderHeight
         + (System.Math.Max(Inputs.Count, Outputs.Count) * PortPitch)
         + (HasSlider ? SliderHeight : 0)
+        + (HasField ? FieldHeight : 0)
         + BodyPadding;
 
     /// <summary>
@@ -249,6 +261,34 @@ public sealed class CanvasNode
     /// is in the constructor, so everything downstream of this property can assume the shape.
     /// </remarks>
     public bool HasSlider { get; }
+
+    /// <summary>
+    /// Whether this node's first input is typed into a field drawn on it (<c>E8-T5</c>).
+    /// </summary>
+    public bool HasField { get; }
+
+    /// <summary>
+    /// The in-place value field's box, in world coordinates.
+    /// </summary>
+    /// <param name="x">Its left edge.</param>
+    /// <param name="y">Its top edge.</param>
+    /// <param name="width">Its width.</param>
+    /// <param name="height">Its height.</param>
+    /// <remarks>
+    /// Below the port rows and below the slider track, so the two can coexist on a node that has
+    /// both — which none does today and one might, and a layout that assumed otherwise would put
+    /// them on top of each other rather than fail.
+    /// </remarks>
+    public void FieldBox(out double x, out double y, out double width, out double height)
+    {
+        x = X + FieldInset;
+        width = System.Math.Max(Width - (2 * FieldInset), 0);
+        height = FieldHeight - 6;
+        y = Y + HeaderHeight
+            + (System.Math.Max(Inputs.Count, Outputs.Count) * PortPitch)
+            + (HasSlider ? SliderHeight : 0)
+            + 3;
+    }
 
     /// <summary>
     /// The slider track in world coordinates: the line the thumb travels along.
@@ -791,7 +831,8 @@ public sealed class CanvasGraph
             Describe(instance.Definition.Outputs),
             instance.Definition.Description,
             instance.Definition.ShowsValue,
-            instance.Definition.HasSlider);
+            instance.Definition.HasSlider,
+            instance.Definition.HasField);
 
         _nodes.Add(node);
         _slots[instance.Id] = _nodes.Count - 1;
@@ -1147,6 +1188,107 @@ public sealed class CanvasGraph
         Edit(() => Engine.SetLiteral(id, 0, typed));
 
         return true;
+    }
+
+    /// <summary>
+    /// The text an in-place field shows for a node's first input (<c>E8-T5</c>).
+    /// </summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <returns>The literal rendered for editing, or null when the node has no field.</returns>
+    /// <remarks>
+    /// <b>Invariant, because this text is what gets parsed back.</b> Rendering with the current
+    /// culture and parsing with it too would work on one machine and lose the decimal point on
+    /// another - and the value is on its way into a document that travels.
+    /// </remarks>
+    public string? FieldText(int slot)
+    {
+        if (slot < 0 || slot >= _nodes.Count || !_nodes[slot].HasField)
+        {
+            return null;
+        }
+
+        return Literal(slot, 0) switch
+        {
+            null => string.Empty,
+            string text => text,
+            IFormattable formattable => formattable.ToString(
+                null, System.Globalization.CultureInfo.InvariantCulture),
+            { } other => other.ToString() ?? string.Empty,
+        };
+    }
+
+    /// <summary>
+    /// Parses text into a node's first input and sets it (<c>E8-T5</c>).
+    /// </summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <param name="text">What the user typed.</param>
+    /// <returns>True when the literal changed. False when the text will not parse, or is the same.</returns>
+    /// <remarks>
+    /// <b>Text that will not parse commits nothing and is not an error.</b> Somebody half way
+    /// through typing <c>-</c> or <c>1e</c> has not made a mistake yet, and a node that fell back
+    /// to zero would silently discard what they were typing and re-run the graph on a value they
+    /// never asked for - which is the rule the properties panel already follows.
+    /// </remarks>
+    public bool SetFieldText(int slot, string? text)
+    {
+        if (slot < 0 || slot >= _nodes.Count || !_nodes[slot].HasField)
+        {
+            return false;
+        }
+
+        NodeId id = _nodes[slot].Id;
+        NodeInstance instance = Engine.Node(id);
+        Type type = instance.Definition.Inputs[0].ValueType;
+
+        if (!TryParseLiteral(type, text ?? string.Empty, out object? parsed))
+        {
+            return false;
+        }
+
+        if (Equals(instance.Literal(0), parsed))
+        {
+            return false;
+        }
+
+        Edit(() => Engine.SetLiteral(id, 0, parsed));
+
+        return true;
+    }
+
+    private static bool TryParseLiteral(Type type, string text, out object? value)
+    {
+        System.Globalization.CultureInfo invariant = System.Globalization.CultureInfo.InvariantCulture;
+
+        if (type == typeof(string))
+        {
+            value = text;
+            return true;
+        }
+
+        if (type == typeof(double) || type == typeof(float))
+        {
+            if (double.TryParse(text, System.Globalization.NumberStyles.Float, invariant, out double number))
+            {
+                value = type == typeof(float) ? (float)number : number;
+                return true;
+            }
+        }
+        else if (type == typeof(int) || type == typeof(long))
+        {
+            if (long.TryParse(text, System.Globalization.NumberStyles.Integer, invariant, out long number))
+            {
+                value = type == typeof(int) ? (int)number : number;
+                return true;
+            }
+        }
+        else if (type == typeof(bool) && bool.TryParse(text, out bool flag))
+        {
+            value = flag;
+            return true;
+        }
+
+        value = null;
+        return false;
     }
 
     private static bool TryNumber(object? literal, out double number)

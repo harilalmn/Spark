@@ -50,6 +50,10 @@ public sealed class NodeDefinition
     /// </param>
     /// <param name="description">One paragraph describing the node. Optional.</param>
     /// <param name="showsValue">Whether the canvas shows this node's value permanently.</param>
+    /// <param name="hasField">
+    /// Whether the node's first input is typed into a field on the node itself. See
+    /// <see cref="Spark.Api.NodeFieldAttribute"/>.
+    /// </param>
     /// <param name="hasSlider">
     /// Whether the node is driven by a slider drawn on the node itself. See
     /// <see cref="Spark.Api.NodeSliderAttribute"/> for the shape this promises.
@@ -76,7 +80,8 @@ public sealed class NodeDefinition
         string? description = null,
         string? category = null,
         bool showsValue = false,
-        bool hasSlider = false)
+        bool hasSlider = false,
+        bool hasField = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
         ArgumentNullException.ThrowIfNull(inputs);
@@ -112,6 +117,7 @@ public sealed class NodeDefinition
         Category = string.IsNullOrWhiteSpace(category) ? NodeCategories.Custom : category;
         ShowsValue = showsValue;
         HasSlider = hasSlider;
+        HasField = hasField;
     }
 
     /// <summary>The definition's stable identity, including the package that published it.</summary>
@@ -157,6 +163,16 @@ public sealed class NodeDefinition
     /// </para>
     /// </remarks>
     public bool HasSlider { get; }
+
+    /// <summary>
+    /// Whether the node's first input is typed into a field on the node itself (<c>E8-T5</c>).
+    /// </summary>
+    /// <remarks>
+    /// Carried and never read here, like <see cref="HasSlider"/> and <see cref="ShowsValue"/>: the
+    /// canvas has no library and must not name an engine type
+    /// ([ADR-0005](../../docs/adr/0005-api-engine-host-layering.md)).
+    /// </remarks>
+    public bool HasField { get; }
 
     /// <summary>
     /// The source this definition was built from, or <see langword="null"/> when it came from a

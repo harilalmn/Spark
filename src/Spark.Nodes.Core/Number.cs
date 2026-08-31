@@ -19,6 +19,12 @@ public static class Number
     /// <summary>Passes a literal number through, so a graph has somewhere to type one.</summary>
     /// <param name="value">The number.</param>
     /// <returns>The same number.</returns>
+    /// <remarks>
+    /// <b>The value is typed on the node itself</b> (<c>E8-T5</c>), not only in the properties
+    /// panel. Six of these in a graph are otherwise six identical boxes, and finding which one is
+    /// the wall height means clicking each in turn.
+    /// </remarks>
+    [NodeField]
     [return: NodePort("value")]
     public static double Value(double value = 0) => value;
 
