@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 09:55 +0530
+**Last updated:** 2026-08-31 11:05 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4 and M6 are done. M5 is substantially done** — the software renderer and CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) are **deferred past M6** deliberately and are now the largest thing it still owes. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E9-T5` — the software rasteriser.** A CPU renderer behind `IViewportRenderer` that reproduces the GL path's draw order and lighting, with perspective-correct interpolation and a real depth buffer. 13 pixel-reading tests; `Viewport.Tests` 74 → 87. Found [N63](NOTES.md): a freshly allocated depth buffer is zeroes, and zero is the **nearest** depth, so an uncleared buffer renders an empty frame that looks exactly like an empty scene. |
+| **Last completed step** | **`E9-T11` — headless thumbnails and a real fallback.** `ThumbnailRenderer` renders with no window; `ViewportControl` falls back to software when no GL context arrives; `--software-renderer` reaches that path on purpose. Found [N64](NOTES.md): two backends shared one capture flag, so `--screenshot` photographed the CPU frame while reporting the GL driver — **caught because the two outputs agreed too well**, byte for byte, which two different rasterisers cannot do. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E9-T11` — the headless thumbnail entry point, and the `ViewportControl` fallback.** The rasteriser exists and is tested but **nothing uses it**: `ViewportControl` still shows a status message when `OnOpenGlInit` fails instead of falling back to software, and there is no way to render a frame without a window. Both are `E9-T5`'s stated justifications. Then **`E9-T12`** — the CI visual regression, which is what the byte-identical determinism test was built for. Then **M7**. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**: each is `In progress` for a stated reason that is not a missing commit, and all three are in *Blocked on*. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1782**: Geometry.Tests 763, UI.Tests 439, Engine.Tests 367, Viewport.Tests 87, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E9-T12` — the CI visual regression.** Everything it needs now exists: `ThumbnailRenderer.Render` is deterministic across independently constructed renderers, and that is asserted. Build a golden-image check — render a fixed scene at a fixed size, compare against a committed PNG, and **fail with a legible diff rather than a hash mismatch** (`E11-T11`'s spirit: print bounding box, counts, and the worst pixel). Then **M7**. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**: each is `In progress` for a stated reason that is not a missing commit, and all three are in *Blocked on*. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1799**: Geometry.Tests 763, UI.Tests 448, Engine.Tests 367, Viewport.Tests 95, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Four things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. **(4)** Opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance. *And still: watching the first nightly benchmark run.* |
 
 **Step status vocabulary**, and it means exactly this:
@@ -2917,3 +2917,57 @@ nothing would fail eleven of the thirteen.
 **Cost.** One step. **What it does not yet do:** it is not wired into `ViewportControl` as the
 actual GL-failure fallback, there is no thumbnail entry point, and there is no CI job. Those are
 `E9-T5`'s three justifications and they are the next two steps.
+
+### 2026-08-31 — `E9-T11`: headless thumbnails, a real fallback, and a screenshot that lied
+
+**What.** `ThumbnailRenderer` in `Spark.Viewport/Software/` — a scene to top-down RGBA with no
+window and no device. `ViewportControl` now falls back to `SoftwareViewportRenderer` when no
+OpenGL context arrives, blitting through a `WriteableBitmap`. And **`--software-renderer`**, which
+reaches that path on purpose. Seventeen new tests across two projects: eight for the thumbnail path, nine for the switch and the committed-backend rule.
+
+**Why the switch exists, given the fallback is automatic.** Two reasons, and neither is
+convenience. It is the answer to *the viewport is black on my virtual machine* — a support reply
+that is an instruction rather than a diagnosis. And it is the only way the software path gets
+**photographed**: `--graph solids --software-renderer --screenshot` writes a PNG that a human can
+look at, which is how this step was actually verified. The picture is the solids demo, correct:
+the fused box and cylinder with the hole drilled through both, the shelled box, the filleted box,
+the ground grid and the three coloured axes, with depth and lighting right.
+
+**The defect, and how it was caught, is [N64](NOTES.md) and it is the most useful thing here.**
+Adding the fallback gave the control **two** places that could service one `RequestCapture()`
+flag. Avalonia paints before `OnOpenGlInit` fires, so `_renderer` is null at that moment and
+nothing inside `Render(DrawingContext)` can tell *GL has not arrived yet* from *GL is never
+arriving*. On a healthy GPU the software path won the race: `--screenshot` wrote a CPU-rendered
+image and printed `OpenGL ready. Version 'OpenGL ES 3.0 (ANGLE ...)'` on the line below it. Both
+lines were true and together they were a lie.
+
+**Nothing failed.** The picture was correct, because the two renderers agree by design — that
+agreement is the whole point of `E9-T5`. What did not survive scrutiny was a coincidence: the GL
+and software runs reported `663 distinct colours, mean luminance 34.7/255` **identically**, and
+the two PNGs had the same MD5. Two rasterisers with different dither functions and different line
+rules cannot produce identical bytes. **The evidence was that the outputs agreed too well.** A
+one-line probe naming the servicing branch settled it in a single run, and the instinct worth
+generalising is that an implausible agreement deserves exactly the suspicion an implausible
+disagreement gets.
+
+**The fix is a committed-backend rule** — `IsSoftwarePresenting`, with three ways to commit: the
+switch, a GL callback that ran and left no renderer, or **no GL callback at all within 1.5
+seconds of attachment**. The third has to be a timeout rather than an event, because a context
+that fails to be created never calls anything: the absence *is* the signal, and an absence has to
+be waited for. `ANewControlDoesNotClaimSoftwareIsPresentingBeforeGlHasBeenHeardFrom` is the
+regression test, and it goes red the moment the rule is relaxed.
+
+**Two things tidied under the same fix.** `TakeCapture` now normalises to top-down rows whichever
+backend drew the frame — `MainWindow` used to flip unconditionally, which was right for GL and
+would have silently inverted every software capture. And the software path renders at one device
+pixel per layout unit rather than at `RenderScaling`: a quarter of the fragments on a 200%
+display, on the one path that runs when the machine has already proved it has no usable GPU. Both
+are choices now, and both are written down.
+
+**Verified.** Build clean at 0 warnings. `Viewport.Tests` 87 → 95, `UI.Tests` 439 → 448, suite
+**1,799**, 0 failed, 0 skipped. And — the part no test covers — the application was run on both
+backends and both PNGs were opened and looked at. They agree in appearance and differ in bytes,
+which is exactly the right answer and is the answer that was wrong an hour ago.
+
+**Cost.** One step. **Next:** `E9-T12`, the CI visual regression, which is what the determinism
+tests were built for.

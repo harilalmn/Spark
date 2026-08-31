@@ -284,12 +284,23 @@ Linux and macOS. Warnings are errors in CI only, never in the project files —
 solution format, which needs a recent SDK and a recent Visual Studio
 ([N1](docs/NOTES.md)).
 
-`dotnet run --project src/Spark.Desktop` opens the application. Three switches are worth knowing:
+`dotnet run --project src/Spark.Desktop` opens the application. Four switches are worth knowing:
 `--graph curves`, `--graph surfaces` and `--graph solids` open a demo instead of the point grid,
-`--open PATH` opens a `.spark` file, and `--screenshot PREFIX` writes a picture of the shell and a
-picture of the viewport and exits — the viewport one is a GPU read-back rather than a window grab, so it works over a locked
-session and in CI. The first two exist so that opening a particular graph can be checked without
-a human driving a file dialog.
+`--open PATH` opens a `.spark` file, `--screenshot PREFIX` writes a picture of the shell and a
+picture of the viewport and exits — the viewport one is a read-back from whichever backend drew
+it rather than a window grab, so it works over a locked session and in CI — and
+**`--software-renderer`** draws the viewport on the CPU and never asks for an OpenGL context. The
+first two exist so that opening a particular graph can be checked without a human driving a file
+dialog.
+
+**`--software-renderer` is the one aimed at users rather than at the build.** If the viewport is
+black or the status bar reports that OpenGL did not initialise — the usual causes being a virtual
+machine, a remote desktop session, or a driver that has given up — that switch draws the same
+scene on the CPU instead. It is slower and softer, because it rasterises at one device pixel per
+layout unit rather than at the display's scaling, and it is the same picture. **Spark falls back
+to it on its own** when no OpenGL context arrives; the switch exists so the fallback can be
+reached deliberately, which is what a support conversation needs and what lets the path be
+photographed and checked rather than trusted.
 
 `dotnet test` finds **1,724 tests** across eight projects. `Spark.Geometry.Tests` (757) and
 `Spark.Geometry.Properties` (43) cover the kernel by example and by CsCheck property

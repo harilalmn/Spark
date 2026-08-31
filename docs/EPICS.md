@@ -813,10 +813,15 @@ unmaintained since around 2023 — a poor bet on a multi-year horizon.
 - [ ] A software fallback that earns its place three ways: GL-init failures on VMs and RDP,
       headless thumbnails, and **deterministic `spark render` for CI visual regression** —
       GPU output is not testable, software output is (**E9-T5**, **E9-T11**, **E9-T12**).
-      *The rasteriser itself is **done** as of 2026-08-31 and its determinism is asserted rather
-      than assumed: two independently constructed renderers produce byte-identical output for the
-      same scene. The three uses are still owed — the UI fallback, the thumbnail entry point and
-      the CI job — and each is its own row.*
+      *Two of the three are **done** as of 2026-08-31. The rasteriser's determinism is asserted
+      rather than assumed — two independently constructed renderers produce byte-identical output
+      for the same scene — and `ThumbnailRenderer` renders headlessly. `ViewportControl` now falls
+      back to software when no OpenGL context arrives, and **`--software-renderer`** reaches that
+      path deliberately, which is both the answer to "the viewport is black on my virtual machine"
+      and the only way the fallback gets photographed rather than assumed. **What is still owed is
+      the CI job, `E9-T12`.** The fallback cost one real defect on the way in — [N64](NOTES.md),
+      where two backends shared one capture flag and `--screenshot` photographed the CPU frame
+      while reporting the GL driver.*
 - [x] Geometry reaches the viewport as immutable `RenderPackage` records, one GPU buffer set
       per `(NodeId, PortIndex)`, so re-evaluating one node re-uploads one buffer
       (**E9-T3**, **E9-T6**).

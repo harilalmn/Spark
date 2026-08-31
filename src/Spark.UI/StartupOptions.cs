@@ -31,6 +31,12 @@ namespace Spark.UI;
 /// a Spark graph is executable code, and dropping the executable parts would be worse than
 /// refusing.
 /// </param>
+/// <param name="ForceSoftwareRenderer">
+/// True when the viewport must use the software rasteriser and never ask for an OpenGL context
+/// (<c>--software-renderer</c>). The fallback happens on its own when GL fails; this makes it
+/// reachable on purpose, which is what a support conversation needs and what lets the fallback be
+/// exercised rather than merely hoped for (`E9-T5`, `E9-T11`).
+/// </param>
 /// <param name="BenchmarkZoom">
 /// A zoom to pin the benchmark at, or zero to sweep. Pinning is what separates "how much does the
 /// graph cost" from "how much does what is on screen cost", which is the claim ADR-0013 actually
@@ -43,7 +49,8 @@ public readonly record struct StartupOptions(
     string? ScreenshotPrefix,
     string? Graph,
     string? OpenPath,
-    bool NoScript = false)
+    bool NoScript = false,
+    bool ForceSoftwareRenderer = false)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
     public static StartupOptions Default => new(0, 0, 0, null, null, null);
@@ -95,6 +102,12 @@ public readonly record struct StartupOptions(
     /// <c>--no-script</c> refuses scripting for the session, which is the one switch here that is
     /// aimed at users rather than at a bet (`E6-T16`).
     /// </item>
+    /// <item>
+    /// <c>--software-renderer</c> draws the viewport on the CPU and never requests an OpenGL
+    /// context. Also aimed at users: it is the answer to "the viewport is black on my virtual
+    /// machine", and it is how the fallback gets exercised deliberately rather than only when
+    /// something has already gone wrong.
+    /// </item>
     /// </list>
     /// </remarks>
     public static StartupOptions Parse(string[]? args)
@@ -111,6 +124,7 @@ public readonly record struct StartupOptions(
         string? graph = null;
         string? open = null;
         bool noScript = false;
+        bool software = false;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -148,6 +162,11 @@ public readonly record struct StartupOptions(
                     noScript = true;
                     break;
 
+                case "--software-renderer":
+                case "--software":
+                    software = true;
+                    break;
+
                 case "--open" when i + 1 < args.Length:
                     open = args[++i];
                     break;
@@ -162,7 +181,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software);
     }
 
     private static int ParseCount(string text, int fallback) =>

@@ -413,6 +413,10 @@ public sealed partial class MainWindow : Window
 
     private void OnOpened(object? sender, EventArgs e)
     {
+        // Before anything asks for a frame: the switch has to be in place before the first GL
+        // callback, or a context is created and then abandoned.
+        Viewport.ForceSoftwareRenderer = Options.ForceSoftwareRenderer;
+
         if (Options.SyntheticNodeCount > 0)
         {
             LoadSynthetic(Options.SyntheticNodeCount);
@@ -464,8 +468,9 @@ public sealed partial class MainWindow : Window
     /// <remarks>
     /// The two images are taken by different means on purpose. The shell is rendered through
     /// Avalonia's own render-target path, which captures the immediate-mode canvas exactly as the
-    /// compositor sees it. The viewport is a <c>glReadPixels</c> read-back off the GPU, because the
-    /// GL surface is composited separately and does not appear in a visual-tree render — and
+    /// compositor sees it. The viewport is a read-back from whichever backend drew it — a
+    /// <c>glReadPixels</c> off the GPU, or the software rasteriser's own framebuffer — because the
+    /// GL surface is composited separately and does not appear in a visual-tree render, and
     /// because a read-back is the only way to answer "is it drawing anything?" on a machine whose
     /// session is locked, which is also the situation in CI.
     /// </remarks>
@@ -508,7 +513,7 @@ public sealed partial class MainWindow : Window
         byte[]? pixels = Viewport.TakeCapture(out int glWidth, out int glHeight);
         if (pixels is null)
         {
-            Console.WriteLine("no viewport read-back: the GL context produced no frame.");
+            Console.WriteLine("no viewport read-back: neither backend produced a frame.");
             Close();
             return;
         }
@@ -518,12 +523,12 @@ public sealed partial class MainWindow : Window
         {
             using (ILockedFramebuffer buffer = viewport.Lock())
             {
-                // glReadPixels hands back the bottom row first; every image format Spark writes
-                // wants the top row first.
+                // TakeCapture normalises to top-down rows whichever backend drew the frame, so
+                // there is nothing to flip here. It used to flip unconditionally, which was
+                // right for GL and would have silently inverted every software capture.
                 for (int row = 0; row < glHeight; row++)
                 {
-                    int source = (glHeight - 1 - row) * glWidth * 4;
-                    Marshal.Copy(pixels, source, buffer.Address + (row * buffer.RowBytes), glWidth * 4);
+                    Marshal.Copy(pixels, row * glWidth * 4, buffer.Address + (row * buffer.RowBytes), glWidth * 4);
                 }
             }
 

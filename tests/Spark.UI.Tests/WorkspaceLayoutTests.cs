@@ -128,6 +128,38 @@ public sealed class WorkspaceLayoutTests
         Assert.False(options.IsScreenshot);
     }
 
+    /// <summary>
+    /// <c>--software-renderer</c> is off unless asked for, and both spellings turn it on. The
+    /// short one exists because it is what somebody types while reading a support reply.
+    /// </summary>
+    [Theory]
+    [InlineData(new string[0], false)]
+    [InlineData(new[] { "--software-renderer" }, true)]
+    [InlineData(new[] { "--software" }, true)]
+    [InlineData(new[] { "--graph", "solids", "--software" }, true)]
+    [InlineData(new[] { "--graph", "solids" }, false)]
+    public void TheSoftwareRendererSwitchIsOffUnlessAskedFor(string[] args, bool expected)
+    {
+        Assert.Equal(expected, StartupOptions.Parse(args).ForceSoftwareRenderer);
+    }
+
+    /// <summary>
+    /// The switch does not disturb the arguments around it. A new case in a parse loop that ate
+    /// the following token would be invisible until somebody combined two switches.
+    /// </summary>
+    [Fact]
+    public void TheSoftwareRendererSwitchConsumesNoArgumentOfItsOwn()
+    {
+        StartupOptions options = StartupOptions.Parse(
+            ["--software-renderer", "--graph", "solids", "--screenshot", "out"]);
+
+        Assert.True(options.ForceSoftwareRenderer);
+        Assert.Equal("solids", options.Graph);
+        Assert.Equal("out", options.ScreenshotPrefix);
+        Assert.True(options.IsSolidGraph);
+        Assert.True(options.IsScreenshot);
+    }
+
     [Fact]
     public void TheBenchmarkImpliesTheNodeCountTheAdrNames()
     {

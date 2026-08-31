@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N63 added)
+**Last updated:** 2026-08-31 (N63-N64 added)
 
 ---
 
@@ -1785,3 +1785,39 @@ buffer and has done since it was written. It is correct, it is consistent, and i
 depth precision. The software rasteriser matches the convention deliberately rather than
 "fixing" it, because a backend that disagreed with the other about what a depth means would make
 every cross-check meaningless.
+
+## N64 — Two backends, one capture flag, and a screenshot that photographed the wrong one
+
+Adding the software fallback to `ViewportControl` gave the control **two** places that could
+service a `RequestCapture()`: `OnOpenGlRender`, reading back off the GPU, and the new
+`DrawSoftwareFrame`, copying its own framebuffer. Whichever ran first consumed the flag. On a
+machine with a perfectly healthy GPU, the software path ran first — because **Avalonia paints the
+control before `OnOpenGlInit` has fired**, so `_renderer` is still null at that moment and nothing
+inside `Render(DrawingContext)` can tell "GL has not arrived yet" from "GL is never arriving".
+
+`--graph solids --screenshot` therefore wrote a CPU-rendered image while reporting
+`OpenGL ready. Version 'OpenGL ES 3.0 (ANGLE ...)'` on the line below it. Both statements were
+true and together they were a lie.
+
+**How it was caught, which is the part worth keeping.** Nothing failed. The picture was correct —
+the same scene, the same camera, the same colours — because the two renderers agree by design.
+What did not survive scrutiny was a *coincidence*: the software and GL runs reported
+`663 distinct colours, mean luminance 34.7/255`, identically, and the two PNGs had the same MD5.
+Two renderers with different dither functions and different line rules cannot produce identical
+bytes. **The evidence of the bug was that the outputs agreed too well**, and the instinct worth
+generalising is that an implausible agreement deserves the same suspicion as an implausible
+disagreement. A probe printing which branch serviced the capture settled it in one run.
+
+**The fix is a committed-backend rule**, `IsSoftwarePresenting`, with three ways to become
+committed — the `--software-renderer` switch, a GL callback that ran and left no renderer, or
+**no GL callback at all within 1.5 seconds of the control being attached**. The third needs a
+timer rather than an event, because a context that fails to be created never calls anything: the
+absence is the signal, and an absence has to be waited for.
+
+**Two things were tidied under the same fix.** `TakeCapture` now normalises to **top-down rows**
+whichever backend drew the frame, because `glReadPixels` returns bottom-up and the rasteriser
+returns top-down, and which one drew a given frame is exactly what a caller should not have to
+know — `MainWindow` used to flip unconditionally, which was right for GL and would have silently
+inverted every software capture. And the software path renders at one device pixel per layout
+unit rather than multiplying by `RenderScaling`: a quarter of the fragments on a 200% display, on
+the one code path that runs when the machine has already proved it has no usable GPU.
