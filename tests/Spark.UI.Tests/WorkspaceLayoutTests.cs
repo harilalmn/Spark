@@ -118,6 +118,49 @@ public sealed class WorkspaceLayoutTests
         Assert.True(layout.IsVisible(WorkspacePane.Canvas));
     }
 
+    /// <summary>
+    /// The package switches parse, and <c>--packages-window</c> takes an optional query without
+    /// eating the switch that follows it.
+    /// </summary>
+    [Fact]
+    public void ThePackageSwitchesParse()
+    {
+        StartupOptions bare = StartupOptions.Parse(["--packages-window"]);
+
+        Assert.True(bare.OpensPackages);
+        Assert.Equal(string.Empty, bare.PackageQuery);
+        Assert.Null(bare.PackageSource);
+        Assert.Null(bare.PreparePackage);
+
+        StartupOptions full = StartupOptions.Parse(
+            ["--package-source", @"C:eed", "--packages-window", "acme", "--package-prepare", "Acme.Nodes"]);
+
+        Assert.True(full.OpensPackages);
+        Assert.Equal("acme", full.PackageQuery);
+        Assert.Equal(@"C:eed", full.PackageSource);
+        Assert.Equal("Acme.Nodes", full.PreparePackage);
+    }
+
+    /// <summary>
+    /// <c>--packages-window</c> followed by another switch takes no query and does not swallow it.
+    /// A parse loop that ate the following token would be invisible until two switches were
+    /// combined.
+    /// </summary>
+    [Fact]
+    public void ThePackagesWindowSwitchDoesNotEatTheNextSwitch()
+    {
+        StartupOptions options = StartupOptions.Parse(["--packages-window", "--software"]);
+
+        Assert.True(options.OpensPackages);
+        Assert.Equal(string.Empty, options.PackageQuery);
+        Assert.True(options.ForceSoftwareRenderer);
+    }
+
+    /// <summary>Without the switch, the package manager stays shut.</summary>
+    [Fact]
+    public void ThePackageManagerDoesNotOpenUnlessAskedFor() =>
+        Assert.False(StartupOptions.Parse(["--software"]).OpensPackages);
+
     [Fact]
     public void NoArgumentsMeansTheOrdinaryInteractiveStart()
     {

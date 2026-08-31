@@ -83,7 +83,11 @@ public sealed class PackageStore
             PackageIdentity identity = new(name[..split], name[(split + 1)..]);
             if (IsInstalled(identity))
             {
-                found.Add(identity);
+                // The folder name is lower case by convention, but the id is a name somebody
+                // chose, and a manager listing 'acme.nodes' beside a feed offering 'Acme.Nodes'
+                // reads as two different packages. Only the display changes: every comparison
+                // here ignores case, and FolderFor lower-cases again on the way back to disk.
+                found.Add(identity with { Id = PackageInspector.DeclaredIdIn(folder) ?? identity.Id });
             }
         }
 

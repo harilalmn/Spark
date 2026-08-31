@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N63-N70 added)
+**Last updated:** 2026-08-31 (N63-N72 added)
 
 ---
 
@@ -1965,3 +1965,41 @@ reference — which is the same reason `E7-T6`'s placeholder keeps the key and n
 
 The distinction is worth the paragraph because *side-by-side* is exactly the phrase somebody will
 later quote when asking why two versions of one package cannot both be switched on.
+
+## N71 — Awaiting inside the headless Avalonia dispatcher deadlocks, and it looks like a hang
+
+`HeadlessSession.Run` calls `Dispatch(body).GetAwaiter().GetResult()`: the caller blocks until the
+body finishes on the UI thread. A body that then awaits anything posts its continuation to that
+same thread, which is not going to run it, because it is waiting for the body. The first run of
+`PackageBrowserTests` hung for seven minutes and was killed; there is no message, no stack, and no
+failed assertion — the process simply stops.
+
+**So the asynchronous half happens outside the dispatcher and only the window is driven within.**
+Preparing an install, searching a feed, confirming — all of that runs on the test's own thread
+first, and `HeadlessSession.Run` is then handed a model already in the state the window is supposed
+to show. That is also a better test: it separates *does the view model do the work* from *does the
+window show what the view model says*, and the second is the only part that needs a dispatcher at
+all.
+
+**The same shape is why the window has no async of its own beyond its click handlers.** Everything
+it does is `Sync()`, which reads the model and writes controls, and every button handler is the
+thinnest possible `await` on a view-model method.
+
+## N72 — One `GC.Collect` does not release a package's files, and the symptom blames the wrong thing
+
+Removing an installed package unloads its `AssemblyLoadContext`, collects, and then deletes the
+folder. With a single `GC.Collect()` the delete failed on Windows: the context had not finished
+unloading, the `.dll` was still mapped, and `Directory.Delete` threw part-way through — leaving a
+**half-deleted folder** and a status line saying the package was locked and to restart.
+
+The status line was true and useless. The package was locked, but only for another few
+milliseconds, and restarting was not what the user needed to do.
+
+**A collectible context needs more than the collection that drops the last reference to it**, which
+`PackageManagerTests` already knew — it loops up to twenty times waiting for its weak reference to
+die. `PackageBrowserViewModel.Remove` now does the same before it deletes anything, and the restart
+advice is reserved for the case where the reference really is still alive after all of them.
+
+**Found by a test, and only because the test asserted the message.** An assertion on
+`library.Count == 0` passed throughout: purging the library is the half that always works. The
+defect lived entirely in what happened afterwards and in what the user was told about it.

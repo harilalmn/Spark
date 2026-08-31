@@ -36,8 +36,14 @@
 
     <!-- Toolbar. E2 chips on bg.void; the active workspace carries an accent bottom bar as well
          as a pressed fill, because colour is never the only carrier of meaning. -->
+    <!--
+      A WrapPanel rather than a StackPanel, because a toolbar that overflows hides controls with
+      no indication that it has. At 1480 pixels - an ordinary laptop - the last three buttons,
+      Help among them, sat past the right edge and could not be clicked at all. Wrapping costs a
+      second row on a narrow window and never costs a control.
+    -->
     <Border Grid.Row="0" Classes="chrome" Padding="8,6">
-      <StackPanel Orientation="Horizontal" Spacing="6">
+      <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
         <TextBlock Text="SPARK" Classes="caption" VerticalAlignment="Center" Margin="4,0,12,0" />
 
         <Button Classes="toolbar" Content="Default"
@@ -111,8 +117,10 @@
              nobody presses, and About is a licence obligation rather than an ornament. -->
         <Button Classes="toolbar" Content="Help" Click="OnOpenHelp"
                 ToolTip.Tip="Help for the selected node (F1)" />
+        <Button Classes="toolbar" Content="Packages" Click="OnOpenPackages"
+                ToolTip.Tip="Find, install and remove node packages" />
         <Button Classes="toolbar" Content="About" Click="OnOpenAbout" />
-      </StackPanel>
+      </WrapPanel>
     </Border>
 
     <dock:DockControl Grid.Row="1" x:Name="Shell" />

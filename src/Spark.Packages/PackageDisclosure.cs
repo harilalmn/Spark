@@ -226,6 +226,44 @@ public static class PackageInspector
         }
     }
 
+    /// <summary>
+    /// The package id as its author capitalised it, read out of the <c>.nuspec</c>.
+    /// </summary>
+    /// <param name="folder">An installed package's folder.</param>
+    /// <returns>The declared id, or <see langword="null"/> when it cannot be read.</returns>
+    /// <remarks>
+    /// <b>An installed package's folder name is lower case</b>, because that is NuGet's convention
+    /// and case-insensitive lookup depends on it. But a folder name is a storage detail and a
+    /// package id is a name a person chose, so anything a user reads should show
+    /// <c>Acme.Nodes</c> rather than <c>acme.nodes</c>. Only the display differs; every comparison
+    /// in this assembly still ignores case.
+    /// </remarks>
+    public static string? DeclaredIdIn(string folder)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(folder);
+
+        if (FindNuspec(folder) is not { } nuspec)
+        {
+            return null;
+        }
+
+        try
+        {
+            return XDocument.Load(nuspec)
+                .Descendants()
+                .FirstOrDefault(element => string.Equals(element.Name.LocalName, "id", StringComparison.Ordinal))
+                ?.Value.Trim() is { Length: > 0 } declared
+                ? declared
+                : null;
+        }
+        catch (Exception failure) when (failure is IOException
+            or UnauthorizedAccessException
+            or System.Xml.XmlException)
+        {
+            return null;
+        }
+    }
+
     private static string? FindNuspec(string folder)
     {
         try

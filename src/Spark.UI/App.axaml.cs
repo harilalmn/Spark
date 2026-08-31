@@ -29,6 +29,10 @@ public sealed class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            // Before the view model is constructed, because it loads installed packages there and
+            // an organisation's feed is not a setting that can arrive afterwards.
+            MainWindowViewModel.PackageSource = Options.PackageSource;
+
             desktop.MainWindow = new MainWindow
             {
                 DataContext = new MainWindowViewModel(Options.Graph, Options.OpenPath, Options.NoScript),

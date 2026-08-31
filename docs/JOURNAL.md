@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 23:45 +0530
+**Last updated:** 2026-09-01 01:40 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E7-T5` — install a package and use its nodes.** `PackageManager` loads an installed package's assemblies and imports its nodes; a test installs one carrying **a real assembly** and gets fifty-odd nodes whose geometry types are **the host's**. `Unload` returns a weak reference rather than a boolean, because purging is necessary and not sufficient. Recorded [N70](NOTES.md): *side-by-side* means dependencies, not two versions of one node library. |
+| **Last completed step** | **`E7-T10` — the package manager, and the disclosure as a gate.** Search, install, the installed list and removal, behind a **Packages** button; `--package-source` points it at an organisation's own feed. **The native-code sentence is the only coloured line on the screen**, changed after looking at the photograph. Closing discards an unanswered install, proven in the real application. Two defects found by asserting what the user is told ([N72](NOTES.md), [N71](NOTES.md)), and a toolbar that had been hiding *Help* off the right edge is now a `WrapPanel`. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E7-T10` — the package manager UI**, which is now the only thing between the engine work and a user: search, the disclosure, install, and the list of what is installed with a way to remove it. Everything it needs is built and tested — `NuGetPackageClient.SearchAsync`, `PrepareAsync` returning a `PendingInstall` whose `Disclosure` is what the prompt shows, `PackageTrustStore` for the answer, `PackageManager` for load and unload. **When an unload does not take, the UI says so and offers restart** — that half of `E7-T5` is the UI's. Also open: `E7-T9` (local DLLs, which must read **without locking**) and `E7-T2`'s remaining half, **dependency resolution**. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1950** over **nine** projects: Geometry.Tests 763, UI.Tests 482, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 57**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E7-T9` — local DLL references**, the last engineering row in `E7`: prompt once, record a content hash, re-prompt when it changes, offer reload on file change, and **read the assembly without locking it** — which is the opposite of the package path and the whole difficulty of the row, since a developer rebuilding the DLL Spark is holding gets a build error from Spark. Then `E7-T6`'s remaining half, **the install banner on a placeholder**, which now has the manager it was waiting for; `E7-T2`'s remaining half, **dependency resolution**; and `E7-T14`, **freeze**. After that `E7` closes and **M8/`E12`** is what is left: embedding, installer, portable zip, release workflow, performance and accessibility. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1968** over **nine** projects: Geometry.Tests 763, UI.Tests 499, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 58**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T18`'s About box was on this list and should not have been** — it needed a dialog, which is code, and it is done. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3737,3 +3737,59 @@ starting, because the user needs to get in to remove it.
 
 **Verified.** Build clean at 0 warnings. `Packages.Tests` 48 -> 57. Suite **1,950** over nine
 projects, 0 failed, 0 skipped. `dotnet format` clean.
+
+### 2026-08-31 — `E7-T10`: the package manager, and the disclosure as a gate
+
+**What.** `PackageBrowserViewModel`, `PackageWindow`, a **Packages** toolbar button, three startup
+switches, and eighteen tests. **`E7`'s user-facing half is now built**: a person can search a feed,
+read what a package is, install it, use its nodes and take them out again.
+
+**A view model with a thin window over it, not a control.** `Spark.Architecture.Tests` forbids a
+file under `Views` or `Controls` from naming `Spark.Engine`, and a package browser that installs
+nodes into a library names it on the first line. The window's whole job is `Sync()` — read the
+model, write the controls — and its handlers are the thinnest possible awaits.
+
+**The disclosure is a gate rather than a notice, and the layout says so.** While one is pending the
+window offers exactly two answers, the *Install...* button that would start another is disabled,
+and the native-code sentence is lifted out of the block and set in the warning colour. That last
+part was a change made after looking at the photograph: five facts in one grey paragraph, and the
+one sentence that says *this package will run native code with your full permissions* read exactly
+like the four above it. It is now the only coloured line on the screen.
+
+**Closing discards an unanswered install, and that is proven in the real application** rather than
+only in a test. After a run that prepared an install and then exited, the default store under
+local application data was empty. A download must not outlive the question it was fetched to
+answer.
+
+**Two defects, both found by tests that asserted what the user is told.**
+[N72](NOTES.md): a single `GC.Collect` before deleting a removed package's folder is not enough —
+the context has not finished unloading, the `.dll` is still mapped, and the delete fails part-way,
+leaving a half-deleted folder and a status line blaming a lock that would have gone in another
+millisecond. `Remove` now collects in a bounded loop, the shape `PackageManagerTests` already used,
+and the restart advice is reserved for the case where the reference really is still alive.
+[N71](NOTES.md): awaiting inside `HeadlessSession.Run` deadlocks silently — the first run of these
+tests hung for seven minutes and had to be killed — so the asynchronous half now happens outside
+the dispatcher and only the window is driven within.
+
+**And one wart the photographs found that had nothing to do with this row.** The toolbar was a
+single-row `StackPanel` of twenty-two buttons; at 1480 pixels the last three, *Help* among them,
+sat past the right edge and could not be clicked at all. It is a `WrapPanel` now. A toolbar that
+overflows hides controls with no indication that it has.
+
+**Installed packages load before anything reads the library**, in the view model's constructor, so
+the library pane is built from it and a document opened at startup resolves against it. Loading
+them later would hand a user placeholders for nodes they had already installed, which is the one
+outcome `E7-T6` exists to avoid. A package that will not load is reported into the diagnostics
+pane, never thrown: the user needs to get in to remove whatever is broken.
+
+**An installed package now keeps the capitalisation its author chose.** The folder is lower case,
+because that is NuGet's convention and case-insensitive lookup depends on it, but a manager listing
+`acme.nodes` beside a feed offering `Acme.Nodes` reads as two different packages. The id is read
+back out of the `.nuspec`; every comparison still ignores case.
+
+**Verified by running it.** A folder feed carrying a package built around a real assembly:
+searched, listed, prepared, and both disclosures photographed — the managed-only one and one
+carrying three native binaries. Then the package placed in the real store and the application
+started: **115 nodes from the package, 230 in the library, listed as `Acme.Nodes 1.0.0 — 115
+node(s)`**. Build clean at 0 warnings. `UI.Tests` 482 -> 499, `Packages.Tests` 57 -> 58. Suite
+**1,968** over nine projects, 0 failed, 0 skipped. `dotnet format` clean.

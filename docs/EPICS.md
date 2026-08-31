@@ -645,7 +645,9 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       unload, the UI says so and offers restart. **Restart is the documented default**
       (**E7-T5**). *Built 2026-08-31 at the engine layer: `PackageManager.Unload` purges what it
       added and returns a weak reference rather than a boolean, because purging the library is
-      necessary and not sufficient. The UI half arrives with **E7-T10**.*
+      necessary and not sufficient. The UI half landed the same day with **E7-T10**: *Remove*
+      collects in a bounded loop until the context is genuinely gone, and when it is not, says the
+      nodes are out but the code is still loaded and asks for a restart.*
 - [x] A graph referencing a missing package opens with placeholder nodes preserving the
       definition key, every literal and every wire **verbatim**, and **re-saves
       byte-identically** (**E7-T6**, **E7-T7**). *Built and proven 2026-08-31. The placeholder
@@ -661,6 +663,12 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       the disclosure precedes the decision, and every field is read out of the package
       rather than declared by it. Signature is reported as present-but-unverified, never
       as signed.*
+- [x] A package manager a person can use: search a feed, read what a package is, install it,
+      and remove what is installed (**E7-T10**). *Built 2026-08-31. The disclosure is a gate
+      rather than a notice — while one is pending the window offers exactly two answers —
+      and the native-code sentence stands apart in the warning colour. Closing discards an
+      unanswered install. `--package-source` points it at an organisation's own feed, a share or a
+      folder, which is what E7's "the loader must not know which" is for.*
 - [ ] Local DLLs prompt once and record a content hash; a changed hash re-prompts.
       Auto-reload on file change is offered, and reading a referenced assembly never locks
       it, so users can rebuild their library while Spark is open (**E7-T9**).

@@ -49,6 +49,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly SparkSession _session = new();
     private HelpLibrary? _help;
     private CustomNodeLibrary? _customNodes;
+    private PackageBrowserViewModel? _packages;
+
+    /// <summary>
+    /// The package feed to search instead of nuget.org, or null (<c>--package-source</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Static because the browser is built in the constructor</b>, and the constructor runs
+    /// before anything can set a property on the instance. An organisation's feed has to be in
+    /// place before installed packages are loaded, not after.
+    /// </remarks>
+    public static string? PackageSource { get; set; }
 
     private readonly HashSet<GeometryKey> _published = [];
     private readonly DocumentHistory _history = new();
@@ -226,6 +237,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         Layout = WorkspaceLayout.Default;
 
+        // Installed packages contribute their nodes here, before anything reads the library: the
+        // library pane is built from it three lines down and a startup document is resolved
+        // against it below. Loading them any later would hand a user placeholders for nodes they
+        // have already installed, which is the one outcome E7-T6 exists to avoid.
+        IReadOnlyList<string> packageProblems = LoadInstalledPackages();
+
         AllLibraryEntries =
         [
             .. _session.Library.Definitions().Select(definition => new LibraryEntryViewModel(definition)),
@@ -269,6 +286,35 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         if (failure is not null)
         {
             DiagnosticsText = failure;
+        }
+
+        if (packageProblems.Count > 0)
+        {
+            DiagnosticsText = string.Join(
+                Environment.NewLine,
+                new[] { DiagnosticsText }.Concat(packageProblems).Where(line => !string.IsNullOrEmpty(line)));
+        }
+    }
+
+    /// <summary>
+    /// Loads every installed package's nodes into the session library.
+    /// </summary>
+    /// <returns>The problems worth showing a user, or empty.</returns>
+    /// <remarks>
+    /// <b>A broken package store must not stop the application starting.</b> The user needs to get
+    /// in to remove whatever is broken, and a shell that refuses to open leaves them with no way
+    /// to do it.
+    /// </remarks>
+    private IReadOnlyList<string> LoadInstalledPackages()
+    {
+        try
+        {
+            _ = Packages().LoadInstalled();
+            return Packages().StartupProblems;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            return [$"Installed packages could not be read: {error.Message}"];
         }
     }
 
@@ -1008,6 +1054,38 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// is one library rather than one per gesture.
     /// </remarks>
     public CustomNodeLibrary CustomNodes() => _customNodes ??= new CustomNodeLibrary(_session.Library);
+
+    /// <summary>
+    /// The session's package browser, over the same node library everything else resolves against
+    /// (<c>E7-T10</c>).
+    /// </summary>
+    /// <returns>The browser, built once and reused.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Built on first use, because most sessions never open it</b> and constructing it reads
+    /// the install folder off disk.
+    /// </para>
+    /// <para>
+    /// <b>Installing a package drops the cached help library.</b> Help pages are generated from
+    /// the live node library, so one built before an install would be missing the pages for the
+    /// nodes that install just added - and <c>E10-T5</c>'s claim is precisely that a package
+    /// installed this session has help the moment it is loaded. Rebuilding on the next F1 is
+    /// cheap; a help window that cannot find a node the canvas offers is not.
+    /// </para>
+    /// </remarks>
+    public PackageBrowserViewModel Packages()
+    {
+        if (_packages is not null)
+        {
+            return _packages;
+        }
+
+        PackageBrowserViewModel browser = new(_session.Library, source: PackageSource);
+        browser.Installed.CollectionChanged += (_, _) => _help = null;
+
+        _packages = browser;
+        return _packages;
+    }
 
     /// <summary>The key handed out by the last call to <see cref="NextCustomNodeIdentity"/>.</summary>
     public NodeKey LastCustomNodeKey { get; private set; }

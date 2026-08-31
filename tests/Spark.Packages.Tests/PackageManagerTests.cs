@@ -253,6 +253,27 @@ public sealed class PackageManagerTests : IDisposable
         Assert.NotEmpty(reports[1].Problems);
     }
 
+    /// <summary>
+    /// <b>An installed package keeps the capitalisation its author chose.</b> The folder is lower
+    /// case, because that is NuGet's convention and case-insensitive lookup depends on it, but a
+    /// manager listing <c>acme.nodes</c> beside a feed offering <c>Acme.Nodes</c> reads as two
+    /// different packages.
+    /// </summary>
+    [Fact]
+    public async Task AnInstalledPackageKeepsTheCasingItsAuthorChose()
+    {
+        PackageIdentity identity = PackageIdentity.Create("Acme.Nodes", "1.0.0");
+        BuildPackageAround(identity, typeof(Spark.Nodes.Core.Point).Assembly);
+
+        PackageStore store = new(_store);
+        await Client().InstallAsync(identity, store, TestContext.Current.CancellationToken);
+
+        Assert.Equal("Acme.Nodes", Assert.Single(store.Installed()).Id);
+
+        // And the lower-cased folder is still the one it resolves to, so nothing else moves.
+        Assert.True(store.IsInstalled(PackageIdentity.Create("ACME.NODES", "1.0.0")));
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static WeakReference LoadAndUnload(PackageStore store, PackageIdentity identity)
     {

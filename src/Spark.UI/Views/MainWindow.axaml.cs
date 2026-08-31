@@ -103,6 +103,7 @@ public sealed partial class MainWindow : Window
 
     private HelpWindow? _help;
     private AboutWindow? _about;
+    private PackageWindow? _packages;
 
     private MainWindowViewModel? Model => DataContext as MainWindowViewModel;
 
@@ -189,6 +190,60 @@ public sealed partial class MainWindow : Window
     }
 
     private void OnOpenHelp(object? sender, RoutedEventArgs e) => OpenHelp();
+
+    private void OnOpenPackages(object? sender, RoutedEventArgs e) => OpenPackages();
+
+    /// <summary>
+    /// Runs the startup feed search and, when one was named, prepares that package so its
+    /// disclosure is on screen. <b>Nothing is installed</b>: preparing is the step that asks.
+    /// </summary>
+    private static async System.Threading.Tasks.Task SearchThenPrepareAsync(
+        PackageWindow window, string? prepare)
+    {
+        await window.Model.SearchAsync().ConfigureAwait(true);
+
+        if (string.IsNullOrWhiteSpace(prepare))
+        {
+            return;
+        }
+
+        foreach (Spark.UI.ViewModels.PackageRow row in window.Model.Results)
+        {
+            if (string.Equals(row.Id, prepare, StringComparison.OrdinalIgnoreCase))
+            {
+                await window.Model.PrepareAsync(row).ConfigureAwait(true);
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Opens the package manager (<c>E7-T10</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>One window, reused</b>, for the reason help is: a second copy would let a user prepare
+    /// an install in one and answer a stale disclosure in the other. The window discards anything
+    /// prepared and unanswered when it closes, so a download never outlives the question it was
+    /// fetched to answer.
+    /// </remarks>
+    private void OpenPackages()
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        if (_packages is null || !_packages.IsVisible)
+        {
+            _packages = new PackageWindow(model.Packages());
+            _packages.Closed += (_, _) => _packages = null;
+            _packages.Show(this);
+        }
+        else
+        {
+            _packages.Activate();
+        }
+    }
 
     /// <summary>
     /// Opens the About box.
@@ -563,6 +618,24 @@ public sealed partial class MainWindow : Window
             _help?.Navigate(Options.HelpTopic);
         }
 
+        if (Options.OpensPackages)
+        {
+            // The query is put on the model before the window is built, so the search box shows
+            // what was searched for. The window reads it once and then leaves it alone, because a
+            // box that re-synced would erase whatever the user was halfway through typing.
+            if (Model is { } packageModel && !string.IsNullOrWhiteSpace(Options.PackageQuery))
+            {
+                packageModel.Packages().Query = Options.PackageQuery;
+            }
+
+            OpenPackages();
+
+            if (!string.IsNullOrWhiteSpace(Options.PackageQuery) && _packages is not null)
+            {
+                _ = SearchThenPrepareAsync(_packages, Options.PreparePackage);
+            }
+        }
+
         if (Options.OpenAbout)
         {
             _about = new AboutWindow(
@@ -720,6 +793,21 @@ public sealed partial class MainWindow : Window
             Console.WriteLine(string.Create(
                 CultureInfo.InvariantCulture,
                 $"wrote {prefix}-help.png ({helpWidth}x{helpHeight}); topic {_help.CurrentTopicId}"));
+        }
+
+        if (_packages is not null)
+        {
+            int packagesWidth = Math.Max(1, (int)_packages.Bounds.Width);
+            int packagesHeight = Math.Max(1, (int)_packages.Bounds.Height);
+
+            using RenderTargetBitmap packages = new(
+                new PixelSize(packagesWidth, packagesHeight), new Vector(96, 96));
+            packages.Render(_packages);
+            packages.Save(prefix + "-packages.png", PngBitmapEncoderOptions.Default);
+
+            Console.WriteLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"wrote {prefix}-packages.png ({packagesWidth}x{packagesHeight})"));
         }
 
         byte[]? pixels = Viewport.TakeCapture(out int glWidth, out int glHeight);

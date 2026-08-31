@@ -49,6 +49,25 @@ namespace Spark.UI;
 /// <c>--help-window</c>, this exists so the dialog can be photographed and therefore checked; a
 /// licence notice that lays out wrongly still satisfies every test that only reads its text.
 /// </param>
+/// <param name="PackageSource">
+/// The package feed to use instead of nuget.org (<c>--package-source</c>), or null. A NuGet v3
+/// service index, a folder, or a network share: <c>E7</c> states that the loader must not know
+/// which, and an organisation running an internal feed has no other way to say so.
+/// </param>
+/// <param name="PreparePackage">
+/// A package id to select and prepare once the startup search finishes
+/// (<c>--package-prepare</c>), or null. Nothing is installed: preparing is what puts the
+/// disclosure on screen, and this exists for the same reason <c>--collapse</c> does — the gesture
+/// is a button, a button needs a click, and a click is the one thing a headless run cannot do.
+/// The disclosure is the screen on which a user decides to run somebody else's code, so it is the
+/// one that most needs to be looked at rather than merely asserted about.
+/// </param>
+/// <param name="PackageQuery">
+/// The feed search to run when the package manager opens at startup
+/// (<c>--packages-window [query]</c>), empty to open it without searching, or null not to open it
+/// at all. It exists for the same reason as <c>--about-window</c>: a window whose install
+/// disclosure lays out wrongly still passes every test that only reads the text it would show.
+/// </param>
 /// <param name="CollapseFirst">
 /// How many of the graph's leading nodes to select and collapse into a custom node at startup
 /// (<c>--collapse N</c>), or zero. Aimed at the screenshot path: the gesture is a button, a button
@@ -70,6 +89,9 @@ public readonly record struct StartupOptions(
     bool ForceSoftwareRenderer = false,
     string? HelpTopic = null,
     bool OpenAbout = false,
+    string? PackageSource = null,
+    string? PackageQuery = null,
+    string? PreparePackage = null,
     int CollapseFirst = 0)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
@@ -95,6 +117,9 @@ public readonly record struct StartupOptions(
 
     /// <summary>True when the help window should open at startup.</summary>
     public bool OpensHelp => !string.IsNullOrWhiteSpace(HelpTopic);
+
+    /// <summary>True when the package manager should open at startup.</summary>
+    public bool OpensPackages => PackageQuery is not null;
 
     /// <summary>True when the window should capture images and then exit.</summary>
     public bool IsScreenshot => !string.IsNullOrWhiteSpace(ScreenshotPrefix);
@@ -150,6 +175,9 @@ public readonly record struct StartupOptions(
         bool software = false;
         string? helpTopic = null;
         bool aboutWindow = false;
+        string? packageQuery = null;
+        string? packageSource = null;
+        string? preparePackage = null;
         int collapseFirst = 0;
 
         for (int i = 0; i < args.Length; i++)
@@ -197,6 +225,23 @@ public readonly record struct StartupOptions(
                     aboutWindow = true;
                     break;
 
+                case "--package-prepare" when i + 1 < args.Length:
+                    preparePackage = args[++i];
+                    break;
+
+                case "--package-source" when i + 1 < args.Length:
+                    packageSource = args[++i];
+                    break;
+
+                case "--packages-window":
+                    packageQuery = string.Empty;
+                    if (i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal))
+                    {
+                        packageQuery = args[++i];
+                    }
+
+                    break;
+
                 case "--collapse" when i + 1 < args.Length:
                     collapseFirst = ParseCount(args[++i], 0);
                     break;
@@ -224,7 +269,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, collapseFirst);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, collapseFirst);
     }
 
     private static int ParseCount(string text, int fallback) =>

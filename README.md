@@ -284,13 +284,14 @@ Linux and macOS. Warnings are errors in CI only, never in the project files —
 solution format, which needs a recent SDK and a recent Visual Studio
 ([N1](docs/NOTES.md)).
 
-`dotnet run --project src/Spark.Desktop` opens the application. Four switches are worth knowing:
+`dotnet run --project src/Spark.Desktop` opens the application. Five switches are worth knowing:
 `--graph curves`, `--graph surfaces` and `--graph solids` open a demo instead of the point grid,
 `--open PATH` opens a `.spark` file, `--screenshot PREFIX` writes a picture of the shell and a
 picture of the viewport and exits — the viewport one is a read-back from whichever backend drew
-it rather than a window grab, so it works over a locked session and in CI — and
-**`--software-renderer`** draws the viewport on the CPU and never asks for an OpenGL context. The
-first two exist so that opening a particular graph can be checked without a human driving a file
+it rather than a window grab, so it works over a locked session and in CI —
+**`--software-renderer`** draws the viewport on the CPU and never asks for an OpenGL context, and
+**`--package-source SOURCE`** points the package manager at a feed other than nuget.org. The first
+two exist so that opening a particular graph can be checked without a human driving a file
 dialog.
 
 **Select some nodes and press *Collapse to node*** to turn them into one reusable custom node.
@@ -306,6 +307,24 @@ you ask for them**, so they describe what is actually installed rather than what
 down once, and a node that arrives in a package has help as soon as it loads. Alongside them are the
 hand-written concept topics from `docs/help/`, and the search box covers both.
 
+**Press *Packages* to add nodes somebody else wrote.** Spark searches nuget.org for packages
+tagged `spark`, and `--package-source` points it at an organisation's own feed, a network share or
+a folder instead. **Nothing is installed until you have read what it is.** Choosing a package
+downloads it, and Spark then shows you its publisher, its licence, what it will also install, which
+assemblies its nodes come from, and — in its own colour, because this is the line that
+matters — whether it contains **native code**. Spark itself has no native dependencies;
+a package is entitled to bring some, but not silently, and native code cannot be unloaded without
+restarting. A signature is reported as *present but unverified*, never as *signed*: Spark reads
+whether one exists and does not build a certificate chain, and the shorter word would imply that it
+did. Only then do you get the two buttons. Agreeing is recorded **per version**, so the next release
+asks again — a patch release can acquire a native dependency, which is exactly what this
+protects.
+
+A package's nodes join the library like any other, keyed by the package so two packages shipping
+an assembly of the same name cannot collide, and they have help the moment they load. *Remove*
+takes them out again; when the code cannot be released without a restart, Spark says so rather than
+implying it went.
+
 **`--software-renderer` is the one aimed at users rather than at the build.** If the viewport is
 black or the status bar reports that OpenGL did not initialise — the usual causes being a virtual
 machine, a remote desktop session, or a driver that has given up — that switch draws the same
@@ -315,13 +334,14 @@ to it on its own** when no OpenGL context arrives; the switch exists so the fall
 reached deliberately, which is what a support conversation needs and what lets the path be
 photographed and checked rather than trusted.
 
-`dotnet test` finds **1,724 tests** across eight projects. `Spark.Geometry.Tests` (757) and
+The suite is **1,968 tests** across nine projects. `Spark.Geometry.Tests` (763) and
 `Spark.Geometry.Properties` (43) cover the kernel by example and by CsCheck property
-respectively; `Spark.Engine.Tests` (356) covers the graph, the replicator and the importer;
-`Spark.UI.Tests` (439) drives the canvas headlessly with real pointer gestures;
-`Spark.Viewport.Tests` (74) covers the scene and the camera; `Spark.Geometry.Occt.Tests` (39)
-drives the OpenCascade provider and **skips itself** when the native shim is absent;
-`Spark.Architecture.Tests` (11) enforces the reference graph below by reading `.csproj` files as
+respectively; `Spark.Engine.Tests` (414) covers the graph, the replicator and the importer;
+`Spark.UI.Tests` (499) drives the canvas headlessly with real pointer gestures;
+`Spark.Viewport.Tests` (108) covers the scene, the camera and the software rasteriser;
+`Spark.Geometry.Occt.Tests` (63) drives the OpenCascade provider and **skips itself** when the
+native shim is absent; `Spark.Packages.Tests` (58) installs real packages from real feeds;
+`Spark.Architecture.Tests` (15) enforces the reference graph below by reading `.csproj` files as
 XML; and `Spark.Docs.Verify` (5) checks these documents against the repository. The last two were deliberately stood up
 before the code they now guard: a gate added later is a gate that gets an exemption for
 everything already there.
