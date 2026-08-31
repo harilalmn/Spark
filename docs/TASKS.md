@@ -7,7 +7,7 @@ order for what to do next is in [TODO.md](TODO.md); the requirements behind them
 **Last updated:** 2026-08-31 (D19 — the Help pass moves after 1.0; E10 recounted against the tree)
 **Legend:** `Done` · `In progress` · `Open` · `Blocked` · `Withdrawn`
 
-**Summary:** 145 done · 20 in progress · 93 open · 9 withdrawn — **267 rows**
+**Summary:** 145 done · 21 in progress · 92 open · 9 withdrawn — **267 rows**
 *(the previous revision's open count was 147 by arithmetic and 148 by the register; the register was right, and the four columns now add up to the total again.)*
 
 **This revision opens the marathon run to 1.0** — a resumable sequence of small verified steps, with
@@ -459,7 +459,7 @@ Everything else in this file is a plan, not a claim.
 | ID | Task | Status | Notes |
 |---|---|---|---|
 | E11-T1 | `tests/Spark.Docs.Verify`, green on an **empty corpus** | Done | Stood up 2026-08-27, before there is anything to document, so it can never be retrofitted. Five checks that need nothing compiled: help-topic front matter (`id`, `title`); every help topic contains a worked example; every relative Markdown link resolves to a file that exists; **every cited `ADR-NNNN` exists**, scanning `.cs`, `.csproj`, `.props`, `.targets`, `.yml` and `.gitattributes` as well as Markdown; every core document carries a `Last updated` line. **Deliberately not stubbed:** sample compilation, node-to-topic coverage and diagnostic-code coverage need compiled Spark assemblies and arrive with the milestones that create the things they check — a test that passes by doing nothing is worse than no test ([NOTES.md N13](NOTES.md)). It has already earned itself: the ADR-citation check caught two dangling citations in build files the day it was extended to scan them — **E1-T29** |
-| E11-T2 | Compile every ` ```csharp ` fence and every XML `<example>` | Open | **Using the exact references and imports a real code-block node gets.** `<!-- spark:skip -->` opts out, sparingly — every skip is a sample nobody is checking |
+| E11-T2 | Compile every ` ```csharp ` fence and every XML `<example>` | In progress | **Every help fence compiles as of 2026-08-31**, in `DocumentationSampleTests`, through the same `ReferenceCatalog` a real code block gets. **Two kinds of sample, compiled two ways**: a sample in `code-blocks.md` *is* a code block — bare identifiers are input ports, `return` produces a value — so it goes through `ScriptNodeFactory`; everywhere else a fence is ordinary C# and compiles on its own. Classified by topic id rather than by heuristic, because a heuristic would reclassify an ordinary sample containing a typo as a code block and then compile it. **Found three samples quoting variables declared nowhere**, and `AllowedSkips` is **0**. **Still owed: XML `<example>` blocks**, which no contract project currently uses | **Using the exact references and imports a real code-block node gets.** `<!-- spark:skip -->` opts out, sparingly — every skip is a sample nobody is checking |
 | E11-T3 | Execute every example graph headlessly, asserting no node errors and declared outputs | Open | |
 | E11-T4 | Forward node coverage: every built-in node resolves to a help topic | Open | Or is listed as deliberately undocumented with a reason. **A new node shipping undocumented fails the build** |
 | E11-T5 | Reverse coverage: every `nodes:` front-matter entry resolves to a real node | Open | This is what catches renames |

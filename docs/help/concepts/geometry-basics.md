@@ -473,6 +473,10 @@ Transform asMatrix = both.ToTransform();     // when you need it in a Transform 
 question as *is this the same rotation*:
 
 ```csharp
+using Spark.Geometry;
+
+Quaternion yaw = Quaternion.ByAxisAngle(Vector3d.ZAxis, Angle.FromDegrees(90.0));
+
 Quaternion negated = new(-yaw.X, -yaw.Y, -yaw.Z, -yaw.W);
 
 bool sameValue    = yaw.EqualsWithin(negated);   // false - the components differ
@@ -494,6 +498,12 @@ A `Ray` is a point and a direction, and it **stops at its origin** — what is b
 it. Its direction is stored normalised, so every parameter is a distance in coordinate units.
 
 ```csharp
+using Spark.Geometry;
+
+Point3d camera = new(0.0, -10.0, 5.0);
+Point3d target = Point3d.Origin;
+BoundingBox someBox = new(new Point3d(-1, -1, -1), new Point3d(1, 1, 1));
+
 Ray look = Ray.ByTwoPoints(camera, target);
 
 Point3d ahead = look.PointAt(5.0);                  // five units along, not five direction-lengths
@@ -506,14 +516,24 @@ It is built over **boxes** and answers with **indices**, so it works for anythin
 triangles, curves, whole objects — and never needs to know what an item is:
 
 ```csharp
+using System.Collections.Generic;
+using Spark.Geometry;
+
+Ray look = Ray.ByTwoPoints(new Point3d(0.0, -10.0, 0.0), Point3d.Origin);
+BoundingBox regionBox = new(new Point3d(-2, -2, -2), new Point3d(2, 2, 2));
+List<BoundingBox> bounds = [regionBox];
+
 BoundingVolumeHierarchy index = BoundingVolumeHierarchy.Build(bounds);
 List<int> candidates = [];
 
 index.Query(look, candidates);        // a conservative filter: test the real geometry yourself
 index.Query(regionBox, candidates);   // everything overlapping a region
 
-// ...or let it find the nearest hit, and tell it what a hit actually is:
-(int item, double distance) = index.FirstHit(look, (i, boxEntry) => TestRealGeometry(i, look));
+// ...or let it find the nearest hit, and tell it what a hit actually is. Your callback gets the
+// item's index and where the ray met its box, and returns the real distance or null for a miss:
+double? TestRealGeometry(int item, double boxEntry) => boxEntry;
+
+(int nearest, double distance) = index.FirstHit(look, TestRealGeometry);
 ```
 
 Three things are worth knowing. **A box query is a filter, never an answer** — the caller tests

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 17:00 +0530
+**Last updated:** 2026-08-31 17:45 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E10-T11`, `E11-T6` — a page per diagnostic code**, reflected out of the constants rather than written. Checking the codes resolved found **five pointing at `concepts.evaluation`, which had never been written** — a mapping in place since M0 whose far end nothing had checked. That topic and `concepts.lists` are now written, against the source rather than from memory. |
+| **Last completed step** | **`E11-T2` — every help sample compiles.** Through the same references a real code block gets, with code-block samples routed through `ScriptNodeFactory` because that is what they are. **Found three samples quoting variables declared nowhere** — they read well and were, as code, fiction. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E11-T2` — compile every ` ```csharp ` fence**, with the exact references a real code-block node gets. It is the last unbuilt piece of the Help harness and the one with a record: **two samples in `geometry-basics.md` were already caught wrong by hand**, and both read as perfectly plausible — `Angle.FullTurn / 3.0` is `119.99999999999999`, not `120`. `Spark.Scripting` already compiles snippets for code blocks, so the machinery exists. Then **`E11-T3`**, executing the example graphs. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1865** over **nine** projects: Geometry.Tests 763, UI.Tests 458, Engine.Tests 405, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E11-T3` — execute the example graphs headlessly**, asserting no node errors and the declared outputs. `docs/examples/` holds `curves.spark`, `surfaces.spark` and `solids.spark`; `spark run` already evaluates a graph from the command line and prints what its watches saw, so the machinery exists. **This is the check `E11-T2` cannot be**: compiling proves a sample is well formed, running a graph proves the answer. Then `E11-T4`/`E11-T5`, node-to-topic coverage in both directions — forward is already true by construction and wants asserting, reverse is what catches renames. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1869** over **nine** projects: Geometry.Tests 763, UI.Tests 462, Engine.Tests 405, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Four things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. **(4)** Opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance. *And still: watching the first nightly benchmark run.* |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3325,3 +3325,55 @@ rather than guessed at, and it is a nudge to whoever next edits those comments.
 **Verified.** Build clean at 0 warnings. `Engine.Tests` 402 -> 405, `UI.Tests` 454 -> 458. Suite
 **1,865** over nine projects, 0 failed, 0 skipped. `dotnet format` clean. The diagnostics index was
 opened and read twice; the first version was rejected.
+
+### 2026-08-31 - `E11-T2`: the samples compile, and three of them never could have
+
+**What.** `DocumentationSampleTests` compiles every ` ```csharp ` fence in every help topic through
+the same `ReferenceCatalog` a real code block gets. Four tests. **This is the last piece of the
+Help harness D19 said had to exist before any bulk writing.**
+
+**Two kinds of sample, compiled two ways, because they are two different things.** A sample in
+`code-blocks.md` *is* a code block: its bare identifiers are input ports the node supplies and
+`return` is how it produces a value. Compiling one as an ordinary method body reports *the name
+'radius' does not exist* - true of the method, false of the sample. Those go through
+`ScriptNodeFactory`, literally the thing that compiles a code block. Everywhere else a fence is
+ordinary C# and compiles on its own.
+
+**Classified by topic id, not by heuristic**, and that is the important line. A heuristic - *does
+it use an undefined identifier?* - would silently reclassify an ordinary sample **containing a
+typo** as a code block and then compile it successfully. That is the one outcome this check must
+never produce, and it is the outcome a clever version would have produced.
+
+**Three samples in `geometry-basics.md` could never have been pasted and run**, which is what the
+check was built to find. Samples 17, 18 and 19 quoted `yaw`, `camera`, `target`, `someBox`,
+`bounds` and `regionBox` - **none of them declared anywhere, in that fence or any other** - and
+sample 19 called `TestRealGeometry(...)`, a placeholder that does not exist. They read perfectly
+well and were, as code, fiction. All three now carry their own setup, and the callback is a real
+local function that shows what the caller has to supply.
+
+**A fourth error was mine, and the speed of it is the point.** Adding that setup I wrote
+`BoundingBox.ByCorners(...)`, which does not exist - the type has a two-corner constructor. The
+check reported it on the next run. That is exactly the loop the two errors caught by hand in
+`geometry-basics.md` had to be found the slow way.
+
+**A decision inside the harness worth naming.** Fences are compiled **individually**, not
+concatenated into one program per topic. Concatenating was tried first and failed honestly: two
+fences in that topic both declare a variable called `same`, which is entirely reasonable for two
+independent illustrations and a redeclaration for one program. The cost of compiling individually
+is that a fence must carry its own setup - and making three of them do so was an improvement, not
+a concession.
+
+**`AllowedSkips` is 0 and is asserted.** `<!-- spark:skip -->` exists, nothing uses it, and the
+count is a test rather than a convention, because every skip is a sample nothing is checking and
+the first one makes the second easy.
+
+**What this proves and what it does not**, stated on the type so nobody over-reads it: a sample
+*compiles*, so a rename or a changed signature turns the build red. It does **not** prove a
+sample's stated result is right - a comment claiming `// 120` compiles whatever the answer is.
+`Angle.FullTurn / 3.0` is `119.99999999999999`, and only a person reading it catches that.
+
+**`E11-T2` stays `In progress`**: the XML `<example>` half is not built, because no contract
+project currently writes one.
+
+**Verified.** Build clean at 0 warnings. `UI.Tests` 458 -> 462. Suite **1,869** over nine projects,
+0 failed, 0 skipped. `dotnet format` clean.

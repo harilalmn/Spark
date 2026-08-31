@@ -935,8 +935,11 @@ user needs. XML doc = what this member does.*
 - [x] Generated API reference pages (**E10-T5**). *Built 2026-08-31 and generated **at runtime
       from the live node library**, so a page cannot drift from the node it describes and a package
       installed this session has help the moment it loads.*
-- [ ] Every help topic contains a worked example (**E10-T3**, enforced by
-      [E11-T2](#e11--quality-and-verification)).
+- [x] Every help topic contains a worked example (**E10-T3**, enforced by
+      [E11-T2](#e11--quality-and-verification)). *Enforced 2026-08-31 in two places, and the
+      definition was widened from "a fence" to "a fence, a table, or a section headed example"
+      because this is a node-graph tool and its best examples are walkthroughs. Every C# fence now
+      compiles against the real API as well.*
 - [ ] Worked example graphs live in `docs/examples/` and are openable from the help panel
       (**E10-T7**).
 - [x] Every `SPK####` code has a help topic (**E10-T11**). *Built 2026-08-31 by reflecting
