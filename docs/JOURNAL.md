@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 11:05 +0530
+**Last updated:** 2026-08-31 11:50 +0530
 **Protocol version:** 2
 
 ---
@@ -16,13 +16,13 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1, M1.5, M2, M3, M4 and M6 are done. M5 is substantially done** — the software renderer and CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) are **deferred past M6** deliberately and are now the largest thing it still owes. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
+| **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E9-T11` — headless thumbnails and a real fallback.** `ThumbnailRenderer` renders with no window; `ViewportControl` falls back to software when no GL context arrives; `--software-renderer` reaches that path on purpose. Found [N64](NOTES.md): two backends shared one capture flag, so `--screenshot` photographed the CPU frame while reporting the GL driver — **caught because the two outputs agreed too well**, byte for byte, which two different rasterisers cannot do. |
+| **Last completed step** | **`E9-T12` — the visual regression, and M5 is finished.** A fixed scene compared byte for byte against a committed PNG, running in the ordinary suite so both CI legs already execute it. **Proven to fail** by moving one lighting coefficient 0.1%. Needed `PngImage`, a dependency-free PNG codec, which also unlocks `spark render`. `MathF.Pow` was replaced by exact repeated squaring — a determinism requirement, not an optimisation. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E9-T12` — the CI visual regression.** Everything it needs now exists: `ThumbnailRenderer.Render` is deterministic across independently constructed renderers, and that is asserted. Build a golden-image check — render a fixed scene at a fixed size, compare against a committed PNG, and **fail with a legible diff rather than a hash mismatch** (`E11-T11`'s spirit: print bounding box, counts, and the worst pixel). Then **M7**. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**: each is `In progress` for a stated reason that is not a missing commit, and all three are in *Blocked on*. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1799**: Geometry.Tests 763, UI.Tests 448, Engine.Tests 367, Viewport.Tests 95, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`M7` — packages and extensibility ([E7](EPICS.md#e7--packages-and-extensibility)), the last milestone before M8 and 1.0.** Sixteen rows, none started. Start with `E7-T3` and `E7-T4` — **one collectible `AssemblyLoadContext` per package *version***, and contract assemblies always resolving from the default context, because a `Circle` from package A must be the same `Type` as one from package B or nothing can be wired. Those two decide the shape of everything else in the epic. **Watch for:** the first CI run on Linux after this step — the new golden-image check has never executed there, and the reasoning about whether it can is in the test's own failure message. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**: each is `In progress` for a stated reason that is not a missing commit. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1805**: Geometry.Tests 763, UI.Tests 448, Engine.Tests 367, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Four things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. **(4)** Opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance. *And still: watching the first nightly benchmark run.* |
 
 **Step status vocabulary**, and it means exactly this:
@@ -2971,3 +2971,57 @@ which is exactly the right answer and is the answer that was wrong an hour ago.
 
 **Cost.** One step. **Next:** `E9-T12`, the CI visual regression, which is what the determinism
 tests were built for.
+
+### 2026-08-31 — `E9-T12`: a golden image, proven to fail — and M5 is finished
+
+**What.** `VisualRegressionTests` renders a fixed scene through `ThumbnailRenderer` and compares
+it byte for byte against `tests/corpus/viewport/reference-scene.png`. Plus `PngImage`, a 250-line
+8-bit RGBA PNG reader and writer, because `Spark.Viewport` takes no UI dependency and a golden
+image nobody can open is not a golden image.
+
+**No new CI job, and that is the result rather than a shortcut.** It is an ordinary xunit test, so
+`dotnet test Spark.slnx` already runs it on both legs on every push. A bespoke workflow would have
+been a second thing to keep working.
+
+**Proven to fail before it was trusted.** One lighting coefficient moved by 0.1% — `0.60` to
+`0.601` — and the check reported *3,415 pixels differ (4.45% of 320x240). Worst is 1/255 at
+(200, 53): expected rgba(150, 158, 171, 255), got rgba(151, 158, 171, 255).* That is the smallest
+change the renderer can express, and it is caught and described. On failure it also writes the
+render and an **amplified difference map** beside the golden, which is `E11-T11`'s complaint —
+a bare hash mismatch tells you nothing — answered for images.
+
+**`SPARK_UPDATE_GOLDEN=1` rewrites the golden and then fails anyway**, deliberately. A check that
+silently rewrites its own expectation when it disagrees is a check that cannot fail, and this
+project has already paid for two of those ([N19](NOTES.md), [N20](NOTES.md)).
+
+**One real change to the renderer came out of writing the test.** The specular term used
+`MathF.Pow(x, 40)`. `Pow` is transcendental and its last bit is **not** guaranteed identical
+across runtimes and platforms — and the whole premise here is that the bytes are the bytes. It is
+now seven float multiplications by repeated squaring, which is IEEE-exact everywhere and happens
+also to be faster. That is a determinism requirement wearing an optimisation's clothes, and the
+method says so.
+
+**What is honestly still unverified, written into the failure message rather than left to be
+rediscovered.** `PrimitiveMeshes.Sphere` and `Camera.OffsetDirection` use `MathF.Sin` and
+`MathF.Cos` to build the scene's own vertices, and those are not guaranteed bit-identical across
+platforms either. The golden was produced on Windows; **whether the Linux leg agrees has been
+reasoned about and never observed**, because there is no Linux here. If it goes red there with
+nothing changed, the failure message says what to look at and how to tell that case from a real
+regression: a small difference concentrated on the sphere is the platform, a large or scattered
+one is not.
+
+**A scare that was not a bug, worth recording because the next reader will see it too.** The first
+golden showed the sphere as a white wireframe with what looked like ground grid visible through
+it. A probe settled it in one run: 576 triangles, normals present, centre pixel `rgba(0.40, 0.42,
+0.455)` at depth 0.994. It renders. `PrimitiveMeshes.Sphere` emits 360 near-white edge segments,
+and at fifty pixels across they dominate the dark shaded surface behind them. The scene was then
+rearranged so the sphere straddles the selected box, which makes the depth test visible rather
+than merely present.
+
+**`M5` is finished.** The software renderer, headless thumbnails and the CI visual regression were
+the three things it still owed. `E9-T7` (parallel streamed tessellation), `E9-T8` (picking) and
+`E9-T9` (selection sync) remain open in `E9` and are M2-era viewport work rather than M5's.
+
+**Verified.** Build clean at 0 warnings. `Viewport.Tests` 95 → 101. Full suite **1,805**, 0 failed,
+0 skipped. The golden was opened and looked at before it was committed, twice — the first version
+was rejected.

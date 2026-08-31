@@ -29,8 +29,10 @@ namespace Spark.Viewport.Software;
 /// IEEE 754 implementations may still differ, and this backend exists to produce the same bytes
 /// everywhere. <i>Two:</i> lines are drawn by a DDA walk rather than by GL's diamond-exit rule, so
 /// a diagonal line may differ from the GPU's by a pixel. <i>Three:</i> there is no multisampling.
-/// None of the three affects a software-against-software comparison, which is the only comparison
-/// that is ever made.
+/// <i>Four:</i> the specular exponent is evaluated by repeated squaring rather than by
+/// <c>pow</c>, because <c>pow</c> is transcendental and its last bit is not guaranteed identical
+/// across runtimes, where seven float multiplications are. None of the four affects a
+/// software-against-software comparison, which is the only comparison that is ever made.
 /// </para>
 /// <para>
 /// Not thread-safe, in common with every <see cref="IViewportRenderer"/>. Render from one thread.
@@ -431,7 +433,7 @@ public sealed class SoftwareViewportRenderer : IViewportRenderer
             + (0.16f * MathF.Max(Vector3.Dot(n, fill), 0f));
 
         Vector3 halfway = Vector3.Normalize(key + v);
-        float specular = MathF.Pow(MathF.Max(Vector3.Dot(n, halfway), 0f), 40f) * 0.22f;
+        float specular = PowFortieth(MathF.Max(Vector3.Dot(n, halfway), 0f)) * 0.22f;
 
         r = MathF.Min((surface.R * lambert) + specular, 1f);
         g = MathF.Min((surface.G * lambert) + specular, 1f);
@@ -632,6 +634,28 @@ public sealed class SoftwareViewportRenderer : IViewportRenderer
         col0 = LerpColour(originalCol0, col1, enter);
         col1 = LerpColour(originalCol0, col1, exit);
         return true;
+    }
+
+
+    /// <summary>
+    /// <c>x</c> to the fortieth, by repeated squaring rather than <see cref="MathF.Pow"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Not an optimisation — a determinism requirement.</b> <see cref="MathF.Pow"/> is a
+    /// transcendental function whose last bit is not guaranteed to be identical on every runtime
+    /// and platform, and this renderer's output is compared byte for byte against an image
+    /// committed to the repository. Seven multiplications of IEEE 754 floats are exact and
+    /// identical everywhere, and <c>40 = 32 + 8</c> makes it seven. The exponent is the shader's
+    /// specular power; if that ever changes, this changes with it and the golden is regenerated.
+    /// </remarks>
+    private static float PowFortieth(float x)
+    {
+        float x2 = x * x;
+        float x4 = x2 * x2;
+        float x8 = x4 * x4;
+        float x16 = x8 * x8;
+        float x32 = x16 * x16;
+        return x32 * x8;
     }
 
     private static void Project(in Vector4 clip, int width, int height, out Vector2 screen, out float depth, out float inverseW)

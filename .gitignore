@@ -40,3 +40,7 @@ BenchmarkDotNet.Artifacts/
 
 # What the nightly's canvas step captures, and what a local run of it leaves behind.
 canvas.log
+
+# Visual regression artefacts. The golden is committed; what a failing run writes beside it is not.
+tests/corpus/viewport/*.actual.png
+tests/corpus/viewport/*.diff.png

@@ -7,7 +7,7 @@ order for what to do next is in [TODO.md](TODO.md); the requirements behind them
 **Last updated:** 2026-08-31 (D19 — the Help pass moves after 1.0; E10 recounted against the tree)
 **Legend:** `Done` · `In progress` · `Open` · `Blocked` · `Withdrawn`
 
-**Summary:** 135 done · 17 in progress · 106 open · 9 withdrawn — **267 rows**
+**Summary:** 136 done · 17 in progress · 105 open · 9 withdrawn — **267 rows**
 *(the previous revision's open count was 147 by arithmetic and 148 by the register; the register was right, and the four columns now add up to the total again.)*
 
 **This revision opens the marathon run to 1.0** — a resumable sequence of small verified steps, with
@@ -433,7 +433,7 @@ Everything else in this file is a plan, not a claim.
 | E9-T9 | Selection sync between canvas and viewport | Open | **The mechanism exists and nothing drives it.** `RenderPackage` carries `IsSelected` and the renderer honours it, but no canvas selection sets it. The row's claim that this falls out of node-keyed identity still holds; it has simply not been wired. **Falls out of node-keyed identity with no extra bookkeeping.** The `(NodeId, PortIndex, ElementPath)` tuple keys viewport buffers, selection, diagnostics and the watch panel alike — better than an object ID because it survives recomputation |
 | E9-T10 | Shaded display, edge display, `Appearance` application | Done | **Built in `85e3183`/`35107f0`.** |
 | E9-T11 | Headless thumbnail rendering | Done | **Built 2026-08-31.** `Spark.Viewport/Software/ThumbnailRenderer.cs` renders a scene to top-down RGBA with no window and no device, framing automatically when no camera is given and correcting a supplied camera's viewport size to the requested image — a camera framed for one aspect ratio and rendered at another crops silently. Nine tests. The same step wired the rasteriser into `ViewportControl` as the real GL-failure fallback and added **`--software-renderer`**, which is what makes the fallback reachable on purpose; verified by running the application and reading the PNG, not only by test. Found [N64](NOTES.md)
-| E9-T12 | CI visual regression through the software renderer | Open | |
+| E9-T12 | CI visual regression through the software renderer | Done | **Built 2026-08-31.** `tests/Spark.Viewport.Tests/VisualRegressionTests.cs` renders a fixed scene through `ThumbnailRenderer` and compares it byte for byte against `tests/corpus/viewport/reference-scene.png`. **No new CI job was needed and that is the point** — it is an ordinary test, so `dotnet test Spark.slnx` already runs it on both CI legs on every push. Failures print how many pixels moved, by how much and where, and write the render and an amplified difference map beside the golden (`E11-T11`'s complaint answered for images). `SPARK_UPDATE_GOLDEN=1` rewrites the golden and **fails anyway**, so a golden is never updated silently. **Proven to fail** by perturbing one lighting coefficient by 0.1%: 3,415 pixels differ, worst 1/255 at (200, 53). Needed a PNG codec — `Spark.Viewport/Software/PngImage.cs`, since `Spark.Viewport` takes no UI dependency — which also unlocks `spark render`
 
 ## E10 — Documentation
 

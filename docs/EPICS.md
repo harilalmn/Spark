@@ -810,7 +810,7 @@ unmaintained since around 2023 — a poor bet on a multi-year horizon.
 
 - [x] Everything goes through `IViewportRenderer`; no backend type escapes it (**E9-T1**).
 - [x] An OpenGL 3.3 core backend on Avalonia's `OpenGlControlBase` (**E9-T4**).
-- [ ] A software fallback that earns its place three ways: GL-init failures on VMs and RDP,
+- [x] A software fallback that earns its place three ways: GL-init failures on VMs and RDP,
       headless thumbnails, and **deterministic `spark render` for CI visual regression** —
       GPU output is not testable, software output is (**E9-T5**, **E9-T11**, **E9-T12**).
       *Two of the three are **done** as of 2026-08-31. The rasteriser's determinism is asserted
@@ -819,9 +819,11 @@ unmaintained since around 2023 — a poor bet on a multi-year horizon.
       back to software when no OpenGL context arrives, and **`--software-renderer`** reaches that
       path deliberately, which is both the answer to "the viewport is black on my virtual machine"
       and the only way the fallback gets photographed rather than assumed. **What is still owed is
-      the CI job, `E9-T12`.** The fallback cost one real defect on the way in — [N64](NOTES.md),
-      where two backends shared one capture flag and `--screenshot` photographed the CPU frame
-      while reporting the GL driver.*
+      **all three are done as of 2026-08-31.** The fallback cost one real defect on the way in —
+      [N64](NOTES.md), where two backends shared one capture flag and `--screenshot` photographed
+      the CPU frame while reporting the GL driver. The regression check needed no new CI job: it
+      is an ordinary test, so it runs on both legs on every push, and it was proven to fail before
+      it was trusted.*
 - [x] Geometry reaches the viewport as immutable `RenderPackage` records, one GPU buffer set
       per `(NodeId, PortIndex)`, so re-evaluating one node re-uploads one buffer
       (**E9-T3**, **E9-T6**).
@@ -847,9 +849,9 @@ The seam, the scene, the camera, `RenderPackage`, the GL backend and one buffer 
 `(NodeId, PortIndex)` are all in, and any `Curve` is drawn from its own tessellation at a display
 tolerance derived from the curve's size rather than from the kernel's 1e-6 default.
 
-Still open: the software renderer, parallel streamed tessellation, picking through the ray
-caster, headless thumbnails and CI visual regression. **Selection sync is `Open` with its
-mechanism already present** — `RenderPackage` carries `IsSelected` and the renderer honours it;
+**The software renderer, headless thumbnails and CI visual regression all landed on 2026-08-31**,
+which is what M5 was owed. Still open: parallel streamed tessellation (`E9-T7`) and picking
+through the ray caster (`E9-T8`). **Selection sync is `Open` with its mechanism already present** — `RenderPackage` carries `IsSelected` and the renderer honours it;
 nothing sets it from the canvas (`E9-T9`).
 
 ---
