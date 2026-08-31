@@ -4,7 +4,9 @@ Spark.Nodes.Core.BoundingBox
 Spark.Nodes.Core.Circle
 Spark.Nodes.Core.Colour
 Spark.Nodes.Core.Curve
+Spark.Nodes.Core.DateAndTime
 Spark.Nodes.Core.Display
+Spark.Nodes.Core.Duration
 Spark.Nodes.Core.Ellipse
 Spark.Nodes.Core.Line
 Spark.Nodes.Core.ListNodes
@@ -45,7 +47,26 @@ static Spark.Nodes.Core.Curve.TangentAtParameter(Spark.Geometry.Curve! curve, do
 static Spark.Nodes.Core.Curve.Tessellate(Spark.Geometry.Curve! curve, double tolerance = 0.001) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
 static Spark.Nodes.Core.Curve.Translate(Spark.Geometry.Curve! curve, Spark.Geometry.Vector3d direction, double distance = 1) -> Spark.Geometry.Curve!
 static Spark.Nodes.Core.Curve.TrimByParameter(Spark.Geometry.Curve! curve, double start = 0, double end = 1) -> Spark.Geometry.Curve!
+static Spark.Nodes.Core.DateAndTime.AddTimeSpan(System.DateTime dateTime, System.TimeSpan timeSpan) -> System.DateTime
+static Spark.Nodes.Core.DateAndTime.ByDateAndTime(int year = 1, int month = 1, int day = 1, int hour = 0, int minute = 0, int second = 0, int millisecond = 0) -> System.DateTime
+static Spark.Nodes.Core.DateAndTime.Components(System.DateTime dateTime, out int year, out int month, out int day, out int hour, out int minute, out int second, out int millisecond) -> void
+static Spark.Nodes.Core.DateAndTime.DayOfWeek(System.DateTime dateTime) -> string!
+static Spark.Nodes.Core.DateAndTime.DayOfYear(System.DateTime dateTime) -> int
+static Spark.Nodes.Core.DateAndTime.DaysInMonth(int year = 2000, int month = 1) -> int
+static Spark.Nodes.Core.DateAndTime.Format(System.DateTime dateTime, string! format = "s") -> string!
+static Spark.Nodes.Core.DateAndTime.FromString(string! text = "") -> System.DateTime
+static Spark.Nodes.Core.DateAndTime.IsLeapYear(int year = 2000) -> bool
+static Spark.Nodes.Core.DateAndTime.Now() -> System.DateTime
+static Spark.Nodes.Core.DateAndTime.SubtractTimeSpan(System.DateTime dateTime, System.TimeSpan timeSpan) -> System.DateTime
+static Spark.Nodes.Core.DateAndTime.Today() -> System.DateTime
 static Spark.Nodes.Core.Display.ByGeometryColour(object! geometry, Spark.Api.Rgba colour = default(Spark.Api.Rgba), double lineWeight = 1) -> Spark.Api.Displayable!
+static Spark.Nodes.Core.Duration.ByDateDifference(System.DateTime start, System.DateTime end) -> System.TimeSpan
+static Spark.Nodes.Core.Duration.Components(System.TimeSpan timeSpan, out int days, out int hours, out int minutes, out int seconds, out int milliseconds) -> void
+static Spark.Nodes.Core.Duration.Create(int days = 0, int hours = 0, int minutes = 0, int seconds = 0, int milliseconds = 0) -> System.TimeSpan
+static Spark.Nodes.Core.Duration.TotalDays(System.TimeSpan timeSpan) -> double
+static Spark.Nodes.Core.Duration.TotalHours(System.TimeSpan timeSpan) -> double
+static Spark.Nodes.Core.Duration.TotalMinutes(System.TimeSpan timeSpan) -> double
+static Spark.Nodes.Core.Duration.TotalSeconds(System.TimeSpan timeSpan) -> double
 static Spark.Nodes.Core.Ellipse.ByPlaneRadii(Spark.Geometry.Plane plane, double xRadius = 2, double yRadius = 1) -> Spark.Geometry.EllipseCurve!
 static Spark.Nodes.Core.Ellipse.ByPlaneRadiiAngles(Spark.Geometry.Plane plane, double xRadius, double yRadius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.EllipseCurve!
 static Spark.Nodes.Core.Line.ByStartPointDirectionLength(Spark.Geometry.Point3d start, Spark.Geometry.Vector3d direction, double length = 1) -> Spark.Geometry.Line!

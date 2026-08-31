@@ -4,7 +4,7 @@ Every task, its epic, and its state. Epics are described in [EPICS.md](EPICS.md)
 order for what to do next is in [TODO.md](TODO.md); the requirements behind them are in
 [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-01 (E6-T18 to E6-T21 and E8-T24 added)
+**Last updated:** 2026-09-01 (E4-T13, E6-T18 to E6-T21 and E8-T24 added)
 **Legend:** `Done` · `In progress` · `Open` · `Blocked` · `Withdrawn`
 
 **Summary:** 173 done · 15 in progress · 69 open · 2 deferred · 9 withdrawn — **267 rows**
@@ -330,6 +330,7 @@ Everything else in this file is a plan, not a claim.
 | E4-T10 | Per-element failure isolation | Done | **Built in `7ef0919`, as a direct transcription of the specification written before it.** Element 37 of 500 throwing leaves the rest evaluated, slot 37 `null`, and the node emitting a **Warning** naming the failing indices — not an Error. The fast path runs uncaught until the first failure, then restarts with catching enabled, so the happy path pays nothing |
 | E4-T11 | `[NoReplication]` and `[KeepStructure]` | Done | **Built in `7ef0919`, as a direct transcription of the specification written before it.** |
 | E4-T12 | Turn the lacing case table into the test corpus | Done | **Built in `7ef0919`, and it earned its keep immediately.** `LacingCorpusCoverageTests` parses the specification's own case numbers and fails if the corpus and the document name different sets in **either** direction. It found two errors in the specification: cases 29 and 30 expected `[11,22,32]` where repeating the short input's last element gives 23, and case 45 and the worked example both already said 23. Each row asserts the expected value **and the expected rank separately** — rank bugs are precisely the ones that survive value-only tests |
+| E4-T13 | Date and time nodes | Done | **Asked for directly, against Dynamo's set.** Nineteen nodes: `DateTime.Now`, `Today`, `ByDateAndTime`, `Components`, `FromString`, `Format`, `AddTimeSpan`, `SubtractTimeSpan`, `DayOfWeek`, `DayOfYear`, `DaysInMonth`, `IsLeapYear`, and `TimeSpan.Create`, `ByDateDifference`, `Components`, `TotalDays`, `TotalHours`, `TotalMinutes`, `TotalSeconds`. **The part that is about Spark rather than about `System.DateTime` is the cache**: the evaluation cache is keyed by provenance, and `DateTime.Now` has no inputs, so without `[NodeSideEffect]` its key never changes - it is computed once and every later run serves the first answer, a clock stopped at the moment it was placed with nothing on screen to say so. Both clock nodes declare it and a test asserts they do; the mechanism itself is already proven in `EvaluationTests` with a pure control beside it. Formatting and parsing are **invariant**, because a graph is a document that gets opened on other people's machines and `03/04/2026` is two different days. `Components` is the library's first use of `out` parameters for multiple output ports, which the importer supported and nothing shipped had exercised |
 
 ## E5 — Node authoring and library
 
