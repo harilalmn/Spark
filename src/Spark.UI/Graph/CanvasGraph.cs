@@ -37,6 +37,17 @@ public enum CanvasNodeState
     /// nothing wrong with it.
     /// </summary>
     NotEvaluated = 16,
+
+    /// <summary>
+    /// Frozen: deliberately skipped (<c>E7-T14</c>). Drawn like <see cref="NotEvaluated"/> and
+    /// given a <c>‖</c> glyph instead of <c>○</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The same desaturation, a different mark.</b> Both mean <i>this did not run</i>, so they
+    /// share the treatment that says so; only one of them is something the user asked for, and a
+    /// user who cannot tell which is which on the canvas will go looking for a fault they created.
+    /// </remarks>
+    Frozen = 32,
 }
 
 /// <summary>Identifies one port on one node, by the node's slot on the canvas.</summary>
@@ -1024,7 +1035,8 @@ public sealed class CanvasGraph
             {
                 NodeState.Error or NodeState.Cycle => CanvasNodeState.Error,
                 NodeState.Warning => CanvasNodeState.Warning,
-                NodeState.NotEvaluated => CanvasNodeState.NotEvaluated,
+                NodeState.Frozen => CanvasNodeState.Frozen | CanvasNodeState.NotEvaluated,
+                NodeState.UpstreamFrozen or NodeState.NotEvaluated => CanvasNodeState.NotEvaluated,
                 _ => CanvasNodeState.None,
             };
 

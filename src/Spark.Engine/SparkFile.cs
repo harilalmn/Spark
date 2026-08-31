@@ -299,6 +299,14 @@ public static class SparkFile
         writer.WriteString("id", Format(node.Id));
         writer.WriteString("key", node.Key.Value);
         writer.WriteString("lacing", node.Lacing.ToString());
+
+        // Written only when true. A graph nobody has frozen anything in therefore saves exactly as
+        // it did before freezing existed, which is what keeps E7-T7's byte-for-byte round trip an
+        // assertion about every file rather than about files written by this build.
+        if (node.Frozen)
+        {
+            writer.WriteBoolean("frozen", value: true);
+        }
         writer.WriteNumber("x", node.X);
         writer.WriteNumber("y", node.Y);
 
@@ -426,7 +434,10 @@ public static class SparkFile
             }
         }
 
-        return new GraphDocumentNode(id, nodeKey, lacing, x, y, literals, script);
+        bool frozen = element.TryGetProperty("frozen", out JsonElement frozenElement)
+            && frozenElement.ValueKind == JsonValueKind.True;
+
+        return new GraphDocumentNode(id, nodeKey, lacing, x, y, literals, script, frozen);
     }
 
     private static GraphLiteral ReadLiteral(JsonElement element)

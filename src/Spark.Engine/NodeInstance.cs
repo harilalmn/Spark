@@ -44,6 +44,16 @@ public sealed class NodeInstance
     public LacingMode Lacing { get; internal set; }
 
     /// <summary>
+    /// Whether this node is frozen: deliberately skipped during evaluation (<c>E7-T14</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Freezing is a property of the instance, not of the definition.</b> Two nodes of the same
+    /// kind in one graph are frozen independently, because what a user is switching off is a
+    /// branch of their own document rather than a kind of operation.
+    /// </remarks>
+    public bool IsFrozen { get; internal set; }
+
+    /// <summary>
     /// The lacing this instance actually replicates with: <see cref="Lacing"/> unless it is
     /// <see cref="LacingMode.Auto"/>, in which case the definition's default. This is the value the
     /// node's tooltip shows, so that two nodes both reading "Auto" and behaving differently is

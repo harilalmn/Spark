@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 06:05 +0530
+**Last updated:** 2026-09-01 07:40 +0530
 **Protocol version:** 2
 
 ---
@@ -16,13 +16,13 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
+| **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E7-T2` closes — every package test passed, and no real package could be installed.** The load context probed only the package root while `dotnet pack` writes `lib/{tfm}/` ([N77](NOTES.md)). Fixed with `FrameworkReducer`, then dependencies: the nearest framework group walked transitively, resolved to the **lowest version satisfying the range**, installed into `.deps/` inside the package's own folder ([N78](NOTES.md)). **The disclosure lists what will actually be installed, with versions.** Verified with a package genuinely produced by `dotnet pack`. |
+| **Last completed step** | **`E7-T14`, and `E7` closes — freezing a branch.** Frozen nodes are skipped and everything downstream with them; **`Frozen` and `UpstreamFrozen` are states of their own**, because one of them is something the user asked for. Reported once, as information, on the node that was frozen. A group freezes together. The flag is written only when true, so an ordinary graph saves the bytes it always did. **Every row in `E7` is now `Done`.** |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E7-T14`, freeze, and `E7` closes.** Every other row in the epic is `Done`. Freeze means deciding what in the package surface is now a promise — the manifest schema, the `tools/spark.json` shape, the node key format `Package/Name`, the `.deps` layout, the contract assembly list — and writing that down where a package author will read it, because after 1.0 a change to any of them breaks somebody's published package. **The authoring path is worth documenting at the same time**: this step proved it works by writing a `.csproj`, a `tools/spark.json` and running `dotnet pack`, and nothing in the repository tells anybody how. After that **M8/`E12`** is all that is left before 1.0: embedding, installer, portable zip, release workflow, performance and accessibility. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**2010** over **nine** projects: Geometry.Tests 763, UI.Tests 528, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 71**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **M8 / `E12`, which is all that is left before 1.0.** Read `E12` in [EPICS.md](EPICS.md) and `docs/TODO.md` before choosing, because the rows differ in kind: **embedding** (`SparkSession` is already Avalonia-free, so this is about proving it from a host rather than building it), **the installer and the portable zip**, **the release workflow**, and the **performance and accessibility passes**. `E12-T18`'s About box is already done. **Then the Help pass**, which `D19` deferred until after 1.0 and which `docs/TODO.md#after-10--the-help-pass` describes. **Three things still need a human and no amount of further work substitutes** — see *Blocked on*. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**2027** over **nine** projects: Geometry.Tests 763, UI.Tests 536, Engine.Tests 423, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 71**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T18`'s About box was on this list and should not have been** — it needed a dialog, which is code, and it is done. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3953,3 +3953,59 @@ budget** that measured 344 ms on a machine running three test processes. It is d
 
 **Verified.** Build clean at 0 warnings. `Packages.Tests` 58 -> 71. Suite **2,010** over nine
 projects, 0 failed, 0 skipped. `dotnet format` clean.
+
+### 2026-09-01 — `E7-T14`, and `E7` closes: freezing a branch
+
+**What.** `NodeInstance.IsFrozen`, `NodeState.Frozen` and `NodeState.UpstreamFrozen`, `SPK1070`, a
+**Freeze** button, a help section, and seventeen tests. **Every row in `E7` is now `Done`.**
+
+**The previous entry guessed this row wrong and the journal caught it.** It read `E7-T14` as
+freezing the *package API* and wrote a whole plan for documenting a compatibility promise. The row
+is `Groups, notes and freeze`: *freezing a node or group skips it; downstream reports upstream
+frozen, not an error*. Reading the row before starting cost a minute; the plan built on the guess
+would have cost an afternoon and delivered the wrong thing.
+
+**Frozen is a state of its own, not a reuse of not-evaluated.** Both mean *this did not run*, so
+they share the desaturation and the dashed outline that say so. Only one of them is something the
+user asked for, and a canvas that greyed them identically would leave somebody hunting a fault they
+created on purpose. So a frozen node carries `‖` where a merely unevaluated one carries `○`.
+
+**Reported once, on the node that was frozen, as information.** Not a warning: freezing is
+deliberate, and a graph full of yellow for a state somebody chose teaches them to ignore the colour
+that means something is wrong. Not on every node downstream either — that is the fifty-error wall
+`NotEvaluated` already exists to avoid, and it would be worse here because the user made it happen.
+
+**A group freezes together**, which is what the row title pairs freeze with groups for. A group is
+the user's own statement that these nodes are one thing; leaving half of it running gives a branch
+that is neither on nor off. The button also decides freeze-or-unfreeze by **all**, not by majority:
+a mixed selection freezes, so pressing twice always ends with everything frozen and then everything
+thawed.
+
+**The flag is written only when true.** A graph nobody has frozen anything in saves exactly the
+bytes it saved before freezing existed, which keeps `E7-T7`'s byte-for-byte round trip an assertion
+about every file rather than about files this build wrote. A test asserts the word `frozen` does not
+appear in an ordinary graph.
+
+**One thing the screenshot found.** `--freeze N` applied in `OnOpened` did nothing visible: adopting
+the graph starts an evaluation, freezing afterwards starts a second, and the capture photographed
+whichever landed first — which was the unfrozen one, every time. The freeze now happens in the view
+model **before the graph is adopted**, so there is one evaluation rather than a race to wait out. A
+probe printing `froze 9 of 9` is what separated *the flag is not being set* from *the picture is
+stale*; without it the obvious conclusion was the wrong one.
+
+**And the diagnostics harness earned its place again.** `EveryDeclaredCodeResolvesToAHelpTopic`
+failed the moment `SPK1070` existed, so the code points at `concepts.evaluation`, and that topic
+gained a section on freezing — what it is for, what the two marks mean, what happens to a group, and
+four questions with answers.
+
+**Verified by running it.** `--freeze 2` on the demo graph: the two `Number.Range` nodes desaturated
+and marked `‖`, the three nodes downstream desaturated and marked `○`, two `Information SPK1070`
+lines naming them, **Ran 3 rather than 7**, and an empty viewport — while `Colour.ByRgb`,
+`Number.Value` and `Vector.ZAxis`, which are not downstream of anything frozen, still ran.
+
+**Verified.** Build clean at 0 warnings. `Engine.Tests` 414 -> 423, `UI.Tests` 528 -> 536. Suite
+**2,027** over nine projects, 0 failed, 0 skipped. `dotnet format` clean.
+
+**`E7` is complete.** A package can be found on nuget.org, read, installed, used and removed; a
+graph missing one opens unharmed and says so; a local DLL can be referenced without locking it; and
+a branch can be switched off. What is left before 1.0 is **M8 / `E12`**.

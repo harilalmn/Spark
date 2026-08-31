@@ -29,6 +29,10 @@ namespace Spark.Engine;
 /// block's ports depend on what the user typed, so its definition cannot be looked up in a library
 /// and has to be rebuilt from this when the file is opened.
 /// </param>
+/// <param name="Frozen">
+/// Whether the node is frozen (<c>E7-T14</c>). Written only when true, so a file containing no
+/// frozen nodes is byte-for-byte what it was before freezing existed.
+/// </param>
 public sealed record GraphDocumentNode(
     NodeId Id,
     NodeKey Key,
@@ -36,7 +40,8 @@ public sealed record GraphDocumentNode(
     double X,
     double Y,
     IReadOnlyList<GraphLiteral> Literals,
-    string? Script = null);
+    string? Script = null,
+    bool Frozen = false);
 
 /// <summary>One wire in a `.spark` file.</summary>
 /// <param name="Source">The node the wire leaves.</param>
@@ -388,7 +393,8 @@ public sealed class GraphDocument
                 x,
                 y,
                 literals,
-                instance.Definition.Script));
+                instance.Definition.Script,
+                instance.IsFrozen));
         }
 
         List<GraphDocumentWire> wires =
@@ -473,6 +479,7 @@ public sealed class GraphDocument
                 definition = NodeDefinition.FromScript(scripts.Create(source), source);
                 graph.AddNode(definition, node.Id);
                 graph.SetLacing(node.Id, node.Lacing);
+                _ = graph.SetFrozen(node.Id, node.Frozen);
 
                 foreach (GraphLiteral literal in node.Literals)
                 {
@@ -501,6 +508,7 @@ public sealed class GraphDocument
 
             graph.AddNode(definition, node.Id);
             graph.SetLacing(node.Id, node.Lacing);
+            _ = graph.SetFrozen(node.Id, node.Frozen);
 
             foreach (GraphLiteral literal in node.Literals)
             {

@@ -35,6 +35,27 @@ public enum NodeState
     /// this, and the rest of the graph still evaluates.
     /// </summary>
     Cycle = 4,
+
+    /// <summary>
+    /// The node is frozen, so it was deliberately not run (<c>E7-T14</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Distinct from <see cref="NotEvaluated"/>, and the distinction is the whole feature.</b>
+    /// Not evaluated means <i>something upstream produced nothing</i>; frozen means <i>you asked
+    /// for this</i>. A user who froze an expensive branch and then saw it greyed the same way a
+    /// broken one is would have no way to tell the two apart on the canvas.
+    /// </remarks>
+    Frozen = 5,
+
+    /// <summary>
+    /// The node was not run because something upstream of it is frozen (<c>E7-T14</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Not an error, and it carries no diagnostic of its own.</b> The frozen node reports itself
+    /// once; repeating it on every node downstream would be the fifty-error wall that
+    /// <see cref="NotEvaluated"/> exists to avoid, for a situation the user created on purpose.
+    /// </remarks>
+    UpstreamFrozen = 6,
 }
 
 /// <summary>

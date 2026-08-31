@@ -89,6 +89,7 @@ public static class DiagnosticCodes
         [DuplicateReplicationGuide] = LacingTopic,
         [LongestEmptyPropagated] = LacingTopic,
         [NodeThrewAtDepthZero] = LacingTopic,
+        [NodeFrozen] = EvaluationTopic,
         [KernelUnavailable] = SolidsTopic,
         [KernelRefused] = SolidsTopic,
         [MalformedGraphFile] = FileTopic,
@@ -129,6 +130,18 @@ public static class DiagnosticCodes
     /// The help topic for anything about saving and opening a graph.
     /// </summary>
     public const string FileTopic = "concepts.files";
+
+    /// <summary>
+    /// A node is frozen, so it and everything downstream of it were not evaluated
+    /// (<c>E7-T14</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Information, not a warning.</b> Freezing is something the user did on purpose, and a
+    /// graph full of yellow for a state somebody chose would teach them to ignore the colour that
+    /// means something is wrong. It is reported at all because a branch that silently stopped
+    /// producing geometry is the kind of thing people spend an afternoon on.
+    /// </remarks>
+    public const string NodeFrozen = "SPK1070";
 
     /// <summary>
     /// A `.spark` file is not valid JSON, is not a graph, or is missing something it must have.

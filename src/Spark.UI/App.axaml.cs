@@ -32,6 +32,7 @@ public sealed class App : Application
             // Before the view model is constructed, because it loads installed packages there and
             // an organisation's feed is not a setting that can arrive afterwards.
             MainWindowViewModel.PackageSource = Options.PackageSource;
+            MainWindowViewModel.FreezeFirst = Options.FreezeFirst;
 
             desktop.MainWindow = new MainWindow
             {

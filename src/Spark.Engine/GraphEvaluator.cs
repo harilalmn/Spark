@@ -107,6 +107,25 @@ public static class GraphEvaluator
             _cancellationToken.ThrowIfCancellationRequested();
 
             NodeInstance node = _graph.Node(id);
+
+            // A frozen node is skipped and says so once. Everything downstream then finds no
+            // output and is marked UpstreamFrozen without a diagnostic of its own, which is the
+            // same rule an error follows: the cause is reported where it is, not fifty times.
+            if (node.IsFrozen)
+            {
+                Fail(
+                    id,
+                    NodeState.Frozen,
+                    DiagnosticCodes.Create(
+                        DiagnosticSeverity.Information,
+                        DiagnosticCodes.NodeFrozen,
+                        $"'{node.Definition.DisplayName}' is frozen, so it was not evaluated and "
+                        + "nothing downstream of it ran. Unfreeze it to bring the branch back.")
+                        .WithNode(id.Value));
+
+                return;
+            }
+
             int inputCount = node.Definition.Inputs.Count;
 
             object?[] arguments = new object?[inputCount];
@@ -124,7 +143,10 @@ public static class GraphEvaluator
                 // not blamed: the error is one node back, and saying so fifty times would bury it.
                 if (!TryReadUpstream(wire, out object? value, out CacheKey upstreamKey))
                 {
-                    MarkNotEvaluated(id);
+                    // Why it produced nothing is worth keeping, because *frozen* is something the
+                    // user chose and *errored* is not, and a canvas that greyed both identically
+                    // would make a deliberate act look like a fault.
+                    MarkSkipped(id, IsFrozenSide(wire.Source));
                     return;
                 }
 
@@ -187,6 +209,25 @@ public static class GraphEvaluator
             {
                 _states[id] = state;
                 _diagnostics.Add(diagnostic);
+            }
+        }
+
+        /// <summary>Marks a node that could not run, recording whether a freeze is the reason.</summary>
+        private void MarkSkipped(NodeId id, bool frozenUpstream)
+        {
+            lock (_gate)
+            {
+                _states[id] = frozenUpstream ? NodeState.UpstreamFrozen : NodeState.NotEvaluated;
+            }
+        }
+
+        /// <summary>Whether the node a wire comes from is frozen, or is downstream of one.</summary>
+        private bool IsFrozenSide(NodeId source)
+        {
+            lock (_gate)
+            {
+                return _states.TryGetValue(source, out NodeState state)
+                    && state is NodeState.Frozen or NodeState.UpstreamFrozen;
             }
         }
 

@@ -74,6 +74,11 @@ namespace Spark.UI;
 /// at all. It exists for the same reason as <c>--about-window</c>: a window whose install
 /// disclosure lays out wrongly still passes every test that only reads the text it would show.
 /// </param>
+/// <param name="FreezeFirst">
+/// How many of the graph's leading nodes to freeze at startup (<c>--freeze N</c>), or zero. Aimed
+/// at the screenshot path for the same reason <c>--collapse</c> is: the gesture is a button, a
+/// button needs a click, and a click is the one thing a headless run cannot do.
+/// </param>
 /// <param name="CollapseFirst">
 /// How many of the graph's leading nodes to select and collapse into a custom node at startup
 /// (<c>--collapse N</c>), or zero. Aimed at the screenshot path: the gesture is a button, a button
@@ -99,6 +104,7 @@ public readonly record struct StartupOptions(
     string? PackageQuery = null,
     string? PreparePackage = null,
     string? ReferenceAssembly = null,
+    int FreezeFirst = 0,
     int CollapseFirst = 0)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
@@ -186,6 +192,7 @@ public readonly record struct StartupOptions(
         string? packageSource = null;
         string? preparePackage = null;
         string? referenceAssembly = null;
+        int freezeFirst = 0;
         int collapseFirst = 0;
 
         for (int i = 0; i < args.Length; i++)
@@ -254,6 +261,10 @@ public readonly record struct StartupOptions(
 
                     break;
 
+                case "--freeze" when i + 1 < args.Length:
+                    freezeFirst = ParseCount(args[++i], 0);
+                    break;
+
                 case "--collapse" when i + 1 < args.Length:
                     collapseFirst = ParseCount(args[++i], 0);
                     break;
@@ -281,7 +292,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, collapseFirst);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst);
     }
 
     private static int ParseCount(string text, int fallback) =>

@@ -191,6 +191,39 @@ public sealed partial class MainWindow : Window
 
     private void OnOpenHelp(object? sender, RoutedEventArgs e) => OpenHelp();
 
+    /// <summary>
+    /// Freezes the selection, or thaws it when all of it is already frozen (<c>E7-T14</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>The button says which it will do before it is pressed.</b> A toggle labelled *Freeze*
+    /// that sometimes unfreezes is a button whose effect a user cannot predict, and freezing is
+    /// exactly the kind of thing somebody does while looking at something else.
+    /// </remarks>
+    private void OnFreezeSelection(object? sender, RoutedEventArgs e)
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        _ = model.FreezeSelection(Canvas.Selection, !model.SelectionIsFrozen(Canvas.Selection));
+
+        UpdateFreezeButton();
+        UpdateStatus();
+    }
+
+    /// <summary>Enables the freeze button for the selection there is, and names what it will do.</summary>
+    private void UpdateFreezeButton()
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        FreezeButton.IsEnabled = Canvas.Selection.Count > 0;
+        FreezeButton.Content = model.SelectionIsFrozen(Canvas.Selection) ? "Unfreeze" : "Freeze";
+    }
+
     private void OnOpenPackages(object? sender, RoutedEventArgs e) => OpenPackages();
     private void OnDismissMissing(object? sender, RoutedEventArgs e) => MissingBanner.IsVisible = false;
 
@@ -506,6 +539,7 @@ public sealed partial class MainWindow : Window
         AlignButton.IsEnabled = selected >= CanvasAlignment.MinimumToAlign;
         GroupButton.IsEnabled = Canvas.CanGroupSelection();
         CollapseButton.IsEnabled = Canvas.CanCollapseSelection();
+        UpdateFreezeButton();
         DistributeHorizontally.IsEnabled = selected >= CanvasAlignment.MinimumToDistribute;
         DistributeVertically.IsEnabled = selected >= CanvasAlignment.MinimumToDistribute;
     }

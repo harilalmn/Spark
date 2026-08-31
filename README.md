@@ -300,6 +300,13 @@ from outside becomes an input, anything read from outside becomes an output, and
 named after the ports they attach to. The definition is an ordinary graph in an ordinary file
 (`.sparkcustom`), so you can open it and edit it like anything else.
 
+**Select some nodes and press *Freeze*** to switch a branch off. Frozen nodes are skipped when the
+graph runs, and so is everything downstream of them — which is what you want when one branch is
+slow and you are working on another. The nodes keep their wires, their values and their positions,
+the freeze is saved with the file, and Spark reports it **once**, as information rather than as a
+problem. Freezing a node in a group freezes the group, because a group is your own statement that
+those nodes are one thing.
+
 **Press F1 for help.** With a node selected it opens that node's reference page — what it takes,
 what it returns, what each port means and how it laces; with nothing selected it opens the index of
 every node currently loaded. The node pages are **generated from the nodes themselves at the moment
@@ -357,10 +364,10 @@ to it on its own** when no OpenGL context arrives; the switch exists so the fall
 reached deliberately, which is what a support conversation needs and what lets the path be
 photographed and checked rather than trusted.
 
-The suite is **2,010 tests** across nine projects. `Spark.Geometry.Tests` (763) and
+The suite is **2,027 tests** across nine projects. `Spark.Geometry.Tests` (763) and
 `Spark.Geometry.Properties` (43) cover the kernel by example and by CsCheck property
-respectively; `Spark.Engine.Tests` (414) covers the graph, the replicator and the importer;
-`Spark.UI.Tests` (528) drives the canvas headlessly with real pointer gestures;
+respectively; `Spark.Engine.Tests` (423) covers the graph, the replicator and the importer;
+`Spark.UI.Tests` (536) drives the canvas headlessly with real pointer gestures;
 `Spark.Viewport.Tests` (108) covers the scene, the camera and the software rasteriser;
 `Spark.Geometry.Occt.Tests` (63) drives the OpenCascade provider and **skips itself** when the
 native shim is absent; `Spark.Packages.Tests` (71) installs real packages from real feeds;

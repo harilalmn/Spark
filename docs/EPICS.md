@@ -698,6 +698,10 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       crossing **source**, not per crossing wire — one node feeding three inner ports is one
       value arriving. Verified in the running application: the viewport is byte-identical before
       and after.*
+- [x] Freezing a node or a group skips it, and downstream reports **upstream frozen**, not an
+      error (**E7-T14**). *Built 2026-09-01. `Frozen` and `UpstreamFrozen` are states of their
+      own rather than reuses of `NotEvaluated`, because one of them is something the user asked
+      for and the other is not. Reported once, on the node that was frozen, as information.*
 - [x] Recursion is refused at save **and** at load, with the containment path reported
       (**E7-T13**). *Both sides done 2026-08-31. The load side catches a file that arrived
       recursive; the save side catches one being made recursive, which in practice means a
@@ -706,17 +710,24 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       needs no format migration (**E7-T15**). *Reserved 2026-08-31, with a test asserting it round
       trips although nothing reads it — which is the whole point of reserving it.*
 
-**Status.** Substantially built 2026-08-31. **A package can be searched for on nuget.org,
-inspected, installed and used, and its nodes unloaded again** — which is this epic's goal sentence.
-The load layer and the preservation guarantee came first: `PackageIdentity`, `ContractAssemblies` and `PackageLoadContext`, with twelve tests
-covering isolation, shared contract identity, side-by-side versions and collectible unloading.
-Placeholders followed the same day: a graph naming a package that is not installed now opens, keeps
-every key, literal and wire, and **re-saves byte for byte** — which is `E7`'s headline promise and
-is asserted rather than asserted-to. Custom nodes followed: `.sparkcustom` is the graph format plus one object, ports are drawn rather
-than declared, and recursion is refused at build time with the containment path named. Still
-absent: the NuGet client, the manifest convention, the install banner, the trust store, local DLL
-references and the package manager UI — which is to say, everything that needs a network.
-Everything that does not is built.
+**Status.** **Complete 2026-09-01.** Every row in this epic is `Done`. **A package can be searched
+for on nuget.org, inspected, installed and used, and its nodes unloaded again** — which is this
+epic's goal sentence, and it is now true through the application rather than only through the API.
+
+The load layer and the preservation guarantee came first: `PackageIdentity`, `ContractAssemblies`
+and `PackageLoadContext`. Placeholders followed: a graph naming a package that is not installed
+opens, keeps every key, literal and wire, and **re-saves byte for byte**, and it now says which
+package is missing and offers to find it. Custom nodes: `.sparkcustom` is the graph format plus one
+object, ports are drawn rather than declared, recursion refused with the containment path named.
+
+Then the network half: a NuGet client, the manifest convention, prepare-then-commit so **the
+disclosure precedes the decision**, a trust store keyed per version, and a manager window a person
+can use. Local DLL references arrived with `E7-T9`, read and loaded **without locking**, so a user
+can rebuild their library while Spark is open. `E7-T2` closed last, and it began by finding that
+**no package built by `dotnet pack` could load at all** — see [N77](NOTES.md).
+
+Freeze is the odd row out and belongs to the graph rather than to packages, but it is here and it
+is done: frozen nodes are skipped, downstream says *upstream frozen*, and neither is an error.
 
 ---
 

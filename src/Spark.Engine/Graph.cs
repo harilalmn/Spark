@@ -333,6 +333,32 @@ public sealed class Graph
     }
 
     /// <summary>
+    /// Freezes or unfreezes a node, marking it and everything downstream dirty (<c>E7-T14</c>).
+    /// </summary>
+    /// <param name="id">The node identity.</param>
+    /// <param name="frozen">True to skip it during evaluation.</param>
+    /// <returns>True when the flag changed.</returns>
+    /// <exception cref="KeyNotFoundException">No node has that identity.</exception>
+    /// <remarks>
+    /// <b>Unfreezing has to dirty the same set freezing did.</b> Everything downstream was left
+    /// unevaluated while the node was frozen, so their cached values — if any survived from
+    /// before — describe a graph that no longer exists.
+    /// </remarks>
+    public bool SetFrozen(NodeId id, bool frozen)
+    {
+        NodeInstance node = _nodes[id];
+
+        if (node.IsFrozen == frozen)
+        {
+            return false;
+        }
+
+        node.IsFrozen = frozen;
+        MarkDirty(id);
+        return true;
+    }
+
+    /// <summary>
     /// Sets the literal value on an unwired input port, marking the node and everything downstream
     /// dirty.
     /// </summary>

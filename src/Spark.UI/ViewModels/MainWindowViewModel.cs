@@ -62,6 +62,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// </remarks>
     public static string? PackageSource { get; set; }
 
+    /// <summary>
+    /// How many of the startup graph's leading nodes to freeze (<c>--freeze N</c>), or zero.
+    /// </summary>
+    /// <remarks>
+    /// <b>Applied before the graph is adopted, and that is why it is here rather than in the
+    /// window.</b> Adopting a graph starts an evaluation; freezing afterwards starts a second one,
+    /// and the screenshot path photographs whichever landed first — which was the unfrozen
+    /// run every time. Freezing before the only evaluation removes the race rather than waiting
+    /// it out.
+    /// </remarks>
+    public static int FreezeFirst { get; set; }
+
     private readonly HashSet<GeometryKey> _published = [];
     private readonly DocumentHistory _history = new();
     private EvaluationResult? _lastResult;
@@ -286,6 +298,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 : string.Equals(startupGraph, "solids", StringComparison.OrdinalIgnoreCase)
                 ? DemoGraphs.Solids(_session.Library)
                 : DemoGraphs.Demo(_session.Library));
+        for (int slot = 0; slot < FreezeFirst && slot < _graph.Nodes.Count; slot++)
+        {
+            _ = _graph.Engine.SetFrozen(_graph.Nodes[slot].Id, frozen: true);
+        }
+
         AdoptGraph(_graph);
 
         if (failure is not null)
@@ -1175,6 +1192,109 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
             _ = customs;
         }
+    }
+
+    /// <summary>
+    /// Freezes or unfreezes the selected nodes, and every node in a group any of them is in
+    /// (<c>E7-T14</c>).
+    /// </summary>
+    /// <param name="selection">The selected canvas slots.</param>
+    /// <param name="frozen">True to freeze, false to unfreeze.</param>
+    /// <returns>How many nodes changed.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="selection"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Selecting one node of a group freezes the group</b>, which is what the row pairs freeze
+    /// with groups for. A group is the user's own statement that these nodes are one thing; leaving
+    /// half of it running would produce a branch that is neither on nor off.
+    /// </para>
+    /// <para>
+    /// <b>Whether it is a freeze or an unfreeze is decided by the caller, not inferred here.</b> A
+    /// toggle over a mixed selection has no correct answer, and guessing produces a button whose
+    /// effect a user cannot predict before pressing it.
+    /// </para>
+    /// </remarks>
+    public int FreezeSelection(IReadOnlyCollection<int> selection, bool frozen)
+    {
+        ArgumentNullException.ThrowIfNull(selection);
+
+        HashSet<NodeId> targets = [];
+
+        foreach (int slot in selection)
+        {
+            if (slot < 0 || slot >= _graph.Nodes.Count)
+            {
+                continue;
+            }
+
+            NodeId id = _graph.Nodes[slot].Id;
+            targets.Add(id);
+
+            foreach (CanvasGroup group in _graph.Groups)
+            {
+                if (group.Members.Contains(id))
+                {
+                    foreach (NodeId member in group.Members)
+                    {
+                        targets.Add(member);
+                    }
+                }
+            }
+        }
+
+        int changed = 0;
+
+        foreach (NodeId id in targets)
+        {
+            if (_graph.Engine.TryGetNode(id, out _) && _graph.Engine.SetFrozen(id, frozen))
+            {
+                changed++;
+            }
+        }
+
+        if (changed > 0)
+        {
+            _ = EvaluateAsync();
+        }
+
+        return changed;
+    }
+
+    /// <summary>
+    /// Whether every node the selection would reach is already frozen (<c>E7-T14</c>).
+    /// </summary>
+    /// <param name="selection">The selected canvas slots.</param>
+    /// <returns>True when the gesture should offer to unfreeze rather than to freeze.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="selection"/> is null.</exception>
+    /// <remarks>
+    /// <b>Every, not any.</b> A mixed selection offers <i>freeze</i>, so pressing the button twice
+    /// always ends with everything frozen and then everything thawed — which is predictable,
+    /// where a majority rule is not.
+    /// </remarks>
+    public bool SelectionIsFrozen(IReadOnlyCollection<int> selection)
+    {
+        ArgumentNullException.ThrowIfNull(selection);
+
+        bool any = false;
+
+        foreach (int slot in selection)
+        {
+            if (slot < 0 || slot >= _graph.Nodes.Count)
+            {
+                continue;
+            }
+
+            if (!_graph.Engine.TryGetNode(_graph.Nodes[slot].Id, out NodeInstance? node)
+                || node is null
+                || !node.IsFrozen)
+            {
+                return false;
+            }
+
+            any = true;
+        }
+
+        return any;
     }
 
     /// <summary>

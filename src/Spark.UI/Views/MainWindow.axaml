@@ -77,6 +77,8 @@
         <Button Classes="toolbar" Content="Collapse to node" Click="OnCollapseSelection"
                 x:Name="CollapseButton"
                 ToolTip.Tip="Replace the selected nodes with one custom node" />
+        <Button Classes="toolbar" Content="Freeze" Click="OnFreezeSelection" x:Name="FreezeButton"
+                ToolTip.Tip="Skip the selected nodes when the graph runs" />
 
         <Button Classes="toolbar" Content="Align ▾" x:Name="AlignButton">
           <Button.Flyout>

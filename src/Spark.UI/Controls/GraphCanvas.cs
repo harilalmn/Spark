@@ -2179,6 +2179,13 @@ public sealed class GraphCanvas : Control
             return "⚠";
         }
 
+        // Frozen before not-evaluated: a frozen node carries both, and the one worth showing is
+        // the one the user chose. Nothing else distinguishes them once both are desaturated.
+        if (state.HasFlag(CanvasNodeState.Frozen))
+        {
+            return "‖";
+        }
+
         return state.HasFlag(CanvasNodeState.NotEvaluated) ? "○" : null;
     }
 

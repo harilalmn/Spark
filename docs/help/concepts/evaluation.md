@@ -104,6 +104,43 @@ doing a single very long operation stops when that operation finishes.
 Everything already computed stays in the cache, so resuming after a cancel is cheap: the work
 already done is not repeated.
 
+## Freezing a branch
+
+Select some nodes and press **Freeze**. Frozen nodes are skipped when the graph runs, and so is
+everything downstream of them.
+
+This is for the case where one branch of a graph is slow and you are working on another. Rather
+than deleting the slow part and putting it back, you switch it off and leave it exactly where it
+is: the nodes keep their wires, their values and their positions, and the file saves with the
+freeze recorded, so it is still frozen when you open it tomorrow.
+
+**Frozen nodes are greyed and carry a `""" + chr(0x2016) + """` mark.** Nodes downstream of them are greyed as well and carry
+a `""" + chr(0x25CB) + """`, the same mark any node gets when it did not run. Spark reports the freeze **once**, on
+the node you froze, as information rather than as a problem:
+
+```text
+SPK1070  Number.Range
+'Number.Range' is frozen, so it was not evaluated and nothing downstream of it ran.
+Unfreeze it to bring the branch back.
+```
+
+Nothing downstream reports anything of its own. One frozen node at the head of a long branch would
+otherwise fill the diagnostics pane with fifty copies of a situation you created on purpose.
+
+**Freezing a node in a group freezes the whole group.** A group is your own statement that those
+nodes are one thing, and leaving half of it running would give you a branch that is neither on nor
+off.
+
+Press **Unfreeze** to bring it back. The button says which of the two it will do before you press
+it, and it offers to unfreeze only when everything selected is already frozen.
+
+| Question | Answer |
+|---|---|
+| Does a frozen node keep its last value? | No. It produces nothing, and downstream produces nothing. |
+| Does freezing change the file? | Yes """ + D + """ the flag is saved, so the freeze survives reopening. A graph with nothing frozen saves exactly as it did before. |
+| Does a frozen node still show errors? | No. It did not run, so it has nothing to report. |
+| Can I freeze part of a group? | No. Selecting one member freezes all of them. |
+
 ## What this does not cover
 
 - **How a node handles a list** — that is replication, and it has its own topic:
