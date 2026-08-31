@@ -655,7 +655,10 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       graph's own usage is the only evidence of the node's shape. It throws rather than returning
       null: a graph that quietly produced a value downstream of a missing package would compute a
       confident wrong answer, which is the one outcome worse than not computing. **The banner
-      offering one-click install is still owed** and waits on `E7-T2` and `E7-T10`.*
+      landed 2026-09-01**: it reads the package ids off the placeholders, so it clears itself once
+      they resolve, and it opens the manager searching rather than installing — installing
+      from a banner would skip the disclosure, which is the one screen where a user decides to run
+      somebody else's code.*
 - [x] Install shows publisher, downloads, licence, signature status, transitive
       dependencies, node count, and **whether the package contains native binaries** —
       users deserve to know when the no-native-dependencies promise is being broken on

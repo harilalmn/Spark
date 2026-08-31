@@ -32,7 +32,7 @@
     to keep honest when one function owns the mapping.
   -->
 
-  <Grid RowDefinitions="Auto,*,Auto">
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
 
     <!-- Toolbar. E2 chips on bg.void; the active workspace carries an accent bottom bar as well
          as a pressed fill, because colour is never the only carrier of meaning. -->
@@ -123,9 +123,26 @@
       </WrapPanel>
     </Border>
 
-    <dock:DockControl Grid.Row="1" x:Name="Shell" />
+    <!--
+      The missing-package banner (E7-T6). Collapsed unless a graph was opened that names a package
+      this machine does not have. It sits between the toolbar and the workspace rather than inside
+      the diagnostics pane because the pane can be hidden, and this is the one message a user needs
+      before they start wondering why their graph does nothing.
+    -->
+    <Border Grid.Row="1" x:Name="MissingBanner" IsVisible="False"
+            Background="{DynamicResource SparkSurfaceRaisedBrush}" Padding="12,8">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Classes="toolbar" Content="Dismiss" Click="OnDismissMissing" />
+        <Button DockPanel.Dock="Right" Classes="toolbar" x:Name="MissingInstallButton"
+                Content="Find it" Click="OnInstallMissing" Margin="0,0,8,0" />
+        <TextBlock x:Name="MissingBannerText" VerticalAlignment="Center" TextWrapping="Wrap"
+                   Foreground="{DynamicResource SparkTextPrimaryBrush}" />
+      </DockPanel>
+    </Border>
 
-    <Border Grid.Row="2" Classes="chrome" Padding="10,4">
+    <dock:DockControl Grid.Row="2" x:Name="Shell" />
+
+    <Border Grid.Row="3" Classes="chrome" Padding="10,4">
       <TextBlock Classes="caption" Text="{Binding StatusText}" />
     </Border>
   </Grid>

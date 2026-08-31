@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 03:10 +0530
+**Last updated:** 2026-09-01 04:30 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E7-T9` — local DLL references, and a claim that was two claims.** Path plus SHA-256, so a rebuild re-prompts; a watcher that offers and never reloads; a **Local assemblies** tab. **The row's *never locks it* is two claims** — compiling against a file and loading it are separate handles, and only the first was safe. A script that compiled and then failed to load is fixed by resolving from bytes on `Resolving` ([N73](NOTES.md)). Also [N75](NOTES.md): the catalogue promised an import it could fail to reference. |
+| **Last completed step** | **`E7-T6` closes — the banner, and two tests that lied under load.** A graph naming an uninstalled package opens, keeps every node and wire, saves back byte for byte, and now **says which package is missing and offers to find it**. The ids are read off the placeholders, so the banner clears itself. It searches rather than installs, because installing from a banner would skip the disclosure. [N76](NOTES.md): two earlier tests asserted more than the code promises and only said so in a parallel run. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **Close `E7`.** Two rows left and both are small. **`E7-T6`'s remaining half**: the placeholder node's banner offering one-click install, which now has the manager it was waiting for — the placeholder already keeps the `NodeKey`, so the banner knows exactly which package to name. **`E7-T2`'s remaining half**: dependency resolution, walking a package's own NuGet dependencies rather than installing it alone. Then **`E7-T14`, freeze**. After that `E7` closes and **M8/`E12`** is everything left before 1.0: embedding, installer, portable zip, release workflow, performance and accessibility. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1992** over **nine** projects: Geometry.Tests 763, UI.Tests 523, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 58**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E7-T2`'s remaining half: dependency resolution.** Installing a package currently installs **that package alone**; one declaring NuGet dependencies gets none of them, and the failure is a `TypeLoadException` at first use naming an assembly the user never heard of. The disclosure already reads and shows the dependency list, so the information is in hand — what is missing is walking it, resolving versions, and installing into the same folder the load context probes. **Decide and record whether each dependency is disclosed on its own line**, because agreeing to one package should not silently agree to five. Then `E7-T14`, **freeze**, and `E7` closes. After that **M8/`E12`** is all that is left before 1.0. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1997** over **nine** projects: Geometry.Tests 763, UI.Tests 528, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 58**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T18`'s About box was on this list and should not have been** — it needed a dialog, which is code, and it is done. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3848,3 +3848,49 @@ in amber, *rebuilt — reload to use it*, and **not compiled against**. Restored
 prompt itself photographed, naming the file, the folder, the SHA-256, and saying plainly that the
 code will run with the user's full permissions. Build clean at 0 warnings. `UI.Tests` 499 -> 523.
 Suite **1,992** over nine projects, 0 failed, 0 skipped. `dotnet format` clean.
+
+### 2026-09-01 — `E7-T6` closes: the banner, and two tests that lied under load
+
+**What.** `MainWindowViewModel.MissingPackages()`, a banner strip between the toolbar and the
+workspace, five tests, and the last of `E7-T6`. **A graph naming a package this machine does not
+have now opens, says so, and offers to go and get it.**
+
+**The ids are read off the placeholders rather than remembered from the load.** A placeholder keeps
+the original `NodeKey` verbatim — that is the guarantee the whole row is built on — so the package
+a user has to install is written on the node. Recomputing also means the banner clears itself once
+the package is installed and the nodes resolve: there is nothing to invalidate and nothing to get
+wrong.
+
+**It searches rather than installs, and the row's *one-click install* survives that.** Installing
+straight from a banner would skip the disclosure, which is the one screen where a user decides
+whether to run somebody else's code. One click gets them to the package with the answer in front of
+them; the click after it is the agreement.
+
+**A first reading of this step was wrong, and the journal recorded the correction before the code
+did.** I wrote that a placeholder does not look like one, because its category string `Missing` is
+unknown to `NodeCategoryNames.Parse` and falls through to `Custom`. It does look like one: a
+placeholder throws when invoked, so evaluation marks it `Error` and the canvas draws the red ring
+and the glyph it draws for anything that cannot run. The screenshot shows six of them. **A
+`Missing` category colour would have been wrong anyway** — Principle 4 says a category fill must
+never be read as a state, and *missing* is a state. The design language already had the answer.
+
+**[N76](NOTES.md): two tests written earlier in this run asserted more than the code promises**, and
+both said so only under load — one run in three and one in six, in the full parallel suite, which is
+the worst shape a failure can have because it looks like a regression somewhere else. One asserted
+that removing a package always deletes its folder, which removal cannot promise and already said it
+could not. The other compared two reference catalogues built moments apart, which is a fact about
+what the process had loaded rather than about the fingerprint. Both now assert what the code
+actually guarantees.
+
+**And one real improvement came out of the first.** `PackageStore.Uninstall` retries the delete for
+up to 200ms, because unmapping lags the collection that freed it: a single attempt could fail, or
+half-succeed and leave a folder with some of its files gone.
+
+**Verified by running it.** `docs/examples/solids.spark` repointed at a package that does not
+exist: it opens, twenty-six nodes and twenty-seven wires all present, six placeholders ringed in
+red, the diagnostics naming `SPK1046` and the package, and the banner reading *This graph uses
+nodes from 'Acme.Nodes', which is not installed. Those nodes are kept exactly as they were and the
+file will save unchanged*, with **Find Acme.Nodes** beside it. A test asserts the same file saves
+back byte for byte. Build clean at 0 warnings. `UI.Tests` 523 -> 528. Suite **1,997** over nine
+projects, 0 failed, 0 skipped, and the UI suite run **eight times** to confirm the flakes are gone.
+`dotnet format` clean.

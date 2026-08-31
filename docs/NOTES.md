@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N63-N75 added)
+**Last updated:** 2026-09-01 (N63-N76 added)
 
 ---
 
@@ -2057,3 +2057,31 @@ in the namespace 'Spark'* on a line they did not write.
 each with a comment about the message it produces. `Spark.Api` and `Spark.Geometry` are now added
 the same way. **Anything the prelude names must be referenced by name, not hoped for**, because the
 sweep is an optimisation and the prelude is a promise.
+
+## N76 — Two tests that asserted more than the code promises, and both said so only under load
+
+Both landed green in isolation and failed one run in three or one in six in a full parallel suite,
+which is the worst shape a test can have: it looks like a regression somewhere else.
+
+**`RemovingTakesTheNodesBackOutOfTheLibrary` asserted the package folder was always deleted.**
+Removal cannot promise that. It purges the library — which it *can* promise, and which is the half
+a user sees on the canvas — and then tries to delete files whose load context may not have finished
+unloading. The method already reported that honestly and offered a restart; the test simply did not
+believe it. It now asserts the purge unconditionally, and the folder **or** the restart message.
+
+Two real improvements came out of it. `PackageStore.Uninstall` now retries the delete for up to
+200ms, because unmapping lags the collection that freed it — a single attempt could fail, or worse
+half-succeed and leave a folder with some of its files gone. And `PackageBrowserViewModel.Remove`
+collects in a bounded loop rather than once ([N72](NOTES.md)).
+
+**`TheFingerprintMovesWithTheReferences` compared two catalogues built moments apart.** A catalogue
+is a sweep of what the process has loaded, and the other tests in the assembly load assemblies
+while this one runs, so the two legitimately differ. It was asserting a fact about the process, not
+about the fingerprint. Adding a warm-up did not fix it and could not have. It now asserts that one
+catalogue's fingerprint is stable while its references are, which is the property a cache key
+actually needs, and the test's own name is still what it checks.
+
+**The pattern worth remembering**: when a test asserts a *consequence* of best-effort machinery
+rather than the machinery's own guarantee, it passes until the machine is busy. Both of these were
+written by the same hand in the same sitting, and both were caught only by running the suite eight
+times in a row rather than once.

@@ -307,6 +307,12 @@ you ask for them**, so they describe what is actually installed rather than what
 down once, and a node that arrives in a package has help as soon as it loads. Alongside them are the
 hand-written concept topics from `docs/help/`, and the search box covers both.
 
+**Open somebody else's graph without their package and nothing breaks.** The nodes that cannot be
+resolved are kept exactly as they were — every literal, every wire — and the file saves
+back byte for byte, so you can pass it on without having damaged it. Those nodes carry the same red
+ring as any node that cannot run, the diagnostics say which package is missing, and a banner across
+the top names it and offers to find it.
+
 **Press *Packages* to add nodes somebody else wrote.** Spark searches nuget.org for packages
 tagged `spark`, and `--package-source` points it at an organisation's own feed, a network share or
 a folder instead. **Nothing is installed until you have read what it is.** Choosing a package
@@ -346,10 +352,10 @@ to it on its own** when no OpenGL context arrives; the switch exists so the fall
 reached deliberately, which is what a support conversation needs and what lets the path be
 photographed and checked rather than trusted.
 
-The suite is **1,992 tests** across nine projects. `Spark.Geometry.Tests` (763) and
+The suite is **1,997 tests** across nine projects. `Spark.Geometry.Tests` (763) and
 `Spark.Geometry.Properties` (43) cover the kernel by example and by CsCheck property
 respectively; `Spark.Engine.Tests` (414) covers the graph, the replicator and the importer;
-`Spark.UI.Tests` (523) drives the canvas headlessly with real pointer gestures;
+`Spark.UI.Tests` (528) drives the canvas headlessly with real pointer gestures;
 `Spark.Viewport.Tests` (108) covers the scene, the camera and the software rasteriser;
 `Spark.Geometry.Occt.Tests` (63) drives the OpenCascade provider and **skips itself** when the
 native shim is absent; `Spark.Packages.Tests` (58) installs real packages from real feeds;

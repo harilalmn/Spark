@@ -159,7 +159,13 @@ public sealed class ScriptCacheAndSourceMapTests : IDisposable
         ReferenceCatalog catalogue = new();
         string before = catalogue.Fingerprint;
 
-        Assert.Equal(before, new ReferenceCatalog().Fingerprint);
+        // Stable while the references are, which is the property a cache key needs. It is asserted
+        // on one catalogue rather than by comparing two, because two catalogues built at different
+        // moments legitimately differ: a catalogue is a sweep of what the process has loaded, and
+        // the other tests in this assembly load assemblies while this one runs. Comparing two was
+        // a one-in-six failure in a full run and told the truth about the process, not about the
+        // fingerprint.
+        Assert.Equal(before, catalogue.Fingerprint);
 
         // A *copy* under a new path, because the catalogue is built from what this process has
         // already loaded - adding an assembly that is already in it changes nothing, correctly.

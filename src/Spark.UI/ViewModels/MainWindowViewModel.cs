@@ -1007,6 +1007,41 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// The packages this graph needs and this machine does not have (<c>E7-T6</c>).
+    /// </summary>
+    /// <returns>Each package id once, in the order the nodes appear, or empty.</returns>
+    /// <remarks>
+    /// <b>Read from the placeholders themselves rather than remembered from the load.</b> A
+    /// placeholder keeps the original <c>NodeKey</c> verbatim — that is the guarantee the whole
+    /// row is built on — so the package a user has to install is written on the node. Recomputing
+    /// also means the banner goes away by itself once a package is installed and the nodes resolve,
+    /// with nothing to invalidate.
+    /// </remarks>
+    public IReadOnlyList<string> MissingPackages()
+    {
+        List<string> found = [];
+
+        foreach (CanvasNode node in _graph.Nodes)
+        {
+            if (!_graph.Engine.TryGetNode(node.Id, out NodeInstance? instance)
+                || instance is null
+                || !PlaceholderNode.IsPlaceholder(instance.Definition))
+            {
+                continue;
+            }
+
+            string package = instance.Definition.Key.Package;
+
+            if (!string.IsNullOrWhiteSpace(package) && !found.Contains(package, StringComparer.Ordinal))
+            {
+                found.Add(package);
+            }
+        }
+
+        return found;
+    }
+
     /// <summary>The node key at a canvas slot, or null when the slot is not a node.</summary>
     /// <param name="slot">The canvas slot index.</param>
     /// <returns>The key as <c>Package/Name</c>, or null.</returns>

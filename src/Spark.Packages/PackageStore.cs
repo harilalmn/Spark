@@ -144,17 +144,30 @@ public sealed class PackageStore
             return false;
         }
 
-        try
+        // Retried briefly, because unmapping lags the collection that freed it. A caller that has
+        // just unloaded the package's context and collected until its weak reference died can
+        // still find the .dll mapped for a few milliseconds afterwards, and a single attempt then
+        // fails - or worse, half-succeeds and leaves a folder with some files gone. This was a
+        // one-in-three failure under a parallel test run before the retry.
+        for (int attempt = 0; ; attempt++)
         {
-            Directory.Delete(folder, recursive: true);
-            return true;
-        }
-        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException)
-        {
-            throw new SparkPackageException(
-                $"'{identity}' could not be removed, most likely because it is loaded. "
-                + "Restart Spark and try again.",
-                failure);
+            try
+            {
+                Directory.Delete(folder, recursive: true);
+                return true;
+            }
+            catch (Exception failure) when (failure is IOException or UnauthorizedAccessException)
+            {
+                if (attempt >= 9)
+                {
+                    throw new SparkPackageException(
+                        $"'{identity}' could not be removed, most likely because it is loaded. "
+                        + "Restart Spark and try again.",
+                        failure);
+                }
+
+                System.Threading.Thread.Sleep(20);
+            }
         }
     }
 

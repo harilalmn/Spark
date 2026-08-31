@@ -192,6 +192,71 @@ public sealed partial class MainWindow : Window
     private void OnOpenHelp(object? sender, RoutedEventArgs e) => OpenHelp();
 
     private void OnOpenPackages(object? sender, RoutedEventArgs e) => OpenPackages();
+    private void OnDismissMissing(object? sender, RoutedEventArgs e) => MissingBanner.IsVisible = false;
+
+    /// <summary>
+    /// Opens the package manager already searching for the package the banner names
+    /// (<c>E7-T6</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>It searches rather than installs, and the row's phrase <i>one-click install</i> is still
+    /// honoured by that.</b> Installing straight from a banner would skip the disclosure, which is
+    /// the one screen where a user decides whether to run somebody else's code. One click gets them
+    /// to the package with the answer in front of them; the click after it is the agreement.
+    /// </remarks>
+    private void OnInstallMissing(object? sender, RoutedEventArgs e)
+    {
+        if (Model is not { } model || model.MissingPackages() is not { Count: > 0 } missing)
+        {
+            return;
+        }
+
+        if (model.Packages() is { } packages)
+        {
+            packages.Query = missing[0];
+        }
+
+        OpenPackages();
+
+        if (_packages is not null)
+        {
+            _ = _packages.Model.SearchAsync();
+        }
+    }
+
+    /// <summary>
+    /// Shows or hides the missing-package banner for whatever graph is now on the canvas.
+    /// </summary>
+    /// <remarks>
+    /// Recomputed rather than remembered, so the banner goes away by itself once the package is
+    /// installed and the nodes resolve. There is nothing to invalidate and nothing to get wrong.
+    /// </remarks>
+    private void UpdateMissingBanner()
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        IReadOnlyList<string> missing = model.MissingPackages();
+
+        MissingBanner.IsVisible = missing.Count > 0;
+
+        if (missing.Count == 0)
+        {
+            return;
+        }
+
+        MissingInstallButton.Content = "Find " + missing[0];
+
+        MissingBannerText.Text = missing.Count == 1
+            ? $"This graph uses nodes from '{missing[0]}', which is not installed. "
+                + "Those nodes are kept exactly as they were and the file will save unchanged."
+            : $"This graph uses nodes from {missing.Count} packages that are not installed: "
+                + string.Join(", ", missing)
+                + ". Those nodes are kept exactly as they were and the file will save unchanged.";
+    }
+
 
     /// <summary>
     /// Runs the startup feed search and, when one was named, prepares that package so its
@@ -527,6 +592,7 @@ public sealed partial class MainWindow : Window
         }
 
         UpdateStatus();
+        UpdateMissingBanner();
     }
 
     private async void OnSaveGraph(object? sender, RoutedEventArgs e)
@@ -671,6 +737,7 @@ public sealed partial class MainWindow : Window
         }
 
         UpdateStatus();
+        UpdateMissingBanner();
 
         if (Options.IsBenchmark)
         {
