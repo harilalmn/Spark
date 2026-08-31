@@ -1232,10 +1232,21 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
       **D11**. This reverses what an earlier revision of this epic said, and the two questions
       it left open about `Spark.Host` and `Spark.Engine` are answered by the reversal rather
       than settled on their own terms.*
-- [ ] A self-contained single-file ReadyToRun Windows build, a **signed** Inno Setup
-      installer, and a portable zip (**E12-T8**, **E12-T9**, **E12-T10**).
-- [ ] The release workflow refuses to publish when the computed version and the tag disagree
-      (**E12-T11**).
+- [x] A Windows build with its publishing options **decided rather than assumed**
+      (**E12-T8**). *Answered 2026-09-01 by **D21**, and the answer is three answers.
+      Self-contained and single-file: no, on the relink obligation. ReadyToRun: no, and not
+      for a licence reason at all — measured at +43.3 MB on the CLI and +60.5 MB on the
+      desktop for no startup difference either time. The reversible one of the three.*
+- [x] A portable zip (**E12-T10**). *Built 2026-09-01, and written by hand rather than with
+      `Compress-Archive` so its bytes — and therefore its checksum — survive a
+      rebuild.*
+- [ ] A **signed** Inno Setup installer (**E12-T9**). *Needs an identity to sign with; a
+      script cannot invent one.*
+- [x] The release workflow refuses to publish when the computed version and the tag disagree
+      (**E12-T11**). *Built 2026-09-01. The failure it exists for is one line of YAML: a
+      shallow checkout has no tags, MinVer stamps 0.0.0-alpha.0, and the workflow publishes it
+      under a real-looking name. Both branches were run against this repository, which has no
+      tags and fails the gate exactly as designed.*
 - [x] A performance pass before 1.0 (**E12-T12**). *Done 2026-09-01, and most of it was already
       done — evaluation, marshalling, the scene index and the canvas frame were budgeted and
       checked nightly. Measured: render pass 1.2-1.4 ms median at 2 000 nodes against a 16.7 ms
@@ -1256,10 +1267,16 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
       LGPL and exception texts shipped, prominent notice in About, README, installer and
       release notes, a source offer against a pinned tag, and any modification kept as a
       numbered patch file ([E13-T16](#e13--occt-provider), **R21**). *This constrains
-      **E12-T8**, which was written before the constraint existed. Nothing here is legal
-      advice; six questions are with counsel — **Q13**.*
+      **E12-T8**, which was written before the constraint existed, and which **D21** has now
+      answered on the two halves that are licence questions. Nothing here is legal advice; six
+      questions are with counsel — **Q13**.*
 
-**Status.** Not started.
+**Status.** **Substantially built 2026-09-01, and what is left is mostly errands.** The composition
+root, the host-thread scheduler, the CLI's `export` and `run`, the portable zip, the release gate, a
+runnable build from every push, the licence obligations and their guard, and both 1.0 passes are
+done. **What remains needs a person rather than a commit**: the signed installer needs an identity
+(`E12-T9`), and the CAD-host proof was moved past 1.0 by **D20** because Spark ships standalone and
+that row proves a second claim. `E12-T5`'s remaining verbs wait on nothing but themselves.
 
 ---
 

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 13:05 +0530
+**Last updated:** 2026-09-01 13:55 +0530
 **Protocol version:** 2
 
 ---
@@ -19,9 +19,9 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E12-T13` — an accessibility bar written as two checkable sentences.** Every gesture reachable without a mouse, every control named. Colour was already done; **`AutomationProperties` appeared nowhere**, and opening, saving and running had no keyboard path. Twenty-eight names, `Ctrl+O`/`Ctrl+S`/`F5`, and ten tests that read the markup as text — one of which exists only to stop the others passing on an empty match. **No screen reader was run, and the row says so.** |
+| **Last completed step** | **`E12-T8` — three words, three answers.** Self-contained and single-file stay refused on the relink obligation. **ReadyToRun was refused on a measurement instead**: +43.3 MB on the CLI and +60.5 MB on the desktop for **52 ms against 51 ms** and **2,032 ms against 2,035 ms**. Nothing, twice. `D21` records what the harness could not see, and notes that R2R is the reversible one. A row reading *blocked on counsel* when a third of it was blocked on nobody is now three answers. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E12-T8`, the last `E12` row that is engineering rather than an errand.** Its title names three things and they do not share a fate: **ReadyToRun** precompiles IL inside the same assemblies and does not touch OpenCascade, which is native and shipped beside them, so the relink obligation is untouched; **self-contained** and **single-file** are the ones [ADR-0020](adr/0020-occt-via-c-abi-shim.md) and `scripts/publish.ps1` already argue against, because a bundle that extracts to a temp directory does not obviously keep the libraries replaceable. So the row needs a **recorded decision splitting the three**, and then R2R measured against the 3.0 s startup recorded in [N82](NOTES.md) — if it does not move that number it is not worth the build time. **`Q13` item 2 asks counsel this exact question**, so the decision must say what it assumes and stay reversible. After that `E12` is done bar the errands, and what remains before 1.0 is the **Help pass** (`docs/TODO.md#after-10--the-help-pass`). **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Next action** | **`E12` is done bar the errands, so the next thing is the Help pass** — `docs/TODO.md#after-10--the-help-pass`, deferred there by `D19`. **Read `D19` before starting it**, because it names the trap: deferring made a **bulk write** certain, and a bulk write is exactly what `DocGenerator` was when it drifted. **The harness `D19` demanded already exists** — `E11-T2` compiles every fence, `E11-T3` executes every example graph, `E11-T4` and `E11-T5` check coverage both ways, `E11-T6` checks every `SPK` code has a topic — so the bulk write can begin. What exists today: **11 concept topics**, 115 node pages and 18 diagnostic pages generated from the live library, F1 context-sensitive, all searchable. What `D19` promised and has not delivered is the completeness pass over the concept topics. **What still needs a person and cannot be closed here:** `E12-T9`'s signing identity, `E13-T12`'s third-party viewer, and `Q13`'s counsel questions. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**2046** over **nine** projects: Geometry.Tests 763, UI.Tests 546, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 71**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
@@ -4274,3 +4274,48 @@ reads well aloud is a judgement a person makes with a screen reader running, and
 **Verified.** Build clean at 0 warnings. `UI.Tests` 536 -> 546. Suite **2,046** over nine projects,
 0 failed, 0 skipped. `dotnet format` clean. The shell photographed after the markup change, to
 confirm twenty-eight new attributes had not disturbed a single pixel of layout.
+
+### 2026-09-01 @ `E12-T8`: three words, three answers, and only two of them are about licensing
+
+**What.** `D21`, and a measurement that took twenty minutes and settled a row that had been open
+since the epic was written. No product code.
+
+**The row's title names three things and treats them as one.** *Self-contained single-file
+ReadyToRun Windows build.* Its note explains the LGPL relink obligation and concludes, reasonably,
+that the row is constrained — and a reader would take from it that **all three** are waiting
+on counsel. Only two are.
+
+**Self-contained and single-file: no, on the relink obligation.** OCCT's libraries have to stay
+unmodified and replaceable, and a bundle that extracts itself to a temporary directory does not
+obviously preserve that. `scripts/publish.ps1` has said so since it was written and was right to.
+
+**ReadyToRun: no, and it is not a licence question at all.** R2R precompiles IL inside the same
+managed assemblies; it never touches OpenCascade, which is native and sits beside them. So it was
+measurable, and it was measured rather than reasoned about:
+
+| | plain | ReadyToRun | |
+|---|---|---|---|
+| CLI size | 41.2 MB | 84.5 MB | **+105%** |
+| Desktop size | 172.7 MB | 233.2 MB | **+35%** |
+| `spark --version`, 7 runs | 52 ms | 51 ms | nothing |
+| Desktop launch to rendered shell, 5 runs | 2,032 ms | 2,035 ms | nothing |
+
+**Sixty megabytes for nothing, twice.**
+
+**What the measurement could not see, and `D21` says so rather than leaving it implied.** The
+desktop figure goes through the screenshot path, which waits for a full evaluation and then polls
+for a frame at 150 ms granularity, so **a JIT saving under about 150 ms is invisible to it**. Even
+granting one: 60 MB on a 225 MB payload for a tenth of a second is a poor trade, and `R15` already
+established that the payload is the framework-dependent publish rather than OpenCascade.
+
+**It is also the reversible one.** `PublishReadyToRun` is a single MSBuild property, so a no today
+costs nothing the day a better measurement arrives — which is exactly why it was worth
+answering now instead of leaving the row open beside two that genuinely are blocked.
+
+**The reason for splitting it is not tidiness.** A row that reads *blocked on counsel* when a third
+of it is blocked on nobody is a row that stays open for months for the wrong reason. The
+measurement cost less than the conversation about it would have.
+
+**Verified.** No product code changed. `publish.ps1` gained a paragraph saying why R2R is off, next
+to the switches that turn the other two off, because the reasoning belongs where somebody would
+otherwise turn it on. Build clean, `dotnet format` clean, suite unchanged at **2,046**.

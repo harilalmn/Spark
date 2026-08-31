@@ -15,6 +15,12 @@
     preserve that, and NativeAOT does not preserve it at all. See THIRD-PARTY-NOTICES.md and
     `E12-T8`. **Nothing here is legal advice.**
 
+    It also does not use ReadyToRun, and that one is NOT a licence question - R2R precompiles IL
+    inside the same assemblies and never touches OpenCascade, which is native and sits beside them.
+    It is left off because it was measured and does not pay: +43.3 MB on the CLI and +60.5 MB on
+    the desktop, for 51 ms against 52 ms and 2,035 ms against 2,032 ms. See D21. One MSBuild
+    property turns it on the day a better measurement says so.
+
 .PARAMETER Output
     Where to stage. Defaults to artifacts/publish/win-x64.
 
