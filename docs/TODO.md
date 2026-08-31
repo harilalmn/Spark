@@ -3,14 +3,17 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-31 (D19 — 1.0 first, then the Help; and the next-action task ID corrected)
+**Last updated:** 2026-08-31 (M5 closed; M7 started; the Help harness and the help system built)
 
-**M0, M1, M1.5, M2, M3 and M4 have landed; M5 is substantially done; and M6's provider is in.**
-The application opens, a graph evaluates, and geometry appears in the GPU viewport — curves,
-surfaces, meshes, and now **solids that are combined exactly**. `--graph solids` fuses a box to a
-cylinder, drills a hole through both, hollows a second box and rounds every edge of a third.
-`dotnet build --no-incremental -warnaserror`, the per-project test executables (**1,707 tests over
-eight projects**) and `dotnet format` are all clean on Windows as of 2026-08-31, with the native
+**M0 through M6 have all landed. M7 has started.** The application opens, a graph evaluates,
+and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
+combined exactly**. `--graph solids` fuses a box to a cylinder, drills a hole through both, hollows
+a second box and rounds every edge of a third. **F1 opens help for the selected node.** Selecting a
+node outlines its geometry in the viewport. A graph naming a package you do not have still opens,
+keeps everything, and re-saves byte for byte. A user can define a node by drawing a graph.
+
+`dotnet build --no-incremental -warnaserror`, the per-project test executables (**1,893 tests over
+nine projects**) and `dotnet format` are all clean on Windows as of 2026-08-31, with the native
 shim built and **nothing skipped**. **CI has not run since the provider landed**, and its Linux leg
 is now a question rather than a habit — see `Q15(c)`.
 
@@ -81,36 +84,51 @@ for anything else.
 
 ---
 
-## Now — M6 is finished; what is next, and what is waiting on a person
+## Where the run stands
 
-**M6 is done.** Solids can be combined, filleted, shelled, trimmed and exported to STEP; every
-`E13` row that is engineering is `Done`; and `M1.6`'s nine criteria are all answered, with `C2` —
-the only one that could have reopened ADR-0020 — passed. The evidence is in
-[JOURNAL.md](JOURNAL.md)'s entries for 2026-08-31 and against each row in [TASKS.md](TASKS.md).
+**M5 closed on 2026-08-31.** The software renderer, headless thumbnails and the CI visual
+regression — `E9-T5`, `E9-T11`, `E9-T12` — were the three things it still owed after
+being deferred past M6. Viewport output is now comparable between machines and therefore testable,
+and a fixed scene is diffed against a committed PNG on every test run.
 
 **The order to 1.0 is settled by [D19](PRD.md#13-decision-log): finish the product, then write the
-Help.** The end-user Help is **reordered, not descoped** — what that costs and what it must not
-break is [below](#after-10--the-help-pass), and the standing instruction in
+Help.** The end-user Help is **reordered, not descoped** — what that costs and what it must
+not break is [below](#after-10--the-help-pass), and the standing instruction in
 [AGENTS.md](../AGENTS.md#the-standing-instruction) is amended to match rather than left to be
 broken every step.
 
-**The next piece of work:**
+**D19 said the Help harness had to exist before any bulk writing, and it now does** — which
+is why several `E10` and `E11` rows are closed ahead of the pass they belong to. Every C# fence in
+the help compiles against the real API (`E11-T2`); every example graph is opened, evaluated and
+re-saved on every test run (`E11-T3`); every node resolves to a topic and every node named in a
+topic still exists (`E11-T4`, `E11-T5`); every `SPK####` code has a page (`E11-T6`). **The node and
+diagnostic reference pages are generated at runtime from the live library**, so they cannot drift
+from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-T13`).
 
-- [ ] **`E9-T5` — the software renderer.** Then **`E9-T11`** (headless thumbnails) and
-      **`E9-T12`** (CI visual regression), which are the two things it exists to make possible.
-      Deferred past M6 by decision on 2026-08-31, on the ground that it guards the viewport and
-      the viewport was not what M6 depended on. **It is now the largest thing M5 still owes**, and
-      it is what makes viewport output comparable across machines and therefore testable at all:
-      GPU output is not comparable, software output is
-      ([ADR-0014](adr/0014-opengl-viewport-with-software-fallback.md)).
-      **Corrected 2026-08-31:** the previous revision of this line, and the journal's *Next
-      action* with it, named **`E11-T16`** for this work. `E11-T16` is the **benchmark suite**,
-      which is `In progress` for unrelated reasons. The rows are `E9-T5`, `E9-T11` and `E9-T12`,
-      all `Open`.
-- [ ] **M7.** See [EPICS.md](EPICS.md).
-- [ ] **M8, and 1.0.** See [EPICS.md](EPICS.md) `E12`.
+## Now — what is next, in order
 
-**Waiting on a person, and no amount of further work substitutes:**
+- [ ] **`E7-T12` — collapse selection to custom node.** The engine half is built and tested:
+      `.sparkcustom` is the graph format plus an interface block, ports come from Input/Output
+      nodes placed in the definition graph, and recursion is refused at build time with the
+      containment path named (`E7-T11`, `E7-T13`, `E7-T15`). **What is missing is the gesture** "
+      + D + " take a selection, cut it out, and infer the interface from the wires that crossed the
+      boundary. `E7-T13`'s save-side refusal belongs with it, because collapse is what can build a
+      recursive definition by accident.
+- [ ] **The rest of M7, which is network-facing.** `E7-T1` (the package convention), `E7-T2` (the
+      NuGet client), `E7-T8` (trust and install disclosure), `E7-T9` (local DLLs with hot reload)
+      and `E7-T10` (the package manager UI). **The load layer underneath them is done and proven**:
+      one collectible context per package *version*, contract assemblies always shared, side-by-side
+      versions demonstrated (`E7-T3`, `E7-T4`).
+- [ ] **`E7-T5`'s purge half.** The unload mechanism is built and proven by weak reference; the
+      registries it has to empty do not exist until `E7-T2`.
+- [ ] **`E9-T7` and `E9-T8`** — parallel streamed tessellation, and picking through the
+      kernel's BVH ray caster. Both are M2-era viewport work rather than anything M5 owed.
+- [ ] **M8, and 1.0.** See [EPICS.md](EPICS.md) `E12`. Note how much of it needs a person rather
+      than a commit — the list below is most of the milestone.
+
+**Waiting on a person, and no amount of further work substitutes.** This is the honest shape of
+what remains: **three of these cannot be closed by writing code at all**, and two of them gate the
+release rather than a feature.
 
 - [ ] **`E13-T12`'s acceptance.** STEP output is checked by a round trip and by reading the file's
       own text — it names `CYLINDRICAL_SURFACE` and `ADVANCED_FACE` and never names `POLY_LOOP`.
