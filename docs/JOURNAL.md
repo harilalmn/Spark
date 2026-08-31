@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 23:55 +0530
+**Last updated:** 2026-08-31 06:20 +0530
 **Protocol version:** 2
 
 ---
@@ -16,14 +16,14 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1, M1.5, M2, M3 and M4 are done. M5 is substantially done** — surfaces, `NurbsSurface`, `Mesh`, tessellation, the shaded viewport and all four interchange formats landed 2026-08-31; the software renderer and CI visual regression (`E11-T16`) are **deferred past M6** deliberately. **M6 is open**: BRep and exact solid operations |
+| **Milestone** | **M1, M1.5, M2, M3 and M4 are done. M5 is substantially done** — the software renderer and CI visual regression (`E11-T16`) are **deferred past M6** deliberately. **M6 has its provider**: OpenCascade is installed, exact booleans, fillets, shelling and tessellation run end to end, and **M1.6 was taken — `M1.6-C2` passed and ADR-0020 stands** |
 | **Working on** | Nothing. Between steps, inside M6 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E2-T28`, the kernel seam** — `IBrepKernel`, `KernelResult<T>`, `BrepCapabilities`, residency that is *provably* lazy, an ambient `BrepKernel.Current`, eleven solid nodes and a help topic. The no-provider kernel tessellates an untrimmed shape and refuses everything else by name |
+| **Last completed step** | **The OpenCascade provider** — `native/spark_occt` (a C ABI with no C++ in its header, ~30 entry points, a C smoke test) and `Spark.Geometry.Occt` (`LibraryImport`, `SafeHandle` residency, `IBrepKernel`). Union, difference, intersection, extrude, revolve, loft, fillet, chamfer, shell, sew, heal, tessellate. A `--graph solids` demo, 25 provider tests that **skip** without the shim, and three architecture tests bounding the new project |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M6 step **(c)**: **the OCCT provider.** An `opencascade:x64-windows` build is running through vcpkg on this machine — check `.occt-build.log`. **Two of `Q15`'s three parts are decided and recorded in this session** (see the log entry): the C-ABI shim stays, and `M1.6-C1`/`C2`'s two-operating-system requirement is void under **D16**. Next: a `native/spark_occt` C-ABI shim built with CMake + Ninja + MSVC exposing `Import`, `Materialise`, the three booleans and `Tessellate`; then `Spark.Geometry.Occt` with `LibraryImport` and a `BrepResidency` over the handle. **`M1.6-C2` is the criterion that matters** — one boolean end to end — and it is the only one that can reopen ADR-0020. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1680**: Geometry.Tests 757, UI.Tests 437, Engine.Tests 356, Viewport.Tests 74, Geometry.Properties 43, Architecture.Tests 8, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph surfaces --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). **The GPU read-back is currently failing** and is the first thing to re-check when the machine is quiet. |
-| **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and `wsl --install -d Ubuntu` plus a reboot if M1.6 is to be attempted on this machine rather than on CI. |
+| **Next action** | M6 continues **behind a working seam**, and [TODO.md](TODO.md#now--finish-m6-behind-the-provider) has the order. The top of it is **`E13-T12`, STEP and IGES** — the provider can already do both and nothing exposes it, which makes it the largest capability sitting unused, and [R12](PRD.md#12-risks) does not retire until it is. After that: `E13-T7`'s split and trim and `E13-T8`'s thicken, draft and offset; then **`E13-T3`'s consumer**, because `Brep.NativeBytes` now reports a real number and the evaluation cache still evicts by entry count (NFR-4 is half done). **`M1.6-C6` moved onto the critical path** — `ShapeFix_Face` and `ShapeFix_Solid` are on the *import* path now, not only behind `Heal`, so what they are allowed to change is a question about every shape that crosses ([N50](NOTES.md), [N51](NOTES.md)). |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1707**: Geometry.Tests 757, UI.Tests 437, Engine.Tests 356, Viewport.Tests 74, Geometry.Properties 43, **Geometry.Occt.Tests 25**, Architecture.Tests 11, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph solids --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). **And check the SKIP count**: `Spark.Geometry.Occt.Tests` skips itself when the native shim is absent, so build it first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. The GPU read-back is working again. |
+| **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and deciding `Q15(c)` — whether the ubuntu CI job survives now that D16 has removed its release argument and `E13-T15` has priced its native half. |
 
 **Step status vocabulary**, and it means exactly this:
 
@@ -86,8 +86,8 @@ Discovered the hard way, and each one costs an hour if rediscovered.
   ```
   for p in tests/*/; do n=$(basename "$p"); (cd "$p/bin/Debug/net10.0" && ./"$n.exe"); done
   ```
-  which should total **952 passing, 0 failed** across seven projects. See
-  [AGENTS.md](../AGENTS.md#before-you-commit).
+  which should total **1,707 passing, 0 failed, 0 skipped** across eight projects, with the native
+  shim built. See [AGENTS.md](../AGENTS.md#before-you-commit).
 - **A C++ toolchain exists as of 2026-08-31, and it is half of what M1.6 needs.** Installed and
   **verified by compiling, not by looking**: CMake 4.4.3 and Ninja 1.13.2 on `PATH`, vcpkg at
   `C:\dev\vcpkg` with `VCPKG_ROOT` set, and MSVC 14.51.36231 inside Visual Studio Community 2026
@@ -96,14 +96,27 @@ Discovered the hard way, and each one costs an hour if rediscovered.
   applied — `__cplusplus` reads `199711` under MSVC without `/Zc:__cplusplus` and means nothing.
   `cl.exe` is **not** on the ambient `PATH` by design; a build has to source
   `VC\Auxiliary\Build\vcvars64.bat` first, which is what CI does too.
-- **There is still no Linux, so `M1.6-C1` is still not satisfiable here** — but **ask Q15 before
-  installing anything.** WSL is not installed and `M1.6-C1` is a real OCCT build on **two** operating
-  systems. The Windows leg can be attempted locally; the Linux leg needs `wsl --install -d Ubuntu`
-  and a reboot, or a CI runner. **`D16` may have removed the reason for the Linux leg entirely**:
-  the client has decided Spark supports Windows and nothing else, ever, so whether `M1.6-C1` and
-  `M1.6-C2` still require two operating systems is **Q15** and is unanswered. Settling Q15 is
-  cheaper than installing WSL, and it might make it unnecessary. **Do not record M1.6 as
-  unblocked** on either ground until Q15 is answered.
+- **`Q15` is answered in the two parts that were blocking, and `M1.6-C1`'s Linux leg is void.**
+  **D17** (`docs/PRD.md` §13) records both: the C-ABI shim stays, and the two-operating-system
+  requirement in `M1.6-C1`/`C2` is void under **D16**. **WSL is still not installed and no longer
+  needs to be.** What survives is `Q15(c)` — whether the ubuntu CI job survives — which is a
+  question about a *test technique*, not a release commitment, and it now has to be argued
+  alongside `E13-T15`'s cost for a per-RID native build.
+- **OpenCascade 8.0.1 is installed at `C:\dev\vcpkg`, and it took 1.3 hours.**
+  `vcpkg install opencascade:x64-windows` at baseline `abb6dda5cc32914d2e64d7d72b974dc301d1fc8a`,
+  installing `opencascade[core,freetype]` — 57 DLLs in `installed/x64-windows/bin`. **It is
+  already done; do not run it again** unless the baseline moves. It saturates every core for the
+  duration and the GPU read-back in `--screenshot` fails while it runs.
+- **Building the shim needs a developer prompt, and `VCPKG_ROOT` will lie to you inside one.**
+  `vcvars64.bat` sets `VCPKG_ROOT` to the vcpkg **bundled with Visual Studio**, which is a real
+  vcpkg with nothing installed in it. `scripts/build-native.ps1` therefore prefers the root that
+  *has* OpenCascade over the first one that exists. Build it with:
+  ```
+  cmd /c "\"C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat\" >nul && powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-native.ps1"
+  ```
+  It stages `artifacts/native/win-x64/` (gitignored, 58 DLLs, 52.0 MB) and runs the C smoke test.
+  **`Spark.Geometry.Occt.Tests` skips itself when that directory is missing**, so a green managed
+  run proves nothing about the provider unless the skip count is zero.
 - **vcpkg builds ports here.** `vcpkg install zlib:x64-windows` compiled from source and passed
   post-build validation in 32 seconds, so vcpkg finds MSVC, drives CMake and completes a real port
   unaided. That was the cheapest thing that could have failed before M1.6, and it did not.
@@ -2388,3 +2401,87 @@ code path. An OCCT build is saturating every core of this machine in the backgro
 obvious explanation and is not a proven one. **The shell image still writes and the status line
 still reports the buffer sets**, so the evaluation half is evidenced; the render half is not, and
 will be re-checked when the machine is quiet.
+
+### 2026-08-31 — The OpenCascade provider, and the boolean that decided ADR-0020
+
+**`E13-T2`, `E13-T4`, and the working halves of `E13-T1`, `T3`, `T5`, `T6`, `T7`, `T8`, `T9`,
+`T10`, `T11` and `T13`.** `native/spark_occt` and `Spark.Geometry.Occt`. **M1.6 was taken and
+ADR-0020 stands.**
+
+**`M1.6-C2` is the criterion this whole run was for, and it passed.** Two managed `Brep`s built by
+`BrepPrimitives` go out through `ModelWriter` and `LibraryImport` into `spark_occt_import`, are
+fused by `BRepAlgoAPI_Fuse`, and come back as a resident `Brep` whose tessellation measures
+**42.0** against arithmetic's 42, with twelve faces where each box had six. The same trip runs in
+**C**, in `native/spark_occt/test/smoke.c`, so a failure in one and not the other says which half
+is wrong. It was the only criterion that could have reopened the binding decision.
+
+**The ABI is about thirty entry points and the estimate was 350–500.** That is not a saving, it is
+a different shape. A binding that exposes OpenCascade *types* needs a call per type per operation,
+which is where `opencascade-rs`'s 538 comes from; this one exposes **one flat tagged encoding** —
+a curve or surface as `(kind, int[], double[])`, a whole BRep as one `spark_model_desc` of
+seventeen arrays — so a new surface kind is a number in an array rather than a function.
+[N49](NOTES.md). The estimate in ADR-0020 is left standing, because a decision record records what
+was believed at the time and that is part of the record.
+
+**The encoding is written twice in two languages and neither compiler can see the other**, so the
+round trip is not a nicety. `ModelWriter` and `ModelReader` mirror `spark_occt_import` and
+`spark_occt_read`; an off-by-one in an offset table is a build error in neither. Twenty-five tests,
+all of which skip rather than fail when the shim is absent — because a build with no native
+component is a supported configuration and a suite that went red on it would report a supported
+state as a defect.
+
+**Three bugs are worth the space, because all three looked fine.**
+
+**A cylinder with square caps.** The first importer ignored the loops and bounded each face by its
+surface's own domain — Spark's trims carry no parameter-space curve, so there was nothing to build
+a wire from. That gives a correct box and a cylinder that is a tube with two flat plates. It sews,
+it meshes, it draws, and every boolean on it refuses. **The demo graph found it**, which is an
+argument for demo graphs. The fix is the path an IGES import already takes: build the wires from
+the 3D edges and let `ShapeFix_Face` project them onto the surface. [N51](NOTES.md).
+
+**Every imported solid inside out, and half a fix that looked like a whole one.** Sewing orients a
+shell consistently and picks the global sign **arbitrarily**; changing how the faces were built
+changed the sign with nothing about the geometry changing. Every imported box measured **−24**.
+`BRepLib::OrientClosedSolid` flips the solid's *flag*, which is enough to mesh correctly and not
+enough for the boolean operators, which read the faces — with only the flag flipped, a union of two
+24-unit boxes came back as **50** and a difference removed material that was never inside.
+`ShapeFix_Solid` turns the faces. **A shape that meshes correctly has not been shown to be
+correctly oriented**, and the test that separates them is a boolean, not a picture.
+[N50](NOTES.md).
+
+**A tolerance that meant one thing to a boolean and another to a mesh.** A test reused its
+operation tolerance — `1e-6` — for a tessellation of a two-metre sphere. That is a legal request.
+The process reached **31 GB** before it was killed. `Spark.Geometry`'s own tessellator has always
+had a cap; the provider path now has one too, clamped to a hundred-thousandth of the bounding-box
+diagonal. [N52](NOTES.md).
+
+**Three of M1.6's nine criteria are answered and six are not, and the six are listed rather than
+glossed.** `C1` passed on Windows — its two-operating-system half is void under **D17**, recorded
+in `docs/PRD.md` §13 in this same run. `C3` is **measured: 52.0 MB uncompressed staged, 28.4 MB for
+the fifteen toolkits the shim links**, against R15's unmeasured 40–160 MB bracket and well under
+the 100 MB that would reopen shipping OCCT by default. `C7` is *partly* answered by observation
+rather than experiment — the vcpkg port installs `opencascade[core,freetype]`, so FreeType is a
+feature of the port and not only a consequence of Visualization. **`C4`, `C5`, `C6`, `C8` and `C9`
+were not taken at all.** `C6` matters more than it did: `ShapeFix` is now on the *import* path, not
+only behind `Heal`.
+
+**One row's cost estimate met reality and lost.** [R18](PRD.md#12-risks) said fillet on complex
+vertex blends would be hard. Filleting every edge of a box fused to a tangent cylinder and then
+drilled took **48 seconds** at a radius that fits and refused outright at the radius that looked
+right. The demo rounds a plain box instead, and the reason is written where somebody would
+otherwise change it back.
+
+**Verified.** The shim builds with **zero warnings** under `/W4` and its C smoke test passes;
+`dotnet build Spark.slnx --no-incremental -warnaserror` is clean over eighteen projects;
+**1,707 tests, 0 failures, 0 skipped** (Geometry 757, UI 437, Engine 356, Viewport 74,
+Geometry.Properties 43, **Geometry.Occt 25**, Architecture 11, Docs.Verify 5); `dotnet format` is
+clean. **And the GPU read-back works again** — it was failing at the end of the last step with an
+OCCT build saturating the machine, which was the suspected cause and now looks like the right one.
+`--graph solids --screenshot` writes a viewport showing a drilled box-and-cylinder, a hollowed box
+and a box with visibly rounded edges.
+
+**What is not done, said plainly.** STEP and IGES are not exposed though the provider can do both.
+Split, trim, thicken, draft and offset are not written. The evaluation cache still does not read
+`NativeBytes`, so NFR-4 is half done — the number exists and nothing consumes it. `Message_Report`
+translation and the `.brep` dump for reproducing a bug upstream are not written. Trimmed faces come
+*back* from the provider and still cannot be authored.

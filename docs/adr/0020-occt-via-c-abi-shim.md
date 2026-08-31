@@ -275,6 +275,34 @@ paragraph, in this change and not later.**
 
 ## Notes
 
+### M1.6 was taken on 2026-08-31, and this record stands
+
+**`M1.6-C2` was the only criterion that could have reopened this decision, and it passed.** Two
+managed `Brep`s go out through `LibraryImport` into `spark_occt_import`, are fused by
+`BRepAlgoAPI_Fuse`, and come back as a resident `Brep` whose tessellation measures **42.0** against
+arithmetic's 42. The same trip runs in C, in `native/spark_occt/test/smoke.c`, so a failure in one
+and not the other says which half is wrong.
+
+**Three of the seven open items below are answered, and the answers are recorded against them
+rather than in a paragraph that would be read instead of them.** What is answered: the binary size
+(item 1), most of the FreeType question (item 2), and E13-T3's cost (item 7). What is not: STEP
+without XCAF, the threading envelope, the counsel question, and `OcctNet.Wrapper`'s repository.
+
+**One estimate in the Decision above is wrong by an order of magnitude and is left standing.** It
+says *350–500 exported entry points*; the shim exports about **thirty** and does everything M6
+needs. The estimate was right about the work and wrong about the shape — a binding that exposes
+OpenCascade *types* needs a call per type per operation, and this one exposes one flat tagged
+encoding instead. See [N49](../NOTES.md). It is left standing because a decision record records
+what was decided and what was believed at the time, and the belief is part of the record.
+
+**Two things were learnt that the record did not anticipate**, both in [NOTES.md](../NOTES.md):
+a shape that meshes correctly has **not** been shown to be correctly oriented, because meshing and
+modelling read different things ([N50](../NOTES.md)); and Spark's trims carry no pcurve, so the
+importer must compute them, and skipping the loops produces a cylinder with **square caps** that
+looks entirely convincing as a mesh ([N51](../NOTES.md)).
+
+### The original notes
+
 **M1.6 is a new 2-week de-risk spike and it gates this record the way M1.5 gates ADR-0001.**
 Its job is to build OCCT from a pinned tag via vcpkg on Windows and Linux, drive one boolean
 through a minimal shim and `LibraryImport`, and **measure the things nobody has measured**.
@@ -283,10 +311,18 @@ through a minimal shim and `LibraryImport`, and **measure the things nobody has 
 listed with how to find out, because an uncertainty written as an answer is worse than one
 written as a gap:
 
-1. **Real binary sizes.** The 40–160 MB bracket for the uncompressed installer is an estimate.
-   *Find out:* build the per-RID artefacts at M1.6 and weigh them.
-2. **Whether excluding the Visualization module drops the FreeType dependency.** *Find out:*
-   configure a build with Visualization off and inspect the resulting link.
+1. ~~**Real binary sizes.**~~ **Answered 2026-08-31: 52.0 MB uncompressed for `win-x64`**, which
+   is every OpenCascade DLL staged beside the shim; **28.4 MB** for the fifteen toolkits the shim
+   actually links, whose transitive load-time dependencies are not yet verified. Either number
+   replaces the 40–160 MB bracket and is well under the 100 MB that would reopen shipping OCCT by
+   default.
+2. **Whether excluding the Visualization module drops the FreeType dependency.** *Partly
+   answered 2026-08-31, by observation rather than by experiment:* the vcpkg port installs
+   `opencascade[core,freetype]`, so **FreeType is a default feature of the port** rather than
+   something Visualization alone drags in — which makes this a question about the port's features
+   as much as about the link. `TKV3d`, `TKOpenGl` and `TKService` are built by the port regardless
+   and are simply not linked. *Still to find out:* configure a build with Visualization off and
+   inspect the resulting link.
 3. **Whether STEP can be used without pulling in XCAF.** *Find out:* attempt a
    `STEPControl`-only read and write at M1.6 and see what the linker demands.
 4. **OCCT's real thread-safety envelope.** Documented guidance is thin and R20 depends on it.

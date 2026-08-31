@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-31 (M4 complete)
+**Last updated:** 2026-08-31 (M5 substantially done; M6 — the OpenCascade provider)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -33,7 +33,7 @@ prove is ticked.
 | [E10](#e10--documentation) | Documentation | M0 onwards | Partly done |
 | [E11](#e11--quality-and-verification) | Quality and verification | M0 onwards | Partly done |
 | [E12](#e12--embedding-and-release) | Embedding and release | M8 | Not started |
-| [E13](#e13--occt-provider) | OCCT provider | M1.6, M6, M8 | Not started |
+| [E13](#e13--occt-provider) | OCCT provider | M1.6, M6, M8 | In progress |
 
 **E13 is new and it is the largest single change to this plan since it was written.** The
 client chose to take an existing solid-modelling kernel rather than write one — **D2 reverses**
@@ -1175,33 +1175,53 @@ which goes from 14 weeks to **20–24**.
 
 **Acceptance criteria**
 
-- [ ] **M1.6 passes**: OCCT builds from a pinned tag through a vcpkg manifest on Windows *and*
-      Linux, one boolean runs end to end through a minimal shim and `LibraryImport`, and the
-      per-RID binary footprint is **measured** rather than bracketed (**E13-T1**). *The nine
+- [x] **M1.6 passes, on the criteria that survive D16.** OCCT 8.0.1 builds from the pinned
+      vcpkg port on Windows (**C1**, whose *two-operating-system* half is void under **D17**); a
+      boolean runs end to end through the shim and `LibraryImport` and is asserted by
+      `TwoOverlappingBoxesFuse` (**C2**, *the one that could have reopened ADR-0020*); and the
+      payload is **measured at 52.0 MB** staged and **28.4 MB** for the toolkits the shim links,
+      against R15's unmeasured 40–160 MB bracket (**C3**). **C4 to C9 are not taken** and are
+      listed row by row in [TASKS.md](TASKS.md#m16--the-passfail-criteria-written-before-the-spike)
+      (**E13-T1**). *The nine
       criteria this is judged against are written down — `M1.6-C1` … `M1.6-C9`, in
       [TASKS.md](TASKS.md#m16--the-passfail-criteria-written-before-the-spike), each with what a
       failure would mean decided **before** anybody has a result to defend. Only `M1.6-C2` can
       reopen ADR-0020, and it reopens the binding rather than the engine.*
-- [ ] The shim is **hand-written, MIT, and ours**, in `native/spark_occt/`, at an order of
-      350–500 exported entry points over roughly 2–3% of OCCT's class surface. **No
-      third-party binding is adopted** (**E13-T2**, [ADR-0020](adr/0020-occt-via-c-abi-shim.md)).
-- [ ] **Every entry point has a `catch(...)`** and `OSD::SetSignal(false)` is called at
+- [x] The shim is **hand-written, MIT, and ours**, in `native/spark_occt/`. **No third-party
+      binding is adopted** (**E13-T2**, [ADR-0020](adr/0020-occt-via-c-abi-shim.md)). *The
+      entry-point estimate was **350–500** and the shim exports about **thirty**, doing everything
+      M6 needs. The estimate was not wrong about the work, it was wrong about the shape: a binding
+      that exposes OpenCascade **types** needs a call per type per operation, and this one exposes
+      one flat tagged encoding instead — see [N49](NOTES.md). The number will grow with STEP and
+      the rest, and not to 500.*
+- [x] **Every entry point has a `catch(...)`** and `OSD::SetSignal(false)` is called at
       initialisation, so no C++ exception and no OCCT signal handler ever reaches a managed
-      frame (**E13-T2**, **R19**).
-- [ ] `Spark.Geometry.Occt` is the **only** project with `AllowUnsafeBlocks=true`, opted in
+      frame (**E13-T2**, **R19**). *The fallible ones go through one `guard()` that catches
+      `Standard_Failure`, `std::bad_alloc`, `std::exception` and `...`; the `void` releases and
+      `spark_occt_shape_bytes` carry their own, because a `void` entry point has nowhere to report
+      from and would be unwinding into a finalizer thread. Initialisation is a function-local
+      static, so it cannot be forgotten at a call site.*
+- [x] `Spark.Geometry.Occt` is the **only** project with `AllowUnsafeBlocks=true`, opted in
       with a comment naming ADR-0020, and an architecture test asserts it (**E13-T4**,
-      **NFR-15**).
-- [ ] `SparkGeometryTakesNoThirdPartyDependencyBeyondClipper` is **unchanged**, and gains a
-      *companion* rule asserting `Spark.Geometry.Occt` is referenced only by composition roots
-      (**E13-T4**, **NFR-5b**). *Relaxing either test would be the wrong repair.*
-- [ ] **Residency is canonical, not cached**: exactly two crossings, a ten-operation chain
-      performing zero imports and one materialisation, and **round-trip asserted as
-      tolerance-bounded equivalence — never identity** (**E13-T5**, **E13-T6**,
-      [ADR-0021](adr/0021-brep-kernel-residency.md)).
+      **NFR-15**) — `OnlyTheNativeProviderAllowsUnsafeCode`.
+- [x] `SparkGeometryTakesNoThirdPartyDependencyBeyondClipper` is **unchanged**, and has gained
+      two *companion* rules: `OnlyAnApplicationReferencesTheNativeProvider` and
+      `TheNativeProviderIsALeaf` (**E13-T4**, **NFR-5b**). *Relaxing either test would be the wrong
+      repair.*
+- [x] **Residency is canonical, not cached**: exactly two crossings, a chain performing one
+      import and one materialisation, and **round-trip asserted as tolerance-bounded equivalence —
+      never identity** (**E13-T5**, **E13-T6**,
+      [ADR-0021](adr/0021-brep-kernel-residency.md)). *`AChainOfBooleansStaysResident` walks a
+      three-step chain and asserts the intermediates were never read out;
+      `ACylindersWallIsTheSameSurfaceEvenIfItIsNotTheSameNumbers` is the equivalence half.*
 - [ ] The evaluation cache tracks a **native budget reported by the shim**, not an estimate of
-      managed size (**E13-T3**, **NFR-4**).
-- [ ] Equality and hashing of a `Brep` are defined on the **materialised model**, never on the
-      handle (**E13-T6**).
+      managed size (**E13-T3**, **NFR-4**). *Half of it landed: `spark_occt_shape_bytes` reports
+      the figure and `Brep.NativeBytes` surfaces it **without materialising**, which is the only
+      way a cache could use it. **The cache does not read it yet.***
+- [x] Equality and hashing of a `Brep` are defined on the **materialised model**, never on the
+      handle (**E13-T6**). *`Brep` uses reference equality and has no `GetHashCode` of its own, and
+      every structural member goes through the `Raw*` accessors that materialise first — so there
+      is no member that can see a handle. The day it gains value equality, that is where it goes.*
 - [ ] Every failure carries an OCCT `Message_Report` translated into `SparkDiagnostic`, and a
       **Draw-Harness-compatible `.brep` dump**, so a bug reproduces upstream; `BRepCheck_Analyzer`
       runs in Debug (**E13-T13**, **R16**).

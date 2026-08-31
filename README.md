@@ -9,22 +9,35 @@ Autodesk software required.
 MIT licensed. `net10.0`. Solid modelling by [OpenCascade](https://dev.opencascade.org/),
 which ships with Spark.
 
-**Last updated:** 2026-08-30
+**Last updated:** 2026-08-31
 
-> ## Status: it runs, and it draws curves
+> ## Status: it runs, and it does exact solid modelling
 >
 > **There is an application now.** `dotnet run --project src/Spark.Desktop` opens the shell,
-> evaluates a graph and puts geometry in a GPU viewport. The seeded curve demo draws an ellipse
-> divided into twenty-four equal *lengths*, eight circles produced by a single node fed a list of
-> centres, and a pentagon — three curve families, one of them laced.
+> evaluates a graph and puts geometry in a GPU viewport. Three seeded demos: `--graph curves`
+> draws an ellipse divided into twenty-four equal *lengths*, eight circles from a single laced
+> node, and a pentagon; `--graph surfaces` draws a sphere, a cylinder, a cone, a torus and a box,
+> each shaded from its own surface normals; and `--graph solids` fuses a box to a cylinder, drills
+> a hole through both, hollows a second box and rounds every edge of a third — **exact booleans,
+> exact shelling and an exact fillet**, none of which a mesh kernel can do.
 >
-> **What exists.** `Spark.Geometry`'s **value layer** (thirteen types) and its **curve layer**
-> (`Line`, `Arc`, `Circle`, `EllipseCurve`, `PolyLine` and `PolyCurve` over a `Curve` base, with
-> arc-length reparameterisation in the contract rather than bolted on). A graph engine with
-> topological evaluation, a provenance cache and the full replication engine. A reflection
-> importer that turns 57 first-party nodes out of plain static methods, with a two-way diff that
-> makes an unreachable public member a red build. An Avalonia shell, an immediate-mode node
-> canvas, and an OpenGL viewport.
+> **What exists.** `Spark.Geometry`'s **value layer**, its **curve layer** (including
+> `NurbsCurve`), its **surface layer** (plane, sphere, cylinder, cone, torus, extrusion,
+> revolution, ruled and `NurbsSurface` over a `Surface` base), **meshes and adaptive
+> tessellation**, and **BRep topology**. A graph engine with topological evaluation, a provenance
+> cache and the full replication engine. A reflection importer that turns 108 first-party nodes
+> out of plain static methods, with a two-way diff that makes an unreachable public member a red
+> build. **Roslyn code blocks** on the canvas, with completion, a cancellation token that reaches
+> the script, and a trust gate. An Avalonia shell, an immediate-mode node canvas, and an OpenGL
+> viewport. **OBJ, STL, PLY and glTF** on the way out.
+>
+> **And exact solid modelling, through OpenCascade.** `IBrepKernel` is the seam; `spark_occt` is a
+> C ABI over OpenCascade that we wrote and own; `Spark.Geometry.Occt` is the only assembly
+> permitted to see a native handle. Union, difference, intersection, extrude, revolve, loft,
+> fillet, chamfer, shell, sew, heal and tessellate. **A shape stays inside the provider between
+> operations** — a chain of booleans converts twice, not once per step — and **a cylinder comes
+> back a cylinder** rather than a spline that happens to be round, which is the whole reason for
+> taking an exact kernel.
 >
 > **Graphs are files.** A `.spark` file is plain JSON, canonically formatted, so a graph reviews
 > like code: opening one and saving it again produces no diff at all, which is asserted by a test
@@ -54,18 +67,19 @@ which ships with Spark.
 > header. That is M1's demoable, and the first proof that a graph is a document and an evaluation
 > is a computation rather than something the desktop application does to itself.
 >
-> **What does not exist.** No surfaces, meshes, BRep or solids. No `NurbsCurve`. No `spark run`,
-> no packages, no code block. And **no OpenCascade**: there is no `native/` directory and no
-> `Spark.Geometry.Occt` project.
+> **What does not exist.** No STEP or IGES, though the provider can do both. No split, trim,
+> thicken, draft or offset. No packages. No mesh booleans. Trimmed faces come *back* from the
+> provider but cannot be authored directly. The software renderer and the CI visual-regression
+> check are deliberately deferred past M6.
 >
 > **The benchmarks are guards now, not reports.** A nightly workflow runs the three suites on
 > Windows and Linux and the application's own 2 000-node canvas benchmark on Windows, and fails
 > when a number breaks a budget committed in `bench/budgets.jsonc`. It has been run end to end
 > locally and **has never run on a hosted runner**, which is a real difference and not a formality.
 >
-> What has been run, on Windows, on 2026-08-29:
-> `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over sixteen projects;
-> **1,050 tests pass** across seven projects;
+> What has been run, on Windows, on 2026-08-31:
+> `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over eighteen projects;
+> **1,707 tests pass** across eight projects, with the native shim built and none of them skipped;
 > `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean; and the nightly's whole
 > pipeline — nineteen benchmark cases, the canvas benchmark and the budget check — is green.
 > **CI ran the build, the tests and the format check on Windows and Linux on commit `53596ab` and
@@ -192,13 +206,28 @@ Naming these up front, because each is a decision rather than a gap. Full reason
 
 ## Building
 
-You need the **.NET 10 SDK** and nothing else. No Autodesk product, no native toolchain, no
-GPU.
+You need the **.NET 10 SDK**. The whole solution builds with the SDK alone, and everything
+except exact solid modelling works from that build — points, curves, surfaces, meshes, the
+viewport and every file format.
 
-That will change once the OpenCascade provider exists: building `native/spark_occt` will need
-a C++ toolchain and vcpkg, and CI will build it once per platform and cache the result.
-**Neither the directory nor the project exists yet**, so today the sentence above is exactly
-true and the whole solution builds with the SDK alone.
+**Exact solid modelling needs one more thing, once.** `native/spark_occt` is a C ABI over
+OpenCascade, and building it needs a C++ toolchain, CMake, Ninja and vcpkg. From a Visual Studio
+developer prompt:
+
+```powershell
+vcpkg install opencascade:x64-windows   # once, and it takes about an hour
+pwsh scripts/build-native.ps1
+```
+
+The script refuses to start the vcpkg install itself, on purpose: a build that silently begins an
+hour-long dependency compile is a build that looks hung. It stages `artifacts/native/win-x64/`,
+which is gitignored, and the application finds it there without being told. Setting
+`SPARK_OCCT_PATH` overrides where it looks.
+
+**Without it, Spark still runs.** The solid operations are greyed out and a graph that reaches one
+gets a sentence saying what is missing — that is a supported configuration, not a broken install
+([ADR-0021](docs/adr/0021-brep-kernel-residency.md)). `Spark.Geometry.Occt.Tests` **skips** rather
+than fails in that state, so read the skip count before believing a green run.
 
 ```bash
 git clone https://github.com/harilalmn/Spark.git
@@ -242,19 +271,20 @@ solution format, which needs a recent SDK and a recent Visual Studio
 ([N1](docs/NOTES.md)).
 
 `dotnet run --project src/Spark.Desktop` opens the application. Three switches are worth knowing:
-`--graph curves` opens the curve demo instead of the point grid, `--open PATH` opens a `.spark`
-file, and `--screenshot PREFIX` writes a picture of the shell and a picture of the viewport and
-exits — the viewport one is a GPU read-back rather than a window grab, so it works over a locked
+`--graph curves`, `--graph surfaces` and `--graph solids` open a demo instead of the point grid,
+`--open PATH` opens a `.spark` file, and `--screenshot PREFIX` writes a picture of the shell and a
+picture of the viewport and exits — the viewport one is a GPU read-back rather than a window grab, so it works over a locked
 session and in CI. The first two exist so that opening a particular graph can be checked without
 a human driving a file dialog.
 
-`dotnet test` finds **1,050 tests** across seven projects. `Spark.Geometry.Tests` (402) and
-`Spark.Geometry.Properties` (42) cover the kernel by example and by CsCheck property
-respectively; `Spark.Engine.Tests` (289) covers the graph, the replicator and the importer;
-`Spark.UI.Tests` (235) drives the canvas headlessly with real pointer gestures;
-`Spark.Viewport.Tests` (69) covers the scene and the camera; `Spark.Architecture.Tests` (8)
-enforces the reference graph below by reading `.csproj` files as XML; and `Spark.Docs.Verify`
-(5) checks these documents against the repository. The last two were deliberately stood up
+`dotnet test` finds **1,707 tests** across eight projects. `Spark.Geometry.Tests` (757) and
+`Spark.Geometry.Properties` (43) cover the kernel by example and by CsCheck property
+respectively; `Spark.Engine.Tests` (356) covers the graph, the replicator and the importer;
+`Spark.UI.Tests` (437) drives the canvas headlessly with real pointer gestures;
+`Spark.Viewport.Tests` (74) covers the scene and the camera; `Spark.Geometry.Occt.Tests` (25)
+drives the OpenCascade provider and **skips itself** when the native shim is absent;
+`Spark.Architecture.Tests` (11) enforces the reference graph below by reading `.csproj` files as
+XML; and `Spark.Docs.Verify` (5) checks these documents against the repository. The last two were deliberately stood up
 before the code they now guard: a gate added later is a gate that gets an exemption for
 everything already there.
 
@@ -263,6 +293,8 @@ everything already there.
 ```text
 src/Spark.Geometry/      the kernel: values, curves, surfaces, BRep, mesh, tessellation
 src/Spark.Geometry.Io/   OBJ/STL/PLY/glTF/STEP behind reader and writer interfaces
+src/Spark.Geometry.Occt/ the OpenCascade provider. The ONLY project that may see a handle
+native/spark_occt/       the C ABI over OpenCascade. C++, MIT, ours. Built by CMake, not dotnet
 src/Spark.Api/           contracts only: node attributes, SparkList, diagnostics, seams
 src/Spark.Engine/        graph model, evaluation, lacing, node importer, serialization
 src/Spark.Scripting/     Roslyn: compilation, rewriting, source maps, guards, completion

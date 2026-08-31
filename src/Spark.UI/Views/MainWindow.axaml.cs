@@ -585,6 +585,8 @@ public sealed partial class MainWindow : Window
 
     private void OnLoadSurfaces(object? sender, RoutedEventArgs e) => Model?.LoadSurfaces();
 
+    private void OnLoadSolids(object? sender, RoutedEventArgs e) => Model?.LoadSolids();
+
     private void LoadSynthetic(int nodeCount) => Model?.LoadSynthetic(nodeCount);
 
     private void UpdateStatus()

@@ -218,6 +218,154 @@ public static class DemoGraphs
     }
 
     /// <summary>
+    /// The solid demo: a box and a cylinder fused, drilled, and rounded - three exact operations
+    /// on one shape - beside a hollowed box.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It is a chain on purpose.</b> A union, then a difference, each taking the last one's
+    /// output. Nothing between them reads the shape out, so the whole chain happens inside the
+    /// provider and only the tessellation at the end crosses back - which is ADR-0021's rule, made
+    /// visible by being the thing the demo does rather than a sentence about it.
+    /// </para>
+    /// <para>
+    /// <b>The fillet is what a mesh boolean could not have produced.</b> A rounded edge needs the
+    /// exact surfaces on both sides of it; on a triangle soup there is nothing to round. That is
+    /// the difference <b>D2</b> was reversed to buy, and this is the graph that shows it. It
+    /// rounds its own box rather than the drilled one, because filleting every edge of a box fused
+    /// to a tangent cylinder and then drilled takes the better part of a minute - a vertex blend
+    /// between three curved faces is the known-hard case, and a demo is not the place to meet it.
+    /// </para>
+    /// <para>
+    /// <b>With no provider installed it is still a legible graph</b> - the two solids draw, and the
+    /// three operations wear an error ring naming what is missing. That is the supported
+    /// no-provider configuration, on screen.
+    /// </para>
+    /// </remarks>
+    /// <param name="library">The node library to build from.</param>
+    /// <returns>The graph.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="library"/> is null.</exception>
+    public static CanvasGraph Solids(NodeLibrary library)
+    {
+        ArgumentNullException.ThrowIfNull(library);
+
+        CanvasGraph graph = new();
+
+        int axis = graph.Add(library.ByName("Vector.ZAxis"), 30, 560, Seeded("solids", "axis"));
+
+        int boxBase = graph.Add(library.ByName("Point.ByCoordinates"), 30, 30, Seeded("solids", "boxBase"));
+        int boxPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 30, Seeded("solids", "boxPlane"));
+        int box = graph.Add(library.ByName("Solid.Box"), 540, 30, Seeded("solids", "box"));
+
+        int postBase = graph.Add(library.ByName("Point.ByCoordinates"), 30, 220, Seeded("solids", "postBase"));
+        int postPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 220, Seeded("solids", "postPlane"));
+        int post = graph.Add(library.ByName("Solid.Cylinder"), 540, 220, Seeded("solids", "post"));
+
+        int drillBase = graph.Add(library.ByName("Point.ByCoordinates"), 30, 400, Seeded("solids", "drillBase"));
+        int drillPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 400, Seeded("solids", "drillPlane"));
+        int drill = graph.Add(library.ByName("Solid.Cylinder"), 540, 400, Seeded("solids", "drill"));
+
+        int fused = graph.Add(library.ByName("Solid.Union"), 820, 90, Seeded("solids", "fused"));
+        int drilled = graph.Add(library.ByName("Solid.Difference"), 1080, 160, Seeded("solids", "drilled"));
+        int colour = graph.Add(library.ByName("Colour.ByRgb"), 1080, 330, Seeded("solids", "colour"));
+        int display = graph.Add(library.ByName("Display.ByGeometryColour"), 1360, 160, Seeded("solids", "display"));
+
+        int plinthBase = graph.Add(library.ByName("Point.ByCoordinates"), 30, 1000, Seeded("solids", "plinthBase"));
+        int plinthPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 1000, Seeded("solids", "plinthPlane"));
+        int plinth = graph.Add(library.ByName("Solid.Box"), 540, 1000, Seeded("solids", "plinth"));
+        int rounded = graph.Add(library.ByName("Solid.FilletAll"), 820, 1000, Seeded("solids", "rounded"));
+        int roundedColour = graph.Add(library.ByName("Colour.ByRgb"), 820, 1160, Seeded("solids", "roundedColour"));
+        int roundedDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 1100, 1000, Seeded("solids", "roundedDisplay"));
+
+        int shellBase = graph.Add(library.ByName("Point.ByCoordinates"), 30, 720, Seeded("solids", "shellBase"));
+        int shellPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 720, Seeded("solids", "shellPlane"));
+        int shellBox = graph.Add(library.ByName("Solid.Box"), 540, 720, Seeded("solids", "shellBox"));
+        int hollow = graph.Add(library.ByName("Solid.Hollow"), 820, 720, Seeded("solids", "hollow"));
+        int shellColour = graph.Add(library.ByName("Colour.ByRgb"), 820, 880, Seeded("solids", "shellColour"));
+        int shellDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 1100, 720, Seeded("solids", "shellDisplay"));
+
+        Literal(graph, boxBase, 0, -4.0);
+        Literal(graph, boxBase, 1, -2.0);
+        Literal(graph, boxBase, 2, 0.0);
+        Literal(graph, box, 1, 5.0);
+        Literal(graph, box, 2, 4.0);
+        Literal(graph, box, 3, 2.0);
+
+        Literal(graph, postBase, 0, -1.5);
+        Literal(graph, postBase, 1, 0.0);
+        Literal(graph, postBase, 2, 0.0);
+        Literal(graph, post, 1, 1.6);
+        Literal(graph, post, 2, 4.5);
+
+        Literal(graph, drillBase, 0, -1.5);
+        Literal(graph, drillBase, 1, 0.0);
+        Literal(graph, drillBase, 2, -1.0);
+        Literal(graph, drill, 1, 0.8);
+        Literal(graph, drill, 2, 7.0);
+
+        Literal(graph, colour, 0, 255.0);
+        Literal(graph, colour, 1, 190.0);
+        Literal(graph, colour, 2, 120.0);
+
+        Literal(graph, plinthBase, 0, 12.0);
+        Literal(graph, plinthBase, 1, -1.5);
+        Literal(graph, plinthBase, 2, 0.0);
+        Literal(graph, plinth, 1, 3.0);
+        Literal(graph, plinth, 2, 3.0);
+        Literal(graph, plinth, 3, 3.0);
+        Literal(graph, rounded, 1, 0.4);
+        Literal(graph, roundedColour, 0, 170.0);
+        Literal(graph, roundedColour, 1, 255.0);
+        Literal(graph, roundedColour, 2, 180.0);
+
+        Literal(graph, shellBase, 0, 6.0);
+        Literal(graph, shellBase, 1, -1.5);
+        Literal(graph, shellBase, 2, 0.0);
+        Literal(graph, shellBox, 1, 3.0);
+        Literal(graph, shellBox, 2, 3.0);
+        Literal(graph, shellBox, 3, 3.0);
+        Literal(graph, hollow, 1, -0.4);
+        Literal(graph, shellColour, 0, 140.0);
+        Literal(graph, shellColour, 1, 210.0);
+        Literal(graph, shellColour, 2, 255.0);
+
+        graph.TryConnect(Output(boxBase, 0), Input(boxPlane, 0));
+        graph.TryConnect(Output(axis, 0), Input(boxPlane, 1));
+        graph.TryConnect(Output(boxPlane, 0), Input(box, 0));
+
+        graph.TryConnect(Output(postBase, 0), Input(postPlane, 0));
+        graph.TryConnect(Output(axis, 0), Input(postPlane, 1));
+        graph.TryConnect(Output(postPlane, 0), Input(post, 0));
+
+        graph.TryConnect(Output(drillBase, 0), Input(drillPlane, 0));
+        graph.TryConnect(Output(axis, 0), Input(drillPlane, 1));
+        graph.TryConnect(Output(drillPlane, 0), Input(drill, 0));
+
+        graph.TryConnect(Output(box, 0), Input(fused, 0));
+        graph.TryConnect(Output(post, 0), Input(fused, 1));
+        graph.TryConnect(Output(fused, 0), Input(drilled, 0));
+        graph.TryConnect(Output(drill, 0), Input(drilled, 1));
+        graph.TryConnect(Output(drilled, 0), Input(display, 0));
+        graph.TryConnect(Output(colour, 0), Input(display, 1));
+
+        graph.TryConnect(Output(plinthBase, 0), Input(plinthPlane, 0));
+        graph.TryConnect(Output(axis, 0), Input(plinthPlane, 1));
+        graph.TryConnect(Output(plinthPlane, 0), Input(plinth, 0));
+        graph.TryConnect(Output(plinth, 0), Input(rounded, 0));
+        graph.TryConnect(Output(rounded, 0), Input(roundedDisplay, 0));
+        graph.TryConnect(Output(roundedColour, 0), Input(roundedDisplay, 1));
+
+        graph.TryConnect(Output(shellBase, 0), Input(shellPlane, 0));
+        graph.TryConnect(Output(axis, 0), Input(shellPlane, 1));
+        graph.TryConnect(Output(shellPlane, 0), Input(shellBox, 0));
+        graph.TryConnect(Output(shellBox, 0), Input(hollow, 0));
+        graph.TryConnect(Output(hollow, 0), Input(shellDisplay, 0));
+        graph.TryConnect(Output(shellColour, 0), Input(shellDisplay, 1));
+
+        return graph;
+    }
+
+    /// <summary>
     /// The curve demo: an ellipse divided by arc length, a row of circles produced by one node, and
     /// a regular polygon — three curve families on screen at once.
     /// </summary>

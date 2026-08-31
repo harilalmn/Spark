@@ -26,9 +26,16 @@ internal static class Program
     /// and is harmless everywhere else.
     /// </remarks>
     [System.STAThread]
-    private static void Main(string[] args) =>
+    private static void Main(string[] args)
+    {
+        // ADR-0020: install the solid-modelling kernel before anything can evaluate a graph. Its
+        // absence is not an error - the whole application works without it and the solid nodes
+        // say so by name - so the answer is ignored here rather than reported at startup.
+        _ = Spark.Geometry.Occt.OcctKernel.TryInstall(out _);
+
         BuildAvaloniaApp(StartupOptions.Parse(args))
             .StartWithClassicDesktopLifetime(args);
+    }
 
     /// <summary>
     /// Configures the Avalonia application. Public and parameterless-friendly because the XAML

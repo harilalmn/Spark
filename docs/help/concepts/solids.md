@@ -43,7 +43,37 @@ does that itself and it always works.
 **Combining** two solids — union, difference, intersection — or modifying one — fillet, chamfer,
 shell — is *exact solid modelling*, and it is a genuinely hard problem: intersecting two curved
 surfaces exactly, deciding what is inside and what is outside, and rebuilding the topology around
-the result. Spark does not implement that itself. It asks a **kernel provider**.
+the result. Spark does not implement that itself. It asks a **kernel provider**, and the one that
+ships with Spark is **OpenCascade**.
+
+## What the operations do
+
+| Node | What it does |
+|---|---|
+| `Solid.Union` | Everything in either solid |
+| `Solid.Difference` | The first solid with the second taken out of it |
+| `Solid.Intersection` | Only what is in both |
+| `Solid.Extrude` | Sweeps a closed profile along a direction |
+| `Solid.FilletAll` | Rounds every edge, to a radius |
+| `Solid.Hollow` | Turns a solid into a shell of a given wall thickness |
+
+**Rounding an edge is the one that shows what exactness buys.** A fillet has to build a new surface
+tangent to the two faces that meet at the edge, and then rebuild the corners where three of those
+meet. On a triangle soup there is nothing to be tangent to. This is why Spark takes a solid kernel
+rather than a mesh one.
+
+## What a solid keeps
+
+An exact solid stays exact through an operation:
+
+```
+Solid.Cylinder(plane, 2, 6)     → the wall is a cylindrical surface
+Solid.Difference(that, a box)   → the wall is STILL a cylindrical surface
+```
+
+The cut end becomes a new planar face; the part of the wall that survives is the same exact
+cylinder it was, at the same radius. Nothing is refitted, and nothing drifts. That property is
+what makes a chain of ten operations mean what it says.
 
 ## When operations are greyed out
 
@@ -61,7 +91,13 @@ press them, and a graph that reaches one anyway says so:
 **A provider that is installed may still refuse an individual operation, and that is normal.** A
 fillet whose radius does not fit in the corner, a difference between two solids that do not touch,
 a loft between profiles that cannot be matched — these are the geometry declining, not a bug, and
-the node reports what it was asked and why it could not be done.
+the node reports what it was asked and why it could not be done:
+
+> The kernel could not fillet. A fillet of radius 0.250000 does not fit these edges.
+
+**Two refusals, two codes.** `SPK1080` means *nothing here can do this*; `SPK1081` means *the
+geometry does not permit this*. They call for completely different responses, which is why they are
+not the same code.
 
 ## Turning a solid into a mesh
 
@@ -76,12 +112,34 @@ The number is the **tolerance**: the greatest distance the mesh may stray from t
 Smaller is closer and slower. The viewport does this for you at a tolerance derived from the
 object's own size, so a solid looks smooth whether it is a millimetre or a kilometre across.
 
+**A tolerance is a request for work, and a curved solid will honour it without limit.** Asking for
+a hundredth of a millimetre on a two-metre sphere is a legal request whose answer is hundreds of
+millions of triangles. Spark clamps a tessellation to a hundred-thousandth of the object's own
+size — finer than any screen, printer or file format needs, and finite. If you want more detail
+than that, you want a smaller object or a different question.
+
 `Solid.Volume` measures the mesh rather than the surfaces, and says so: the number approaches the
 true volume from below as the tolerance tightens.
 
+## Where the provider comes from, and what to do when it is missing
+
+The provider is a native component. A normal install has it. If you are running Spark from a
+source clone, build it once:
+
+```
+pwsh scripts/build-native.ps1
+```
+
+That needs `vcpkg install opencascade:x64-windows` to have been done first, which takes a while —
+the script tells you so rather than starting it behind your back. The result lands in
+`artifacts/native/win-x64/` and Spark looks there automatically. Setting `SPARK_OCCT_PATH` to a
+directory overrides where it looks.
+
 ## What is not built yet
 
-- **Trimmed faces.** A face in this build is bounded by its surface's own edges. Cutting a hole in
-  a face needs the parameter-space curves that a trim does not carry yet.
-- **Mesh booleans** — combining two *meshes* rather than two solids. Deferred, and greyed out
-  rather than missing.
+- **Trimmed faces in Spark's own model.** A face Spark *builds* is bounded by its surface's own
+  edges. Faces that come *back* from the provider are fully trimmed, so the result of a boolean is
+  as trimmed as it needs to be; what is missing is the ability to author a trimmed face directly.
+- **Split, trim, thicken, draft and offset** — greyed out rather than missing.
+- **STEP and IGES.** The provider can read and write both; Spark does not expose it yet.
+- **Mesh booleans** — combining two *meshes* rather than two solids. Deferred.

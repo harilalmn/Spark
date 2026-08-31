@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N48 added)
+**Last updated:** 2026-08-31 (N49-N52 added)
 
 ---
 
@@ -1453,3 +1453,91 @@ a BRep face actually rely on.
   in eight tests where a point-for-point comparison would have caught it in six.
 - **Sample on an odd grid.** An even grid lands on span boundaries, which is exactly where a wrong
   rational construction is still right, because the control points are on the curve there.
+
+## N49 — A hand-written C ABI over OpenCascade is 30 entry points, not 350, and the difference is one struct
+
+[ADR-0020](adr/0020-occt-via-c-abi-shim.md) estimated **350–500 exported entry points**, calibrated
+against `opencascade-rs`, which declares 538. The shim that landed exports **about thirty** and does
+everything M6 needs: construction, the three booleans, extrude, revolve, loft, fillet, chamfer,
+shell, sew, heal, tessellate, and both directions of the model conversion.
+
+**The estimate was not wrong about the work; it was wrong about the shape.** A binding that exposes
+OpenCascade *types* needs a call per type per operation — a getter for a cylinder's radius, another
+for its axis, another for a cone's half-angle, three more for the domain — and that is where 538
+comes from. This one exposes **one flat tagged encoding** instead: a curve or a surface crosses as
+`(kind, int[], double[])`, and a whole BRep crosses as one `spark_model_desc` of seventeen arrays.
+Reading a shape is `spark_occt_read`, `spark_occt_model_sizes`, `spark_occt_model_read` — three
+calls, whatever the shape contains.
+
+**What that buys is exactly what D17 says the shim is for.** Thirty entry points is thirty things
+that have to keep working across an OpenCascade upgrade. The encoding itself can grow a surface kind
+without growing the ABI, because a kind is a number in an array rather than a function.
+
+**What it costs is that the encoding is checked by nobody.** Two compilers see two halves of it and
+neither can see the other, so an off-by-one in an offset table is not a build error in either
+language. That is what the round-trip tests are for, and they are not optional: send a shape, read
+it back, compare the geometry. The C smoke test does the same trip in C, so a failure there and a
+failure in managed code point at different halves.
+
+## N50 — An imported solid's inside is decided by asking, not by the order the faces arrived in
+
+`BRepBuilderAPI_Sewing` orients a shell **consistently** and picks the global sign **arbitrarily**.
+Whether the resulting solid's material is inside or outside is therefore an accident of how the
+faces were built, and it changed underneath a working import when nothing about the geometry did:
+bounding each face by its surface's domain gave the right sign, and bounding the same faces by their
+loops gave the wrong one. **Every imported box then measured −24 instead of 24.**
+
+**Two fixes were tried and the first one is not enough, which is the useful part.**
+`BRepLib::OrientClosedSolid` flips the **solid's orientation flag**. That is sufficient to mesh
+correctly — the explorer composes the container's orientation with each face's, so the triangles
+come out wound the right way — and it is **not** sufficient for the boolean operators, which read
+the faces. With only the flag flipped, a union of two 24-unit boxes came back as **50** and a
+difference removed material that was never inside; the shapes were being treated as their own
+complements. `ShapeFix_Solid` with `FixShellOrientationMode` reverses the **faces**, and the same
+tests then give 42 and 60.
+
+**The lesson generalises past this call.** A shape that meshes correctly has not been shown to be
+correctly oriented, because meshing and modelling read different things. The test that separates
+them is a **boolean**, not a picture: `AnImportedBoxKeepsThePositiveVolumeItHad` catches the sign,
+and `TwoOverlappingBoxesFuse` catches whether anything downstream believes it.
+
+## N51 — Spark's trims carry no pcurve, so the importer computes them, and skipping the loops produces a wrong cylinder that looks right
+
+A `BrepTrim` names an edge and a direction and nothing else — `Spark.Geometry` has no
+parameter-space curves — while OpenCascade will not work with a face until every edge on it has one.
+The first importer sidestepped this by ignoring the loops entirely and bounding each face by its
+surface's own domain.
+
+**That produces a correct box and a wrong cylinder, and the wrong one is convincing.** A cylinder's
+caps are planes; bounded by their domains they are *rectangles*, so the import is a tube with two
+square plates. It sews, it meshes, it draws — and every boolean on it refuses, because it is not
+closed. Nothing about the mesh says so. **The demo graph is what found it**, which is an argument
+for demo graphs.
+
+**The fix is the path an IGES or STL import already takes**: build the wires from the 3D edges, hang
+them on the face, and let `ShapeFix_Face` project each edge onto the surface to make the pcurve.
+`FixOrientation` then decides which wire is outer and orients the rest against it.
+
+**One consequence is worth stating because it looks like a bug.** `BrepFace.IsReversed` must **not**
+be applied on top of a loop-built face. Spark winds a loop anticlockwise seen from outside the
+solid, so a reversed face's wire runs clockwise in its surface's parameter space — which is
+precisely the fact `ShapeFix_Face` reads. Applying the flag as well flips the face twice. A face
+with **no** loops still takes the domain path, and there the flag is the only thing that carries the
+orientation, so it still applies.
+
+## N52 — A tolerance is a request for work, and a curved solid will honour it without limit
+
+`spark_occt_tessellate` was asked for a linear deflection of `1e-6` on a two-metre sphere by a test
+that had reused the tolerance it used for the booleans. That is a legal request. OpenCascade began
+answering it, and the test process reached **31 GB** before it was killed.
+
+`Spark.Geometry`'s own tessellator has always had `Tessellation.MaximumSamplesPerDirection`, for
+exactly this reason. The provider path now has the same kind of floor, expressed the way a kernel
+can: **the deflection is clamped to a hundred-thousandth of the shape's bounding-box diagonal.**
+That is far finer than any display, export or printer needs, and it is finite.
+
+**The general shape of the mistake is worth naming.** A tolerance that is right for an operation is
+not automatically right for a tessellation: a boolean's tolerance says *how close two things must be
+to count as touching*, and a mesh's says *how many triangles do you want*. They are different
+questions with the same units, and code that carries one `Tolerance` value from a node to both is
+the place the confusion lands.

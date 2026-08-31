@@ -5,6 +5,7 @@
     <Project Path="src/Spark.Desktop/Spark.Desktop.csproj" />
     <Project Path="src/Spark.Engine/Spark.Engine.csproj" />
     <Project Path="src/Spark.Geometry.Io/Spark.Geometry.Io.csproj" />
+    <Project Path="src/Spark.Geometry.Occt/Spark.Geometry.Occt.csproj" />
     <Project Path="src/Spark.Geometry/Spark.Geometry.csproj" />
     <Project Path="src/Spark.Host/Spark.Host.csproj" />
     <Project Path="src/Spark.Nodes.Core/Spark.Nodes.Core.csproj" />
@@ -20,6 +21,7 @@
     <Project Path="tests/Spark.Architecture.Tests/Spark.Architecture.Tests.csproj" />
     <Project Path="tests/Spark.Docs.Verify/Spark.Docs.Verify.csproj" />
     <Project Path="tests/Spark.Engine.Tests/Spark.Engine.Tests.csproj" />
+    <Project Path="tests/Spark.Geometry.Occt.Tests/Spark.Geometry.Occt.Tests.csproj" />
     <Project Path="tests/Spark.Geometry.Properties/Spark.Geometry.Properties.csproj" />
     <Project Path="tests/Spark.Geometry.Tests/Spark.Geometry.Tests.csproj" />
     <Project Path="tests/Spark.UI.Tests/Spark.UI.Tests.csproj" />

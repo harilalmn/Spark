@@ -257,6 +257,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 ? DemoGraphs.Surfaces(_session.Library)
                 : string.Equals(startupGraph, "curves", StringComparison.OrdinalIgnoreCase)
                 ? DemoGraphs.Curves(_session.Library)
+                : string.Equals(startupGraph, "solids", StringComparison.OrdinalIgnoreCase)
+                ? DemoGraphs.Solids(_session.Library)
                 : DemoGraphs.Demo(_session.Library));
         AdoptGraph(_graph);
 
@@ -359,6 +361,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public void LoadCurves()
     {
         AdoptGraph(DemoGraphs.Curves(_session.Library));
+        GraphReplaced?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Replaces the document with the solid demo graph.</summary>
+    [RelayCommand]
+    public void LoadSolids()
+    {
+        AdoptGraph(DemoGraphs.Solids(_session.Library));
         GraphReplaced?.Invoke(this, EventArgs.Empty);
     }
 

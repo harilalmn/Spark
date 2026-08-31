@@ -7,6 +7,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Spark.UI\Spark.UI.csproj" />
+
+    <!--
+      ADR-0020: the OpenCascade provider ships in the default install. FR-81 forbids a Dynamo
+      user finding booleans greyed out on first run, so the application - not any library -
+      takes the reference and installs it at startup.
+    -->
+    <ProjectReference Include="..\Spark.Geometry.Occt\Spark.Geometry.Occt.csproj" />
   </ItemGroup>
 
   <ItemGroup>

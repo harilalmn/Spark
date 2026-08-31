@@ -19,7 +19,8 @@ namespace Spark.UI;
 /// null to run normally.
 /// </param>
 /// <param name="Graph">
-/// Which seeded graph to open: <c>demo</c> for the point grid, <c>curves</c> for the curve demo.
+/// Which seeded graph to open: <c>demo</c> for the point grid, <c>curves</c> for the curve demo,
+/// <c>surfaces</c> for the surface demo, <c>solids</c> for the exact solid demo.
 /// </param>
 /// <param name="OpenPath">
 /// A `.spark` file to open instead of a seeded graph, or null.
@@ -57,6 +58,10 @@ public readonly record struct StartupOptions(
     /// <summary>True when the window should open the surface demo.</summary>
     public bool IsSurfaceGraph =>
         string.Equals(Graph, "surfaces", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>True when the window should open the solid demo.</summary>
+    public bool IsSolidGraph =>
+        string.Equals(Graph, "solids", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>True when the window should run the canvas benchmark and then exit.</summary>
     public bool IsBenchmark => BenchmarkFrames > 0;

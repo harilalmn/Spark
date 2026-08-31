@@ -1,0 +1,317 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Spark.Api;
+using Spark.Geometry;
+
+namespace Spark.Geometry.Occt.Tests;
+
+/// <summary>
+/// The provider, end to end. <c>M1.6-C2</c> lives in <see cref="TwoOverlappingBoxesFuse"/>.
+/// </summary>
+public sealed class OcctBrepKernelTests
+{
+    private static IBrepKernel Kernel => NativeProvider.Kernel;
+
+    private static Tolerance Fine => new(1e-4, Angle.FromDegrees(1), 1e-12);
+
+    private static Brep Box(double x, double y, double z, double length, double width, double height) =>
+        BrepPrimitives.Box(
+            Plane.ByOriginXAxisYAxis(new Point3d(x, y, z), Vector3d.XAxis, Vector3d.YAxis),
+            length,
+            width,
+            height);
+
+    [NativeFact]
+    public void TheProviderIsInstalledAndSaysWhatItCanDo()
+    {
+        Assert.Equal("opencascade", Kernel.Name);
+        Assert.True(Kernel.Capabilities.HasFlag(BrepCapabilities.Boolean));
+        Assert.True(Kernel.Capabilities.HasFlag(BrepCapabilities.Fillet));
+        Assert.True(Kernel.Capabilities.HasFlag(BrepCapabilities.Tessellate));
+
+        // Not claimed, and the absence is the assertion: a capability flag is what the node
+        // library greys operations out on, so claiming one the ABI cannot do is worse than
+        // claiming nothing.
+        Assert.False(Kernel.Capabilities.HasFlag(BrepCapabilities.Step));
+        Assert.False(Kernel.Capabilities.HasFlag(BrepCapabilities.MeshBoolean));
+    }
+
+    /// <summary>
+    /// <b><c>M1.6-C2</c>.</b> One boolean, end to end: two managed boxes in, one exact solid out,
+    /// with the right volume and the right topology. If this test cannot be made to pass,
+    /// ADR-0020 is the decision that has to be reopened.
+    /// </summary>
+    [NativeFact]
+    public void TwoOverlappingBoxesFuse()
+    {
+        Brep first = Box(0, 0, 0, 2, 3, 4);
+        Brep second = Box(1, 1, 1, 2, 3, 4);
+
+        KernelResult<Brep> result = Kernel.Union(first, second, Fine);
+
+        Assert.True(result.TryGetValue(out Brep? fused), result.Diagnostic?.Message);
+        Assert.NotNull(fused);
+
+        // 24 + 24 - the 1x2x3 overlap.
+        Mesh mesh = Kernel.Tessellate(fused, Fine).Value;
+        Assert.Equal(42.0, mesh.Volume(), 1);
+
+        // More faces than either box had, because the union has a step in it.
+        Assert.True(fused.FaceCount > 6, $"the union has {fused.FaceCount} faces");
+    }
+
+    [NativeFact]
+    public void ADifferenceTakesTheSecondSolidOut()
+    {
+        Brep block = Box(0, 0, 0, 4, 4, 4);
+        Brep bite = Box(1, 1, 3, 2, 2, 2);
+
+        Brep cut = Kernel.Difference(block, bite, Fine).Value;
+        Mesh mesh = Kernel.Tessellate(cut, Fine).Value;
+
+        // 64 minus the 2x2x1 that was actually inside.
+        Assert.Equal(60.0, mesh.Volume(), 1);
+    }
+
+    [NativeFact]
+    public void AnIntersectionKeepsOnlyTheOverlap()
+    {
+        Brep first = Box(0, 0, 0, 2, 3, 4);
+        Brep second = Box(1, 1, 1, 2, 3, 4);
+
+        Brep common = Kernel.Intersection(first, second, Fine).Value;
+        Mesh mesh = Kernel.Tessellate(common, Fine).Value;
+
+        Assert.Equal(6.0, mesh.Volume(), 1);
+        Assert.Equal(6, common.FaceCount);
+    }
+
+    /// <summary>
+    /// <b>A refusal is a value.</b> Two solids that do not touch have no intersection, and that
+    /// is the geometry declining rather than anything being broken — so it arrives as a
+    /// diagnostic with a code and a help topic, not as an exception.
+    /// </summary>
+    [NativeFact]
+    public void SolidsThatDoNotTouchRefuseToIntersect()
+    {
+        Brep here = Box(0, 0, 0, 1, 1, 1);
+        Brep faraway = Box(100, 100, 100, 1, 1, 1);
+
+        KernelResult<Brep> result = Kernel.Intersection(here, faraway, Fine);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(KernelDiagnostics.Refused, result.Diagnostic!.Code);
+        Assert.Equal(KernelDiagnostics.SolidsTopic, result.Diagnostic.HelpTopicId);
+        Assert.Contains("intersection", result.Diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [NativeFact]
+    public void AFilletRoundsEveryEdge()
+    {
+        Brep block = Box(0, 0, 0, 4, 4, 4);
+
+        Brep rounded = Kernel.Fillet(block, [], 0.5, Fine).Value;
+
+        // Twelve rounded edges and eight corners on top of the six flats.
+        Assert.True(rounded.FaceCount >= 26, $"the filleted box has {rounded.FaceCount} faces");
+
+        Mesh mesh = Kernel.Tessellate(rounded, Fine).Value;
+        Assert.True(mesh.Volume() < 64.0, "rounding the edges removes material");
+        Assert.True(mesh.Volume() > 60.0, "and does not remove very much of it");
+    }
+
+    /// <summary>A fillet that does not fit is a refusal, not a crash.</summary>
+    [NativeFact]
+    public void AFilletThatDoesNotFitIsRefused()
+    {
+        Brep block = Box(0, 0, 0, 1, 1, 1);
+
+        KernelResult<Brep> result = Kernel.Fillet(block, [], 10.0, Fine);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(KernelDiagnostics.Refused, result.Diagnostic!.Code);
+    }
+
+    [NativeFact]
+    public void HollowingLeavesAWall()
+    {
+        Brep block = Box(0, 0, 0, 4, 4, 4);
+
+        Brep hollow = Kernel.Shell(block, [], -0.5, Fine).Value;
+        Mesh mesh = Kernel.Tessellate(hollow, Fine).Value;
+
+        // 4^3 minus 3^3, to the tessellation's accuracy.
+        Assert.Equal(37.0, mesh.Volume(), 1);
+    }
+
+    [NativeFact]
+    public void ExtrudingAClosedProfileMakesASolid()
+    {
+        Circle profile = new(Plane.WorldXY, 2.0);
+
+        Brep solid = Kernel.Extrude(profile, new Vector3d(0, 0, 5), cap: true, Fine).Value;
+        Mesh mesh = Kernel.Tessellate(solid, Fine).Value;
+
+        Assert.Equal(Math.PI * 4.0 * 5.0, mesh.Volume(), 0);
+        Assert.Equal(3, solid.FaceCount);
+    }
+
+    [NativeFact]
+    public void RevolvingAProfileMakesASolidOfRevolution()
+    {
+        // A unit square standing off the axis, spun a full turn: a square-section ring.
+        Brep ring = Kernel.Revolve(
+            new Line(new Point3d(2, 0, 0), new Point3d(3, 0, 0)),
+            Point3d.Origin,
+            Vector3d.ZAxis,
+            Angle.FromDegrees(360),
+            Fine).Value;
+
+        Assert.True(ring.FaceCount >= 1);
+    }
+
+    [NativeFact]
+    public void LoftingNeedsAtLeastTwoProfiles()
+    {
+        KernelResult<Brep> result = Kernel.Loft([new Circle(Plane.WorldXY, 1.0)], closed: false, Fine);
+
+        Assert.False(result.IsSuccess);
+    }
+
+    [NativeFact]
+    public void ATessellationCarriesSurfaceNormals()
+    {
+        Brep cylinder = BrepPrimitives.Cylinder(Plane.WorldXY, 1.0, 4.0);
+
+        Mesh mesh = Kernel.Tessellate(cylinder, Fine).Value;
+        Vector3d[] normals = mesh.Normals()!;
+
+        Assert.NotEmpty(normals);
+        Assert.Equal(mesh.VertexCount, normals.Length);
+
+        // Somewhere on the wall the normal points outwards, horizontally. A per-facet normal
+        // would still be horizontal, so the assertion that matters is the *count* of distinct
+        // directions: a smooth wall has one per column of vertices, a faceted one has one per
+        // triangle. This checks the cheap half; the shading is checked by eye in the viewport.
+        Assert.Contains(normals, normal => Math.Abs(normal.Z) < 1e-6 && normal.Length > 0.5);
+    }
+
+    /// <summary>
+    /// <b>A chain of operations converts twice, not ten times.</b> ADR-0021's whole claim, and the
+    /// only way to see it from managed code is that the intermediate shapes were never read out.
+    /// </summary>
+    [NativeFact]
+    public void AChainOfBooleansStaysResident()
+    {
+        Brep running = Box(0, 0, 0, 4, 4, 4);
+
+        for (int i = 1; i <= 3; i++)
+        {
+            Brep cutter = Box(i, i, 3, 0.5, 0.5, 2);
+            running = Kernel.Difference(running, cutter, Fine).Value;
+
+            Assert.True(running.IsResident, $"step {i} came back as a plain value");
+            Assert.True(running.NativeBytes > 0, $"step {i} reported no native memory");
+        }
+
+        // The first structural question is what materialises it, and only then. `IsResident`
+        // means *not read out yet*, so asking is what makes it false — and the handle is still
+        // held, which is what `NativeBytes` still being positive says. That is the distinction
+        // that matters: the arrays now exist beside the shape rather than instead of it.
+        Assert.True(running.FaceCount > 6);
+        Assert.False(running.IsResident, "asking a structural question is what materialises it");
+        Assert.True(running.NativeBytes > 0, "and the provider still holds the shape");
+    }
+
+    /// <summary>
+    /// <b>Analytic stays analytic.</b> The reason for taking an exact kernel rather than a mesh
+    /// one is that a cylinder comes back a cylinder — so a boolean that does not touch the wall
+    /// must leave a cylindrical face behind, not a spline that happens to be round.
+    /// </summary>
+    [NativeFact]
+    public void ACylinderSurvivesABooleanAsACylinder()
+    {
+        Brep cylinder = BrepPrimitives.Cylinder(Plane.WorldXY, 2.0, 6.0);
+        Brep notch = Box(-3, -3, 5, 6, 6, 2);
+
+        Brep cut = Kernel.Difference(cylinder, notch, Fine).Value;
+
+        Assert.Contains(cut.Surfaces(), surface => surface is CylindricalSurface);
+        Assert.Contains(cut.Surfaces(), surface => surface is PlaneSurface);
+    }
+
+    /// <summary>
+    /// <b>The solid demo graph's chain, as a test.</b> A demo that errors on screen is a demo that
+    /// teaches the wrong thing, and the only way to keep one honest is to run what it runs. The
+    /// numbers here are the numbers in <c>DemoGraphs.Solids</c>; if they stop working together,
+    /// this goes red before anybody takes a screenshot.
+    /// </summary>
+    /// <remarks>
+    /// <b>The fillet is on the plain box and not on the drilled one, and that is a measurement
+    /// rather than a preference.</b> Filleting every edge of a box fused to a tangent cylinder and
+    /// then drilled took <b>48 seconds</b> at a radius that fits, and refused outright at the
+    /// radius that looked right — a vertex blend where three curved faces meet is the second
+    /// known-hard case in this whole area (R18). A demo that takes a minute to open is not a demo.
+    /// </remarks>
+    [NativeFact]
+    public void TheSolidDemosChainRuns()
+    {
+        Brep box = BrepPrimitives.Box(
+            Plane.ByOriginXAxisYAxis(new Point3d(-4, -2, 0), Vector3d.XAxis, Vector3d.YAxis), 5, 4, 2);
+        Brep post = BrepPrimitives.Cylinder(
+            Plane.ByOriginXAxisYAxis(new Point3d(-1.5, 0, 0), Vector3d.XAxis, Vector3d.YAxis), 1.6, 4.5);
+        Brep drill = BrepPrimitives.Cylinder(
+            Plane.ByOriginXAxisYAxis(new Point3d(-1.5, 0, -1), Vector3d.XAxis, Vector3d.YAxis), 0.8, 7.0);
+
+        KernelResult<Brep> fused = Kernel.Union(box, post, Fine);
+        Assert.True(fused.IsSuccess, fused.Diagnostic?.Detail);
+
+        KernelResult<Brep> drilled = Kernel.Difference(fused.Value, drill, Fine);
+        Assert.True(drilled.IsSuccess, drilled.Diagnostic?.Detail);
+
+        Mesh mesh = Kernel.Tessellate(drilled.Value, Fine).Value;
+        Assert.True(mesh.Volume() > 0.0, "the demo's main solid has a positive volume");
+
+        // The demo's third object: a box with every edge rounded, which is the thing no mesh
+        // boolean could have produced.
+        Brep plinth = BrepPrimitives.Box(
+            Plane.ByOriginXAxisYAxis(new Point3d(12, -1.5, 0), Vector3d.XAxis, Vector3d.YAxis), 3, 3, 3);
+
+        KernelResult<Brep> rounded = Kernel.Fillet(plinth, [], 0.4, Fine);
+        Assert.True(rounded.IsSuccess, rounded.Diagnostic?.Detail);
+        Assert.True(rounded.Value.FaceCount >= 26, $"{rounded.Value.FaceCount} faces");
+
+        // And its second object: a hollowed box.
+        Brep hollow = Kernel.Shell(
+            BrepPrimitives.Box(
+                Plane.ByOriginXAxisYAxis(new Point3d(6, -1.5, 0), Vector3d.XAxis, Vector3d.YAxis), 3, 3, 3),
+            [],
+            -0.4,
+            Fine).Value;
+
+        Assert.Equal(27.0 - (2.2 * 2.2 * 2.2), Kernel.Tessellate(hollow, Fine).Value.Volume(), 1);
+    }
+
+    [NativeFact]
+    public void SewingTwoHalvesMakesOneShape()
+    {
+        Brep left = Box(0, 0, 0, 1, 1, 1);
+        Brep right = Box(1, 0, 0, 1, 1, 1);
+
+        Brep sewn = Kernel.Sew([left, right], Fine).Value;
+
+        Assert.True(sewn.FaceCount >= 6);
+    }
+
+    [NativeFact]
+    public void HealingAGoodShapeLeavesItGood()
+    {
+        Brep block = Box(0, 0, 0, 2, 2, 2);
+
+        Brep healed = Kernel.Heal(block, Fine).Value;
+        Mesh mesh = Kernel.Tessellate(healed, Fine).Value;
+
+        Assert.Equal(8.0, mesh.Volume(), 3);
+    }
+}

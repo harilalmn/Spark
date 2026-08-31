@@ -105,6 +105,21 @@ XML doc = what this member does.*
    dotnet run --project bench/Spark.Benchmarks --configuration Release -- check --results artifacts/benchmarks/results --no-canvas
    ```
 
+   **The native shim is built separately and is not part of `dotnet build`.** If you have touched
+   anything under `native/spark_occt/`, build and smoke-test it from a Visual Studio developer
+   prompt before you commit:
+
+   ```
+   pwsh scripts/build-native.ps1
+   ```
+
+   It configures with CMake + Ninja against the vcpkg OpenCascade install, stages
+   `artifacts/native/win-x64/`, and runs `spark_occt_smoke.exe`, which is a **C** program on
+   purpose: if it stops compiling, the header has grown C++ in it, which is the one thing the shim
+   must never do. `Spark.Geometry.Occt.Tests` **skips** rather than fails when the shim is absent,
+   because a build with no native component is a supported configuration — so a green managed run
+   is not evidence the provider works. **Read the skip count.**
+
    The budgets are in `bench/budgets.jsonc` and **they are not all worth the same**: allocation
    ceilings are deterministic and tight, ratios are machine-independent and are the sharpest thing
    there, and the wall-clock ceilings catch a step change and nothing finer. Adding a benchmark
@@ -414,6 +429,8 @@ cost, never on taste.
 ```text
 src/Spark.Geometry/      the kernel: values, curves, surfaces, BRep, mesh, tessellation
 src/Spark.Geometry.Io/   OBJ/STL/PLY/glTF/STEP behind reader and writer interfaces
+src/Spark.Geometry.Occt/ the OpenCascade provider. The ONLY project that may see a handle
+native/spark_occt/       the C ABI over OpenCascade. C++, MIT, ours. Built by CMake, not dotnet
 src/Spark.Api/           contracts only. Small, deliberate, changed only on purpose
 src/Spark.Engine/        graph model, evaluation, lacing, importer, serialization
 src/Spark.Scripting/     Roslyn: compilation, rewriting, source maps, guards, completion
@@ -433,14 +450,18 @@ scripts/                 repository helper scripts
 ```
 
 Two of those lines are intent rather than description, and are marked. Everything else matches
-disk, with one qualification worth knowing before you add a project: `tests/` holds **seven**
+disk, with one qualification worth knowing before you add a project: `tests/` holds **eight**
 projects — `Spark.Architecture.Tests`, `Spark.Docs.Verify`, `Spark.Geometry.Tests`,
-`Spark.Geometry.Properties`, `Spark.Engine.Tests`, `Spark.UI.Tests` and `Spark.Viewport.Tests`
-— and nothing else. `tests/corpus/` does not exist yet. Each of the last three arrived **with
+`Spark.Geometry.Properties`, `Spark.Geometry.Occt.Tests`, `Spark.Engine.Tests`, `Spark.UI.Tests`
+and `Spark.Viewport.Tests` — and nothing else. `tests/corpus/` does not exist yet. Each of the last three arrived **with
 the code it tests**, not ahead of it, because a test project containing no tests fails the run
-outright — [NOTES.md N12](docs/NOTES.md). The two geometry projects remain the only ones granted
-`InternalsVisibleTo` on the kernel, and that is a deliberate ceiling of two —
-[NOTES.md N10](docs/NOTES.md). `tests/` has its
+outright — [NOTES.md N12](docs/NOTES.md). The ceiling on `InternalsVisibleTo` for the kernel was two and is now **three**:
+`Spark.Geometry.Tests`, `Spark.Geometry.Properties` and `Spark.Geometry.Occt` —
+[NOTES.md N10](docs/NOTES.md). The third is not a test project and is the one that needs
+justifying: ADR-0020 makes the provider the only assembly permitted to observe a native handle, and
+it reaches `Brep.Residency` through a one-way window rather than through a public member that would
+have leaked the existence of a provider into the kernel's own surface. **A fourth needs an argument
+of the same kind.** `tests/` has its
 own `Directory.Build.props` carrying `OutputType=Exe`, the xunit v3 reference and the global
 `using Xunit`, so a new test project is a near-empty `.csproj` plus a line in `Spark.slnx`.
 

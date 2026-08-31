@@ -130,6 +130,96 @@ public sealed class ReferenceGraphTests
     }
 
     /// <summary>
+    /// ADR-0020. The native provider is reachable only from an application, never from a
+    /// library. That is the whole shape of the decision: <c>Spark.Geometry</c> stays pure managed
+    /// and independently distributable (NFR-5), and the assembly that carries OpenCascade is one
+    /// an embedder can choose not to load.
+    /// <para>
+    /// The moment <c>Spark.Engine</c>, <c>Spark.Nodes.Core</c> or <c>Spark.Viewport</c> takes this
+    /// reference, every consumer of those acquires a native dependency they did not ask for, and
+    /// the seam in <c>Spark.Api</c> becomes decoration. The provider reaches them through
+    /// <c>BrepKernel.Current</c>, which is why the seam is ambient.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void OnlyAnApplicationReferencesTheNativeProvider()
+    {
+        string[] allowed = ["Spark.Cli", "Spark.Desktop"];
+        List<string> offenders = [];
+
+        foreach (string project in Directory.EnumerateFiles(SrcDirectory, "*.csproj", SearchOption.AllDirectories))
+        {
+            string name = Path.GetFileNameWithoutExtension(project);
+
+            if (name == "Spark.Geometry.Occt" || allowed.Contains(name))
+            {
+                continue;
+            }
+
+            if (ProjectReferencesOfPath(project).Contains("Spark.Geometry.Occt"))
+            {
+                offenders.Add(name);
+            }
+        }
+
+        Assert.Empty(offenders);
+    }
+
+    /// <summary>
+    /// ADR-0020. The provider itself sees the seam and the kernel and nothing else — no engine,
+    /// no nodes, no UI. It is a leaf, and a leaf is what can be swapped for a different kernel.
+    /// </summary>
+    [Fact]
+    public void TheNativeProviderIsALeaf()
+    {
+        string[] references = ProjectReferencesOf("Spark.Geometry.Occt").Order().ToArray();
+
+        Assert.Equal(["Spark.Api", "Spark.Geometry"], references);
+    }
+
+    /// <summary>
+    /// NFR-15, and ADR-0020's build-policy conflict, resolved by adding rather than relaxing.
+    /// <c>Directory.Build.props</c> sets <c>AllowUnsafeBlocks=false</c> for the whole repository
+    /// because the kernel does not need it and <c>Span&lt;T&gt;</c> covers what it was reached for.
+    /// <c>LibraryImport</c>'s generated marshalling stubs are unsafe, so exactly one project opts
+    /// back in — the one whose entire job is interop.
+    /// <para>
+    /// The failure this prevents is not a dangerous pointer; it is the flag spreading. A project
+    /// that turns it on to silence one generator has turned it on for everything it will ever
+    /// contain, and nobody turns it back off.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void OnlyTheNativeProviderAllowsUnsafeCode()
+    {
+        List<string> offenders = [];
+
+        foreach (string project in Directory.EnumerateFiles(RepositoryRoot(), "*.csproj", SearchOption.AllDirectories))
+        {
+            if (project.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            string name = Path.GetFileNameWithoutExtension(project);
+
+            if (name == "Spark.Geometry.Occt")
+            {
+                continue;
+            }
+
+            string text = File.ReadAllText(project);
+
+            if (text.Contains("<AllowUnsafeBlocks>true</AllowUnsafeBlocks>", StringComparison.OrdinalIgnoreCase))
+            {
+                offenders.Add(name);
+            }
+        }
+
+        Assert.Empty(offenders);
+    }
+
+    /// <summary>
     /// Nothing shipped may depend on test code. Obvious, and worth a test precisely
     /// because it is the kind of reference someone adds at midnight to reuse one helper.
     /// </summary>

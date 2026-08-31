@@ -53,6 +53,11 @@ internal static class Program
             // already whatever the host chose, and failing to start over it would be absurd.
         }
 
+        // ADR-0020: the provider is installed if it is there, and its absence is silent here.
+        // `spark run` on a graph with no solids in it must not print a warning about a kernel it
+        // never needed, and a graph that does need one gets a diagnostic on the node itself.
+        _ = Spark.Geometry.Occt.OcctKernel.TryInstall(out _);
+
         if (args.Length == 0 || args[0] is "--help" or "-h" or "help")
         {
             Usage();

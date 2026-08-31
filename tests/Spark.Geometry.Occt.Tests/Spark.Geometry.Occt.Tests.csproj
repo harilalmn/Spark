@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The provider's tests. Every one of them needs the native library, so every one of them is
+    SKIPPED rather than failed when it is absent - see NativeFact. A build with no native
+    component is a supported configuration (ADR-0021), and a suite that went red on it would
+    make the supported configuration look broken.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Spark.Geometry.Occt/Spark.Geometry.Occt.csproj" />
+    <ProjectReference Include="../../src/Spark.Api/Spark.Api.csproj" />
+    <ProjectReference Include="../../src/Spark.Geometry/Spark.Geometry.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -3,15 +3,16 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-31 (Q15)
+**Last updated:** 2026-08-31 (M1.6 taken; the OpenCascade provider lands)
 
-**M0 and most of M1.5 have landed, M2's walking skeleton runs, M1's geometry core now has curves,
-a graph can be saved and opened, and every edit can be undone.** The application opens, a graph evaluates, and an ellipse,
-eight circles and a polygon appear in the GPU viewport — from a seeded demo or from a file, and
-Ctrl+Z steps back through every edit. `dotnet build`, `dotnet test` (**952 tests over seven
-projects**) and `dotnet format` are all clean, and **CI ran green on Windows and Linux on
-`53596ab`**, 952 tests on each leg — and the Linux leg has now caught something Windows could
-not, which is the first time it has been worth more than it cost ([N28](NOTES.md)).
+**M0, M1, M1.5, M2, M3 and M4 have landed; M5 is substantially done; and M6's provider is in.**
+The application opens, a graph evaluates, and geometry appears in the GPU viewport — curves,
+surfaces, meshes, and now **solids that are combined exactly**. `--graph solids` fuses a box to a
+cylinder, drills a hole through both, hollows a second box and rounds every edge of a third.
+`dotnet build --no-incremental -warnaserror`, the per-project test executables (**1,707 tests over
+eight projects**) and `dotnet format` are all clean on Windows as of 2026-08-31, with the native
+shim built and **nothing skipped**. **CI has not run since the provider landed**, and its Linux leg
+is now a question rather than a habit — see `Q15(c)`.
 
 **The benchmarks stopped being a report and became a guard on 2026-08-29.** A nightly workflow
 runs the three suites on both operating systems and the application's own canvas benchmark on
@@ -23,16 +24,19 @@ proven to detect and proven to run.
 
 Three distinctions still do the work in what follows:
 
-- **What is built.** The value layer (13 types), the curve layer (`Line`, `Arc`, `Circle`,
-  `EllipseCurve`, `PolyLine`, `PolyCurve` over a `Curve` base, with arc-length
-  reparameterisation), the graph engine and replicator, the reflection importer with its
-  two-way diff, the Avalonia shell, the immediate-mode canvas, the GL viewport, 57 nodes in
-  `Spark.Nodes.Core`, a `.spark` file a graph survives a round trip through byte for byte, and a
-  64-step undo stack over that same file format. **1,196 tests over seven projects** as of
-  2026-08-30.
-- **What is not.** No surfaces, meshes, BRep or solids. No `NurbsCurve` — though its knot vector
-  landed on 2026-08-30 and the curve is next. No packages and no code block. And **no OCCT**:
-  there is no `native/` directory and no `Spark.Geometry.Occt` project.
+- **What is built.** The value layer, the curve layer including `NurbsCurve`, the surface layer
+  including `NurbsSurface`, meshes and adaptive tessellation, BRep topology, the graph engine and
+  replicator, the reflection importer with its two-way diff, Roslyn code blocks on the canvas, the
+  Avalonia shell, the immediate-mode canvas, the GL viewport, 108 nodes in `Spark.Nodes.Core`,
+  OBJ/STL/PLY/glTF on the way out, a `.spark` file a graph survives a round trip through byte for
+  byte, and a 64-step undo stack over that same file format. **And the OpenCascade provider**:
+  `native/spark_occt` and `Spark.Geometry.Occt`, with union, difference, intersection, extrude,
+  revolve, loft, fillet, chamfer, shell, sew, heal and tessellate behind `IBrepKernel`.
+  **1,707 tests over eight projects** as of 2026-08-31.
+- **What is not.** No STEP or IGES, though the provider can do both. No split, trim, thicken,
+  draft or offset. No packages. No mesh booleans. Trimmed faces come *back* from the provider but
+  cannot be authored. The software renderer and the CI visual-regression check are deliberately
+  deferred past M6.
 - **M2 finished on 2026-08-30.** Real docking (`E8-T2`), group, note and align (`E8-T6`), watch
   nodes and preview bubbles (`E8-T10`) and `spark run` (`E12-T5`) all landed that day, which was
   the whole of what the milestone still owed. The shell is a `DockControl` whose presets rearrange
@@ -46,7 +50,7 @@ Three distinctions still do the work in what follows:
   *every* drag, because a click raises no pointer-move event and never reached the guard the test
   was written for. All of it in code that was green.
 
-**The largest decision in the project is unchanged and unbuilt.** The client chose to take an
+**The largest decision in the project is unchanged, and it is now built.** The client chose to take an
 existing solid-modelling kernel rather than write one: **OpenCascade, reached through a C-ABI
 shim we own** ([ADR-0020](adr/0020-occt-via-c-abi-shim.md),
 [ADR-0021](adr/0021-brep-kernel-residency.md), PRD **D2** and **D15**). It retires **R1** and
@@ -57,11 +61,16 @@ what comparable projects actually ship: a full win-x64 OCCT build is 52.1 MiB ac
 toolkits plus 9.9 MiB of optional third-party libraries, so **R15's 40–160 MB bracket should be
 read as 55–70 MB** — but that is a survey, not a build.
 
-**As of 2026-08-29 the spike has criteria and still has no build.** Nine of them, `M1.6-C1` …
+**The spike was taken on 2026-08-31, and ADR-0020 stands.** Nine criteria, `M1.6-C1` …
 `M1.6-C9` in [TASKS.md](TASKS.md#m16--the-passfail-criteria-written-before-the-spike), written
-ahead of the work rather than beside it, and each carrying what a failure would mean. The
-distinction they draw is the useful one: **exactly one criterion can reopen ADR-0020**, and it
-reopens the binding rather than the engine.
+ahead of the work rather than beside it, and each carrying what a failure would mean. **Three are
+answered.** `C2` — the only one that could have reopened ADR-0020 — **passed**: a boolean runs end
+to end and measures 42.0 against arithmetic's 42. `C1` passed on Windows, whose
+*two-operating-system* half is void under **D17**. `C3` is **measured at 52.0 MB staged and 28.4 MB
+linked**, replacing R15's unmeasured 40–160 MB bracket. **`C4` through `C9` are not taken**, and
+`C6` — whether `ShapeFix` can be constrained to a policy we choose — matters more than it did,
+because `ShapeFix` is now on the *import* path rather than only behind `Heal`
+([N50](NOTES.md), [N51](NOTES.md)).
 
 **One row on this page came from using the product rather than from planning it**, and it is worth
 saying so where the plan lives: `E8-T18`, port type labels. Nothing in the PRD asked for them and
@@ -72,7 +81,33 @@ for anything else.
 
 ---
 
-## Now — take the M1.6 spike, and the last M1.5 one
+## Now — finish M6 behind the provider
+
+The provider landed on 2026-08-31 and the rows behind it did not all land with it. In priority
+order:
+
+- [ ] **`E13-T12` — STEP and IGES.** The provider can already do both; nothing exposes it. This is
+      the single largest capability still sitting unused behind a working seam, and
+      [R12](PRD.md#12-risks) does not retire until it is exposed.
+- [ ] **`E13-T7`'s other half — split and trim**, and **`E13-T8`'s — thicken, draft and offset.**
+      They are named in [DYNAMO-COVERAGE §6.1](DYNAMO-COVERAGE.md#61-parity-on-solid-and-surface-commits-us-to-exact-solid-modelling)'s
+      70 members, which is the whole reason the seam exists.
+- [ ] **`E13-T3`'s consumer.** `Brep.NativeBytes` reports a real figure and **the evaluation cache
+      does not read it** (NFR-4). A graph holding two hundred resident shapes still reports
+      megabytes while holding gigabytes — the number now exists, and the cache still evicts by
+      entry count.
+- [ ] **`M1.6-C6`, the `ShapeFix` policy.** It moved from *worth knowing* to *on the critical
+      path* when `ShapeFix_Face` and `ShapeFix_Solid` joined the import path.
+- [ ] **`E13-T15` and `Q15(c)` together.** Whether the Linux CI leg survives is now inseparable
+      from what a per-RID native build would cost, and D16 removed the release argument for it
+      while leaving the rot-guard argument standing.
+- [ ] **`E11-T16` — the software renderer and CI visual regression.** Deferred past M6 by decision
+      on 2026-08-31, on the ground that it guards the viewport and the viewport is not what M6
+      depended on. It is now the largest thing M5 still owes.
+
+---
+
+## Earlier — the M1.6 spike, and the last M1.5 one
 
 - [x] **Walk TASKS.md against E3, E4, E5, E8 and E9** — done, and it moved 41 rows. Ten of them
       came back **`In progress` rather than `Done`**, which is the useful output: the cache
@@ -311,7 +346,7 @@ exclusions is what keeps a walking skeleton from becoming a death march.
 | **Q14** | **What is OCCT's real thread-safety envelope?** May the parallel evaluator call the shim concurrently, and at what granularity? Documented guidance is thin, and `R20` is a **top-three risk that cannot be mitigated until this is known**. *How to find out:* read the upstream source of the packages we actually call, and stress the shim at the evaluator's real thread count — `E13-T14`, started at M1.6. The conservative fallback is a single-writer policy, which would cost throughput on exactly the workload replication makes common. | `E13-T14`, M6 |
 | Q7 | Which public STEP corpus is authoritative, and which third-party viewer is the reference? **Downgraded, not closed.** We no longer write a STEP writer, so this stops being about defending a subset and becomes about validating *our use* of OCCT's — smaller, and still necessary, because *OCCT wrote it* is not evidence that a file we produce is correct. | `E13-T12`, and no longer gating anything upstream |
 | Q8 | Where does the website live, and who maintains it? | `E10-T14` |
-| **Q15** | **What does D16 reopen?** The client has decided Spark supports **Windows and nothing else, ever** (**D16**). Two things were bought with the cross-platform option that decision gives up. **(a)** [ADR-0020](adr/0020-occt-via-c-abi-shim.md) paid a **15–25% effort premium** for a C-ABI shim over C++/CLI, and the payoff it names is buying back exactly that option — though the shim's *other* reasons, a small chosen ABI surface and upgrade survival, are not about operating systems and still stand. **Ask now: `spark_occt` is unwritten, so this is cheap today and expensive at M6.** **(b)** `M1.6-C1` and `M1.6-C2` require two operating systems, and **that is what blocks M1.6 today**. **(c)** Does the ubuntu CI job survive? Its rot-guard justification is void under D16, but it caught a real defect on its own merits ([NOTES.md N28](NOTES.md)). **Supporting an OS is a release commitment; running CI on one is a test technique** — D16 settled the first only | **(a)** before `E13-T2`, so before M6; **(b)** and **(c)** before M1.6 is taken |
+| **Q15** | **Answered in part, 2026-08-31 - see D17.** **(a)** The C-ABI shim stays: D16 devalues one of the three things the premium bought and not the other two, and C++/CLI would reverse D7 as well. **(b)** `M1.6-C1`/`C2`'s two-OS requirement is void; Windows alone satisfies them, so **M1.6 is not blocked on WSL**. **(c) is still open** and is the only part that needs anybody: whether the ubuntu CI job survives is a question about a test technique rather than a release commitment. *The original question follows.* **What does D16 reopen?** The client has decided Spark supports **Windows and nothing else, ever** (**D16**). Two things were bought with the cross-platform option that decision gives up. **(a)** [ADR-0020](adr/0020-occt-via-c-abi-shim.md) paid a **15–25% effort premium** for a C-ABI shim over C++/CLI, and the payoff it names is buying back exactly that option — though the shim's *other* reasons, a small chosen ABI surface and upgrade survival, are not about operating systems and still stand. **Ask now: `spark_occt` is unwritten, so this is cheap today and expensive at M6.** **(b)** `M1.6-C1` and `M1.6-C2` require two operating systems, and **that is what blocks M1.6 today**. **(c)** Does the ubuntu CI job survive? Its rot-guard justification is void under D16, but it caught a real defect on its own merits ([NOTES.md N28](NOTES.md)). **Supporting an OS is a release commitment; running CI on one is a test technique** — D16 settled the first only | **(c)** before the next CI change. (a) and (b) are answered |
 | Q12 | **Is T-Splines in scope at all?** 169 members across 8 types — **20.2% of the entire ProtoGeometry surface**, with `TSplineSurface` alone at 94, more than `Curve`. It is a subdivision-surface modeller, a different discipline from BRep/NURBS, and its API is a sculpting editor (bevel, bridge, weld, crease, slide, fill hole) with its own file formats and its own topology layer. Recommendation: exclude it and say so publicly, as PRD §9 already does for STEP's scope. `ADR-0003`'s closing note calls a subdivision backend *a different decision, not a widening of this one*, so nothing is foreclosed. **The answer sets the denominator of every coverage figure we quote.** [DYNAMO-COVERAGE §6.2](DYNAMO-COVERAGE.md#62-t-splines-is-a-second-product-not-a-subsystem), `E2-T48` | Every parity figure; M5 planning |
 
 *Q6 and Q11 are answered, both by the same client decision, and **the answer to each is the

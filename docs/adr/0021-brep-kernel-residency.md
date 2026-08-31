@@ -156,6 +156,34 @@ because OCCT is poor at them.
 
 ## Notes
 
+### What landed, 2026-08-31
+
+**The rule is implemented and asserted rather than described.** `OcctResidency` holds a
+`SafeHandle`, materialises once behind a lock, and keeps the handle afterwards — keeping it is the
+point, because the next operation in a chain needs the provider's shape and not a re-import of the
+arrays that were read out of it. `AChainOfBooleansStaysResident` walks a three-step chain and
+asserts that no intermediate was read out; `ACylindersWallIsTheSameSurfaceEvenIfItIsNotTheSameNumbers`
+asserts the round trip as **tolerance-bounded equivalence, never identity**, which is what this
+record asked for.
+
+**`IsResident` means *not read out yet*, and that turned out to be worth saying twice.** Asking a
+structural question is what makes it false; the handle is still held, which is what `NativeBytes`
+still being positive says. The first version of two tests asserted the opposite and were wrong
+about this record rather than about the code.
+
+**The requirement that `Spark.Geometry` stay useful with no native component present holds, and is
+what makes the whole thing testable.** `Spark.Geometry.Occt.Tests` **skips** rather than fails when
+the shim is absent, because a build with no provider is a supported configuration and a suite that
+went red on it would be reporting a supported state as a defect.
+
+**One consequence this record did not anticipate.** `ShapeFix_Face` and `ShapeFix_Solid` are on the
+*import* path, not only behind `Heal` — a face has to be given the parameter-space curves Spark does
+not carry, and a sewn solid's inside has to be decided by asking. So the *drift* argument this
+record makes about `ShapeFix` now applies to every shape that crosses, not only to shapes a user
+asked to heal. `M1.6-C6` — whether `ShapeFix` can be constrained to a policy we choose — is
+therefore more pressing than it was when it was written.
+
+
 **What this record does not change.** ADR-0003 keeps its number, its text and its argument.
 The operations-not-types decision is right and is untouched; what is amended is the third
 support and the residency rule that follows from it. Read the two together: ADR-0003 says

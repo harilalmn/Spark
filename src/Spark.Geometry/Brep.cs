@@ -157,6 +157,19 @@ public sealed class Brep
     }
 
     /// <summary>
+    /// The provider hold this shape lives in, or <see langword="null"/> when it is a plain value.
+    /// </summary>
+    /// <remarks>
+    /// <b>Internal, and visible only to the provider assembly.</b> ADR-0020 says
+    /// <c>Spark.Geometry.Occt</c> is the one assembly permitted to observe a native handle; this
+    /// property is how it does so without <see cref="Brep"/> growing a public member that leaks
+    /// the existence of a provider into the kernel's own surface. It is also what makes a chain of
+    /// operations stay resident: the next boolean needs the shape that is already over there, not
+    /// a re-import of the arrays that were read out of it.
+    /// </remarks>
+    internal BrepResidency? Residency => _residency;
+
+    /// <summary>
     /// Roughly how much provider memory this shape holds.
     /// </summary>
     /// <remarks>

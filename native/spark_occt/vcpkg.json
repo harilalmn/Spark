@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "spark-occt",
+  "version-string": "0.1.0",
+  "description": "Spark's C ABI over OpenCascade. ADR-0020.",
+  "homepage": "https://github.com/nicety/spark",
+  "license": "MIT",
+  "builtin-baseline": "abb6dda5cc32914d2e64d7d72b974dc301d1fc8a",
+  "dependencies": [
+    {
+      "name": "opencascade",
+      "default-features": false
+    }
+  ],
+  "overrides": [
+    {
+      "name": "opencascade",
+      "version": "8.0.1"
+    }
+  ]
+}

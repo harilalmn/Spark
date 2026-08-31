@@ -7,5 +7,12 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Spark.Geometry.Tests" />
     <InternalsVisibleTo Include="Spark.Geometry.Properties" />
+
+    <!--
+      ADR-0020: the provider assembly is the only one permitted to observe a native handle, and
+      it needs `Brep.Residency` to keep a chain of operations resident. A project reference the
+      other way would be the layering violation; this is a one-way window.
+    -->
+    <InternalsVisibleTo Include="Spark.Geometry.Occt" />
   </ItemGroup>
 </Project>

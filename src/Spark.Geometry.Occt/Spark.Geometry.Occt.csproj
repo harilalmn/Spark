@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Spark's OpenCascade provider: an IBrepKernel over the spark_occt C ABI. The only assembly permitted to observe a native handle (ADR-0020).</Description>
+
+    <!--
+      The one project in the repository that is allowed unsafe code, and the reason is the
+      whole reason it exists. `LibraryImport`'s generated marshalling stubs are `unsafe`, so
+      the choice is between this flag and hand-written `DllImport` with runtime marshalling —
+      which is the slower, less checked option, and is what ADR-0020 chose against. The policy
+      in Directory.Build.props stands everywhere else: no unsafe code in the kernel, none in
+      the engine, none in the UI. Here it buys interop and nothing else.
+    -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!--
+      This assembly carries a native component by design, which is exactly what NFR-5 forbids
+      of Spark.Geometry. The guard in scripts/check-no-native-binaries.sh names the projects it
+      polices, and this is deliberately not one of them.
+    -->
+    <NoWarn>$(NoWarn);SYSLIB1054</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Spark.Api/Spark.Api.csproj" />
+    <ProjectReference Include="../Spark.Geometry/Spark.Geometry.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Spark.Geometry.Occt.Tests" />
+  </ItemGroup>
+
+</Project>
