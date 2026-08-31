@@ -168,7 +168,16 @@ public sealed class CodeEditorSpikeTests
         // Deliberately loose: this runs on whatever CI happens to give us, and what it is guarding
         // against is a step change - completion that is seconds rather than milliseconds after
         // warm-up would mean a popup that appears after the next keystroke.
-        Assert.True(perCall < 250.0, $"steady-state completion took {perCall:F1} ms per call");
+        //
+        // THE CEILING WAS 250 ms AND THAT WAS TOO TIGHT FOR THE CONDITION THIS ACTUALLY RUNS IN.
+        // It failed once at 250.3 ms during a full `dotnet test Spark.slnx`, which runs nine test
+        // projects at once, and passed three times in a row on its own immediately afterwards. The
+        // suite's own parallelism is the normal condition, not an unusual one, so a ceiling the
+        // machine grazes under it is a ceiling that will keep firing on work it has nothing to do
+        // with - which is N76's lesson: a test must assert what the code promises, and this one
+        // promises "milliseconds, not seconds". One second still says that, and still fails the
+        // regression the comment above describes.
+        Assert.True(perCall < 1000.0, $"steady-state completion took {perCall:F1} ms per call");
         Assert.True(first.Elapsed.TotalMilliseconds > 0.0);
     }
 

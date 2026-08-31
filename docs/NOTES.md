@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N63-N90 added)
+**Last updated:** 2026-09-01 (N63-N91 added)
 
 ---
 
@@ -2491,3 +2491,40 @@ something else. It is a row in [TODO.md](TODO.md) rather than a note that preten
 The next thing to try is a captured frame of a *narrower* control — the row `DataTemplate` alone,
 hosted in a bare `ItemsControl` — to find out whether any bound Spark control renders here or only
 this pane does.
+
+---
+
+## N91 — Recolouring a syntax theme must sweep every named colour, not the ones you listed
+
+The code editor was put on Spark's palette by naming twenty-four of AvaloniaEdit's highlighting
+colours and remapping exactly those. The reasoning written into the code was that a name it did not
+recognise should be left alone, because the `.xshd` belongs to somebody else and is entitled to
+change.
+
+**The reasoning was backwards, and a person found out before a test did.** Three names were missed.
+Measured against `surface.sunken` at `#1A1E24`:
+
+| Colour | Stock | Contrast |
+|---|---|---|
+| `StringInterpolation` | `#000000` | **1.26:1** |
+| `SemanticKeywords` | `#008B8B` | 4.04:1 |
+| `NullOrValueKeywords` | *(inherits)* | — |
+
+So the code inside a `$"{...}"` hole was **black on near-black**, and the first person to type an
+interpolated string could not see what they had written. The body-text floor is 4.5:1.
+
+**A name the code does not know is the dangerous one, not the safe one.** It was chosen against a
+white page by somebody who has never seen this editor, so "leave it alone" means "keep whatever a
+light theme wanted". `EditorHighlightPalette.Apply` now walks
+`IHighlightingDefinition.NamedHighlightingColors` and gives anything outside its table
+`text.primary` — legible by construction. A colour that sets *no* foreground is still left alone,
+and that one is safe: it inherits the editor's, which is `text.primary` too.
+
+**The test had to walk the definition, not the table.** `EditorHighlightContrastTests` enumerates
+the named colours and holds every one to 4.5:1. A test that checked the same twenty-four names the
+code already maps would have passed while the defect was on screen — it would only have restated
+the map. Reverting the sweep makes it name both failures, with their measured ratios.
+
+**And `Apply` has to be idempotent**, because `HighlightingManager` hands out one definition per
+language and every code block placed runs this over the same object. Every assignment is absolute
+rather than relative, and `ApplyingTwiceChangesNothing` holds it.

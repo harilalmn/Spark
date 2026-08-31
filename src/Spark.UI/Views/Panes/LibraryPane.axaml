@@ -12,22 +12,50 @@
     <Grid RowDefinitions="Auto,Auto,*,Auto">
       <TextBlock Grid.Row="0" Classes="paneTitle" Text="LIBRARY" />
 
-      <TextBox Grid.Row="1" Margin="10,0,10,8" Text="{Binding LibrarySearch, Mode=TwoWay}" />
+      <TextBox Grid.Row="1" Margin="10,0,10,8"
+               PlaceholderText="Search"
+               Text="{Binding LibrarySearch, Mode=TwoWay}" />
 
-      <ListBox Grid.Row="2" Margin="6,0,6,6"
-               x:Name="LibraryList"
-               ItemsSource="{Binding LibraryEntries}"
-               SelectedItem="{Binding SelectedLibraryEntry, Mode=TwoWay}"
-               DoubleTapped="OnLibraryDoubleTapped">
-        <ListBox.ItemTemplate>
+      <!-- E8-T24: grouped by category, because a flat list of a hundred and eight nodes is a list
+           nobody reads - it is scrolled past on the way to the search box, so the panel only ever
+           answers a question the user already knew how to ask.
+
+           A TreeView rather than a stack of Expanders each holding a ListBox. Selection is the
+           reason: several ListBoxes have several selections, so "the selected entry" would stop
+           being a single thing and clicking in one group would leave the highlight standing in
+           another. One TreeView has one SelectedItem across the whole tree, which is what the
+           Place button and the F1 help lookup both assume. -->
+      <TreeView Grid.Row="2" Margin="6,0,6,6"
+                x:Name="LibraryTree"
+                ItemsSource="{Binding LibraryGroups}"
+                SelectionChanged="OnLibrarySelectionChanged"
+                DoubleTapped="OnLibraryDoubleTapped">
+        <TreeView.Styles>
+          <!-- A group is a heading, not a node, so it does not take the selection highlight. -->
+          <Style Selector="TreeViewItem" x:DataType="vm:LibraryGroupViewModel">
+            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+          </Style>
+        </TreeView.Styles>
+
+        <TreeView.DataTemplates>
+          <TreeDataTemplate x:DataType="vm:LibraryGroupViewModel" ItemsSource="{Binding Entries}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="{Binding Category}" FontWeight="SemiBold" />
+              <!-- The count is what makes a collapsed group legible, and what makes a search
+                   result readable without opening anything. -->
+              <TextBlock Classes="muted" FontSize="10" VerticalAlignment="Center"
+                         Text="{Binding Count}" />
+            </StackPanel>
+          </TreeDataTemplate>
+
           <DataTemplate x:DataType="vm:LibraryEntryViewModel">
             <StackPanel Spacing="1" ToolTip.Tip="{Binding Description}">
               <TextBlock Text="{Binding DisplayName}" />
               <TextBlock Classes="muted" FontSize="10" Text="{Binding Signature}" />
             </StackPanel>
           </DataTemplate>
-        </ListBox.ItemTemplate>
-      </ListBox>
+        </TreeView.DataTemplates>
+      </TreeView>
 
       <Button Grid.Row="3" Classes="toolbar" Margin="10,0,10,10"
               HorizontalAlignment="Stretch" Content="Place node" Click="OnPlaceNode" />

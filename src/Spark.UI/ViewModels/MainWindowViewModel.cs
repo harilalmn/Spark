@@ -266,6 +266,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         ];
 
         LibraryEntries = [.. AllLibraryEntries];
+        RebuildLibraryGroups(expand: false);
         Inspector = [];
 
         string? failure = null;
@@ -377,6 +378,26 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     /// <summary>The library entries matching <see cref="LibrarySearch"/>, best first.</summary>
     public ObservableCollection<LibraryEntryViewModel> LibraryEntries { get; }
+
+    /// <summary>
+    /// <see cref="LibraryEntries"/> grouped by category, which is what the panel shows
+    /// (<c>E8-T24</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Derived from the filtered list, not the whole library</b>, so searching narrows the tree
+    /// rather than leaving it to be searched again by eye. A category with no match does not
+    /// appear at all.
+    /// </para>
+    /// <para>
+    /// <b>Collapsed when there is no query and expanded when there is.</b> With no query this is
+    /// the whole library and the point of the tree is that ten headings fit on a screen where a
+    /// hundred and eight entries do not. With a query the user has already said what they want,
+    /// and making them open a group to see the thing they searched for would be a click charged
+    /// for nothing.
+    /// </para>
+    /// </remarks>
+    public ObservableCollection<LibraryGroupViewModel> LibraryGroups { get; } = [];
 
     /// <summary>
     /// The handful of entries the canvas creation box offers for <see cref="CreateSearch"/>.
@@ -1380,6 +1401,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         LibraryEntryViewModel entry = new(definition);
         LibraryEntries.Add(entry);
 
+        // The tree is derived, so it has to be told. A node the user has just built is one they
+        // are about to look for.
+        RebuildLibraryGroups(expand: !string.IsNullOrWhiteSpace(LibrarySearch));
+
         // The help library, if one has been built, gets a page for it too - a node a user just made
         // is exactly the one they are most likely to press F1 on.
         _help?.Add(NodeReference.For(definition));
@@ -1533,7 +1558,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         // never is here.
     }
 
-    partial void OnLibrarySearchChanged(string value) => Rank(value, LibraryEntries, limit: int.MaxValue);
+    partial void OnLibrarySearchChanged(string value)
+    {
+        Rank(value, LibraryEntries, limit: int.MaxValue);
+
+        // Open the groups when there is a query and close them when there is not. A user who has
+        // typed has already said what they want; one who has cleared the box is back to browsing.
+        RebuildLibraryGroups(expand: !string.IsNullOrWhiteSpace(value));
+    }
 
     partial void OnCreateSearchChanged(string value)
     {
@@ -1597,6 +1629,66 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             }
 
             into.Add(entry);
+        }
+    }
+
+    /// <summary>
+    /// Rebuilds <see cref="LibraryGroups"/> from <see cref="LibraryEntries"/> (<c>E8-T24</c>).
+    /// </summary>
+    /// <param name="expand">Whether to open every group, which a search does and a clear does not.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>Categories are sorted, with <c>Custom</c> last.</b> Alphabetical is the order somebody can
+    /// predict without being told it — but <c>Custom</c> is the catch-all every unrecognised
+    /// category falls into, and sorting it between <c>Curve</c> and <c>Display</c> puts "everything
+    /// else" in the middle of the specific things. It goes at the bottom, where a catch-all reads
+    /// as one.
+    /// </para>
+    /// <para>
+    /// <b>Entries keep library order inside a group</b> rather than being sorted again. With a
+    /// query that order is the search ranking, and re-sorting it alphabetically would throw away
+    /// the one thing the search knew.
+    /// </para>
+    /// </remarks>
+    private void RebuildLibraryGroups(bool expand)
+    {
+        Dictionary<string, List<LibraryEntryViewModel>> byCategory = new(StringComparer.Ordinal);
+        List<string> order = [];
+
+        foreach (LibraryEntryViewModel entry in LibraryEntries)
+        {
+            string category = string.IsNullOrWhiteSpace(entry.Category)
+                ? NodeCategories.Custom
+                : entry.Category;
+
+            if (!byCategory.TryGetValue(category, out List<LibraryEntryViewModel>? entries))
+            {
+                entries = [];
+                byCategory[category] = entries;
+                order.Add(category);
+            }
+
+            entries.Add(entry);
+        }
+
+        order.Sort(static (left, right) =>
+        {
+            bool leftCustom = string.Equals(left, NodeCategories.Custom, StringComparison.Ordinal);
+            bool rightCustom = string.Equals(right, NodeCategories.Custom, StringComparison.Ordinal);
+
+            return leftCustom == rightCustom
+                ? string.CompareOrdinal(left, right)
+                : leftCustom ? 1 : -1;
+        });
+
+        LibraryGroups.Clear();
+
+        foreach (string category in order)
+        {
+            LibraryGroups.Add(new LibraryGroupViewModel(category, byCategory[category])
+            {
+                IsExpanded = expand,
+            });
         }
     }
 

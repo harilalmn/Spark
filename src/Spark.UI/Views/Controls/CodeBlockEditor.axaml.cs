@@ -135,47 +135,9 @@ public sealed partial class CodeBlockEditor : UserControl
         // The line-number gutter is supporting information, not body copy.
         editor.LineNumbersForeground = SparkPalette.TextMutedBrush;
 
-        if (editor.SyntaxHighlighting is not { } highlighting)
+        if (editor.SyntaxHighlighting is { } highlighting)
         {
-            return;
-        }
-
-        // Named colours in AvaloniaEdit's C# definition. A name that is not there is skipped
-        // rather than assumed: the .xshd is somebody else's file and it is entitled to change.
-        (string Name, Color Colour)[] scheme =
-        [
-            ("Comment", SparkPalette.TextMuted),
-            ("String", NodeCategoryColours.ColourOf(NodeCategory.Display)),
-            ("Char", NodeCategoryColours.ColourOf(NodeCategory.Display)),
-            ("Preprocessor", SparkPalette.TextSecondary),
-            ("Punctuation", SparkPalette.TextSecondary),
-            ("ValueTypeKeywords", NodeCategoryColours.ColourOf(NodeCategory.Script)),
-            ("ReferenceTypeKeywords", NodeCategoryColours.ColourOf(NodeCategory.Script)),
-            ("MethodCall", NodeCategoryColours.ColourOf(NodeCategory.Curve)),
-            ("NumberLiteral", NodeCategoryColours.ColourOf(NodeCategory.Math)),
-            ("ThisOrBaseReference", NodeCategoryColours.ColourOf(NodeCategory.Script)),
-            ("Keywords", NodeCategoryColours.ColourOf(NodeCategory.Script)),
-            ("GotoKeywords", NodeCategoryColours.ColourOf(NodeCategory.Script)),
-            ("ContextKeywords", NodeCategoryColours.ColourOf(NodeCategory.Script)),
-            ("ExceptionKeywords", NodeCategoryColours.ColourOf(NodeCategory.List)),
-            ("CheckedKeyword", NodeCategoryColours.ColourOf(NodeCategory.Script)),
-            ("UnsafeKeywords", NodeCategoryColours.ColourOf(NodeCategory.List)),
-            ("OperatorKeywords", NodeCategoryColours.ColourOf(NodeCategory.Script)),
-            ("ParameterModifiers", NodeCategoryColours.ColourOf(NodeCategory.Script)),
-            ("Modifiers", NodeCategoryColours.ColourOf(NodeCategory.Script)),
-            ("Visibility", NodeCategoryColours.ColourOf(NodeCategory.Script)),
-            ("NamespaceKeywords", NodeCategoryColours.ColourOf(NodeCategory.Script)),
-            ("GetSetAddRemove", NodeCategoryColours.ColourOf(NodeCategory.Script)),
-            ("TrueFalse", NodeCategoryColours.ColourOf(NodeCategory.Math)),
-            ("TypeKeywords", NodeCategoryColours.ColourOf(NodeCategory.Script)),
-        ];
-
-        foreach ((string name, Color colour) in scheme)
-        {
-            if (highlighting.GetNamedColor(name) is { } named)
-            {
-                named.Foreground = new SimpleHighlightingBrush(colour);
-            }
+            EditorHighlightPalette.Apply(highlighting);
         }
     }
 
