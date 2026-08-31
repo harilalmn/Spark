@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 15:45 +0530
+**Last updated:** 2026-09-01 17:10 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A staged build for a hands-on, and a 15-second stall found in it.** The build runs and the solids demo renders what M6 promised. But it takes **18.2 s** against 2.1 s for points, while `spark export` does the same graph in **290 ms** and the evaluator in **31-77 ms**. Not the solver, not the evaluator, **not the scheduler** — parallel is the faster of the two. Recorded as `E12-T19` ([N86](NOTES.md)) rather than fixed in passing. |
+| **Last completed step** | **`E12-T19` — half a degree, and the third wrong hypothesis in a row.** The solids demo's 18 seconds was one constant: an angular deflection of **0.5 degrees**, fifty-seven times finer than a mesher of this kind defaults to. **17,440 ms and 1.11M triangles against 61 ms and 11,636 at six degrees.** Now **2.0 s**, and the render is indistinguishable. Two tests assert the **triangle count** rather than a time. The scheduler, the probe and the first sweep were all wrong first ([N87](NOTES.md)). |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E12-T19`: find where the fifteen seconds goes, before changing anything.** What is known: not the solver, not the evaluator, not the scheduler, and the graph produces **three objects**. What is not: whether it is `IBrepKernel` tessellation, the conversion into render packages, or the GL buffer build — and those are three different fixes. **Time them separately first**; the last two attempts at this shape both started with a wrong hypothesis ([N86](NOTES.md)). A `--graph solids` run with the viewport pane hidden would separate *scene build* from *upload* cheaply. **Then a budget**, because `bench/` has nothing on tessellation and that is why this was invisible. The Help pass resumes after it: `E10-T3` the help index, then `E11-T2`'s XML `<example>` half. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**2060** over **nine** projects: Geometry.Tests 763, UI.Tests 560, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 71**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **A tessellation budget, then back to the Help pass.** `E12-T19` was invisible because **nothing in `bench/` touches tessellation** — the one demo exercising it was fifteen seconds slower than its neighbours and no test said so. The new tests close that for the solids demo specifically; a `bench/` case over `SceneBuilder` would close it generally, and the budget should be a **triangle count** rather than a time, for the reason those tests already give. **`E12-T20`** is the related finding and is smaller: the tessellation cache is keyed on the shape and not the tolerance, so a coarse request after a fine one returns the fine mesh. Then the Help pass resumes at **`E10-T3`**, the help index, and **`E11-T2`**'s XML `<example>` half. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**2062** over **nine** projects: Geometry.Tests 763, UI.Tests 562, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 71**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -4421,3 +4421,57 @@ fixed in passing, because it deserves the same discipline as the passes did: mea
 goes before changing anything.
 
 **Verified.** No code changed. Suite unchanged at **2,060**.
+
+### 2026-09-01 — `E12-T19`: half a degree, and the third wrong hypothesis in a row
+
+**What.** One constant changed, two tests, [N87](NOTES.md). **18.2 s to 2.0 s.**
+
+**The whole of it was one line.** `SceneBuilder.DisplayTolerance` asked the kernel for an angular
+deflection of **0.5 degrees**. That reads like a sensible smoothness figure and is not: it is around
+fifty-seven times finer than the half a *radian* a mesher of this kind conventionally defaults to,
+and the cost against it is nowhere near linear. On the demo's nine solids, sag held constant:
+**0.5 deg gave 17,440 ms and 1,110,772 triangles; 6 deg gives 61 ms and 11,636.** Two hundred and
+eighty-six times.
+
+**Checked by looking, not only by measuring.** The re-rendered demo is indistinguishable: the
+cylinder is still round, the fillet still reads as a fillet. Six degrees gives a cylinder sixty
+segments, which is smooth at any zoom this viewport reaches. Desktop wall clock over four runs:
+**2.02, 2.02, 2.03, 2.05 s**, the same as the points demo.
+
+**Three hypotheses, three wrong, and a measurement killed each one.**
+
+**(1) The scheduler**, because the desktop runs parallel and the CLI sequential and `Q14` had
+established OCCT tolerates concurrency only under conditions. Timed: sequential 77 ms, parallel
+33 ms. Parallel is the *faster* one.
+
+**(2) The probe that tested it**, whose first run reported 3 ms — and **three diagnostics**,
+because the test host had never installed the kernel and every solid operation failed instantly.
+Both numbers were real; neither was about solids. Printing the diagnostic count beside the timing is
+the only reason that did not become the answer.
+
+**(3) The first tolerance sweep**, which reported that the angle barely mattered — 1,110,772
+triangles at 0.5 deg against 1,102,132 at 2 deg. **Every row after the first was a cache hit.**
+`Tessellate` caches against the shape and **not** against the tolerance, so one set of solids swept
+through six tolerances is one tessellation and five lookups. Putting the coarse row *first* exposed
+it: 35 ms and 1,332 triangles, and then the same coarse request after a fine one returned 1,099,460.
+**A parameter sweep over a cached function measures the cache**, and the tell is a result that does
+not vary when it obviously should.
+
+**That cache behaviour is real and is recorded as `E12-T20` rather than fixed here.** It produces no
+wrong picture — a finer mesh is still valid geometry, which is why nobody noticed — but a coarse
+request cannot make anything cheaper once a fine one has been made.
+
+**The tests assert the triangle count, not the time.** A wall-clock ceiling on a shared machine is
+the flakiest test there is, [N29](NOTES.md) already argues it, and the count is what actually moved:
+1,110,772 against 11,636. The ceiling is 50,000 — four times the real figure and a fortieth of the
+old one. A second test reads the constant itself and refuses anything finer than a degree, because a
+failure naming the count is one somebody has to go and diagnose, and a failure naming the cause is
+not.
+
+**And one number that looked wrong and was not.** `CurveDrawable` tessellates at
+`Angle.FromDegrees(0.001)`, five hundred times finer again. Measured: 2 ms, 63 points, and **the
+point count is identical at 0.001, 0.5, 2 and 6 degrees**, because sag dominates for a curve. Left
+alone. Changing it on suspicion would have been the fourth wrong hypothesis.
+
+**Verified.** Build clean at 0 warnings. `UI.Tests` 560 -> 562. Suite **2,062** over nine projects,
+0 failed, 0 skipped. `dotnet format` clean. Staged build re-rendered and compared by eye.

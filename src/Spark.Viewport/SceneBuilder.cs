@@ -383,16 +383,36 @@ public sealed class SceneBuilder
     /// The sag a surface is tessellated to for display.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>Derived from the geometry, not taken from the kernel default</b>, for the reason
     /// <see cref="CurveDrawable"/> records: the kernel's 1e-6 would tessellate a one-unit sphere
     /// into hundreds of thousands of facets for something a few hundred pixels across. A thousandth
     /// of the bounding box's diagonal is invisible at any sane zoom.
+    /// </para>
+    /// <para>
+    /// <b>The angular deflection was 0.5 degrees and that was the whole of `E12-T19`.</b> It reads
+    /// like a sensible smoothness figure and is not: it is fifty-seven times finer than the 0.5
+    /// RADIANS a mesher of this kind conventionally defaults to, and the mesher's cost against it
+    /// is not linear. Measured on the nine solids of `docs/examples/solids.spark`, sag held at a
+    /// thousandth throughout:
+    /// </para>
+    /// <list type="table">
+    /// <item><description>0.5 deg — 17,440 ms — 1,110,772 triangles</description></item>
+    /// <item><description>2 deg — 266 ms — 79,092</description></item>
+    /// <item><description><b>6 deg — 61 ms — 11,636</b></description></item>
+    /// <item><description>12 deg — 42 ms — 3,924</description></item>
+    /// </list>
+    /// <para>
+    /// Six degrees is <b>286 times faster</b> than half a degree and gives a cylinder sixty
+    /// segments, which is smooth at any zoom this viewport reaches. It is chosen by looking at the
+    /// render as well as at the number.
+    /// </para>
     /// </remarks>
     private static Tolerance DisplayTolerance(in Spark.Geometry.BoundingBox bounds)
     {
         double diagonal = bounds.Min.DistanceTo(bounds.Max);
 
-        return new Tolerance(Math.Max(diagonal * 0.001, 1e-12), Angle.FromDegrees(0.5), 1e-12);
+        return new Tolerance(Math.Max(diagonal * 0.001, 1e-12), Angle.FromDegrees(6.0), 1e-12);
     }
 
     private sealed class PlanePatch(Spark.Geometry.Plane plane) : Drawable

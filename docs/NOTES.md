@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N63-N86 added)
+**Last updated:** 2026-09-01 (N63-N87 added)
 
 ---
 
@@ -2327,3 +2327,55 @@ not triangles — which is exactly why the CLI does not show it.
 not cover *the viewport's own render*; nothing in `bench/budgets.jsonc` touches tessellation. The
 one demo that exercises it is fifteen seconds slower than the two that do not, and no test would
 have said so.
+
+## N87 — Half a degree, and the third wrong hypothesis in a row
+
+`E12-T19` — the solids demo taking 18 s against 2 s for points — was one line:
+
+```csharp
+new Tolerance(Math.Max(diagonal * 0.001, 1e-12), Angle.FromDegrees(0.5), 1e-12)
+```
+
+**Half a degree reads like a sensible smoothness figure.** It is roughly fifty-seven times finer
+than the half a *radian* a mesher of this kind conventionally defaults to, and the mesher's cost
+against it is nowhere near linear. On the nine solids of `docs/examples/solids.spark`, sag held at
+a thousandth of the diagonal throughout:
+
+| angular deflection | time | triangles |
+|---|---|---|
+| **0.5 deg** | **17,440 ms** | **1,110,772** |
+| 2 deg | 266 ms | 79,092 |
+| 4 deg | 97 ms | 23,204 |
+| **6 deg** | **61 ms** | **11,636** |
+| 12 deg | 42 ms | 3,924 |
+
+Six degrees is **286 times faster** and gives a cylinder sixty segments. The rendered demo is
+indistinguishable from the old one: the cylinder is still round and the fillet still reads as a
+fillet, which was checked by looking rather than by reasoning. Desktop wall clock **18.2 s to
+2.0 s**, four runs, identical to the points demo.
+
+**Three hypotheses, three wrong, and each one was killed by a measurement rather than by thought.**
+
+1. **The scheduler.** The desktop runs parallel and the CLI sequential, and `Q14` had established
+   that OCCT tolerates concurrency only under conditions. Timed: sequential 77 ms, parallel 33 ms.
+   Parallel is the faster one.
+2. **The probe that tested it.** Its first run reported 3 ms — and **three diagnostics**, because
+   the test host had never installed the kernel, so every solid operation failed instantly. Both
+   numbers were real; neither was about solids. Printing the diagnostic count beside the timing is
+   the only reason that did not become the answer.
+3. **The first tolerance sweep**, which reported that the angle barely mattered: 0.5 deg gave
+   1,110,772 triangles and 2 deg gave 1,102,132. **Every row after the first was a cache hit.**
+   `Tessellate` caches against the shape and **not against the tolerance**, so one set of solids
+   swept through six tolerances is one tessellation and five lookups. Putting the coarse row
+   *first* is what exposed it: 35 ms and 1,332 triangles, and then the same coarse request after a
+   fine one returned 1,099,460.
+
+**The general lesson is about sweeps.** A parameter sweep over a cached function measures the cache.
+The fix is to rebuild the input for every row, and the tell is a result that does not vary when it
+obviously should.
+
+**And one number that looked wrong and was not.** `CurveDrawable` tessellates with
+`Angle.FromDegrees(0.001)`, five hundred times finer again. Measured on the curves demo: 2 ms, 63
+points, and **the point count is identical at 0.001, 0.5, 2 and 6 degrees** — sag dominates for a
+curve. It was left alone. Not every odd-looking constant is a defect, and changing one on suspicion
+would have been the fourth wrong hypothesis.
