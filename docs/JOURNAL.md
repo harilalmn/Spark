@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 13:40 +0530
+**Last updated:** 2026-08-31 14:30 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E7-T6` and `E7-T7` — placeholders, and the promise that nobody's graph is damaged.** A graph naming an uninstalled package now opens, keeps every key, literal and wire, and **re-saves byte for byte**. Port counts are inferred from what the file uses, because the definition is absent and the graph's own usage is the only evidence. It throws rather than returning null. |
+| **Last completed step** | **`E7-T11`, `E7-T13`, `E7-T15` — custom nodes.** A user can define a node by drawing a graph. `.sparkcustom` is **the graph format plus one object**, spliced rather than re-serialised, so a definition also opens in the ordinary reader. Ports are drawn, not declared. Recursion is refused at build time with the containment path named. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E7-T11` and `E7-T12` — custom nodes.** `.sparkcustom` is **the same graph schema plus an interface block**, with ports defined by Input/Output nodes placed inside the definition graph — *graph-in-graph is the same mechanism, not a separate feature*, and building it as two features is the mistake this row exists to prevent. `E7-T12` is *collapse selection to custom node*, which infers the interface from the cut wires. `E7-T13` (refuse recursion at save **and** at load, reporting the containment path) belongs with them. Neither needs a network, which is why they come before `E7-T2`. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1827** over **nine** projects: Geometry.Tests 763, UI.Tests 448, Engine.Tests 377, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E7-T12` — collapse selection to custom node**, which is the half of custom nodes a user actually touches: take a selection, cut it out, and infer the interface from the wires that crossed the boundary. It is `Spark.UI` work over an engine layer that is already built and tested. **`E7-T13`'s save-side refusal belongs with it**, because collapse is what can construct a recursive definition by accident. After that the epic's remainder is network-facing (`E7-T1`, `E7-T2`, `E7-T8`, `E7-T10`). **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1839** over **nine** projects: Geometry.Tests 763, UI.Tests 448, Engine.Tests 389, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Four things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. **(4)** Opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance. *And still: watching the first nightly benchmark run.* |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3125,4 +3125,61 @@ manager UI (`E7-T10`), neither of which exists, and a banner with nothing behind
 worse than none.
 
 **Verified.** Build clean at 0 warnings. `Engine.Tests` 367 -> 377. Suite **1,827** over nine
+projects, 0 failed, 0 skipped. `dotnet format` clean.
+
+### 2026-08-31 - `E7-T11`, `E7-T13`, `E7-T15`: a graph packaged as a node
+
+**What.** `CustomNodePorts`, `CustomNodeFile` and `CustomNodeLibrary` in `Spark.Engine`, plus
+`NodeDefinition.FromNestedGraph`. Twelve tests. A user can now define a node by drawing a graph.
+
+**The row's claim was that graph-in-graph is the same mechanism, not a separate feature, and the
+implementation had to make that literally true rather than approximately.** What
+`CustomNodeLibrary` produces is a plain `NodeDefinition` whose invocation happens to evaluate a
+graph. The replicator, the evaluation cache, the canvas, the file writer and the placeholder logic
+all handle it without knowing it exists. If any of them had needed a special case, the claim would
+have been false and the second mechanism would have started growing.
+
+**The format is the graph format plus one object, and `Write` proves it by construction.** It
+splices the `interface` block into the string `SparkFile.Write` produced rather than running a
+second serialiser over the same document. Two writers is two sets of formatting decisions, and the
+byte-for-byte round trip this format promises would then rest on them agreeing forever. A
+consequence falls out for free: `SparkFile.Read` ignores the extra property, so **a `.sparkcustom`
+file opens in the ordinary graph reader as the definition the user wrote** — which is how you
+edit one.
+
+**Ports are drawn, not declared.** Placing an Input node adds an input; placing an Output node adds
+an output. There is no separate port list, because a list that can disagree with the graph
+eventually will. Order is canvas order — top to bottom, then left to right — which is
+the only rule a user can predict without being told it, because it is what they already see.
+
+**Recursion is refused when the definition is built, not when it runs.** Refusing at evaluation
+time would mean a graph that opens, looks fine, and hangs the first time somebody presses run. The
+exception carries the containment **path**, so the message reads *'Acme/A' contains 'Acme/B'
+contains 'Acme/A'* rather than "recursion detected" — the difference between something a user
+can act on and something they can only report. Indirect recursion is tested, not just direct.
+
+**Build order is worked out rather than demanded.** A custom node whose body uses another needs
+that one first; asking the caller to register in dependency order would be asking them to
+topologically sort by hand. `OneCustomNodeCanUseAnotherInEitherRegistrationOrder` registers the
+outer one first on purpose.
+
+**Two costs, written down rather than left to be profiled.** The inner graph is built once and
+reused **under a lock**, so one custom node's body evaluates one call at a time even when the outer
+graph runs in parallel — rebuilding per invocation would be simpler and would restore a
+thousand graphs for a node replicated over a thousand items. And each call gets a **fresh cache**,
+because two invocations with different arguments must not see each other's results, which is
+exactly what a shared one would arrange.
+
+**`FromNestedGraph` exists for one reason: the cancellation token.** `Invoke` takes none, and a
+nested graph is precisely the kind of work a user cancels — it can hold a thousand nodes.
+Routing through `InvokeScript` means `Call` hands the token down. A custom node built on `Invoke`
+would swallow it silently, which is the defect `E6-T17` already named once for code blocks.
+
+**`E7-T15` is reserved and deliberately unused.** `ViewKey` is written, read, and consulted by
+nothing. The test asserts it survives a round trip *although nothing uses it*, which is the whole
+value: a file written by a future version that does use it is not quietly stripped by this one.
+Adding a property to a format before anyone has files is a line of code; adding it afterwards is a
+migration.
+
+**Verified.** Build clean at 0 warnings. `Engine.Tests` 377 -> 389. Suite **1,839** over nine
 projects, 0 failed, 0 skipped. `dotnet format` clean.

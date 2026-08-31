@@ -7,7 +7,7 @@ order for what to do next is in [TODO.md](TODO.md); the requirements behind them
 **Last updated:** 2026-08-31 (D19 — the Help pass moves after 1.0; E10 recounted against the tree)
 **Legend:** `Done` · `In progress` · `Open` · `Blocked` · `Withdrawn`
 
-**Summary:** 139 done · 19 in progress · 100 open · 9 withdrawn — **267 rows**
+**Summary:** 141 done · 20 in progress · 97 open · 9 withdrawn — **267 rows**
 *(the previous revision's open count was 147 by arithmetic and 148 by the register; the register was right, and the four columns now add up to the total again.)*
 
 **This revision opens the marathon run to 1.0** — a resumable sequence of small verified steps, with
@@ -388,11 +388,11 @@ Everything else in this file is a plan, not a claim.
 | E7-T8 | Trust store and install disclosure | Open | Publisher, downloads, licence, signature status, transitive dependencies, node count, and **whether the package contains native binaries** — users deserve to know when the no-native-dependencies promise is being broken on their behalf |
 | E7-T9 | Local DLL references with content hash and hot reload | Open | Prompt once, record a content hash, re-prompt when it changes. Auto-reload on file change is offered, which is exactly why [E6-T2](#e6--c-code-block)'s non-locking read matters |
 | E7-T10 | Package manager UI | Open | |
-| E7-T11 | `.sparkcustom` format and Input/Output nodes | Open | The same graph schema plus an interface block. Ports are defined by placing Input/Output nodes inside the definition graph. **Graph-in-graph is the same mechanism, not a separate feature** |
+| E7-T11 | `.sparkcustom` format and Input/Output nodes | Done | **Built 2026-08-31.** `CustomNodeFile`, `CustomNodePorts` and `CustomNodeLibrary` in `Spark.Engine`. **The format is the graph format plus one `interface` object** — literally: `Write` splices the block into what `SparkFile.Write` produced rather than running a second serialiser, so there is one set of formatting decisions and the round trip cannot depend on two of them agreeing. `SparkFile.Read` ignores the block, so **a `.sparkcustom` file opens as a plain graph**, which is how a user edits one. Ports come from Input/Output nodes in canvas order (top to bottom, then left to right) — the only ordering rule a user can predict without being told it. The result is a plain `NodeDefinition`, so the replicator, the cache, the canvas and the writer need no special case. Twelve tests. Original note follows. | The same graph schema plus an interface block. Ports are defined by placing Input/Output nodes inside the definition graph. **Graph-in-graph is the same mechanism, not a separate feature** |
 | E7-T12 | Collapse selection to custom node | Open | Extracts a subgraph and infers its interface from the cut wires. One of the four graph-model properties that survive **D8** |
-| E7-T13 | Refuse recursion at save and at load, reporting the containment path | Open | |
+| E7-T13 | Refuse recursion at save and at load, reporting the containment path | In progress | **Refused at build, with the path, as of 2026-08-31.** `CustomNodeRecursionException` carries the chain and the message reads *'Acme/A' contains 'Acme/B' contains 'Acme/A'* rather than "recursion detected", which is the difference between something a user can act on and something they cannot. Both direct and indirect cases are tested. **Refusing happens when the definition is built rather than when it runs**, deliberately: refusing at evaluation would mean a graph that opens, looks fine, and hangs the first time somebody presses run. **Still owed: the save-side refusal**, which needs the collapse UI (`E7-T12`) since that is what can construct one by accident |
 | E7-T14 | Groups, notes and freeze | Open | Freezing a node or group skips it; downstream reports *upstream frozen*, not an error |
-| E7-T15 | Reserve a `CustomViewKey` seam in the format | Open | Reserved **now** so adding custom node UI later needs no format migration. Resolved deliberately rather than left to be rediscovered |
+| E7-T15 | Reserve a `CustomViewKey` seam in the format | Done | **Reserved 2026-08-31.** `CustomNodeInterface.ViewKey`, written and read, used by nothing. A test asserts it survives a round trip *although nothing uses it*, which is the entire value: a file written by a future version that does use it is not quietly stripped by this one. Original note follows. | Reserved **now** so adding custom node UI later needs no format migration. Resolved deliberately rather than left to be rediscovered |
 
 ## E8 — UI shell and node canvas
 

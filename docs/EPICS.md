@@ -657,23 +657,31 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
 - [ ] Local DLLs prompt once and record a content hash; a changed hash re-prompts.
       Auto-reload on file change is offered, and reading a referenced assembly never locks
       it, so users can rebuild their library while Spark is open (**E7-T9**).
-- [ ] `.sparkcustom` is the same graph schema plus an interface block; ports come from
+- [x] `.sparkcustom` is the same graph schema plus an interface block; ports come from
       Input/Output nodes placed inside the definition graph. **Graph-in-graph is the same
-      mechanism, not a separate feature** (**E7-T11**).
+      mechanism, not a separate feature** (**E7-T11**). *Built 2026-08-31, and the claim is
+      literal: what comes out is a plain `NodeDefinition`, so nothing downstream — the
+      replicator, the cache, the canvas, the writer — knows a custom node exists. A
+      `.sparkcustom` file also opens in the ordinary graph reader, which is how you edit one.*
 - [ ] *Collapse selection to custom node* extracts a subgraph and infers its interface from
       the cut wires (**E7-T12**).
 - [ ] Recursion is refused at save **and** at load, with the containment path reported
-      (**E7-T13**).
-- [ ] A `CustomViewKey` seam is reserved in the format now, so adding custom node UI later
-      needs no format migration (**E7-T15**).
+      (**E7-T13**). *The load side is done 2026-08-31, direct and indirect, and the message names
+      the chain rather than saying "recursion detected". The save side waits on `E7-T12`, which is
+      what can build one by accident.*
+- [x] A `CustomViewKey` seam is reserved in the format now, so adding custom node UI later
+      needs no format migration (**E7-T15**). *Reserved 2026-08-31, with a test asserting it round
+      trips although nothing reads it — which is the whole point of reserving it.*
 
 **Status.** Started 2026-08-31. **The load layer and the preservation guarantee are in**, which
 are the two parts everything else depends on: `PackageIdentity`, `ContractAssemblies` and `PackageLoadContext`, with twelve tests
 covering isolation, shared contract identity, side-by-side versions and collectible unloading.
 Placeholders followed the same day: a graph naming a package that is not installed now opens, keeps
 every key, literal and wire, and **re-saves byte for byte** — which is `E7`'s headline promise and
-is asserted rather than asserted-to. Still absent: the NuGet client, the manifest convention, the
-install banner, custom nodes and the package manager UI.
+is asserted rather than asserted-to. Custom nodes followed: `.sparkcustom` is the graph format plus one object, ports are drawn rather
+than declared, and recursion is refused at build time with the containment path named. Still
+absent: the NuGet client, the manifest convention, the install banner, *collapse selection to
+custom node*, and the package manager UI.
 
 ---
 

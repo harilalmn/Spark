@@ -221,6 +221,52 @@ public sealed class NodeDefinition
     }
 
     /// <summary>
+    /// Builds a definition whose invocation evaluates a nested graph — a custom node
+    /// (<c>E7-T11</c>).
+    /// </summary>
+    /// <param name="key">The custom node's key.</param>
+    /// <param name="displayName">What appears on the canvas.</param>
+    /// <param name="inputs">The ports derived from the definition graph's Input nodes.</param>
+    /// <param name="outputs">The ports derived from its Output nodes.</param>
+    /// <param name="invoke">Runs the inner graph. Receives the cancellation token.</param>
+    /// <param name="description">One sentence for the library and the tooltip.</param>
+    /// <param name="category">The library category, or null for Custom.</param>
+    /// <returns>The definition.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="invoke"/> is null.</exception>
+    /// <remarks>
+    /// <b>This exists to give a custom node the cancellable path rather than the plain one.</b>
+    /// <see cref="Invoke"/> takes no token, and a nested graph is precisely the kind of work a
+    /// user cancels — it can contain a thousand nodes. Routing through
+    /// <see cref="InvokeScript"/> means <see cref="Call"/> hands the token down, so cancelling the
+    /// outer run stops the inner one between its own nodes. A custom node built on
+    /// <see cref="Invoke"/> would swallow the token silently, which is the same defect
+    /// <c>E6-T17</c> named for code blocks.
+    /// </remarks>
+    public static NodeDefinition FromNestedGraph(
+        NodeKey key,
+        string displayName,
+        IReadOnlyList<PortDefinition> inputs,
+        IReadOnlyList<PortDefinition> outputs,
+        ScriptInvocation invoke,
+        string? description = null,
+        string? category = null)
+    {
+        ArgumentNullException.ThrowIfNull(invoke);
+
+        return new NodeDefinition(
+            key,
+            displayName,
+            inputs,
+            outputs,
+            arguments => invoke(arguments, CancellationToken.None),
+            description: description,
+            category: category)
+        {
+            InvokeScript = invoke,
+        };
+    }
+
+    /// <summary>
     /// Builds a definition from what a script node factory worked out about a piece of source.
     /// </summary>
     /// <param name="source">What the factory inferred.</param>
