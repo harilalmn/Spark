@@ -31,8 +31,18 @@ public sealed class XmlDocumentation
     private static readonly XmlDocumentation EmptyInstance = new([]);
 
     private readonly Dictionary<string, string> _summaries;
+    private readonly Dictionary<string, string> _parameters;
+    private readonly Dictionary<string, string> _returns;
 
-    private XmlDocumentation(Dictionary<string, string> summaries) => _summaries = summaries;
+    private XmlDocumentation(
+        Dictionary<string, string> summaries,
+        Dictionary<string, string>? parameters = null,
+        Dictionary<string, string>? returns = null)
+    {
+        _summaries = summaries;
+        _parameters = parameters ?? new Dictionary<string, string>(StringComparer.Ordinal);
+        _returns = returns ?? new Dictionary<string, string>(StringComparer.Ordinal);
+    }
 
     /// <summary>Documentation that knows nothing, which is what a missing file produces.</summary>
     public static XmlDocumentation Empty => EmptyInstance;
@@ -69,6 +79,8 @@ public sealed class XmlDocumentation
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         Dictionary<string, string> summaries = new(StringComparer.Ordinal);
+        Dictionary<string, string> parameters = new(StringComparer.Ordinal);
+        Dictionary<string, string> returns = new(StringComparer.Ordinal);
 
         try
         {
@@ -84,23 +96,60 @@ public sealed class XmlDocumentation
 
             while (reader.Read())
             {
-                if (reader.NodeType == XmlNodeType.Element && reader.Name == "member")
+                if (reader.NodeType != XmlNodeType.Element || currentMember is null)
                 {
-                    currentMember = reader.GetAttribute("name");
+                    if (reader.NodeType == XmlNodeType.Element && reader.Name == "member")
+                    {
+                        currentMember = reader.GetAttribute("name");
+                    }
+
                     continue;
                 }
 
-                if (reader.NodeType != XmlNodeType.Element
-                    || reader.Name != "summary"
-                    || currentMember is null)
+                switch (reader.Name)
                 {
-                    continue;
-                }
+                    case "member":
+                        currentMember = reader.GetAttribute("name");
+                        break;
 
-                string summary = Collapse(reader.ReadInnerXml());
-                if (summary.Length > 0)
-                {
-                    summaries[currentMember] = summary;
+                    case "summary":
+                        {
+                            string summary = Collapse(reader.ReadInnerXml());
+                            if (summary.Length > 0)
+                            {
+                                summaries[currentMember] = summary;
+                            }
+
+                            break;
+                        }
+
+                    case "param":
+                        {
+                            // The parameter name has to be read before ReadInnerXml, which moves past
+                            // the element and takes its attributes with it.
+                            string? name = reader.GetAttribute("name");
+                            string text = Collapse(reader.ReadInnerXml());
+                            if (!string.IsNullOrEmpty(name) && text.Length > 0)
+                            {
+                                parameters[currentMember + "#" + name] = text;
+                            }
+
+                            break;
+                        }
+
+                    case "returns":
+                        {
+                            string text = Collapse(reader.ReadInnerXml());
+                            if (text.Length > 0)
+                            {
+                                returns[currentMember] = text;
+                            }
+
+                            break;
+                        }
+
+                    default:
+                        break;
                 }
             }
         }
@@ -113,7 +162,7 @@ public sealed class XmlDocumentation
             return Empty;
         }
 
-        return new XmlDocumentation(summaries);
+        return new XmlDocumentation(summaries, parameters, returns);
     }
 
     /// <summary>The summary for a member, or <see langword="null"/>.</summary>
@@ -124,6 +173,38 @@ public sealed class XmlDocumentation
     {
         ArgumentNullException.ThrowIfNull(member);
         return _summaries.TryGetValue(KeyOf(member), out string? summary) ? summary : null;
+    }
+
+    /// <summary>The <c>&lt;param&gt;</c> text for one parameter of a member, or <see langword="null"/>.</summary>
+    /// <param name="member">The member the parameter belongs to.</param>
+    /// <param name="parameterName">The parameter's name.</param>
+    /// <returns>The description as one line of plain text.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="member"/> is <see langword="null"/>.</exception>
+    /// <remarks>
+    /// <b>This is what fills the Description column of a node's help page</b>, and it was missing
+    /// for as long as this class read only summaries: every generated reference page had a column
+    /// of port names, types and defaults, and an empty column beside them. The text was always
+    /// there in the source, because CS1591 makes an undocumented parameter a build error - it was
+    /// simply never read.
+    /// </remarks>
+    public string? ParameterOf(MemberInfo member, string? parameterName)
+    {
+        ArgumentNullException.ThrowIfNull(member);
+
+        return !string.IsNullOrEmpty(parameterName)
+            && _parameters.TryGetValue(KeyOf(member) + "#" + parameterName, out string? text)
+                ? text
+                : null;
+    }
+
+    /// <summary>The <c>&lt;returns&gt;</c> text for a member, or <see langword="null"/>.</summary>
+    /// <param name="member">The member.</param>
+    /// <returns>The description as one line of plain text, naming what comes out.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="member"/> is <see langword="null"/>.</exception>
+    public string? ReturnsOf(MemberInfo member)
+    {
+        ArgumentNullException.ThrowIfNull(member);
+        return _returns.TryGetValue(KeyOf(member), out string? text) ? text : null;
     }
 
     /// <summary>

@@ -18,6 +18,7 @@ using Spark.UI.Controls;
 using Spark.UI.Graph;
 using Spark.UI.Shell;
 using Spark.UI.ViewModels;
+using Spark.UI.Views;
 using Spark.UI.Views.Panes;
 
 namespace Spark.UI.Views;
@@ -99,6 +100,8 @@ public sealed partial class MainWindow : Window
         DataContextChanged += OnDataContextChanged;
         Opened += OnOpened;
     }
+
+    private HelpWindow? _help;
 
     private MainWindowViewModel? Model => DataContext as MainWindowViewModel;
 
@@ -182,6 +185,69 @@ public sealed partial class MainWindow : Window
         {
             _ = model.EvaluateAsync();
         }
+    }
+
+    /// <inheritdoc/>
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+
+        if (e.Key == Key.F1)
+        {
+            OpenHelp();
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>
+    /// Opens the help window on the selected node's topic, or on the node index when nothing is
+    /// selected.
+    /// </summary>
+    /// <remarks>
+    /// <b>F1 is context-sensitive because that is the only kind of F1 anybody presses.</b> A help
+    /// key that always opens the same front page is a help key nobody uses twice: the moment worth
+    /// serving is a user looking at a node they do not understand, and the answer is that node's
+    /// page rather than a table of contents.
+    /// <para>
+    /// One window, reused. Opening a second on every press would leave a user with a stack of
+    /// identical windows and no clue which one they were reading.
+    /// </para>
+    /// </remarks>
+    private void OpenHelp()
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        if (_help is null || !_help.IsVisible)
+        {
+            _help = new HelpWindow(model.Help());
+            _help.Closed += (_, _) => _help = null;
+            _help.Show(this);
+        }
+        else
+        {
+            _help.Activate();
+        }
+
+        _help.NavigateToNode(SelectedNodeKey());
+    }
+
+    /// <summary>The key of the single selected node, or null when the selection is not one node.</summary>
+    private string? SelectedNodeKey()
+    {
+        if (Model is not { } model || Canvas.Selection.Count != 1)
+        {
+            return null;
+        }
+
+        foreach (int slot in Canvas.Selection)
+        {
+            return model.NodeKeyAt(slot);
+        }
+
+        return null;
     }
 
     private void OnCanvasSelectionChanged(object? sender, EventArgs e)
@@ -417,6 +483,12 @@ public sealed partial class MainWindow : Window
         // callback, or a context is created and then abandoned.
         Viewport.ForceSoftwareRenderer = Options.ForceSoftwareRenderer;
 
+        if (Options.OpensHelp)
+        {
+            OpenHelp();
+            _help?.Navigate(Options.HelpTopic);
+        }
+
         if (Options.SyntheticNodeCount > 0)
         {
             LoadSynthetic(Options.SyntheticNodeCount);
@@ -509,6 +581,20 @@ public sealed partial class MainWindow : Window
 
         Console.WriteLine(string.Create(
             CultureInfo.InvariantCulture, $"wrote {prefix}-shell.png ({width}x{height})"));
+
+        if (_help is not null)
+        {
+            int helpWidth = Math.Max(1, (int)_help.Bounds.Width);
+            int helpHeight = Math.Max(1, (int)_help.Bounds.Height);
+
+            using RenderTargetBitmap help = new(new PixelSize(helpWidth, helpHeight), new Vector(96, 96));
+            help.Render(_help);
+            help.Save(prefix + "-help.png", PngBitmapEncoderOptions.Default);
+
+            Console.WriteLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"wrote {prefix}-help.png ({helpWidth}x{helpHeight}); topic {_help.CurrentTopicId}"));
+        }
 
         byte[]? pixels = Viewport.TakeCapture(out int glWidth, out int glHeight);
         if (pixels is null)

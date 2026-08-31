@@ -37,6 +37,13 @@ namespace Spark.UI;
 /// reachable on purpose, which is what a support conversation needs and what lets the fallback be
 /// exercised rather than merely hoped for (`E9-T5`, `E9-T11`).
 /// </param>
+/// <param name="HelpTopic">
+/// The topic to open the help window on at startup (<c>--help-window [topic]</c>), or null to
+/// leave it closed. Aimed at the
+/// screenshot path rather than at users: it is how the help renderer gets photographed and
+/// therefore checked, since a control that lays out wrongly still passes every test that only
+/// asks it which topic it is showing.
+/// </param>
 /// <param name="BenchmarkZoom">
 /// A zoom to pin the benchmark at, or zero to sweep. Pinning is what separates "how much does the
 /// graph cost" from "how much does what is on screen cost", which is the claim ADR-0013 actually
@@ -50,7 +57,8 @@ public readonly record struct StartupOptions(
     string? Graph,
     string? OpenPath,
     bool NoScript = false,
-    bool ForceSoftwareRenderer = false)
+    bool ForceSoftwareRenderer = false,
+    string? HelpTopic = null)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
     public static StartupOptions Default => new(0, 0, 0, null, null, null);
@@ -72,6 +80,9 @@ public readonly record struct StartupOptions(
 
     /// <summary>True when the window should run the canvas benchmark and then exit.</summary>
     public bool IsBenchmark => BenchmarkFrames > 0;
+
+    /// <summary>True when the help window should open at startup.</summary>
+    public bool OpensHelp => !string.IsNullOrWhiteSpace(HelpTopic);
 
     /// <summary>True when the window should capture images and then exit.</summary>
     public bool IsScreenshot => !string.IsNullOrWhiteSpace(ScreenshotPrefix);
@@ -125,6 +136,7 @@ public readonly record struct StartupOptions(
         string? open = null;
         bool noScript = false;
         bool software = false;
+        string? helpTopic = null;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -167,6 +179,15 @@ public readonly record struct StartupOptions(
                     software = true;
                     break;
 
+                case "--help-window":
+                    helpTopic = "nodes.index";
+                    if (i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal))
+                    {
+                        helpTopic = args[++i];
+                    }
+
+                    break;
+
                 case "--open" when i + 1 < args.Length:
                     open = args[++i];
                     break;
@@ -181,7 +202,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic);
     }
 
     private static int ParseCount(string text, int fallback) =>

@@ -1,4 +1,9 @@
+using System.Collections.Generic;
+using Spark.Api.Help;
+using Spark.Engine;
 using Spark.UI.Controls;
+using Spark.UI.ViewModels;
+using Spark.UI.Views;
 
 namespace Spark.UI.Tests;
 
@@ -52,6 +57,142 @@ public sealed class ViewportControlTests
             viewport.ZoomToFit();
 
             Assert.NotNull(viewport.Camera);
+        });
+    }
+}
+
+/// <summary>
+/// The help window and the help library the shell builds (<c>E10-T13</c>).
+/// </summary>
+public sealed class HelpWindowTests
+{
+    /// <summary>
+    /// The library the shell hands the help window contains both sources: the hand-written concept
+    /// topics and a generated page for every node currently loaded.
+    /// </summary>
+    [Fact]
+    public void TheSessionHelpLibraryHoldsConceptTopicsAndAPageForEveryNode()
+    {
+        HeadlessSession.Run(() =>
+        {
+            MainWindowViewModel model = new();
+            HelpLibrary help = model.Help();
+
+            Assert.True(help.Count > 100, $"expected the node pages and the concepts, got {help.Count}");
+            Assert.NotNull(help.TryGet("concepts.lacing", out HelpDocument? lacing) ? lacing : null);
+            Assert.NotNull(help.TryGet("nodes.index", out HelpDocument? index) ? index : null);
+        });
+    }
+
+    /// <summary>
+    /// <b>Every loaded node has a page.</b> This is what makes F1 answer rather than apologise, and
+    /// it holds by construction rather than by anybody remembering to write one.
+    /// </summary>
+    [Fact]
+    public void EveryLoadedNodeResolvesToAHelpTopic()
+    {
+        HeadlessSession.Run(() =>
+        {
+            MainWindowViewModel model = new();
+            HelpLibrary help = model.Help();
+
+            List<string> missing = [];
+            foreach (LibraryEntryViewModel entry in model.AllLibraryEntries)
+            {
+                if (help.ForNode(entry.Key) is null)
+                {
+                    missing.Add(entry.Key);
+                }
+            }
+
+            Assert.True(missing.Count == 0, "Nodes with no help topic: " + string.Join(", ", missing));
+        });
+    }
+
+    /// <summary>
+    /// <b>Ports carry the descriptions their authors wrote.</b> Until 2026-08-31
+    /// <c>XmlDocumentation</c> read only <c>&lt;summary&gt;</c>, so every generated reference page
+    /// had a full column of port names and types beside an empty Description column - while the
+    /// text sat in the source, where CS1591 had made it mandatory. This asserts the text arrives.
+    /// </summary>
+    [Fact]
+    public void PortsCarryTheDescriptionsFromTheirXmlDocComments()
+    {
+        HeadlessSession.Run(() =>
+        {
+            MainWindowViewModel model = new();
+
+            int ports = 0;
+            int described = 0;
+            foreach (LibraryEntryViewModel entry in model.AllLibraryEntries)
+            {
+                foreach (PortDefinition port in entry.Definition.Inputs)
+                {
+                    ports++;
+                    if (!string.IsNullOrWhiteSpace(port.Description))
+                    {
+                        described++;
+                    }
+                }
+            }
+
+            Assert.True(ports > 100, $"expected the core node library, saw {ports} input ports");
+            Assert.True(
+                described > ports * 9 / 10,
+                $"only {described} of {ports} input ports carry a description; <param> text is not "
+                + "reaching PortDefinition.");
+        });
+    }
+
+    /// <summary>The window opens, lists topics, and shows the one it is sent to.</summary>
+    [Fact]
+    public void TheWindowShowsTheTopicItIsNavigatedTo()
+    {
+        HeadlessSession.Run(() =>
+        {
+            MainWindowViewModel model = new();
+            HelpWindow window = new(model.Help());
+
+            Assert.True(window.VisibleEntryCount > 0);
+
+            window.Navigate("concepts.lacing");
+
+            Assert.Equal("concepts.lacing", window.CurrentTopicId);
+        });
+    }
+
+    /// <summary>
+    /// F1 on a node lands on that node's page. The library is asked by node key, which is exactly
+    /// what the shell passes it.
+    /// </summary>
+    [Fact]
+    public void NavigatingByNodeKeyLandsOnThatNodesPage()
+    {
+        HeadlessSession.Run(() =>
+        {
+            MainWindowViewModel model = new();
+            HelpWindow window = new(model.Help());
+            string key = model.AllLibraryEntries[0].Key;
+
+            window.NavigateToNode(key);
+
+            Assert.NotNull(window.CurrentTopicId);
+            Assert.NotEqual("nodes.index", window.CurrentTopicId);
+        });
+    }
+
+    /// <summary>An unknown node falls back to the index rather than to an empty window.</summary>
+    [Fact]
+    public void AnUnknownNodeFallsBackToTheIndex()
+    {
+        HeadlessSession.Run(() =>
+        {
+            MainWindowViewModel model = new();
+            HelpWindow window = new(model.Help());
+
+            window.NavigateToNode("Nobody/Nothing.AtAll");
+
+            Assert.Equal("nodes.index", window.CurrentTopicId);
         });
     }
 }

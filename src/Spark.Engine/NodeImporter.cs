@@ -256,18 +256,18 @@ public static class NodeImporter
         List<PortDefinition> outputs = [];
         if (method.ReturnType != typeof(void))
         {
-            outputs.Add(ReturnPort(method));
+            outputs.Add(ReturnPort(method, docs));
         }
 
         foreach (ParameterInfo parameter in parameters)
         {
             if (parameter.IsOut)
             {
-                outputs.Add(OutPort(parameter));
+                outputs.Add(OutPort(parameter, docs, method));
             }
             else
             {
-                inputs.Add(InputPort(parameter));
+                inputs.Add(InputPort(parameter, docs, method));
             }
         }
 
@@ -313,7 +313,7 @@ public static class NodeImporter
             return;
         }
 
-        List<PortDefinition> inputs = [.. parameters.Select(InputPort)];
+        List<PortDefinition> inputs = [.. parameters.Select(parameter => InputPort(parameter, docs, constructor))];
 
         candidates.Add(new Candidate(
             $"{type.Name}.{ConstructorSuffix(parameters)}",
@@ -408,7 +408,20 @@ public static class NodeImporter
     private static PortDefinition ReceiverPort(Type type) =>
         new(CamelCase(type.Name), type, PortDefinition.RankOfType(type));
 
-    private static PortDefinition InputPort(ParameterInfo parameter)
+    /// <summary>
+    /// The <c>&lt;param&gt;</c> text for a parameter, when its declaring member is known.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the difference between a reference page that says what to wire and one that only
+    /// names types.</b> Every one of these descriptions was already written - CS1591 makes an
+    /// undocumented parameter a build error on <c>Spark.Nodes.Core</c> - and until 2026-08-31
+    /// nothing read them, so every generated page had an empty Description column beside a full
+    /// column of port names.
+    /// </remarks>
+    private static string? Describe(XmlDocumentation? docs, MemberInfo? owner, ParameterInfo parameter) =>
+        docs is null || owner is null ? null : docs.ParameterOf(owner, parameter.Name);
+
+    private static PortDefinition InputPort(ParameterInfo parameter, XmlDocumentation? docs = null, MemberInfo? owner = null)
     {
         Type type = parameter.ParameterType;
         if (type.IsByRef)
@@ -423,7 +436,10 @@ public static class NodeImporter
             port?.Name ?? parameter.Name ?? $"arg{parameter.Position}",
             type,
             PortDefinition.RankOfType(type),
-            port?.Description,
+            // An explicit [NodePort] description wins; otherwise the parameter's own <param> text.
+            // The attribute is the author overriding what the doc comment says for a reader of the
+            // API, which is a different audience and occasionally wants a different sentence.
+            port?.Description ?? Describe(docs, owner, parameter),
             parameter.GetCustomAttribute<KeepStructureAttribute>() is not null,
             parameter.GetCustomAttribute<NoReplicationAttribute>() is not null,
             guide?.Guide,
@@ -451,17 +467,17 @@ public static class NodeImporter
             : null;
     }
 
-    private static PortDefinition ReturnPort(MethodInfo method)
+    private static PortDefinition ReturnPort(MethodInfo method, XmlDocumentation? docs = null)
     {
         NodePortAttribute? port = method.ReturnParameter.GetCustomAttribute<NodePortAttribute>();
         return new PortDefinition(
             port?.Name ?? DefaultOutputPortName,
             method.ReturnType,
             PortDefinition.RankOfType(method.ReturnType),
-            port?.Description);
+            port?.Description ?? docs?.ReturnsOf(method));
     }
 
-    private static PortDefinition OutPort(ParameterInfo parameter)
+    private static PortDefinition OutPort(ParameterInfo parameter, XmlDocumentation? docs = null, MemberInfo? owner = null)
     {
         Type type = parameter.ParameterType.GetElementType()!;
         NodePortAttribute? port = parameter.GetCustomAttribute<NodePortAttribute>();
@@ -470,7 +486,7 @@ public static class NodeImporter
             port?.Name ?? parameter.Name ?? $"out{parameter.Position}",
             type,
             PortDefinition.RankOfType(type),
-            port?.Description);
+            port?.Description ?? Describe(docs, owner, parameter));
     }
 
     private static string ConstructorSuffix(ParameterInfo[] parameters)

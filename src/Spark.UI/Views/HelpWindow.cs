@@ -1,0 +1,227 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Globalization;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Templates;
+using Avalonia.Input;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Spark.Api.Help;
+using Spark.UI.Controls;
+using Spark.UI.Theming;
+
+namespace Spark.UI.Views;
+
+/// <summary>
+/// The help window: a searchable list of topics on the left, the topic on the right
+/// (<c>E10-T13</c>).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A window rather than a dock pane, deliberately.</b> Help is consulted, not inhabited: it is
+/// opened when a user is stuck, read, and closed. A pane would take permanent room in a layout
+/// whose whole point is that the canvas and the viewport get it, and it would add a fifth member
+/// to <c>WorkspacePane</c> that every preset, every serialised layout and every layout test would
+/// have to learn about, for a panel most sessions never open.
+/// </para>
+/// <para>
+/// <b>The list joins two sources and does not distinguish them.</b> Hand-written concept topics
+/// and generated node pages sit in one list, because a reader looking for "fillet" does not care
+/// which kind of page answers them, and a split list would make them choose before they know.
+/// </para>
+/// </remarks>
+public sealed class HelpWindow : Window
+{
+    private readonly HelpLibrary _library;
+    private readonly HelpView _view = new();
+    private readonly ListBox _list = new();
+    private readonly TextBox _search = new();
+    private readonly ObservableCollection<Entry> _entries = [];
+    private readonly List<string> _history = [];
+
+    /// <summary>Creates the window over a help library.</summary>
+    /// <param name="library">Every topic available, hand-written and generated alike.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="library"/> is null.</exception>
+    public HelpWindow(HelpLibrary library)
+    {
+        ArgumentNullException.ThrowIfNull(library);
+
+        _library = library;
+
+        Title = "Spark Help";
+        Width = 1000;
+        Height = 700;
+        Background = SparkPalette.Frozen(SparkPalette.BackgroundVoid);
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+
+        _search.PlaceholderText = "Search help";
+        _search.Margin = new Thickness(10, 10, 10, 6);
+        _search.TextChanged += (_, _) => Refresh(_search.Text);
+
+        _list.ItemsSource = _entries;
+        _list.Margin = new Thickness(4, 0, 4, 8);
+        _list.SelectionChanged += OnListSelectionChanged;
+        // The item may be null: Avalonia builds the template with a null datum while measuring
+        // and while recycling virtualised rows, and dereferencing it there takes the application
+        // down with a NullReferenceException from inside the list. Found by scrolling far enough
+        // down the node index for virtualisation to start.
+        _list.ItemTemplate = new FuncDataTemplate<Entry?>((entry, _) => new TextBlock
+        {
+            Text = entry?.Label ?? string.Empty,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            Margin = new Thickness(6, 4, 6, 4),
+            Foreground = SparkPalette.TextPrimaryBrush,
+        });
+
+        _view.LinkClicked += (_, target) => Navigate(target);
+
+        DockPanel sidebar = new() { Width = 300, Background = SparkPalette.Frozen(SparkPalette.SurfaceSunken) };
+        DockPanel.SetDock(_search, Avalonia.Controls.Dock.Top);
+        sidebar.Children.Add(_search);
+        sidebar.Children.Add(_list);
+
+        DockPanel root = new();
+        DockPanel.SetDock(sidebar, Avalonia.Controls.Dock.Left);
+        root.Children.Add(sidebar);
+        root.Children.Add(_view);
+        Content = root;
+
+        Refresh(null);
+    }
+
+    /// <summary>The id of the topic on screen, or null.</summary>
+    public string? CurrentTopicId => _view.Topic?.Id;
+
+    /// <summary>How many entries the list is currently showing.</summary>
+    public int VisibleEntryCount => _entries.Count;
+
+    /// <summary>Shows a topic by id, or the nearest thing to it.</summary>
+    /// <param name="topicId">The topic to show. Unknown ids fall back to the index.</param>
+    public void Navigate(string? topicId)
+    {
+        if (_library.TryGet(topicId, out HelpDocument? topic) && topic is not null)
+        {
+            _history.Add(topic.Id);
+            _view.Show(topic);
+            SelectInList(topic.Id);
+            return;
+        }
+
+        // A link that resolves to nothing is shown as nothing found rather than ignored: a reader
+        // who clicked something and saw no reaction assumes the window is broken.
+        _view.Show(null);
+    }
+
+    /// <summary>Shows the topic documenting a node, preferring a hand-written one.</summary>
+    /// <param name="nodeKey">The node key, as <c>Package/Name</c>.</param>
+    public void NavigateToNode(string? nodeKey)
+    {
+        HelpDocument? topic = _library.ForNode(nodeKey);
+        if (topic is not null)
+        {
+            Navigate(topic.Id);
+            return;
+        }
+
+        Navigate("nodes.index");
+    }
+
+    /// <inheritdoc/>
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+
+        if (e.Key == Key.Escape)
+        {
+            Close();
+            e.Handled = true;
+        }
+    }
+
+    private void OnListSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_list.SelectedItem is Entry entry
+            && _library.TryGet(entry.Id, out HelpDocument? topic)
+            && topic is not null)
+        {
+            _view.Show(topic);
+        }
+    }
+
+    private void SelectInList(string id)
+    {
+        for (int index = 0; index < _entries.Count; index++)
+        {
+            if (string.Equals(_entries[index].Id, id, StringComparison.OrdinalIgnoreCase))
+            {
+                _list.SelectedIndex = index;
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Rebuilds the list. With no query the whole library is shown, concept topics first; with one
+    /// the ranked search results are shown instead.
+    /// </summary>
+    private void Refresh(string? query)
+    {
+        _entries.Clear();
+
+        IReadOnlyList<HelpDocument> topics = string.IsNullOrWhiteSpace(query)
+            ? Ordered()
+            : _library.Search(query, 200);
+
+        foreach (HelpDocument topic in topics)
+        {
+            _entries.Add(new Entry(topic.Id, Label(topic)));
+        }
+    }
+
+    /// <summary>
+    /// The default order: concepts, then the node index, then the node pages. Concepts first
+    /// because they are the pages that answer <i>how does this work</i>, and a reader who opened
+    /// help without searching usually has that question rather than a specific node in mind.
+    /// </summary>
+    private IReadOnlyList<HelpDocument> Ordered()
+    {
+        List<HelpDocument> concepts = [];
+        List<HelpDocument> nodes = [];
+        HelpDocument? index = null;
+
+        foreach (HelpDocument topic in _library.Topics)
+        {
+            if (string.Equals(topic.Id, "nodes.index", StringComparison.Ordinal))
+            {
+                index = topic;
+            }
+            else if (topic.Id.StartsWith("nodes.", StringComparison.Ordinal))
+            {
+                nodes.Add(topic);
+            }
+            else
+            {
+                concepts.Add(topic);
+            }
+        }
+
+        List<HelpDocument> ordered = [.. concepts];
+        if (index is not null)
+        {
+            ordered.Add(index);
+        }
+
+        ordered.AddRange(nodes);
+        return ordered;
+    }
+
+    private static string Label(HelpDocument topic) =>
+        topic.Id.StartsWith("nodes.", StringComparison.Ordinal)
+            && !string.Equals(topic.Id, "nodes.index", StringComparison.Ordinal)
+            ? string.Create(CultureInfo.InvariantCulture, $"    {topic.Title}")
+            : topic.Title;
+
+    private sealed record Entry(string Id, string Label);
+}

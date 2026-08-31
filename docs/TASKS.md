@@ -7,7 +7,7 @@ order for what to do next is in [TODO.md](TODO.md); the requirements behind them
 **Last updated:** 2026-08-31 (D19 — the Help pass moves after 1.0; E10 recounted against the tree)
 **Legend:** `Done` · `In progress` · `Open` · `Blocked` · `Withdrawn`
 
-**Summary:** 142 done · 21 in progress · 95 open · 9 withdrawn — **267 rows**
+**Summary:** 143 done · 20 in progress · 95 open · 9 withdrawn — **267 rows**
 *(the previous revision's open count was 147 by arithmetic and 148 by the register; the register was right, and the four columns now add up to the total again.)*
 
 **This revision opens the marathon run to 1.0** — a resumable sequence of small verified steps, with
@@ -451,7 +451,7 @@ Everything else in this file is a plan, not a claim.
 | E10-T10 | XML doc comments across `Spark.Nodes.Core` | Open | These become runtime node tooltips as well as documentation |
 | E10-T11 | A help topic for every `SPK####` code | Open | |
 | E10-T12 | Per-PR changelog fragments | Open | Avoids a single changelog file becoming a merge-conflict magnet |
-| E10-T13 | In-product Markdown help renderer in `Spark.Api` | In progress | **The model and the reader are built 2026-08-31**: `Spark.Api.Help` holds `HelpDocument`, `HelpBlock`/`HelpInline`, `HelpMarkdown` and `HelpLibrary`, with **no UI dependency**, so the harness, the shell and the CLI all read one parser. A hand-written Markdown subset rather than a package, because `Spark.Api` is a contract assembly and every dependency it takes is inherited by every package author and can never be side-by-sided (ADR-0019). **Checked against the corpus rather than a specification** — all nine committed topics parse. **Still owed: the pane that draws it, and F1.** | Kept free of UI dependencies so the harness can exercise it on any platform — the CADScript `HelpRenderer` pattern |
+| E10-T13 | In-product Markdown help renderer in `Spark.Api` | Done | **Finished 2026-08-31.** `Spark.Api.Help` holds the model and the reader with **no UI dependency**; `HelpView` in `Spark.UI` draws it and knows nothing about Markdown; `HelpWindow` lists topics, searches them and follows links. **F1 opens the selected node's page**, preferring a hand-written topic over the generated one. Verified by photographing it, not only by test — `--help-window [topic]` opens it at startup and `--screenshot` writes `PREFIX-help.png`. Found [N65](NOTES.md) and a null-datum crash in the list template. Original note follows. | **The model and the reader are built 2026-08-31**: `Spark.Api.Help` holds `HelpDocument`, `HelpBlock`/`HelpInline`, `HelpMarkdown` and `HelpLibrary`, with **no UI dependency**, so the harness, the shell and the CLI all read one parser. A hand-written Markdown subset rather than a package, because `Spark.Api` is a contract assembly and every dependency it takes is inherited by every package author and can never be side-by-sided (ADR-0019). **Checked against the corpus rather than a specification** — all nine committed topics parse. **Still owed: the pane that draws it, and F1.** | Kept free of UI dependencies so the harness can exercise it on any platform — the CADScript `HelpRenderer` pattern |
 | E10-T14 | Website | Open | M8. [PRD Q8](PRD.md#14-open-questions) is unanswered |
 
 ## E11 — Quality and verification

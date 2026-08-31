@@ -932,7 +932,9 @@ user needs. XML doc = what this member does.*
 - [ ] Every public member of `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io` and
       `Spark.Nodes.Core` carries an XML documentation comment (**E10-T8**, **E10-T9**,
       **E10-T10**).
-- [ ] Generated API reference pages (**E10-T5**).
+- [x] Generated API reference pages (**E10-T5**). *Built 2026-08-31 and generated **at runtime
+      from the live node library**, so a page cannot drift from the node it describes and a package
+      installed this session has help the moment it loads.*
 - [ ] Every help topic contains a worked example (**E10-T3**, enforced by
       [E11-T2](#e11--quality-and-verification)).
 - [ ] Worked example graphs live in `docs/examples/` and are openable from the help panel
@@ -940,8 +942,10 @@ user needs. XML doc = what this member does.*
 - [ ] Every `SPK####` code has a help topic (**E10-T11**).
 - [ ] Per-PR changelog fragments, so a single changelog file never becomes a merge-conflict
       magnet (**E10-T12**).
-- [ ] An in-product Markdown help renderer lives in `Spark.Api`, free of UI dependencies so
-      the harness can exercise it anywhere (**E10-T13**).
+- [x] An in-product Markdown help renderer lives in `Spark.Api`, free of UI dependencies so
+      the harness can exercise it anywhere (**E10-T13**). *Built 2026-08-31. `HelpView` draws the
+      model and knows nothing about Markdown; `HelpWindow` lists, searches and links; **F1 opens
+      the selected node's page**. Photographed rather than only tested.*
 - [x] `docs/NOTES.md` uses stable numbers that are never renumbered and never reused, with
       gaps left on deletion (**E10-T1**).
 

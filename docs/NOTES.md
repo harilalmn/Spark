@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N63-N64 added)
+**Last updated:** 2026-08-31 (N63-N65 added)
 
 ---
 
@@ -1821,3 +1821,34 @@ know — `MainWindow` used to flip unconditionally, which was right for GL and w
 inverted every software capture. And the software path renders at one device pixel per layout
 unit rather than multiplying by `RenderScaling`: a quarter of the fragments on a 200% display, on
 the one code path that runs when the machine has already proved it has no usable GPU.
+
+## N65 — Every port description was written, and nothing read it
+
+`XmlDocumentation` was built to answer one question — *what is this member's summary?* —
+and it answered it well. `NodeImporter` used it for a node's description and took each **port's**
+description from an optional `[NodePort(Description: ...)]` attribute instead.
+
+**There are zero `[NodePort]` attributes carrying a description in the entire node library.** So
+every port on all 115 nodes had a null description, and the generated reference page showed a full
+column of port names, types and defaults beside a completely empty Description column. The text a
+reader wanted was in the source the whole time — `<param name="radius">The radius. Must be
+positive.</param>` — and CS1591-as-error had made writing it mandatory. Nothing ever read it.
+
+**It went unnoticed because nothing displayed it.** Port descriptions had no consumer: the canvas
+shows port *names*, the tooltip shows a signature. The first thing that ever asked for the
+description was the generated help page, and it asked on the day the help page was written. A
+field that is populated by nobody and read by nobody is invisible until something finally reads it.
+
+**The fix is small and the lesson is not.** `XmlDocumentation` now also collects `<param>` and
+`<returns>`, and `NodeImporter` prefers an explicit attribute and falls back to the doc comment.
+Roughly 380 input ports gained a description without a word being written.
+
+**Two implementation details worth keeping.** The `name` attribute of a `<param>` element must be
+read **before** `ReadInnerXml`, which advances past the element and takes its attributes with it.
+And the attribute still wins over the doc comment where both exist, because they address different
+readers: `[NodePort]` is what an author says to somebody looking at a node, and `<param>` is what
+they say to somebody looking at the API.
+
+**Proven without reverting anything:** a grep for `[NodePort(... Description ...)]` across
+`src/Spark.Nodes.Core/` returns **zero**, so the test asserting that more than nine ports in ten
+carry a description would have measured 0% before this change.

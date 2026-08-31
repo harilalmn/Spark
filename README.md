@@ -293,6 +293,13 @@ it rather than a window grab, so it works over a locked session and in CI — an
 first two exist so that opening a particular graph can be checked without a human driving a file
 dialog.
 
+**Press F1 for help.** With a node selected it opens that node's reference page — what it takes,
+what it returns, what each port means and how it laces; with nothing selected it opens the index of
+every node currently loaded. The node pages are **generated from the nodes themselves at the moment
+you ask for them**, so they describe what is actually installed rather than what somebody wrote
+down once, and a node that arrives in a package has help as soon as it loads. Alongside them are the
+hand-written concept topics from `docs/help/`, and the search box covers both.
+
 **`--software-renderer` is the one aimed at users rather than at the build.** If the viewport is
 black or the status bar reports that OpenGL did not initialise — the usual causes being a virtual
 machine, a remote desktop session, or a driver that has given up — that switch draws the same

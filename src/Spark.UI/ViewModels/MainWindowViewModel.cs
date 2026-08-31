@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Spark.Api;
+using Spark.Api.Help;
 using Spark.Engine;
 using Spark.Host;
 using Spark.Scripting;
@@ -46,6 +47,8 @@ namespace Spark.UI.ViewModels;
 public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     private readonly SparkSession _session = new();
+    private HelpLibrary? _help;
+
     private readonly HashSet<GeometryKey> _published = [];
     private readonly DocumentHistory _history = new();
     private EvaluationResult? _lastResult;
@@ -882,6 +885,90 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <summary>The source behind a canvas node, or null when it is not a code block.</summary>
     private string? ScriptOf(CanvasNode node) =>
         _graph.Engine.Node(node.Id).Definition.Script;
+
+    /// <summary>
+    /// Every help topic available in this session: the hand-written concept topics from
+    /// <c>docs/help/</c>, plus a generated page for every node currently loaded.
+    /// </summary>
+    /// <returns>The library, built once and reused.</returns>
+    /// <remarks>
+    /// <para>
+    /// Built on first use rather than at startup. Generating a page per node is cheap but not
+    /// free, and most sessions never open help; paying for it at launch would slow the thing every
+    /// session does to speed up the thing few do.
+    /// </para>
+    /// <para>
+    /// <b>The node pages come from the live library</b>, so a package installed this session has
+    /// help the moment it is loaded, and a node that does not exist has no page. That is
+    /// <c>E10-T5</c>'s whole claim, and it holds only because nothing is generated ahead of time.
+    /// </para>
+    /// </remarks>
+    public HelpLibrary Help()
+    {
+        if (_help is not null)
+        {
+            return _help;
+        }
+
+        HelpLibrary library = new();
+
+        foreach (string directory in HelpDirectories())
+        {
+            if (library.LoadDirectory(directory) > 0)
+            {
+                break;
+            }
+        }
+
+        library.AddRange(NodeReference.ForAll(_session.Library));
+        library.Add(NodeReference.Index(_session.Library));
+
+        _help = library;
+        return _help;
+    }
+
+    /// <summary>
+    /// Where the hand-written topics might be: beside the executable in an install, or up the tree
+    /// in a source checkout.
+    /// </summary>
+    /// <remarks>
+    /// Two candidates rather than one, because a developer running from <c>bin/Debug</c> and a
+    /// user running an install are both ordinary cases, and a help window that works for only one
+    /// of them gets tested by only one of them.
+    /// </remarks>
+    private static IEnumerable<string> HelpDirectories()
+    {
+        yield return Path.Combine(AppContext.BaseDirectory, "help");
+
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            string candidate = Path.Combine(directory.FullName, "docs", "help");
+            if (Directory.Exists(candidate))
+            {
+                yield return candidate;
+                yield break;
+            }
+
+            directory = directory.Parent;
+        }
+    }
+
+    /// <summary>The node key at a canvas slot, or null when the slot is not a node.</summary>
+    /// <param name="slot">The canvas slot index.</param>
+    /// <returns>The key as <c>Package/Name</c>, or null.</returns>
+    public string? NodeKeyAt(int slot)
+    {
+        if (slot < 0 || slot >= _graph.Nodes.Count)
+        {
+            return null;
+        }
+
+        CanvasNode node = _graph.Nodes[slot];
+        return _graph.Engine.TryGetNode(node.Id, out NodeInstance? instance) && instance is not null
+            ? instance.Definition.Key.Value
+            : null;
+    }
 
     /// <summary>Rebuilds the inspector for the current canvas selection.</summary>
     /// <param name="selection">The selected slots.</param>

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 15:20 +0530
+**Last updated:** 2026-08-31 16:10 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E10-T5`, `E10-T13` — the help model and the generated node reference.** Pages are generated **at runtime from the live library**, so they cannot drift. Found three parser defects and one **check that could hardly fail**: the harness accepted the bare string `.spark` anywhere in a topic as a worked example. |
+| **Last completed step** | **`E10-T13` — F1 does something.** A help window with search, links and a topic list joining nine concept topics to **115 generated node pages**. Photographing it caught two defects tests could not: clipped descenders, and a **crash** when list virtualisation handed the item template a null datum. Found [N65](NOTES.md): every port description was written and nothing read it. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **The help pane and F1**, which is the half of `E10-T13` a user touches: a `Spark.UI` pane that draws a `HelpDocument`, a topic list joining the nine concept topics to the generated node pages, search over both, and **F1 on a selected node opening its page** — preferring a hand-written topic over the generated one, which `HelpLibrary.ForNode` already does. Then `E10-T11`, a topic per `SPK####` code: there are **18**, each already carrying a `HelpTopicId` that points at nothing. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1852** over **nine** projects: Geometry.Tests 763, UI.Tests 448, Engine.Tests 402, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E10-T11` — a topic per `SPK####` code.** There are **18**, each already carrying a `HelpTopicId` that points at nothing, so a user who hits a diagnostic has nowhere to land. Then **`E11-T6`**, the check that fails the build when a code has no topic, and **`E11-T2`**, compiling every ` ```csharp ` fence — two samples in `geometry-basics.md` were already caught wrong by hand, and both read as perfectly plausible. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1858** over **nine** projects: Geometry.Tests 763, UI.Tests 454, Engine.Tests 402, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Four things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. **(4)** Opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance. *And still: watching the first nightly benchmark run.* |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3232,3 +3232,52 @@ observes.
 **Verified.** Build clean at 0 warnings. `Engine.Tests` 389 -> 402. Suite **1,852** over nine
 projects, 0 failed, 0 skipped. `dotnet format` clean. The new public surface is declared in
 `PublicAPI.Unshipped.txt`, which is the ADR-0019 guard doing its job.
+
+### 2026-08-31 - `E10-T13`: F1 does something, and every port finally says what it is for
+
+**What.** `HelpView` and `HelpWindow` in `Spark.UI`, F1 in the shell, `--help-window [topic]`, and
+`XmlDocumentation` extended to read `<param>` and `<returns>`. Six new tests. **The help system is
+usable: press F1 on a node and its page opens.**
+
+**Verified by photographing it, which is the only way a renderer can be.** `--help-window [topic]`
+opens the window at startup and `--screenshot` now writes `PREFIX-help.png` beside the other two.
+Three captures were taken and looked at: the node index listing all **115** loaded nodes grouped by
+category, and two node pages. Every test in this step would have passed on a control that laid out
+wrongly, because a test can only ask a window which topic it is showing.
+
+**Two defects the pictures caught and nothing else would have.**
+*One:* the first capture showed the descenders clipped off every line of the node index. A fixed
+`LineHeight` gives body text its rhythm and also clips any line containing an inline link, because
+a link is a real control and makes the line box taller than the text. The height is now applied
+only to link-free paragraphs.
+*Two:* navigating deep enough into the list to trigger virtualisation **crashed the application**.
+Avalonia builds an item template with a **null** datum while measuring and recycling, and the
+template dereferenced it. That is a crash every user would have hit by scrolling.
+
+**[N65](NOTES.md) is the finding worth reading.** `XmlDocumentation` read only `<summary>`, and
+`NodeImporter` took each port's description from an optional `[NodePort(Description: ...)]`
+attribute. **There are zero such attributes in the entire node library.** So every port on all 115
+nodes had a null description, and the generated page showed a full column of names, types and
+defaults beside a completely empty Description column - while the text sat in the source, where
+CS1591-as-error had made writing it mandatory.
+
+It went unnoticed because **nothing had ever displayed it**: the canvas shows port names, the
+tooltip shows a signature, and the first thing that ever asked for a port description was the help
+page written that morning. Roughly **380 input ports gained a description** without a word being
+written. Proven without reverting anything: `grep` for a `[NodePort]` carrying a description
+returns zero, so the test asserting more than nine ports in ten are described would have measured
+0% before the change.
+
+**The `<param>` reader has one trap in it**, recorded on the method: the element's `name` attribute
+must be read **before** `ReadInnerXml`, which advances past the element and takes its attributes
+with it. And the attribute still beats the doc comment where both exist, because they address
+different readers - `[NodePort]` speaks to somebody looking at a node, `<param>` to somebody
+looking at the API.
+
+**A help window rather than a dock pane**, deliberately. Help is consulted, not inhabited. A pane
+would take permanent room in a layout whose point is that the canvas and viewport get it, and add
+a fifth member to `WorkspacePane` that every preset, every serialised layout and every layout test
+would have to learn, for a panel most sessions never open.
+
+**Verified.** Build clean at 0 warnings. `UI.Tests` 448 -> 454. Suite **1,858** over nine projects,
+0 failed, 0 skipped. `dotnet format` clean. Three help screenshots opened and read.
