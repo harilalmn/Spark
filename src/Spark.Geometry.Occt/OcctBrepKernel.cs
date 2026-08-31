@@ -629,7 +629,13 @@ public sealed class OcctBrepKernel : IBrepKernel
         int status = NativeMethods.spark_occt_boolean(
             operation, left.Shape!.Pointer, right.Shape!.Pointer, linear, out IntPtr result);
 
-        return Wrap(status, result, name);
+        if (status == NativeMethods.Ok && result != IntPtr.Zero)
+        {
+            return KernelResult<Brep>.Success(new Brep(new OcctResidency(OcctShape.Own(result))));
+        }
+
+        return KernelResult<Brep>.Failure(
+            WithDump(Diagnose(status, name), DumpInputs(name, left.Shape, right.Shape)));
     }
 
     private static KernelResult<Brep> Modify(
@@ -645,7 +651,13 @@ public sealed class OcctBrepKernel : IBrepKernel
         using NativeBuffers buffers = new();
         (int status, IntPtr result) = run(borrowed.Shape!.Pointer, buffers);
 
-        return Wrap(status, result, name);
+        if (status == NativeMethods.Ok && result != IntPtr.Zero)
+        {
+            return KernelResult<Brep>.Success(new Brep(new OcctResidency(OcctShape.Own(result))));
+        }
+
+        return KernelResult<Brep>.Failure(
+            WithDump(Diagnose(status, name), DumpInputs(name, borrowed.Shape)));
     }
 
     private static KernelResult<Brep> Sweep(
@@ -660,6 +672,17 @@ public sealed class OcctBrepKernel : IBrepKernel
 
         return Wrap(status, result, name);
     }
+
+    /// <summary>Appends the dump sentence to a diagnostic's detail, when there is one.</summary>
+    private static SparkDiagnostic WithDump(SparkDiagnostic diagnostic, string dump) =>
+        dump.Length == 0
+            ? diagnostic
+            : new SparkDiagnostic(
+                diagnostic.Severity,
+                diagnostic.Code,
+                diagnostic.Message,
+                detail: (diagnostic.Detail ?? string.Empty) + dump,
+                helpTopicId: diagnostic.HelpTopicId);
 
     private static KernelResult<Brep> Wrap(int status, IntPtr result, string operation)
     {
@@ -678,6 +701,118 @@ public sealed class OcctBrepKernel : IBrepKernel
             string.Create(CultureInfo.InvariantCulture, $"The kernel could not {operation}."),
             detail: NativeErrors.Describe(status, operation),
             helpTopicId: KernelDiagnostics.SolidsTopic);
+
+    /// <summary>
+    /// Writes the inputs of a failed operation where somebody can reproduce it upstream.
+    /// </summary>
+    /// <param name="operation">What was being attempted.</param>
+    /// <param name="inputs">
+    /// The provider shapes it was given — the ones actually handed across, not the managed values
+    /// they were imported from. An imported box has no residency of its own, so dumping the
+    /// managed side would dump nothing at all, which is how the first version of this failed.
+    /// </param>
+    /// <returns>A sentence naming the files, or empty when dumping is off or failed.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>R16 is the risk that a boolean returning a wrong-but-valid shape is diagnosable only
+    /// inside code we do not own, and this is the part of the mitigation that does not depend on
+    /// us understanding the bug.</b> A `.brep` file is what OpenCascade's own Draw test harness
+    /// reads, so an upstream maintainer can load the exact inputs and run the exact operation.
+    /// Without it, a report says "a fillet failed" and is unactionable.
+    /// </para>
+    /// <para>
+    /// <b>Off unless <c>SPARK_OCCT_DUMP</c> names a directory</b>, because writing files as a side
+    /// effect of a refusal is not something a running application should do unasked — an exact
+    /// kernel refuses constantly and correctly, and most refusals are not bugs. Setting the
+    /// variable is what a person does *when they are reproducing something*.
+    /// </para>
+    /// </remarks>
+    private static string DumpInputs(string operation, params OcctShape?[] inputs)
+    {
+        string? directory = Environment.GetEnvironmentVariable(DumpVariable);
+
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            return string.Empty;
+        }
+
+        List<string> written = [];
+
+        try
+        {
+            Directory.CreateDirectory(directory);
+
+            string stamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture);
+
+            for (int i = 0; i < inputs.Length; i++)
+            {
+                if (inputs[i] is not { } input || input.IsInvalid)
+                {
+                    continue;
+                }
+
+                string file = Path.Combine(
+                    directory,
+                    string.Create(CultureInfo.InvariantCulture, $"{stamp}-{operation}-{i}.brep"));
+
+                if (NativeMethods.spark_occt_dump_brep(input.Pointer, file) == NativeMethods.Ok)
+                {
+                    written.Add(file);
+                }
+            }
+        }
+        catch (IOException)
+        {
+            return string.Empty;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return string.Empty;
+        }
+
+        return written.Count == 0
+            ? string.Empty
+            : " The inputs were written for a reproduction: " + string.Join("; ", written) + ".";
+    }
+
+    /// <summary>The environment variable that turns `.brep` dumping on and says where.</summary>
+    public const string DumpVariable = "SPARK_OCCT_DUMP";
+
+    /// <summary>
+    /// What OpenCascade's own validity checker says about a shape, or empty when it is valid.
+    /// </summary>
+    /// <param name="shape">The shape.</param>
+    /// <returns>A description of what is wrong, or an empty string.</returns>
+    /// <remarks>
+    /// <b>Public because it is what a bug report should contain</b>, and because the alternative —
+    /// running it inside every operation — would make an exact kernel slower for the sake of a
+    /// question nobody asked. <c>Spark.Geometry.Occt.Tests</c> runs it after every operation it
+    /// exercises; a release build runs it when somebody asks.
+    /// </remarks>
+    public static string Check(Brep shape)
+    {
+        ArgumentNullException.ThrowIfNull(shape);
+
+        if (shape.Residency is not OcctResidency resident)
+        {
+            return string.Empty;
+        }
+
+        int needed = NativeMethods.spark_occt_check(resident.Shape.Pointer, IntPtr.Zero, 0);
+
+        if (needed <= 1)
+        {
+            return string.Empty;
+        }
+
+        byte[] buffer = new byte[needed];
+
+        using NativeBuffers pins = new();
+        int written = NativeMethods.spark_occt_check(resident.Shape.Pointer, pins.Pin(buffer), needed);
+        int length = Math.Min(written, needed) - 1;
+
+        return length <= 0 ? string.Empty : System.Text.Encoding.UTF8.GetString(buffer, 0, length);
+    }
 
     /// <summary>Every top-level piece of a shape, each resident in its own right.</summary>
     private static KernelResult<IReadOnlyList<Brep>> Pieces(OcctShape shape, string operation)

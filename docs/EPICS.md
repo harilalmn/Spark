@@ -1214,17 +1214,21 @@ which goes from 14 weeks to **20–24**.
       [ADR-0021](adr/0021-brep-kernel-residency.md)). *`AChainOfBooleansStaysResident` walks a
       three-step chain and asserts the intermediates were never read out;
       `ACylindersWallIsTheSameSurfaceEvenIfItIsNotTheSameNumbers` is the equivalence half.*
-- [ ] The evaluation cache tracks a **native budget reported by the shim**, not an estimate of
-      managed size (**E13-T3**, **NFR-4**). *Half of it landed: `spark_occt_shape_bytes` reports
-      the figure and `Brep.NativeBytes` surfaces it **without materialising**, which is the only
-      way a cache could use it. **The cache does not read it yet.***
+- [x] The evaluation cache tracks a **native budget reported by the shim**, not an estimate of
+      managed size (**E13-T3**, **NFR-4**). *`EvaluationCache` evicts against an entry count and a
+      512 MB native ceiling, and `TheCacheEvictsOnBytesWithTheCountNowhereNearItsCeiling` is the
+      test NFR-4's failure could not previously be written as.*
 - [x] Equality and hashing of a `Brep` are defined on the **materialised model**, never on the
       handle (**E13-T6**). *`Brep` uses reference equality and has no `GetHashCode` of its own, and
       every structural member goes through the `Raw*` accessors that materialise first — so there
       is no member that can see a handle. The day it gains value equality, that is where it goes.*
-- [ ] Every failure carries an OCCT `Message_Report` translated into `SparkDiagnostic`, and a
+- [x] Every failure carries an OCCT `Message_Report` translated into `SparkDiagnostic`, and a
       **Draw-Harness-compatible `.brep` dump**, so a bug reproduces upstream; `BRepCheck_Analyzer`
-      runs in Debug (**E13-T13**, **R16**).
+      is available (**E13-T13**, **R16**). *Two departures from the letter of this, both stated in
+      the row: the report is appended **by alert key** rather than translated, because the keys are
+      OpenCascade's own and meant for its developers; and the checker runs **on demand** through
+      `OcctBrepKernel.Check` rather than in every Debug operation, because running it inside each
+      one would make an exact kernel slower to answer a question nobody asked.*
 - [ ] The Linux CI leg still runs, on a **cached per-RID artefact keyed on
       `(occt-tag, vcpkg-baseline, shim-source-hash, rid)`**, with the from-clean build nightly
       (**E13-T15**). *ADR-0001 justified the rot-guard as a rot-guard because it was nearly

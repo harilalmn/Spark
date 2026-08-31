@@ -170,6 +170,24 @@ the script tells you so rather than starting it behind your back. The result lan
 `artifacts/native/win-x64/` and Spark looks there automatically. Setting `SPARK_OCCT_PATH` to a
 directory overrides where it looks.
 
+## When an operation is wrong rather than refused
+
+**A refusal is legible; a wrong answer is not.** If a boolean gives you a shape that is subtly
+wrong — a face missing, a volume that cannot be right — the useful thing is to capture what went
+in, in the format the kernel's own developers can load.
+
+```
+set SPARK_OCCT_DUMP=C:\temp\spark-dumps
+```
+
+With that set, any operation that **fails** writes its inputs as `.brep` files and names them in
+the diagnostic. `.brep` is OpenCascade's own format and its Draw test harness reads it, so a bug
+report can carry the exact shapes rather than a description of them.
+
+It is off by default and that is deliberate: an exact kernel refuses constantly and correctly, and
+a build that wrote a file on every refusal would fill a disk with evidence of things working as
+designed.
+
 ## What is not built yet
 
 - **Trimmed faces in Spark's own model.** A face Spark *builds* is bounded by its surface's own

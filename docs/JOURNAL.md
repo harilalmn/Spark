@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 07:10 +0530
+**Last updated:** 2026-08-31 07:55 +0530
 **Protocol version:** 2
 
 ---
@@ -19,11 +19,11 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3 and M4 are done. M5 is substantially done** (the software renderer and CI visual regression, `E11-T16`, are **deferred past M6** deliberately). **M6 delivers its headline sentence** - solids that can be combined, filleted, shelled, **trimmed** and **exported to STEP**. **M1.6 was taken**: `C1`, `C2`, `C3`, `C7` and `C8` are answered and `C2` passed, so ADR-0020 stands |
 | **Working on** | Nothing. Between steps, inside M6 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Split, trim, offset, thicken, STEP and IGES** - ABI version 3. `BRepAlgoAPI_Splitter` keeps every piece where a cut does not; `Trim` is a managed composition of split and a point test rather than a seventh entry point; STEP goes out as AP214 and IGES in BRep mode; `spark export --out part.step` writes the exact surfaces. `docs/examples/solids.spark` is a new golden file. **`M1.6-C7` and `C8` answered from the linker, both no** - STEP pulls XCAF and FreeType, and the whole closure is 45.1 MB |
+| **Last completed step** | **The cache's native budget, and diagnostics across the boundary** — `E13-T3` and `E13-T13`, both closed. `EvaluationCache` evicts against an entry count **and** a 512 MB native ceiling, so NFR-4's failure is a test rather than a sentence. A failing operation appends the algorithm's own `Message_Report` alerts, and writes its inputs as Draw-Harness `.brep` files when `SPARK_OCCT_DUMP` names a directory. `OcctBrepKernel.Check` runs `BRepCheck_Analyzer` on demand. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M6's headline is delivered; what remains is behind it, and [TODO.md](TODO.md#now--finish-m6-behind-the-provider) has the order. The largest single gap is **`E13-T12` acceptance**: STEP output has been checked by a round trip and by reading the file, and **not by a third-party viewer or a public corpus**, which is what that row actually asks for and what nobody in this repository can do alone. Then **`E13-T3`'s consumer** - `Brep.NativeBytes` reports a real number and the evaluation cache still evicts by entry count (NFR-4 half done). Then `E13-T14` threading (`Q14`), `E13-T16` licence pipeline, `E13-T17` distribution at the **45.1 MB** now measured. **`M1.6-C6`, the `ShapeFix` policy, is on the critical path** - it is on the import path and the file-read path now, not only behind `Heal`. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1724**: Geometry.Tests 757, UI.Tests 439, Engine.Tests 356, Viewport.Tests 74, Geometry.Properties 43, **Geometry.Occt.Tests 39**, Architecture.Tests 11, Docs.Verify 5), `dotnet format`, `dotnet run --project src/Spark.Desktop -- --graph solids --screenshot PREFIX`, and `dotnet run --project src/Spark.Cli -- export --open docs/examples/solids.spark --out OUT.step`. **Check the counts** - [N30](NOTES.md) - **and the SKIP count**: the provider tests skip themselves without the native shim, so run `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt first. |
-| **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and deciding `Q15(c)` — whether the ubuntu CI job survives now that D16 has removed its release argument and `E13-T15` has priced its native half. |
+| **Next action** | The remaining M6 work is the **six `M1.6` criteria nobody has taken** and the **pipeline rows**. In order: **`M1.6-C4`** (what a `Materialise` costs on a realistic shape — [ADR-0021](adr/0021-brep-kernel-residency.md)'s whole rule rests on it being paid once, and nobody has timed one), **`M1.6-C5`** and **`E13-T14`** (the threading envelope, which **Q14** says M6 needs the answer to), **`M1.6-C6`** (whether `ShapeFix` can be constrained to a policy we choose — now on the *import* path and the *file-read* path, not only behind `Heal`), and **`M1.6-C9`**. Then `E13-T8`'s draft angles, and the three pipeline rows `E13-T15`, `E13-T16` and `E13-T17`, which are release engineering and partly wait on **Q13** (counsel) and **Q15(c)** (the ubuntu CI job). **`E13-T12`'s acceptance — a public corpus and a third-party viewer — needs a human and cannot be closed here.** |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1744**: Geometry.Tests 757, UI.Tests 439, Engine.Tests 367, Viewport.Tests 74, Geometry.Properties 43, **Geometry.Occt.Tests 48**, Architecture.Tests 11, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, and `spark export --out OUT.step`. **Check the counts** - [N30](NOTES.md) - **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ **or STEP** in a third-party viewer (M1's stated acceptance, and `E13-T12`'s), watching the first nightly benchmark run, and deciding **Q15(c)** — whether the ubuntu CI job survives now that **D16** has removed its release argument and `E13-T15` has priced its native half. |
 
 **Step status vocabulary**, and it means exactly this:
 
@@ -99,7 +99,7 @@ Discovered the hard way, and each one costs an hour if rediscovered.
 - **`Q15` is answered in the two parts that were blocking, and `M1.6-C1`'s Linux leg is void.**
   **D17** (`docs/PRD.md` §13) records both: the C-ABI shim stays, and the two-operating-system
   requirement in `M1.6-C1`/`C2` is void under **D16**. **WSL is still not installed and no longer
-  needs to be.** What survives is `Q15(c)` — whether the ubuntu CI job survives — which is a
+  needs to be.** What survives is  — whether the ubuntu CI job survives — which is a
   question about a *test technique*, not a release commitment, and it now has to be argued
   alongside `E13-T15`'s cost for a per-RID native build.
 - **OpenCascade 8.0.1 is installed at `C:\dev\vcpkg`, and it took 1.3 hours.**
@@ -1629,9 +1629,9 @@ passed* and then never cancels anything. `Assert.Equal(source.Token, seen)` is t
 cannot be faked.
 
 **An unrelated thing found on the way:** `ScriptNodeFactory.cs` contained a **raw NUL byte** — the
-cache-key separator in `script + " " + version`, written as the character rather than the escape.
+cache-key separator in `script + "\u0000" + version`, written as the character rather than the escape.
 It is a sound separator and the string is unchanged, but grep classified the whole file as binary
-and silently omitted it from every content search. Replaced with `" "`. Nothing behavioural, and
+and silently omitted it from every content search. Replaced with `"\u0000"`. Nothing behavioural, and
 the file is greppable again.
 
 **No help topic.** Nothing user-facing changed — there is still no stop button — so there is
@@ -2543,3 +2543,48 @@ third-party viewer, never our own reader**, and neither has been done — assert
 text is evidence a round trip cannot give and is still not a viewer. Draft angles are unwritten.
 The evaluation cache still does not read `NativeBytes`. The threading policy (`E13-T14`, `Q14`) is
 untouched, and so are the licence pipeline (`E13-T16`) and the per-RID distribution (`E13-T17`).
+
+### 2026-08-31 — The cache learns what a solid weighs, and a failure leaves evidence
+
+**`E13-T3` and `E13-T13`, both closed.** Two of `E13`'s acceptance criteria that are neither the
+headline nor a pipeline.
+
+**NFR-4 was a sentence and is now a test.** `Brep.NativeBytes` has reported a real figure since the
+provider landed and **nothing read it**: `EvaluationCache` evicted on entry count alone, so two
+hundred resident shapes sat inside any ceiling anybody would set while holding gigabytes. The cache
+now has a **second ceiling** — 512 MB by default, walked out of each entry's outputs through lists
+and `Displayable`s — and `TheCacheEvictsOnBytesWithTheCountNowhereNearItsCeiling` is the test that
+could not previously be written: ten entries against a ceiling of a thousand, evicted anyway.
+
+**Two decisions inside it are worth the words.** **One entry is always kept**, because a single
+result larger than the whole budget would otherwise be evicted the instant it was stored and every
+lookup would miss on something just computed — a cache worse than no cache. And **a shape held by
+two entries is counted twice**, because comparing values for identity across entries would buy
+exactness at the cost of speed, and the error is an over-estimate, which evicts sooner than needed
+rather than later than it should.
+
+**The fake residency is in `Spark.Engine.Tests` and the real one is not.** The arithmetic — a total
+accumulated, subtracted on eviction, enforced independently of the count — is a question about the
+cache and a fake answers it. Whether the *number* is real is a question about the provider, and
+`Spark.Geometry.Occt.Tests` answers it against shapes OpenCascade is actually holding.
+
+**R16's mitigation is all three parts now.** An algorithm's `Message_Report` alerts are appended by
+key when a boolean or a split fails — not translated, because the keys are OpenCascade's own and
+meant for its developers, and deliberately better than *the operation did not complete*.
+`BRepCheck_Analyzer` is available through `OcctBrepKernel.Check`, and names *how many* bad faces,
+edges, vertices and wires. And a failing operation writes its inputs as **Draw-Harness-compatible
+`.brep` files** when `SPARK_OCCT_DUMP` names a directory.
+
+**The dump's first version dumped nothing, and the reason is the interesting part.** It wrote the
+*managed* `Brep`s it was given — and an imported box has no residency of its own, so there was
+nothing to write. The shapes worth capturing are the **handles actually handed across**, which the
+operation is already holding. A test asserting the diagnostic names the files is what caught it;
+a test asserting *a failure is refused* would have passed.
+
+**It is off unless asked for, and that is the design rather than a default.** An exact kernel
+refuses constantly and correctly, so a build that wrote a file on every refusal would fill a disk
+with evidence of things working as designed. Setting the variable is what somebody does when they
+are reproducing something.
+
+**Verified.** Build clean with `-warnaserror`; **1,744 tests, 0 failures, 0 skipped** (Engine 356 →
+367, Geometry.Occt 39 → 48); `dotnet format` clean; docs harness green.

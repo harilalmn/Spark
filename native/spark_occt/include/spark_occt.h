@@ -79,7 +79,7 @@ typedef int32_t spark_status;
 #define SPARK_ERR_EXCEPTION     4 /**< OpenCascade raised. The message says what. */
 
 /** The ABI revision. Bumped whenever a signature or an encoding below changes. */
-#define SPARK_OCCT_ABI 3
+#define SPARK_OCCT_ABI 4
 
 /* --------------------------------------------------------------------------------------------
  * Geometry encodings
@@ -206,6 +206,25 @@ SPARK_OCCT_API int64_t SPARK_OCCT_CALL spark_occt_shape_bytes(const spark_shape*
 /** Fills counts[4] with shells, faces, edges and vertices. */
 SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_shape_counts(
     const spark_shape* shape, int32_t* counts);
+
+/**
+ * Writes a shape in OpenCascade's own `.brep` format.
+ *
+ * NOT an interchange format and not meant to be one: it is what the Draw test harness reads, so a
+ * shape that made a kernel misbehave here can be handed to upstream as a reproduction. That is the
+ * only reason it exists, and it is why it is not in the format opcode with STEP and IGES.
+ */
+SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_dump_brep(
+    const spark_shape* shape, const char* path);
+
+/**
+ * Runs OpenCascade's own validity checker and describes what it found.
+ *
+ * Writes a human-readable report into the caller's buffer and returns the length including the
+ * NUL, so (NULL, 0) asks how much room is needed. An empty report means the shape is valid.
+ */
+SPARK_OCCT_API int32_t SPARK_OCCT_CALL spark_occt_check(
+    const spark_shape* shape, char* buffer, int32_t capacity);
 
 /** Whether the shape is a closed, correctly oriented solid. Writes 0 or 1. */
 SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_shape_is_solid(

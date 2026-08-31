@@ -42,7 +42,12 @@
 #include <IGESControl_Reader.hxx>
 #include <IGESControl_Writer.hxx>
 #include <Geom_Surface.hxx>
+#include <BRepTools.hxx>
 #include <Message.hxx>
+#include <Message_Alert.hxx>
+#include <Message_Gravity.hxx>
+#include <Message_ListOfAlert.hxx>
+#include <Message_Report.hxx>
 #include <Message_Messenger.hxx>
 #include <Message_PrinterOStream.hxx>
 #include <OSD.hxx>
@@ -272,6 +277,50 @@ namespace
         return face.IsDone() ? face.Shape() : wire;
     }
 
+    // Whatever an OpenCascade algorithm accumulated while failing.
+    //
+    // R16 is the risk that a boolean returning a wrong-but-valid shape is diagnosable only inside
+    // code we do not own. This is the cheap third of the mitigation: the algorithm's own alerts,
+    // by key, appended to the message the caller gets. It is not a translation of every alert
+    // type - the keys are OpenCascade's own and are meant for its developers - and it is
+    // deliberately better than "the operation did not complete".
+    std::string report_text(const Handle(Message_Report)& report)
+    {
+        if (report.IsNull())
+        {
+            return std::string();
+        }
+
+        std::string text;
+
+        const Message_Gravity levels[2] = { Message_Fail, Message_Warning };
+
+        for (int level = 0; level < 2; level++)
+        {
+            const auto& alerts = report->GetAlerts(levels[level]);
+
+            for (auto it = alerts.cbegin(); it != alerts.cend(); ++it)
+            {
+                const Handle(Message_Alert)& alert = *it;
+
+                if (alert.IsNull())
+                {
+                    continue;
+                }
+
+                const char* key = alert->GetMessageKey();
+
+                if (key != nullptr && *key != '\0')
+                {
+                    text += text.empty() ? " The kernel reported: " : ", ";
+                    text += key;
+                }
+            }
+        }
+
+        return text.empty() ? text : text + ".";
+    }
+
     spark_status require_shape(const spark_shape* shape, const char* name)
     {
         if (shape == nullptr || shape->shape.IsNull())
@@ -467,6 +516,80 @@ extern "C" spark_status SPARK_OCCT_CALL spark_occt_shape_counts(
 
         return SPARK_OK;
     });
+}
+
+extern "C" spark_status SPARK_OCCT_CALL spark_occt_dump_brep(
+    const spark_shape* shape, const char* path)
+{
+    return guard("Dumping a shape", [&]() -> spark_status
+    {
+        const spark_status ready = require_shape(shape, "dumped");
+        if (ready != SPARK_OK)
+        {
+            return ready;
+        }
+
+        if (path == nullptr || *path == '\0')
+        {
+            return fail(SPARK_ERR_ARGUMENT, "A dump needs a path.");
+        }
+
+        return BRepTools::Write(shape->shape, path)
+            ? SPARK_OK
+            : fail(SPARK_ERR_REFUSED, std::string("The shape could not be written to ") + path + ".");
+    });
+}
+
+extern "C" int32_t SPARK_OCCT_CALL spark_occt_check(
+    const spark_shape* shape, char* buffer, int32_t capacity)
+{
+    ensure_started();
+
+    std::string text;
+
+    try
+    {
+        if (shape != nullptr && !shape->shape.IsNull())
+        {
+            const BRepCheck_Analyzer analyzer(shape->shape);
+
+            if (!analyzer.IsValid())
+            {
+                text = "The shape is not valid.";
+
+                // Which *kind* of sub-shape is bad narrows a bug report from "somewhere" to "an
+                // edge", and costs one traversal.
+                const TopAbs_ShapeEnum kinds[4] =
+                    { TopAbs_FACE, TopAbs_EDGE, TopAbs_VERTEX, TopAbs_WIRE };
+                const char* names[4] = { "face", "edge", "vertex", "wire" };
+
+                for (int i = 0; i < 4; i++)
+                {
+                    int bad = 0;
+
+                    for (TopExp_Explorer it(shape->shape, kinds[i]); it.More(); it.Next())
+                    {
+                        if (!analyzer.IsValid(it.Value()))
+                        {
+                            bad++;
+                        }
+                    }
+
+                    if (bad > 0)
+                    {
+                        text += " " + std::to_string(bad) + " bad " + names[i]
+                            + (bad == 1 ? "." : "s.");
+                    }
+                }
+            }
+        }
+    }
+    catch (...)
+    {
+        text = "The validity check itself raised, which is a finding of its own.";
+    }
+
+    return copy_out(text, buffer, capacity);
 }
 
 extern "C" spark_status SPARK_OCCT_CALL spark_occt_shape_is_solid(
@@ -782,7 +905,9 @@ extern "C" spark_status SPARK_OCCT_CALL spark_occt_boolean(
 
         if (!algorithm->IsDone())
         {
-            return fail(SPARK_ERR_REFUSED, "The boolean did not complete on these two shapes.");
+            return fail(
+                SPARK_ERR_REFUSED,
+                "The boolean did not complete on these two shapes." + report_text(algorithm->GetReport()));
         }
 
         const TopoDS_Shape result = algorithm->Shape();
@@ -1273,7 +1398,9 @@ extern "C" spark_status SPARK_OCCT_CALL spark_occt_split(
 
         if (!splitter.IsDone())
         {
-            return fail(SPARK_ERR_REFUSED, "The split did not complete on these shapes.");
+            return fail(
+                SPARK_ERR_REFUSED,
+                "The split did not complete on these shapes." + report_text(splitter.GetReport()));
         }
 
         return emit(splitter.Shape(), out);

@@ -11,6 +11,7 @@
     <ProjectReference Include="../../src/Spark.Geometry.Occt/Spark.Geometry.Occt.csproj" />
     <ProjectReference Include="../../src/Spark.Api/Spark.Api.csproj" />
     <ProjectReference Include="../../src/Spark.Geometry/Spark.Geometry.csproj" />
+    <ProjectReference Include="../../src/Spark.Engine/Spark.Engine.csproj" />
   </ItemGroup>
 
 </Project>

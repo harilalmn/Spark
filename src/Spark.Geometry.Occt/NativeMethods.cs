@@ -26,7 +26,7 @@ internal static partial class NativeMethods
     internal const string Library = "spark_occt";
 
     /// <summary>The ABI this binding was written against. Must match the library's own.</summary>
-    internal const int AbiVersion = 3;
+    internal const int AbiVersion = 4;
 
     internal const int Ok = 0;
     internal const int ErrorArgument = 1;
@@ -100,6 +100,14 @@ internal static partial class NativeMethods
     [LibraryImport(Library)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     internal static partial int spark_occt_shape_is_solid(IntPtr shape, IntPtr solid);
+
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    internal static partial int spark_occt_dump_brep(IntPtr shape, string path);
+
+    [LibraryImport(Library)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    internal static partial int spark_occt_check(IntPtr shape, IntPtr buffer, int capacity);
 
     [LibraryImport(Library)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
