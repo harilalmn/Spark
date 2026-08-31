@@ -364,10 +364,10 @@ to it on its own** when no OpenGL context arrives; the switch exists so the fall
 reached deliberately, which is what a support conversation needs and what lets the path be
 photographed and checked rather than trusted.
 
-The suite is **2,036 tests** across nine projects. `Spark.Geometry.Tests` (763) and
+The suite is **2,046 tests** across nine projects. `Spark.Geometry.Tests` (763) and
 `Spark.Geometry.Properties` (43) cover the kernel by example and by CsCheck property
 respectively; `Spark.Engine.Tests` (432) covers the graph, the replicator and the importer;
-`Spark.UI.Tests` (536) drives the canvas headlessly with real pointer gestures;
+`Spark.UI.Tests` (546) drives the canvas headlessly with real pointer gestures;
 `Spark.Viewport.Tests` (108) covers the scene, the camera and the software rasteriser;
 `Spark.Geometry.Occt.Tests` (63) drives the OpenCascade provider and **skips itself** when the
 native shim is absent; `Spark.Packages.Tests` (71) installs real packages from real feeds;

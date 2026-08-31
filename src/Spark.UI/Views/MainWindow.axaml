@@ -17,6 +17,14 @@
     canvas, and a binding on the canvas would only reach the second. Ctrl+Y and Ctrl+Shift+Z both
     redo, because users arrive from editors that disagree about which one it is.
   -->
+  <!--
+    E12-T13. Undo and redo were the only gestures with a key of their own; opening, saving and
+    running a graph - the three things a user does most - were reachable by mouse alone. The rest
+    of the toolbar is reachable by Tab, and F1, Escape and Delete are handled in OnKeyDown.
+
+    These are Window-level so they work wherever focus is, EXCEPT inside a text box that wants the
+    key itself - which is why nothing here uses a bare letter.
+  -->
   <Window.KeyBindings>
     <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
     <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
@@ -46,23 +54,23 @@
       <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
         <TextBlock Text="SPARK" Classes="caption" VerticalAlignment="Center" Margin="4,0,12,0" />
 
-        <Button Classes="toolbar" Content="Default"
+        <Button Classes="toolbar" Content="Default" AutomationProperties.Name="Default workspace layout"
                 Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Default" />
-        <Button Classes="toolbar" Content="Modelling"
+        <Button Classes="toolbar" Content="Modelling" AutomationProperties.Name="Modelling workspace layout"
                 Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Modelling" />
-        <Button Classes="toolbar" Content="Authoring"
+        <Button Classes="toolbar" Content="Authoring" AutomationProperties.Name="Authoring workspace layout"
                 Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Authoring" />
-        <Button Classes="toolbar" Content="Presenting"
+        <Button Classes="toolbar" Content="Presenting" AutomationProperties.Name="Presenting workspace layout"
                 Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Presenting" />
 
         <Border Width="1" Margin="6,2" Background="{DynamicResource SparkBorderHairlineBrush}" />
 
-        <Button Classes="toolbar" Content="Reset layout" Command="{Binding ResetLayoutCommand}" />
-        <Button Classes="toolbar" Content="Zoom to fit" Click="OnZoomToFit" />
-        <Button Classes="toolbar" Content="Frame viewport" Click="OnFrameViewport" />
-        <Button Classes="toolbar" Content="2000 nodes" Click="OnLoadSynthetic" />
-        <Button Classes="toolbar" Content="Open…" Click="OnOpenGraph" />
-        <Button Classes="toolbar" Content="Save as…" Click="OnSaveGraph" />
+        <Button Classes="toolbar" Content="Reset layout" AutomationProperties.Name="Reset the workspace layout" Command="{Binding ResetLayoutCommand}" />
+        <Button Classes="toolbar" Content="Zoom to fit" AutomationProperties.Name="Zoom the canvas to fit the graph" Click="OnZoomToFit" />
+        <Button Classes="toolbar" Content="Frame viewport" AutomationProperties.Name="Frame the geometry in the viewport" Click="OnFrameViewport" />
+        <Button Classes="toolbar" Content="2000 nodes" AutomationProperties.Name="Load two thousand synthetic nodes" Click="OnLoadSynthetic" />
+        <Button Classes="toolbar" Content="Open…" AutomationProperties.Name="Open a graph" ToolTip.Tip="Open a graph (Ctrl+O)" Click="OnOpenGraph" />
+        <Button Classes="toolbar" Content="Save as…" AutomationProperties.Name="Save the graph as" ToolTip.Tip="Save the graph as (Ctrl+S)" Click="OnSaveGraph" />
 
         <!--
           One button with a flyout rather than eight buttons. Aligning is occasional and its
@@ -71,16 +79,16 @@
           selected nodes, and the two distribute items disable below three, so nothing on it
           is ever offered and then ignored.
         -->
-        <Button Classes="toolbar" Content="New note" Click="OnAddNote" />
-        <Button Classes="toolbar" Content="Code block" Click="OnAddCodeBlock" />
-        <Button Classes="toolbar" Content="Group" Click="OnGroupSelection" x:Name="GroupButton" />
-        <Button Classes="toolbar" Content="Collapse to node" Click="OnCollapseSelection"
+        <Button Classes="toolbar" Content="New note" AutomationProperties.Name="Add a note to the canvas" Click="OnAddNote" />
+        <Button Classes="toolbar" Content="Code block" AutomationProperties.Name="Add a code block" Click="OnAddCodeBlock" />
+        <Button Classes="toolbar" Content="Group" AutomationProperties.Name="Group the selected nodes" Click="OnGroupSelection" x:Name="GroupButton" />
+        <Button Classes="toolbar" Content="Collapse to node" AutomationProperties.Name="Collapse the selection into one custom node" Click="OnCollapseSelection"
                 x:Name="CollapseButton"
                 ToolTip.Tip="Replace the selected nodes with one custom node" />
-        <Button Classes="toolbar" Content="Freeze" Click="OnFreezeSelection" x:Name="FreezeButton"
+        <Button Classes="toolbar" Content="Freeze" AutomationProperties.Name="Freeze or unfreeze the selected nodes" Click="OnFreezeSelection" x:Name="FreezeButton"
                 ToolTip.Tip="Skip the selected nodes when the graph runs" />
 
-        <Button Classes="toolbar" Content="Align ▾" x:Name="AlignButton">
+        <Button Classes="toolbar" Content="Align ▾" AutomationProperties.Name="Align and distribute the selection" x:Name="AlignButton">
           <Button.Flyout>
             <MenuFlyout>
               <MenuItem Header="Align left" Click="OnAlign" Tag="Left" />
@@ -103,25 +111,25 @@
 
         <!-- The tooltip names the step, so a user can see what Ctrl+Z is about to reverse before
              pressing it rather than after. -->
-        <Button Classes="toolbar" Content="Undo" Command="{Binding UndoCommand}"
+        <Button Classes="toolbar" Content="Undo" AutomationProperties.Name="Undo" Command="{Binding UndoCommand}"
                 ToolTip.Tip="{Binding UndoDescription}" />
-        <Button Classes="toolbar" Content="Redo" Command="{Binding RedoCommand}"
+        <Button Classes="toolbar" Content="Redo" AutomationProperties.Name="Redo" Command="{Binding RedoCommand}"
                 ToolTip.Tip="{Binding RedoDescription}" />
-        <Button Classes="toolbar" Content="Demo graph" Click="OnLoadDemo" />
-        <Button Classes="toolbar" Content="Curves" Click="OnLoadCurves" />
-        <Button Classes="toolbar" Content="Surfaces" Click="OnLoadSurfaces" />
-        <Button Classes="toolbar" Content="Solids" Click="OnLoadSolids" />
-        <Button Classes="toolbar" Content="Run" Click="OnRun" />
+        <Button Classes="toolbar" Content="Demo graph" AutomationProperties.Name="Open the demo graph" Click="OnLoadDemo" />
+        <Button Classes="toolbar" Content="Curves" AutomationProperties.Name="Open the curves demo" Click="OnLoadCurves" />
+        <Button Classes="toolbar" Content="Surfaces" AutomationProperties.Name="Open the surfaces demo" Click="OnLoadSurfaces" />
+        <Button Classes="toolbar" Content="Solids" AutomationProperties.Name="Open the solids demo" Click="OnLoadSolids" />
+        <Button Classes="toolbar" Content="Run" AutomationProperties.Name="Run the graph" ToolTip.Tip="Run the graph (F5)" Click="OnRun" />
 
         <Border Width="1" Margin="6,2" Background="{DynamicResource SparkBorderHairlineBrush}" />
 
         <!-- Help is F1 as well; the button is here because a key nobody knows about is a key
              nobody presses, and About is a licence obligation rather than an ornament. -->
-        <Button Classes="toolbar" Content="Help" Click="OnOpenHelp"
+        <Button Classes="toolbar" Content="Help" AutomationProperties.Name="Open help for the selected node" Click="OnOpenHelp"
                 ToolTip.Tip="Help for the selected node (F1)" />
-        <Button Classes="toolbar" Content="Packages" Click="OnOpenPackages"
+        <Button Classes="toolbar" Content="Packages" AutomationProperties.Name="Find, install and remove node packages" Click="OnOpenPackages"
                 ToolTip.Tip="Find, install and remove node packages" />
-        <Button Classes="toolbar" Content="About" Click="OnOpenAbout" />
+        <Button Classes="toolbar" Content="About" AutomationProperties.Name="About Spark" Click="OnOpenAbout" />
       </WrapPanel>
     </Border>
 
@@ -134,9 +142,10 @@
     <Border Grid.Row="1" x:Name="MissingBanner" IsVisible="False"
             Background="{DynamicResource SparkSurfaceRaisedBrush}" Padding="12,8">
       <DockPanel>
-        <Button DockPanel.Dock="Right" Classes="toolbar" Content="Dismiss" Click="OnDismissMissing" />
+        <Button DockPanel.Dock="Right" Classes="toolbar" Content="Dismiss" AutomationProperties.Name="Dismiss this message" Click="OnDismissMissing" />
         <Button DockPanel.Dock="Right" Classes="toolbar" x:Name="MissingInstallButton"
-                Content="Find it" Click="OnInstallMissing" Margin="0,0,8,0" />
+                Content="Find it" Click="OnInstallMissing" Margin="0,0,8,0"
+                AutomationProperties.Name="Find the missing package" />
         <TextBlock x:Name="MissingBannerText" VerticalAlignment="Center" TextWrapping="Wrap"
                    Foreground="{DynamicResource SparkTextPrimaryBrush}" />
       </DockPanel>

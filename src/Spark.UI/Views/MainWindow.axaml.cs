@@ -282,6 +282,12 @@ public sealed partial class MainWindow : Window
 
         MissingInstallButton.Content = "Find " + missing[0];
 
+        // The label changes with the package, so the automation name has to change with it:
+        // a static name would read "find the missing package" while the button said something
+        // more specific, and the two disagreeing is worse than either alone.
+        Avalonia.Automation.AutomationProperties.SetName(
+            MissingInstallButton, "Find the missing package " + missing[0]);
+
         MissingBannerText.Text = missing.Count == 1
             ? $"This graph uses nodes from '{missing[0]}', which is not installed. "
                 + "Those nodes are kept exactly as they were and the file will save unchanged."
@@ -376,6 +382,35 @@ public sealed partial class MainWindow : Window
         if (e.Key == Key.F1)
         {
             OpenHelp();
+            e.Handled = true;
+            return;
+        }
+
+        // E12-T13. Opening, saving and running had no keyboard path at all, and they are the three
+        // things a user does most. Handled here rather than as Window.KeyBindings because these
+        // are Click handlers rather than commands, and giving each one a command purely to bind a
+        // key would put the gesture in two places.
+        //
+        // Ctrl is required on all three. A bare F5 would be fine, but a bare letter would be taken
+        // from a user typing into the library search or a code block, and the rule is easier to
+        // keep than the exceptions are.
+        if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.O)
+        {
+            OnOpenGraph(this, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
+        if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.S)
+        {
+            OnSaveGraph(this, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.F5)
+        {
+            OnRun(this, new RoutedEventArgs());
             e.Handled = true;
         }
     }

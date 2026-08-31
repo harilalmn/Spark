@@ -1241,7 +1241,10 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
       checked nightly. Measured: render pass 1.2-1.4 ms median at 2 000 nodes against a 16.7 ms
       ceiling. Two findings: the benchmark's wall-clock number reads as the claim being missed and
       is not, and its floor does not scale with node count; and startup was measured by nothing.*
-- [ ] An accessibility pass before 1.0 (**E12-T13**).
+- [x] An accessibility pass before 1.0 (**E12-T13**). *Done 2026-09-01. The bar is two
+      checkable sentences: every gesture reachable without a mouse, every control named. Colour
+      was already done; automation naming existed nowhere, and opening, saving and running had no
+      keyboard path. Ten tests keep both. No screen reader was run, and the row says so.*
 - [ ] ~~Exact NURBS booleans, and fillet and chamfer on solids, are stated publicly as **out
       of scope for 1.0**~~ — **withdrawn** (**E12-T15**). They are *in* 1.0 under
       [ADR-0020](adr/0020-occt-via-c-abi-shim.md), so the sentence this criterion existed to

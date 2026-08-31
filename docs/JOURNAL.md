@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 12:10 +0530
+**Last updated:** 2026-09-01 13:05 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E12-T12` — a performance pass that mostly found the work already done.** The canvas holds **1.2-1.4 ms median at 2 000 nodes** against a 16.7 ms ceiling. [N81](NOTES.md): the benchmark's *other* number reads as the claim being missed and is not — its floor is ~27 ms and **does not scale with node count**, so the output now says which number is judged. [N82](NOTES.md): startup was measured by nothing; **48 ms** CLI, **3.0 s** desktop to a rendered shell. The budget was not touched. |
+| **Last completed step** | **`E12-T13` — an accessibility bar written as two checkable sentences.** Every gesture reachable without a mouse, every control named. Colour was already done; **`AutomationProperties` appeared nowhere**, and opening, saving and running had no keyboard path. Twenty-eight names, `Ctrl+O`/`Ctrl+S`/`F5`, and ten tests that read the markup as text — one of which exists only to stop the others passing on an empty match. **No screen reader was run, and the row says so.** |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E12-T13`, the accessibility pass, and the same discipline: state the bar first.** Colour is the part already done — the design language carries contrast figures and `PaletteContrastTests` asserts them, including that no state is carried by colour alone. So the gap is **keyboard reach and screen-reader naming**, and both are checkable rather than matters of taste: *every gesture reachable without a mouse* and *every control named*. Start by listing the gestures that exist — the toolbar buttons, the canvas selection and wiring, the dock, the package and help windows — and marking which have a keyboard path today; F1, Escape and Ctrl+Z are known to. Avalonia gives `AutomationProperties` for the naming half. **Be honest about what cannot be checked here**: a screen reader on this machine is not available, so naming can be asserted in tests and not experienced. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**2036** over **nine** projects: Geometry.Tests 763, UI.Tests 536, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 71**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E12-T8`, the last `E12` row that is engineering rather than an errand.** Its title names three things and they do not share a fate: **ReadyToRun** precompiles IL inside the same assemblies and does not touch OpenCascade, which is native and shipped beside them, so the relink obligation is untouched; **self-contained** and **single-file** are the ones [ADR-0020](adr/0020-occt-via-c-abi-shim.md) and `scripts/publish.ps1` already argue against, because a bundle that extracts to a temp directory does not obviously keep the libraries replaceable. So the row needs a **recorded decision splitting the three**, and then R2R measured against the 3.0 s startup recorded in [N82](NOTES.md) — if it does not move that number it is not worth the build time. **`Q13` item 2 asks counsel this exact question**, so the decision must say what it assumes and stay reversible. After that `E12` is done bar the errands, and what remains before 1.0 is the **Help pass** (`docs/TODO.md#after-10--the-help-pass`). **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**2046** over **nine** projects: Geometry.Tests 763, UI.Tests 546, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 71**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -4227,3 +4227,50 @@ and opening or saving a large document. Neither is budgeted and neither was meas
 **Verified.** Build clean at 0 warnings, `dotnet format` clean, suite unchanged at **2,036**. The
 canvas benchmark re-run after the output change: `nodes=2000 frames=250`, median 1.23 ms, p95
 2.84 ms, and the nightly's two regexes matched the new text.
+
+### 2026-09-01 @ `E12-T13`: an accessibility bar written as two checkable sentences
+
+**What.** Twenty-eight automation names, three keyboard paths, ten tests, [N83](NOTES.md). **`E12`'s
+two 1.0 passes are both done.**
+
+***Make it accessible* is not a task anybody can finish**, so the bar came first and it is two
+sentences that are properties of the markup rather than matters of taste: **every gesture reachable
+without a mouse**, and **every control named**.
+
+**The colour half was already done, and done properly.** The design language carries contrast
+figures, `PaletteContrastTests` asserts them against the real tokens, and Principle 4 already
+forbids colour being the only carrier of a state — which is why the frozen node built
+yesterday got a mark as well as a desaturation.
+
+**Everything else was missing.** `AutomationProperties` appeared **nowhere in the application**: to
+a screen reader every control was anonymous. And the only key bindings were undo and redo, so
+opening, saving and running a graph — the three things a user does most — were
+reachable by mouse alone. They now have `Ctrl+O`, `Ctrl+S` and `F5`, with the keys in the tooltips
+so they are discoverable rather than folklore.
+
+**A bare letter is never bound at window level**, and a test enforces it: it would be taken from
+somebody typing into the library search or a code block, and the rule is easier to keep than the
+exceptions would be to remember.
+
+**The tests read the markup as text, deliberately.** Instantiating the window to walk its visual
+tree needs a dispatcher and returns only the controls that have been realised; the `.axaml` is the
+whole truth and it is what a future edit changes. **The risk with a text test is that a regex
+matching nothing passes silently**, so a second test asserts the toolbar still has at least twenty
+buttons — without it, `EveryToolbarButtonIsNamed` goes green the day somebody renames the
+class.
+
+**It found one on the first run**: the missing-package banner's button, whose label is built at
+runtime. Its name is now set in code beside its content, because a static name reading *find the
+missing package* while the button says *Find Acme.Nodes* is worse than either alone.
+
+**A name that repeats the label earns nothing**, and a third test refuses that too — `Open…`
+read aloud is *open ellipsis*. Undo and Redo are the two exceptions and they are the right ones: the
+word is the action, and *Undo the last change* would be worse.
+
+**What this pass cannot claim, and the row says so.** No screen reader was run — none is
+available here. What is asserted is that a name exists and is not the label repeated. Whether it
+reads well aloud is a judgement a person makes with a screen reader running, and nobody has made it.
+
+**Verified.** Build clean at 0 warnings. `UI.Tests` 536 -> 546. Suite **2,046** over nine projects,
+0 failed, 0 skipped. `dotnet format` clean. The shell photographed after the markup change, to
+confirm twenty-eight new attributes had not disturbed a single pixel of layout.

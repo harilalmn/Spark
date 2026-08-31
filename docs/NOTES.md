@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N63-N82 added)
+**Last updated:** 2026-09-01 (N63-N83 added)
 
 ---
 
@@ -2214,3 +2214,37 @@ measurement that comes back implausibly good has usually measured the launch, no
 **Deliberately not budgeted in CI.** Wall-clock startup on a hosted runner is dominated by disk
 cache and antivirus, and [N29](NOTES.md) already argues that wall-clock ceilings there are only good
 for catching a step change. It is recorded here so a regression has something to be compared against.
+
+## N83 — The accessibility bar has to be two checkable sentences or the pass never ends
+
+*Make it accessible* is not a task anybody can finish. The bar this pass set itself is two
+sentences, both properties of the markup rather than matters of taste: **every gesture reachable
+without a mouse**, and **every control named**.
+
+**What was already done was the colour half**, and it was done properly: the design language carries
+contrast figures, `PaletteContrastTests` asserts them against the real tokens, and Principle 4
+already forbids colour being the only carrier of a state — which is why a frozen node gets a mark
+as well as a desaturation.
+
+**What was missing was everything else.** `AutomationProperties` appeared **nowhere** in the
+application, so every control was anonymous to a screen reader. And the only keyboard bindings were
+undo and redo: opening, saving and running a graph — the three things a user does most — were
+reachable by mouse alone.
+
+**The test is text, and deliberately.** Instantiating the window to walk its visual tree needs a
+dispatcher and returns only realised controls; the `.axaml` file is the whole truth and it is what a
+future edit changes. The risk with a text test is that a regex matching nothing passes silently, so
+there is a second test asserting the toolbar has at least twenty buttons — without it,
+`EveryToolbarButtonIsNamed` would go green the day somebody renamed the class.
+
+**It found one immediately**: the missing-package banner's button, whose label is built at runtime.
+Its name is now set in code beside its content, because a static name saying *find the missing
+package* while the button says *Find Acme.Nodes* is worse than either alone.
+
+**A name that repeats the label earns nothing**, so a third test refuses that too — `Open…` read
+aloud is *open ellipsis*. Undo and Redo are the exceptions and they are the right ones: the word is
+the action.
+
+**What this pass cannot claim.** No screen reader was run; none is available here. What is asserted
+is that a name exists and is not the label repeated. Whether it reads well aloud is a judgement a
+person makes with a screen reader running, and nobody has made it.
