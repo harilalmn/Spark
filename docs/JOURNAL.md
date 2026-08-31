@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 11:50 +0530
+**Last updated:** 2026-08-31 12:55 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E9-T12` — the visual regression, and M5 is finished.** A fixed scene compared byte for byte against a committed PNG, running in the ordinary suite so both CI legs already execute it. **Proven to fail** by moving one lighting coefficient 0.1%. Needed `PngImage`, a dependency-free PNG codec, which also unlocks `spark render`. `MathF.Pow` was replaced by exact repeated squaring — a determinism requirement, not an optimisation. |
+| **Last completed step** | **`E7-T3` and `E7-T4` - the package load layer. M7 has started.** One collectible ALC per package *version*, whose `Load` override checks the contract set **before** file existence. That order is the entire design: reversed, it loads a second `Spark.Api` and a `Circle` stops being a `Circle`. Twelve tests, in a new `Spark.Packages.Tests`. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`M7` — packages and extensibility ([E7](EPICS.md#e7--packages-and-extensibility)), the last milestone before M8 and 1.0.** Sixteen rows, none started. Start with `E7-T3` and `E7-T4` — **one collectible `AssemblyLoadContext` per package *version***, and contract assemblies always resolving from the default context, because a `Circle` from package A must be the same `Type` as one from package B or nothing can be wired. Those two decide the shape of everything else in the epic. **Watch for:** the first CI run on Linux after this step — the new golden-image check has never executed there, and the reasoning about whether it can is in the test's own failure message. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**: each is `In progress` for a stated reason that is not a missing commit. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1805**: Geometry.Tests 763, UI.Tests 448, Engine.Tests 367, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E7-T1`, then `E7-T6` and `E7-T7`.** `E7-T1` is the package convention - a NuGet package tagged `spark` with a `tools/spark.json` manifest - and it is small. `E7-T6` is **the headline behaviour of the whole epic**: a graph referencing a package that is not installed opens with **placeholder nodes preserving the definition key, every literal and every wire verbatim**, and `E7-T7` is the test that makes that a fact rather than an intention - **re-save must be byte-identical**. Neither needs a network or a feed, which is why they come before `E7-T2`. **Watch for:** the first CI run on Linux since the golden-image check landed. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1817** over **nine** projects: Geometry.Tests 763, UI.Tests 448, Engine.Tests 367, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Four things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. **(4)** Opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance. *And still: watching the first nightly benchmark run.* |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3025,3 +3025,54 @@ the three things it still owed. `E9-T7` (parallel streamed tessellation), `E9-T8
 **Verified.** Build clean at 0 warnings. `Viewport.Tests` 95 → 101. Full suite **1,805**, 0 failed,
 0 skipped. The golden was opened and looked at before it was committed, twice — the first version
 was rejected.
+
+### 2026-08-31 - `E7-T3` and `E7-T4`: the package load layer, and an order that is the whole design
+
+**What.** `Spark.Packages` had a `.csproj` and nothing else. It now has `PackageIdentity`,
+`ContractAssemblies` and `PackageLoadContext`, plus a new `tests/Spark.Packages.Tests` with twelve
+tests. **M7 has started.**
+
+**The one thing to understand here is a sequence of two `if`s.** `Load(AssemblyName)` checks the
+contract set **first** and only then file existence in the package's own folder. Reversed, it
+compiles, runs, and produces a `Circle` that cannot be assigned to a `Circle` - because NuGet
+packages routinely ship copies of what they were compiled against, so a package built against
+`Spark.Api` very often carries `Spark.Api.dll`, and file-existence-first picks it up every time.
+The resulting error message names the same type twice and explains nothing.
+
+**The decisive test stages a deliberately invalid `Spark.Api.dll`** in the package folder and
+asserts the real one still resolves. If the order were wrong the test would not merely assert the
+wrong thing - it would throw `BadImageFormatException`, which is a far kinder failure than the one
+the real bug produces.
+
+**Deciding by file existence rather than by a name list** is the other half, and the row already
+said why: a hardcoded list rots the moment a package adds a dependency, and it rots *silently*,
+because the symptom is a type from the wrong context rather than an error.
+
+**Per version, not per package.** One context per package makes two versions impossible to have
+loaded at once, which is the case a graph saved last year and a graph saved today put in front of
+us in the first week. `TwoVersionsOfOnePackageLoadSideBySide` proves both halves at once: distinct
+`Camera` types from the two contexts, and the *same* `Spark.Api` shared by both - which is what
+lets nodes from two unrelated packages be wired together at all.
+
+**The unload proof is the honest kind and it is paired.** `AContextUnloadsOnceNothingReferencesIt`
+asserts a weak reference goes dead; `AContextDoesNotUnloadWhileATypeFromItIsHeld` asserts the
+converse, so the first is not a test that would pass on a runtime that unloads regardless. That
+pairing is the difference between proving unloading and observing a garbage collector.
+
+**A consequence documented rather than discovered.** Four tests failed on the first run - all of
+them in *cleanup*, deleting a temp folder whose DLL was still loaded, with
+`UnauthorizedAccessException`. Loading by path pins the file on Windows. That is the same fact as
+best-effort unloading seen from the filesystem, and the same reason **restart is the documented
+default** for an upgrade. It is kept rather than worked around: loading from a byte array would
+free the lock and lose `Assembly.Location`, which is what a diagnostic prints to answer *where did
+this node come from*, and packages live in an immutable version-scoped cache where the lock costs
+nothing restart does not already cover. **`E7-T9`'s local DLL references are the opposite case** -
+a user rebuilds those while Spark is open - so that row cannot reuse this path, and now says so.
+
+**`E7-T5` moves to `In progress` rather than `Done`, with the missing half named.** The unload
+mechanism is built and proven; the *purge* it has to perform first empties registries that do not
+exist yet, because there is no package node library and no install cache until `E7-T1` and
+`E7-T2`.
+
+**Verified.** Build clean at 0 warnings. **1,817** tests over **nine** projects, 0 failed, 0
+skipped. `dotnet format` clean.

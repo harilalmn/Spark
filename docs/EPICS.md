@@ -628,15 +628,16 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
 
 - [ ] A Spark package is a NuGet package tagged `spark` with a `tools/spark.json` manifest
       (**E7-T1**).
-- [ ] **One collectible ALC per package *version*** — not per package, which kills
+- [x] **One collectible ALC per package *version*** — not per package, which kills
       side-by-side, and not per assembly, which kills intra-package type identity
-      (**E7-T3**).
-- [ ] The `Load` override decides by **file existence in the context's own folder**, not by
+      (**E7-T3**). *Built 2026-08-31, with two versions of one package proven to load at once.*
+- [x] The `Load` override decides by **file existence in the context's own folder**, not by
       a hardcoded name list, which demonstrably rots the moment a package adds a dependency
-      (**E7-T3**).
-- [ ] **Contract assemblies always resolve from the default context**, because a `Circle`
+      (**E7-T3**). *Built 2026-08-31.*
+- [x] **Contract assemblies always resolve from the default context**, because a `Circle`
       from package A must be the same `Type` as one from package B or nothing can be wired
-      (**E7-T4**).
+      (**E7-T4**). *Built 2026-08-31, and the check runs **before** the file check — the order
+      is the mechanism, because packages ship what they were compiled against.*
 - [ ] Upgrade purges node definitions, compiled invokers, cached values, viewport buffers
       and undo history, unloads, and **verifies by weak reference** — and when it does not
       unload, the UI says so and offers restart. **Restart is the documented default**
@@ -661,7 +662,12 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
 - [ ] A `CustomViewKey` seam is reserved in the format now, so adding custom node UI later
       needs no format migration (**E7-T15**).
 
-**Status.** Not started.
+**Status.** Started 2026-08-31. **The load layer is in and it is the part everything else
+depends on**: `PackageIdentity`, `ContractAssemblies` and `PackageLoadContext`, with twelve tests
+covering isolation, shared contract identity, side-by-side versions and collectible unloading.
+Nothing else in this epic is built — no NuGet client, no manifest, no placeholders, no custom
+nodes, no package manager UI — but the two decisions that constrain all of them are settled and
+proven rather than intended.
 
 ---
 

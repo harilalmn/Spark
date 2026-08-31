@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The package layer's testable half, which is nearly all of it. Assembly load contexts, type
+    identity across contexts and collectible unloading are all ordinary managed behaviour and
+    need no network, no NuGet feed and no installed package: what they need is a real assembly
+    on disk, and the build has produced several.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Spark.Packages/Spark.Packages.csproj" />
+    <ProjectReference Include="../../src/Spark.Viewport/Spark.Viewport.csproj" />
+  </ItemGroup>
+
+</Project>

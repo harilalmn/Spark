@@ -24,6 +24,7 @@
     <Project Path="tests/Spark.Geometry.Occt.Tests/Spark.Geometry.Occt.Tests.csproj" />
     <Project Path="tests/Spark.Geometry.Properties/Spark.Geometry.Properties.csproj" />
     <Project Path="tests/Spark.Geometry.Tests/Spark.Geometry.Tests.csproj" />
+    <Project Path="tests/Spark.Packages.Tests/Spark.Packages.Tests.csproj" />
     <Project Path="tests/Spark.UI.Tests/Spark.UI.Tests.csproj" />
     <Project Path="tests/Spark.Viewport.Tests/Spark.Viewport.Tests.csproj" />
   </Folder>
