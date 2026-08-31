@@ -181,7 +181,13 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        model.RecordEdit(e.Label);
+        // Recorded unless the gesture is still in progress. Dragging a slider re-runs the graph on
+        // every pointer move and records once on release, because RecordEdit serialises the whole
+        // document and an undo stack with one entry per pixel is not an undo stack.
+        if (e.RecordsUndo)
+        {
+            model.RecordEdit(e.Label);
+        }
 
         if (e.AffectsEvaluation)
         {

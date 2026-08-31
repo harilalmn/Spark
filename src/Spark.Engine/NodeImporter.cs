@@ -543,6 +543,11 @@ public static class NodeImporter
             // member of that type a watch by accident.
             bool showsValue = candidate.Member.IsDefined(typeof(ShowsValueAttribute), inherit: false);
 
+            // On the member only, for the reason above, and additionally because the attribute
+            // promises a positional shape - value, minimum, maximum, step - that a type cannot
+            // have.
+            bool hasSlider = candidate.Member.IsDefined(typeof(NodeSliderAttribute), inherit: false);
+
             NodeDefinition definition = new(
                 new NodeKey(package, memberAttribute?.Name ?? name),
                 memberAttribute?.Name ?? name,
@@ -554,7 +559,8 @@ public static class NodeImporter
                 isSideEffect: sideEffect,
                 description: candidate.Description,
                 category: memberAttribute?.Category ?? typeAttribute?.Category ?? NodeCategories.Custom,
-                showsValue: showsValue);
+                showsValue: showsValue,
+                hasSlider: hasSlider);
 
             nodes.Add(new ImportedNode(definition, candidate.Member));
         }

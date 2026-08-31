@@ -23,6 +23,82 @@ public static class Number
     public static double Value(double value = 0) => value;
 
     /// <summary>
+    /// A number set by dragging a slider on the node itself (<c>E8-T25</c>).
+    /// </summary>
+    /// <param name="value">The number the slider is set to. Clamped into the range.</param>
+    /// <param name="min">The left end of the track.</param>
+    /// <param name="max">The right end of the track.</param>
+    /// <param name="step">
+    /// What the value snaps to. Zero or negative means no snapping, which is the continuous
+    /// slider.
+    /// </param>
+    /// <returns>The value, clamped and snapped.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The clamping is done here rather than only in the widget</b>, because the value is an
+    /// ordinary input port: it can be wired, and it can be typed into in the properties panel. A
+    /// node that honoured its range only when dragged would produce a value outside its own
+    /// declared bounds by any other route, which is the sort of thing that is discovered a long
+    /// way downstream.
+    /// </para>
+    /// <para>
+    /// <b>An inverted range is not an error.</b> Dragging <c>max</c> below <c>min</c> while
+    /// setting up a slider is an ordinary thing to do half way through, and a node that threw
+    /// would fill the diagnostics pane during a gesture the user is still making. The ends are
+    /// swapped instead.
+    /// </para>
+    /// </remarks>
+    [NodeSlider]
+    [return: NodePort("value")]
+    public static double Slider(double value = 0, double min = 0, double max = 100, double step = 0)
+    {
+        (double low, double high) = min <= max ? (min, max) : (max, min);
+
+        double clamped = System.Math.Clamp(value, low, high);
+
+        if (step > 0 && double.IsFinite(step))
+        {
+            clamped = low + (System.Math.Round((clamped - low) / step) * step);
+            clamped = System.Math.Clamp(clamped, low, high);
+        }
+
+        return clamped;
+    }
+
+    /// <summary>
+    /// A whole number set by dragging a slider on the node itself (<c>E8-T25</c>).
+    /// </summary>
+    /// <param name="value">The number the slider is set to. Clamped into the range.</param>
+    /// <param name="min">The left end of the track.</param>
+    /// <param name="max">The right end of the track.</param>
+    /// <param name="step">How far one notch moves. Below one it is treated as one.</param>
+    /// <returns>The value, clamped and snapped to a whole number of steps.</returns>
+    /// <remarks>
+    /// <b>Separate from <see cref="Slider"/> rather than a flag on it</b>, because the port's
+    /// <i>type</i> is the difference and a type cannot be a runtime flag. A count of storeys wired
+    /// into a node that wants an integer must not arrive as <c>4.000000001</c>, and the only way to
+    /// promise that is for the port to say <c>int</c>.
+    /// </remarks>
+    [SparkNode(Name = "Integer.Slider")]
+    [NodeSlider]
+    [return: NodePort("value")]
+    public static int IntegerSlider(int value = 0, int min = 0, int max = 100, int step = 1)
+    {
+        (int low, int high) = min <= max ? (min, max) : (max, min);
+
+        int clamped = System.Math.Clamp(value, low, high);
+        int notch = System.Math.Max(step, 1);
+
+        if (notch > 1)
+        {
+            long snapped = low + ((long)System.Math.Round((clamped - (double)low) / notch) * notch);
+            clamped = (int)System.Math.Clamp(snapped, low, high);
+        }
+
+        return clamped;
+    }
+
+    /// <summary>
     /// A list of numbers from <paramref name="start"/> up to <paramref name="end"/>, stepping by
     /// <paramref name="step"/>. <paramref name="end"/> is included when the step lands on it.
     /// </summary>

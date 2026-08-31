@@ -102,6 +102,21 @@ public sealed class CanvasNode
     /// <summary>Padding below the last port row.</summary>
     public const double BodyPadding = 10;
 
+    /// <summary>How many input ports a slider node must have: value, minimum, maximum, step.</summary>
+    public const int SliderPorts = 4;
+
+    /// <summary>The height the slider track adds below the port rows, including its own padding.</summary>
+    public const double SliderHeight = 26;
+
+    /// <summary>The inset from either edge of the node to the end of the slider track.</summary>
+    public const double SliderInset = 12;
+
+    /// <summary>How tall the track itself is drawn.</summary>
+    public const double SliderTrackHeight = 4;
+
+    /// <summary>The radius of the draggable thumb.</summary>
+    public const double SliderThumbRadius = 6;
+
     /// <summary>The horizontal inset a port label starts at, on either side.</summary>
     private const double PortInset = 9;
 
@@ -126,7 +141,8 @@ public sealed class CanvasNode
         IReadOnlyList<CanvasPortInfo> inputs,
         IReadOnlyList<CanvasPortInfo> outputs,
         string? description,
-        bool showsValue = false)
+        bool showsValue = false,
+        bool hasSlider = false)
     {
         Id = id;
         Title = title;
@@ -137,6 +153,11 @@ public sealed class CanvasNode
         Outputs = outputs;
         Description = description;
         ShowsValue = showsValue;
+
+        // The shape the attribute promises is checked HERE rather than trusted, because the flag
+        // travels from an attribute the canvas never sees. A node that claims to be a slider and
+        // is not shaped like one draws no slider - not a misleading one over the wrong ports.
+        HasSlider = hasSlider && inputs.Count >= SliderPorts;
 
         // Roughly 6.6 px per character at 12 px semibold, plus the two 8 px header insets and room
         // for a state glyph. A title that overflows is clipped by the header, which reads as a bug.
@@ -215,7 +236,40 @@ public sealed class CanvasNode
     /// taller, which is what makes a dense graph readable.
     /// </summary>
     public double Height =>
-        HeaderHeight + (System.Math.Max(Inputs.Count, Outputs.Count) * PortPitch) + BodyPadding;
+        HeaderHeight
+        + (System.Math.Max(Inputs.Count, Outputs.Count) * PortPitch)
+        + (HasSlider ? SliderHeight : 0)
+        + BodyPadding;
+
+    /// <summary>
+    /// Whether this node is driven by a slider drawn on it (<c>E8-T25</c>), and is shaped for one.
+    /// </summary>
+    /// <remarks>
+    /// False for a node that declared the attribute without the four ports it promises. The check
+    /// is in the constructor, so everything downstream of this property can assume the shape.
+    /// </remarks>
+    public bool HasSlider { get; }
+
+    /// <summary>
+    /// The slider track in world coordinates: the line the thumb travels along.
+    /// </summary>
+    /// <param name="left">The left end of the track.</param>
+    /// <param name="right">The right end.</param>
+    /// <param name="y">The track's centre line.</param>
+    /// <remarks>
+    /// Below the last port row rather than beside it. A slider needs the node's full width to be
+    /// worth dragging, and a row already has two port labels competing for that width - the
+    /// design language's own reason for not putting listness in the text (§7.6) applies here with
+    /// more force, because this one is a target as well as a label.
+    /// </remarks>
+    public void SliderTrack(out double left, out double right, out double y)
+    {
+        left = X + SliderInset;
+        right = X + Width - SliderInset;
+        y = Y + HeaderHeight
+            + (System.Math.Max(Inputs.Count, Outputs.Count) * PortPitch)
+            + (SliderHeight / 2);
+    }
 
     /// <summary>The node's bounds in world coordinates.</summary>
     public CanvasBounds Bounds => CanvasBounds.FromSize(X, Y, Width, Height);
@@ -736,7 +790,8 @@ public sealed class CanvasGraph
             Describe(instance.Definition.Inputs),
             Describe(instance.Definition.Outputs),
             instance.Definition.Description,
-            instance.Definition.ShowsValue);
+            instance.Definition.ShowsValue,
+            instance.Definition.HasSlider);
 
         _nodes.Add(node);
         _slots[instance.Id] = _nodes.Count - 1;
@@ -969,6 +1024,151 @@ public sealed class CanvasGraph
         Edit(() => Engine.SetDeclaredInputType(id, portName, type));
 
         return Retype(id);
+    }
+
+    /// <summary>The literal on an input port, or null.</summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <param name="portIndex">The input port index.</param>
+    /// <returns>The literal, or null when there is none or the slot is out of range.</returns>
+    public object? Literal(int slot, int portIndex)
+    {
+        if (slot < 0 || slot >= _nodes.Count)
+        {
+            return null;
+        }
+
+        NodeInstance instance = Engine.Node(_nodes[slot].Id);
+
+        return portIndex >= 0 && portIndex < instance.Definition.Inputs.Count
+            ? instance.Literal(portIndex)
+            : null;
+    }
+
+    /// <summary>
+    /// Reads a slider node's four literals as numbers (<c>E8-T25</c>).
+    /// </summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <param name="value">Where the thumb sits.</param>
+    /// <param name="minimum">The left end of the track.</param>
+    /// <param name="maximum">The right end.</param>
+    /// <param name="step">What the value snaps to; zero or less means it does not.</param>
+    /// <returns>True when the node is a slider and its range is usable.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Read as <see cref="double"/> whatever the port's type is</b>, so one drawing path serves
+    /// both the number slider and the integer one. The value is written back through
+    /// <see cref="SetSliderValue"/>, which is where the port's real type is honoured.
+    /// </para>
+    /// <para>
+    /// <b>The literals, not the evaluated values.</b> The canvas paints before anything has run
+    /// and often when nothing will - so a wired range drives what the node computes but not what
+    /// is drawn, which is stated on <see cref="Spark.Api.NodeSliderAttribute"/>. An inverted or
+    /// empty range returns false rather than dividing by zero: the track is drawn dead, and
+    /// dragging it does nothing, which is what an impossible range should feel like.
+    /// </para>
+    /// </remarks>
+    public bool SliderRange(
+        int slot, out double value, out double minimum, out double maximum, out double step)
+    {
+        value = 0;
+        minimum = 0;
+        maximum = 0;
+        step = 0;
+
+        if (slot < 0 || slot >= _nodes.Count || !_nodes[slot].HasSlider)
+        {
+            return false;
+        }
+
+        if (!TryNumber(Literal(slot, 0), out value)
+            || !TryNumber(Literal(slot, 1), out minimum)
+            || !TryNumber(Literal(slot, 2), out maximum))
+        {
+            return false;
+        }
+
+        _ = TryNumber(Literal(slot, 3), out step);
+
+        if (minimum > maximum)
+        {
+            (minimum, maximum) = (maximum, minimum);
+        }
+
+        return maximum > minimum;
+    }
+
+    /// <summary>
+    /// Sets a slider node's value, in the type its port actually declares (<c>E8-T25</c>).
+    /// </summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <param name="value">The new value, already clamped and snapped by the caller.</param>
+    /// <returns>True when the literal changed, which is false while a drag stays inside one notch.</returns>
+    /// <remarks>
+    /// <b>Returning false when nothing changed is what makes dragging cheap.</b> A pointer move is
+    /// reported far more often than a slider crosses a notch, and re-running the graph on every one
+    /// of them would make an integer slider with five stops as expensive as a continuous one.
+    /// </remarks>
+    public bool SetSliderValue(int slot, double value)
+    {
+        if (slot < 0 || slot >= _nodes.Count)
+        {
+            return false;
+        }
+
+        NodeId id = _nodes[slot].Id;
+        NodeInstance instance = Engine.Node(id);
+
+        if (instance.Definition.Inputs.Count == 0)
+        {
+            return false;
+        }
+
+        // BOXED TO `object` IN EACH BRANCH, AND THAT CAST IS NOT NOISE.
+        //
+        // A conditional whose branches are `int` and `double` has a common type, and it is
+        // `double` - so without the cast the int is converted straight back and the literal on an
+        // integer slider is stored as 43.0. It compiles, it evaluates, and the port's declared type
+        // is quietly not what is in it. Caught by a test asserting the literal's runtime type
+        // rather than its value, which is the only way this is visible.
+        object typed = instance.Definition.Inputs[0].ValueType == typeof(int)
+            //
+            // Away from zero, not to even. `Math.Round`'s default is banker's rounding, which
+            // sends 42.5 to 42 and 43.5 to 44 - two adjacent midpoints going opposite ways. On a
+            // slider that is a thumb which sometimes sticks and sometimes jumps, for no reason
+            // visible to the person dragging it.
+            ? (object)(int)System.Math.Round(value, System.MidpointRounding.AwayFromZero)
+            : value;
+
+        if (Equals(instance.Literal(0), typed))
+        {
+            return false;
+        }
+
+        Edit(() => Engine.SetLiteral(id, 0, typed));
+
+        return true;
+    }
+
+    private static bool TryNumber(object? literal, out double number)
+    {
+        switch (literal)
+        {
+            case double value:
+                number = value;
+                return double.IsFinite(value);
+            case int value:
+                number = value;
+                return true;
+            case long value:
+                number = value;
+                return true;
+            case float value:
+                number = value;
+                return float.IsFinite(value);
+            default:
+                number = 0;
+                return false;
+        }
     }
 
     /// <summary>Whether an input port already has a wire into it.</summary>

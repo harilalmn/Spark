@@ -26,13 +26,35 @@ namespace Spark.UI.Controls;
 /// </remarks>
 /// <param name="label">What the edit did, in the words the menu shows: <c>Move node</c>.</param>
 /// <param name="affectsEvaluation">Whether the graph has to be run again.</param>
-public sealed class GraphEditedEventArgs(string label, bool affectsEvaluation) : EventArgs
+/// <param name="recordsUndo">
+/// Whether this is a step on the undo stack. False only while a continuous gesture is still in
+/// progress, which records once when it ends.
+/// </param>
+public sealed class GraphEditedEventArgs(
+    string label, bool affectsEvaluation, bool recordsUndo = true) : EventArgs
 {
     /// <summary>What the edit did, phrased for an undo menu.</summary>
     public string Label { get; } = label;
 
     /// <summary>Whether the change requires the graph to be evaluated again.</summary>
     public bool AffectsEvaluation { get; } = affectsEvaluation;
+
+    /// <summary>
+    /// Whether the change is a step on the undo stack (<c>E8-T25</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>True for every edit except the middle of a continuous gesture.</b> Dragging a slider
+    /// changes the graph on every pointer move and must re-run it on every pointer move, or the
+    /// slider is not a slider - but recording each of those would put a hundred entries on the
+    /// undo stack for one gesture, and each entry serialises the whole document to a string.
+    /// </para>
+    /// <para>
+    /// The gesture records once, on release, so undo steps back over the whole drag. That is what
+    /// a user means by "undo that": not "undo the last pixel of that".
+    /// </para>
+    /// </remarks>
+    public bool RecordsUndo { get; } = recordsUndo;
 }
 
 /// <summary>
@@ -156,6 +178,8 @@ public sealed class GraphCanvas : Control
     private InteractionMode _mode;
     private Point _pointerAnchor;
     private Point _dragStartWorld;
+    private int _sliderSlot = -1;
+    private bool _sliderMoved;
     private int _hoverNode = -1;
     private int _focusNode = -1;
     private CanvasPort? _hoverPort;
@@ -218,6 +242,7 @@ public sealed class GraphCanvas : Control
         DraggingWire,
         DraggingNote,
         DraggingGroup,
+        DraggingSlider,
     }
 
     /// <summary>The canvas background fill. Exposed so the shell can paint the same colour behind it.</summary>
@@ -478,6 +503,45 @@ public sealed class GraphCanvas : Control
             return;
         }
 
+        // BEFORE the node test, and that order is the whole of the interaction. A slider lives
+        // inside its node's bounds, so testing the node first would mean every drag of a thumb
+        // moved the node instead - which is the same class of mistake as testing a wire before a
+        // node, and is why that one is tested last.
+        int slider = HitTestSlider(world);
+        if (slider >= 0)
+        {
+            _mode = InteractionMode.DraggingSlider;
+            _sliderSlot = slider;
+            _sliderMoved = false;
+
+            // Selecting it too: a slider being dragged is the thing the user is working on, and
+            // the properties panel showing its range while they drag is the point of having the
+            // range on ports at all.
+            _selection.Clear();
+            _selection.Add(slider);
+            _selectedWire = null;
+            _selectedNote = null;
+            _selectedGroup = null;
+            _focusNode = slider;
+
+            if (DragSlider(slider, world))
+            {
+                _sliderMoved = true;
+
+                // Evaluated while dragging, not recorded while dragging. RecordEdit serialises the
+                // whole document, so one undo entry per pointer move would be both a flooded undo
+                // stack and a document written to a string sixty times a second.
+                GraphChanged?.Invoke(this, new GraphEditedEventArgs(
+                    "Set slider", affectsEvaluation: true, recordsUndo: false));
+            }
+
+            e.Pointer.Capture(this);
+            e.Handled = true;
+            InvalidateVisual();
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
         int node = HitTestNode(world);
         if (node >= 0)
         {
@@ -608,6 +672,19 @@ public sealed class GraphCanvas : Control
                 InvalidateVisual();
                 return;
 
+            case InteractionMode.DraggingSlider when _sliderSlot >= 0:
+                if (DragSlider(_sliderSlot, world))
+                {
+                    _sliderMoved = true;
+
+                    // Runs the graph, records nothing. See GraphEditedEventArgs.RecordsUndo.
+                    GraphChanged?.Invoke(this, new GraphEditedEventArgs(
+                        "Set slider", affectsEvaluation: true, recordsUndo: false));
+                    InvalidateVisual();
+                }
+
+                return;
+
             case InteractionMode.DraggingNote when _selectedNote is { } dragged:
                 MoveNote(dragged, world.X - _dragStartWorld.X, world.Y - _dragStartWorld.Y);
                 _dragStartWorld = world;
@@ -662,6 +739,21 @@ public sealed class GraphCanvas : Control
 
             case InteractionMode.DraggingWire when _dragSourcePort is { } source && _hoverPort is { } target:
                 TryConnect(source, target);
+                break;
+
+            // The whole drag becomes one undo step here, having already run the graph on every
+            // move. Nothing is recorded when the value never actually changed - a click on the
+            // thumb that lands back where it started is not an edit, for the same reason a node
+            // dragged out and back is not.
+            case InteractionMode.DraggingSlider when _sliderMoved:
+                _sliderMoved = false;
+                _sliderSlot = -1;
+                GraphChanged?.Invoke(
+                    this, new GraphEditedEventArgs("Set slider", affectsEvaluation: false));
+                break;
+
+            case InteractionMode.DraggingSlider:
+                _sliderSlot = -1;
                 break;
 
             // A move is reported as an edit but not as a reason to run: a position is not in a
@@ -1126,6 +1218,11 @@ public sealed class GraphCanvas : Control
                 DrawPortLabels(context, node, CanvasLevelOfDetail.DrawsPortTypes(detail));
             }
 
+            if (node.HasSlider)
+            {
+                DrawSlider(context, node, slot, drawsPortLabels);
+            }
+
             DrawStateRings(context, pens, node, nodeRect, selected);
 
             if (slot == _focusNode && IsFocused)
@@ -1133,6 +1230,180 @@ public sealed class GraphCanvas : Control
                 DrawFocusSandwich(context, pens, nodeRect);
             }
         }
+    }
+
+    /// <summary>
+    /// Draws a slider node's track, its thumb and its current value (<c>E8-T25</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The whole point of a slider is sweeping a value and watching the geometry answer</b>,
+    /// which is the one thing a text box in a side panel cannot do however convenient it is. That
+    /// is why this node kind earns a widget when no other does.
+    /// </para>
+    /// <para>
+    /// <b>The filled part of the track carries the node's category colour and the rest does not.</b>
+    /// Principle 4 of the design language says a category fill must never read as a state, so the
+    /// unfilled remainder is drawn in a surface colour rather than a dimmed category one - a
+    /// half-lit category colour is exactly the thing that reads as "disabled".
+    /// </para>
+    /// <para>
+    /// <b>The number is drawn only when the port labels are.</b> It is 10 px text and it is
+    /// governed by the same level-of-detail threshold as everything else that small (§7.3); a
+    /// slider zoomed out far enough to lose its labels is a shape you drag, not a value you read.
+    /// </para>
+    /// </remarks>
+    /// <param name="context">The drawing context.</param>
+    /// <param name="node">The node.</param>
+    /// <param name="slot">Its slot, for reading the literals.</param>
+    /// <param name="drawsLabels">Whether the zoom is high enough for the value text.</param>
+    private void DrawSlider(DrawingContext context, CanvasNode node, int slot, bool drawsLabels)
+    {
+        node.SliderTrack(out double left, out double right, out double y);
+
+        bool live = _graph.SliderRange(
+            slot, out double value, out double minimum, out double maximum, out double step);
+
+        double half = CanvasNode.SliderTrackHeight / 2;
+
+        // The whole track first, then the filled part over it. Drawn as two rectangles rather than
+        // as a line and a line, so the ends stay square against the node's own geometry.
+        context.FillRectangle(
+            SparkPalette.Frozen(SparkPalette.SurfaceSunken),
+            new Rect(left, y - half, Math.Max(right - left, 0), CanvasNode.SliderTrackHeight),
+            (float)half);
+
+        if (!live)
+        {
+            // An impossible range - inverted, empty, or a literal that is not a number - is drawn
+            // as a dead track with no thumb. Dragging it does nothing, which is what an impossible
+            // range should feel like, and it is visibly different from a slider at zero.
+            return;
+        }
+
+        double fraction = Math.Clamp((value - minimum) / (maximum - minimum), 0, 1);
+        double thumbX = left + (fraction * (right - left));
+
+        context.FillRectangle(
+            SparkPalette.Frozen(NodeCategoryColours.ColourOf(node.Category)),
+            new Rect(left, y - half, Math.Max(thumbX - left, 0), CanvasNode.SliderTrackHeight),
+            (float)half);
+
+        context.DrawEllipse(
+            SparkPalette.Frozen(SparkPalette.TextPrimary),
+            pen: null,
+            new Point(thumbX, y),
+            CanvasNode.SliderThumbRadius,
+            CanvasNode.SliderThumbRadius);
+
+        if (!drawsLabels)
+        {
+            return;
+        }
+
+        // Rendered to as many decimals as the step justifies and no more. A step of 1 showing
+        // "40.00000" is noise, and a step of 0.01 showing "40" is a lie about where the thumb is.
+        FormattedText text = TypeRun(FormatSliderValue(value, step));
+
+        context.DrawText(
+            text,
+            new Point(
+                Math.Clamp(thumbX - (text.Width / 2), node.X + 4, node.X + node.Width - 4 - text.Width),
+                y + CanvasNode.SliderThumbRadius + 1));
+    }
+
+    /// <summary>Renders a slider's value to as many decimals as its step justifies.</summary>
+    /// <param name="value">The value.</param>
+    /// <param name="step">The step, or zero for a continuous slider.</param>
+    /// <returns>The text.</returns>
+    private static string FormatSliderValue(double value, double step)
+    {
+        int decimals = 2;
+
+        if (step > 0 && double.IsFinite(step))
+        {
+            decimals = 0;
+            double scaled = step;
+
+            while (decimals < 6 && Math.Abs(scaled - Math.Round(scaled)) > 1e-9)
+            {
+                scaled *= 10;
+                decimals++;
+            }
+        }
+
+        return value.ToString("F" + decimals.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// The slot whose slider thumb or track is under a world point, or -1 (<c>E8-T25</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>The whole track is a target, not only the thumb.</b> A six-pixel disc is a hard thing to
+    /// hit with a mouse and an unreasonable one with a trackpad, and clicking a track to jump the
+    /// value there is what every slider does. The band is deliberately taller than the track it is
+    /// drawn as, for the reason ports have a screen-space hit size larger than their disc.
+    /// </remarks>
+    /// <param name="world">The point, in world coordinates.</param>
+    /// <returns>The slot, or -1.</returns>
+    private int HitTestSlider(Point world)
+    {
+        // Front to back, so the node drawn on top wins - the same order HitTestNode uses.
+        for (int slot = _graph.Nodes.Count - 1; slot >= 0; slot--)
+        {
+            CanvasNode node = _graph.Nodes[slot];
+
+            if (!node.HasSlider)
+            {
+                continue;
+            }
+
+            node.SliderTrack(out double left, out double right, out double y);
+
+            double reach = CanvasNode.SliderThumbRadius + 3;
+
+            if (world.X >= left - reach
+                && world.X <= right + reach
+                && world.Y >= y - reach
+                && world.Y <= y + reach)
+            {
+                return slot;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// Moves a slider's value to wherever the pointer is along its track (<c>E8-T25</c>).
+    /// </summary>
+    /// <param name="slot">The slider's slot.</param>
+    /// <param name="world">The pointer, in world coordinates.</param>
+    /// <returns>True when the value actually changed.</returns>
+    /// <remarks>
+    /// <b>Snapping is done here as well as in the node.</b> The node clamps and snaps because its
+    /// value port can also be wired or typed into; this snaps so that the thumb lands where the
+    /// value will actually be, rather than sliding smoothly and jumping on release.
+    /// </remarks>
+    private bool DragSlider(int slot, Point world)
+    {
+        if (!_graph.SliderRange(slot, out _, out double minimum, out double maximum, out double step))
+        {
+            return false;
+        }
+
+        _graph.Nodes[slot].SliderTrack(out double left, out double right, out _);
+
+        double span = right - left;
+        double fraction = span > 0 ? Math.Clamp((world.X - left) / span, 0, 1) : 0;
+        double value = minimum + (fraction * (maximum - minimum));
+
+        if (step > 0 && double.IsFinite(step))
+        {
+            value = minimum + (Math.Round((value - minimum) / step) * step);
+        }
+
+        return _graph.SetSliderValue(slot, Math.Clamp(value, minimum, maximum));
     }
 
     private void DrawPorts(DrawingContext context, in FramePens pens, CanvasNode node, int slot, CanvasDetail detail)

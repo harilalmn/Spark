@@ -186,6 +186,41 @@ public sealed class ShowsValueAttribute : Attribute
 }
 
 /// <summary>
+/// Declares that a node is driven by a slider drawn on the node itself (<c>E8-T25</c>).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A slider is a node whose value you set by dragging it, not by typing into a panel.</b> That
+/// is the whole difference, and it is the reason it earns a widget: the point of a slider is
+/// sweeping a value and watching the geometry answer, which a text box cannot do however
+/// convenient it is.
+/// </para>
+/// <para>
+/// <b>The contract is positional, and it is exactly four inputs.</b> A node declaring this must
+/// take, in order, the <i>value</i> the slider sets, then its <i>minimum</i>, <i>maximum</i> and
+/// <i>step</i>. Positional rather than by name because a name would be a string that has to match
+/// something, checked nowhere and wrong silently; the order is asserted by a test over every node
+/// that declares the attribute, and a canvas that finds a node of the wrong shape draws no slider
+/// rather than drawing a misleading one.
+/// </para>
+/// <para>
+/// <b>The three range inputs are ordinary ports</b>, so they are saved, they appear in the
+/// properties panel, and they can be wired — which is more than Dynamo's equivalent allows, and
+/// costs nothing. The track on the canvas is drawn from the typed-in literals; wiring a range
+/// drives evaluation but not the drawing, because the canvas paints before anything has run and
+/// has no value to paint from.
+/// </para>
+/// </remarks>
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+public sealed class NodeSliderAttribute : Attribute
+{
+    /// <summary>Creates the attribute.</summary>
+    public NodeSliderAttribute()
+    {
+    }
+}
+
+/// <summary>
 /// Sets a port's Cross Product dimension. Dimensions nest in ascending guide order, outermost
 /// first; ports without a guide keep their port index. Has no effect in any other mode.
 /// </summary>

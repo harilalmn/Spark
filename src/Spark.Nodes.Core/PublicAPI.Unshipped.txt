@@ -95,7 +95,9 @@ static Spark.Nodes.Core.Math.Multiply(double a = 1, double b = 1) -> double
 static Spark.Nodes.Core.Math.Pi() -> double
 static Spark.Nodes.Core.Math.Sin(double degrees = 0) -> double
 static Spark.Nodes.Core.Math.Subtract(double a = 0, double b = 0) -> double
+static Spark.Nodes.Core.Number.IntegerSlider(int value = 0, int min = 0, int max = 100, int step = 1) -> int
 static Spark.Nodes.Core.Number.Range(double start = 0, double end = 10, double step = 1) -> System.Collections.Generic.IReadOnlyList<double>!
+static Spark.Nodes.Core.Number.Slider(double value = 0, double min = 0, double max = 100, double step = 0) -> double
 static Spark.Nodes.Core.Number.Value(double value = 0) -> double
 static Spark.Nodes.Core.Plane.ByOriginNormal(Spark.Geometry.Point3d origin, Spark.Geometry.Vector3d normal) -> Spark.Geometry.Plane
 static Spark.Nodes.Core.Plane.XY() -> Spark.Geometry.Plane

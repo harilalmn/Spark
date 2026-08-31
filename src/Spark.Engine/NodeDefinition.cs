@@ -50,6 +50,10 @@ public sealed class NodeDefinition
     /// </param>
     /// <param name="description">One paragraph describing the node. Optional.</param>
     /// <param name="showsValue">Whether the canvas shows this node's value permanently.</param>
+    /// <param name="hasSlider">
+    /// Whether the node is driven by a slider drawn on the node itself. See
+    /// <see cref="Spark.Api.NodeSliderAttribute"/> for the shape this promises.
+    /// </param>
     /// <param name="category">
     /// The library category the node is filed under, which is what decides its header colour on the
     /// canvas. Defaults to <see cref="NodeCategories.Custom"/>. A plain string rather than an enum,
@@ -71,7 +75,8 @@ public sealed class NodeDefinition
         bool isSideEffect = false,
         string? description = null,
         string? category = null,
-        bool showsValue = false)
+        bool showsValue = false,
+        bool hasSlider = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
         ArgumentNullException.ThrowIfNull(inputs);
@@ -106,6 +111,7 @@ public sealed class NodeDefinition
         Description = description;
         Category = string.IsNullOrWhiteSpace(category) ? NodeCategories.Custom : category;
         ShowsValue = showsValue;
+        HasSlider = hasSlider;
     }
 
     /// <summary>The definition's stable identity, including the package that published it.</summary>
@@ -134,6 +140,23 @@ public sealed class NodeDefinition
     /// ([ADR-0005](../../docs/adr/0005-api-engine-host-layering.md)).
     /// </remarks>
     public bool ShowsValue { get; }
+
+    /// <summary>
+    /// Whether the node is driven by a slider drawn on the node itself (<c>E8-T25</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Carried for the same reason <see cref="ShowsValue"/> and <see cref="Category"/> are: a fact
+    /// the engine holds and never reads, because the canvas has no library and must not name an
+    /// engine type ([ADR-0005](../../docs/adr/0005-api-engine-host-layering.md)).
+    /// </para>
+    /// <para>
+    /// The shape it promises — value, minimum, maximum, step, in that order — is
+    /// <see cref="Spark.Api.NodeSliderAttribute"/>'s contract, not this flag's. A definition
+    /// carrying this with the wrong shape draws no slider rather than a misleading one.
+    /// </para>
+    /// </remarks>
+    public bool HasSlider { get; }
 
     /// <summary>
     /// The source this definition was built from, or <see langword="null"/> when it came from a

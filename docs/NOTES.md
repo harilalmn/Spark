@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N63-N91 added)
+**Last updated:** 2026-09-01 (N63-N92 added)
 
 ---
 
@@ -2528,3 +2528,36 @@ the map. Reverting the sweep makes it name both failures, with their measured ra
 **And `Apply` has to be idempotent**, because `HighlightingManager` hands out one definition per
 language and every code block placed runs this over the same object. Every assignment is absolute
 rather than relative, and `ApplyingTwiceChangesNothing` holds it.
+
+---
+
+## N92 — Two traps in writing a number back into a typed port
+
+Both were caught by the same test, and neither is visible by reading the code.
+
+**A conditional whose branches are `int` and `double` produces a `double`.**
+
+```csharp
+object typed = port.ValueType == typeof(int)
+    ? (int)Math.Round(value)     // looks like it boxes an int
+    : value;                     // it does not
+```
+
+C# finds the branches' common type first — `double` — converts the `int` straight back, and boxes
+that. So an integer slider stored `43.0` in a port declared `int`. It compiles, it evaluates, and
+everything downstream that asks the port its type is told `int` while holding a `double`. The fix
+is `(object)` on the branch that needs it. **What made it visible was asserting the literal's
+runtime type rather than its value** — `Assert.IsType<int>` rather than `Assert.Equal(43, …)`,
+which would have passed.
+
+**`Math.Round` is banker's rounding by default.**
+
+`Math.Round(42.5)` is 42 and `Math.Round(43.5)` is 44: adjacent midpoints go opposite ways. That is
+correct for statistics and wrong for a slider, where it is a thumb that sometimes sticks and
+sometimes jumps for no reason visible to the person dragging it.
+`MidpointRounding.AwayFromZero` is what a person means by rounding.
+
+**The general lesson is about the test, not the two bugs.** A test asserting a *value* passes
+against a port holding the wrong type, and a test asserting a *type* passes against the wrong
+rounding. Both had to be asserted for either to be found, and the second one only surfaced because
+the first was fixed first.

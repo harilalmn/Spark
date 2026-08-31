@@ -320,3 +320,5 @@ virtual Spark.Api.ScriptInvocation.Invoke(object?[]! arguments, System.Threading
 ~override Spark.Api.NoticeLine.ToString() -> string
 ~override Spark.Api.ScriptPort.Equals(object obj) -> bool
 ~override Spark.Api.ScriptPort.ToString() -> string
+Spark.Api.NodeSliderAttribute
+Spark.Api.NodeSliderAttribute.NodeSliderAttribute() -> void
