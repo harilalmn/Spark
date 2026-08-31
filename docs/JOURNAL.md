@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **The client’s list of eleven, taken ahead of the Help pass because the client asked for it directly.** Four steps, in this order: **(A)** the canvas gestures — `E8-T26` marquee visibility and window-versus-crossing, `E8-T27` double-click places a code block, `E8-T28` the orange selection halo. **(B)** the library — `E8-T29`, Create/Action/Query subgroups with coloured rails and icons, plus row spacing. **(C)** the properties pane — `E8-T30` compact spec-sheet rows, `E8-T31` a lacing selector. **(D)** the shell chrome — `E8-T32` menu bar, ribbon and logo, and `E3-T13` run modes. |
-| **Step status** | `IN PROGRESS` - steps **A, B and C are committed**; step **D**, the last, has not started. |
-| **Last completed step** | **`E8-T30` and `E8-T31` - step C of the client's list: the properties pane, and lacing you can reach.** Lacing could not be changed anywhere at all - `Graph.SetLacing` had existed since `E4-T6` and nothing in the shell called it - and now has a selector, an undo step and a re-run. The pane is a compact spec sheet and the type dropdown moved into the label column. `XmlDocumentation` was dropping `paramref` and `see` whole, which is why `Number.Range`'s description read as a broken sentence. **2207 tests.** |
-| **Working tree** | Clean. Step D has not started. |
-| **Next action** | **Step D, the last of the client's list: the shell chrome.** `E8-T32` - the toolbar is twenty-six buttons across two wrapped rows and the client asked for **all of them in a proper menu bar**, with a **top ribbon carrying the logo** above it and the **logo as the window icon**. There is no logo anywhere in this repository; the client's answer when asked was *design a Spark mark*, so one is authored here and is swappable by replacing one file. `E3-T13` - **run modes**: Manual, Automatic and Periodic in a dropdown, as Dynamo has. Automatic is what the shell does today, unconditionally: every path that reaches `MainWindowViewModel.EvaluateAsync` after an edit becomes a `RequestRun` the mode can gate, while the Run button keeps calling `EvaluateAsync` directly. **After D the client's list is done**, and the queue returns to the Help pass: `E10-T3` (the help index), then `E11-T2`'s XML `<example>` half, then E10-T9/T10/T12/T14. *The two owed items still stand: the* `tessellate` *verb is not wired into* `.github/workflows/nightly.yml`*, and the new nodes from* `E4-T13` *and* `E8-T25` *have XML docs but no help topic.* |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2207**: Geometry.Tests 763, UI.Tests 659, Engine.Tests 480, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 15, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, and `dotnet run --project src/Spark.Desktop -- --graph demo --library curve --select 3 --screenshot PREFIX`. **Check the counts** - [N30](NOTES.md) - **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
+| **Working on** | **Nothing. The tree is clean and the gates are green.** |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`E8-T32` and `E3-T13` - step D, the last of the client's list of eleven.** The toolbar's twenty-six buttons became a six-heading menu bar under a ribbon carrying a newly designed Spark mark, which is also the window icon and the executable's. Run and the run-mode dropdown are the stated exception that stays in the ribbon. `E3-T13` closes: Automatic, Manual and Periodic, with `RequestRun` as the seam twelve call sites now ask - the debounce and the graph-size suggestion are explicitly not built. **2217 tests.** |
+| **Working tree** | Clean at the moment this was written. The step has not started. |
+| **Next action** | **The Help pass, which is where the queue points now that the client's list of eleven is done.** `E10-T3` (the help index), then `E11-T2`'s XML `<example>` half, then E10-T9/T10/T12/T14. **Two smaller things are owed first and both are quick.** (1) The `tessellate` verb is not wired into `.github/workflows/nightly.yml` - Windows should run it and the other legs pass `--no-tessellation`, which is the shape the canvas benchmark already uses. (2) The new nodes from `E4-T13` and `E8-T25` have XML docs but no help topic; `D19` defers topics past 1.0, so this is a queue entry rather than a gap. **And three things the client's list left behind, all deliberate:** a context menu on a node - right-clicking one does nothing, and half a menu taught now would have to be untaught; `E3-T13`'s ~200 ms debounce and its auto-suggest-Manual threshold; and the Spark mark itself, which is a designed placeholder and is swapped by replacing `src/Spark.UI/Assets/spark-logo.svg` and re-running `scripts/make-logo.py`. **And one thing to watch rather than act on:** `UnloadingReleasesTheScriptAssemblies` failed once under full-suite parallelism and passed alone; a second sighting makes it a pattern worth fixing rather than a flake worth noting. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2217**: Geometry.Tests 763, UI.Tests 669, Engine.Tests 480, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 15, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** - [N30](NOTES.md) - **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -4912,3 +4912,76 @@ nine test executables **2207 passed / 0 failed / 0 skipped** (Engine 480, UI 659
 clean; and five captures - the demo graph, a node with three wired inputs, and a lone code block
 opened from a file written for the purpose, because a code block's ports are the only place the
 type dropdown appears.
+
+
+### 2026-09-02 - The client's list, step D: a menu bar, a ribbon, a mark, and when the graph runs (`E8-T32`, `E3-T13`)
+
+**The last of the eleven.** Four commits, and this is the one that changes what the application
+looks like before anything is clicked.
+
+**`E8-T32`. The toolbar was twenty-six buttons across two wrapped rows.** The wrapping was the
+right fix for the problem it had - at 1480 pixels the last three buttons, Help among them, sat past
+the right edge and could not be clicked at all - and it is the wrong shape for twenty-six things:
+everything equally prominent is nothing prominent, and two rows of chrome are two rows the canvas
+does not get. Six headings now, grouped by **what a user is doing** rather than by which pane
+implements it - the demo graphs are under File because opening one replaces the document, and
+Freeze is under Graph rather than Edit because it changes what runs rather than what the document
+says.
+
+**The stated exception is Run and the run-mode dropdown**, and it is stated because exceptions
+grow. They are what a graph author reaches for over and over, and a Run button behind two clicks is
+a Run button nobody uses. `TheRibbonKeepsOnlyTheRunControls` is the test that stops the exception
+becoming a toolbar again.
+
+**There was no logo anywhere in this repository**, which is worth recording because it was checked
+rather than assumed - no `.ico`, no `.svg`, no `logo` in any path, and nothing in
+`design-language.md` beyond the sentence saying `accent` is the one brand choice in it. The client
+was asked and said to design one. So: `spark-logo.svg` is the editable source of truth,
+`scripts/make-logo.py` renders it to a PNG and a seven-size ICO **with no image library at all** -
+a 4x supersampled point-in-shape fill, then `zlib` and `struct` for the containers - and both files
+are swappable without touching the shell, which names paths and never colours.
+
+**Two icons, and they are different things.** `Window.Icon` is what the title bar shows;
+`<ApplicationIcon>` is what a task bar, a shortcut and Explorer show. The client asked for the
+second by name and would have noticed its absence; both come from the same SVG, so they cannot
+drift.
+
+**`E3-T13`. Automatic was not a mode, it was the only behaviour.** Every literal typed, every wire
+drawn and every slider dragged re-ran the graph. **The seam that was missing is the interesting
+part**: twelve call sites started a run and there was nowhere to put a decision, so the first
+change was `RequestRun` and the second was routing them through it. The Run button and F5 still
+call `EvaluateAsync` directly - an explicit run means run, and a Run button that consulted the mode
+would leave a Manual user with no way to run at all.
+
+**Manual says so.** `HasPendingRun` is set on an edit that did not run, and the status bar reads
+*"Edited. The run mode is Manual, so press Run (F5) to see the result."* A graph that quietly stops
+updating is the most confusing thing an editor can do, and a user who set the mode ten minutes ago
+will not connect the two on their own. Returning to Automatic settles the debt immediately.
+
+**Periodic's timer is built lazily, and that is not an optimisation.** A `DispatcherTimer` wants a
+dispatcher, and the view model is constructed in tests, in `spark run` and in an embedder that may
+have no UI loop at all. This is the third time in this list that a UI-platform dependency in a
+constructor would have broken a headless caller - `Geometry.Parse` in `NodeKindGlyphs`, then the
+same in `LibraryKindGroupViewModel`, now this - so it is worth stating as a rule: **a view model
+may reference a platform type and must not construct one until asked.**
+
+**The mode is a session preference and is deliberately not in the document.** A graph that arrived
+set to Manual would silently do nothing when opened, and the person opening it would have no reason
+to suspect a mode they never chose.
+
+**Two parts of `E3-T13`'s original row are not built, and the row says so** rather than being
+quietly narrowed. The ~200 ms debounce: `EvaluateAsync` already supersedes rather than queues,
+which is the property the debounce existed to provide, so it buys a delay and nothing else until
+somebody measures otherwise. And auto-suggesting Manual past a graph-size threshold, which needs a
+threshold nobody has justified.
+
+**`AccessibilityTests` was rewritten, and it had to be.** It asserted *at least twenty toolbar
+buttons* - a guard against a regex matching nothing - and on a menu bar with four buttons that
+assertion is simply false. The shape it guards moved with the controls: six headings, every one
+with an Alt access key, no two sharing a letter, at least thirty items.
+
+**Verified.** `dotnet build Spark.slnx --no-incremental -warnaserror` clean, **0 warnings**; the
+nine test executables **2217 passed / 0 failed / 0 skipped** (UI 669); `dotnet format` clean; the
+shell captured with the ribbon, the mark and the menu; and `--graph curves --screenshot` read back
+from the GPU, because routing twelve call sites through a new method is exactly the change that
+silently stops a graph running on load.

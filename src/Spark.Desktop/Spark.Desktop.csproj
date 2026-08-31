@@ -3,6 +3,14 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <RootNamespace>Spark.Desktop</RootNamespace>
+
+    <!--
+      The mark on the executable itself (`E8-T32`), which is what a task bar, a shortcut and
+      Explorer show - a different thing from `Window.Icon`, which is what the window's own title
+      bar shows, and both were asked for. The .ico is generated from the same SVG as the PNG by
+      `scripts/make-logo.py`, so the two cannot drift.
+    -->
+    <ApplicationIcon>..\Spark.UI\Assets\spark-logo.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

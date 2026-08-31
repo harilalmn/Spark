@@ -60,15 +60,68 @@ public sealed class AccessibilityTests
     }
 
     /// <summary>
-    /// And there are enough of them that the test above is checking something. A regex that matched
-    /// nothing would pass silently, which is the failure mode of every test written against text.
+    /// The menu has the shape this suite thinks it has.
     /// </summary>
+    /// <remarks>
+    /// <b>A regex that matched nothing would pass silently</b>, which is the failure mode of every
+    /// test written against text - so the tests below are worth nothing without this one. It used
+    /// to assert twenty toolbar buttons; `E8-T32` moved all of them into the menu, and the shape it
+    /// guards moved with them.
+    /// </remarks>
     [Fact]
-    public void TheToolbarHasTheButtonsThisSuiteThinksItHas()
+    public void TheMenuHasTheShapeThisSuiteThinksItHas()
     {
-        int buttons = Regex.Matches(Markup, "Classes=\"toolbar\"").Count;
+        Assert.Equal(6, TopLevelHeadings().Count);
 
-        Assert.True(buttons >= 20, $"expected the toolbar to have at least 20 buttons, found {buttons}");
+        int items = Regex.Matches(Markup, "<MenuItem\\b").Count;
+        Assert.True(items >= 30, $"expected the menu to have at least 30 items, found {items}");
+    }
+
+    /// <summary>
+    /// <b>Every menu heading carries an access key</b>, so the whole menu is reachable by Alt.
+    /// </summary>
+    /// <remarks>
+    /// This is the half of `E8-T32` that could have been lost silently. Twenty-six toolbar buttons
+    /// were reachable by Tab; a menu is reachable by Alt and then a letter, and a heading with no
+    /// underscore in it is a heading that has neither.
+    /// </remarks>
+    [Fact]
+    public void EveryTopLevelHeadingHasAnAccessKey()
+    {
+        List<string> without = [.. TopLevelHeadings().Where(heading => !heading.Contains('_', StringComparison.Ordinal))];
+
+        Assert.True(without.Count == 0, "menu headings with no access key: " + string.Join(", ", without));
+    }
+
+    /// <summary>And no two headings claim the same letter, which would make one unreachable.</summary>
+    [Fact]
+    public void NoTwoHeadingsShareAnAccessKey()
+    {
+        List<char> keys = [.. TopLevelHeadings()
+            .Select(heading => char.ToLowerInvariant(heading[heading.IndexOf('_', StringComparison.Ordinal) + 1]))];
+
+        Assert.Equal(keys.Count, keys.Distinct().Count());
+    }
+
+    /// <summary>
+    /// The ribbon keeps Run and the run-mode dropdown, and nothing else.
+    /// </summary>
+    /// <remarks>
+    /// <b>"Remove all buttons on top and place them all in a proper Menu bar"</b> is what was
+    /// asked, and the run controls are the stated exception: they are what a graph author reaches
+    /// for over and over, and a Run button behind two clicks is a Run button nobody uses. This
+    /// keeps the exception from quietly growing back into a toolbar.
+    /// </remarks>
+    [Fact]
+    public void TheRibbonKeepsOnlyTheRunControls()
+    {
+        // The banner's two buttons are not the ribbon - they belong to a message that is collapsed
+        // unless a package is missing - so they are excluded by name rather than by position.
+        List<string> ribbon = [.. Regex.Matches(Markup, @"<Button\b[^>]*?/>|<Button\b[^>]*?>", RegexOptions.Singleline)
+            .Select(button => Content(button.Value))
+            .Where(content => content is not ("Dismiss" or "Find it" or "Run once" or "Always trust this file"))];
+
+        Assert.Equal(["Run"], ribbon);
     }
 
     /// <summary>
@@ -96,9 +149,10 @@ public sealed class AccessibilityTests
             }
         }
 
-        // Undo and Redo are the exceptions and they are the right ones: the word IS the action, and
-        // "Undo the last change" would be worse read aloud than "Undo".
-        Assert.Equal(["Undo", "Redo"], lazy.Order(StringComparer.Ordinal).Reverse());
+        // There are no exceptions left. Undo and Redo used to be two, and the reasoning was right -
+        // the word IS the action - but they are menu items now (`E8-T32`), where the heading is
+        // read aloud with its menu and no automation name is involved at all.
+        Assert.Empty(lazy);
     }
 
     /// <summary>
@@ -143,6 +197,19 @@ public sealed class AccessibilityTests
                 $"'{value}' is a bare key at window level, which would be taken from a text box.");
         }
     }
+
+    /// <summary>The six headings on the menu bar, as written including their access keys.</summary>
+    /// <remarks>
+    /// Top level means "not nested", and nesting is what the indentation says: a heading on the bar
+    /// is written at eight spaces in <c>MainWindow.axaml</c> and everything under it is deeper.
+    /// Reading the file as text cannot see a tree, so the shape it can see is the one asserted -
+    /// and <see cref="TheMenuHasTheShapeThisSuiteThinksItHas"/> is what stops that convention from
+    /// silently matching nothing.
+    /// </remarks>
+    /// <returns>The headings.</returns>
+    private static List<string> TopLevelHeadings() =>
+        [.. Regex.Matches(Markup, "^        <MenuItem Header=\"([^\"]+)\">$", RegexOptions.Multiline)
+            .Select(match => match.Groups[1].Value)];
 
     private static string Content(string button) => Attribute(button, "Content");
 

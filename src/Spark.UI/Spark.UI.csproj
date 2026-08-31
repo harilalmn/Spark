@@ -11,6 +11,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!--
+      The Spark mark (`E8-T32`). AvaloniaResource rather than Content, so it is embedded in the
+      assembly and reachable as `/Assets/spark-logo.png` from XAML - a loose file beside the
+      executable would be one more thing a publish, a single-file bundle or an embedder could
+      lose, and a window with no icon is how you find out.
+    -->
+    <AvaloniaResource Include="Assets/*.png" />
+
     <ProjectReference Include="..\Spark.Host\Spark.Host.csproj" />
     <ProjectReference Include="..\Spark.Viewport\Spark.Viewport.csproj" />
   </ItemGroup>

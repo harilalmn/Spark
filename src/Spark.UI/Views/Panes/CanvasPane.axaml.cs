@@ -101,7 +101,7 @@ public sealed partial class CanvasPane : UserControl
         CanvasControl.RefreshStructure();
         CanvasControl.SelectOnly(slot);
         CanvasControl.Focus();
-        _ = model.EvaluateAsync();
+        model.RequestRun();
     }
 
     private void CloseCreateBox()
@@ -136,7 +136,7 @@ public sealed partial class CanvasPane : UserControl
         CanvasControl.RefreshStructure();
         CanvasControl.SelectOnly(slot);
         CanvasControl.Focus();
-        _ = model.EvaluateAsync();
+        model.RequestRun();
     }
 
     private void OnCreateSearchKeyDown(object? sender, KeyEventArgs e)

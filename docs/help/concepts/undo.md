@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes the undo stack in the running application.
 **Owner:** `shell`
-**Last updated:** 2026-08-28
+**Last updated:** 2026-09-02
 
 > **Scope.** Undo covers everything in the document: nodes added and deleted, wires drawn and
 > removed, values typed into unwired ports, and where nodes sit on the canvas. It does **not**
@@ -19,8 +19,8 @@ since: "0.1"
 
 ## How it works
 
-**Ctrl+Z** steps back. **Ctrl+Y** or **Ctrl+Shift+Z** steps forward again. Both are on the
-toolbar as well, and each button's tooltip names the step it would take: *Undo Move node*,
+**Ctrl+Z** steps back. **Ctrl+Y** or **Ctrl+Shift+Z** steps forward again. Both are under
+**Edit** as well, and each item's tooltip names the step it would take: *Undo Move node*,
 *Redo Change radius*. Sixty-four steps are kept.
 
 A step is one completed edit. Spark records it when the edit finishes — when you let go of a

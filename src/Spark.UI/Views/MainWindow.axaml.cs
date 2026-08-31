@@ -94,7 +94,7 @@ public sealed partial class MainWindow : Window
         {
             Canvas.RefreshStructure();
             Canvas.InvalidateVisual();
-            _ = Model?.EvaluateAsync();
+            Model?.RequestRun();
         };
 
         DataContextChanged += OnDataContextChanged;
@@ -191,7 +191,7 @@ public sealed partial class MainWindow : Window
 
         if (e.AffectsEvaluation)
         {
-            _ = model.EvaluateAsync();
+            model.RequestRun();
         }
     }
 
@@ -227,7 +227,13 @@ public sealed partial class MainWindow : Window
         }
 
         FreezeButton.IsEnabled = Canvas.Selection.Count > 0;
-        FreezeButton.Content = model.SelectionIsFrozen(Canvas.Selection) ? "Unfreeze" : "Freeze";
+
+        // The header, not the content: it is a menu item now (`E8-T32`). It still says which of
+        // the two things it will do rather than naming the state it is in, because "Freeze" over a
+        // frozen selection reads as a description and is a command.
+        FreezeButton.Header = model.SelectionIsFrozen(Canvas.Selection)
+            ? "Un_freeze selection"
+            : "_Freeze selection";
     }
 
     private void OnOpenPackages(object? sender, RoutedEventArgs e) => OpenPackages();
@@ -519,7 +525,7 @@ public sealed partial class MainWindow : Window
         Canvas.RefreshStructure();
         Canvas.SelectOnly(slot);
         Canvas.Focus();
-        _ = model.EvaluateAsync();
+        model.RequestRun();
     }
 
     /// <summary>Frames the selected nodes in a group.</summary>
@@ -604,6 +610,17 @@ public sealed partial class MainWindow : Window
         UpdateStatus();
     }
 
+    /// <summary>
+    /// Runs the graph, whatever the run mode says (<c>E3-T13</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the one path that calls <c>EvaluateAsync</c> rather than <c>RequestRun</c>.</b>
+    /// An explicit run means run: the whole point of Manual is that edits do not start one, and a
+    /// Run button that consulted the mode before running would leave a user with no way to run at
+    /// all.
+    /// </remarks>
+    /// <param name="sender">The Run button or the Graph menu.</param>
+    /// <param name="e">Unused.</param>
     private void OnRun(object? sender, RoutedEventArgs e)
     {
         if (Model is { } model)
@@ -611,6 +628,31 @@ public sealed partial class MainWindow : Window
             _ = model.EvaluateAsync();
         }
     }
+
+    /// <summary>Chooses a run mode from the Graph menu, which is the ribbon dropdown's twin.</summary>
+    /// <remarks>
+    /// Both write the same property, so the two controls cannot disagree — the dropdown is bound to
+    /// it and follows a choice made in the menu.
+    /// </remarks>
+    /// <param name="sender">The menu item, whose Tag names the mode.</param>
+    /// <param name="e">Unused.</param>
+    private void OnSetRunMode(object? sender, RoutedEventArgs e)
+    {
+        if (Model is { } model && sender is MenuItem { Tag: string name })
+        {
+            model.SelectedRunMode = name;
+        }
+    }
+
+    /// <summary>Closes the window, which ends the application.</summary>
+    /// <remarks>
+    /// A File menu with no way out of the application is a File menu that looks unfinished. It
+    /// closes the window rather than calling <c>Environment.Exit</c>, so the shutdown path is the
+    /// same one the title bar's close button takes.
+    /// </remarks>
+    /// <param name="sender">The menu item.</param>
+    /// <param name="e">Unused.</param>
+    private void OnExit(object? sender, RoutedEventArgs e) => Close();
 
     /// <summary>
     /// The file type the open and save dialogs offer. Declared once because two dialogs disagreeing
@@ -729,7 +771,7 @@ public sealed partial class MainWindow : Window
         Canvas.RefreshStructure();
         Canvas.SelectOnly(slot);
         Canvas.Focus();
-        _ = model.EvaluateAsync();
+        model.RequestRun();
     }
 
     private string? _documentPath;

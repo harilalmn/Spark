@@ -1,0 +1,36 @@
+<!--
+  The Spark mark, and the editable source of truth for the two raster files beside it.
+
+  It is a placeholder in the honest sense: there was no logo anywhere in this repository, the
+  client asked for one rather than supplying a file, and this is a mark drawn to fit — an accent
+  gradient the palette already contains (SparkPalette.Accent, #A98BFF, lightened at the top and
+  deepened at the bottom) under a four-point spark with a smaller companion. The companion is not
+  decoration: a single centred star reads as a generic "favourite" glyph, and the pair is what
+  makes the mark identifiable at 16 pixels.
+
+  TO REPLACE IT, replace this file and regenerate the raster pair. Nothing else in the shell names
+  a colour or a shape from it — `MainWindow.axaml` shows `spark-logo.png` and `Spark.Desktop.csproj`
+  ships `spark-logo.ico`, and both are paths rather than drawings.
+
+  The rasters are generated rather than exported by hand, because a mark whose PNG and ICO drift
+  apart from its SVG is worse than one with no SVG at all: `scripts/make-logo.py` renders this
+  geometry at seven sizes with 4x supersampling and writes both files. Run it after any edit here.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#B79BFF" />
+      <stop offset="1" stop-color="#6E4CD8" />
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="256" height="256" rx="57.9" ry="57.9" fill="url(#spark)" />
+
+  <!-- The big spark: outer radius 85.8, inner 24.6, centred at (116.5, 139.5). -->
+  <path fill="#FFFFFF"
+        d="M116.5 53.7 L141.1 114.9 L202.3 139.5 L141.1 164.1 L116.5 225.3 L91.9 164.1 L30.7 139.5 L91.9 114.9 Z" />
+
+  <!-- The companion: outer 34.6, inner 10.2, centred at (188.2, 70.4). -->
+  <path fill="#FFFFFF"
+        d="M188.2 35.8 L198.4 60.2 L222.8 70.4 L198.4 80.6 L188.2 105.0 L178.0 80.6 L153.6 70.4 L178.0 60.2 Z" />
+</svg>

@@ -143,6 +143,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// — a code block you cannot type into is not a code block.
     /// </remarks>
     [ObservableProperty]
+    private string _selectedRunMode = RunModeNames.Of(RunMode.Automatic);
+
+    [ObservableProperty]
+    private bool _hasPendingRun;
+
+    private RunMode _runMode = RunMode.Automatic;
+    private Avalonia.Threading.DispatcherTimer? _periodic;
+
+    [ObservableProperty]
     private bool _canSetLacing;
 
     [ObservableProperty]
@@ -664,6 +673,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <returns>A task that completes once the results are on screen.</returns>
     public async Task EvaluateAsync()
     {
+        // An explicit run - the button, F5, or a periodic tick - is what clears the debt a Manual
+        // or Periodic session has run up. RequestRun sets it; only an actual run may clear it.
+        HasPendingRun = false;
+
         long started = System.Diagnostics.Stopwatch.GetTimestamp();
         EvaluationResult? result = await _session.EvaluateAsync().ConfigureAwait(true);
 
@@ -1308,7 +1321,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         if (changed > 0)
         {
-            _ = EvaluateAsync();
+            RequestRun();
         }
 
         return changed;
@@ -1523,6 +1536,104 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// </remarks>
     public bool HasInputs => Inspector.Count > 0;
 
+    /// <summary>How often <see cref="RunMode.Periodic"/> runs the graph.</summary>
+    /// <remarks>
+    /// One second, and not configurable in this slice. Faster than that is a graph running while
+    /// the previous run is still applying — <see cref="EvaluateAsync"/> supersedes rather than
+    /// queues, so nothing breaks, but a period shorter than the run is a period that means nothing.
+    /// Slower belongs to whoever asks for it with a reason.
+    /// </remarks>
+    public static TimeSpan PeriodicRunInterval { get; } = TimeSpan.FromSeconds(1);
+
+    /// <summary>The three run modes, in the words the ribbon writes them.</summary>
+    public IReadOnlyList<string> RunModeChoices { get; } = RunModeNames.All;
+
+    /// <summary>When the graph runs (<c>E3-T13</c>).</summary>
+    public RunMode RunMode => _runMode;
+
+    /// <summary>
+    /// Runs the graph if the current mode says an edit is a reason to (<c>E3-T13</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Every edit path calls this; only the Run button and F5 call
+    /// <see cref="EvaluateAsync"/>.</b> That split is the whole of the feature — an explicit run
+    /// means run, and everything else asks the mode. Before this, twelve call sites started a run
+    /// unconditionally and there was nowhere to put the decision.
+    /// </para>
+    /// <para>
+    /// Under <see cref="RunMode.Manual"/> the edit is still recorded and the graph is still marked
+    /// dirty; <see cref="HasPendingRun"/> is what the status bar reads, because <b>a graph that
+    /// quietly stops updating is the most confusing thing an editor can do</b>.
+    /// </para>
+    /// </remarks>
+    public void RequestRun()
+    {
+        if (_runMode == RunMode.Automatic)
+        {
+            _ = EvaluateGraphAsync();
+            return;
+        }
+
+        HasPendingRun = true;
+
+        if (_runMode == RunMode.Manual)
+        {
+            StatusText = "Edited. The run mode is Manual, so press Run (F5) to see the result.";
+        }
+    }
+
+    /// <summary>Applies a run mode chosen in the ribbon.</summary>
+    /// <param name="value">The chosen mode's name.</param>
+    partial void OnSelectedRunModeChanged(string value)
+    {
+        if (!RunModeNames.TryParse(value, out RunMode mode) || mode == _runMode)
+        {
+            return;
+        }
+
+        _runMode = mode;
+        OnPropertyChanged(nameof(RunMode));
+
+        if (mode == RunMode.Periodic)
+        {
+            StartPeriodic();
+        }
+        else
+        {
+            _periodic?.Stop();
+        }
+
+        // Switching back to Automatic settles the debt the other two modes ran up. Leaving a
+        // graph stale after the user has just asked for it to keep itself fresh would be the
+        // opposite of what they said.
+        if (mode == RunMode.Automatic && HasPendingRun)
+        {
+            HasPendingRun = false;
+            _ = EvaluateAsync();
+        }
+    }
+
+    /// <summary>
+    /// Starts the periodic timer, building it the first time it is needed.
+    /// </summary>
+    /// <remarks>
+    /// <b>Lazily, because a <c>DispatcherTimer</c> wants a dispatcher and the view model must not.</b>
+    /// It is constructed in tests, in <c>spark run</c> and in an embedder that may have no UI loop
+    /// at all; building a timer in the constructor would make all three depend on something only
+    /// the desktop application has. Nothing touches it until somebody chooses Periodic.
+    /// </remarks>
+    private void StartPeriodic()
+    {
+        if (_periodic is null)
+        {
+            _periodic = new Avalonia.Threading.DispatcherTimer { Interval = PeriodicRunInterval };
+            _periodic.Tick += (_, _) => _ = EvaluateAsync();
+        }
+
+        _periodic.Start();
+    }
+
     /// <summary>
     /// The five lacing modes, in the words the panel writes them.
     /// </summary>
@@ -1575,7 +1686,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         _graph.Engine.SetLacing(id, mode);
         RecordEdit("Set lacing");
         LacingNote = DescribeLacing(_graph.Engine.Node(id));
-        _ = EvaluateAsync();
+        RequestRun();
     }
 
     /// <summary>
@@ -1660,6 +1771,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
+        _periodic?.Stop();
+
         if (_disposed)
         {
             return;
@@ -1843,7 +1956,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         if (evaluate)
         {
-            _ = EvaluateGraphAsync();
+            RequestRun();
         }
         else
         {
@@ -1912,7 +2025,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         _graph.SetLiteral(editor.Slot, editor.PortIndex, value);
         RecordEdit("Change " + editor.Name);
-        _ = EvaluateGraphAsync();
+        RequestRun();
     }
 
     private void RefreshInspector()

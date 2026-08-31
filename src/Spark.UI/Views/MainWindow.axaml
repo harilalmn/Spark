@@ -6,6 +6,7 @@
         x:DataType="vm:MainWindowViewModel"
         x:CompileBindings="True"
         Title="Spark"
+        Icon="/Assets/spark-logo.png"
         Width="1480"
         Height="900"
         MinWidth="720"
@@ -20,7 +21,7 @@
   <!--
     E12-T13. Undo and redo were the only gestures with a key of their own; opening, saving and
     running a graph - the three things a user does most - were reachable by mouse alone. The rest
-    of the toolbar is reachable by Tab, and F1, Escape and Delete are handled in OnKeyDown.
+    of the menu is reachable by Alt, and F1, Escape and Delete are handled in OnKeyDown.
 
     These are Window-level so they work wherever focus is, EXCEPT inside a text box that wants the
     key itself - which is why nothing here uses a bare letter.
@@ -40,106 +41,158 @@
     to keep honest when one function owns the mapping.
   -->
 
-  <Grid RowDefinitions="Auto,Auto,*,Auto">
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
 
-    <!-- Toolbar. E2 chips on bg.void; the active workspace carries an accent bottom bar as well
-         as a pressed fill, because colour is never the only carrier of meaning. -->
     <!--
-      A WrapPanel rather than a StackPanel, because a toolbar that overflows hides controls with
-      no indication that it has. At 1480 pixels - an ordinary laptop - the last three buttons,
-      Help among them, sat past the right edge and could not be clicked at all. Wrapping costs a
-      second row on a narrow window and never costs a control.
+      E8-T32: the ribbon.
+
+      THE TOOLBAR WAS TWENTY-SIX BUTTONS ACROSS TWO WRAPPED ROWS, and the client asked for all of
+      them in a menu bar. A wrapping toolbar was the right fix for the problem it had - controls
+      falling off the right edge with no indication they existed - but it is the wrong shape for
+      twenty-six things: everything is equally prominent, which is the same as nothing being
+      prominent, and two rows of chrome is two rows the canvas does not get.
+
+      What stays out here is what a graph author does over and over: run it, and choose when it
+      runs. Everything else moved into the menu below. The logo is on the left because a window
+      with no mark on it is a window nobody can find in a task bar - and because the same file is
+      the window icon, so the two can never disagree.
     -->
-    <Border Grid.Row="0" Classes="chrome" Padding="8,6">
-      <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
-        <TextBlock Text="SPARK" Classes="caption" VerticalAlignment="Center" Margin="4,0,12,0" />
+    <Border Grid.Row="0" Classes="chrome" Padding="10,6">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Image Source="/Assets/spark-logo.png" Width="22" Height="22"
+                 RenderOptions.BitmapInterpolationMode="HighQuality" />
+          <TextBlock Text="SPARK" Classes="caption" VerticalAlignment="Center" />
+        </StackPanel>
 
-        <Button Classes="toolbar" Content="Default" AutomationProperties.Name="Default workspace layout"
-                Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Default" />
-        <Button Classes="toolbar" Content="Modelling" AutomationProperties.Name="Modelling workspace layout"
-                Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Modelling" />
-        <Button Classes="toolbar" Content="Authoring" AutomationProperties.Name="Authoring workspace layout"
-                Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Authoring" />
-        <Button Classes="toolbar" Content="Presenting" AutomationProperties.Name="Presenting workspace layout"
-                Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Presenting" />
-
-        <Border Width="1" Margin="6,2" Background="{DynamicResource SparkBorderHairlineBrush}" />
-
-        <Button Classes="toolbar" Content="Reset layout" AutomationProperties.Name="Reset the workspace layout" Command="{Binding ResetLayoutCommand}" />
-        <Button Classes="toolbar" Content="Zoom to fit" AutomationProperties.Name="Zoom the canvas to fit the graph" Click="OnZoomToFit" />
-        <Button Classes="toolbar" Content="Frame viewport" AutomationProperties.Name="Frame the geometry in the viewport" Click="OnFrameViewport" />
-        <Button Classes="toolbar" Content="2000 nodes" AutomationProperties.Name="Load two thousand synthetic nodes" Click="OnLoadSynthetic" />
-        <Button Classes="toolbar" Content="Open…" AutomationProperties.Name="Open a graph" ToolTip.Tip="Open a graph (Ctrl+O)" Click="OnOpenGraph" />
-        <Button Classes="toolbar" Content="Save as…" AutomationProperties.Name="Save the graph as" ToolTip.Tip="Save the graph as (Ctrl+S)" Click="OnSaveGraph" />
+        <TextBlock Grid.Column="1" Classes="muted" VerticalAlignment="Center"
+                   Margin="16,0" TextTrimming="CharacterEllipsis"
+                   Text="{Binding SelectionTitle}" />
 
         <!--
-          One button with a flyout rather than eight buttons. Aligning is occasional and its
-          eight forms are a family; spending an eighth of the toolbar on them would push the
-          things used every minute off the end of it. The whole button disables below two
-          selected nodes, and the two distribute items disable below three, so nothing on it
-          is ever offered and then ignored.
+          E3-T13: Manual, Automatic and Periodic, as Dynamo has them. Automatic is what the shell
+          did unconditionally before this - every literal, every wire and every slider re-ran the
+          graph - which is right for the first hour and wrong the moment one node takes four
+          seconds. The dropdown is beside the Run button rather than buried in the menu because the
+          two are one decision: a user who has just been made to wait is looking at Run.
         -->
-        <Button Classes="toolbar" Content="New note" AutomationProperties.Name="Add a note to the canvas" Click="OnAddNote" />
-        <Button Classes="toolbar" Content="Code block" AutomationProperties.Name="Add a code block" Click="OnAddCodeBlock" />
-        <Button Classes="toolbar" Content="Group" AutomationProperties.Name="Group the selected nodes" Click="OnGroupSelection" x:Name="GroupButton" />
-        <Button Classes="toolbar" Content="Collapse to node" AutomationProperties.Name="Collapse the selection into one custom node" Click="OnCollapseSelection"
-                x:Name="CollapseButton"
-                ToolTip.Tip="Replace the selected nodes with one custom node" />
-        <Button Classes="toolbar" Content="Freeze" AutomationProperties.Name="Freeze or unfreeze the selected nodes" Click="OnFreezeSelection" x:Name="FreezeButton"
-                ToolTip.Tip="Skip the selected nodes when the graph runs" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <TextBlock Classes="muted" VerticalAlignment="Center" Text="Run" />
+          <ComboBox Width="120" FontSize="11" MinHeight="0"
+                    AutomationProperties.Name="When the graph runs"
+                    ToolTip.Tip="Automatic runs after every edit. Manual runs only when you press Run. Periodic runs once a second."
+                    ItemsSource="{Binding RunModeChoices}"
+                    SelectedItem="{Binding SelectedRunMode, Mode=TwoWay}" />
+          <Button Classes="toolbar" Content="Run" AutomationProperties.Name="Run the graph"
+                  ToolTip.Tip="Run the graph (F5)" Click="OnRun" />
+        </StackPanel>
+      </Grid>
+    </Border>
 
-        <Button Classes="toolbar" Content="Align ▾" AutomationProperties.Name="Align and distribute the selection" x:Name="AlignButton">
-          <Button.Flyout>
-            <MenuFlyout>
-              <MenuItem Header="Align left" Click="OnAlign" Tag="Left" />
-              <MenuItem Header="Align centres" Click="OnAlign" Tag="HorizontalCentres" />
-              <MenuItem Header="Align right" Click="OnAlign" Tag="Right" />
-              <Separator />
-              <MenuItem Header="Align top" Click="OnAlign" Tag="Top" />
-              <MenuItem Header="Align middles" Click="OnAlign" Tag="VerticalCentres" />
-              <MenuItem Header="Align bottom" Click="OnAlign" Tag="Bottom" />
-              <Separator />
-              <MenuItem Header="Distribute horizontally" Click="OnAlign"
-                        Tag="DistributeHorizontally" x:Name="DistributeHorizontally" />
-              <MenuItem Header="Distribute vertically" Click="OnAlign"
-                        Tag="DistributeVertically" x:Name="DistributeVertically" />
-            </MenuFlyout>
-          </Button.Flyout>
-        </Button>
+    <!--
+      The menu bar. Six headings, and every one of the toolbar's twenty-six buttons is under one of
+      them. Grouped by what a user is doing rather than by which pane implements it: the demo
+      graphs are under File because opening one replaces the document, and Freeze is under Graph
+      rather than Edit because it changes what runs rather than what the document says.
+    -->
+    <Border Grid.Row="1" Classes="chrome" Padding="4,0">
+      <Menu>
+        <MenuItem Header="_File">
+          <MenuItem Header="_Open…" InputGesture="Ctrl+O" Click="OnOpenGraph" />
+          <MenuItem Header="_Save as…" InputGesture="Ctrl+S" Click="OnSaveGraph" />
+          <Separator />
+          <MenuItem Header="Open _demo graph" Click="OnLoadDemo" />
+          <MenuItem Header="Open _curves example" Click="OnLoadCurves" />
+          <MenuItem Header="Open s_urfaces example" Click="OnLoadSurfaces" />
+          <MenuItem Header="Open so_lids example" Click="OnLoadSolids" />
+          <Separator />
+          <MenuItem Header="_Packages…" Click="OnOpenPackages" />
+          <Separator />
+          <MenuItem Header="E_xit" Click="OnExit" />
+        </MenuItem>
 
-        <Border Width="1" Margin="6,2" Background="{DynamicResource SparkBorderHairlineBrush}" />
+        <MenuItem Header="_Edit">
+          <MenuItem Header="_Undo" InputGesture="Ctrl+Z" Command="{Binding UndoCommand}"
+                    ToolTip.Tip="{Binding UndoDescription}" />
+          <MenuItem Header="_Redo" InputGesture="Ctrl+Y" Command="{Binding RedoCommand}"
+                    ToolTip.Tip="{Binding RedoDescription}" />
+          <Separator />
+          <MenuItem Header="_Group selection" Click="OnGroupSelection" x:Name="GroupButton" />
+          <MenuItem Header="_Collapse to node" Click="OnCollapseSelection" x:Name="CollapseButton"
+                    ToolTip.Tip="Replace the selected nodes with one custom node" />
+          <Separator />
 
-        <!-- The tooltip names the step, so a user can see what Ctrl+Z is about to reverse before
-             pressing it rather than after. -->
-        <Button Classes="toolbar" Content="Undo" AutomationProperties.Name="Undo" Command="{Binding UndoCommand}"
-                ToolTip.Tip="{Binding UndoDescription}" />
-        <Button Classes="toolbar" Content="Redo" AutomationProperties.Name="Redo" Command="{Binding RedoCommand}"
-                ToolTip.Tip="{Binding RedoDescription}" />
-        <Button Classes="toolbar" Content="Demo graph" AutomationProperties.Name="Open the demo graph" Click="OnLoadDemo" />
-        <Button Classes="toolbar" Content="Curves" AutomationProperties.Name="Open the curves demo" Click="OnLoadCurves" />
-        <Button Classes="toolbar" Content="Surfaces" AutomationProperties.Name="Open the surfaces demo" Click="OnLoadSurfaces" />
-        <Button Classes="toolbar" Content="Solids" AutomationProperties.Name="Open the solids demo" Click="OnLoadSolids" />
-        <Button Classes="toolbar" Content="Run" AutomationProperties.Name="Run the graph" ToolTip.Tip="Run the graph (F5)" Click="OnRun" />
+          <!--
+            One submenu rather than eight items on the bar. Aligning is occasional and its eight
+            forms are a family. The whole submenu disables below two selected nodes, and the two
+            distribute items disable below three, so nothing here is ever offered and then ignored.
+          -->
+          <MenuItem Header="_Align" x:Name="AlignButton">
+            <MenuItem Header="Align left" Click="OnAlign" Tag="Left" />
+            <MenuItem Header="Align centres" Click="OnAlign" Tag="HorizontalCentres" />
+            <MenuItem Header="Align right" Click="OnAlign" Tag="Right" />
+            <Separator />
+            <MenuItem Header="Align top" Click="OnAlign" Tag="Top" />
+            <MenuItem Header="Align middles" Click="OnAlign" Tag="VerticalCentres" />
+            <MenuItem Header="Align bottom" Click="OnAlign" Tag="Bottom" />
+            <Separator />
+            <MenuItem Header="Distribute horizontally" Click="OnAlign"
+                      Tag="DistributeHorizontally" x:Name="DistributeHorizontally" />
+            <MenuItem Header="Distribute vertically" Click="OnAlign"
+                      Tag="DistributeVertically" x:Name="DistributeVertically" />
+          </MenuItem>
+        </MenuItem>
 
-        <Border Width="1" Margin="6,2" Background="{DynamicResource SparkBorderHairlineBrush}" />
+        <MenuItem Header="_Insert">
+          <MenuItem Header="_Code block" Click="OnAddCodeBlock"
+                    ToolTip.Tip="Or double-click empty canvas" />
+          <MenuItem Header="_Note" Click="OnAddNote" />
+          <Separator />
+          <MenuItem Header="_Two thousand synthetic nodes" Click="OnLoadSynthetic"
+                    ToolTip.Tip="Replaces the graph. The canvas benchmark's own workload (ADR-0013)" />
+        </MenuItem>
 
-        <!-- Help is F1 as well; the button is here because a key nobody knows about is a key
-             nobody presses, and About is a licence obligation rather than an ornament. -->
-        <Button Classes="toolbar" Content="Help" AutomationProperties.Name="Open help for the selected node" Click="OnOpenHelp"
-                ToolTip.Tip="Help for the selected node (F1)" />
-        <Button Classes="toolbar" Content="Packages" AutomationProperties.Name="Find, install and remove node packages" Click="OnOpenPackages"
-                ToolTip.Tip="Find, install and remove node packages" />
-        <Button Classes="toolbar" Content="About" AutomationProperties.Name="About Spark" Click="OnOpenAbout" />
-      </WrapPanel>
+        <MenuItem Header="_View">
+          <MenuItem Header="_Zoom canvas to fit" Click="OnZoomToFit" />
+          <MenuItem Header="_Frame viewport" Click="OnFrameViewport" />
+          <Separator />
+          <MenuItem Header="_Workspace">
+            <MenuItem Header="Default" Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Default" />
+            <MenuItem Header="Modelling" Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Modelling" />
+            <MenuItem Header="Authoring" Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Authoring" />
+            <MenuItem Header="Presenting" Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Presenting" />
+          </MenuItem>
+          <MenuItem Header="_Reset layout" Command="{Binding ResetLayoutCommand}" />
+        </MenuItem>
+
+        <MenuItem Header="_Graph">
+          <MenuItem Header="_Run" InputGesture="F5" Click="OnRun" />
+          <Separator />
+          <MenuItem Header="Run _mode">
+            <MenuItem Header="Automatic" Click="OnSetRunMode" Tag="Automatic" />
+            <MenuItem Header="Manual" Click="OnSetRunMode" Tag="Manual" />
+            <MenuItem Header="Periodic" Click="OnSetRunMode" Tag="Periodic" />
+          </MenuItem>
+          <Separator />
+          <MenuItem Header="_Freeze selection" Click="OnFreezeSelection" x:Name="FreezeButton"
+                    ToolTip.Tip="Skip the selected nodes when the graph runs" />
+        </MenuItem>
+
+        <MenuItem Header="_Help">
+          <MenuItem Header="_Help for the selected node" InputGesture="F1" Click="OnOpenHelp" />
+          <Separator />
+          <MenuItem Header="_About Spark" Click="OnOpenAbout" />
+        </MenuItem>
+      </Menu>
     </Border>
 
     <!--
       The missing-package banner (E7-T6). Collapsed unless a graph was opened that names a package
-      this machine does not have. It sits between the toolbar and the workspace rather than inside
-      the diagnostics pane because the pane can be hidden, and this is the one message a user needs
+      this machine does not have. It sits between the menu and the workspace rather than inside the
+      diagnostics pane because the pane can be hidden, and this is the one message a user needs
       before they start wondering why their graph does nothing.
     -->
-    <Border Grid.Row="1" x:Name="MissingBanner" IsVisible="False"
+    <Border Grid.Row="2" x:Name="MissingBanner" IsVisible="False"
             Background="{DynamicResource SparkSurfaceRaisedBrush}" Padding="12,8">
       <DockPanel>
         <Button DockPanel.Dock="Right" Classes="toolbar" Content="Dismiss" AutomationProperties.Name="Dismiss this message" Click="OnDismissMissing" />
@@ -151,9 +204,9 @@
       </DockPanel>
     </Border>
 
-    <dock:DockControl Grid.Row="2" x:Name="Shell" />
+    <dock:DockControl Grid.Row="3" x:Name="Shell" />
 
-    <Border Grid.Row="3" Classes="chrome" Padding="10,4">
+    <Border Grid.Row="4" Classes="chrome" Padding="10,4">
       <TextBlock Classes="caption" Text="{Binding StatusText}" />
     </Border>
   </Grid>
