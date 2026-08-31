@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 23:05 +0530
+**Last updated:** 2026-08-31 23:45 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E7-T8` — the disclosure comes before the decision.** Install is prepare-then-commit, so a user sees publisher, licence, dependencies and **whether the package carries native binaries** before agreeing. Every field is read out of the package. **Signature is reported as *present but unverified*, never *signed***, because Spark builds no certificate chain. Trust is per version, not per publisher. |
+| **Last completed step** | **`E7-T5` — install a package and use its nodes.** `PackageManager` loads an installed package's assemblies and imports its nodes; a test installs one carrying **a real assembly** and gets fifty-odd nodes whose geometry types are **the host's**. `Unload` returns a weak reference rather than a boolean, because purging is necessary and not sufficient. Recorded [N70](NOTES.md): *side-by-side* means dependencies, not two versions of one node library. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E7-T5`'s purge half, which is now buildable.** The unload mechanism has been proven since `E7-T3`; what it could not do was purge, because the registries it has to empty did not exist. They do now — the package node library, the store and the trust store. The row's standard is **verify by weak reference**, and **restart is the documented default**: a live unload is an optimisation, never a promise. Then `E7-T9` (local DLLs, which must read **without locking**, unlike the package path) and `E7-T10` (the manager UI). `E7-T2`'s remaining half is **dependency resolution**. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1941** over **nine** projects: Geometry.Tests 763, UI.Tests 482, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 48**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E7-T10` — the package manager UI**, which is now the only thing between the engine work and a user: search, the disclosure, install, and the list of what is installed with a way to remove it. Everything it needs is built and tested — `NuGetPackageClient.SearchAsync`, `PrepareAsync` returning a `PendingInstall` whose `Disclosure` is what the prompt shows, `PackageTrustStore` for the answer, `PackageManager` for load and unload. **When an unload does not take, the UI says so and offers restart** — that half of `E7-T5` is the UI's. Also open: `E7-T9` (local DLLs, which must read **without locking**) and `E7-T2`'s remaining half, **dependency resolution**. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1950** over **nine** projects: Geometry.Tests 763, UI.Tests 482, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 57**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T18`'s About box was on this list and should not have been** — it needed a dialog, which is code, and it is done. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3694,3 +3694,46 @@ a test, a scripted setup. Anything with a user in front of it should prepare and
 projects, 0 failed, 0 skipped. `dotnet format` clean. The disclosure tests build packages that
 actually carry a licence, dependencies, a signature entry and a native binary, and assert those
 come back out.
+
+### 2026-08-31 - `E7-T5`: install a package and use its nodes, which is the sentence the epic is for
+
+**What.** `PackageManager`, `NodeLibrary.Remove`, and nine tests that install a package and use
+what is in it. **`E7`'s goal sentence is now true**: a package can be found on nuget.org,
+inspected, installed, loaded and unloaded.
+
+**The test installs a package carrying a real assembly**, not a stub: `Spark.Nodes.Core.dll`,
+copied into a `.nupkg` the test builds. A stub would have proven the plumbing and nothing about
+whether the importer, the load context and the contract rule work together on something with a
+hundred real nodes in it. They do - over fifty node definitions arrive, keyed by the package.
+
+**And it exercises the rule that matters most.** `Spark.Nodes.Core` references `Spark.Api` and
+`Spark.Geometry`, and the package deliberately does **not** ship them. A test asserts that a
+`Point3d` returned by a packaged node comes from the host's assembly - `Assert.Same` on the
+assembly, not merely `Assert.Equal` on the type name - which is the difference between a wire that
+connects and an error naming the same type twice.
+
+**Nodes are keyed by the package, not the assembly.** Two packages shipping an assembly of the same
+name do not collide, and a node's key names the package a user would have to install - which is
+what makes `E7-T6`'s placeholder legible rather than a mystery.
+
+**`Unload` returns a `WeakReference`, and the return type is the honest part.** Purging the library
+is the half this class can guarantee; whether the context then unloads depends on every other thing
+that might hold a reference into it - a cached value of a package type, a compiled invoker, a
+viewport buffer, an undo entry. A method returning `true` would be claiming to know about all of
+them. The test proves collectability from a `NoInlining` frame, the shape [N67](NOTES.md) taught.
+
+**[N70](NOTES.md) is a claim narrowed rather than a defect.** *Side-by-side* is the phrase `E7-T3`
+uses, and building this showed it buys less than it reads as promising. It buys the case that
+matters: package A depending on `Foo 1.0` and package B on `Foo 2.0`, both loading. It does **not**
+buy two versions of the same node library both contributing - they claim the same keys, since
+`Acme.Nodes/Point.ByX` carries no version. That is correct rather than a limitation: a `.spark`
+file names that key, so if both could be active a graph's meaning would depend on load order. The
+clash is reported rather than resolved, because either rule leaves a user with a node that quietly
+changed meaning.
+
+**One bad assembly does not sink a package.** A manifest naming something the package does not
+contain is reported and the rest still loads; and one bad package does not stop the application
+starting, because the user needs to get in to remove it.
+
+**Verified.** Build clean at 0 warnings. `Packages.Tests` 48 -> 57. Suite **1,950** over nine
+projects, 0 failed, 0 skipped. `dotnet format` clean.

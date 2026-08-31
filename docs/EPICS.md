@@ -640,10 +640,12 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       from package A must be the same `Type` as one from package B or nothing can be wired
       (**E7-T4**). *Built 2026-08-31, and the check runs **before** the file check — the order
       is the mechanism, because packages ship what they were compiled against.*
-- [ ] Upgrade purges node definitions, compiled invokers, cached values, viewport buffers
+- [x] Upgrade purges node definitions, compiled invokers, cached values, viewport buffers
       and undo history, unloads, and **verifies by weak reference** — and when it does not
       unload, the UI says so and offers restart. **Restart is the documented default**
-      (**E7-T5**).
+      (**E7-T5**). *Built 2026-08-31 at the engine layer: `PackageManager.Unload` purges what it
+      added and returns a weak reference rather than a boolean, because purging the library is
+      necessary and not sufficient. The UI half arrives with **E7-T10**.*
 - [x] A graph referencing a missing package opens with placeholder nodes preserving the
       definition key, every literal and every wire **verbatim**, and **re-saves
       byte-identically** (**E7-T6**, **E7-T7**). *Built and proven 2026-08-31. The placeholder
@@ -681,8 +683,9 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       needs no format migration (**E7-T15**). *Reserved 2026-08-31, with a test asserting it round
       trips although nothing reads it — which is the whole point of reserving it.*
 
-**Status.** Started 2026-08-31. **The load layer and the preservation guarantee are in**, which
-are the two parts everything else depends on: `PackageIdentity`, `ContractAssemblies` and `PackageLoadContext`, with twelve tests
+**Status.** Substantially built 2026-08-31. **A package can be searched for on nuget.org,
+inspected, installed and used, and its nodes unloaded again** — which is this epic's goal sentence.
+The load layer and the preservation guarantee came first: `PackageIdentity`, `ContractAssemblies` and `PackageLoadContext`, with twelve tests
 covering isolation, shared contract identity, side-by-side versions and collectible unloading.
 Placeholders followed the same day: a graph naming a package that is not installed now opens, keeps
 every key, literal and wire, and **re-saves byte for byte** — which is `E7`'s headline promise and

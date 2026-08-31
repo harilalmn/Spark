@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N63-N69 added)
+**Last updated:** 2026-08-31 (N63-N70 added)
 
 ---
 
@@ -1940,3 +1940,28 @@ version is wrong and would look right in review.
 
 It matters more than it sounds: the id is what `PackageLoadContext` is keyed on and what an
 uninstall names, so getting it wrong would produce a store that lists packages nobody can remove.
+
+## N70 — Side-by-side is about dependencies, not about two versions of the same node library
+
+`E7-T3` says one collectible load context per package **version**, *not per package, which kills
+side-by-side*. Building `PackageManager` made it worth writing down **which** side-by-side that
+buys, because the phrase reads as promising more than it does.
+
+**What it does buy, and it is the case that matters.** Package A depends on `Foo 1.0`; package B
+depends on `Foo 2.0`. Both load, each resolving its own `Foo` from its own folder, and neither
+knows the other exists. Without per-version contexts, whichever loaded first would win and the
+other would break in a way that names a type it never mentioned.
+
+**What it does not buy: two versions of the same node library both contributing nodes.** They
+would claim the same node keys — `Acme.Nodes/Point.ByX` carries no version — and the
+library refuses a duplicate. `PackageManager` reports the clash rather than picking a winner,
+because either rule would leave a user with a node that quietly changed meaning and no way to find
+out why.
+
+**And that is correct rather than a limitation to fix.** A `.spark` file names
+`Acme.Nodes/Point.ByX`. If two versions could both be active, that name would be ambiguous, and a
+graph's meaning would depend on load order. The version belongs to the *install*, not to the
+reference — which is the same reason `E7-T6`'s placeholder keeps the key and not a version.
+
+The distinction is worth the paragraph because *side-by-side* is exactly the phrase somebody will
+later quote when asking why two versions of one package cannot both be switched on.

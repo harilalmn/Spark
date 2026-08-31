@@ -10,6 +10,14 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Spark.Packages/Spark.Packages.csproj" />
     <ProjectReference Include="../../src/Spark.Viewport/Spark.Viewport.csproj" />
+
+    <!--
+      A real node library to package up. The manager tests install a .nupkg carrying
+      Spark.Nodes.Core.dll and assert its hundred-odd nodes arrive - which a hand-made stub would
+      not prove, and which is also what exercises the contract rule: Spark.Nodes.Core references
+      Spark.Api and Spark.Geometry, so the package must get the host's copies of those.
+    -->
+    <ProjectReference Include="../../src/Spark.Nodes.Core/Spark.Nodes.Core.csproj" />
   </ItemGroup>
 
 </Project>

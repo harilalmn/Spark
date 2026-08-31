@@ -29,6 +29,35 @@ public sealed class NodeLibrary
     /// <summary>How many definitions are registered.</summary>
     public int Count => _ordered.Count;
 
+    /// <summary>
+    /// Removes one definition.
+    /// </summary>
+    /// <param name="key">The definition's key.</param>
+    /// <returns>True when a definition with that key was present and has been removed.</returns>
+    /// <remarks>
+    /// <b>Exists for unloading a package (<c>E7-T5</c>), and for very little else.</b> A library
+    /// that nodes are removed from during ordinary use would make a graph's meaning depend on when
+    /// it was opened. Removing is what happens when the package that contributed a definition is
+    /// going away, and a graph still using it gets a placeholder that keeps everything
+    /// (<c>E7-T6</c>) rather than an error.
+    /// <para>
+    /// Purging the library is <b>necessary and not sufficient</b> for a load context to unload:
+    /// cached values, compiled invokers and viewport buffers hold references too. See
+    /// <c>PackageManager.Unload</c>, which returns a weak reference rather than a boolean for
+    /// exactly that reason.
+    /// </para>
+    /// </remarks>
+    public bool Remove(NodeKey key)
+    {
+        if (!_definitions.Remove(key))
+        {
+            return false;
+        }
+
+        _ordered.RemoveAll(definition => definition.Key == key);
+        return true;
+    }
+
     /// <summary>Adds one definition.</summary>
     /// <param name="definition">The definition.</param>
     /// <exception cref="ArgumentNullException"><paramref name="definition"/> is <see langword="null"/>.</exception>
