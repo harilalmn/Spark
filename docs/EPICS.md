@@ -940,8 +940,10 @@ user needs. XML doc = what this member does.*
       definition was widened from "a fence" to "a fence, a table, or a section headed example"
       because this is a node-graph tool and its best examples are walkthroughs. Every C# fence now
       compiles against the real API as well.*
-- [ ] Worked example graphs live in `docs/examples/` and are openable from the help panel
-      (**E10-T7**).
+- [x] Worked example graphs live in `docs/examples/` and are openable from the help panel
+      (**E10-T7**). *Three of them, and `E11-T3` opens, evaluates and re-saves every one on every
+      test run — which is the point: a screenshot of a graph rots silently, an executed
+      graph goes red the same day.*
 - [x] Every `SPK####` code has a help topic (**E10-T11**). *Built 2026-08-31 by reflecting
       over the code constants, so the set cannot fall behind the codes. Checking it also
       found five codes pointing at a concept topic that had never been written.*

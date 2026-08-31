@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 17:45 +0530
+**Last updated:** 2026-08-31 18:20 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E11-T2` — every help sample compiles.** Through the same references a real code block gets, with code-block samples routed through `ScriptNodeFactory` because that is what they are. **Found three samples quoting variables declared nowhere** — they read well and were, as code, fiction. |
+| **Last completed step** | **`E11-T3` — the example graphs are executed.** Opened, evaluated and re-saved on every test run. **Two modes**, because a build with no kernel provider is supported: with OpenCascade every example must evaluate completely and the count is asserted exactly; without it the solid ones are **unchecked rather than passed**. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E11-T3` — execute the example graphs headlessly**, asserting no node errors and the declared outputs. `docs/examples/` holds `curves.spark`, `surfaces.spark` and `solids.spark`; `spark run` already evaluates a graph from the command line and prints what its watches saw, so the machinery exists. **This is the check `E11-T2` cannot be**: compiling proves a sample is well formed, running a graph proves the answer. Then `E11-T4`/`E11-T5`, node-to-topic coverage in both directions — forward is already true by construction and wants asserting, reverse is what catches renames. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1869** over **nine** projects: Geometry.Tests 763, UI.Tests 462, Engine.Tests 405, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E12-T18` — the About box.** It is listed under *Blocked on* as needing a person, and re-reading it that is wrong: what it needs is a dialog, which is code. It is also a **licence obligation** — `E13-T16` and `R21` require prominent notice of OpenCascade in About, and the command-line half already exists, so the text is written and only the window is missing. Then `E11-T4`/`E11-T5`, node-to-topic coverage in both directions. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1873** over **nine** projects: Geometry.Tests 763, UI.Tests 466, Engine.Tests 405, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Four things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. **(4)** Opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance. *And still: watching the first nightly benchmark run.* |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3377,3 +3377,43 @@ project currently writes one.
 
 **Verified.** Build clean at 0 warnings. `UI.Tests` 458 -> 462. Suite **1,869** over nine projects,
 0 failed, 0 skipped. `dotnet format` clean.
+
+### 2026-08-31 - `E11-T3`: the example graphs are executed, not just committed
+
+**What.** `ExampleGraphTests` opens, evaluates and re-saves every file in `docs/examples/`,
+headless. Four checks: it opens, it evaluates without errors, it produces output, and it re-saves
+byte-identically.
+
+**This is the check `E11-T2` cannot be.** Compiling a C# fence proves it is well formed against the
+current API. Running a graph proves there is still an answer at the end of it. And an executed
+graph is the strongest anti-rot mechanism a node-graph tool has: a screenshot rots silently -
+rename a node and the picture is still a picture - where a graph that is opened and evaluated goes
+red the same day.
+
+**Two modes, because running without a kernel provider is supported rather than broken.** The
+first run reported three errors from `solids.spark`: *no solid-modelling kernel is installed, so
+this build cannot shell / fillet / union.* That is ADR-0021's stated configuration working exactly
+as designed, not a fault - and accepting it as a pass would have made the check worthless on the
+one machine where it means most. So:
+
+- **With the provider installed**, every example must evaluate completely, and the count is
+  asserted **exactly**. Asserting only "more than none" would let the solid examples quietly stop
+  being checked on the only configuration that can check them.
+- **Without it**, the solid examples are counted **unchecked** rather than passed, and the run
+  still fails if nothing at all was fully evaluated.
+
+That is the same shape D18 already uses for the native test project, where a green managed run
+proves nothing unless the skip count is zero.
+
+**The tolerance is matched on the diagnostic code, not the message**, with one deliberate
+exception: a missing kernel and a node that genuinely threw share `SPK1046`, so that case also
+matches the sentence the unavailable kernel raises. Tolerating every `SPK1046` would tolerate the
+real failures this test exists to find.
+
+**`tests/Spark.UI.Tests` now references `Spark.Geometry.Occt`**, so the solid example is evaluated
+for real here rather than excused. On this machine all three examples evaluate completely, through
+the actual OpenCascade kernel - booleans, fillets and shelling included.
+
+**Verified.** Build clean at 0 warnings. `UI.Tests` 462 -> 466. Suite **1,873** over nine projects,
+0 failed, 0 skipped. `dotnet format` clean. Architecture tests still 15 green, so the new project
+reference breaks no layering rule.

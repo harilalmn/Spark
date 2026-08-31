@@ -11,6 +11,15 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Spark.UI/Spark.UI.csproj" />
+
+    <!--
+      The OpenCascade provider, so that the example-graph check can evaluate docs/examples/solids.spark
+      for real rather than accepting "no kernel installed" as a pass. When the native shim is absent -
+      the ubuntu CI leg, per D18 - the check degrades explicitly: it still requires that every
+      non-kernel example is error-free, and asserts that at least one example was fully checked, so a
+      run can never be vacuously green.
+    -->
+    <ProjectReference Include="../../src/Spark.Geometry.Occt/Spark.Geometry.Occt.csproj" />
   </ItemGroup>
 
   <!--
