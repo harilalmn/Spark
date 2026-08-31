@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 09:40 +0530
+**Last updated:** 2026-09-01 10:20 +0530
 **Protocol version:** 2
 
 ---
@@ -19,7 +19,7 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E12-T10`, `E12-T11` and `E12-T14` — a release somebody could verify.** A deterministic portable zip with a checksum; a release workflow that **refuses when the artefact disagrees with the tag**; and a CI job that packs a runnable build on every push and **runs what it packed, from outside the tree** — because [N79](NOTES.md): the kernel resolver walks up to the folder CI just filled, so an in-tree check passes on a zip with no native payload. [N80](NOTES.md) corrected a claim I had written before checking it. |
+| **Last completed step** | **`E12-T18` — a licence obligation that was already met, and a guard that was not.** The texts and the build key were already staged; a full build was made and each was listed. What was missing is a guard, because **the application runs perfectly without any of them** so nothing would notice one going. `publish.ps1` now refuses a staged build missing a file it must ship. Nearly created the defect while looking for it: listed `licenses/` rather than `licences/` and overwrote a correct tracked file, which `git status` caught. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
 | **Next action** | **`E12-T12`, the performance pass, then `E12-T13`, accessibility.** Both are *passes* rather than features, so the first job in each is deciding what would count as done and writing that down before measuring anything — a pass with no stated bar is a pass that ends when somebody gets tired. `bench/` exists and a nightly already runs it, so the performance one starts from numbers rather than from nothing; ADR-0013's 60 fps at 2000 nodes and `R15`'s payload bracket are the claims to check. For accessibility the design language already carries contrast figures that `PaletteContrastTests` asserts, so the gap is keyboard reach and screen-reader naming rather than colour. **`E12-T8` also remains** and needs a recorded decision rather than code: ReadyToRun is compatible with the LGPL relink obligation and single-file plausibly is not, and [ADR-0020](adr/0020-occt-via-c-abi-shim.md) should say which of the three words in that row survive. **Not buildable here:** `E12-T9` needs a signing identity, `E12-T4` a Revit or AutoCAD licence. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**2036** over **nine** projects: Geometry.Tests 763, UI.Tests 536, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 71**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
@@ -4108,3 +4108,35 @@ GitHub and nowhere else.
 **Verified.** Build clean at 0 warnings. Suite **2,036** over nine projects, 0 failed, 0 skipped.
 `dotnet format` clean. The staged payload is **173 MB managed** without the kernel; the packed zip
 is **51.7 MB over 228 files**.
+
+### 2026-09-01 — `E12-T18`: a licence obligation that was already met, and a guard that was not
+
+**What.** One guard in `scripts/publish.ps1`, and a row closed by checking rather than by building.
+
+**The row said the licence texts and the build key were still owed. They were not.** `publish.ps1`
+has been copying `LICENSE`, `THIRD-PARTY-NOTICES.md` and `licences\*` into the staged build, and the
+native staging copies the provider folder wholesale, which contains `spark_occt.buildkey.json`. A
+full staged build — 225 MB, 58 native DLLs — was made and every one of them listed.
+
+**I nearly created the problem I was looking for.** Checking whether the texts shipped, I listed
+`licenses/` — the American spelling — found nothing, concluded they were missing, fetched the
+canonical LGPL-2.1 from gnu.org and wrote it into `licences/`. That overwrote a **tracked file that
+was already correct**, and the tidy-up afterwards deleted it. `git status` caught it and it was
+restored from git rather than from my copy. The fetch was not wasted: the repository's copy is
+identical to gnu.org's, 26,419 bytes, byte-for-byte after normalising line endings, and the OCCT
+exception text matches the one OCCT itself distributes at the tag we build against.
+
+**What was genuinely missing is a guard.** Every one of those files is a `Copy-Item` that a future
+edit could drop, and **the application runs perfectly without any of them**, so no test, no gate and
+no smoke check would notice. A staged folder missing a licence is the one defect in this script that
+is not a bug — it is a compliance failure that ships. `publish.ps1` now refuses to finish a
+staged build missing a file it is obliged to carry, and names which one.
+
+**Verified by making it bite**: a licence moved aside, and the script threw
+*The staged build is missing files it is obliged to ship: licences\LGPL-2.1.txt.* An earlier,
+sloppier version of that test appeared to show the guard passing when it should have failed, because
+the throw was swallowed by a pipeline; the second attempt checked the file count before and after
+and left no room for doubt. **Nothing in this repository is legal advice.**
+
+**Verified.** Build clean at 0 warnings. Suite **2,036** over nine projects, 0 failed, 0 skipped.
+`dotnet format` clean.

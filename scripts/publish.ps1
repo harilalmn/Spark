@@ -108,6 +108,31 @@ if (-not (Test-Path $licences)) {
 
 Copy-Item (Join-Path $repo 'licences\*') $licences -Force
 
+# And then check they arrived. The LGPL requires the licence text to travel with the binaries, and
+# R21/R22 want the build key beside them so the offer of source can be honoured against a specific
+# artefact rather than approximately. Every one of these is a Copy-Item above that a future edit
+# could drop, and nothing else in the build would notice: the application runs perfectly without
+# any of them. A staged folder missing a licence is the one defect here that is not a bug.
+$required = @(
+    'LICENSE',
+    'THIRD-PARTY-NOTICES.md',
+    'licences\LGPL-2.1.txt',
+    'licences\OpenCascade-LGPL-2.1-with-exception.txt',
+    'licences\OpenCascade-exception.txt'
+)
+
+if (-not $SkipNative) {
+    # The build key identifies WHICH OpenCascade this artefact was built against. Without it the
+    # source offer is a promise about a version nobody can name.
+    $required += 'spark_occt.buildkey.json'
+}
+
+$missing = $required | Where-Object { -not (Test-Path (Join-Path $Output $_)) }
+
+if ($missing) {
+    throw ("The staged build is missing files it is obliged to ship: " + ($missing -join ', ') + '.')
+}
+
 # ------------------------------------------------------------------------------------------------
 # What it weighs
 #
