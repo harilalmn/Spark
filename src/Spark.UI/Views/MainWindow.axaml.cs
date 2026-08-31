@@ -753,6 +753,16 @@ public sealed partial class MainWindow : Window
             OnCollapseSelection(this, new RoutedEventArgs());
         }
 
+        // After the collapse, so `--collapse` and `--select` together select the custom node the
+        // collapse produced rather than the nodes it consumed.
+        if (Options.SelectFirst > 0)
+        {
+            for (int slot = 0; slot < Options.SelectFirst && slot < Canvas.Graph.Nodes.Count; slot++)
+            {
+                Canvas.SelectAlso(slot);
+            }
+        }
+
         if (Options.OpensHelp)
         {
             OpenHelp();

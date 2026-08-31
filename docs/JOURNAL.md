@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 05:05 +0530
+**Last updated:** 2026-09-02 09:40 +0530
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing. The tree is clean and the gates are green.** |
-| **Step status** | `CLEAN` |
-| **Last completed step** | **`E6-T20` - the headless hang is explained, and it is Avalonia's.** A data-bound `TextBlock` with `TextWrapping="Wrap"` inside a `Grid` hangs `Window.Show()`, reproduced in nine lines with no Spark control in them. It hangs **before** any frame, so neither capture nor a layout assertion is available for `InspectorPane`. Nothing was changed in the product - the real application lays it out correctly. `GraphCanvas` wraps no text, so `CanvasWidgetGestureTests` now presses actual buttons on the slider and the value field, and three of its six go red if the widget hit test stops running before the node's. **2178 tests.** |
-| **Working tree** | Clean at the moment this was written. The step has not started. |
-| **Next action** | **The Help pass, which is where the queue points once the client's list is done.** `E10-T3` (the help index), then `E11-T2`'s XML `<example>` half, then E10-T9/T10/T12/T14. **Two smaller things are owed first and both are quick.** (1) The `tessellate` verb is not wired into `.github/workflows/nightly.yml` - Windows should run it and the other legs pass `--no-tessellation`, which is the shape the canvas benchmark already uses. (2) The new nodes from `E4-T13` and `E8-T25` have XML docs but no help topic; `D19` defers topics past 1.0, so this is a queue entry rather than a gap. **And one thing to watch rather than act on:** `UnloadingReleasesTheScriptAssemblies` failed once under full-suite parallelism and passed alone; a second sighting makes it a pattern worth fixing rather than a flake worth noting. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, `dotnet test Spark.slnx` (**2178** over **nine** projects: Geometry.Tests 763, UI.Tests 573, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 15, Packages.Tests 71, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** - [N30](NOTES.md) - **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Working on** | **The client’s list of eleven, taken ahead of the Help pass because the client asked for it directly.** Four steps, in this order: **(A)** the canvas gestures — `E8-T26` marquee visibility and window-versus-crossing, `E8-T27` double-click places a code block, `E8-T28` the orange selection halo. **(B)** the library — `E8-T29`, Create/Action/Query subgroups with coloured rails and icons, plus row spacing. **(C)** the properties pane — `E8-T30` compact spec-sheet rows, `E8-T31` a lacing selector. **(D)** the shell chrome — `E8-T32` menu bar, ribbon and logo, and `E3-T13` run modes. |
+| **Step status** | `IN PROGRESS` — step **A of four is committed**; step **B** has not started. |
+| **Last completed step** | **`E8-T26`, `E8-T27`, `E8-T28` — step A of the client's list, the three canvas gestures.** The marquee was invisible because `new Rect(start, end)` subtracts rather than orders, so every right-to-left drag had a negative width; direction now also chooses window versus crossing. Double-clicking empty canvas drops a code block, as Dynamo does, and the node search moved to right-click. Selected nodes carry an orange halo under the accent ring. **2184 tests.** |
+| **Working tree** | Clean. Step B has not started. |
+| **Next action** | **Step B of the client's list: the library pane (`E8-T29`).** Two things in one row. **(1)** Entries need a bottom margin — the rows are flush against each other and the pane reads as a wall. **(2)** Each category splits into **Create / Action / Query** subgroups, as Dynamo does, each with a coloured vertical rail and Dynamo's own three icons. The classification cannot be guessed from the ports, so it is recorded where it is actually known — `NodeImporter` has the `MemberInfo` in hand: a constructor, or a member returning its own declaring type with no input of that type, is **Create**; a property getter is **Query**; everything else is **Action**. That means a new `NodeMemberKind` on `Spark.Api` and therefore a `PublicAPI.Unshipped.txt` entry, which is a build error if forgotten (RS0016). **Then C** (`E8-T30` compact properties rows, `E8-T31` the lacing selector) **and D** (`E8-T32` menu bar, ribbon, logo and window icon; `E3-T13` run modes). *The Help pass still follows the list, with the two owed items: the* `tessellate` *verb is not wired into* `.github/workflows/nightly.yml`*, and the new nodes from* `E4-T13` *and* `E8-T25` *have XML docs but no help topic.* |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2184**: Geometry.Tests 763, UI.Tests 648, Engine.Tests 468, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 15, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, and `dotnet run --project src/Spark.Desktop -- --graph demo --select 3 --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -4729,3 +4729,56 @@ changed project clean under `--no-incremental -warnaserror`. **The solution-wide
 blocked by the running Spark instance holding `Spark.Desktop.exe`** — the client was using it — so
 the six changed projects were rebuilt individually instead, and `Spark.Desktop` was not touched by
 this step.
+
+
+### 2026-09-02 — The client's list, step A: three canvas gestures (`E8-T26`, `E8-T27`, `E8-T28`)
+
+**Why this and not the Help pass.** The client sent a list of eleven and asked for it directly, so
+it goes ahead of the queue. It is taken in four steps because eleven items in one commit is a
+commit nobody can review or revert; this is the first, and it is the three that live on the canvas
+itself.
+
+**`E8-T26` — the marquee was invisible, and the cause is one line.** `DrawMarquee` built its
+rectangle with `new Rect(start, end)`. **Avalonia's two-point constructor subtracts rather than
+ordering**: `_width = bottomRight.X - topLeft.X`. A drag that goes right-to-left or upwards
+therefore has a negative width, and a rectangle with a negative width draws nothing at all —
+while `CommitMarquee`, which builds its own bounds with `Math.Min`/`Math.Max`, selected normally on
+release. That is exactly the report: *the windows are not seen, however nodes are getting
+selected*. The left-to-right box did draw, and was barely there for a different reason: `accent` at
+14% over `canvas.bg` is a difference of two or three code values per channel.
+
+**And the half that was not a bug.** The client's wording — *crossing window (nodes touching and
+inside) or window (nodes completely inside)* — describes a pair Spark did not have. Only the
+crossing rule existed, because the spatial index answers *intersects* and nothing narrowed it. Now
+direction chooses: **right selects what the box wholly contains, left selects everything it
+touches**, and the two are told apart by a **solid versus a dashed outline** rather than by hue,
+which is the same shape-not-colour rule the anchor ticks already follow.
+
+**`E8-T27` — the double-click belonged to code blocks all along.** Dynamo drops a code block there,
+and double-click-then-type is how a Dynamo user writes a number, a formula or a list without
+hunting for a node. Spark opened its search box on that gesture. The search box is worth keeping
+and was not the contested half, so it moved to **right-click on empty canvas**, which had no other
+job; right-clicking a node, a port or a wire still does nothing, because a context menu is a real
+feature and half of one taught now has to be untaught. The block lands at the point double-clicked,
+not at the toolbar button's next free slot.
+
+**`E8-T28` — an orange halo, and the reason it is not amber.** A six-pixel translucent `#FF8A34`
+band hugging the node, **under** the crisp accent ring rather than instead of it.
+`state.warning` is a neighbouring hue, so the separation is shape: a wide soft band against a
+crisp two-pixel stroke drawn further out and over the top of it. A selected node carrying a warning
+shows both and the warning stays the readable one.
+
+**What went red when it was reverted.** `ABoxDraggedRightSelectsOnlyWhatItWhollyContains` and
+`TheMarqueeRectangleIsOrderedWhicheverWayTheDragWent`, both, with the two lines put back. The
+second is the interesting one: headless drawing produces no pixels, so "the box is visible" is not
+directly assertable — but "the box has a positive width whichever way the drag went" is, and that
+was the defect. `GraphCanvas.MarqueeRectangle` exists to be asserted on.
+
+**`--select N`, and why a new startup switch was the honest answer.** What a selection *looks*
+like cannot be tested headlessly at all. `--freeze` and `--collapse` already exist for exactly this
+— the gesture is a click and a headless run cannot click — so the halo is verified by capture,
+with the switch that makes the capture possible. It shows three haloed nodes on the demo graph.
+
+**Verified.** `dotnet build Spark.slnx --no-incremental -warnaserror` clean; the nine test
+executables **2184 passed / 0 failed / 0 skipped** (UI 648, up six); `dotnet format` clean;
+`--graph demo --select 3 --screenshot` read by eye.

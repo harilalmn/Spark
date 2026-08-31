@@ -265,6 +265,31 @@ public sealed class SceneIndexTests
         Assert.Equal(90, maxY);
     }
 
+    /// <summary>
+    /// Containment is the window half of the box-select pair, and its edges are inclusive.
+    /// </summary>
+    /// <remarks>
+    /// Edges are inclusive in <see cref="CanvasBounds.Intersects"/> too, on purpose: a box dragged
+    /// flush to a node's edge that selected it in one mode and not the other would look like a bug
+    /// whichever way it fell.
+    /// </remarks>
+    [Fact]
+    public void ContainmentIncludesTheEdgesAndRejectsAnOverhang()
+    {
+        CanvasBounds box = new(0, 0, 100, 100);
+
+        Assert.True(box.Contains(new CanvasBounds(10, 10, 20, 20)));
+        Assert.True(box.Contains(box));
+        Assert.True(box.Contains(new CanvasBounds(0, 0, 100, 20)));
+
+        Assert.False(box.Contains(new CanvasBounds(-1, 10, 20, 20)));
+        Assert.False(box.Contains(new CanvasBounds(10, 10, 101, 20)));
+
+        // And an overhanging rectangle is still caught by the crossing rule, which is the whole
+        // point of there being two.
+        Assert.True(box.Intersects(new CanvasBounds(10, 10, 101, 20)));
+    }
+
     private static int[] Collect(SceneIndex.VisibleEnumerator enumerator)
     {
         List<int> slots = [];

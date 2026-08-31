@@ -28,6 +28,7 @@ public sealed partial class CanvasPane : UserControl
         InitializeComponent();
 
         CanvasControl.CreateRequested += OnCanvasCreateRequested;
+        CanvasControl.CodeBlockRequested += OnCanvasCodeBlockRequested;
         CanvasControl.FieldEditRequested += OnCanvasFieldEditRequested;
     }
 
@@ -71,6 +72,36 @@ public sealed partial class CanvasPane : UserControl
         Avalonia.Controls.Canvas.SetTop(CreateBox, top);
         CreateBox.IsVisible = true;
         CreateSearchBox.Focus();
+    }
+
+    /// <summary>
+    /// Drops a code block where empty canvas was double-clicked (<c>E8-T27</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>At the point that was double-clicked, not at the next free slot.</b> The toolbar's Code
+    /// block button asks the canvas to suggest a spot because the user pointed at nothing; this
+    /// gesture is the user pointing, and putting the block anywhere else would be answering a
+    /// different question.
+    /// </remarks>
+    /// <param name="sender">The canvas.</param>
+    /// <param name="e">Where the block should go.</param>
+    private void OnCanvasCodeBlockRequested(object? sender, CanvasCreateRequestedEventArgs e)
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        int slot = model.PlaceCodeBlock(e.WorldX, e.WorldY);
+        if (slot < 0)
+        {
+            return;
+        }
+
+        CanvasControl.RefreshStructure();
+        CanvasControl.SelectOnly(slot);
+        CanvasControl.Focus();
+        _ = model.EvaluateAsync();
     }
 
     private void CloseCreateBox()

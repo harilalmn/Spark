@@ -32,6 +32,18 @@ public readonly record struct CanvasBounds(double MinX, double MinY, double MaxX
     /// <returns>True when the point is inside or on the boundary.</returns>
     public bool Contains(double x, double y) => x >= MinX && x <= MaxX && y >= MinY && y <= MaxY;
 
+    /// <summary>Whether this rectangle wholly contains another, edges included.</summary>
+    /// <param name="other">The other rectangle.</param>
+    /// <returns>True when every point of <paramref name="other"/> is inside or on the boundary.</returns>
+    /// <remarks>
+    /// The window half of the box-select pair: <see cref="Intersects"/> is the crossing rule and
+    /// this is the stricter one. Edges are included in both, so a node exactly on the boundary is
+    /// caught by either — a box dragged flush to a node's edge selecting it in one mode and not the
+    /// other would look like a bug whichever way it fell.
+    /// </remarks>
+    public bool Contains(CanvasBounds other) =>
+        other.MinX >= MinX && other.MaxX <= MaxX && other.MinY >= MinY && other.MaxY <= MaxY;
+
     /// <summary>Whether this rectangle overlaps another, edges included.</summary>
     /// <param name="other">The other rectangle.</param>
     /// <returns>True when the two rectangles share any area or edge.</returns>

@@ -122,6 +122,98 @@ public sealed class GraphCanvasInputTests
         Assert.Equal(2, canvas.Selection.Count);
     });
 
+    /// <summary>
+    /// A box dragged to the right selects only the nodes it wholly contains.
+    /// </summary>
+    /// <remarks>
+    /// <b>Direction, as every CAD application has meant it for forty years</b> (`E8-T26`). Users
+    /// arrive already knowing this pair, which is the only reason to spend a gesture on it.
+    /// </remarks>
+    [Fact]
+    public void ABoxDraggedRightSelectsOnlyWhatItWhollyContains() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+
+        // Nudged off the corner so a box can start OUTSIDE the first node. At the identity
+        // transform that node's top-left corner is the canvas's own, and nothing is outside it.
+        canvas.Transform.OffsetX = -50;
+        canvas.Transform.OffsetY = -50;
+
+        (Point from, Point to) = WindowOverTheFirstNode(canvas);
+
+        window.MouseDown(from, MouseButton.Left, RawInputModifiers.None);
+        window.MouseMove(to, RawInputModifiers.None);
+        window.MouseUp(to, MouseButton.Left, RawInputModifiers.None);
+
+        Assert.Equal([0], canvas.Selection);
+    });
+
+    /// <summary>
+    /// The same box dragged the other way selects everything it touches.
+    /// </summary>
+    [Fact]
+    public void ABoxDraggedLeftSelectsEverythingItTouches() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        canvas.Transform.OffsetX = -50;
+        canvas.Transform.OffsetY = -50;
+
+        (Point to, Point from) = WindowOverTheFirstNode(canvas);
+
+        window.MouseDown(from, MouseButton.Left, RawInputModifiers.None);
+        window.MouseMove(to, RawInputModifiers.None);
+        window.MouseUp(to, MouseButton.Left, RawInputModifiers.None);
+
+        Assert.Equal(2, canvas.Selection.Count);
+    });
+
+    /// <summary>
+    /// The box being dragged has a positive width and height whichever way the drag went.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the regression test for a marquee that selected nodes and drew nothing.</b>
+    /// <c>DrawMarquee</c> built its rectangle with <c>new Rect(start, end)</c>, and Avalonia's
+    /// two-point constructor subtracts rather than ordering — so every right-to-left drag, which is
+    /// to say every crossing selection, had a negative width and a rectangle with a negative width
+    /// draws nothing at all. Headless rendering produces no pixels to assert on, so the ordered
+    /// rectangle is exposed and asserted instead.
+    /// </remarks>
+    [Fact]
+    public void TheMarqueeRectangleIsOrderedWhicheverWayTheDragWent() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+
+        window.MouseDown(new Point(700, 500), MouseButton.Left, RawInputModifiers.None);
+        window.MouseMove(new Point(20, 20), RawInputModifiers.None);
+
+        Assert.True(canvas.MarqueeIsCrossing);
+        Assert.True(canvas.MarqueeRectangle.Width > 0, "a right-to-left drag drew a negative width");
+        Assert.True(canvas.MarqueeRectangle.Height > 0, "an upward drag drew a negative height");
+
+        window.MouseUp(new Point(20, 20), MouseButton.Left, RawInputModifiers.None);
+
+        // And nothing is left behind once the gesture is over.
+        Assert.Equal(default, canvas.MarqueeRectangle);
+    });
+
+    /// <summary>
+    /// A left-to-right box that covers the first node whole and clips the second, as screen points.
+    /// </summary>
+    /// <param name="canvas">The canvas, already transformed.</param>
+    /// <returns>The press point and the release point, in that order.</returns>
+    private static (Point From, Point To) WindowOverTheFirstNode(GraphCanvas canvas)
+    {
+        Spark.UI.Canvas.CanvasBounds first = canvas.Graph.Nodes[0].Bounds;
+        Spark.UI.Canvas.CanvasBounds second = canvas.Graph.Nodes[1].Bounds;
+
+        return (
+            Screen(canvas, first.MinX - 20, Math.Min(first.MinY, second.MinY) - 20),
+            Screen(
+                canvas,
+                second.MinX + (second.Width / 2),
+                Math.Max(first.MaxY, second.MaxY) + 20));
+    }
+
     [Fact]
     public void MiddleDraggingPansTheViewAndMovesNoNode() => OnUiThread(() =>
     {
@@ -452,19 +544,28 @@ public sealed class GraphCanvasInputTests
     });
 
     /// <summary>
-    /// Double-clicking empty canvas asks for a node there, at the point that was clicked.
+    /// Double-clicking empty canvas asks for a code block there, at the point that was clicked.
     /// </summary>
     /// <remarks>
-    /// The world coordinates are the assertion that matters. A gesture that opens a box but then
-    /// places the node somewhere else is worse than no gesture, because the user has to find and
-    /// move it every time.
+    /// <para>
+    /// <b>A code block, not the search box.</b> That is Dynamo's gesture and `E8-T27` adopts it:
+    /// double-click-then-type is how a Dynamo user writes a number, a formula or a list without
+    /// hunting for a node, and a user arriving with that habit got a search dialog instead.
+    /// </para>
+    /// <para>
+    /// The world coordinates are the assertion that matters. A gesture that creates something but
+    /// puts it somewhere else is worse than no gesture, because the user has to find and move it
+    /// every time.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void DoubleClickingEmptyCanvasAsksForANodeThere() => OnUiThread(() =>
+    public void DoubleClickingEmptyCanvasAsksForACodeBlockThere() => OnUiThread(() =>
     {
         (Window window, GraphCanvas canvas) = Open(TwoNodes());
         CanvasCreateRequestedEventArgs? request = null;
-        canvas.CreateRequested += (_, e) => request = e;
+        int searches = 0;
+        canvas.CodeBlockRequested += (_, e) => request = e;
+        canvas.CreateRequested += (_, _) => searches++;
 
         Point empty = new(640, 460);
         DoubleClick(window, empty);
@@ -474,15 +575,66 @@ public sealed class GraphCanvasInputTests
         Assert.Equal(canvas.Transform.ToWorldY(empty.Y), request.WorldY, 3);
         Assert.Equal(empty.X, request.ScreenX, 3);
         Assert.Equal(empty.Y, request.ScreenY, 3);
+
+        // And the gesture it replaced must not fire as well, or the user gets a code block with a
+        // search box sitting on top of it.
+        Assert.Equal(0, searches);
+    });
+
+    /// <summary>
+    /// Right-clicking empty canvas asks for the node search, at the point that was clicked.
+    /// </summary>
+    /// <remarks>
+    /// The search box did not lose its gesture when the double-click went to code blocks
+    /// (`E8-T27`) — it moved to the button that has no other job on the canvas.
+    /// </remarks>
+    [Fact]
+    public void RightClickingEmptyCanvasAsksForTheNodeSearch() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        CanvasCreateRequestedEventArgs? request = null;
+        int blocks = 0;
+        canvas.CreateRequested += (_, e) => request = e;
+        canvas.CodeBlockRequested += (_, _) => blocks++;
+
+        Point empty = new(640, 460);
+        window.MouseDown(empty, MouseButton.Right, RawInputModifiers.None);
+        window.MouseUp(empty, MouseButton.Right, RawInputModifiers.None);
+
+        Assert.NotNull(request);
+        Assert.Equal(canvas.Transform.ToWorldX(empty.X), request.WorldX, 3);
+        Assert.Equal(empty.X, request.ScreenX, 3);
+        Assert.Equal(0, blocks);
+    });
+
+    /// <summary>
+    /// Right-clicking a node asks for nothing, and does not disturb the selection.
+    /// </summary>
+    /// <remarks>
+    /// A context menu on a node is a real feature with a real menu behind it. Opening the node
+    /// search over the node the user pointed at would be answering a question they did not ask.
+    /// </remarks>
+    [Fact]
+    public void RightClickingANodeAsksForNothing() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        int requests = 0;
+        canvas.CreateRequested += (_, _) => requests++;
+
+        window.MouseDown(new Point(60, 30), MouseButton.Right, RawInputModifiers.None);
+        window.MouseUp(new Point(60, 30), MouseButton.Right, RawInputModifiers.None);
+
+        Assert.Equal(0, requests);
+        Assert.Empty(canvas.Selection);
     });
 
     /// <summary>
     /// Double-clicking a node asks for nothing, because that gesture belongs to the node.
     /// </summary>
     /// <remarks>
-    /// It is the in-place editor's gesture (`E8-T5`), which is not built. Creating a node on top
-    /// of the one that was double-clicked would be a worse answer than doing nothing, and it would
-    /// have to be untaught later.
+    /// It is the in-place editor's gesture (`E8-T5`). Creating something on top of the node that
+    /// was double-clicked would be a worse answer than doing nothing, and it would have to be
+    /// untaught later.
     /// </remarks>
     [Fact]
     public void DoubleClickingANodeAsksForNothing() => OnUiThread(() =>
@@ -490,6 +642,7 @@ public sealed class GraphCanvasInputTests
         (Window window, GraphCanvas canvas) = Open(TwoNodes());
         int requests = 0;
         canvas.CreateRequested += (_, _) => requests++;
+        canvas.CodeBlockRequested += (_, _) => requests++;
 
         DoubleClick(window, new Point(60, 30));
 

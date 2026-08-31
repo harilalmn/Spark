@@ -108,7 +108,8 @@ public sealed class CanvasFieldEditEventArgs(
 }
 
 /// <summary>
-/// A request to create a node at a point on the canvas, raised by double-clicking empty space.
+/// A request to create something at a point on the canvas: a searched-for node when empty space is
+/// right-clicked, a code block when it is double-clicked.
 /// </summary>
 /// <remarks>
 /// The canvas reports where and never what. It has no library, cannot construct a node instance
@@ -274,14 +275,32 @@ public sealed class GraphCanvas : Control
     public event EventHandler? SelectionChanged;
 
     /// <summary>
-    /// Raised when empty canvas is double-clicked, which is a request to create a node there.
+    /// Raised when empty canvas is <b>right</b>-clicked, which is a request to search for a node
+    /// and create it there.
     /// </summary>
     /// <remarks>
-    /// Dynamo's gesture, and the reason to copy it is that it is the one interaction a graph
-    /// author repeats more than any other. Hunting a tree for a node you can already name is the
-    /// slowest part of building a graph, and it gets slower with every package installed.
+    /// <para>
+    /// Hunting a tree for a node you can already name is the slowest part of building a graph, and
+    /// it gets slower with every package installed — so the search box earns a gesture of its own.
+    /// </para>
+    /// <para>
+    /// <b>It was the double-click, and Dynamo does not agree.</b> There, a double-click on empty
+    /// canvas drops a code block; a user arriving from Dynamo double-clicks expecting one and gets
+    /// a search dialog instead. The search moved here rather than being deleted, because the two
+    /// gestures are both worth having and only one of them was contested.
+    /// </para>
     /// </remarks>
     public event EventHandler<CanvasCreateRequestedEventArgs>? CreateRequested;
+
+    /// <summary>
+    /// Raised when empty canvas is double-clicked, which is a request for a code block there.
+    /// </summary>
+    /// <remarks>
+    /// Dynamo's gesture, and the reason to copy it is muscle memory: a code block is how a Dynamo
+    /// user writes a number, a formula or a list without hunting for the node that does it, and
+    /// double-click-then-type is the whole of that workflow.
+    /// </remarks>
+    public event EventHandler<CanvasCreateRequestedEventArgs>? CodeBlockRequested;
 
     /// <summary>Raised when a node's in-place value field is clicked (<c>E8-T5</c>).</summary>
     public event EventHandler<CanvasFieldEditEventArgs>? FieldEditRequested;
@@ -534,6 +553,21 @@ public sealed class GraphCanvas : Control
             _pointerAnchor = screen;
             e.Pointer.Capture(this);
             e.Handled = true;
+            return;
+        }
+
+        // Right-click on empty canvas opens the node search (`E8-T27`). On anything else it does
+        // nothing yet rather than something arbitrary: a context menu on a node is a real feature
+        // with a real menu behind it, and half of one taught now would have to be untaught.
+        if (properties.IsRightButtonPressed)
+        {
+            if (HitTestPort(world) is null && HitTestNode(world) < 0 && HitTestWire(world) is null)
+            {
+                e.Handled = true;
+                CreateRequested?.Invoke(
+                    this, new CanvasCreateRequestedEventArgs(world.X, world.Y, screen.X, screen.Y));
+            }
+
             return;
         }
 
@@ -866,10 +900,10 @@ public sealed class GraphCanvas : Control
 
     /// <inheritdoc/>
     /// <remarks>
-    /// Double-clicking empty canvas asks the shell to create a node there. On a node, a port or a
-    /// wire it does nothing yet — those are the in-place editors the hybrid overlay will carry
-    /// (`E8-T5`), and doing something arbitrary in the meantime would teach a gesture that has to
-    /// be untaught.
+    /// Double-clicking empty canvas asks the shell for a code block there (`E8-T27`). On a node, a
+    /// port or a wire it does nothing yet — those are the in-place editors the hybrid overlay will
+    /// carry (`E8-T5`), and doing something arbitrary in the meantime would teach a gesture that
+    /// has to be untaught.
     /// </remarks>
     protected override void OnDoubleTapped(Avalonia.Input.TappedEventArgs e)
     {
@@ -890,7 +924,7 @@ public sealed class GraphCanvas : Control
         // arrive with a mode still set — so it went, along with the test that could not fail
         // ([N27](../../../docs/NOTES.md)).
         e.Handled = true;
-        CreateRequested?.Invoke(this, new CanvasCreateRequestedEventArgs(world.X, world.Y, screen.X, screen.Y));
+        CodeBlockRequested?.Invoke(this, new CanvasCreateRequestedEventArgs(world.X, world.Y, screen.X, screen.Y));
     }
 
     /// <inheritdoc/>
@@ -1868,6 +1902,12 @@ public sealed class GraphCanvas : Control
 
         if (selected)
         {
+            // The halo first, so the crisp rings above draw over it rather than under it. It is
+            // inflated less than the error and warning rings so it hugs the node: a halo that sat
+            // outside them would separate a node from its own state stroke.
+            RoundedRect halo = new(nodeRect.Inflate(2.5 / zoom), CornerRadius + (2.5 / zoom));
+            context.DrawRectangle(null, pens.SelectionHalo, halo);
+
             RoundedRect ring = new(nodeRect.Inflate(1.5 / zoom), CornerRadius + (1.5 / zoom));
             context.DrawRectangle(null, pens.SelectionRing, ring);
         }
@@ -1990,6 +2030,25 @@ public sealed class GraphCanvas : Control
         context.DrawText(run, new Point(_dragWireWorldEnd.X + (10 / _transform.Zoom), _dragWireWorldEnd.Y));
     }
 
+    /// <summary>
+    /// Draws the box being dragged, in the style of the direction it is being dragged in.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The rectangle is normalised here, and it was not.</b> Avalonia's
+    /// <c>Rect(Point, Point)</c> subtracts rather than ordering: given an end point above or to the
+    /// left of the start it produces a negative width, and a rectangle with a negative width draws
+    /// nothing at all. Every right-to-left drag — which is to say every crossing selection — was
+    /// therefore invisible while still selecting nodes on release, which is exactly the report that
+    /// sent us here.
+    /// </para>
+    /// <para>
+    /// An accent tint is permitted here and almost nowhere else, because a marquee lands only on
+    /// empty canvas and there is no text over it to lose contrast against (§5.4).
+    /// </para>
+    /// </remarks>
+    /// <param name="context">The drawing context.</param>
+    /// <param name="pens">The frame's pens.</param>
     private void DrawMarquee(DrawingContext context, in FramePens pens)
     {
         if (_mode is not InteractionMode.Marquee)
@@ -1997,12 +2056,42 @@ public sealed class GraphCanvas : Control
             return;
         }
 
-        Rect rect = new(_marqueeStartWorld, _marqueeEndWorld);
-
-        // An accent tint is permitted here and almost nowhere else, because a marquee lands only on
-        // empty canvas and there is no text over it to lose contrast against (§5.4).
-        context.DrawRectangle(SparkPalette.MarqueeFillBrush, pens.AccentThin, rect);
+        context.DrawRectangle(
+            MarqueeIsCrossing ? SparkPalette.MarqueeCrossingFillBrush : SparkPalette.MarqueeWindowFillBrush,
+            MarqueeIsCrossing ? pens.MarqueeCrossing : pens.MarqueeWindow,
+            MarqueeRectangle);
     }
+
+    /// <summary>
+    /// The box currently being dragged, in world coordinates, with its corners ordered.
+    /// </summary>
+    /// <remarks>
+    /// <b>Ordered corners are the whole point of this being a property.</b> The width and height
+    /// are never negative, whichever way the drag went, and a test can say so — which is the one
+    /// assertion that would have caught a marquee that selected nodes and drew nothing. Empty when
+    /// no marquee is in progress.
+    /// </remarks>
+    public Rect MarqueeRectangle => _mode is InteractionMode.Marquee
+        ? Normalise(_marqueeStartWorld, _marqueeEndWorld)
+        : default;
+
+    /// <summary>
+    /// Whether the box being dragged is a <i>crossing</i> box rather than a <i>window</i> box.
+    /// </summary>
+    /// <remarks>
+    /// <b>Direction, as every CAD application has meant it for forty years.</b> Dragging to the
+    /// right selects only what the box wholly contains; dragging to the left selects everything the
+    /// box touches. Users arrive already knowing this, which is the only reason to spend a gesture
+    /// on it — and the pair is worth having because "select that node and not the one behind it" is
+    /// otherwise a click-by-click job.
+    /// </remarks>
+    public bool MarqueeIsCrossing => _marqueeEndWorld.X < _marqueeStartWorld.X;
+
+    private static Rect Normalise(Point a, Point b) => new(
+        Math.Min(a.X, b.X),
+        Math.Min(a.Y, b.Y),
+        Math.Abs(a.X - b.X),
+        Math.Abs(a.Y - b.Y));
 
     private void DrawFrameStatistics(DrawingContext context, Rect bounds)
     {
@@ -2115,6 +2204,15 @@ public sealed class GraphCanvas : Control
         }
     }
 
+    /// <summary>
+    /// Adds what the box caught to the selection, by the rule its direction chose.
+    /// </summary>
+    /// <remarks>
+    /// The spatial index answers <i>intersects</i>, which is the crossing rule already. A window
+    /// selection is that answer filtered down to the nodes the box wholly contains — the index
+    /// stays the same shape, and the narrower rule costs one containment test per candidate rather
+    /// than a second query structure.
+    /// </remarks>
     private void CommitMarquee()
     {
         EnsureIndex();
@@ -2125,10 +2223,15 @@ public sealed class GraphCanvas : Control
             Math.Max(_marqueeStartWorld.X, _marqueeEndWorld.X),
             Math.Max(_marqueeStartWorld.Y, _marqueeEndWorld.Y));
 
+        bool crossing = MarqueeIsCrossing;
+
         _index.Query(rect.MinX, rect.MinY, rect.MaxX, rect.MaxY);
         foreach (int slot in _index.Visible)
         {
-            _selection.Add(slot);
+            if (crossing || rect.Contains(_graph.Nodes[slot].Bounds))
+            {
+                _selection.Add(slot);
+            }
         }
 
         SelectionChanged?.Invoke(this, EventArgs.Empty);
@@ -2774,6 +2877,28 @@ public sealed class GraphCanvas : Control
             FocusContour = Pen(SparkPalette.FocusContour, screen);
             AccentThin = Pen(SparkPalette.Accent, screen);
 
+            // The halo is wide and translucent where every other ring is narrow and opaque, which
+            // is what keeps it from being read as a state. It never falls below 6 px of screen
+            // space, because a halo that thins with the zoom stops being a halo.
+            SelectionHalo = new ImmutablePen(
+                new ImmutableSolidColorBrush(SparkPalette.SelectionHalo, 0.45),
+                6 * screen,
+                null,
+                PenLineCap.Round,
+                PenLineJoin.Round);
+
+            // 1.5 px rather than 1: a hairline marquee over a busy graph is a line the eye loses
+            // among the wires, and this one has to be followed while it is being dragged.
+            MarqueeWindow = Pen(SparkPalette.Accent, 1.5 * screen);
+
+            // Dashed, and that is the whole of how a crossing box is told from a window box.
+            MarqueeCrossing = new ImmutablePen(
+                new ImmutableSolidColorBrush(SparkPalette.Accent),
+                1.5 * screen,
+                new ImmutableDashStyle([4, 3], 0),
+                PenLineCap.Flat,
+                PenLineJoin.Round);
+
             // The casing never falls below 2 px of screen space and the core never below 1 px,
             // because a sub-pixel stroke is antialiased into invisibility exactly when the graph is
             // zoomed out far enough that the wires are the only structure left to read.
@@ -2808,6 +2933,12 @@ public sealed class GraphCanvas : Control
         internal IPen FocusContour { get; }
 
         internal IPen AccentThin { get; }
+
+        internal IPen SelectionHalo { get; }
+
+        internal IPen MarqueeWindow { get; }
+
+        internal IPen MarqueeCrossing { get; }
 
         internal IPen WireCasing { get; }
 

@@ -210,10 +210,41 @@ public static class SparkPalette
     public static IBrush AccentBrush { get; } = Frozen(Accent);
 
     /// <summary>
-    /// The marquee fill: <c>accent</c> at 14%. Permitted because a marquee lands only on empty
-    /// canvas — an accent tint is forbidden anywhere text sits over it (§5.4).
+    /// The window-marquee fill: <c>accent</c> at 27%. Permitted because a marquee lands only on
+    /// empty canvas — an accent tint is forbidden anywhere text sits over it (§5.4).
     /// </summary>
-    public static IBrush MarqueeFillBrush { get; } = Frozen(Color.FromArgb(0x24, 0xA9, 0x8B, 0xFF));
+    /// <remarks>
+    /// <b>It was 14% and could not be seen.</b> Against <c>canvas.bg</c> a 14% tint of a colour
+    /// this close in lightness is a difference of two or three code values per channel, which is
+    /// inside the noise of a dithered gradient — the client reported a box select that selected
+    /// nodes while showing nothing at all.
+    /// </remarks>
+    public static IBrush MarqueeWindowFillBrush { get; } = Frozen(Color.FromArgb(0x45, 0xA9, 0x8B, 0xFF));
+
+    /// <summary>
+    /// The crossing-marquee fill: the same hue as <see cref="MarqueeWindowFillBrush"/>, one step
+    /// stronger.
+    /// </summary>
+    /// <remarks>
+    /// <b>One hue, two shapes.</b> The two directions are told apart by the outline — solid for
+    /// window, dashed for crossing — rather than by colour, because a shape difference survives
+    /// monochrome rendering and colour blindness and a hue difference does not. That is the same
+    /// rule the anchor ticks follow.
+    /// </remarks>
+    public static IBrush MarqueeCrossingFillBrush { get; } = Frozen(Color.FromArgb(0x33, 0xA9, 0x8B, 0xFF));
+
+    /// <summary>
+    /// The halo drawn outside a selected node: <c>#FF8A34</c> at 45%, a wide soft band under the
+    /// crisp accent ring.
+    /// </summary>
+    /// <remarks>
+    /// <b>Orange, and deliberately not <see cref="StateWarning"/>'s amber.</b> The two are
+    /// neighbours in hue and the separation that keeps them apart is shape, not colour: the halo is
+    /// a six-pixel translucent band hugging the node, the warning ring is a crisp two-pixel stroke
+    /// further out and drawn over the top of it. A selected node with a warning shows both, and the
+    /// ring stays the readable one.
+    /// </remarks>
+    public static Color SelectionHalo { get; } = Color.FromRgb(0xFF, 0x8A, 0x34);
 
     /// <summary>Builds a frozen solid brush, which is safe to share across threads and draws.</summary>
     /// <param name="colour">The colour.</param>

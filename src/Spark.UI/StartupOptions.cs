@@ -84,6 +84,13 @@ namespace Spark.UI;
 /// (<c>--collapse N</c>), or zero. Aimed at the screenshot path: the gesture is a button, a button
 /// needs a click, and a click is the one thing a headless run cannot do.
 /// </param>
+/// <param name="SelectFirst">
+/// How many of the graph's leading nodes to select at startup (<c>--select N</c>), or zero. Aimed
+/// at the screenshot path for the reason <c>--freeze</c> and <c>--collapse</c> are: what a
+/// selection <i>looks</i> like — the accent ring and the orange halo of <c>E8-T28</c> — cannot be
+/// asserted in a headless test, because headless drawing produces no pixels. It can only be looked
+/// at, and looking at it needs a click that a headless run cannot make.
+/// </param>
 /// <param name="BenchmarkZoom">
 /// A zoom to pin the benchmark at, or zero to sweep. Pinning is what separates "how much does the
 /// graph cost" from "how much does what is on screen cost", which is the claim ADR-0013 actually
@@ -105,7 +112,8 @@ public readonly record struct StartupOptions(
     string? PreparePackage = null,
     string? ReferenceAssembly = null,
     int FreezeFirst = 0,
-    int CollapseFirst = 0)
+    int CollapseFirst = 0,
+    int SelectFirst = 0)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
     public static StartupOptions Default => new(0, 0, 0, null, null, null);
@@ -194,6 +202,7 @@ public readonly record struct StartupOptions(
         string? referenceAssembly = null;
         int freezeFirst = 0;
         int collapseFirst = 0;
+        int selectFirst = 0;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -269,6 +278,10 @@ public readonly record struct StartupOptions(
                     collapseFirst = ParseCount(args[++i], 0);
                     break;
 
+                case "--select" when i + 1 < args.Length:
+                    selectFirst = ParseCount(args[++i], 0);
+                    break;
+
                 case "--help-window":
                     helpTopic = "nodes.index";
                     if (i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal))
@@ -292,7 +305,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst);
     }
 
     private static int ParseCount(string text, int fallback) =>
