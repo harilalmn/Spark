@@ -102,6 +102,7 @@ public sealed partial class MainWindow : Window
     }
 
     private HelpWindow? _help;
+    private AboutWindow? _about;
 
     private MainWindowViewModel? Model => DataContext as MainWindowViewModel;
 
@@ -185,6 +186,33 @@ public sealed partial class MainWindow : Window
         {
             _ = model.EvaluateAsync();
         }
+    }
+
+    private void OnOpenHelp(object? sender, RoutedEventArgs e) => OpenHelp();
+
+    /// <summary>
+    /// Opens the About box.
+    /// </summary>
+    /// <remarks>
+    /// <b>A licence obligation rather than an ornament</b> (`E12-T18`, `E13-T16`, `R21`): the Open
+    /// CASCADE exception requires prominent notice that the work uses facilities provided by the
+    /// Open CASCADE Technology software, and About is where a user with only an installer looks.
+    /// The text itself is in <c>ProductNotice</c>, shared with <c>spark --version</c>, because two
+    /// copies of a licence statement is one copy that eventually stops matching the build.
+    /// </remarks>
+    private void OnOpenAbout(object? sender, RoutedEventArgs e)
+    {
+        // Asked through the contract rather than by type, because Spark.UI deliberately does not
+        // reference the provider - the entry point installs it, and the shell only ever sees an
+        // IBrepKernel. Passing null when none is loaded is what makes the About box say so rather
+        // than print the no-op stand-in's name as though it were a modelling kernel.
+        Spark.Api.IBrepKernel kernel = Spark.Api.BrepKernel.Current;
+        string? description = kernel is Spark.Api.UnavailableBrepKernel ? null : kernel.Description;
+
+        AboutWindow about = new(
+            typeof(MainWindow).Assembly.GetName().Version?.ToString(), description);
+
+        about.ShowDialog(this);
     }
 
     /// <inheritdoc/>
@@ -489,6 +517,17 @@ public sealed partial class MainWindow : Window
             _help?.Navigate(Options.HelpTopic);
         }
 
+        if (Options.OpenAbout)
+        {
+            _about = new AboutWindow(
+                typeof(MainWindow).Assembly.GetName().Version?.ToString(),
+                Spark.Api.BrepKernel.Current is Spark.Api.UnavailableBrepKernel
+                    ? null
+                    : Spark.Api.BrepKernel.Current.Description);
+
+            _about.Show(this);
+        }
+
         if (Options.SyntheticNodeCount > 0)
         {
             LoadSynthetic(Options.SyntheticNodeCount);
@@ -581,6 +620,19 @@ public sealed partial class MainWindow : Window
 
         Console.WriteLine(string.Create(
             CultureInfo.InvariantCulture, $"wrote {prefix}-shell.png ({width}x{height})"));
+
+        if (_about is not null)
+        {
+            int aboutWidth = Math.Max(1, (int)_about.Bounds.Width);
+            int aboutHeight = Math.Max(1, (int)_about.Bounds.Height);
+
+            using RenderTargetBitmap about = new(new PixelSize(aboutWidth, aboutHeight), new Vector(96, 96));
+            about.Render(_about);
+            about.Save(prefix + "-about.png", PngBitmapEncoderOptions.Default);
+
+            Console.WriteLine(string.Create(
+                CultureInfo.InvariantCulture, $"wrote {prefix}-about.png ({aboutWidth}x{aboutHeight})"));
+        }
 
         if (_help is not null)
         {

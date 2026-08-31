@@ -123,7 +123,7 @@ broken every step.
 - [ ] **`E13-T17`'s installer, code signing and antivirus submissions.** The payload is staged and
       measured — 224.4 MB, of which OpenCascade is 52.0 MB — and a script cannot invent an identity
       to sign with.
-- [ ] **`E12-T18`'s About box.** The command-line half is done; the dialog does not exist yet.
+- [x] ~~**`E12-T18`'s About box.**~~ **Done 2026-08-31, and it was never a person's job.** It sat under *waiting on a person* because the dialog did not exist — which is code, not an errand. `ProductNotice` in `Spark.Api` now holds one text that both `spark --version` and the About dialog print, because two copies of a licence notice is one copy that stops matching the build. Seven tests assert the obligation itself: with a kernel loaded the notice **must** name Open CASCADE, LGPL-2.1, dynamic linking and replaceability; without one it must **not** claim to link something absent.
 - [ ] **Opening an exported OBJ or STEP in a third-party viewer**, which is also M1's stated
       acceptance and has never been done.
 - [ ] **Watching the first nightly benchmark run.** It is green locally end to end and has never

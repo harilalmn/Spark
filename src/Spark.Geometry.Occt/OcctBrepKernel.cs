@@ -48,6 +48,13 @@ public sealed class OcctBrepKernel : IBrepKernel
 
     /// <inheritdoc/>
     /// <remarks>
+    /// The version, because this is what appears in the About box and in <c>spark --version</c>,
+    /// and a user reporting a problem needs the number rather than the word.
+    /// </remarks>
+    public string Description => Version;
+
+    /// <inheritdoc/>
+    /// <remarks>
     /// <b>What is absent is as deliberate as what is present.</b> <c>Sweep</c>, <c>Offset</c>,
     /// <c>Split</c>, <c>Step</c>, <c>Iges</c> and <c>MeshBoolean</c> are not claimed because the
     /// ABI has no entry point for them yet, and a capability flag is a promise the node library

@@ -621,24 +621,15 @@ internal static class Program
     /// </remarks>
     private static int Version()
     {
-        Console.WriteLine(typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown");
-
         IBrepKernel kernel = BrepKernel.Current;
 
-        if (kernel is Spark.Geometry.Occt.OcctBrepKernel occt)
-        {
-            Console.WriteLine(string.Create(
-                CultureInfo.InvariantCulture,
-                $"solid-modelling kernel: {occt.Version} — LGPL-2.1 with the Open CASCADE "
-                + $"exception. This software makes use of facilities provided by the Open CASCADE "
-                + $"Technology software. See THIRD-PARTY-NOTICES.md."));
-        }
-        else
-        {
-            Console.WriteLine(
-                "solid-modelling kernel: none installed. Booleans, fillets and STEP are "
-                + "unavailable; everything else works.");
-        }
+        // One notice, printed here and shown in the About box, rather than two that drift apart.
+        // The kernel's own version string is used when the provider is loaded, because "8.0.1" is
+        // the fact somebody reporting a problem needs and "opencascade" is not.
+        string? description = kernel is UnavailableBrepKernel ? null : kernel.Description;
+
+        Console.Write(ProductNotice.ToText(
+            typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown", description));
 
         return 0;
     }

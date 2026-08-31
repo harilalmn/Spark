@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 18:20 +0530
+**Last updated:** 2026-08-31 19:00 +0530
 **Protocol version:** 2
 
 ---
@@ -19,11 +19,11 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E11-T3` — the example graphs are executed.** Opened, evaluated and re-saved on every test run. **Two modes**, because a build with no kernel provider is supported: with OpenCascade every example must evaluate completely and the count is asserted exactly; without it the solid ones are **unchecked rather than passed**. |
+| **Last completed step** | **`E12-T18` — the About box.** One licence notice in `ProductNotice`, printed by both `spark --version` and the dialog. **The row was miscategorised as needing a person**; what it needed was a dialog. `IBrepKernel.Description` added as a **default interface member**, so the change is additive. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E12-T18` — the About box.** It is listed under *Blocked on* as needing a person, and re-reading it that is wrong: what it needs is a dialog, which is code. It is also a **licence obligation** — `E13-T16` and `R21` require prominent notice of OpenCascade in About, and the command-line half already exists, so the text is written and only the window is missing. Then `E11-T4`/`E11-T5`, node-to-topic coverage in both directions. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1873** over **nine** projects: Geometry.Tests 763, UI.Tests 466, Engine.Tests 405, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
-| **Blocked on** | **Four things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. **(4)** Opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance. *And still: watching the first nightly benchmark run.* |
+| **Next action** | **`E11-T4` and `E11-T5` — node-to-topic coverage, both directions.** Forward (*a node with no topic fails the build*) is already true by construction, because pages are generated, and wants asserting so it stays true if generation is ever replaced. Reverse (*a `nodes:` entry naming a node that no longer exists fails the build*) is the one that catches renames and is not true yet — `curves.md` names ten nodes and nothing checks them. Then `E7-T12`, collapse selection to custom node. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1882** over **nine** projects: Geometry.Tests 763, UI.Tests 466, Engine.Tests 414, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Blocked on** | **Three things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T18`'s About box was on this list and should not have been** — it needed a dialog, which is code, and it is done. |
 
 **Step status vocabulary**, and it means exactly this:
 
@@ -3417,3 +3417,50 @@ the actual OpenCascade kernel - booleans, fillets and shelling included.
 **Verified.** Build clean at 0 warnings. `UI.Tests` 462 -> 466. Suite **1,873** over nine projects,
 0 failed, 0 skipped. `dotnet format` clean. Architecture tests still 15 green, so the new project
 reference breaks no layering rule.
+
+### 2026-08-31 - `E12-T18`: the About box, and a row that was never blocked on a person
+
+**What.** `ProductNotice` in `Spark.Api`, `AboutWindow` in `Spark.UI`, Help and About buttons on
+the toolbar, `--about-window` for photographing it, and `spark --version` rewritten to print the
+same text. Nine tests.
+
+**The row had been sitting under *Blocked on: four things need a human*, and it should not have
+been.** Reading it again, what it needed was a dialog. A dialog is code. The three genuine
+human-blocked items - a third-party STEP viewer, counsel, a signing identity - are unchanged; this
+was miscategorised, and moving it out is worth more than building it.
+
+**One text, in `Spark.Api`, printed by both surfaces.** The command line already carried the
+notice and the About box was going to carry it again; two copies of a licence statement is one
+copy that eventually stops matching the build. `spark --version` now prints
+`ProductNotice.ToText(...)` and the dialog renders `ProductNotice.Build(...)`.
+
+**The tests assert an obligation rather than a preference.** With a kernel loaded the notice
+**must** contain *Open CASCADE Technology*, *LGPL-2.1*, *linked dynamically*, *replaceable* and a
+pointer to `THIRD-PARTY-NOTICES.md`. Without one it must **not** contain them - claiming to link
+something absent is its own kind of wrong. A notice that quietly stops appearing is not a cosmetic
+regression, and the only thing that keeps it true is something failing when it is gone. *Nothing
+here is legal advice; `Q13` is with counsel.*
+
+**One contract change, additive and recorded.** The dialog first showed `opencascade` where the
+command line showed `OpenCascade 8.0.1`, because `IBrepKernel` exposed only `Name` and `Spark.UI`
+deliberately does not reference the provider. `IBrepKernel.Description` is now a **default
+interface member** returning `Name`, overridden by the OCCT provider to return its version: a
+third-party provider compiled against the previous contract still builds and still works, which is
+the easy case ADR-0019 allows. The two audiences differ - a diagnostic wants a short stable token,
+a licence notice wants the number somebody would quote in a bug report.
+
+**Photographed, and the picture is why the version is there.** `--about-window --screenshot` writes
+`PREFIX-about.png`. The first capture read *Solid modelling: opencascade*, which is correct and
+useless on that screen; the second reads *OpenCascade 8.0.1*.
+
+**Also on the toolbar now: Help.** F1 already worked, and a key nobody knows about is a key nobody
+presses.
+
+**`E12-T18` is `In progress`, not `Done`.** The About box is built; the row also asks for the
+**licence texts and the build key** `(occt-tag, vcpkg-baseline, shim-source-hash, rid)` to be
+shipped, so a source offer can be honoured against a specific artefact. That belongs with the
+installer, which needs a signing identity, and is genuinely blocked.
+
+**Verified.** Build clean at 0 warnings. `Engine.Tests` 405 -> 414. Suite **1,882** over nine
+projects, 0 failed, 0 skipped. `dotnet format` clean. `spark --version` run and read; the About box
+captured and read.

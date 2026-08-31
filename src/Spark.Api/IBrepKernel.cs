@@ -195,6 +195,25 @@ public interface IBrepKernel
     /// <summary>What to call this provider in a diagnostic or a tooltip.</summary>
     string Name { get; }
 
+    /// <summary>
+    /// How this provider names itself in a licence notice — the About box and
+    /// <c>spark --version</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Distinct from <see cref="Name"/> because the audiences are.</b> A diagnostic wants a
+    /// short stable token; a licence notice wants the thing a user would quote in a bug report,
+    /// which means the version. <c>opencascade</c> and <c>OpenCascade 8.0.1</c> are both correct
+    /// and only one of them is useful on that screen.
+    /// </para>
+    /// <para>
+    /// A default implementation returning <see cref="Name"/>, so this is an additive change: a
+    /// third-party provider compiled against the previous contract still builds and still works
+    /// (<c>ADR-0019</c>).
+    /// </para>
+    /// </remarks>
+    string Description => Name;
+
     /// <summary>What it can do.</summary>
     BrepCapabilities Capabilities { get; }
 

@@ -101,6 +101,14 @@
         <Button Classes="toolbar" Content="Surfaces" Click="OnLoadSurfaces" />
         <Button Classes="toolbar" Content="Solids" Click="OnLoadSolids" />
         <Button Classes="toolbar" Content="Run" Click="OnRun" />
+
+        <Border Width="1" Margin="6,2" Background="{DynamicResource SparkBorderHairlineBrush}" />
+
+        <!-- Help is F1 as well; the button is here because a key nobody knows about is a key
+             nobody presses, and About is a licence obligation rather than an ornament. -->
+        <Button Classes="toolbar" Content="Help" Click="OnOpenHelp"
+                ToolTip.Tip="Help for the selected node (F1)" />
+        <Button Classes="toolbar" Content="About" Click="OnOpenAbout" />
       </StackPanel>
     </Border>
 
