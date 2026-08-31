@@ -79,7 +79,7 @@ typedef int32_t spark_status;
 #define SPARK_ERR_EXCEPTION     4 /**< OpenCascade raised. The message says what. */
 
 /** The ABI revision. Bumped whenever a signature or an encoding below changes. */
-#define SPARK_OCCT_ABI 1
+#define SPARK_OCCT_ABI 3
 
 /* --------------------------------------------------------------------------------------------
  * Geometry encodings
@@ -211,6 +211,28 @@ SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_shape_counts(
 SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_shape_is_solid(
     const spark_shape* shape, int32_t* out_solid);
 
+/**
+ * Whether a point is inside the shape. Writes 0 or 1.
+ *
+ * Exists so that `Trim` can be a *managed* composition of `spark_occt_split` and this, rather than
+ * a seventh boolean-like entry point that would have to repeat all of split's argument handling.
+ */
+SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_shape_contains(
+    const spark_shape* shape, const double* point, double tolerance, int32_t* out_inside);
+
+/**
+ * How many top-level pieces a shape has.
+ *
+ * One, for anything that is a single solid or shell. More, for the compound `spark_occt_split`
+ * produces. A caller walks them with spark_occt_shape_part.
+ */
+SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_shape_part_count(
+    const spark_shape* shape, int32_t* out_count);
+
+/** One top-level piece, as its own shape. The caller owns it. */
+SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_shape_part(
+    const spark_shape* shape, int32_t index, spark_shape** out);
+
 /* --------------------------------------------------------------------------------------------
  * Construction
  * ------------------------------------------------------------------------------------------ */
@@ -310,6 +332,48 @@ SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_sew(
 /** Repairs a shape: fixes orientation, small edges, and gaps within tolerance. */
 SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_heal(
     const spark_shape* shape, double tolerance, spark_shape** out);
+
+/**
+ * Cuts a shape into pieces with one or more tools, keeping every piece.
+ *
+ * The result is a compound; walk it with spark_occt_shape_part_count and spark_occt_shape_part.
+ * A difference throws the far side away and this does not, which is the whole distinction.
+ */
+SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_split(
+    const spark_shape* shape,
+    const spark_shape* const* tools,
+    int32_t tool_count,
+    double tolerance,
+    spark_shape** out);
+
+/** Offsets every face of a shape by a distance. Negative moves inwards. */
+SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_offset(
+    const spark_shape* shape, double distance, double tolerance, spark_shape** out);
+
+/** Gives a sheet a thickness, making a solid of it. Negative thickens the other way. */
+SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_thicken(
+    const spark_shape* shape, double thickness, double tolerance, spark_shape** out);
+
+/* --------------------------------------------------------------------------------------------
+ * Interchange
+ *
+ * ONE PAIR OF ENTRY POINTS FOR BOTH FORMATS, with the format as an opcode — the same choice as
+ * the single boolean entry point, and for the same reason: every entry point is a thing that has
+ * to keep working across an OpenCascade upgrade.
+ *
+ * Paths are UTF-8 and NUL-terminated, and the library never keeps one.
+ * ------------------------------------------------------------------------------------------ */
+
+#define SPARK_FORMAT_STEP 0
+#define SPARK_FORMAT_IGES 1
+
+/** Writes a shape to a file. */
+SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_write_file(
+    int32_t format, const spark_shape* shape, const char* path);
+
+/** Reads a file into a shape. Everything in the file becomes one shape, a compound if need be. */
+SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_read_file(
+    int32_t format, const char* path, double tolerance, spark_shape** out);
 
 /* --------------------------------------------------------------------------------------------
  * Reading back

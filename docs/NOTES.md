@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N49-N52 added)
+**Last updated:** 2026-08-31 (N49-N54 added)
 
 ---
 
@@ -1541,3 +1541,43 @@ not automatically right for a tessellation: a boolean's tolerance says *how clos
 to count as touching*, and a mesh's says *how many triangles do you want*. They are different
 questions with the same units, and code that carries one `Tolerance` value from a node to both is
 the place the confusion lands.
+
+## N53 — STEP cannot be shipped without XCAF, and the trimmed payload is 45 MB
+
+`M1.6-C7` and `M1.6-C8` both asked what OpenCascade's interchange really drags in, and both were to
+be answered *from the link*. They now are, by walking the transitive DLL closure of
+`spark_occt.dll` with `dumpbin /dependents` rather than by reading documentation.
+
+**`spark_occt.dll` imports fifteen OpenCascade DLLs directly**, and `TKXCAF` is not one of them —
+which was the encouraging half and is not the answer. **The closure is thirty-three DLLs and
+45.1 MB**, and `TKXCAF`, `TKLCAF`, `TKCAF`, `TKVCAF` and `TKCDF` are all in it, pulled in by
+`TKDESTEP`. **So `M1.6-C8`'s answer is no: STEP cannot be used without XCAF**, at the level that
+matters for a payload, whatever the compiler was asked for.
+
+`M1.6-C7`'s answer is the same shape. `freetype.dll`, `TKV3d` and `TKService` are also in the
+closure, arriving through the interchange toolkits rather than through anything Spark asks for
+directly. **Excluding the Visualization module would not drop FreeType while STEP is in the
+build.** The vcpkg port compounds this by installing `opencascade[core,freetype]` — FreeType is a
+default *feature*, not only a consequence of a module.
+
+**Both answers are the unwelcome one and neither costs anything**, which is why the criteria said
+in advance that a finding either way passes. 45.1 MB is *smaller* than the 52.0 MB the build
+script stages, and both are far under the 100 MB that would reopen shipping OCCT by default. The
+number to plan `E13-T17` against is **45.1 MB**, and the way to reproduce it is to walk the closure
+rather than to weigh the directory.
+
+## N54 — A library reached through a C ABI must not own the caller's stdout
+
+OpenCascade's default messenger writes progress to `cout`: a transfer banner per shape, then
+`** WorkSession : Sending all data`, then a line naming the file and its entity count. Inside a
+CAD application with a console that is helpful. Inside `spark export` it lands in the middle of the
+command's own output and makes it undiffable, which is the property `spark run` and `spark export`
+exist to have.
+
+`Message::DefaultMessenger()->RemovePrinters(STANDARD_TYPE(Message_PrinterOStream))` at
+initialisation, beside `OSD::SetSignal(false)`, and for the same reason: **a library on the far
+side of a C ABI has no business owning the caller's process-wide state.** Signal handlers and
+stdout are both process-wide, both are grabbed by default, and both have to be given back.
+
+What the shim has to say still gets out — through `spark_occt_last_error`, which is thread-local
+and is read by the caller when a call fails. That is the whole channel, and it is deliberate.

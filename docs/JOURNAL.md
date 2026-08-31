@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 06:20 +0530
+**Last updated:** 2026-08-31 07:10 +0530
 **Protocol version:** 2
 
 ---
@@ -16,13 +16,13 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1, M1.5, M2, M3 and M4 are done. M5 is substantially done** — the software renderer and CI visual regression (`E11-T16`) are **deferred past M6** deliberately. **M6 has its provider**: OpenCascade is installed, exact booleans, fillets, shelling and tessellation run end to end, and **M1.6 was taken — `M1.6-C2` passed and ADR-0020 stands** |
+| **Milestone** | **M1, M1.5, M2, M3 and M4 are done. M5 is substantially done** (the software renderer and CI visual regression, `E11-T16`, are **deferred past M6** deliberately). **M6 delivers its headline sentence** - solids that can be combined, filleted, shelled, **trimmed** and **exported to STEP**. **M1.6 was taken**: `C1`, `C2`, `C3`, `C7` and `C8` are answered and `C2` passed, so ADR-0020 stands |
 | **Working on** | Nothing. Between steps, inside M6 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The OpenCascade provider** — `native/spark_occt` (a C ABI with no C++ in its header, ~30 entry points, a C smoke test) and `Spark.Geometry.Occt` (`LibraryImport`, `SafeHandle` residency, `IBrepKernel`). Union, difference, intersection, extrude, revolve, loft, fillet, chamfer, shell, sew, heal, tessellate. A `--graph solids` demo, 25 provider tests that **skip** without the shim, and three architecture tests bounding the new project |
+| **Last completed step** | **Split, trim, offset, thicken, STEP and IGES** - ABI version 3. `BRepAlgoAPI_Splitter` keeps every piece where a cut does not; `Trim` is a managed composition of split and a point test rather than a seventh entry point; STEP goes out as AP214 and IGES in BRep mode; `spark export --out part.step` writes the exact surfaces. `docs/examples/solids.spark` is a new golden file. **`M1.6-C7` and `C8` answered from the linker, both no** - STEP pulls XCAF and FreeType, and the whole closure is 45.1 MB |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | M6 continues **behind a working seam**, and [TODO.md](TODO.md#now--finish-m6-behind-the-provider) has the order. The top of it is **`E13-T12`, STEP and IGES** — the provider can already do both and nothing exposes it, which makes it the largest capability sitting unused, and [R12](PRD.md#12-risks) does not retire until it is. After that: `E13-T7`'s split and trim and `E13-T8`'s thicken, draft and offset; then **`E13-T3`'s consumer**, because `Brep.NativeBytes` now reports a real number and the evaluation cache still evicts by entry count (NFR-4 is half done). **`M1.6-C6` moved onto the critical path** — `ShapeFix_Face` and `ShapeFix_Solid` are on the *import* path now, not only behind `Heal`, so what they are allowed to change is a question about every shape that crosses ([N50](NOTES.md), [N51](NOTES.md)). |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1707**: Geometry.Tests 757, UI.Tests 437, Engine.Tests 356, Viewport.Tests 74, Geometry.Properties 43, **Geometry.Occt.Tests 25**, Architecture.Tests 11, Docs.Verify 5), `dotnet format`, and `dotnet run --project src/Spark.Desktop -- --graph solids --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md). **And check the SKIP count**: `Spark.Geometry.Occt.Tests` skips itself when the native shim is absent, so build it first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. The GPU read-back is working again. |
+| **Next action** | M6's headline is delivered; what remains is behind it, and [TODO.md](TODO.md#now--finish-m6-behind-the-provider) has the order. The largest single gap is **`E13-T12` acceptance**: STEP output has been checked by a round trip and by reading the file, and **not by a third-party viewer or a public corpus**, which is what that row actually asks for and what nobody in this repository can do alone. Then **`E13-T3`'s consumer** - `Brep.NativeBytes` reports a real number and the evaluation cache still evicts by entry count (NFR-4 half done). Then `E13-T14` threading (`Q14`), `E13-T16` licence pipeline, `E13-T17` distribution at the **45.1 MB** now measured. **`M1.6-C6`, the `ShapeFix` policy, is on the critical path** - it is on the import path and the file-read path now, not only behind `Heal`. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1724**: Geometry.Tests 757, UI.Tests 439, Engine.Tests 356, Viewport.Tests 74, Geometry.Properties 43, **Geometry.Occt.Tests 39**, Architecture.Tests 11, Docs.Verify 5), `dotnet format`, `dotnet run --project src/Spark.Desktop -- --graph solids --screenshot PREFIX`, and `dotnet run --project src/Spark.Cli -- export --open docs/examples/solids.spark --out OUT.step`. **Check the counts** - [N30](NOTES.md) - **and the SKIP count**: the provider tests skip themselves without the native shim, so run `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt first. |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ in a third-party viewer (M1's stated acceptance), watching the first nightly benchmark run, and deciding `Q15(c)` — whether the ubuntu CI job survives now that D16 has removed its release argument and `E13-T15` has priced its native half. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -86,7 +86,7 @@ Discovered the hard way, and each one costs an hour if rediscovered.
   ```
   for p in tests/*/; do n=$(basename "$p"); (cd "$p/bin/Debug/net10.0" && ./"$n.exe"); done
   ```
-  which should total **1,707 passing, 0 failed, 0 skipped** across eight projects, with the native
+  which should total **1,724 passing, 0 failed, 0 skipped** across eight projects, with the native
   shim built. See [AGENTS.md](../AGENTS.md#before-you-commit).
 - **A C++ toolchain exists as of 2026-08-31, and it is half of what M1.6 needs.** Installed and
   **verified by compiling, not by looking**: CMake 4.4.3 and Ninja 1.13.2 on `PATH`, vcpkg at
@@ -2485,3 +2485,61 @@ Split, trim, thicken, draft and offset are not written. The evaluation cache sti
 `NativeBytes`, so NFR-4 is half done — the number exists and nothing consumes it. `Message_Report`
 translation and the `.brep` dump for reproducing a bug upstream are not written. Trimmed faces come
 *back* from the provider and still cannot be authored.
+
+### 2026-08-31 — Trimmed, and exported to STEP: M6's headline sentence is finished
+
+**`E13-T7` and the rest of `E13-T8`; `E13-T12` opened and mostly landed.** M6 promises **solids
+that can be combined, filleted, shelled, trimmed and exported to STEP**. The provider brought the
+first three. This brings the other two.
+
+**Split is not a fourth boolean, and the test says so in arithmetic.** `BRepAlgoAPI_Splitter` keeps
+every piece where a `Cut` throws the far side away — a 4-cube split by a plate comes back as three
+solids whose volumes *add back up to 64*, and the same cube differenced by the same plate comes
+back at 60.8. **`Trim` is a managed composition of `Split` and a point test** rather than a seventh
+entry point: `spark_occt_shape_contains` is worth having on its own, and the ABI stays small, which
+is D17's whole argument for keeping it hand-written.
+
+**Offset and thicken close `E13-T8` apart from draft.** Thickening needed the same orientation fix
+the importer did, for a reason worth stating: **a sheet has no inside until the call gives it one**,
+and `MakeThickSolidBySimple` follows the sheet's face normal rather than asking. Thickening a
+world-XY plate upwards measured **−8**.
+
+**STEP and IGES are two entry points, not four.** `spark_occt_write_file` and
+`spark_occt_read_file` take a format opcode, and the managed side dispatches on the extension with
+a refusal that names what it does know. STEP goes out as **AP214** — the schema most CAD systems
+read most reliably; AP242 is richer and there are no assemblies, names or colours here to put in
+it. IGES goes out in **BRep mode**, because the alternative loses the topology. A read is healed on
+the way in, which is the one place ADR-0021's caution about `ShapeFix` does not apply: a shape that
+has just crossed a file format has no parameterisation of ours to drift from.
+
+**`spark export --out part.step` works end to end.** `docs/examples/solids.spark` — a new golden
+file, checked in like the curve and surface ones — writes **9 solids, 74 faces, 188 KB** of AP214.
+
+**Two of M1.6's open criteria fell out of the linker, and both answers are no.** `spark_occt.dll`
+imports fifteen OpenCascade toolkits directly and `TKXCAF` is not among them — which was the
+encouraging half and is not the answer. **The transitive closure is thirty-three DLLs and 45.1 MB**,
+and `TKDESTEP` pulls `TKXCAF`, `TKLCAF`, `TKCAF`, `TKVCAF` and `TKCDF` in with it. So **`C8` is no:
+STEP cannot be shipped without XCAF.** `freetype`, `TKV3d` and `TKService` are in the closure too,
+arriving through the interchange toolkits, so **`C7` is also no**. Both criteria said in advance
+that a finding either way passes, and both findings cost nothing: 45.1 MB is *smaller* than the
+52.0 MB the build script stages, and that is now the number `E13-T17` should plan against.
+[N53](NOTES.md).
+
+**One thing was found by reading the CLI's own output.** OpenCascade's default messenger writes to
+`cout` — a transfer banner per shape, then `** WorkSession : Sending all data` — which landed in
+the middle of `spark export`'s output and made it undiffable. `RemovePrinters` at initialisation,
+beside `OSD::SetSignal(false)`, and for the same reason: **a library on the far side of a C ABI has
+no business owning the caller's process-wide state.** [N54](NOTES.md).
+
+**Verified.** The shim builds with zero warnings and its C smoke test now covers a split, a piece
+walk and a point test as well as the boolean; `dotnet build --no-incremental -warnaserror` clean;
+**1,724 tests, 0 failures, 0 skipped** (Geometry 757, UI 439, Engine 356, Viewport 74,
+Geometry.Properties 43, **Geometry.Occt 39**, Architecture 11, Docs.Verify 5); `dotnet format`
+clean; and `spark export --open docs/examples/solids.spark --out part.step` writes a file whose
+text says `CYLINDRICAL_SURFACE` and `ADVANCED_FACE` and never says `POLY_LOOP`.
+
+**What is still owed, said plainly.** `E13-T12`'s real acceptance is a **public corpus and a
+third-party viewer, never our own reader**, and neither has been done — asserting on the file's
+text is evidence a round trip cannot give and is still not a viewer. Draft angles are unwritten.
+The evaluation cache still does not read `NativeBytes`. The threading policy (`E13-T14`, `Q14`) is
+untouched, and so are the licence pipeline (`E13-T16`) and the per-RID distribution (`E13-T17`).

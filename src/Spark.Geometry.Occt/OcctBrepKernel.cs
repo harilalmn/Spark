@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using Spark.Api;
 using Spark.Geometry;
 
@@ -60,8 +61,12 @@ public sealed class OcctBrepKernel : IBrepKernel
         | BrepCapabilities.Fillet
         | BrepCapabilities.Chamfer
         | BrepCapabilities.Shell
+        | BrepCapabilities.Split
+        | BrepCapabilities.Offset
         | BrepCapabilities.Sew
         | BrepCapabilities.Heal
+        | BrepCapabilities.Step
+        | BrepCapabilities.Iges
         | BrepCapabilities.Tessellate;
 
     /// <inheritdoc/>
@@ -199,6 +204,149 @@ public sealed class OcctBrepKernel : IBrepKernel
     }
 
     /// <inheritdoc/>
+    public KernelResult<IReadOnlyList<Brep>> Split(
+        Brep shape, IReadOnlyList<Brep> tools, in Tolerance tolerance)
+    {
+        ArgumentNullException.ThrowIfNull(shape);
+        ArgumentNullException.ThrowIfNull(tools);
+
+        if (tools.Count == 0)
+        {
+            return KernelResult<IReadOnlyList<Brep>>.Failure(
+                Refusal("split", "There is nothing to cut with."));
+        }
+
+        double linear = tolerance.Linear;
+        List<Borrowed> borrowed = [];
+
+        try
+        {
+            using Borrowed subject = Borrow(shape, linear);
+
+            if (subject.Problem is { } problem)
+            {
+                return KernelResult<IReadOnlyList<Brep>>.Failure(problem);
+            }
+
+            IntPtr[] handles = new IntPtr[tools.Count];
+
+            for (int i = 0; i < tools.Count; i++)
+            {
+                ArgumentNullException.ThrowIfNull(tools[i]);
+
+                Borrowed tool = Borrow(tools[i], linear);
+                borrowed.Add(tool);
+
+                if (tool.Problem is { } toolProblem)
+                {
+                    return KernelResult<IReadOnlyList<Brep>>.Failure(toolProblem);
+                }
+
+                handles[i] = tool.Shape!.Pointer;
+            }
+
+            using NativeBuffers buffers = new();
+            int status = NativeMethods.spark_occt_split(
+                subject.Shape!.Pointer, buffers.Pin(handles), handles.Length, linear, out IntPtr raw);
+
+            if (status != NativeMethods.Ok || raw == IntPtr.Zero)
+            {
+                return KernelResult<IReadOnlyList<Brep>>.Failure(Diagnose(status, "split"));
+            }
+
+            using OcctShape result = OcctShape.Own(raw);
+
+            return Pieces(result, "split");
+        }
+        finally
+        {
+            foreach (Borrowed tool in borrowed)
+            {
+                tool.Dispose();
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <b>Built out of <see cref="Split"/> and a point test rather than out of a native entry
+    /// point of its own.</b> The ABI is small on purpose, and *trim* is *split, then choose* — a
+    /// seventh boolean-shaped entry point would repeat every argument split already handles, for
+    /// the sake of one classification the provider can already do.
+    /// </remarks>
+    public KernelResult<Brep> Trim(
+        Brep shape, IReadOnlyList<Brep> tools, in Point3d keep, in Tolerance tolerance)
+    {
+        ArgumentNullException.ThrowIfNull(shape);
+        ArgumentNullException.ThrowIfNull(tools);
+
+        double linear = tolerance.Linear;
+        double[] point = [keep.X, keep.Y, keep.Z];
+
+        KernelResult<IReadOnlyList<Brep>> split = Split(shape, tools, tolerance);
+
+        if (!split.TryGetValue(out IReadOnlyList<Brep>? pieces))
+        {
+            return KernelResult<Brep>.Failure(split.Diagnostic!);
+        }
+
+        foreach (Brep piece in pieces)
+        {
+            if (piece.Residency is not OcctResidency resident)
+            {
+                continue;
+            }
+
+            int[] inside = new int[1];
+
+            using NativeBuffers buffers = new();
+            int status = NativeMethods.spark_occt_shape_contains(
+                resident.Shape.Pointer, buffers.Pin(point), linear, buffers.Pin(inside));
+
+            if (status == NativeMethods.Ok && inside[0] != 0)
+            {
+                return KernelResult<Brep>.Success(piece);
+            }
+        }
+
+        return KernelResult<Brep>.Failure(Refusal(
+            "trim",
+            "The cut produced "
+            + pieces.Count.ToString(CultureInfo.InvariantCulture)
+            + " piece(s) and the point to keep is in none of them."));
+    }
+
+    /// <inheritdoc/>
+    public KernelResult<Brep> Offset(Brep shape, double distance, in Tolerance tolerance)
+    {
+        ArgumentNullException.ThrowIfNull(shape);
+
+        double linear = tolerance.Linear;
+
+        return Modify("offset", shape, linear, (native, buffers) =>
+        {
+            int status = NativeMethods.spark_occt_offset(native, distance, linear, out IntPtr result);
+
+            return (status, status == NativeMethods.Ok ? result : IntPtr.Zero);
+        });
+    }
+
+    /// <inheritdoc/>
+    public KernelResult<Brep> Thicken(Brep sheet, double thickness, in Tolerance tolerance)
+    {
+        ArgumentNullException.ThrowIfNull(sheet);
+
+        double linear = tolerance.Linear;
+
+        return Modify("thicken", sheet, linear, (native, buffers) =>
+        {
+            int status = NativeMethods.spark_occt_thicken(native, thickness, linear, out IntPtr result);
+
+            return (status, status == NativeMethods.Ok ? result : IntPtr.Zero);
+        });
+    }
+
+    /// <inheritdoc/>
     public KernelResult<Brep> Sew(IReadOnlyList<Brep> pieces, in Tolerance tolerance)
     {
         ArgumentNullException.ThrowIfNull(pieces);
@@ -258,6 +406,85 @@ public sealed class OcctBrepKernel : IBrepKernel
 
             return (status, status == NativeMethods.Ok ? result : IntPtr.Zero);
         });
+    }
+
+    /// <inheritdoc/>
+    public KernelResult<Brep> ReadFile(string path, in Tolerance tolerance)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        if (!TryFormat(path, out int format, out SparkDiagnostic? unknown))
+        {
+            return KernelResult<Brep>.Failure(unknown!);
+        }
+
+        int status = NativeMethods.spark_occt_read_file(
+            format, path, tolerance.Linear, out IntPtr raw);
+
+        return Wrap(status, raw, "read that file");
+    }
+
+    /// <inheritdoc/>
+    public KernelResult<bool> WriteFile(Brep shape, string path, in Tolerance tolerance)
+    {
+        ArgumentNullException.ThrowIfNull(shape);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        if (!TryFormat(path, out int format, out SparkDiagnostic? unknown))
+        {
+            return KernelResult<bool>.Failure(unknown!);
+        }
+
+        using Borrowed borrowed = Borrow(shape, tolerance.Linear);
+
+        if (borrowed.Problem is { } problem)
+        {
+            return KernelResult<bool>.Failure(problem);
+        }
+
+        int status = NativeMethods.spark_occt_write_file(format, borrowed.Shape!.Pointer, path);
+
+        return status == NativeMethods.Ok
+            ? KernelResult<bool>.Success(true)
+            : KernelResult<bool>.Failure(Diagnose(status, "write that file"));
+    }
+
+    /// <summary>The interchange format a path names, or a diagnostic saying it names none.</summary>
+    /// <remarks>
+    /// <b>By extension, and the list is closed.</b> Sniffing the content would be cleverer and
+    /// would make a mistyped extension silently succeed, which is a worse failure than the one it
+    /// avoids: a user who typed `.stp` and got IGES has no way to find out.
+    /// </remarks>
+    private static bool TryFormat(string path, out int format, out SparkDiagnostic? problem)
+    {
+        string extension = Path.GetExtension(path);
+
+        if (extension.Equals(".step", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".stp", StringComparison.OrdinalIgnoreCase))
+        {
+            format = NativeMethods.FormatStep;
+            problem = null;
+
+            return true;
+        }
+
+        if (extension.Equals(".iges", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".igs", StringComparison.OrdinalIgnoreCase))
+        {
+            format = NativeMethods.FormatIges;
+            problem = null;
+
+            return true;
+        }
+
+        format = -1;
+        problem = Refusal(
+            "use that file",
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"'{extension}' is not a solid-modelling interchange format this build knows. It reads and writes .step, .stp, .iges and .igs."));
+
+        return false;
     }
 
     /// <inheritdoc/>
@@ -450,6 +677,46 @@ public sealed class OcctBrepKernel : IBrepKernel
             KernelDiagnostics.Refused,
             string.Create(CultureInfo.InvariantCulture, $"The kernel could not {operation}."),
             detail: NativeErrors.Describe(status, operation),
+            helpTopicId: KernelDiagnostics.SolidsTopic);
+
+    /// <summary>Every top-level piece of a shape, each resident in its own right.</summary>
+    private static KernelResult<IReadOnlyList<Brep>> Pieces(OcctShape shape, string operation)
+    {
+        int[] count = new int[1];
+
+        using (NativeBuffers buffers = new())
+        {
+            int status = NativeMethods.spark_occt_shape_part_count(shape.Pointer, buffers.Pin(count));
+
+            if (status != NativeMethods.Ok)
+            {
+                return KernelResult<IReadOnlyList<Brep>>.Failure(Diagnose(status, operation));
+            }
+        }
+
+        List<Brep> pieces = new(count[0]);
+
+        for (int i = 0; i < count[0]; i++)
+        {
+            int status = NativeMethods.spark_occt_shape_part(shape.Pointer, i, out IntPtr raw);
+
+            if (status != NativeMethods.Ok || raw == IntPtr.Zero)
+            {
+                return KernelResult<IReadOnlyList<Brep>>.Failure(Diagnose(status, operation));
+            }
+
+            pieces.Add(new Brep(new OcctResidency(OcctShape.Own(raw))));
+        }
+
+        return KernelResult<IReadOnlyList<Brep>>.Success(pieces);
+    }
+
+    private static SparkDiagnostic Refusal(string operation, string detail) =>
+        new(
+            DiagnosticSeverity.Error,
+            KernelDiagnostics.Refused,
+            string.Create(CultureInfo.InvariantCulture, $"The kernel could not {operation}."),
+            detail: detail,
             helpTopicId: KernelDiagnostics.SolidsTopic);
 
     private static KernelResult<Brep> Refused(string operation, string detail) =>

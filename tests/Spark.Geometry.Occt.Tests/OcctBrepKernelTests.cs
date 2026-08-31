@@ -30,10 +30,15 @@ public sealed class OcctBrepKernelTests
         Assert.True(Kernel.Capabilities.HasFlag(BrepCapabilities.Fillet));
         Assert.True(Kernel.Capabilities.HasFlag(BrepCapabilities.Tessellate));
 
+        Assert.True(Kernel.Capabilities.HasFlag(BrepCapabilities.Split));
+        Assert.True(Kernel.Capabilities.HasFlag(BrepCapabilities.Offset));
+        Assert.True(Kernel.Capabilities.HasFlag(BrepCapabilities.Step));
+
         // Not claimed, and the absence is the assertion: a capability flag is what the node
         // library greys operations out on, so claiming one the ABI cannot do is worse than
-        // claiming nothing.
-        Assert.False(Kernel.Capabilities.HasFlag(BrepCapabilities.Step));
+        // claiming nothing. `Sweep` needs a rail and there is no entry point for one;
+        // `MeshBoolean` is E2's and is deferred to 1.x.
+        Assert.False(Kernel.Capabilities.HasFlag(BrepCapabilities.Sweep));
         Assert.False(Kernel.Capabilities.HasFlag(BrepCapabilities.MeshBoolean));
     }
 
@@ -291,6 +296,107 @@ public sealed class OcctBrepKernelTests
             Fine).Value;
 
         Assert.Equal(27.0 - (2.2 * 2.2 * 2.2), Kernel.Tessellate(hollow, Fine).Value.Volume(), 1);
+    }
+
+    /// <summary>
+    /// <b>The difference between a split and a difference, measured.</b> A block cut by a plate
+    /// comes back as pieces whose volumes <i>add up to the block's</i>; the same block differenced
+    /// by the same plate comes back short by the plate. That arithmetic is the whole reason
+    /// `Split` is not a fourth boolean opcode.
+    /// </summary>
+    [NativeFact]
+    public void ASplitKeepsEveryPieceAndADifferenceDoesNot()
+    {
+        Brep block = Box(0, 0, 0, 4, 4, 4);
+        Brep plate = Box(-1, -1, 1.9, 6, 6, 0.2);
+
+        IReadOnlyList<Brep> pieces = Kernel.Split(block, [plate], Fine).Value;
+
+        Assert.True(pieces.Count >= 2, $"the split produced {pieces.Count} piece(s)");
+
+        double total = pieces.Sum(piece => Kernel.Tessellate(piece, Fine).Value.Volume());
+        Assert.Equal(64.0, total, 1);
+
+        // And the difference throws the middle away.
+        Brep cut = Kernel.Difference(block, plate, Fine).Value;
+        Assert.Equal(64.0 - (4 * 4 * 0.2), Kernel.Tessellate(cut, Fine).Value.Volume(), 1);
+    }
+
+    [NativeFact]
+    public void ASplitThatCutsNothingReturnsTheShapeItself()
+    {
+        Brep block = Box(0, 0, 0, 2, 2, 2);
+        Brep faraway = Box(50, 50, 50, 1, 1, 1);
+
+        IReadOnlyList<Brep> pieces = Kernel.Split(block, [faraway], Fine).Value;
+
+        Assert.Single(pieces);
+        Assert.Equal(8.0, Kernel.Tessellate(pieces[0], Fine).Value.Volume(), 1);
+    }
+
+    /// <summary>Trimming keeps the piece the point is in.</summary>
+    [NativeFact]
+    public void TrimmingKeepsThePieceThePointIsIn()
+    {
+        Brep block = Box(0, 0, 0, 4, 4, 4);
+        Brep plate = Box(-1, -1, 1.9, 6, 6, 0.2);
+
+        Brep lower = Kernel.Trim(block, [plate], new Point3d(2, 2, 1), Fine).Value;
+        Brep upper = Kernel.Trim(block, [plate], new Point3d(2, 2, 3), Fine).Value;
+
+        Assert.Equal(4 * 4 * 1.9, Kernel.Tessellate(lower, Fine).Value.Volume(), 1);
+        Assert.Equal(4 * 4 * 1.9, Kernel.Tessellate(upper, Fine).Value.Volume(), 1);
+    }
+
+    [NativeFact]
+    public void TrimmingToAPointOutsideEveryPieceIsRefused()
+    {
+        Brep block = Box(0, 0, 0, 4, 4, 4);
+        Brep plate = Box(-1, -1, 1.9, 6, 6, 0.2);
+
+        KernelResult<Brep> result = Kernel.Trim(block, [plate], new Point3d(100, 100, 100), Fine);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(KernelDiagnostics.Refused, result.Diagnostic!.Code);
+        Assert.Contains("none of them", result.Diagnostic.Detail, StringComparison.Ordinal);
+    }
+
+    [NativeFact]
+    public void OffsettingASolidGrowsIt()
+    {
+        Brep block = Box(0, 0, 0, 2, 2, 2);
+
+        Brep bigger = Kernel.Offset(block, 0.25, Fine).Value;
+
+        // A 2.5-cube with rounded corners: bigger than 8, smaller than 15.625.
+        double volume = Kernel.Tessellate(bigger, Fine).Value.Volume();
+        Assert.True(volume > 8.0, $"the offset shrank it to {volume}");
+        Assert.True(volume < 15.7, $"the offset grew it to {volume}");
+    }
+
+    /// <summary>
+    /// Thickening is the counterpart of hollowing: it adds material to something that encloses
+    /// nothing yet, rather than taking it out of something that does.
+    /// </summary>
+    [NativeFact]
+    public void ThickeningASheetMakesASolid()
+    {
+        // One face on one surface, no loops: the provider builds it from the surface's own domain,
+        // which is exactly what a sheet is.
+        Brep sheet = new(
+            [],
+            [],
+            [PlaneSurface.ByPlaneSize(Plane.WorldXY, 4, 4)],
+            [],
+            [],
+            [],
+            [],
+            [new BrepFace(0, 0, 0, false)],
+            [new BrepShell(0, 1)]);
+
+        Brep solid = Kernel.Thicken(sheet, 0.5, Fine).Value;
+
+        Assert.Equal(16.0 * 0.5, Kernel.Tessellate(solid, Fine).Value.Volume(), 1);
     }
 
     [NativeFact]

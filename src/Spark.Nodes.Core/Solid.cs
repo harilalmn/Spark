@@ -78,6 +78,53 @@ public static class Solid
     public static Brep Extrude(Spark.Geometry.Curve profile, Vector3d direction) =>
         Unwrap(BrepKernel.Current.Extrude(profile, direction, cap: true, Tolerance.Default));
 
+    /// <summary>Cuts a solid into pieces and keeps all of them.</summary>
+    /// <param name="solid">The solid to cut.</param>
+    /// <param name="cutter">What to cut it with.</param>
+    /// <returns>The pieces.</returns>
+    /// <remarks>
+    /// <b>The difference from <see cref="Difference"/> is that nothing is thrown away.</b> A block
+    /// split by a plane comes back as two solids whose volumes add up to the block's; the same
+    /// block *differenced* by the same tool comes back as one. Use this when both halves matter.
+    /// </remarks>
+    [return: NodePort("pieces")]
+    public static IReadOnlyList<Brep> Split(Brep solid, Brep cutter) =>
+        Unwrap(BrepKernel.Current.Split(solid, [cutter], Tolerance.Default));
+
+    /// <summary>Cuts a solid and keeps only the piece a point is in.</summary>
+    /// <param name="solid">The solid to cut.</param>
+    /// <param name="cutter">What to cut it with.</param>
+    /// <param name="keep">A point inside the piece to keep.</param>
+    /// <returns>The surviving piece.</returns>
+    /// <remarks>
+    /// <b>Which side to keep has to be said somehow, and a point is the least surprising way to
+    /// say it.</b> An index would be an index into an order nobody can predict; a direction means
+    /// nothing for a cutter that cuts more than once.
+    /// </remarks>
+    [return: NodePort("solid")]
+    public static Brep Trim(Brep solid, Brep cutter, Point3d keep) =>
+        Unwrap(BrepKernel.Current.Trim(solid, [cutter], keep, Tolerance.Default));
+
+    /// <summary>Moves every face of a solid outwards or inwards.</summary>
+    /// <param name="solid">The solid.</param>
+    /// <param name="distance">How far. Negative moves inwards.</param>
+    /// <returns>The offset solid.</returns>
+    [return: NodePort("solid")]
+    public static Brep Offset(Brep solid, double distance = 0.1) =>
+        Unwrap(BrepKernel.Current.Offset(solid, distance, Tolerance.Default));
+
+    /// <summary>Gives an open sheet a thickness, turning it into a solid.</summary>
+    /// <param name="sheet">The sheet.</param>
+    /// <param name="thickness">How thick. Negative thickens the other way.</param>
+    /// <returns>The solid.</returns>
+    /// <remarks>
+    /// The counterpart of <see cref="Hollow"/>: that one takes material out of a closed solid,
+    /// this one adds it to something that encloses nothing yet.
+    /// </remarks>
+    [return: NodePort("solid")]
+    public static Brep Thicken(Brep sheet, double thickness = 0.1) =>
+        Unwrap(BrepKernel.Current.Thicken(sheet, thickness, Tolerance.Default));
+
     /// <summary>Rounds a solid's edges.</summary>
     /// <param name="solid">The solid.</param>
     /// <param name="radius">The fillet radius.</param>

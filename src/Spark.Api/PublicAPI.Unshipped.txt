@@ -44,11 +44,17 @@ Spark.Api.IBrepKernel.Heal(Spark.Geometry.Brep! shape, in Spark.Geometry.Toleran
 Spark.Api.IBrepKernel.Intersection(Spark.Geometry.Brep! first, Spark.Geometry.Brep! second, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.IBrepKernel.Loft(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>! profiles, bool closed, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.IBrepKernel.Name.get -> string!
+Spark.Api.IBrepKernel.Offset(Spark.Geometry.Brep! shape, double distance, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.IBrepKernel.ReadFile(string! path, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.IBrepKernel.Revolve(Spark.Geometry.Curve! profile, in Spark.Geometry.Point3d axisOrigin, in Spark.Geometry.Vector3d axisDirection, Spark.Geometry.Angle angle, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.IBrepKernel.Sew(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>! pieces, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.IBrepKernel.Shell(Spark.Geometry.Brep! solid, System.Collections.Generic.IReadOnlyList<int>! facesToOpen, double thickness, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.IBrepKernel.Split(Spark.Geometry.Brep! shape, System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>! tools, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>!>
 Spark.Api.IBrepKernel.Tessellate(Spark.Geometry.Brep! shape, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Mesh!>
+Spark.Api.IBrepKernel.Thicken(Spark.Geometry.Brep! sheet, double thickness, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.IBrepKernel.Trim(Spark.Geometry.Brep! shape, System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>! tools, in Spark.Geometry.Point3d keep, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.IBrepKernel.Union(Spark.Geometry.Brep! first, Spark.Geometry.Brep! second, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.IBrepKernel.WriteFile(Spark.Geometry.Brep! shape, string! path, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<bool>
 Spark.Api.IEvaluationScheduler
 Spark.Api.IEvaluationScheduler.Run(System.Collections.Generic.IReadOnlyList<System.Action!>! operations, System.Threading.CancellationToken cancellationToken) -> void
 Spark.Api.IScriptNodeFactory
@@ -161,12 +167,18 @@ Spark.Api.UnavailableBrepKernel.Heal(Spark.Geometry.Brep! shape, in Spark.Geomet
 Spark.Api.UnavailableBrepKernel.Intersection(Spark.Geometry.Brep! first, Spark.Geometry.Brep! second, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.UnavailableBrepKernel.Loft(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>! profiles, bool closed, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.UnavailableBrepKernel.Name.get -> string!
+Spark.Api.UnavailableBrepKernel.Offset(Spark.Geometry.Brep! shape, double distance, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.UnavailableBrepKernel.ReadFile(string! path, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.UnavailableBrepKernel.Revolve(Spark.Geometry.Curve! profile, in Spark.Geometry.Point3d axisOrigin, in Spark.Geometry.Vector3d axisDirection, Spark.Geometry.Angle angle, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.UnavailableBrepKernel.Sew(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>! pieces, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.UnavailableBrepKernel.Shell(Spark.Geometry.Brep! solid, System.Collections.Generic.IReadOnlyList<int>! facesToOpen, double thickness, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.UnavailableBrepKernel.Split(Spark.Geometry.Brep! shape, System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>! tools, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>!>
 Spark.Api.UnavailableBrepKernel.Tessellate(Spark.Geometry.Brep! shape, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Mesh!>
+Spark.Api.UnavailableBrepKernel.Thicken(Spark.Geometry.Brep! sheet, double thickness, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.UnavailableBrepKernel.Trim(Spark.Geometry.Brep! shape, System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>! tools, in Spark.Geometry.Point3d keep, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.UnavailableBrepKernel.UnavailableBrepKernel() -> void
 Spark.Api.UnavailableBrepKernel.Union(Spark.Geometry.Brep! first, Spark.Geometry.Brep! second, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.UnavailableBrepKernel.WriteFile(Spark.Geometry.Brep! shape, string! path, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<bool>
 Spark.Api.ValueText
 const Spark.Api.KernelDiagnostics.Refused = "SPK1081" -> string!
 const Spark.Api.KernelDiagnostics.SolidsTopic = "concepts.solids" -> string!

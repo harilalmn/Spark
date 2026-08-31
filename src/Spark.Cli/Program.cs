@@ -280,6 +280,53 @@ internal static class Program
         // name lies about its contents.
         string extension = Path.GetExtension(output).ToUpperInvariant();
 
+        if (extension is ".STEP" or ".STP" or ".IGES" or ".IGS")
+        {
+            List<Brep> solids = [.. Solids(graph, result)];
+
+            if (solids.Count == 0)
+            {
+                Console.Error.WriteLine(
+                    "spark: the graph produced no solids, so nothing was written. STEP and IGES "
+                    + "carry exact solids; use .obj, .stl, .ply or .glb for curves and meshes.");
+
+                return result.HasErrors ? 1 : 2;
+            }
+
+            // Several solids become one shape by sewing, because a STEP file holding one product
+            // is what a receiving CAD system expects from `--out one-file.step`. Sewing rather
+            // than a union: a union would merge solids that merely touch, which is a modelling
+            // decision nobody asked for.
+            KernelResult<Brep> together = solids.Count == 1
+                ? KernelResult<Brep>.Success(solids[0])
+                : BrepKernel.Current.Sew(solids, chosen);
+
+            if (!together.TryGetValue(out Brep? shape))
+            {
+                Console.Error.WriteLine($"spark: {together.Diagnostic!.Code}: {together.Diagnostic.Message}");
+                Console.Error.WriteLine($"spark: {together.Diagnostic.Detail}");
+
+                return 1;
+            }
+
+            KernelResult<bool> wrote = BrepKernel.Current.WriteFile(shape, output, chosen);
+
+            if (!wrote.IsSuccess)
+            {
+                Console.Error.WriteLine($"spark: {wrote.Diagnostic!.Code}: {wrote.Diagnostic.Message}");
+                Console.Error.WriteLine($"spark: {wrote.Diagnostic.Detail}");
+
+                return 1;
+            }
+
+            Console.WriteLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"spark: wrote {solids.Count} solid(s), {shape.FaceCount} face(s), to {output} "
+                + $"({result.NodesEvaluated} node(s) evaluated, {result.CacheHits} cache hit(s))"));
+
+            return result.HasErrors ? 1 : 0;
+        }
+
         if (extension is ".STL" or ".PLY" or ".GLB")
         {
             List<Mesh> meshes = [.. Meshes(graph, result, chosen)];
@@ -409,6 +456,62 @@ internal static class Program
         }
     }
 
+    /// <summary>
+    /// Every solid the graph produced, in node order, with repeats removed by reference.
+    /// </summary>
+    /// <remarks>
+    /// <b>Solids and not their tessellations.</b> The whole point of a STEP export is that the
+    /// exact surfaces travel; harvesting through <see cref="Meshes"/> would write a file full of
+    /// triangles with a `.step` extension, which is worse than refusing.
+    /// </remarks>
+    private static IEnumerable<Brep> Solids(Graph graph, EvaluationResult result)
+    {
+        HashSet<object> seen = new(ReferenceEqualityComparer.Instance);
+
+        foreach (NodeInstance node in graph.Nodes())
+        {
+            for (int port = 0; port < node.Definition.Outputs.Count; port++)
+            {
+                foreach (Brep solid in SolidsIn(result.Value(node.Id, port)))
+                {
+                    if (seen.Add(solid))
+                    {
+                        yield return solid;
+                    }
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<Brep> SolidsIn(object? value)
+    {
+        switch (value)
+        {
+            case Brep solid:
+                yield return solid;
+                break;
+
+            case Displayable displayable:
+                foreach (Brep nested in SolidsIn(displayable.Geometry))
+                {
+                    yield return nested;
+                }
+
+                break;
+
+            case System.Collections.IEnumerable list and not string:
+                foreach (object? item in list)
+                {
+                    foreach (Brep nested in SolidsIn(item))
+                    {
+                        yield return nested;
+                    }
+                }
+
+                break;
+        }
+    }
+
     private static IEnumerable<object> Renderable(object? value)
     {
         switch (value)
@@ -534,7 +637,9 @@ internal static class Program
         Console.WriteLine("  spark export --open GRAPH.spark --out FILE.[obj|stl|ply|glb] [--tolerance T]");
         Console.WriteLine("      Evaluate a graph with no window and write its geometry.");
         Console.WriteLine("      The format comes from the extension: obj for curves and meshes,");
-        Console.WriteLine("      stl, ply and glb for meshes. Surfaces are tessellated on the way out.");
+        Console.WriteLine("      stl, ply and glb for meshes, step and iges for exact solids.");
+        Console.WriteLine("      Surfaces are tessellated on the way out; solids are not - a STEP");
+        Console.WriteLine("      file carries the exact surfaces, which is the point of having them.");
         Console.WriteLine("      Curves become polylines; the tolerance used is in the file's header.");
         Console.WriteLine();
         Console.WriteLine("  spark --version");

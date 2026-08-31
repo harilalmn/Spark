@@ -281,6 +281,51 @@ public sealed class CanvasGraphTests
     }
 
     /// <summary>
+    /// `docs/examples/solids.spark` is exactly what this build saves.
+    /// </summary>
+    /// <remarks>
+    /// <b>It is checked in even though evaluating it needs a native provider this test does not
+    /// have.</b> The file is a document, and a document round-trips whether or not the operations
+    /// in it can run — which is the same reason `--no-script` can open a graph containing a code
+    /// block it refuses to execute. What this cannot check, and the byte comparison never could,
+    /// is that the solids come out; `Spark.Geometry.Occt.Tests` does that.
+    /// </remarks>
+    [Fact]
+    public void TheCheckedInSolidsExampleMatchesWhatThisBuildWrites()
+    {
+        string path = ExamplePath("solids.spark");
+
+        if (Environment.GetEnvironmentVariable("SPARK_UPDATE_EXAMPLES") == "1")
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, CanvasDocument.Save(DemoGraphs.Solids(TestGraphs.Library)));
+        }
+
+        Assert.True(File.Exists(path), $"The example graph is missing: {path}");
+
+        string expected = File.ReadAllText(path).ReplaceLineEndings(LineFeed);
+        string actual = CanvasDocument.Save(DemoGraphs.Solids(TestGraphs.Library))
+            .ReplaceLineEndings(LineFeed);
+
+        Assert.Equal(expected, actual);
+    }
+
+    /// <summary>
+    /// The solids example opens and binds every node, which is the half a byte comparison cannot
+    /// check. It is deliberately not evaluated: without a provider the kernel operations refuse,
+    /// and that refusal is correct rather than a failure of the file.
+    /// </summary>
+    [Fact]
+    public void TheCheckedInSolidsExampleOpensAndBinds()
+    {
+        CanvasGraph opened = CanvasDocument.Open(
+            File.ReadAllText(ExamplePath("solids.spark")), TestGraphs.Library);
+
+        Assert.Equal(DemoGraphs.Solids(TestGraphs.Library).Nodes.Count, opened.Nodes.Count);
+        Assert.Equal(DemoGraphs.Solids(TestGraphs.Library).Wires.Count, opened.Wires.Count);
+    }
+
+    /// <summary>
     /// The surface example opens, evaluates without error, and produces surfaces — which is the
     /// half a byte comparison cannot check.
     /// </summary>

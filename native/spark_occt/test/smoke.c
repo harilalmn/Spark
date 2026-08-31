@@ -269,6 +269,46 @@ int main(void)
         }
     }
 
+    /* A split keeps every piece, which is what makes it not a fourth boolean. */
+    {
+        spark_shape* plate = NULL;
+        spark_shape* pieces = NULL;
+        int32_t parts = 0;
+
+        offset_frame(frame, -1.0, -1.0, 1.9);
+        spark_occt_make_box(frame, 6.0, 6.0, 0.2, &plate);
+
+        check(
+            spark_occt_split(box, (const spark_shape* const*)&plate, 1, 0.0, &pieces) == SPARK_OK,
+            "a box splits on a plate");
+
+        if (pieces != NULL)
+        {
+            check(
+                spark_occt_shape_part_count(pieces, &parts) == SPARK_OK && parts >= 2,
+                "the split produced more than one piece");
+            printf("  ..   %d pieces\n", parts);
+
+            {
+                spark_shape* first = NULL;
+                check(spark_occt_shape_part(pieces, 0, &first) == SPARK_OK, "a piece comes out");
+                spark_occt_shape_release(first);
+            }
+        }
+
+        /* And a point inside the box is inside the box. */
+        {
+            const double middle[3] = { 1.0, 1.5, 2.0 };
+            int32_t inside = 0;
+            check(
+                spark_occt_shape_contains(box, middle, 0.0, &inside) == SPARK_OK && inside == 1,
+                "a point in the middle of the box is inside it");
+        }
+
+        spark_occt_shape_release(pieces);
+        spark_occt_shape_release(plate);
+    }
+
     /* A cylinder, because it is the shape whose exactness is the whole argument: three faces. */
     {
         spark_shape* cylinder = NULL;

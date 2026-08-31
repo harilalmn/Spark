@@ -33,8 +33,9 @@ which ships with Spark.
 >
 > **And exact solid modelling, through OpenCascade.** `IBrepKernel` is the seam; `spark_occt` is a
 > C ABI over OpenCascade that we wrote and own; `Spark.Geometry.Occt` is the only assembly
-> permitted to see a native handle. Union, difference, intersection, extrude, revolve, loft,
-> fillet, chamfer, shell, sew, heal and tessellate. **A shape stays inside the provider between
+> permitted to see a native handle. Union, difference, intersection, split, trim, extrude, revolve,
+> loft, fillet, chamfer, shell, offset, thicken, sew, heal, tessellate, **and STEP and IGES both
+> ways** — `spark export --out part.step` writes the exact surfaces rather than triangles. **A shape stays inside the provider between
 > operations** — a chain of booleans converts twice, not once per step — and **a cylinder comes
 > back a cylinder** rather than a spline that happens to be round, which is the whole reason for
 > taking an exact kernel.
@@ -67,10 +68,11 @@ which ships with Spark.
 > header. That is M1's demoable, and the first proof that a graph is a document and an evaluation
 > is a computation rather than something the desktop application does to itself.
 >
-> **What does not exist.** No STEP or IGES, though the provider can do both. No split, trim,
-> thicken, draft or offset. No packages. No mesh booleans. Trimmed faces come *back* from the
-> provider but cannot be authored directly. The software renderer and the CI visual-regression
-> check are deliberately deferred past M6.
+> **What does not exist.** No AP242, no draft angles, no packages, no mesh booleans. Trimmed faces
+> come *back* from the provider but cannot be authored directly. STEP output has been checked by a
+> round trip and by reading the file, and **not yet by a third-party viewer**, which is the check
+> that counts. The software renderer and the CI visual-regression check are deliberately deferred
+> past M6.
 >
 > **The benchmarks are guards now, not reports.** A nightly workflow runs the three suites on
 > Windows and Linux and the application's own 2 000-node canvas benchmark on Windows, and fails
@@ -79,7 +81,7 @@ which ships with Spark.
 >
 > What has been run, on Windows, on 2026-08-31:
 > `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over eighteen projects;
-> **1,707 tests pass** across eight projects, with the native shim built and none of them skipped;
+> **1,724 tests pass** across eight projects, with the native shim built and none of them skipped;
 > `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean; and the nightly's whole
 > pipeline — nineteen benchmark cases, the canvas benchmark and the budget check — is green.
 > **CI ran the build, the tests and the format check on Windows and Linux on commit `53596ab` and
@@ -277,11 +279,11 @@ picture of the viewport and exits — the viewport one is a GPU read-back rather
 session and in CI. The first two exist so that opening a particular graph can be checked without
 a human driving a file dialog.
 
-`dotnet test` finds **1,707 tests** across eight projects. `Spark.Geometry.Tests` (757) and
+`dotnet test` finds **1,724 tests** across eight projects. `Spark.Geometry.Tests` (757) and
 `Spark.Geometry.Properties` (43) cover the kernel by example and by CsCheck property
 respectively; `Spark.Engine.Tests` (356) covers the graph, the replicator and the importer;
-`Spark.UI.Tests` (437) drives the canvas headlessly with real pointer gestures;
-`Spark.Viewport.Tests` (74) covers the scene and the camera; `Spark.Geometry.Occt.Tests` (25)
+`Spark.UI.Tests` (439) drives the canvas headlessly with real pointer gestures;
+`Spark.Viewport.Tests` (74) covers the scene and the camera; `Spark.Geometry.Occt.Tests` (39)
 drives the OpenCascade provider and **skips itself** when the native shim is absent;
 `Spark.Architecture.Tests` (11) enforces the reference graph below by reading `.csproj` files as
 XML; and `Spark.Docs.Verify` (5) checks these documents against the repository. The last two were deliberately stood up

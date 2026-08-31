@@ -26,7 +26,7 @@ internal static partial class NativeMethods
     internal const string Library = "spark_occt";
 
     /// <summary>The ABI this binding was written against. Must match the library's own.</summary>
-    internal const int AbiVersion = 1;
+    internal const int AbiVersion = 3;
 
     internal const int Ok = 0;
     internal const int ErrorArgument = 1;
@@ -50,6 +50,9 @@ internal static partial class NativeMethods
     internal const int SurfaceSphere = 4;
     internal const int SurfaceTorus = 5;
     internal const int SurfaceNurbs = 6;
+
+    internal const int FormatStep = 0;
+    internal const int FormatIges = 1;
 
     internal const int LoopOuter = 0;
     internal const int LoopInner = 1;
@@ -179,6 +182,43 @@ internal static partial class NativeMethods
     [LibraryImport(Library)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     internal static partial int spark_occt_heal(IntPtr shape, double tolerance, out IntPtr result);
+
+    [LibraryImport(Library)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    internal static partial int spark_occt_shape_contains(
+        IntPtr shape, IntPtr point, double tolerance, IntPtr inside);
+
+    [LibraryImport(Library)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    internal static partial int spark_occt_shape_part_count(IntPtr shape, IntPtr count);
+
+    [LibraryImport(Library)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    internal static partial int spark_occt_shape_part(IntPtr shape, int index, out IntPtr part);
+
+    [LibraryImport(Library)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    internal static partial int spark_occt_split(
+        IntPtr shape, IntPtr tools, int toolCount, double tolerance, out IntPtr result);
+
+    [LibraryImport(Library)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    internal static partial int spark_occt_offset(
+        IntPtr shape, double distance, double tolerance, out IntPtr result);
+
+    [LibraryImport(Library)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    internal static partial int spark_occt_thicken(
+        IntPtr shape, double thickness, double tolerance, out IntPtr result);
+
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    internal static partial int spark_occt_write_file(int format, IntPtr shape, string path);
+
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    internal static partial int spark_occt_read_file(
+        int format, string path, double tolerance, out IntPtr shape);
 
     [LibraryImport(Library)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]

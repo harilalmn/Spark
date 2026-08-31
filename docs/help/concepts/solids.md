@@ -53,9 +53,25 @@ ships with Spark is **OpenCascade**.
 | `Solid.Union` | Everything in either solid |
 | `Solid.Difference` | The first solid with the second taken out of it |
 | `Solid.Intersection` | Only what is in both |
+| `Solid.Split` | Cuts a solid into pieces and keeps **all** of them |
+| `Solid.Trim` | Cuts a solid and keeps only the piece a point is in |
 | `Solid.Extrude` | Sweeps a closed profile along a direction |
 | `Solid.FilletAll` | Rounds every edge, to a radius |
 | `Solid.Hollow` | Turns a solid into a shell of a given wall thickness |
+| `Solid.Offset` | Moves every face outwards or inwards |
+| `Solid.Thicken` | Gives an open sheet a thickness, making a solid of it |
+
+**`Split` and `Difference` are not the same operation with different names.** A block cut by a
+plate:
+
+```
+Solid.Difference(block, plate)   → one solid, and the plate's slice is gone
+Solid.Split(block, plate)        → three solids, whose volumes add back up to the block's
+```
+
+Use `Difference` when you want a hole. Use `Split` when both halves matter, and `Trim` when only
+one does and you can point at it — which is how you say *this* side without knowing what order the
+pieces come back in.
 
 **Rounding an edge is the one that shows what exactness buys.** A fillet has to build a new surface
 tangent to the two faces that meet at the edge, and then rebuild the corners where three of those
@@ -99,6 +115,25 @@ the node reports what it was asked and why it could not be done:
 geometry does not permit this*. They call for completely different responses, which is why they are
 not the same code.
 
+## Getting a solid out of Spark, exactly
+
+**A mesh format throws the exactness away, and STEP does not.** That is the whole difference:
+
+```
+spark export --open model.spark --out part.step
+spark export --open model.spark --out part.stl
+```
+
+The first writes the exact surfaces — a cylinder stays a cylindrical surface, and the CAD system
+on the other end can measure it, offset it and machine from it. The second writes triangles.
+
+Spark reads and writes **STEP** (`.step`, `.stp`) and **IGES** (`.iges`, `.igs`), through the same
+kernel provider as the booleans. STEP goes out as **AP214**, which is what most CAD systems read
+most reliably. An extension the build does not know is refused by name rather than guessed at.
+
+**Only solids go into a STEP file.** A graph of curves and no solids gets a message saying so and
+pointing at `.obj`, rather than an empty file with a confident name.
+
 ## Turning a solid into a mesh
 
 Every renderer, every 3D printer and most file formats want triangles, so a solid becomes a mesh on
@@ -140,6 +175,7 @@ directory overrides where it looks.
 - **Trimmed faces in Spark's own model.** A face Spark *builds* is bounded by its surface's own
   edges. Faces that come *back* from the provider are fully trimmed, so the result of a boolean is
   as trimmed as it needs to be; what is missing is the ability to author a trimmed face directly.
-- **Split, trim, thicken, draft and offset** — greyed out rather than missing.
-- **STEP and IGES.** The provider can read and write both; Spark does not expose it yet.
+- **Draft angles** — greyed out rather than missing.
+- **AP242.** STEP goes out as AP214. AP242 carries assemblies, names and colours, and Spark has
+  none of those to put in a file yet.
 - **Mesh booleans** — combining two *meshes* rather than two solids. Deferred.

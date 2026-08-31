@@ -283,10 +283,11 @@ managed `Brep`s go out through `LibraryImport` into `spark_occt_import`, are fus
 arithmetic's 42. The same trip runs in C, in `native/spark_occt/test/smoke.c`, so a failure in one
 and not the other says which half is wrong.
 
-**Three of the seven open items below are answered, and the answers are recorded against them
+**Four of the seven open items below are answered, and the answers are recorded against them
 rather than in a paragraph that would be read instead of them.** What is answered: the binary size
-(item 1), most of the FreeType question (item 2), and E13-T3's cost (item 7). What is not: STEP
-without XCAF, the threading envelope, the counsel question, and `OcctNet.Wrapper`'s repository.
+(item 1), FreeType (item 2), STEP without XCAF (item 3) and E13-T3's cost (item 7) — items 2 and 3
+both came back **no**, which is the unwelcome answer and cost nothing. What is not: the threading
+envelope, the counsel question, and `OcctNet.Wrapper`'s repository.
 
 **One estimate in the Decision above is wrong by an order of magnitude and is left standing.** It
 says *350–500 exported entry points*; the shim exports about **thirty** and does everything M6
@@ -316,15 +317,17 @@ written as a gap:
    actually links, whose transitive load-time dependencies are not yet verified. Either number
    replaces the 40–160 MB bracket and is well under the 100 MB that would reopen shipping OCCT by
    default.
-2. **Whether excluding the Visualization module drops the FreeType dependency.** *Partly
-   answered 2026-08-31, by observation rather than by experiment:* the vcpkg port installs
-   `opencascade[core,freetype]`, so **FreeType is a default feature of the port** rather than
-   something Visualization alone drags in — which makes this a question about the port's features
-   as much as about the link. `TKV3d`, `TKOpenGl` and `TKService` are built by the port regardless
-   and are simply not linked. *Still to find out:* configure a build with Visualization off and
-   inspect the resulting link.
-3. **Whether STEP can be used without pulling in XCAF.** *Find out:* attempt a
-   `STEPControl`-only read and write at M1.6 and see what the linker demands.
+2. ~~**Whether excluding the Visualization module drops the FreeType dependency.**~~ **Answered
+   2026-08-31 from the link, and the answer is no.** `freetype.dll`, `TKV3d` and `TKService` are
+   all in `spark_occt.dll`'s transitive closure, arriving through the *interchange* toolkits rather
+   than through anything Spark asks for directly. Excluding Visualization would not drop FreeType
+   while STEP is in the build. The vcpkg port compounds it by installing
+   `opencascade[core,freetype]`. See [N53](../NOTES.md).
+3. ~~**Whether STEP can be used without pulling in XCAF.**~~ **Answered 2026-08-31, and the
+   answer is no.** `spark_occt.dll` imports fifteen toolkits directly and XCAF is not among them —
+   but `TKDESTEP` imports it, so `TKXCAF`, `TKLCAF`, `TKCAF`, `TKVCAF` and `TKCDF` are all in the
+   closure. It costs nothing: the whole closure is **45.1 MB**, smaller than the 52.0 MB the build
+   staged before the question was asked. See [N53](../NOTES.md).
 4. **OCCT's real thread-safety envelope.** Documented guidance is thin and R20 depends on it.
    *Find out:* stress the shim from the parallel evaluator's thread count and read the
    upstream source for the specific packages we call.

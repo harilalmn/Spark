@@ -50,7 +50,11 @@ target_link_libraries(spark_occt PRIVATE
     TKFillet
     TKOffset
     TKMesh
-    TKShHealing)
+    TKShHealing
+    TKDE
+    TKXSBase
+    TKDESTEP
+    TKDEIGES)
 
 target_compile_definitions(spark_occt PRIVATE SPARK_OCCT_BUILD=1)
 

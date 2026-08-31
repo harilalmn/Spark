@@ -71,10 +71,36 @@ public sealed class UnavailableBrepKernel : IBrepKernel
         Refuse<Brep>("shell");
 
     /// <inheritdoc/>
+    public KernelResult<IReadOnlyList<Brep>> Split(
+        Brep shape, IReadOnlyList<Brep> tools, in Tolerance tolerance) =>
+        Refuse<IReadOnlyList<Brep>>("split");
+
+    /// <inheritdoc/>
+    public KernelResult<Brep> Trim(
+        Brep shape, IReadOnlyList<Brep> tools, in Point3d keep, in Tolerance tolerance) =>
+        Refuse<Brep>("trim");
+
+    /// <inheritdoc/>
+    public KernelResult<Brep> Offset(Brep shape, double distance, in Tolerance tolerance) =>
+        Refuse<Brep>("offset");
+
+    /// <inheritdoc/>
+    public KernelResult<Brep> Thicken(Brep sheet, double thickness, in Tolerance tolerance) =>
+        Refuse<Brep>("thicken");
+
+    /// <inheritdoc/>
     public KernelResult<Brep> Sew(IReadOnlyList<Brep> pieces, in Tolerance tolerance) => Refuse<Brep>("sew");
 
     /// <inheritdoc/>
     public KernelResult<Brep> Heal(Brep shape, in Tolerance tolerance) => Refuse<Brep>("heal");
+
+    /// <inheritdoc/>
+    public KernelResult<Brep> ReadFile(string path, in Tolerance tolerance) =>
+        Refuse<Brep>("read a STEP or IGES file");
+
+    /// <inheritdoc/>
+    public KernelResult<bool> WriteFile(Brep shape, string path, in Tolerance tolerance) =>
+        Refuse<bool>("write a STEP or IGES file");
 
     /// <inheritdoc/>
     /// <remarks>

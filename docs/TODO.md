@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-31 (M1.6 taken; the OpenCascade provider lands)
+**Last updated:** 2026-08-31 (M6's headline delivered: trimmed, and exported to STEP)
 
 **M0, M1, M1.5, M2, M3 and M4 have landed; M5 is substantially done; and M6's provider is in.**
 The application opens, a graph evaluates, and geometry appears in the GPU viewport — curves,
@@ -86,12 +86,15 @@ for anything else.
 The provider landed on 2026-08-31 and the rows behind it did not all land with it. In priority
 order:
 
-- [ ] **`E13-T12` — STEP and IGES.** The provider can already do both; nothing exposes it. This is
-      the single largest capability still sitting unused behind a working seam, and
-      [R12](PRD.md#12-risks) does not retire until it is exposed.
-- [ ] **`E13-T7`'s other half — split and trim**, and **`E13-T8`'s — thicken, draft and offset.**
-      They are named in [DYNAMO-COVERAGE §6.1](DYNAMO-COVERAGE.md#61-parity-on-solid-and-surface-commits-us-to-exact-solid-modelling)'s
-      70 members, which is the whole reason the seam exists.
+- [x] **`E13-T12` — STEP and IGES** — landed 2026-08-31. `spark export --out part.step` writes
+      AP214 with the exact surfaces. **What is not done is the acceptance this row actually asks
+      for**: a public corpus and a *third-party viewer, never our own reader*. That is the top of
+      this list now, and it is the one item here **nobody in this repository can do alone**.
+- [x] **`E13-T7`'s other half — split and trim** — landed 2026-08-31. Split keeps every piece and
+      the test measures them adding back up; trim is a managed composition of split and a point
+      test.
+- [x] **`E13-T8`'s — offset and thicken** — landed 2026-08-31. **Draft is the only thing left in
+      that row.**
 - [ ] **`E13-T3`'s consumer.** `Brep.NativeBytes` reports a real figure and **the evaluation cache
       does not read it** (NFR-4). A graph holding two hundred resident shapes still reports
       megabytes while holding gigabytes — the number now exists, and the cache still evicts by

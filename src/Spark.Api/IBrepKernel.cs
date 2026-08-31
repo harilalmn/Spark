@@ -271,6 +271,48 @@ public interface IBrepKernel
     KernelResult<Brep> Shell(
         Brep solid, IReadOnlyList<int> facesToOpen, double thickness, in Tolerance tolerance);
 
+    /// <summary>Cuts a shape into pieces, keeping every one of them.</summary>
+    /// <param name="shape">The shape to cut.</param>
+    /// <param name="tools">What to cut it with.</param>
+    /// <param name="tolerance">The modelling tolerance.</param>
+    /// <returns>The pieces, or why not.</returns>
+    /// <remarks>
+    /// <b>A difference throws the far side away and this does not</b>, which is the whole
+    /// distinction and the reason it is not a fourth boolean. A shape that the tools miss entirely
+    /// comes back as one piece — itself — rather than as a refusal, because *nothing was cut* is a
+    /// true answer to *cut this*.
+    /// </remarks>
+    KernelResult<IReadOnlyList<Brep>> Split(
+        Brep shape, IReadOnlyList<Brep> tools, in Tolerance tolerance);
+
+    /// <summary>Cuts a shape and keeps only the piece a point lies in.</summary>
+    /// <param name="shape">The shape to cut.</param>
+    /// <param name="tools">What to cut it with.</param>
+    /// <param name="keep">A point inside the piece to keep.</param>
+    /// <param name="tolerance">The modelling tolerance.</param>
+    /// <returns>The surviving piece, or why not.</returns>
+    /// <remarks>
+    /// <b>Which side to keep has to be said somehow, and a point is the least surprising way.</b>
+    /// The alternatives are an index into an order nobody can predict, or a normal direction that
+    /// means nothing for a tool that cuts more than once.
+    /// </remarks>
+    KernelResult<Brep> Trim(
+        Brep shape, IReadOnlyList<Brep> tools, in Point3d keep, in Tolerance tolerance);
+
+    /// <summary>Moves every face of a shape outwards or inwards.</summary>
+    /// <param name="shape">The shape.</param>
+    /// <param name="distance">How far. Negative moves inwards.</param>
+    /// <param name="tolerance">The modelling tolerance.</param>
+    /// <returns>The offset shape, or why not.</returns>
+    KernelResult<Brep> Offset(Brep shape, double distance, in Tolerance tolerance);
+
+    /// <summary>Gives a sheet a thickness, turning it into a solid.</summary>
+    /// <param name="sheet">The open shape to thicken.</param>
+    /// <param name="thickness">How thick. Negative thickens the other way.</param>
+    /// <param name="tolerance">The modelling tolerance.</param>
+    /// <returns>The solid, or why not.</returns>
+    KernelResult<Brep> Thicken(Brep sheet, double thickness, in Tolerance tolerance);
+
     /// <summary>Joins loose faces into shells, closing what nearly meets.</summary>
     /// <param name="pieces">The shapes to join.</param>
     /// <param name="tolerance">How far apart edges may be and still be sewn.</param>
@@ -282,6 +324,24 @@ public interface IBrepKernel
     /// <param name="tolerance">The modelling tolerance.</param>
     /// <returns>The repaired shape, or why not.</returns>
     KernelResult<Brep> Heal(Brep shape, in Tolerance tolerance);
+
+    /// <summary>Reads a solid-modelling interchange file.</summary>
+    /// <param name="path">The file. The format is taken from the extension.</param>
+    /// <param name="tolerance">The tolerance to repair the file's geometry to.</param>
+    /// <returns>Everything the file contained, as one shape, or why not.</returns>
+    /// <remarks>
+    /// <b>The seam carries this rather than <c>Spark.Geometry.Io</c>, because a STEP file is a
+    /// BRep and nothing else can read one.</b> The mesh formats are Spark's own and stay there;
+    /// this is the one interchange family whose reader is the kernel.
+    /// </remarks>
+    KernelResult<Brep> ReadFile(string path, in Tolerance tolerance);
+
+    /// <summary>Writes a shape to a solid-modelling interchange file.</summary>
+    /// <param name="shape">The shape.</param>
+    /// <param name="path">The file. The format is taken from the extension.</param>
+    /// <param name="tolerance">The modelling tolerance.</param>
+    /// <returns>True, or why not.</returns>
+    KernelResult<bool> WriteFile(Brep shape, string path, in Tolerance tolerance);
 
     /// <summary>Tessellates a shape, trimmed faces and all.</summary>
     /// <param name="shape">The shape.</param>

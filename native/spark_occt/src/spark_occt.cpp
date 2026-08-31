@@ -12,17 +12,20 @@
 #include <BRepAlgoAPI_BooleanOperation.hxx>
 #include <BRepBndLib.hxx>
 #include <BRepAlgoAPI_Common.hxx>
+#include <BRepAlgoAPI_Splitter.hxx>
 #include <BRepAlgoAPI_Cut.hxx>
 #include <BRepAlgoAPI_Fuse.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakeSolid.hxx>
 #include <BRepBuilderAPI_Sewing.hxx>
 #include <BRepBuilderAPI_Transform.hxx>
+#include <BRepClass3d_SolidClassifier.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepFilletAPI_MakeChamfer.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepLib.hxx>
 #include <BRepMesh_IncrementalMesh.hxx>
+#include <BRepOffsetAPI_MakeOffsetShape.hxx>
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepOffsetAPI_ThruSections.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
@@ -35,9 +38,18 @@
 #include <BRepTools.hxx>
 #include <BRep_Tool.hxx>
 #include <GeomLProp_SLProps.hxx>
+#include <IGESControl_Controller.hxx>
+#include <IGESControl_Reader.hxx>
+#include <IGESControl_Writer.hxx>
 #include <Geom_Surface.hxx>
+#include <Message.hxx>
+#include <Message_Messenger.hxx>
+#include <Message_PrinterOStream.hxx>
 #include <OSD.hxx>
+#include <STEPControl_Reader.hxx>
+#include <STEPControl_Writer.hxx>
 #include <ShapeFix_Shape.hxx>
+#include <ShapeFix_Solid.hxx>
 #include <Standard_Failure.hxx>
 #include <Standard_Version.hxx>
 #include <TopAbs_ShapeEnum.hxx>
@@ -45,9 +57,12 @@
 #include <TopExp_Explorer.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Face.hxx>
+#include <BRep_Builder.hxx>
 #include <TopLoc_Location.hxx>
 #include <TopoDS_Shell.hxx>
 #include <TopoDS_Solid.hxx>
+#include <TopoDS_Compound.hxx>
+#include <TopoDS_Iterator.hxx>
 #include <TopoDS_Wire.hxx>
 #include <gp.hxx>
 #include <gp_Ax1.hxx>
@@ -93,6 +108,13 @@ namespace
         Startup()
         {
             OSD::SetSignal(false);
+
+            // AND OPENCASCADE STOPS PRINTING. Its default messenger writes progress to `cout` —
+            // "** WorkSession : Sending all data", a transfer banner per shape — which lands in
+            // the middle of `spark export`'s own output and makes it undiffable. A library
+            // reached through a C ABI has no business owning the caller's stdout; what it has to
+            // say comes back through `spark_occt_last_error`.
+            Message::DefaultMessenger()->RemovePrinters(STANDARD_TYPE(Message_PrinterOStream));
         }
     };
 
@@ -467,6 +489,107 @@ extern "C" spark_status SPARK_OCCT_CALL spark_occt_shape_is_solid(
         *out_solid = solids.More() && BRepCheck_Analyzer(shape->shape).IsValid() ? 1 : 0;
 
         return SPARK_OK;
+    });
+}
+
+extern "C" spark_status SPARK_OCCT_CALL spark_occt_shape_contains(
+    const spark_shape* shape, const double* point, double tolerance, int32_t* out_inside)
+{
+    return guard("Asking whether a point is inside a shape", [&]() -> spark_status
+    {
+        const spark_status ready = require_shape(shape, "tested");
+        if (ready != SPARK_OK)
+        {
+            return ready;
+        }
+
+        if (point == nullptr || out_inside == nullptr)
+        {
+            return fail(SPARK_ERR_ARGUMENT, "The question needs a point and somewhere for the answer.");
+        }
+
+        BRepClass3d_SolidClassifier classifier(shape->shape);
+        classifier.Perform(spark::point(point), tolerance > 0.0 ? tolerance : 1.0e-7);
+
+        const TopAbs_State where = classifier.State();
+        *out_inside = where == TopAbs_IN || where == TopAbs_ON ? 1 : 0;
+
+        return SPARK_OK;
+    });
+}
+
+namespace
+{
+    // The top-level pieces of a shape. A compound has its children; anything else is itself, which
+    // is what makes `part_count` answer 1 rather than 0 for an ordinary solid and lets a caller
+    // walk every result the same way.
+    void parts(const TopoDS_Shape& shape, std::vector<TopoDS_Shape>& into)
+    {
+        if (shape.ShapeType() != TopAbs_COMPOUND)
+        {
+            into.push_back(shape);
+            return;
+        }
+
+        for (TopoDS_Iterator it(shape); it.More(); it.Next())
+        {
+            into.push_back(it.Value());
+        }
+    }
+}
+
+extern "C" spark_status SPARK_OCCT_CALL spark_occt_shape_part_count(
+    const spark_shape* shape, int32_t* out_count)
+{
+    return guard("Counting a shape's pieces", [&]() -> spark_status
+    {
+        const spark_status ready = require_shape(shape, "counted");
+        if (ready != SPARK_OK)
+        {
+            return ready;
+        }
+
+        if (out_count == nullptr)
+        {
+            return fail(SPARK_ERR_ARGUMENT, "The count needs somewhere to go.");
+        }
+
+        std::vector<TopoDS_Shape> pieces;
+        parts(shape->shape, pieces);
+        *out_count = static_cast<int32_t>(pieces.size());
+
+        return SPARK_OK;
+    });
+}
+
+extern "C" spark_status SPARK_OCCT_CALL spark_occt_shape_part(
+    const spark_shape* shape, int32_t index, spark_shape** out)
+{
+    return guard("Taking a shape's piece", [&]() -> spark_status
+    {
+        const spark_status ready = require_shape(shape, "taken from");
+        if (ready != SPARK_OK)
+        {
+            return ready;
+        }
+
+        if (out == nullptr)
+        {
+            return fail(SPARK_ERR_ARGUMENT, "The piece needs somewhere to go.");
+        }
+
+        std::vector<TopoDS_Shape> pieces;
+        parts(shape->shape, pieces);
+
+        if (index < 0 || index >= static_cast<int32_t>(pieces.size()))
+        {
+            return fail(
+                SPARK_ERR_ARGUMENT,
+                "There is no piece " + std::to_string(index) + "; the shape has "
+                    + std::to_string(pieces.size()) + ".");
+        }
+
+        return emit(pieces[static_cast<size_t>(index)], out);
     });
 }
 
@@ -1096,6 +1219,309 @@ extern "C" spark_status SPARK_OCCT_CALL spark_occt_heal(
         }
 
         return emit(healed, out);
+    });
+}
+
+extern "C" spark_status SPARK_OCCT_CALL spark_occt_split(
+    const spark_shape* shape,
+    const spark_shape* const* tools,
+    int32_t tool_count,
+    double tolerance,
+    spark_shape** out)
+{
+    return guard("A split", [&]() -> spark_status
+    {
+        const spark_status ready = require_shape(shape, "split");
+        if (ready != SPARK_OK)
+        {
+            return ready;
+        }
+
+        if (out == nullptr || tools == nullptr || tool_count <= 0)
+        {
+            return fail(SPARK_ERR_ARGUMENT, "A split needs at least one tool and somewhere to go.");
+        }
+
+        SparkShapeList arguments;
+        arguments.Append(shape->shape);
+
+        SparkShapeList cutters;
+
+        for (int32_t i = 0; i < tool_count; i++)
+        {
+            if (tools[i] == nullptr || tools[i]->shape.IsNull())
+            {
+                return fail(SPARK_ERR_ARGUMENT, "Split tool " + std::to_string(i) + " is missing.");
+            }
+
+            cutters.Append(tools[i]->shape);
+        }
+
+        // BRepAlgoAPI_Splitter rather than a Cut: a difference throws the far side away and a
+        // split keeps every piece, which is the whole distinction and the reason this is not
+        // expressible as one of the three boolean opcodes.
+        BRepAlgoAPI_Splitter splitter;
+        splitter.SetArguments(arguments);
+        splitter.SetTools(cutters);
+
+        if (tolerance > 0.0)
+        {
+            splitter.SetFuzzyValue(tolerance);
+        }
+
+        splitter.Build();
+
+        if (!splitter.IsDone())
+        {
+            return fail(SPARK_ERR_REFUSED, "The split did not complete on these shapes.");
+        }
+
+        return emit(splitter.Shape(), out);
+    });
+}
+
+extern "C" spark_status SPARK_OCCT_CALL spark_occt_offset(
+    const spark_shape* shape, double distance, double tolerance, spark_shape** out)
+{
+    return guard("An offset", [&]() -> spark_status
+    {
+        const spark_status ready = require_shape(shape, "offset");
+        if (ready != SPARK_OK)
+        {
+            return ready;
+        }
+
+        if (out == nullptr)
+        {
+            return fail(SPARK_ERR_ARGUMENT, "An offset needs somewhere to go.");
+        }
+
+        if (distance == 0.0 || distance != distance)
+        {
+            return fail(SPARK_ERR_ARGUMENT, "An offset distance must be a non-zero finite number.");
+        }
+
+        BRepOffsetAPI_MakeOffsetShape offset;
+        offset.PerformByJoin(shape->shape, distance, tolerance > 0.0 ? tolerance : 1.0e-7);
+
+        if (!offset.IsDone())
+        {
+            return fail(
+                SPARK_ERR_REFUSED,
+                "An offset of " + std::to_string(distance) + " does not fit this shape.");
+        }
+
+        return emit(offset.Shape(), out);
+    });
+}
+
+extern "C" spark_status SPARK_OCCT_CALL spark_occt_thicken(
+    const spark_shape* shape, double thickness, double tolerance, spark_shape** out)
+{
+    return guard("Thickening", [&]() -> spark_status
+    {
+        const spark_status ready = require_shape(shape, "thickened");
+        if (ready != SPARK_OK)
+        {
+            return ready;
+        }
+
+        if (out == nullptr)
+        {
+            return fail(SPARK_ERR_ARGUMENT, "Thickening needs somewhere to go.");
+        }
+
+        if (thickness == 0.0 || thickness != thickness)
+        {
+            return fail(SPARK_ERR_ARGUMENT, "A thickness must be a non-zero finite number.");
+        }
+
+        // MakeThickSolidBySimple, not ByJoin: a sheet has no faces to leave open, and ByJoin with
+        // an empty opening list is the call that returns an offset rather than a wall (see
+        // spark_occt_shell).
+        BRepOffsetAPI_MakeThickSolid thick;
+        thick.MakeThickSolidBySimple(shape->shape, thickness);
+
+        if (!thick.IsDone())
+        {
+            return fail(
+                SPARK_ERR_REFUSED,
+                "A thickness of " + std::to_string(thickness) + " does not fit this sheet.");
+        }
+
+        // A SHEET HAS NO INSIDE UNTIL THIS CALL GIVES IT ONE, so this is the operation that has
+        // to choose which side that is — and `MakeThickSolidBySimple` follows the sheet's face
+        // normal rather than asking. Thickening a world-XY plate upwards produced a solid whose
+        // faces all pointed in and whose volume measured -8. Same fix as the importer's, same
+        // reason ([N50](../../docs/NOTES.md)): turn the faces, not the flag.
+        TopoDS_Shape made = thick.Shape();
+
+        if (made.ShapeType() == TopAbs_SOLID)
+        {
+            Handle(ShapeFix_Solid) fix = new ShapeFix_Solid(TopoDS::Solid(made));
+            fix->SetPrecision(tolerance > 0.0 ? tolerance : 1.0e-7);
+            fix->FixShellOrientationMode() = 1;
+            fix->Perform();
+
+            const TopoDS_Shape fixed = fix->Shape();
+
+            if (!fixed.IsNull())
+            {
+                made = fixed;
+            }
+        }
+
+        return emit(made, out);
+    });
+}
+
+// ------------------------------------------------------------------------------------------------
+// Interchange
+// ------------------------------------------------------------------------------------------------
+
+extern "C" spark_status SPARK_OCCT_CALL spark_occt_write_file(
+    int32_t format, const spark_shape* shape, const char* path)
+{
+    return guard("Writing a file", [&]() -> spark_status
+    {
+        const spark_status ready = require_shape(shape, "written");
+        if (ready != SPARK_OK)
+        {
+            return ready;
+        }
+
+        if (path == nullptr || *path == '\0')
+        {
+            return fail(SPARK_ERR_ARGUMENT, "A file needs a path.");
+        }
+
+        if (format == SPARK_FORMAT_STEP)
+        {
+            // AP214 international draft is what most CAD systems read most reliably. AP242 is the
+            // richer schema and is what an assembly with names and colours would need; nothing
+            // here has either yet, so the more widely-read one wins until it does.
+            STEPControl_Writer writer;
+
+            if (writer.Transfer(shape->shape, STEPControl_AsIs) != IFSelect_RetDone)
+            {
+                return fail(SPARK_ERR_REFUSED, "The shape could not be transferred to STEP.");
+            }
+
+            return writer.Write(path) == IFSelect_RetDone
+                ? SPARK_OK
+                : fail(SPARK_ERR_REFUSED, std::string("The STEP file could not be written to ") + path + ".");
+        }
+
+        if (format == SPARK_FORMAT_IGES)
+        {
+            IGESControl_Controller::Init();
+
+            // BRep mode: solids as B-Rep entities rather than as trimmed surfaces. IGES can say
+            // both and the second loses the topology, which is the thing worth keeping.
+            IGESControl_Writer writer("MM", 1);
+
+            if (!writer.AddShape(shape->shape))
+            {
+                return fail(SPARK_ERR_REFUSED, "The shape could not be added to the IGES model.");
+            }
+
+            writer.ComputeModel();
+
+            return writer.Write(path)
+                ? SPARK_OK
+                : fail(SPARK_ERR_REFUSED, std::string("The IGES file could not be written to ") + path + ".");
+        }
+
+        return fail(SPARK_ERR_ARGUMENT, "There is no file format " + std::to_string(format) + ".");
+    });
+}
+
+namespace
+{
+    // Everything a reader transferred, as one shape. A file with one solid gives that solid; a
+    // file with several gives a compound, which spark_occt_shape_part_count walks.
+    template <typename TReader>
+    TopoDS_Shape collect(TReader& reader)
+    {
+        // TransferRoots() rather than a loop over TransferOneRoot: both readers derive it from
+        // XSControl_Reader, and a per-root loop is spelled differently on each of them.
+        reader.TransferRoots();
+
+        const int shapes = reader.NbShapes();
+
+        if (shapes == 1)
+        {
+            return reader.Shape(1);
+        }
+
+        BRep_Builder builder;
+        TopoDS_Compound compound;
+        builder.MakeCompound(compound);
+
+        for (int i = 1; i <= shapes; i++)
+        {
+            builder.Add(compound, reader.Shape(i));
+        }
+
+        return compound;
+    }
+}
+
+extern "C" spark_status SPARK_OCCT_CALL spark_occt_read_file(
+    int32_t format, const char* path, double tolerance, spark_shape** out)
+{
+    return guard("Reading a file", [&]() -> spark_status
+    {
+        if (path == nullptr || *path == '\0' || out == nullptr)
+        {
+            return fail(SPARK_ERR_ARGUMENT, "A read needs a path and somewhere to go.");
+        }
+
+        TopoDS_Shape read;
+
+        if (format == SPARK_FORMAT_STEP)
+        {
+            STEPControl_Reader reader;
+
+            if (reader.ReadFile(path) != IFSelect_RetDone)
+            {
+                return fail(SPARK_ERR_REFUSED, std::string("The STEP file at ") + path + " could not be read.");
+            }
+
+            read = collect(reader);
+        }
+        else if (format == SPARK_FORMAT_IGES)
+        {
+            IGESControl_Controller::Init();
+            IGESControl_Reader reader;
+
+            if (reader.ReadFile(path) != IFSelect_RetDone)
+            {
+                return fail(SPARK_ERR_REFUSED, std::string("The IGES file at ") + path + " could not be read.");
+            }
+
+            read = collect(reader);
+        }
+        else
+        {
+            return fail(SPARK_ERR_ARGUMENT, "There is no file format " + std::to_string(format) + ".");
+        }
+
+        if (read.IsNull())
+        {
+            return fail(SPARK_ERR_REFUSED, std::string("The file at ") + path + " contained no geometry.");
+        }
+
+        // An interchange file is somebody else's tolerances, which is the case ShapeFix exists
+        // for and the one place ADR-0021's caution about it does not apply: a shape that has just
+        // crossed a file format has no parameterisation of ours to drift away from.
+        Handle(ShapeFix_Shape) fix = new ShapeFix_Shape(read);
+        fix->SetPrecision(tolerance > 0.0 ? tolerance : 1.0e-7);
+        fix->Perform();
+
+        const TopoDS_Shape healed = fix->Shape();
+
+        return emit(healed.IsNull() ? read : healed, out);
     });
 }
 
