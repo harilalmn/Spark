@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N63-N78 added)
+**Last updated:** 2026-09-01 (N63-N80 added)
 
 ---
 
@@ -2122,3 +2122,45 @@ rather than a resolver with a graph in it.
 The cost is disk. The thing bought is that `PackageLoadContext` remains readable, and that a
 question a user might ask — *what did installing this put on my machine* — has an answer that is one
 folder.
+
+## N79 — A packaging check run inside the repository proves nothing
+
+`OcctKernel` walks up from the executable looking for `artifacts/native/win-x64`, which is a
+deliberate convenience: a developer running out of a build tree gets the kernel without setting
+`SPARK_OCCT_PATH`. It also makes every in-tree check of a *packaged* build vacuous.
+
+Measured, not assumed. A build staged with `publish.ps1 -SkipNative` — **zero native DLLs in the
+folder** — ran `spark export --open docs/examples/solids.spark` from inside the repository and
+wrote nine solids and seventy-four faces. Copied to a temporary directory outside the tree, the
+same build failed with `SPK1080: No solid-modelling kernel is installed`, exit code 1.
+
+**The CI runner is not immune**, which is the part worth writing down. The portable job downloads
+the shim into `artifacts/native/win-x64` so that `publish.ps1` can stage it — and that is exactly
+the folder the resolver walks up to find. A check that unpacked the zip into the workspace and ran
+it would pass on a zip containing no native payload at all.
+
+So both the CI job and the release workflow unpack into `RUNNER_TEMP` and run from there.
+
+**And `--version` is no help either.** It prints `Solid modelling: OpenCascade 8.0.1` whether or not
+the provider loaded, because it reports the configured provider rather than a loaded one. The first
+draft of the CI step asserted on that string and would have passed on an empty zip. What
+distinguishes them is doing something that needs the kernel: exporting a solid.
+
+## N80 — `Compress-Archive` is stable across two runs and not across a rebuild
+
+The portable zip is written by hand rather than with `Compress-Archive`, and the reason is narrower
+than *it is not deterministic*.
+
+Zipping one folder twice with `Compress-Archive` produces identical bytes; that was checked, and it
+does. What it does not survive is a **rebuild**: it stamps each entry with the file's last-write
+time, so the same source compiled again — producing byte-identical assemblies — yields a different
+archive and a different checksum. Touching every timestamp in a staged folder and re-zipping
+demonstrates it in a second.
+
+A release whose hash changes when nothing changed is a release nobody can verify by hash, which is
+the only way anybody verifies one. `pack-portable.ps1` therefore sorts entries by ordinal path and
+stamps them all 1980-01-01 — the earliest a zip can represent, and visibly not a real build date,
+which is better than a plausible wrong one.
+
+**The first version of this note claimed `Compress-Archive` differs between two runs over one
+folder.** It does not, and the claim was in the script's own documentation before it was checked.

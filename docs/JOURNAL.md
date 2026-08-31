@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 08:30 +0530
+**Last updated:** 2026-09-01 09:40 +0530
 **Protocol version:** 2
 
 ---
@@ -19,9 +19,9 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E12-T3` — the host-thread scheduler.** Two delegates and no named host type; **inline when already on the host thread**, because posting to a thread and then blocking it is a deadlock and it is the first thing that happens in an add-in. The fake host throws on a re-entrant marshal rather than hanging, so removing the check fails in a second. One marshal per batch, and exceptions cross back with their stack. `E3-T11` and `E12-T1` closed with it. |
+| **Last completed step** | **`E12-T10`, `E12-T11` and `E12-T14` — a release somebody could verify.** A deterministic portable zip with a checksum; a release workflow that **refuses when the artefact disagrees with the tag**; and a CI job that packs a runnable build on every push and **runs what it packed, from outside the tree** — because [N79](NOTES.md): the kernel resolver walks up to the folder CI just filled, so an in-tree check passes on a zip with no native payload. [N80](NOTES.md) corrected a claim I had written before checking it. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **Keep going through `E12`, and mind which rows are engineering.** Buildable now: **`E12-T10`** the portable zip and **`E12-T14`** a runnable build at every milestone (both build on `scripts/publish.ps1`, which exists and is already part of *Verify with*); **`E12-T11`** the release workflow gating on version == tag; **`E12-T12`** the performance pass and **`E12-T13`** the accessibility pass. **`E12-T8`** is engineering constrained by [ADR-0020](adr/0020-occt-via-c-abi-shim.md) — single-file ReadyToRun has to keep the LGPL relink possible, so read the ADR before touching it. **Not buildable here:** `E12-T9` needs a signing identity and `E12-T4` needs a Revit or AutoCAD licence and a person. `E12-T2` stays open on purpose ([PRD Q5](PRD.md#14-open-questions)). **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Next action** | **`E12-T12`, the performance pass, then `E12-T13`, accessibility.** Both are *passes* rather than features, so the first job in each is deciding what would count as done and writing that down before measuring anything — a pass with no stated bar is a pass that ends when somebody gets tired. `bench/` exists and a nightly already runs it, so the performance one starts from numbers rather than from nothing; ADR-0013's 60 fps at 2000 nodes and `R15`'s payload bracket are the claims to check. For accessibility the design language already carries contrast figures that `PaletteContrastTests` asserts, so the gap is keyboard reach and screen-reader naming rather than colour. **`E12-T8` also remains** and needs a recorded decision rather than code: ReadyToRun is compatible with the LGPL relink obligation and single-file plausibly is not, and [ADR-0020](adr/0020-occt-via-c-abi-shim.md) should say which of the three words in that row survive. **Not buildable here:** `E12-T9` needs a signing identity, `E12-T4` a Revit or AutoCAD licence. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**2036** over **nine** projects: Geometry.Tests 763, UI.Tests 536, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 71**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T18`'s About box was on this list and should not have been** — it needed a dialog, which is code, and it is done. |
 
@@ -4055,3 +4055,56 @@ that mattered was the scheduler, and it is the one that existed already.
 projects, 0 failed, 0 skipped. `dotnet format` clean. The tests run a real second thread with a real
 work queue, because every interesting property here is about which thread something happened on and
 a fake that ran everything inline would assert nothing at all.
+
+### 2026-09-01 — `E12-T10`, `E12-T11`, `E12-T14`: a release somebody could verify
+
+**What.** `scripts/pack-portable.ps1`, `scripts/check-version.ps1`, a `portable` CI job and
+`.github/workflows/release.yml`. Three rows, because they are one subject.
+
+**[N79](NOTES.md) is the finding, and it invalidated the first version of the CI check.**
+`OcctKernel` walks up from the executable looking for `artifacts/native/win-x64`, which is a
+deliberate convenience for developers running out of a build tree. It also makes any in-tree check
+of a *packaged* build vacuous — and **the CI runner is not immune**, because the portable job
+downloads the shim into exactly that folder so `publish.ps1` can stage it. Measured rather than
+assumed: a build staged with `-SkipNative`, **zero native DLLs in the folder**, exported nine solids
+from inside the repository and failed with `SPK1080` from a temporary directory outside it. Both the
+CI job and the release workflow now unpack into `RUNNER_TEMP`.
+
+**The first draft asserted on `--version`, and that was worse.** It prints
+`Solid modelling: OpenCascade 8.0.1` whether or not the provider loaded, because it reports the
+configured provider rather than a loaded one. The check would have passed on an empty zip. What
+distinguishes them is doing something that needs the kernel, so the step exports a solid.
+
+**[N80](NOTES.md): the zip is written by hand, for a narrower reason than I first wrote down.**
+The script's own documentation claimed `Compress-Archive` produces different bytes on two runs over
+one folder. It does not — that was checked, and it is stable. What it does not survive is a
+**rebuild**: it stamps entries with the file's last-write time, so the same source compiled again
+yields a different archive and a different checksum. Touching every timestamp in a staged folder and
+re-packing demonstrates it: `Compress-Archive` differs, `pack-portable.ps1` does not. The claim in
+the script was corrected to the one that is true.
+
+**The version gate is one line of YAML defended twice.** MinVer derives the version from the nearest
+tag, so a tag and its assemblies cannot disagree — unless the checkout is shallow, in which case
+MinVer finds no tags, stamps `0.0.0-alpha.0`, and the workflow publishes it as `v1.0.0`. That
+release installs, runs, and makes every bug report from it name a version that never existed.
+`fetch-depth: 0` prevents it and `check-version.ps1` catches it, reading the version **out of the
+built assembly** rather than out of the build inputs, because the artefact is what ships.
+
+**Both paths were run against this repository**, which turns out to have **no tags at all**: the
+gate reports `expected 0.0.0` against `assembly 0.0.0-alpha.0.108` and refuses, which is precisely
+the scenario it is for, demonstrated on the real thing rather than on a fixture.
+
+**The release is drafted, never published.** Signing, the installer and the antivirus submissions
+need an identity to sign with, and a workflow that published automatically would be claiming those
+steps had happened.
+
+**What was verified here and what was not.** Verified locally: the staging script, the zip, its
+determinism across a rebuild, the checksum, both branches of the version gate, and the
+outside-the-tree kernel behaviour that shapes both workflows. **Not verified: the workflows
+themselves**, which cannot run on this machine. They are read, and their YAML parses, and every
+step in them is a script that was run by hand — but the first green run of `release.yml` will be on
+GitHub and nowhere else.
+
+**Verified.** Build clean at 0 warnings. Suite **2,036** over nine projects, 0 failed, 0 skipped.
+`dotnet format` clean. The staged payload is **173 MB managed** without the kernel; the packed zip
+is **51.7 MB over 228 files**.

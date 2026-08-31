@@ -1,0 +1,136 @@
+name: Release
+
+# E12-T11. Cuts a release from a tag, and refuses to cut one when the artefact disagrees with the
+# tag it is being released under.
+#
+# THE GATE IS THE POINT OF THIS FILE. Spark's version comes from MinVer, derived from the nearest
+# git tag (ADR-0007), so in principle a tag and its assemblies cannot disagree. In practice there
+# is exactly one way they can, and it is the default: a shallow checkout has no tags, MinVer finds
+# none, every assembly is stamped 0.0.0-alpha.0, and the workflow publishes them as v1.0.0. That
+# release installs, runs, and makes every bug report from it name a version that does not exist.
+#
+# So `fetch-depth: 0` below is load-bearing rather than tidy, and scripts/check-version.ps1 reads
+# the version back out of the built assembly afterwards. Belt and braces, because the belt is a
+# YAML line that a future edit can drop without anything failing until release day.
+#
+# The release is created as a DRAFT. Signing, the installer and the antivirus submissions need an
+# identity to sign with (E13-T17), and a person has to do that before anything is published. A
+# workflow that published automatically would be claiming those steps had happened.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The tag to build, for a dry run.
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  release:
+    name: Release (win-x64)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Load-bearing. See the note at the top of this file.
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      # The gates, in full. A release is not the moment to trust that CI ran on this commit:
+      # a tag can be moved, and a workflow_dispatch can name any tag at all.
+      - name: Build
+        run: dotnet build Spark.slnx --configuration Release --no-incremental -warnaserror
+
+      - name: Test
+        shell: pwsh
+        run: |
+          $failed = 0
+          Get-ChildItem tests -Directory | ForEach-Object {
+              $exe = Join-Path $_.FullName "bin/Release/net10.0/$($_.Name).exe"
+              if (-not (Test-Path $exe)) { return }
+
+              & $exe | Write-Host
+              if ($LASTEXITCODE -ne 0) { $failed++ }
+          }
+
+          if ($failed -ne 0) { throw "$failed test project(s) failed." }
+
+      - name: Verify formatting
+        run: dotnet format Spark.slnx --verify-no-changes --severity warn
+
+      - name: Build the native provider
+        shell: pwsh
+        run: ./scripts/build-native.ps1
+
+      - name: Stage
+        shell: pwsh
+        run: ./scripts/publish.ps1
+
+      # The gate. Reads the version out of the artefact rather than out of the build inputs,
+      # because the artefact is what ships.
+      - name: The tag and the artefact must agree
+        shell: pwsh
+        run: |
+          $tag = if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+              '${{ github.event.inputs.tag }}'
+          } else {
+              '${{ github.ref_name }}'
+          }
+
+          ./scripts/check-version.ps1 -Tag $tag
+
+      - name: Pack the portable zip
+        shell: pwsh
+        run: ./scripts/pack-portable.ps1
+
+      # Same reasoning as the CI job: run it from outside the tree, or the kernel resolver finds
+      # the shim in artifacts/native and a zip missing every native DLL passes.
+      - name: Run what was packed, from outside the tree
+        shell: pwsh
+        run: |
+          $graph = Join-Path (Get-Location) 'docs/examples/solids.spark'
+          $outside = Join-Path $env:RUNNER_TEMP 'packed'
+          $step = Join-Path $env:RUNNER_TEMP 'packed.step'
+
+          if (Test-Path $outside) { Remove-Item -LiteralPath $outside -Recurse -Force }
+          Expand-Archive -LiteralPath 'artifacts/spark-portable-win-x64.zip' -DestinationPath $outside -Force
+
+          & (Join-Path $outside 'spark.exe') export --open $graph --out $step | Write-Host
+
+          if ($LASTEXITCODE -ne 0) {
+              throw 'the packed build could not export solids, so the native payload did not travel with it.'
+          }
+
+      - name: Draft the release
+        if: github.event_name == 'push'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create '${{ github.ref_name }}' `
+            --draft `
+            --title '${{ github.ref_name }}' `
+            --notes 'Draft. The portable zip is attached with its SHA-256. The installer and the signed build are not produced here: they need an identity to sign with (E13-T17).' `
+            artifacts/spark-portable-win-x64.zip `
+            artifacts/spark-portable-win-x64.zip.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spark-release-win-x64
+          path: |
+            artifacts/spark-portable-win-x64.zip
+            artifacts/spark-portable-win-x64.zip.sha256
+          retention-days: 90

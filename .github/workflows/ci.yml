@@ -182,6 +182,84 @@ jobs:
           if ($failed -ne 0) { throw "$failed provider test(s) failed." }
           if ($skipped -ne 0) { throw "$skipped provider test(s) SKIPPED - the shim was not found." }
 
+  # E12-T14. A runnable build from every push to main, not only at 1.0, which is R2's stated
+  # mitigation: "is it releasable" is a question answered continuously rather than discovered at
+  # the end. It stages the full thing - the application, the CLI and the native provider taken
+  # from the job above - packs the deterministic portable zip, and then RUNS what it packed.
+  #
+  # Running it is the part that matters. A staged folder that is missing one assembly still
+  # uploads perfectly, and nothing else in this file would notice.
+  portable:
+    name: Portable build (win-x64)
+    runs-on: windows-latest
+    needs: native
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # MinVer again: a shallow clone stamps 0.0.0-alpha.0 on an artefact that is then
+          # uploaded under a real-looking name. scripts/check-version.ps1 exists for the
+          # release path; here the fix is simply to fetch the tags.
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: spark_occt-win-x64
+          path: artifacts/native/win-x64
+
+      - name: Stage
+        shell: pwsh
+        run: ./scripts/publish.ps1
+
+      - name: Pack the portable zip
+        shell: pwsh
+        run: ./scripts/pack-portable.ps1
+
+      # OUTSIDE THE WORKSPACE, and that is the entire point of this step.
+      #
+      # OcctKernel walks up from the executable looking for artifacts/native/win-x64, which is a
+      # deliberate convenience for developers running out of a build tree. It also means a check
+      # run from inside the repository proves nothing: the shim is sitting right there, in the
+      # folder the download-artifact step above just filled, and a zip missing every native DLL
+      # would pass. That was measured - a staged build with no native payload at all exported
+      # solids successfully from inside the tree, and failed with SPK1080 from outside it.
+      #
+      # And --version is no better: it prints the provider's name either way. What distinguishes
+      # them is doing something that needs the kernel.
+      - name: Run what was packed, from outside the tree
+        shell: pwsh
+        run: |
+          $zip = 'artifacts/spark-portable-win-x64.zip'
+          $graph = Join-Path (Get-Location) 'docs/examples/solids.spark'
+          $outside = Join-Path $env:RUNNER_TEMP 'packed'
+          $step = Join-Path $env:RUNNER_TEMP 'packed.step'
+
+          if (Test-Path $outside) { Remove-Item -LiteralPath $outside -Recurse -Force }
+          Expand-Archive -LiteralPath $zip -DestinationPath $outside -Force
+
+          & (Join-Path $outside 'spark.exe') export --open $graph --out $step | Write-Host
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "the packed build could not export solids, so the native payload did not travel with it."
+          }
+
+          if (-not (Test-Path $step)) { throw 'no STEP file was written.' }
+
+          Write-Host ("wrote {0:N0} bytes of STEP" -f (Get-Item $step).Length)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spark-portable-win-x64
+          path: |
+            artifacts/spark-portable-win-x64.zip
+            artifacts/spark-portable-win-x64.zip.sha256
+          retention-days: 14
+
   format:
     name: Format
     runs-on: ubuntu-latest
