@@ -325,6 +325,18 @@ an assembly of the same name cannot collide, and they have help the moment they 
 takes them out again; when the code cannot be released without a restart, Spark says so rather than
 implying it went.
 
+**The same window's *Local assemblies* tab adds a DLL of your own**, so a code block can use its
+types. Spark shows you the file, the folder and a SHA-256 of the contents before you agree, and
+says plainly that the code will run with your permissions. **Rebuild it and Spark asks again** —
+that is what recording the hash is for, and the one time the file changed because something else
+changed it, you will be told. A rebuilt assembly is marked in the list and is not compiled against
+until you have looked at it.
+
+**Spark never locks an assembly it references**, so you can rebuild your library in Visual Studio
+with Spark open in front of you. That holds for compiling against it and for running against it,
+which are two different open handles; both are tested by rebuilding and deleting the file while
+Spark holds it.
+
 **`--software-renderer` is the one aimed at users rather than at the build.** If the viewport is
 black or the status bar reports that OpenGL did not initialise — the usual causes being a virtual
 machine, a remote desktop session, or a driver that has given up — that switch draws the same
@@ -334,10 +346,10 @@ to it on its own** when no OpenGL context arrives; the switch exists so the fall
 reached deliberately, which is what a support conversation needs and what lets the path be
 photographed and checked rather than trusted.
 
-The suite is **1,968 tests** across nine projects. `Spark.Geometry.Tests` (763) and
+The suite is **1,992 tests** across nine projects. `Spark.Geometry.Tests` (763) and
 `Spark.Geometry.Properties` (43) cover the kernel by example and by CsCheck property
 respectively; `Spark.Engine.Tests` (414) covers the graph, the replicator and the importer;
-`Spark.UI.Tests` (499) drives the canvas headlessly with real pointer gestures;
+`Spark.UI.Tests` (523) drives the canvas headlessly with real pointer gestures;
 `Spark.Viewport.Tests` (108) covers the scene, the camera and the software rasteriser;
 `Spark.Geometry.Occt.Tests` (63) drives the OpenCascade provider and **skips itself** when the
 native shim is absent; `Spark.Packages.Tests` (58) installs real packages from real feeds;

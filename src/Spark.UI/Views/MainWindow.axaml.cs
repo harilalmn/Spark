@@ -235,7 +235,7 @@ public sealed partial class MainWindow : Window
 
         if (_packages is null || !_packages.IsVisible)
         {
-            _packages = new PackageWindow(model.Packages());
+            _packages = new PackageWindow(model.Packages(), model.LocalReferences());
             _packages.Closed += (_, _) => _packages = null;
             _packages.Show(this);
         }
@@ -633,6 +633,18 @@ public sealed partial class MainWindow : Window
             if (!string.IsNullOrWhiteSpace(Options.PackageQuery) && _packages is not null)
             {
                 _ = SearchThenPrepareAsync(_packages, Options.PreparePackage);
+            }
+
+            // The tab comes to the front whenever --reference was given at all, so passing it an
+            // empty value opens the list without prompting about anything. Choosing is separate.
+            if (Options.ReferenceAssembly is not null && _packages is not null)
+            {
+                _packages.ShowLocalAssemblies();
+
+                if (!string.IsNullOrWhiteSpace(Options.ReferenceAssembly))
+                {
+                    _packages.Local.Choose(Options.ReferenceAssembly);
+                }
             }
         }
 

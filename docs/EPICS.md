@@ -669,9 +669,14 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       and the native-code sentence stands apart in the warning colour. Closing discards an
       unanswered install. `--package-source` points it at an organisation's own feed, a share or a
       folder, which is what E7's "the loader must not know which" is for.*
-- [ ] Local DLLs prompt once and record a content hash; a changed hash re-prompts.
+- [x] Local DLLs prompt once and record a content hash; a changed hash re-prompts.
       Auto-reload on file change is offered, and reading a referenced assembly never locks
-      it, so users can rebuild their library while Spark is open (**E7-T9**).
+      it, so users can rebuild their library while Spark is open (**E7-T9**). *Built
+      2026-09-01. The last clause turned out to be two claims: compiling against a file and
+      loading it are separate open handles, and only the first was already safe. Both are now
+      tested by rebuilding and deleting the assembly while Spark holds it. The watcher offers
+      and never reloads, because a reference that swapped itself out underneath a running graph
+      would change what the graph computes without anybody asking.*
 - [x] `.sparkcustom` is the same graph schema plus an interface block; ports come from
       Input/Output nodes placed inside the definition graph. **Graph-in-graph is the same
       mechanism, not a separate feature** (**E7-T11**). *Built 2026-08-31, and the claim is

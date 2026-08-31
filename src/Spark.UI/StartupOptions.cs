@@ -62,6 +62,12 @@ namespace Spark.UI;
 /// The disclosure is the screen on which a user decides to run somebody else's code, so it is the
 /// one that most needs to be looked at rather than merely asserted about.
 /// </param>
+/// <param name="ReferenceAssembly">
+/// A local assembly to choose once the package manager opens (<c>--reference</c>), or null.
+/// Nothing is referenced: choosing is what puts the prompt on screen, and this exists for the same
+/// reason <c>--package-prepare</c> does. The prompt is where a user decides to compile against
+/// somebody else's code, so it is one that should be looked at rather than only asserted about.
+/// </param>
 /// <param name="PackageQuery">
 /// The feed search to run when the package manager opens at startup
 /// (<c>--packages-window [query]</c>), empty to open it without searching, or null not to open it
@@ -92,6 +98,7 @@ public readonly record struct StartupOptions(
     string? PackageSource = null,
     string? PackageQuery = null,
     string? PreparePackage = null,
+    string? ReferenceAssembly = null,
     int CollapseFirst = 0)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
@@ -119,7 +126,7 @@ public readonly record struct StartupOptions(
     public bool OpensHelp => !string.IsNullOrWhiteSpace(HelpTopic);
 
     /// <summary>True when the package manager should open at startup.</summary>
-    public bool OpensPackages => PackageQuery is not null;
+    public bool OpensPackages => PackageQuery is not null || ReferenceAssembly is not null;
 
     /// <summary>True when the window should capture images and then exit.</summary>
     public bool IsScreenshot => !string.IsNullOrWhiteSpace(ScreenshotPrefix);
@@ -178,6 +185,7 @@ public readonly record struct StartupOptions(
         string? packageQuery = null;
         string? packageSource = null;
         string? preparePackage = null;
+        string? referenceAssembly = null;
         int collapseFirst = 0;
 
         for (int i = 0; i < args.Length; i++)
@@ -225,6 +233,10 @@ public readonly record struct StartupOptions(
                     aboutWindow = true;
                     break;
 
+                case "--reference" when i + 1 < args.Length:
+                    referenceAssembly = args[++i];
+                    break;
+
                 case "--package-prepare" when i + 1 < args.Length:
                     preparePackage = args[++i];
                     break;
@@ -269,7 +281,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, collapseFirst);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, collapseFirst);
     }
 
     private static int ParseCount(string text, int fallback) =>

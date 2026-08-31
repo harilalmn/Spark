@@ -67,7 +67,12 @@ public sealed class ReferenceCatalog
     /// Adds assemblies to the catalogue, replacing the snapshot readers see.
     /// </summary>
     /// <param name="paths">Paths to assemblies. Ones that cannot be read are skipped.</param>
-    /// <returns>How many were added.</returns>
+    /// <returns>
+    /// How much the catalogue grew, which is <b>not the same as how many of
+    /// <paramref name="paths"/> were added</b>: rebuilding the snapshot also picks up assemblies
+    /// the process has loaded since the last one. A caller that needs to know whether a particular
+    /// path is now referenced should use <see cref="Reload"/>, which answers that question.
+    /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="paths"/> is null.</exception>
     /// <remarks>
     /// <b>A path that cannot be read is skipped rather than thrown on.</b> The common cause is a
@@ -87,6 +92,69 @@ public sealed class ReferenceCatalog
         _current = replacement with { Version = _current.Version + 1 };
 
         return System.Math.Max(0, added);
+    }
+
+    /// <summary>
+    /// Drops an added assembly from the catalogue (<c>E7-T9</c>).
+    /// </summary>
+    /// <param name="path">The assembly's path.</param>
+    /// <returns>True when it was in the catalogue.</returns>
+    /// <exception cref="ArgumentException"><paramref name="path"/> is null or blank.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Only paths the process has not loaded can be dropped.</b> An assembly already loaded is
+    /// put back by the next <see cref="Build"/>, because it is genuinely still referenceable and
+    /// pretending otherwise would produce a compile error naming a type that plainly exists. What
+    /// this removes is a user's own added reference, which is the only kind anybody asks to
+    /// remove.
+    /// </para>
+    /// <para>
+    /// Bumps <see cref="Version"/> like <see cref="Add"/>, so cached compilations against the old
+    /// set are not reused. A removal that did not invalidate the cache would leave a script
+    /// compiling against an assembly the user had just taken away.
+    /// </para>
+    /// </remarks>
+    public bool Remove(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        string full = Full(path);
+
+        ImmutableArray<MetadataReference> kept =
+        [
+            .. _current.References.Where(reference =>
+                reference is not PortableExecutableReference { FilePath: { } existing }
+                || !string.Equals(Full(existing), full, StringComparison.OrdinalIgnoreCase)),
+        ];
+
+        if (kept.Length == _current.References.Length)
+        {
+            return false;
+        }
+
+        _current = _current with { References = kept, Version = _current.Version + 1 };
+        return true;
+    }
+
+    /// <summary>
+    /// Re-reads an added assembly, replacing the metadata the catalogue holds for it
+    /// (<c>E7-T9</c>).
+    /// </summary>
+    /// <param name="path">The assembly's path.</param>
+    /// <returns>True when it could be read.</returns>
+    /// <exception cref="ArgumentException"><paramref name="path"/> is null or blank.</exception>
+    /// <remarks>
+    /// <b>Remove and then add, in that order, because <see cref="Add"/> alone would not replace
+    /// it.</b> <see cref="Build"/> keeps an existing reference for any path the new snapshot does
+    /// not already have, which is what makes the catalogue additive — and it is exactly what would
+    /// make a reload silently do nothing.
+    /// </remarks>
+    public bool Reload(string path)
+    {
+        _ = Remove(path);
+        return Add([path]) > 0 || _current.References.Any(reference =>
+            reference is PortableExecutableReference { FilePath: { } existing }
+            && string.Equals(Full(existing), Full(path), StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -144,6 +212,40 @@ public sealed class ReferenceCatalog
         }
     }
 
+    /// <summary>
+    /// Where an assembly the catalogue references lives on disk, by simple name (<c>E7-T9</c>).
+    /// </summary>
+    /// <param name="simpleName">The assembly's simple name, without extension or version.</param>
+    /// <returns>Its path, or <see langword="null"/> when the catalogue does not reference it.</returns>
+    /// <remarks>
+    /// <b>Compiling against an assembly is not the same as being able to run against it.</b> A
+    /// script that calls into a user's own DLL compiles happily and then fails at evaluation with
+    /// <c>Could not load file or assembly</c>, because the script's load context defers to the
+    /// default one and the default one has never heard of a file in some folder of the user's.
+    /// This is how <see cref="ScriptLoadContext"/> finds it, and it is deliberately restricted to
+    /// what the catalogue already references — a script cannot reach an assembly nobody
+    /// agreed to.
+    /// </remarks>
+    public string? PathFor(string? simpleName)
+    {
+        if (string.IsNullOrWhiteSpace(simpleName))
+        {
+            return null;
+        }
+
+        foreach (MetadataReference reference in _current.References)
+        {
+            if (reference is PortableExecutableReference { FilePath: { } path }
+                && string.Equals(
+                    Path.GetFileNameWithoutExtension(path), simpleName, StringComparison.OrdinalIgnoreCase))
+            {
+                return path;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>The prelude a script is wrapped in: the imports, one per line.</summary>
     /// <returns>The using directives, newline separated.</returns>
     public string Prelude() =>
@@ -166,6 +268,15 @@ public sealed class ReferenceCatalog
         // "Missing compiler required member 'Binder.BinaryOperation'" - a message that names the
         // binder while the assembly actually missing is the one underneath it.
         TryAdd(byPath, typeof(System.Runtime.CompilerServices.CallSite).Assembly.Location);
+
+        // And the two assemblies DefaultImports promises. Everything else here is discovered by
+        // sweeping what the process has loaded, and a referenced assembly does not load until
+        // something touches a type in it - so a catalogue built early enough can be missing
+        // Spark.Geometry while still telling every script `using Spark.Geometry;`. The user then
+        // gets "the type or namespace name 'Geometry' does not exist in the namespace 'Spark'",
+        // on a line they did not write. Found by a test that happened to build one early.
+        TryAdd(byPath, typeof(Spark.Api.SparkNodeAttribute).Assembly.Location);
+        TryAdd(byPath, typeof(Spark.Geometry.Point3d).Assembly.Location);
 
         // Everything already loaded, which covers the framework, Spark.Api and Spark.Geometry
         // without anybody naming them. Dynamic assemblies have no location and are skipped.
@@ -198,6 +309,18 @@ public sealed class ReferenceCatalog
             [.. byPath.Values],
             [.. DefaultImports],
             _current?.Version ?? 0);
+    }
+
+    private static string Full(string path)
+    {
+        try
+        {
+            return Path.GetFullPath(path);
+        }
+        catch (Exception failure) when (failure is ArgumentException or IOException or NotSupportedException)
+        {
+            return path;
+        }
     }
 
     private static void TryAdd(Dictionary<string, MetadataReference> into, string path)

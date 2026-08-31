@@ -50,6 +50,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private HelpLibrary? _help;
     private CustomNodeLibrary? _customNodes;
     private PackageBrowserViewModel? _packages;
+    private LocalReferencesViewModel? _localReferences;
 
     /// <summary>
     /// The package feed to search instead of nuget.org, or null (<c>--package-source</c>).
@@ -242,6 +243,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         // against it below. Loading them any later would hand a user placeholders for nodes they
         // have already installed, which is the one outcome E7-T6 exists to avoid.
         IReadOnlyList<string> packageProblems = LoadInstalledPackages();
+
+        // Watching starts here too, so an assembly rebuilt during the session announces
+        // itself whether or not the user ever opens the list.
+        _ = LocalReferences().Apply();
 
         AllLibraryEntries =
         [
@@ -1054,6 +1059,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// is one library rather than one per gesture.
     /// </remarks>
     public CustomNodeLibrary CustomNodes() => _customNodes ??= new CustomNodeLibrary(_session.Library);
+
+    /// <summary>
+    /// The session's local assembly references (<c>E7-T9</c>).
+    /// </summary>
+    /// <returns>The list, built once and reused.</returns>
+    /// <remarks>
+    /// <b>The catalogue is reached through a delegate rather than handed over</b>, because
+    /// building this must not load Roslyn. <c>E6-T14</c> says a graph with no script nodes never
+    /// loads <c>Spark.Scripting</c>, and the delegate is called only when an assembly is actually
+    /// referenced — which is a user deliberately preparing to write a code block.
+    /// </remarks>
+    public LocalReferencesViewModel LocalReferences() =>
+        _localReferences ??= new LocalReferencesViewModel(
+            store: null,
+            catalogue: () => _session.ScriptReferences(),
+            toUiThread: work => Avalonia.Threading.Dispatcher.UIThread.Post(work));
 
     /// <summary>
     /// The session's package browser, over the same node library everything else resolves against

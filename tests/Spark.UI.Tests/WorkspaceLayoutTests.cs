@@ -156,6 +156,25 @@ public sealed class WorkspaceLayoutTests
         Assert.True(options.ForceSoftwareRenderer);
     }
 
+    /// <summary>
+    /// <c>--reference</c> opens the manager on the local assemblies tab, and an empty value opens
+    /// it without prompting about anything.
+    /// </summary>
+    [Fact]
+    public void TheReferenceSwitchOpensTheManager()
+    {
+        StartupOptions named = StartupOptions.Parse(["--reference", @"C:\lib\Acme.dll"]);
+
+        Assert.True(named.OpensPackages);
+        Assert.Equal(@"C:\lib\Acme.dll", named.ReferenceAssembly);
+        Assert.Null(named.PackageQuery);
+
+        StartupOptions bare = StartupOptions.Parse(["--reference", ""]);
+
+        Assert.True(bare.OpensPackages);
+        Assert.Equal(string.Empty, bare.ReferenceAssembly);
+    }
+
     /// <summary>Without the switch, the package manager stays shut.</summary>
     [Fact]
     public void ThePackageManagerDoesNotOpenUnlessAskedFor() =>

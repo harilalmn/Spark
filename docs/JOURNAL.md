@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 01:40 +0530
+**Last updated:** 2026-09-01 03:10 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E7-T10` — the package manager, and the disclosure as a gate.** Search, install, the installed list and removal, behind a **Packages** button; `--package-source` points it at an organisation's own feed. **The native-code sentence is the only coloured line on the screen**, changed after looking at the photograph. Closing discards an unanswered install, proven in the real application. Two defects found by asserting what the user is told ([N72](NOTES.md), [N71](NOTES.md)), and a toolbar that had been hiding *Help* off the right edge is now a `WrapPanel`. |
+| **Last completed step** | **`E7-T9` — local DLL references, and a claim that was two claims.** Path plus SHA-256, so a rebuild re-prompts; a watcher that offers and never reloads; a **Local assemblies** tab. **The row's *never locks it* is two claims** — compiling against a file and loading it are separate handles, and only the first was safe. A script that compiled and then failed to load is fixed by resolving from bytes on `Resolving` ([N73](NOTES.md)). Also [N75](NOTES.md): the catalogue promised an import it could fail to reference. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E7-T9` — local DLL references**, the last engineering row in `E7`: prompt once, record a content hash, re-prompt when it changes, offer reload on file change, and **read the assembly without locking it** — which is the opposite of the package path and the whole difficulty of the row, since a developer rebuilding the DLL Spark is holding gets a build error from Spark. Then `E7-T6`'s remaining half, **the install banner on a placeholder**, which now has the manager it was waiting for; `E7-T2`'s remaining half, **dependency resolution**; and `E7-T14`, **freeze**. After that `E7` closes and **M8/`E12`** is what is left: embedding, installer, portable zip, release workflow, performance and accessibility. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1968** over **nine** projects: Geometry.Tests 763, UI.Tests 499, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 58**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **Close `E7`.** Two rows left and both are small. **`E7-T6`'s remaining half**: the placeholder node's banner offering one-click install, which now has the manager it was waiting for — the placeholder already keeps the `NodeKey`, so the banner knows exactly which package to name. **`E7-T2`'s remaining half**: dependency resolution, walking a package's own NuGet dependencies rather than installing it alone. Then **`E7-T14`, freeze**. After that `E7` closes and **M8/`E12`** is everything left before 1.0: embedding, installer, portable zip, release workflow, performance and accessibility. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1992** over **nine** projects: Geometry.Tests 763, UI.Tests 523, Engine.Tests 414, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 58**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T18`'s About box was on this list and should not have been** — it needed a dialog, which is code, and it is done. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3793,3 +3793,58 @@ carrying three native binaries. Then the package placed in the real store and th
 started: **115 nodes from the package, 230 in the library, listed as `Acme.Nodes 1.0.0 — 115
 node(s)`**. Build clean at 0 warnings. `UI.Tests` 482 -> 499, `Packages.Tests` 57 -> 58. Suite
 **1,968** over nine projects, 0 failed, 0 skipped. `dotnet format` clean.
+
+### 2026-09-01 — `E7-T9`: local DLL references, and a claim that was two claims
+
+**What.** `LocalReferenceStore`, `LocalReferenceWatcher`, `LocalReferencesViewModel`, a **Local
+assemblies** tab beside packages, `ScriptLoadContext` resolution for a user's own assemblies, and
+twenty-three tests. **`E7`'s engineering rows are now all `Done`** bar dependency resolution and
+the placeholder banner.
+
+**Trust is keyed on the path and the hash together**, the same shape and the same reasoning as
+`ScriptTrustStore`. Keyed on the path alone a user who agreed to `MyNodes.dll` in March would still
+be trusting whatever that file says today, which is exactly what a rebuild changes; keyed on the
+hash alone, agreeing to one copy would agree to every copy anywhere. So a rebuild re-prompts, which
+is the row's own sentence, and in the ordinary case a developer glances and presses the button.
+
+**The watcher offers and never reloads.** A reference that swapped itself out underneath a running
+graph would change what the graph computes without anybody asking, and the user would have no way
+to tell that the answer on screen came from different code than a second ago. Changes are coalesced
+over 400ms, because a build is not one write — four events for one rebuild would be four prompts.
+
+**[N73](NOTES.md) is the finding of the day, and it came from one test.** The row's *never locks it*
+is **two** claims, not one: compiling against a file and loading it are separate open handles.
+The compile side was already safe, by Roslyn's grace — it opens metadata sharing read, write and
+delete. The load side was not. A script calling into a user's DLL **compiled perfectly and then
+failed at evaluation** with `Could not load file or assembly`, because `ScriptLoadContext.Load`
+returns null on purpose and the default context has never heard of a file in some folder of the
+user's. It now resolves on the `Resolving` event — which fires only after the default context has
+failed, so nothing found this way can shadow a contract assembly — and loads **from bytes**.
+`LoadFromAssemblyPath` was tried deliberately afterwards and the rebuild failed with *the process
+cannot access the file*, which is the proof the byte load is load-bearing.
+
+**And the test that found it is the point.** Every other test asserted a path had reached a list.
+That one compiles a real assembly at test time, references it, and calls a method that exists only
+in it. The assembly is compiled rather than copied because it has to contain a type this process
+has never loaded; a copy of something already in memory would resolve against the loaded one and
+prove nothing.
+
+**[N75](NOTES.md), found on the way.** `DefaultImports` puts `using Spark.Geometry;` in front of
+every script, but the references were swept from what the process had already loaded — and a
+referenced assembly does not load until something touches it. A catalogue built early enough
+promised an import it could not satisfy, and the user saw *the type or namespace name 'Geometry'
+does not exist in the namespace 'Spark'* on a line they did not write. `Microsoft.CSharp` was
+already added by name for exactly this reason; `Spark.Api` and `Spark.Geometry` now are too.
+Anything the prelude names must be referenced by name, not hoped for.
+
+**[N74](NOTES.md), which bit twice.** `ReferenceCatalog.Add` returns how much the catalogue grew,
+and rebuilding the snapshot also sweeps newly loaded assemblies — so adding one can return two. It
+broke `Apply`'s count, and then broke a test that **passed alone and failed in the full suite**,
+because five hundred tests load more assemblies first. Both now ask a question the catalogue can
+answer honestly.
+
+**Verified by running it.** An assembly agreed to, then rebuilt between sessions: listed and marked
+in amber, *rebuilt — reload to use it*, and **not compiled against**. Restored: *referenced*. The
+prompt itself photographed, naming the file, the folder, the SHA-256, and saying plainly that the
+code will run with the user's full permissions. Build clean at 0 warnings. `UI.Tests` 499 -> 523.
+Suite **1,992** over nine projects, 0 failed, 0 skipped. `dotnet format` clean.

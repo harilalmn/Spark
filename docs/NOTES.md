@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N63-N72 added)
+**Last updated:** 2026-09-01 (N63-N75 added)
 
 ---
 
@@ -2003,3 +2003,57 @@ advice is reserved for the case where the reference really is still alive after 
 **Found by a test, and only because the test asserted the message.** An assertion on
 `library.Count == 0` passed throughout: purging the library is the half that always works. The
 defect lived entirely in what happened afterwards and in what the user was told about it.
+
+## N73 — Compiling against an assembly and running against it are two different open handles
+
+`E7-T9` says *reading a referenced assembly never locks it, so users can rebuild their library
+while Spark is open*. That reads as one property. It is two, and only one of them was already
+true.
+
+**The compile side was safe by Roslyn's grace.** `MetadataReference.CreateFromFile` opens metadata
+with `FileShare.ReadWrite | FileShare.Delete`, so the file can be rewritten and deleted underneath
+it. A first probe seemed to prove even more than that — until it turned out `CreateFromFile` is
+lazy and had not opened the file at all. The honest test forces `GetMetadata()` first; without that
+it asserts only that Roslyn had not got round to it yet.
+
+**The load side was not safe, and nothing said so.** A script calling into a user's DLL compiles
+perfectly and then fails at evaluation with `Could not load file or assembly 'Acme.Maths'`, because
+`ScriptLoadContext.Load` returns null — the deliberate policy that keeps `Point3d` one type — and
+the default context has never heard of a file in some folder of the user's. The fix resolves it on
+the `Resolving` event, which fires **only after the default context has failed**, so nothing found
+this way can shadow a contract assembly. And it loads **from bytes**: `LoadFromAssemblyPath` maps
+the file for the life of the context, which would mean the user cannot rebuild the very library
+they added. Switching that one line back made the rebuild fail with *the process cannot access the
+file*, which is the proof the byte load is load-bearing.
+
+**The lesson is about the test, not the code.** Every test up to that point asserted that a path
+had reached a list. The one that found this called a method that exists only in the referenced
+assembly and asserted it returned 84.
+
+## N74 — `ReferenceCatalog.Add` reports how much the catalogue grew, which is not what it was asked
+
+`Add` returns `replacement.References.Length - _current.References.Length`. Rebuilding the snapshot
+also sweeps `AppDomain.CurrentDomain.GetAssemblies()`, so anything the process loaded since the last
+snapshot arrives in the same count. Add one assembly and get back two.
+
+It bit twice in one sitting. First in `LocalReferencesViewModel.Apply`, which reported having
+applied more references than it had; then in a test asserting `Add` returned 1, which **passed
+alone and failed in the full suite**, because running the other five hundred tests first loads more
+assemblies. Both now ask a question the catalogue can answer honestly: `Reload` says whether a
+particular path is referenced, and a test asserts the reference is present rather than counting.
+
+A count that is right in isolation and wrong in company is worse than no count, and this one is on
+a public method whose summary said *how many were added*. It now says what it actually returns.
+
+## N75 — The catalogue promised an import it could fail to reference
+
+`DefaultImports` puts `using Spark.Geometry;` in front of every script. The references, though, came
+almost entirely from sweeping what the process had already loaded — and a referenced assembly does
+not load until something touches a type in it. A catalogue built early enough therefore promises an
+import it cannot satisfy, and the user sees *the type or namespace name 'Geometry' does not exist
+in the namespace 'Spark'* on a line they did not write.
+
+`Microsoft.CSharp` and `System.Linq.Expressions` were already added by name for exactly this reason,
+each with a comment about the message it produces. `Spark.Api` and `Spark.Geometry` are now added
+the same way. **Anything the prelude names must be referenced by name, not hoped for**, because the
+sweep is an optimisation and the prelude is a promise.

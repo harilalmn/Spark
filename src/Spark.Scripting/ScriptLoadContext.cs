@@ -35,9 +35,28 @@ namespace Spark.Scripting;
 /// </remarks>
 public sealed class ScriptLoadContext : AssemblyLoadContext
 {
+    private readonly Func<string?, string?>? _locate;
+
     /// <summary>Creates a collectible context for script assemblies.</summary>
-    public ScriptLoadContext() : base("SparkScripts", isCollectible: true)
+    public ScriptLoadContext() : this(null)
     {
+    }
+
+    /// <summary>
+    /// Creates a collectible context that can also find a user's own assemblies (<c>E7-T9</c>).
+    /// </summary>
+    /// <param name="locate">
+    /// Given an assembly's simple name, where it lives, or null for none. Consulted <b>only after
+    /// the default context has failed</b>, so nothing it returns can shadow a contract assembly.
+    /// </param>
+    public ScriptLoadContext(Func<string?, string?>? locate) : base("SparkScripts", isCollectible: true)
+    {
+        _locate = locate;
+
+        // Resolving fires only when the default context could not satisfy the reference, which is
+        // exactly the boundary this context wants: Spark.Geometry is found there and shared, and a
+        // user's Acme.Maths is not and is found here.
+        Resolving += OnResolving;
     }
 
     /// <summary>Loads an emitted script assembly into this context.</summary>
@@ -63,4 +82,36 @@ public sealed class ScriptLoadContext : AssemblyLoadContext
     /// <c>Point3d</c> the same type as the graph's. See the remarks on the type.
     /// </remarks>
     protected override Assembly? Load(AssemblyName assemblyName) => null;
+
+    /// <summary>
+    /// Finds an assembly the default context could not, among the ones the user has agreed to.
+    /// </summary>
+    /// <remarks>
+    /// <b>Loaded from bytes, not from the path.</b> <c>LoadFromAssemblyPath</c> maps the file and
+    /// holds it open for the life of the context, which would mean a user could not rebuild the
+    /// very library they added — and not being able to rebuild while Spark is open is the
+    /// thing <c>E7-T9</c> exists to prevent.
+    /// </remarks>
+    private Assembly? OnResolving(AssemblyLoadContext context, AssemblyName name)
+    {
+        if (_locate?.Invoke(name.Name) is not { } path)
+        {
+            return null;
+        }
+
+        try
+        {
+            using MemoryStream bytes = new(File.ReadAllBytes(path), writable: false);
+
+            return LoadFromStream(bytes);
+        }
+        catch (Exception failure) when (failure is IOException
+            or UnauthorizedAccessException
+            or BadImageFormatException)
+        {
+            // Mid-rebuild is the common case. Null lets the runtime report the missing assembly,
+            // which is a better message than one about a file being briefly unreadable.
+            return null;
+        }
+    }
 }

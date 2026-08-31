@@ -49,7 +49,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     private readonly ReferenceCatalog _references;
     private readonly GuardWeaver _guards;
     private readonly ScriptAssemblyCache _persistent;
-    private ScriptLoadContext _context = new();
+    private ScriptLoadContext _context;
     private readonly ConcurrentDictionary<string, NodeDefinitionSource> _compiled = new(StringComparer.Ordinal);
 
     /// <summary>Creates a factory over a reference catalogue.</summary>
@@ -90,6 +90,11 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         _references = references;
         _guards = guards;
         _persistent = new ScriptAssemblyCache();
+
+        // The context can find the user's own assemblies, and only the ones the catalogue already
+        // references. Compiling against a DLL and being able to run against it are two different
+        // things, and a script that compiles and then cannot load is the worse of the two.
+        _context = new ScriptLoadContext(_references.PathFor);
     }
 
     /// <summary>Creates a factory over a fresh catalogue of what is already loaded.</summary>
@@ -138,7 +143,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         _compiled.Clear();
 
         ScriptLoadContext going = _context;
-        _context = new ScriptLoadContext();
+        _context = new ScriptLoadContext(_references.PathFor);
 
         WeakReference reference = new(going);
         going.Unload();

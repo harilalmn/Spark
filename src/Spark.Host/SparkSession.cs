@@ -135,6 +135,28 @@ public sealed class SparkSession : IDisposable
     /// </summary>
     public bool ScriptingAllowed { get; private set; } = true;
 
+    /// <summary>
+    /// The assemblies code blocks compile against, or <see langword="null"/> when scripting is
+    /// off for this session (<c>E7-T9</c>).
+    /// </summary>
+    /// <returns>The catalogue, building the script factory if it has not been built.</returns>
+    /// <exception cref="ObjectDisposedException">The session has been disposed.</exception>
+    /// <remarks>
+    /// <b>Touching this loads Roslyn</b>, which is why nothing calls it to draw a list. Adding a
+    /// reference is a deliberate act by a user who is about to write a code block; enumerating
+    /// what they have added before is not, and reads the store instead. That is what keeps
+    /// <c>E6-T14</c>'s promise — a graph with no script nodes never loads
+    /// <c>Spark.Scripting</c> — true in a session that has a reference list.
+    /// </remarks>
+    public Spark.Scripting.ReferenceCatalog? ScriptReferences()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        return ScriptingAllowed && EnableScripting() is Spark.Scripting.ScriptNodeFactory factory
+            ? factory.References
+            : null;
+    }
+
     /// <summary>The definitions that can be placed.</summary>
     public NodeLibrary Library { get; }
 
