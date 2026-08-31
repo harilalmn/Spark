@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 10:20 +0530
+**Last updated:** 2026-09-01 10:55 +0530
 **Protocol version:** 2
 
 ---
@@ -19,11 +19,11 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E12-T18` — a licence obligation that was already met, and a guard that was not.** The texts and the build key were already staged; a full build was made and each was listed. What was missing is a guard, because **the application runs perfectly without any of them** so nothing would notice one going. `publish.ps1` now refuses a staged build missing a file it must ship. Nearly created the defect while looking for it: listed `licenses/` rather than `licences/` and overwrote a correct tracked file, which `git status` caught. |
+| **Last completed step** | **`D20` — Spark ships standalone, and the CAD proof defers.** The client asked why a Revit licence bore on a standalone application; it does not, and the register already said so. The embedding **mechanism** ships and is tested; the **demonstration inside a commercial product** defers past 1.0 with `E12-T2`. The cost is recorded: a seam tested against a fake host, never against Revit's external events. The README now says *designed to be embedded, seam tested, not yet run inside a CAD application*. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E12-T12`, the performance pass, then `E12-T13`, accessibility.** Both are *passes* rather than features, so the first job in each is deciding what would count as done and writing that down before measuring anything — a pass with no stated bar is a pass that ends when somebody gets tired. `bench/` exists and a nightly already runs it, so the performance one starts from numbers rather than from nothing; ADR-0013's 60 fps at 2000 nodes and `R15`'s payload bracket are the claims to check. For accessibility the design language already carries contrast figures that `PaletteContrastTests` asserts, so the gap is keyboard reach and screen-reader naming rather than colour. **`E12-T8` also remains** and needs a recorded decision rather than code: ReadyToRun is compatible with the LGPL relink obligation and single-file plausibly is not, and [ADR-0020](adr/0020-occt-via-c-abi-shim.md) should say which of the three words in that row survive. **Not buildable here:** `E12-T9` needs a signing identity, `E12-T4` a Revit or AutoCAD licence. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Next action** | **`E12-T12`, the performance pass.** It is a *pass* rather than a feature, so the first job is writing down what would count as done — a pass with no stated bar is one that ends when somebody gets tired. The claims to check already exist and are specific: **ADR-0013's 60 fps at 2000 nodes**, **`R15`'s payload bracket** (now measured at 225 MB staged, 52 MB of it OpenCascade), and the benchmark budgets in `bench/`, which a nightly already runs. Start by reading what `bench/` measures and what it does not, because the gap between those two is the pass. Then **`E12-T13`, accessibility**: the design language already carries contrast figures that `PaletteContrastTests` asserts, so the gap is **keyboard reach and screen-reader naming**, not colour — which means the bar is *every gesture reachable without a mouse* and *every control named*, and both are checkable. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**2036** over **nine** projects: Geometry.Tests 763, UI.Tests 536, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 71**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
-| **Blocked on** | **Three things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T18`'s About box was on this list and should not have been** — it needed a dialog, which is code, and it is done. |
+| **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
 
@@ -4140,3 +4140,41 @@ and left no room for doubt. **Nothing in this repository is legal advice.**
 
 **Verified.** Build clean at 0 warnings. Suite **2,036** over nine projects, 0 failed, 0 skipped.
 `dotnet format` clean.
+
+### 2026-09-01 @ `D20`: Spark ships standalone, and the CAD proof defers
+
+**What.** A decision, and four documents corrected. No code.
+
+**The client asked why a Revit or AutoCAD licence bore on a standalone application.** It does not,
+and the register said so before this entry did: `E12`'s own scope note reads *M8 proves the seam, it
+does not ship a Revit plugin*. `Spark.Desktop` references `Spark.UI` and the geometry provider and
+nothing else, and the only mentions of either CAD product in the entire source tree are **doc
+comments** on `IEvaluationScheduler` explaining why the seam exists. Everything demonstrated this
+week — the graph, the solids, the viewport, packages, the portable zip — was the
+standalone application.
+
+**The previous report listed `E12-T4` beside the signing identity**, which implied Spark could not
+ship without a CAD licence. That was wrong, and it is the kind of wrong that matters: a status list
+whose blocked items are not really blocking teaches the reader to discount all of them.
+
+**What defers and what does not.** The embedding **mechanism** ships in 1.0 and is built:
+`SparkSession` is a composition root with no UI in its reference graph, enforced by
+`Spark.Architecture.Tests` rather than asserted in a comment, and `HostThreadEvaluationScheduler`
+runs a whole graph on a foreign thread against a real work queue. What defers is the
+**demonstration inside a commercial product**, and `E12-T2`'s `IHostServices` with it — an
+interface designed without a host to try it against is speculation, and designing it after the first
+real add-in costs nothing that designing it now would save.
+
+**The cost is written into `D20` rather than left to be discovered.** 1.0 ships with a seam tested
+against a *fake* host — one thread, one queue, a re-entrant marshal that throws — and
+never against Revit's external events or AutoCAD's document lock, which is where the surprises live.
+So the honest public wording is **designed to be embedded, seam tested, not yet run inside a CAD
+application**, and that sentence is now in the README rather than only in a decision row nobody
+reads.
+
+**[Q5](PRD.md#14-open-questions) defers with it rather than being answered**, and it is worth noting
+that it was always this row's first obstacle: `E12-T4` could not begin until somebody chose which
+host, and nobody had.
+
+**Verified.** No code changed, so the gates are unchanged; `Spark.Docs.Verify` green, `dotnet format`
+clean. Suite still **2,036** over nine projects.

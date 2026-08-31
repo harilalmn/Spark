@@ -1186,8 +1186,9 @@ written and has never executed.
 
 ## E12 — Embedding and release
 
-**Goal.** `Spark.Host` runs inside a real CAD add-in, and a Windows user can install Spark
-from an installer that works.
+**Goal.** A Windows user can install Spark from an installer that works, and `Spark.Host` is
+ready to run inside a CAD add-in — the seam built and tested, the demonstration inside a real
+host deferred past 1.0 by **D20**.
 
 **In scope.** `Spark.Host`, `Spark.Cli`, the Windows build, the installer, the portable zip,
 the release workflow, and the performance and accessibility passes that gate 1.0.
@@ -1202,12 +1203,18 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
 
 **Acceptance criteria**
 
-- [ ] `SparkSession` is the composition root and owns lifetime; `Spark.Host` has no UI
-      (**E12-T1**).
-- [ ] `IHostServices` is the CAD embedding seam (**E12-T2**).
-- [ ] The host-thread `IEvaluationScheduler` runs evaluation on the host's thread, which is
-      the entire embedding mechanism (**E12-T3**).
-- [ ] `Spark.Host` is proven inside a real Revit or AutoCAD add-in (**E12-T4**).
+- [x] `SparkSession` is the composition root and owns lifetime; `Spark.Host` has no UI
+      (**E12-T1**). *Closed 2026-09-01 with evidence rather than code: it has been the
+      composition root since `E3`, and `Spark.Architecture.Tests` enforces the no-UI claim
+      rather than the comments asserting it.*
+- [x] The host-thread `IEvaluationScheduler` runs evaluation on the host's thread, which is
+      the entire embedding mechanism (**E12-T3**). *Built 2026-09-01. Two delegates and no
+      named host type; inline when already on the host thread, because posting to a thread
+      and then blocking it is a deadlock and it is the first thing an add-in does.*
+- [ ] **After 1.0, by D20:** `IHostServices` is the CAD embedding seam (**E12-T2**), and
+      `Spark.Host` is proven inside a real Revit or AutoCAD add-in (**E12-T4**). *The
+      mechanism ships in 1.0; the demonstration inside a commercial product does not, and
+      neither does an interface designed without a host to try it against.*
 - [ ] `spark run`, `check`, `render`, `export`, `pkg`, `docs` and `graph` all work
       headlessly, and `spark run` produces output identical to the desktop app's
       (**E12-T5**). *`export` since 2026-08-29 and `run` since 2026-08-30. The identical-output

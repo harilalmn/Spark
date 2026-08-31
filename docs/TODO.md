@@ -147,6 +147,14 @@ release rather than a feature.
 - [ ] **Watching the first nightly benchmark run.** It is green locally end to end and has never
       run on a hosted runner.
 
+**And one that was on this list and should not have been.** `E12-T4`, proving `Spark.Host` inside a
+real Revit or AutoCAD add-in, does need a licence and a person — but it proves a **second**
+claim, that the engine can be embedded, and **Spark ships standalone without it**. `Spark.Desktop`
+references `Spark.UI` and the provider and nothing else; the only mentions of either CAD product in
+the source tree are doc comments on `IEvaluationScheduler`. [D20](PRD.md#13-decision-log) moves it
+and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a
+CAD licence, which was wrong.
+
 ---
 
 ## After 1.0 — the Help pass

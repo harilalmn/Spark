@@ -448,6 +448,16 @@ authors reference `Spark.Api` and `Spark.Geometry` from an install, which is how
 are built anyway. `Spark.Cli` builds `spark.exe` and ships beside the desktop application; it
 is not a dotnet global tool. (**D11**)
 
+**Spark is a standalone application, and embedding is a second claim it does not yet make.**
+`Spark.Desktop` references `Spark.UI` and the geometry provider and nothing else — there is no
+CAD dependency anywhere in the tree, and the only mentions of Revit or AutoCAD in the source are doc
+comments explaining why `IEvaluationScheduler` exists. That seam is real and tested:
+`SparkSession` has no UI in its reference graph, an architecture test enforces it, and
+`HostThreadEvaluationScheduler` runs a whole graph on a foreign thread. But it has been tested
+against a *fake* host — one thread, one queue — and never against Revit's external
+events or AutoCAD's document lock. So the accurate wording is **designed to be embedded, seam
+tested, not yet run inside a CAD application**, and the proof is deferred past 1.0 (**D20**).
+
 ## Documentation
 
 | Document | What it is |
