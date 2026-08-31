@@ -642,9 +642,14 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       and undo history, unloads, and **verifies by weak reference** — and when it does not
       unload, the UI says so and offers restart. **Restart is the documented default**
       (**E7-T5**).
-- [ ] A graph referencing a missing package opens with placeholder nodes preserving the
+- [x] A graph referencing a missing package opens with placeholder nodes preserving the
       definition key, every literal and every wire **verbatim**, and **re-saves
-      byte-identically** (**E7-T6**, **E7-T7**).
+      byte-identically** (**E7-T6**, **E7-T7**). *Built and proven 2026-08-31. The placeholder
+      infers its port count from what the file uses, because the definition is absent and the
+      graph's own usage is the only evidence of the node's shape. It throws rather than returning
+      null: a graph that quietly produced a value downstream of a missing package would compute a
+      confident wrong answer, which is the one outcome worse than not computing. **The banner
+      offering one-click install is still owed** and waits on `E7-T2` and `E7-T10`.*
 - [ ] Install shows publisher, downloads, licence, signature status, transitive
       dependencies, node count, and **whether the package contains native binaries** —
       users deserve to know when the no-native-dependencies promise is being broken on
@@ -662,12 +667,13 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
 - [ ] A `CustomViewKey` seam is reserved in the format now, so adding custom node UI later
       needs no format migration (**E7-T15**).
 
-**Status.** Started 2026-08-31. **The load layer is in and it is the part everything else
-depends on**: `PackageIdentity`, `ContractAssemblies` and `PackageLoadContext`, with twelve tests
+**Status.** Started 2026-08-31. **The load layer and the preservation guarantee are in**, which
+are the two parts everything else depends on: `PackageIdentity`, `ContractAssemblies` and `PackageLoadContext`, with twelve tests
 covering isolation, shared contract identity, side-by-side versions and collectible unloading.
-Nothing else in this epic is built — no NuGet client, no manifest, no placeholders, no custom
-nodes, no package manager UI — but the two decisions that constrain all of them are settled and
-proven rather than intended.
+Placeholders followed the same day: a graph naming a package that is not installed now opens, keeps
+every key, literal and wire, and **re-saves byte for byte** — which is `E7`'s headline promise and
+is asserted rather than asserted-to. Still absent: the NuGet client, the manifest convention, the
+install banner, custom nodes and the package manager UI.
 
 ---
 

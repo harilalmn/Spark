@@ -171,14 +171,37 @@ public sealed class SparkFileTests
         Assert.Contains("99", error.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// An unknown node is never silently skipped. <b>What changed on 2026-08-31 is how that is
+    /// achieved, not whether it holds</b>: the default is now a placeholder that keeps the node,
+    /// its key and its wires (`E7-T6`), where it used to be a refusal. The original assertion has
+    /// moved to the explicit strict policy below, and the property this test was written to
+    /// protect — that the node does not vanish — is now checked directly.
+    /// </summary>
     [Fact]
-    public void AnUnknownNodeIsNamedRatherThanSkipped()
+    public void AnUnknownNodeIsKeptRatherThanSkipped()
     {
         string text = SparkFile.Write(GraphDocument.Capture(BuildGraph(out _, out _)))
             .Replace("Point.ByCoordinates", "Point.BySomethingElse", StringComparison.Ordinal);
 
-        SparkFileException error =
-            Assert.Throws<SparkFileException>(() => SparkFile.Read(text).Restore(Library));
+        Graph graph = SparkFile.Read(text).Restore(Library);
+
+        Assert.Contains(graph.Nodes(), n => n.Definition.Key.Name == "Point.BySomethingElse");
+        Assert.Contains(graph.Nodes(), n => PlaceholderNode.IsPlaceholder(n.Definition));
+    }
+
+    /// <summary>
+    /// The strict policy still refuses and still names the node, for a headless check that must
+    /// not proceed on an incomplete graph.
+    /// </summary>
+    [Fact]
+    public void AnUnknownNodeIsNamedWhenTheStrictPolicyIsAsked()
+    {
+        string text = SparkFile.Write(GraphDocument.Capture(BuildGraph(out _, out _)))
+            .Replace("Point.ByCoordinates", "Point.BySomethingElse", StringComparison.Ordinal);
+
+        SparkFileException error = Assert.Throws<SparkFileException>(
+            () => SparkFile.Read(text).Restore(Library, null, MissingNodePolicy.Refuse));
 
         Assert.Equal(DiagnosticCodes.UnknownNodeDefinition, error.Diagnostic.Code);
         Assert.Contains("Point.BySomethingElse", error.Message, StringComparison.Ordinal);

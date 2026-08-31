@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 12:55 +0530
+**Last updated:** 2026-08-31 13:40 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E7-T3` and `E7-T4` - the package load layer. M7 has started.** One collectible ALC per package *version*, whose `Load` override checks the contract set **before** file existence. That order is the entire design: reversed, it loads a second `Spark.Api` and a `Circle` stops being a `Circle`. Twelve tests, in a new `Spark.Packages.Tests`. |
+| **Last completed step** | **`E7-T6` and `E7-T7` — placeholders, and the promise that nobody's graph is damaged.** A graph naming an uninstalled package now opens, keeps every key, literal and wire, and **re-saves byte for byte**. Port counts are inferred from what the file uses, because the definition is absent and the graph's own usage is the only evidence. It throws rather than returning null. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E7-T1`, then `E7-T6` and `E7-T7`.** `E7-T1` is the package convention - a NuGet package tagged `spark` with a `tools/spark.json` manifest - and it is small. `E7-T6` is **the headline behaviour of the whole epic**: a graph referencing a package that is not installed opens with **placeholder nodes preserving the definition key, every literal and every wire verbatim**, and `E7-T7` is the test that makes that a fact rather than an intention - **re-save must be byte-identical**. Neither needs a network or a feed, which is why they come before `E7-T2`. **Watch for:** the first CI run on Linux since the golden-image check landed. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1817** over **nine** projects: Geometry.Tests 763, UI.Tests 448, Engine.Tests 367, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E7-T11` and `E7-T12` — custom nodes.** `.sparkcustom` is **the same graph schema plus an interface block**, with ports defined by Input/Output nodes placed inside the definition graph — *graph-in-graph is the same mechanism, not a separate feature*, and building it as two features is the mistake this row exists to prevent. `E7-T12` is *collapse selection to custom node*, which infers the interface from the cut wires. `E7-T13` (refuse recursion at save **and** at load, reporting the containment path) belongs with them. Neither needs a network, which is why they come before `E7-T2`. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1827** over **nine** projects: Geometry.Tests 763, UI.Tests 448, Engine.Tests 377, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Four things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. **(4)** Opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance. *And still: watching the first nightly benchmark run.* |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3076,3 +3076,53 @@ exist yet, because there is no package node library and no install cache until `
 
 **Verified.** Build clean at 0 warnings. **1,817** tests over **nine** projects, 0 failed, 0
 skipped. `dotnet format` clean.
+
+### 2026-08-31 - `E7-T6` and `E7-T7`: nobody's graph is damaged, and it is now a fact
+
+**What.** `PlaceholderNode`, `MissingPackageException` and `MissingNodePolicy` in `Spark.Engine`,
+and `GraphDocument.Restore` now defaults to substituting a placeholder rather than refusing. Ten
+new tests, and one existing test rewritten rather than deleted.
+
+**The promise is narrow and absolute, so the test is too.** A real graph is written; one node key
+is rewritten to a package nothing has - which is exactly what a user's file looks like on a
+machine without it - and the reopened document is re-serialised. **The strings are equal.** Not
+"mostly preserved", not "recoverable": the file that goes in is the file that comes back out,
+having been through a session that could not understand part of it.
+
+**Port counts are inferred from the file, and that is the only evidence available.** The
+definition is absent - that is the entire situation - so the graph's own usage stands in for it:
+one past the highest literal index, one past the highest wire index on each side. A placeholder
+exactly that wide is the precise condition for a byte-identical re-save. Too narrow and the wires
+cannot attach; too wide and the node grows phantom inputs a user can type into.
+
+**Two smaller decisions that are the difference between working and nearly working.** The
+placeholder's ports carry a **null default**, because `Capture` suppresses any literal equal to
+its port's default - a placeholder that invented a default would silently shorten the file it was
+supposed to preserve. And they carry **`keepStructure`**, so a list arriving at a placeholder is
+passed whole rather than replicated over: the node refuses either way, and refusing once is a
+diagnostic where refusing per element is a wall of them.
+
+**It throws rather than returning null.** Null is a value. A graph that quietly produced one
+downstream of a missing package would compute a confident wrong answer, which is the one outcome
+worse than not computing at all.
+
+**The default changed direction, and that was the decision worth making carefully.** `Restore`
+used to refuse; it now placeholders, with `MissingNodePolicy.Refuse` still available for a
+headless check that must not proceed on an incomplete graph. A caller who wanted strictness and
+gets a placeholder sees a graph that reports errors - visible, recoverable. A user who wanted
+their graph open and gets a refusal loses access to everything else in it. The first is an
+inconvenience; the second is what this row exists to prevent.
+
+**One existing test was rewritten rather than deleted, and the distinction matters.**
+`AnUnknownNodeIsNamedRatherThanSkipped` asserted the old refusal. Its *property* - that a node
+never silently vanishes - is still true and is now more important, so it is asserted directly
+against the placeholder, and the old exception assertion moved to a second test covering the
+strict policy. Deleting it would have removed the guard along with the outdated mechanism.
+
+**`E7-T6` is `In progress`, not `Done`, and the missing half is named.** The row also asks for a
+**banner offering one-click install**. That needs the NuGet client (`E7-T2`) and the package
+manager UI (`E7-T10`), neither of which exists, and a banner with nothing behind it would be
+worse than none.
+
+**Verified.** Build clean at 0 warnings. `Engine.Tests` 367 -> 377. Suite **1,827** over nine
+projects, 0 failed, 0 skipped. `dotnet format` clean.

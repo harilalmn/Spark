@@ -428,12 +428,22 @@ public sealed class GraphDocument
     /// </param>
     /// <returns>The graph.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="library"/> is <see langword="null"/>.</exception>
+    /// <param name="missing">
+    /// What to do about a node whose definition the library does not have.
+    /// <see cref="MissingNodePolicy.Placeholder"/> by default, because the promise is that nobody's
+    /// graph is ever damaged by opening it on a machine without a package (<c>E7-T6</c>).
+    /// </param>
     /// <exception cref="SparkFileException">
-    /// A node names a definition the library does not have. Missing-package placeholders are M7
-    /// (`E7`); until they exist, refusing loudly beats opening a graph with holes in it that look
-    /// like the user's own doing.
+    /// Under <see cref="MissingNodePolicy.Refuse"/>, a node names a definition the library does not
+    /// have. Also, in either policy, the document contains a code block and no
+    /// <paramref name="scripts"/> factory was supplied — that case is <b>not</b> placeholdered,
+    /// because a code block's source is the node, and standing in for it would mean pretending to
+    /// hold executable code that nothing can execute.
     /// </exception>
-    public Graph Restore(NodeLibrary library, IScriptNodeFactory? scripts = null)
+    public Graph Restore(
+        NodeLibrary library,
+        IScriptNodeFactory? scripts = null,
+        MissingNodePolicy missing = MissingNodePolicy.Placeholder)
     {
         ArgumentNullException.ThrowIfNull(library);
 
@@ -474,14 +484,19 @@ public sealed class GraphDocument
 
             if (!library.TryGet(node.Key, out definition) || definition is null)
             {
-                throw new SparkFileException(new SparkDiagnostic(
-                    DiagnosticSeverity.Error,
-                    DiagnosticCodes.UnknownNodeDefinition,
-                    $"No node called '{node.Key}' is loaded.",
-                    detail: "The package that defines it is not installed, or the node has been "
-                        + "renamed since this graph was saved.",
-                    nodeId: node.Id.Value,
-                    helpTopicId: DiagnosticCodes.FileTopic));
+                if (missing == MissingNodePolicy.Refuse)
+                {
+                    throw new SparkFileException(new SparkDiagnostic(
+                        DiagnosticSeverity.Error,
+                        DiagnosticCodes.UnknownNodeDefinition,
+                        $"No node called '{node.Key}' is loaded.",
+                        detail: "The package that defines it is not installed, or the node has been "
+                            + "renamed since this graph was saved.",
+                        nodeId: node.Id.Value,
+                        helpTopicId: DiagnosticCodes.FileTopic));
+                }
+
+                definition = PlaceholderNode.For(node.Key, InputsUsedBy(node), OutputsUsedBy(node));
             }
 
             graph.AddNode(definition, node.Id);
@@ -499,5 +514,49 @@ public sealed class GraphDocument
         }
 
         return graph;
+    }
+
+    /// <summary>
+    /// How many input ports the file actually uses on one node: one past the highest literal
+    /// index and the highest incoming wire's target port.
+    /// </summary>
+    /// <remarks>
+    /// This is the only evidence of a missing node's shape there is. The definition is absent —
+    /// that is the situation — so the graph's own usage has to stand in for it, and a placeholder
+    /// exactly wide enough to hold what is there is the precise condition for a byte-identical
+    /// re-save (<c>E7-T7</c>).
+    /// </remarks>
+    private int InputsUsedBy(GraphDocumentNode node)
+    {
+        int count = 0;
+        foreach (GraphLiteral literal in node.Literals)
+        {
+            count = Math.Max(count, literal.PortIndex + 1);
+        }
+
+        foreach (GraphDocumentWire wire in _wires)
+        {
+            if (wire.Target == node.Id)
+            {
+                count = Math.Max(count, wire.TargetPort + 1);
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>How many output ports the file uses on one node: one past the highest wire source port.</summary>
+    private int OutputsUsedBy(GraphDocumentNode node)
+    {
+        int count = 0;
+        foreach (GraphDocumentWire wire in _wires)
+        {
+            if (wire.Source == node.Id)
+            {
+                count = Math.Max(count, wire.SourcePort + 1);
+            }
+        }
+
+        return count;
     }
 }
