@@ -17,6 +17,13 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Spark.Host\Spark.Host.csproj" />
     <ProjectReference Include="..\..\src\Spark.UI\Spark.UI.csproj" />
+
+    <!--
+      The OpenCascade provider, for the `tessellate` verb. A Brep cannot be tessellated without one,
+      and that verb exists because nothing else in bench/ measures the path between an evaluated
+      solid and a mesh - which is where E12-T19's eighteen seconds hid.
+    -->
+    <ProjectReference Include="..\..\src\Spark.Geometry.Occt\Spark.Geometry.Occt.csproj" />
   </ItemGroup>
 
 </Project>

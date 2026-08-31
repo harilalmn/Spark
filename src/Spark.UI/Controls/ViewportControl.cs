@@ -209,6 +209,24 @@ public sealed class ViewportControl : OpenGlControlBase
     {
         base.Render(context);
 
+        // A TRANSPARENT FILL OVER THE WHOLE CONTROL, BEFORE ANYTHING ELSE, AND IT IS NOT DECORATION.
+        //
+        // Avalonia hit-tests against what a control actually drew. This control's 3D content is a
+        // GL surface the compositor owns, which is not in Avalonia's scene graph at all - so on a
+        // machine where GL initialises, the branch below returned having drawn NOTHING, the control
+        // had no geometry to hit, and every pointer event went to whatever was behind it. The
+        // wheel, the middle button and the right button were all wired up correctly and none of
+        // them ever ran.
+        //
+        // It has to be Transparent rather than a colour: anything opaque is drawn OVER the GL
+        // surface and would hide the model. Transparent is invisible and still hit-tests, which is
+        // the whole trick. `GraphCanvas` gets this for free because it fills itself with a real
+        // background.
+        //
+        // Found by a person opening the application and trying to orbit. No test pressed a button
+        // in this control until E9-T21.
+        context.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
+
         // Drawn over the GL surface, not into it: an overlay is UI and is fully inside the
         // contrast rules, so it sits on its own fill rather than on unknown geometry (§8.5).
         if (_renderer?.IsInitialised == true)
@@ -474,9 +492,16 @@ public sealed class ViewportControl : OpenGlControlBase
 
         PointerPointProperties properties = e.GetCurrentPoint(this).Properties;
 
+        // Middle drags, and SHIFT-middle orbits — which is the binding somebody coming from
+        // other CAD software reaches for first, and the gesture whose absence surfaced the
+        // hit-testing defect above. Right and Alt-drag keep orbiting; three ways to orbit is not
+        // two too many when none of them is discoverable.
+        bool orbitModifier = e.KeyModifiers.HasFlag(KeyModifiers.Shift)
+            || e.KeyModifiers.HasFlag(KeyModifiers.Alt);
+
         _drag = properties.IsMiddleButtonPressed
-            ? CameraDrag.Pan
-            : properties.IsRightButtonPressed || e.KeyModifiers.HasFlag(KeyModifiers.Alt)
+            ? orbitModifier ? CameraDrag.Orbit : CameraDrag.Pan
+            : properties.IsRightButtonPressed || orbitModifier
                 ? CameraDrag.Orbit
                 : CameraDrag.None;
 

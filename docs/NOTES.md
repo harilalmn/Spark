@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N63-N87 added)
+**Last updated:** 2026-09-01 (N63-N89 added)
 
 ---
 
@@ -2379,3 +2379,73 @@ obviously should.
 points, and **the point count is identical at 0.001, 0.5, 2 and 6 degrees** — sag dominates for a
 curve. It was left alone. Not every odd-looking constant is a defect, and changing one on suspicion
 would have been the fourth wrong hypothesis.
+
+---
+
+## N88 — Avalonia hit-tests against what a control *drew*, so a control that draws nothing is invisible to the pointer
+
+`ViewportControl` had a wheel handler, a middle-button pan and a right-button orbit. All three were
+correctly written. **None of them had ever run**, and the viewport had ignored the mouse since the
+day it was written.
+
+`Render` returned early once the GL renderer was initialised — reasonably, since there was nothing
+left for the software path to draw. The consequence is not obvious: the control's 3D content is a
+**compositor-owned GL surface that is not in Avalonia's scene graph at all**, so on any machine
+where GL initialises, `Render` drew *nothing*, the control had no geometry to hit, and every
+pointer event fell through to whatever was behind it.
+
+The fix is one line before the early return:
+
+```csharp
+context.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
+```
+
+It has to be `Transparent` rather than a colour — anything opaque is drawn **over** the GL surface
+and hides the model. Transparent is invisible and still hit-tests, which is the whole trick.
+`GraphCanvas` never hit this because it fills itself with a real background.
+
+**The general rule, worth more than the fix:** in Avalonia, "is this control hit-testable" is a
+question about its *rendered output*, not its bounds. A `Background` of `null` is the usual way to
+trip over this; drawing nothing at all is the same bug wearing a different coat. Anything hosting
+foreign content — GL, a native handle, a compositor surface — needs an explicit transparent fill or
+it is inert.
+
+**And how it was found: a person opened the application and tried to orbit.** The viewport had
+tests for its camera, its renderer, its read-back and its tessellation. Not one of them pressed a
+button. `ViewportNavigationTests` now does, and `TheViewportIsHitTestable` asserts the property the
+others depend on so a regression names its own cause. Note that a headless test must call
+`window.CaptureRenderedFrame()` before `InputHitTest` — hit-testing is against what was drawn, and
+until something renders, nothing was.
+
+---
+
+## N89 — A control with no registered theme has no template and renders nothing
+
+The code block editor was invisible: a grey rectangle where `TextEditor` should have been, with no
+caret, no text and no error.
+
+**I fixed the wrong thing first, and said so to the client before checking.** Four controls did
+genuinely share `Grid.Row="3"` in `InspectorPane.axaml`, and the port-literal list had no
+`IsVisible` and was declared last, so it painted over the editor. That was a real defect. It was
+not *this* defect. I relaunched without confirming the editor had appeared — my harness was
+hanging — and it was still invisible.
+
+The cause: **AvaloniaEdit's control theme was never included**, so `TextEditor` had no template and
+rendered nothing at all. One line in `App.axaml`, above `SparkStyles`:
+
+```xml
+<StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
+```
+
+The precedent was already in that file — the `DockFluentTheme` include carries a comment saying
+exactly this about Dock. A third-party control library ships its theme separately from its
+assembly, and referencing the package is not the same as registering the theme.
+
+**Two things to carry forward.** First: *nothing renders* is a different symptom from *renders
+wrongly*, and it points at the theme, not at the layout. Second, and the expensive one: when a
+control is invisible, **look at the running window before claiming a fix**. A plausible defect
+found while hunting a symptom is not evidence that it *was* the symptom, and two defects can sit
+one behind the other.
+
+**Owed:** this is verified by a person's eyes and by nothing else. The regression test hung in the
+headless dispatcher and was deleted rather than left in the suite, which fails AGENTS.md step 7.

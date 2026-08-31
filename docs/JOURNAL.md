@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 17:10 +0530
+**Last updated:** 2026-09-01 21:40 +0530
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | Nothing. Between steps |
+| **Working on** | **Nothing. The tree is clean and the gates are green.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E12-T19` — half a degree, and the third wrong hypothesis in a row.** The solids demo's 18 seconds was one constant: an angular deflection of **0.5 degrees**, fifty-seven times finer than a mesher of this kind defaults to. **17,440 ms and 1.11M triangles against 61 ms and 11,636 at six degrees.** Now **2.0 s**, and the render is indistinguishable. Two tests assert the **triangle count** rather than a time. The scheduler, the probe and the first sweep were all wrong first ([N87](NOTES.md)). |
-| **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **A tessellation budget, then back to the Help pass.** `E12-T19` was invisible because **nothing in `bench/` touches tessellation** — the one demo exercising it was fifteen seconds slower than its neighbours and no test said so. The new tests close that for the solids demo specifically; a `bench/` case over `SceneBuilder` would close it generally, and the budget should be a **triangle count** rather than a time, for the reason those tests already give. **`E12-T20`** is the related finding and is smaller: the tessellation cache is keyed on the shape and not the tolerance, so a coarse request after a fine one returns the fine mesh. Then the Help pass resumes at **`E10-T3`**, the help index, and **`E11-T2`**'s XML `<example>` half. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**2062** over **nine** projects: Geometry.Tests 763, UI.Tests 562, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 71**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Last completed step** | **A tessellation budget in `bench/`, and three defects a person found by opening the app.** The budget closes the gap that let `E12-T19` hide. Then: the viewport **ignored the mouse entirely** (it drew nothing once GL initialised, and Avalonia hit-tests against what was drawn); the code editor was **invisible** (AvaloniaEdit's theme was never registered - and I shipped a wrong fix first, a real row-overlap defect sitting behind the true one); and its text was **unreadable** (stock C# highlighting is for a light background). All three were wired correctly and covered by tests that never touched the surface a person touches. |
+| **Working tree** | Clean at the moment this was written. The step has not started. |
+| **Next action** | **Code block inputs: zero by default, and a type per port.** Asked for directly by the client, who wanted `+`/`-` buttons with name and type dropdowns; they took the narrower option instead after the trade-off was put to them. **Names stay inferred from the code**, which keeps one source of truth and matches Dynamo - a declared name list is a second place a name lives, and `radus` in the code against `radius` in the list is a confusion the current design simply does not have. Two changes. **(1)** `PlaceCodeBlock`'s starter is `return a;`, which is why a new block arrives with an unwanted input `a`; it becomes something with no free identifiers. **(2)** A type dropdown on the port rows that already exist in the inspector, feeding `inputTypes` - which is **already plumbed end to end** (`CanvasGraph` to `Graph.InputTypes` to `ScriptNodeFactory.Create`), so this is a new source for an existing input, not new machinery. An explicit type **beats** the wire's, and must round-trip in `.spark`. **Start by reading how `InputTypes` merges**, because that is where precedence has to live. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, `dotnet test Spark.slnx` (**2071** over **nine** projects: Geometry.Tests 763, UI.Tests 573, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 15, Packages.Tests 71, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** - [N30](NOTES.md) - **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -4475,3 +4475,59 @@ alone. Changing it on suspicion would have been the fourth wrong hypothesis.
 
 **Verified.** Build clean at 0 warnings. `UI.Tests` 560 -> 562. Suite **2,062** over nine projects,
 0 failed, 0 skipped. `dotnet format` clean. Staged build re-rendered and compared by eye.
+
+### 2026-09-01 — A tessellation budget, and three defects a person found by opening the app
+
+**What.** Two unrelated things that belong in one entry because the second explains the first.
+
+The budget: a `tessellate` verb in `bench/Spark.Benchmarks`, a `tessellation` section in
+`bench/budgets.jsonc` (`minSolids: 9`, `maxTriangles: 50000`), and `--tessellation` /
+`--no-tessellation` on `BudgetCheck`. `E12-T19`'s eighteen seconds hid because nothing in `bench/`
+touched tessellation at all; now a regression in `DisplayTolerance` fails a nightly rather than
+waiting for somebody to notice the app is slow. `CheckAtMost` grew a `unit` parameter so a
+triangle count stops printing as `11636.00 ms`.
+
+Then the app was opened by a person, and three things fell out in a row.
+
+**One: the viewport ignored the mouse entirely.** The wheel, the middle button and the right
+button were all wired correctly and not one of them had ever run. `Render` returned early once GL
+had initialised, so the control drew **nothing** — and Avalonia hit-tests against what a control
+actually drew. The 3D content is a compositor-owned GL surface that is not in Avalonia's scene
+graph, so there was no geometry to hit and every pointer event went to whatever was behind it. The
+fix is one `FillRectangle` with `Brushes.Transparent` before the early return: invisible, and
+hit-testable. Shift-and-middle now orbits too, which is the binding that was being reached for
+when this surfaced.
+
+**Two: the code editor was invisible, and I shipped the wrong fix first.** Four controls shared
+`Grid.Row="3"` in `InspectorPane.axaml` and the port list had no `IsVisible`, so it painted over
+the editor. That was real, and it was not the cause. I said it was the fix and relaunched
+**without confirming the editor rendered**, because my harness was hanging — and it was still
+invisible. The actual cause: **AvaloniaEdit's theme was never registered**, and a control with no
+theme has no template and renders nothing. One `StyleInclude` in `App.axaml`. The row split stayed
+because it was a genuine defect sitting behind the first one.
+
+**Three: the text was unreadable once it appeared.** AvaloniaEdit's stock C# highlighting is
+written for a light background — navy keywords, dark red strings — on `surface.sunken` at
+`#1A1E24`. `Recolour` puts it on tokens the design language already publishes with measured
+contrast figures, reusing the node category fills, so a keyword is the same blue as a Script node.
+
+**Verified.** Three gates green: clean `-warnaserror` build, `dotnet test Spark.slnx` **2071
+passed / 0 failed** over nine projects, `dotnet format --verify-no-changes` clean.
+`ViewportNavigationTests` (6) presses actual buttons through the headless window and
+`TheViewportIsHitTestable` asserts the property the other five depend on, so a failure names the
+cause instead of leaving five gesture tests to fail together. `DisplayTessellationTests` (2) puts
+a ceiling on the triangle count. `CodeBlockReachabilityTests` (3) covers selection.
+
+**What surprised me, and it is the entry's real content.** All three defects were **wired
+correctly and covered by tests that never touched the surface a person touches**. The viewport had
+tests for its camera, its renderer, its read-back and its tessellation; the one thing none of them
+did was press a button. `CodeBlockReachabilityTests` passed green the entire time the editor was
+invisible, because it proved the view model, not the pixel. Every one of the three was found by a
+human opening the application. That is not a gap in coverage — the coverage was there — it is a
+gap in **what** was covered, and no amount of the same kind of test would have caught any of them.
+
+**Owed, and named so it is not quietly dropped.** A regression test for the inspector/editor
+visibility: I wrote one, it hung in the headless dispatcher, and I **deleted it** rather than
+leave a hanging test in the suite. The `App.axaml` fix is therefore verified by a person's eyes
+and nothing else, which fails AGENTS.md step 7. A contrast test for the editor colours alongside
+`PaletteContrastTests` is owed too. Both are on the queue.

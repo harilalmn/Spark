@@ -26,7 +26,8 @@ public static class Program
 {
     /// <summary>Runs the benchmarks named on the command line, or checks a finished run.</summary>
     /// <param name="args">
-    /// `check ...` to check a run against the budgets; otherwise BenchmarkDotNet's own switches,
+    /// `check ...` to check a run against the budgets, `tessellate ...` to measure what the
+    /// viewport asks the kernel to tessellate to; otherwise BenchmarkDotNet's own switches,
     /// chiefly `--filter`.
     /// </param>
     /// <returns>Zero on success, one when a benchmark could not run or a budget is broken.</returns>
@@ -35,6 +36,14 @@ public static class Program
         if (args.Length > 0 && args[0] == "check")
         {
             return BudgetCheck.Run([.. args.Skip(1)]);
+        }
+
+        // `tessellate` measures what the viewport asks the kernel for. A verb rather than a
+        // BenchmarkDotNet case because it needs a provider, and a case would run without one,
+        // measure a failed operation and report an excellent time.
+        if (args.Length > 0 && args[0] == "tessellate")
+        {
+            return TessellationMeasurement.Run([.. args.Skip(1)]);
         }
 
         // The exit code matters here for the same reason the check exists: a nightly whose

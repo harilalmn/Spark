@@ -29,6 +29,18 @@
     -->
     <dock:DockFluentTheme />
 
+    <!--
+      AvaloniaEdit's control templates, and the comment above applies word for word: without this
+      a TextEditor has no template and renders nothing at all - not an error, just an empty area
+      where the code block's source should be.
+
+      It went unnoticed because every test of the editor drives the control directly, and a
+      templateless control still holds a document, still reports its text and still raises its
+      events. What it does not do is appear. Somebody adding a code block in the running
+      application found a properties pane with a port row and a blank space below it.
+    -->
+    <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
+
     <StyleInclude Source="avares://Spark.UI/Theming/SparkStyles.axaml" />
   </Application.Styles>
 

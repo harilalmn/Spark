@@ -9,10 +9,12 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Threading;
 using AvaloniaEdit;
 using AvaloniaEdit.Highlighting;
 using AvaloniaEdit.Rendering;
+using Spark.UI.Theming;
 
 namespace Spark.UI.Views.Controls;
 
@@ -96,9 +98,85 @@ public sealed partial class CodeBlockEditor : UserControl
         // the .xshd files as embedded resources, and a trimmed build can lose them. Plain text is a
         // perfectly usable editor; a null reference in a constructor is not.
         _editor.SyntaxHighlighting = HighlightingManager.Instance.GetDefinition("C#");
+
+        Recolour(_editor);
+
         _editor.TextChanged += OnTextChanged;
         _editor.AddHandler(KeyDownEvent, OnEditorKeyDown, RoutingStrategies.Tunnel);
         _editor.LostFocus += OnEditorLostFocus;
+    }
+
+    /// <summary>
+    /// Puts the editor on Spark's palette instead of AvaloniaEdit's defaults.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The stock C# highlighting is written for a light background.</b> Its keywords are navy,
+    /// its strings are dark red and its comments are mid-green, all chosen against white — and on
+    /// <c>surface.sunken</c> at <c>#1A1E24</c> they are very close to invisible. The first person
+    /// to type in this editor said the text was difficult to see, and they were reading dark blue
+    /// on near-black.
+    /// </para>
+    /// <para>
+    /// <b>Every colour here is a token the design language already publishes with a contrast
+    /// figure</b>, rather than something picked to look right: the surface is
+    /// <c>surface.sunken</c>, which that document names for *inset wells: text fields*; the body is
+    /// <c>text.primary</c>; and the syntax colours are the node category fills, which carry
+    /// measured ratios of 5.39:1 and better against the dark ground. Reusing them also means a
+    /// keyword is the same blue as a Script node, which is the sort of coincidence worth keeping.
+    /// </para>
+    /// </remarks>
+    /// <param name="editor">The editor to recolour.</param>
+    private static void Recolour(TextEditor editor)
+    {
+        editor.Background = SparkPalette.Frozen(SparkPalette.SurfaceSunken);
+        editor.Foreground = SparkPalette.TextPrimaryBrush;
+
+        // The line-number gutter is supporting information, not body copy.
+        editor.LineNumbersForeground = SparkPalette.TextMutedBrush;
+
+        if (editor.SyntaxHighlighting is not { } highlighting)
+        {
+            return;
+        }
+
+        // Named colours in AvaloniaEdit's C# definition. A name that is not there is skipped
+        // rather than assumed: the .xshd is somebody else's file and it is entitled to change.
+        (string Name, Color Colour)[] scheme =
+        [
+            ("Comment", SparkPalette.TextMuted),
+            ("String", NodeCategoryColours.ColourOf(NodeCategory.Display)),
+            ("Char", NodeCategoryColours.ColourOf(NodeCategory.Display)),
+            ("Preprocessor", SparkPalette.TextSecondary),
+            ("Punctuation", SparkPalette.TextSecondary),
+            ("ValueTypeKeywords", NodeCategoryColours.ColourOf(NodeCategory.Script)),
+            ("ReferenceTypeKeywords", NodeCategoryColours.ColourOf(NodeCategory.Script)),
+            ("MethodCall", NodeCategoryColours.ColourOf(NodeCategory.Curve)),
+            ("NumberLiteral", NodeCategoryColours.ColourOf(NodeCategory.Math)),
+            ("ThisOrBaseReference", NodeCategoryColours.ColourOf(NodeCategory.Script)),
+            ("Keywords", NodeCategoryColours.ColourOf(NodeCategory.Script)),
+            ("GotoKeywords", NodeCategoryColours.ColourOf(NodeCategory.Script)),
+            ("ContextKeywords", NodeCategoryColours.ColourOf(NodeCategory.Script)),
+            ("ExceptionKeywords", NodeCategoryColours.ColourOf(NodeCategory.List)),
+            ("CheckedKeyword", NodeCategoryColours.ColourOf(NodeCategory.Script)),
+            ("UnsafeKeywords", NodeCategoryColours.ColourOf(NodeCategory.List)),
+            ("OperatorKeywords", NodeCategoryColours.ColourOf(NodeCategory.Script)),
+            ("ParameterModifiers", NodeCategoryColours.ColourOf(NodeCategory.Script)),
+            ("Modifiers", NodeCategoryColours.ColourOf(NodeCategory.Script)),
+            ("Visibility", NodeCategoryColours.ColourOf(NodeCategory.Script)),
+            ("NamespaceKeywords", NodeCategoryColours.ColourOf(NodeCategory.Script)),
+            ("GetSetAddRemove", NodeCategoryColours.ColourOf(NodeCategory.Script)),
+            ("TrueFalse", NodeCategoryColours.ColourOf(NodeCategory.Math)),
+            ("TypeKeywords", NodeCategoryColours.ColourOf(NodeCategory.Script)),
+        ];
+
+        foreach ((string name, Color colour) in scheme)
+        {
+            if (highlighting.GetNamedColor(name) is { } named)
+            {
+                named.Foreground = new SimpleHighlightingBrush(colour);
+            }
+        }
     }
 
     /// <summary>Raised when the text has been changed and committed — on losing focus.</summary>

@@ -73,6 +73,8 @@ public static class BudgetCheck
         string resultsDirectory = Path.Combine("BenchmarkDotNet.Artifacts", "results");
         string? canvasLog = null;
         bool canvasSkipped = false;
+        string? tessellationLog = null;
+        bool tessellationSkipped = false;
 
         for (int index = 0; index < args.Length; index++)
         {
@@ -92,6 +94,14 @@ public static class BudgetCheck
 
                 case "--no-canvas":
                     canvasSkipped = true;
+                    break;
+
+                case "--tessellation" when index + 1 < args.Length:
+                    tessellationLog = args[++index];
+                    break;
+
+                case "--no-tessellation":
+                    tessellationSkipped = true;
                     break;
 
                 default:
@@ -128,6 +138,7 @@ public static class BudgetCheck
         CheckCases(root, measured, failures);
         CheckRatios(root, measured, failures);
         CheckCanvas(root, canvasLog, canvasSkipped, failures);
+        CheckTessellation(root, tessellationLog, tessellationSkipped, failures);
 
         Console.WriteLine();
         if (failures.Count == 0)
@@ -394,6 +405,76 @@ public static class BudgetCheck
         CheckAtMost(canvas, "maxP95Ms", p95, "canvas: p95", failures);
     }
 
+    /// <summary>
+    /// Checks the tessellation measurement against its budget (<c>E12-T19</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Shaped like <see cref="CheckCanvas"/> and for the same reason.</b> Both measure something
+    /// a BenchmarkDotNet case cannot: the canvas needs a compositor, and this needs a solid
+    /// modelling provider. The ubuntu leg has neither, and a case that ran there anyway would
+    /// measure a failed operation and report an excellent number.
+    /// </para>
+    /// <para>
+    /// <b>The count is checked as well as the ceiling.</b> A run whose graph produced no solids
+    /// would otherwise report zero triangles and pass handsomely, which is the same failure
+    /// <c>minFrames</c> exists to catch on the canvas.
+    /// </para>
+    /// </remarks>
+    /// <param name="root">The budgets document.</param>
+    /// <param name="logPath">The captured output of the `tessellate` verb, or null.</param>
+    /// <param name="skipped">Whether this run deliberately did not measure tessellation.</param>
+    /// <param name="failures">Collects what went wrong.</param>
+    private static void CheckTessellation(
+        JsonElement root, string? logPath, bool skipped, List<string> failures)
+    {
+        if (!root.TryGetProperty("tessellation", out JsonElement budget)
+            || budget.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        if (logPath is null)
+        {
+            if (skipped)
+            {
+                Console.WriteLine(
+                    $"skip {"tessellation",-58} not measured in this run (--no-tessellation)");
+                return;
+            }
+
+            Report(
+                failures,
+                "tessellation: budgeted, and no --tessellation log was given. Pass --no-tessellation "
+                + "to say so deliberately.");
+            return;
+        }
+
+        if (!File.Exists(logPath))
+        {
+            Report(failures, $"tessellation: no log at '{logPath}'.");
+            return;
+        }
+
+        string log = File.ReadAllText(logPath);
+        Match measured = Regex.Match(log, @"tessellation solids=(\d+) packages=(\d+) triangles=(\d+)");
+
+        if (!measured.Success)
+        {
+            Report(
+                failures,
+                $"tessellation: '{logPath}' holds no tessellation result. The verb printed nothing "
+                + "this check recognises, which usually means no provider was installed.");
+            return;
+        }
+
+        double solids = double.Parse(measured.Groups[1].Value, CultureInfo.InvariantCulture);
+        double triangles = double.Parse(measured.Groups[3].Value, CultureInfo.InvariantCulture);
+
+        CheckAtLeast(budget, "minSolids", solids, "tessellation: solids", failures);
+        CheckAtMost(budget, "maxTriangles", triangles, "tessellation: triangles", failures, "triangles");
+    }
+
     /// <summary>Checks one floor, when the budgets name it.</summary>
     private static void CheckAtLeast(
         JsonElement canvas, string key, double value, string label, List<string> failures)
@@ -416,19 +497,30 @@ public static class BudgetCheck
 
     /// <summary>Checks one millisecond ceiling, when the budgets name it.</summary>
     private static void CheckAtMost(
-        JsonElement canvas, string key, double value, string label, List<string> failures)
+        JsonElement canvas,
+        string key,
+        double value,
+        string label,
+        List<string> failures,
+        string unit = "ms")
     {
         if (!canvas.TryGetProperty(key, out JsonElement ceiling))
         {
             return;
         }
 
+        // The unit is a parameter because not every ceiling is a duration. A triangle count
+        // reported as "11636.00 ms" is a line that makes a reader distrust the whole report, and
+        // this method acquired its second caller the day tessellation got a budget.
+        string suffix = unit.Length == 0 ? string.Empty : " " + unit;
         double allowed = ceiling.GetDouble();
         bool held = value <= allowed;
-        Line(held, label, $"{value:F2} ms of {allowed:F2} ms");
+
+        Line(held, label, $"{value:F2}{suffix} of {allowed:F2}{suffix}");
+
         if (!held)
         {
-            Report(failures, $"{label}: {value:F2} ms, over its {allowed:F2} ms ceiling.");
+            Report(failures, $"{label}: {value:F2}{suffix}, over its {allowed:F2}{suffix} ceiling.");
         }
     }
 

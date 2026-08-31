@@ -223,5 +223,27 @@
     "minFrames": 400,
     "maxMedianMs": 16.7,
     "maxP95Ms": 33.3
+  },
+
+  // ── Tessellation, measured through the kernel ──────────────────────────────────────────────
+  // From `tessellate`, which evaluates docs/examples/solids.spark and tessellates every solid it
+  // produces through SceneBuilder - the same path the viewport takes. It needs a provider, so the
+  // ubuntu leg passes --no-tessellation and says so rather than measuring a failed operation.
+  //
+  // THIS EXISTS BECAUSE NOTHING MEASURED IT AND AN EIGHTEEN-SECOND STALL HID IN THE GAP.
+  // E12-T19: the display angular deflection was half a degree, the solids demo took 18.2 s against
+  // 2.1 s for points, and every budget in this file was green throughout.
+  //
+  // The ceiling is a TRIANGLE COUNT and not a time, for the reason N29 gives about wall clock on a
+  // hosted runner: counts are the machine-independent half. It is also what actually moved -
+  // 1,110,772 triangles at half a degree against 11,636 at six. 50,000 is four times the real
+  // figure and a twentieth of the regression, so it catches that shape of defect and will not fail
+  // for a rounding difference or a kernel version bump.
+  //
+  // minSolids is checked as well: a run whose graph produced no solids would otherwise report a
+  // superb triangle count of zero.
+  "tessellation": {
+    "minSolids": 9,
+    "maxTriangles": 50000
   }
 }

@@ -7,7 +7,18 @@
              x:CompileBindings="True">
 
   <Border Classes="pane">
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto">
+    <!--
+      Row 3 is the port list and row 4 is the editing surface, and they are SEPARATE ROWS because
+      they were not. The note box, the code editor, the group title box and the port list all sat
+      on row 3: the first three hide themselves and are mutually exclusive, but the port list has
+      no condition and is declared last, so it was drawn over the top of the code editor. Selecting
+      a code block put its ports in the pane and its source nowhere, and a person trying to write
+      one could not find anywhere to type.
+
+      A code block wants BOTH at once - the ports are how you see what your identifiers turned
+      into - so the fix is two rows rather than hiding one of them.
+    -->
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto">
       <TextBlock Grid.Row="0" Classes="paneTitle" Text="PROPERTIES" />
 
       <TextBlock Grid.Row="1" Margin="10,0,10,4" TextWrapping="Wrap"
@@ -20,7 +31,7 @@
            surface that hosts no controls (ADR-0013), so a caret in it would mean writing a text
            editor to avoid writing a binding. Shown only when a note is selected, off the same
            property that holds the note - one source of truth rather than two that can disagree. -->
-      <TextBox Grid.Row="3" Margin="10,0,10,10"
+      <TextBox Grid.Row="4" Margin="10,0,10,10"
                IsVisible="{Binding SelectedNote, Converter={x:Static ObjectConverters.IsNotNull}}"
                Text="{Binding NoteText, Mode=TwoWay}"
                AcceptsReturn="True"
@@ -32,12 +43,12 @@
            built from the types the wires carry (E6-T11, E6-T12, E6-T7). The text is pushed in and
            read back by the pane rather than bound, because a two-way binding onto a document the
            user is typing into buys nothing and invites a feedback loop. -->
-      <controls:CodeBlockEditor Name="ScriptEditor" Grid.Row="3" Margin="10,0,10,10"
+      <controls:CodeBlockEditor Name="ScriptEditor" Grid.Row="4" Margin="10,0,10,10"
                                 IsVisible="{Binding SelectedCodeBlock, Converter={x:Static ObjectConverters.IsNotNull}}"
                                 VerticalAlignment="Stretch" />
 
       <!-- A group's title, on the same principle as a note's text. -->
-      <TextBox Grid.Row="3" Margin="10,0,10,10" VerticalAlignment="Top"
+      <TextBox Grid.Row="4" Margin="10,0,10,10" VerticalAlignment="Top"
                IsVisible="{Binding SelectedGroup, Converter={x:Static ObjectConverters.IsNotNull}}"
                Text="{Binding GroupTitle, Mode=TwoWay}"
                LostFocus="OnGroupTitleCommitted" />
@@ -68,7 +79,7 @@
       <!-- The watch panel. A bubble on the canvas is a glance and is cut at sixty characters;
            this is where somebody goes to read the value. Read-only and selectable, because the
            thing people do with a watched value next is copy part of it. -->
-      <StackPanel Grid.Row="4" Margin="10,0,10,10"
+      <StackPanel Grid.Row="5" Margin="10,0,10,10"
                   IsVisible="{Binding WatchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
         <TextBlock Classes="paneTitle" Text="WATCH" Margin="0,0,0,2" />
         <TextBlock Classes="muted" FontSize="10" Text="{Binding WatchRank}" Margin="0,0,0,4" />
@@ -82,7 +93,7 @@
       <!-- E6-T16: a graph containing a code block is opened, drawn, and not run. The banner is
            where the user is told so, and where they say otherwise. Saying it in the diagnostics
            pane would read as a failure, which this is not. -->
-      <Border Grid.Row="4" Margin="10,0,10,10" Padding="8" CornerRadius="3"
+      <Border Grid.Row="5" Margin="10,0,10,10" Padding="8" CornerRadius="3"
               IsVisible="{Binding ScriptBanner, Converter={x:Static ObjectConverters.IsNotNull}}"
               Background="{DynamicResource ThemeAccentBrush4}"
               BorderBrush="{DynamicResource ThemeBorderMidBrush}"
@@ -98,8 +109,8 @@
         </StackPanel>
       </Border>
 
-      <TextBlock Grid.Row="5" Classes="paneTitle" Text="DIAGNOSTICS" />
-      <TextBlock Grid.Row="6" Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
+      <TextBlock Grid.Row="6" Classes="paneTitle" Text="DIAGNOSTICS" />
+      <TextBlock Grid.Row="7" Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
                  Text="{Binding DiagnosticsText}" />
     </Grid>
   </Border>
