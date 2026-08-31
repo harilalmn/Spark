@@ -922,6 +922,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         library.AddRange(NodeReference.ForAll(_session.Library));
         library.Add(NodeReference.Index(_session.Library));
+        library.AddRange(DiagnosticReference.ForAll());
 
         _help = library;
         return _help;

@@ -101,7 +101,7 @@ public sealed class HelpWindow : Window
     /// <param name="topicId">The topic to show. Unknown ids fall back to the index.</param>
     public void Navigate(string? topicId)
     {
-        if (_library.TryGet(topicId, out HelpDocument? topic) && topic is not null)
+        if (_library.TryGet(Resolve(topicId), out HelpDocument? topic) && topic is not null)
         {
             _history.Add(topic.Id);
             _view.Show(topic);
@@ -126,6 +126,42 @@ public sealed class HelpWindow : Window
         }
 
         Navigate("nodes.index");
+    }
+
+    /// <summary>
+    /// Turns a link target into a topic id.
+    /// </summary>
+    /// <remarks>
+    /// <b>Help topics carry two kinds of link and both have to work.</b> Generated pages link by
+    /// topic id, because they are produced at runtime and have no file. Hand-written topics link
+    /// by relative path - <c>lacing.md</c> - and that is deliberate rather than legacy: those files
+    /// are also read on GitHub, where a topic id is dead text and a path is a working link. So a
+    /// target ending in <c>.md</c> is resolved to the topic whose id ends with the same name.
+    /// </remarks>
+    private string? Resolve(string? target)
+    {
+        if (string.IsNullOrWhiteSpace(target))
+        {
+            return target;
+        }
+
+        string cleaned = target.Split('#')[0];
+        if (!cleaned.EndsWith(".md", StringComparison.OrdinalIgnoreCase))
+        {
+            return cleaned;
+        }
+
+        string name = System.IO.Path.GetFileNameWithoutExtension(cleaned);
+        foreach (HelpDocument topic in _library.Topics)
+        {
+            if (topic.Id.EndsWith("." + name, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(topic.Id, name, StringComparison.OrdinalIgnoreCase))
+            {
+                return topic.Id;
+            }
+        }
+
+        return cleaned;
     }
 
     /// <inheritdoc/>

@@ -118,6 +118,11 @@ public sealed class DocumentationChecks
                     continue;
                 }
 
+                if (IsHelpTopicId(target))
+                {
+                    continue;
+                }
+
                 // Strip any anchor; we are checking that the file exists, not the heading.
                 string path = target.Split('#')[0];
                 if (path.Length == 0)
@@ -280,6 +285,44 @@ public sealed class DocumentationChecks
     /// references no Spark project, precisely so that it cannot constrain the thing it observes.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// Whether a link target is a <b>help topic id</b> rather than a path to a file.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Help topics carry two kinds of link and both are legitimate. A <c>lacing.md</c> link is a
+    /// real relative path: it resolves on GitHub, where these files are also read, and this check
+    /// exists to keep it working. A <c>diagnostics.SPK1010</c> link is a topic id, resolved by the
+    /// help window against topics that are <b>generated at runtime and have no file at all</b> —
+    /// there is nothing on disk for this check to find, and demanding one would mean either
+    /// committing the generated pages, which is exactly what E10-T5 avoids, or not linking to them.
+    /// </para>
+    /// <para>
+    /// A topic id has a dot, no slash, and no file extension this repository uses. The rule is
+    /// deliberately narrow: <c>notes.md</c> is a file and stays checked, and anything with a
+    /// directory in it stays checked.
+    /// </para>
+    /// </remarks>
+    private static bool IsHelpTopicId(string target)
+    {
+        if (target.Contains('/', StringComparison.Ordinal)
+            || target.Contains('\\', StringComparison.Ordinal)
+            || !target.Contains('.', StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        foreach (string extension in new[] { ".md", ".cs", ".png", ".json", ".spark", ".yml", ".txt" })
+        {
+            if (target.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static bool ContainsExample(string text)
     {
         if (text.Contains("```", StringComparison.Ordinal))

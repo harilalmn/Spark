@@ -939,7 +939,9 @@ user needs. XML doc = what this member does.*
       [E11-T2](#e11--quality-and-verification)).
 - [ ] Worked example graphs live in `docs/examples/` and are openable from the help panel
       (**E10-T7**).
-- [ ] Every `SPK####` code has a help topic (**E10-T11**).
+- [x] Every `SPK####` code has a help topic (**E10-T11**). *Built 2026-08-31 by reflecting
+      over the code constants, so the set cannot fall behind the codes. Checking it also
+      found five codes pointing at a concept topic that had never been written.*
 - [ ] Per-PR changelog fragments, so a single changelog file never becomes a merge-conflict
       magnet (**E10-T12**).
 - [x] An in-product Markdown help renderer lives in `Spark.Api`, free of UI dependencies so

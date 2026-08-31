@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Spark.Api;
@@ -124,6 +125,76 @@ public sealed class HelpTests
             without.Length == 0,
             "These topics have no code fence, no table and no section headed 'example', so they "
             + "contain no worked example: " + string.Join(", ", without));
+    }
+
+    /// <summary>
+    /// <b>Every <c>SPK####</c> code has a page (<c>E10-T11</c>, <c>E11-T6</c>).</b> A user staring
+    /// at a code needs somewhere to land, and this holds by construction: the pages are reflected
+    /// out of the code constants, so a code added tomorrow has a page tomorrow.
+    /// </summary>
+    [Fact]
+    public void EveryDiagnosticCodeHasAPage()
+    {
+        HelpLibrary library = new();
+        library.AddRange(DiagnosticReference.ForAll());
+
+        IReadOnlyList<string> codes = [.. DiagnosticCodes.All];
+        Assert.True(codes.Count >= 16, $"expected the diagnostic codes, found {codes.Count}");
+
+        List<string> missing = [];
+        foreach (string code in codes)
+        {
+            if (!library.TryGet(DiagnosticReference.TopicIdFor(code), out HelpDocument? page) || page is null)
+            {
+                missing.Add(code);
+            }
+        }
+
+        Assert.True(missing.Count == 0, "Codes with no help page: " + string.Join(", ", missing));
+    }
+
+    /// <summary>
+    /// Every code's page carries the explanation from its own declaration rather than a
+    /// placeholder. A page per code that said nothing would satisfy the count and help nobody.
+    /// </summary>
+    [Fact]
+    public void EveryDiagnosticPageCarriesItsOwnExplanation()
+    {
+        List<string> blank = [];
+        foreach ((string code, string? summary, _) in DiagnosticReference.All())
+        {
+            if (string.IsNullOrWhiteSpace(summary))
+            {
+                blank.Add(code);
+            }
+        }
+
+        Assert.True(
+            blank.Count == 0,
+            "These codes have no XML summary on their constant, so their help page would be empty: "
+            + string.Join(", ", blank));
+    }
+
+    /// <summary>
+    /// Every code resolves to a concept topic that exists. The mapping has been in
+    /// <c>DiagnosticCodes</c> since M0 and nothing ever checked that the other end was there.
+    /// </summary>
+    [Fact]
+    public void EveryDiagnosticTopicTargetResolvesToARealTopic()
+    {
+        HelpLibrary library = new();
+        library.LoadDirectory(Path.Combine(RepositoryRoot(), "docs", "help"));
+
+        List<string> dangling = [];
+        foreach ((string code, _, string? topic) in DiagnosticReference.All())
+        {
+            if (topic is not null && !library.TryGet(topic, out _))
+            {
+                dangling.Add(code + " -> " + topic);
+            }
+        }
+
+        Assert.True(dangling.Count == 0, "Codes pointing at a topic that does not exist: " + string.Join(", ", dangling));
     }
 
     /// <summary>A generated node page names the node, its ports and their descriptions.</summary>

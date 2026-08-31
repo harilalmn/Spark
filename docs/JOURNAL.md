@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 16:10 +0530
+**Last updated:** 2026-08-31 17:00 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5 and M6 are done.** M5 closed on 2026-08-31 when the software renderer, headless thumbnails and the CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) landed — the three things it still owed after being deferred past M6. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E10-T13` — F1 does something.** A help window with search, links and a topic list joining nine concept topics to **115 generated node pages**. Photographing it caught two defects tests could not: clipped descenders, and a **crash** when list virtualisation handed the item template a null datum. Found [N65](NOTES.md): every port description was written and nothing read it. |
+| **Last completed step** | **`E10-T11`, `E11-T6` — a page per diagnostic code**, reflected out of the constants rather than written. Checking the codes resolved found **five pointing at `concepts.evaluation`, which had never been written** — a mapping in place since M0 whose far end nothing had checked. That topic and `concepts.lists` are now written, against the source rather than from memory. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E10-T11` — a topic per `SPK####` code.** There are **18**, each already carrying a `HelpTopicId` that points at nothing, so a user who hits a diagnostic has nowhere to land. Then **`E11-T6`**, the check that fails the build when a code has no topic, and **`E11-T2`**, compiling every ` ```csharp ` fence — two samples in `geometry-basics.md` were already caught wrong by hand, and both read as perfectly plausible. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1858** over **nine** projects: Geometry.Tests 763, UI.Tests 454, Engine.Tests 402, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E11-T2` — compile every ` ```csharp ` fence**, with the exact references a real code-block node gets. It is the last unbuilt piece of the Help harness and the one with a record: **two samples in `geometry-basics.md` were already caught wrong by hand**, and both read as perfectly plausible — `Angle.FullTurn / 3.0` is `119.99999999999999`, not `120`. `Spark.Scripting` already compiles snippets for code blocks, so the machinery exists. Then **`E11-T3`**, executing the example graphs. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1865** over **nine** projects: Geometry.Tests 763, UI.Tests 458, Engine.Tests 405, Viewport.Tests 101, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 12**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Four things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. **(4)** Opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance. *And still: watching the first nightly benchmark run.* |
 
 **Step status vocabulary**, and it means exactly this:
@@ -3281,3 +3281,47 @@ would have to learn, for a panel most sessions never open.
 
 **Verified.** Build clean at 0 warnings. `UI.Tests` 448 -> 454. Suite **1,858** over nine projects,
 0 failed, 0 skipped. `dotnet format` clean. Three help screenshots opened and read.
+
+### 2026-08-31 - `E10-T11`, `E11-T6`: a page per diagnostic, and a mapping nobody had checked
+
+**What.** `DiagnosticReference` in `Spark.Engine`, two new hand-written concept topics, three
+coverage checks, and a link resolver that makes both kinds of help link work. Nine new tests.
+
+**The pages are reflected out of the code constants, not written.** Every `SPK####` is a public
+constant with an XML summary, because CS1591 is an error on both assemblies that declare them - so
+the explanation already existed and only needed arranging. A code added tomorrow has a page
+tomorrow; a deleted one takes its page with it. Same argument as `NodeReference`, same reason
+`DocGenerator` is not ported.
+
+**The check found something the mapping had been hiding since M0.** `DiagnosticCodes` has mapped
+every code to a concept topic since the beginning, and **nothing had ever checked the far end of
+that mapping**. Five codes - `SPK1010` through `SPK1014`, the whole wiring family - pointed at
+`concepts.evaluation`, which **did not exist**. A user hitting *incompatible port types* and asking
+for help landed on nothing at all.
+
+So `docs/help/concepts/evaluation.md` is written: evaluation order and why the canvas has no say
+in it, provenance caching and the two consequences a user actually notices, cycles refused at draw
+time and reported at load time, the five wiring diagnostics in a table, and cancellation.
+`concepts/lists.md` followed, because `lacing.md` has linked to it since M0 as well.
+
+**Both topics were written against the source, not from memory**, which caught one error before it
+shipped: `List.GetItemAtIndex` **supports negative indices** - `-1` is the last item - and the
+first draft said only that indexing counts from zero. The `Number.Range` table was checked against
+the actual arithmetic, `count = floor(span / |step| + 1 + 1e-9)`, rather than assumed.
+
+**Two link kinds now coexist and both had to work.** Generated pages link by topic id, having no
+file; hand-written topics link by relative path, which is deliberate rather than legacy, because
+those files are also read on GitHub where a topic id is dead text. The docs harness now skips
+targets that are topic ids - narrowly: a dot, no slash, no known extension - and `HelpWindow`
+resolves a `.md` target back to a topic. Both directions are tested.
+
+**A defect caught only by photographing the page.** Every code's doc comment opens with `Error.` or
+`Warning.`, which is the most useful fact about it and is also a sentence. The index took "the
+first sentence" for its Meaning column and produced a table whose every row read *Error.* -
+perfectly correct and worth nothing. Severity is now its own column. **Six of the eighteen show a
+dash there**, because their declarations do not open with a severity word; that is left visible
+rather than guessed at, and it is a nudge to whoever next edits those comments.
+
+**Verified.** Build clean at 0 warnings. `Engine.Tests` 402 -> 405, `UI.Tests` 454 -> 458. Suite
+**1,865** over nine projects, 0 failed, 0 skipped. `dotnet format` clean. The diagnostics index was
+opened and read twice; the first version was rejected.

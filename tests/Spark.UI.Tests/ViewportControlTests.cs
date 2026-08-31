@@ -181,6 +181,50 @@ public sealed class HelpWindowTests
         });
     }
 
+    /// <summary>
+    /// Both kinds of link work. Hand-written topics link by relative path so they read on GitHub;
+    /// generated pages link by topic id because they have no file. A reader clicking either lands
+    /// on the page.
+    /// </summary>
+    [Theory]
+    [InlineData("concepts.lacing")]
+    [InlineData("lacing.md")]
+    [InlineData("concepts/lacing.md")]
+    public void BothRelativePathsAndTopicIdsResolve(string target)
+    {
+        HeadlessSession.Run(() =>
+        {
+            MainWindowViewModel model = new();
+            HelpWindow window = new(model.Help());
+
+            window.Navigate(target);
+
+            Assert.Equal("concepts.lacing", window.CurrentTopicId);
+        });
+    }
+
+    /// <summary>Every diagnostic code the engine can raise has a page in the session library.</summary>
+    [Fact]
+    public void EveryDiagnosticCodeHasAPageInTheSessionLibrary()
+    {
+        HeadlessSession.Run(() =>
+        {
+            MainWindowViewModel model = new();
+            HelpLibrary help = model.Help();
+
+            List<string> missing = [];
+            foreach (string code in DiagnosticCodes.All)
+            {
+                if (!help.TryGet(DiagnosticReference.TopicIdFor(code), out _))
+                {
+                    missing.Add(code);
+                }
+            }
+
+            Assert.True(missing.Count == 0, "Codes with no page: " + string.Join(", ", missing));
+        });
+    }
+
     /// <summary>An unknown node falls back to the index rather than to an empty window.</summary>
     [Fact]
     public void AnUnknownNodeFallsBackToTheIndex()
