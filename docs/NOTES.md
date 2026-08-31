@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N49-N54 added)
+**Last updated:** 2026-08-31 (N49-N57 added)
 
 ---
 
@@ -1581,3 +1581,67 @@ stdout are both process-wide, both are grabbed by default, and both have to be g
 
 What the shim has to say still gets out — through `spark_occt_last_error`, which is thread-local
 and is read by the caller when a call fails. That is the whole channel, and it is deliberate.
+
+## N55 — A BRep's mesh is geometrically closed and topologically split, and NFR-8 is about the second
+
+**NFR-8 asks for a watertight mesh, and the provider's mesh of a box has twenty-four naked edges.**
+That is not a defect and welding it by default would be the wrong repair.
+
+Every kernel tessellates a BRep **face by face** — ours and OpenCascade's alike — so every vertex on
+an edge shared by two faces exists twice, once per face. **Nothing leaks through**: the two copies
+are at the same coordinates to the last bit. But `MeshTopology.IsClosed` counts *edges*, and two
+coincident vertices make two edges, so a perfectly sound box reports naked ones. **The mesh is
+geometrically closed and topologically split.**
+
+**The split is what makes shading right, and welding costs exactly that.** A vertex carries one
+normal. Weld a cube's corners and each corner has one normal, so the cube shades like a ball. There
+is no representation in which a mesh with per-vertex normals is both closed and correctly creased,
+so the choice has to be made per use rather than once.
+
+So `Mesh.Welded(tolerance)` is an **operation**, and the answer to NFR-8 is: *ask for it when you
+need the topology* — a volume, an STL for a printer, a watertightness check — and not when you need
+the shading. Measured on the provider's output: a box goes 24 vertices → 8 and 24 naked edges → 0; a
+cylinder 1442 → 720; a drilled plate 8676 → 4328. Every one closes.
+
+**One implementation detail that is a correctness detail.** The merge hashes positions into a grid,
+and **a grid is not a metric**: two points a hair apart can land in adjacent cells. So all
+twenty-seven neighbouring cells are checked. Without that, whether two vertices welded would depend
+on which side of a cell boundary they fell, and the same mesh translated by half a cell would weld
+differently — which `WeldingIsNotSensitiveToWhereTheGridFalls` is the test for.
+
+## N56 — The threading envelope, measured: independent shapes are independent
+
+**Q14 and `M1.6-C5` asked whether the parallel evaluator may call the shim concurrently, and the
+answer measured on this machine is yes, on distinct shapes.** Twenty threads × twenty-five
+union-and-tessellate = **500 results in 2.73 seconds, zero failures**, and every one of the five
+hundred volumes came back 42. A race that corrupted a shared table would show up there as a *wrong
+number*, not only as a crash, which is why the assertion is on the volume rather than on the absence
+of an exception.
+
+**The thread-local error channel is checked rather than assumed.** Twenty threads failing at once
+each read their own reason — if `spark_occt_last_error` were process-wide, some of those would come
+back empty or carrying another thread's message.
+
+**What is *not* claimed, and the distinction matters.** A single handle used from two threads at
+once is still undefined, and the header says so. What has been shown is that *independent work is
+independent*, which is the shape replication actually produces: one node, a list of inputs, a value
+each. The conservative single-writer fallback R20 named is not needed for that case and is still the
+right policy for a shared shape.
+
+## N57 — A materialisation costs half a millisecond, which is why residency is worth having
+
+`M1.6-C4` asked what a `Materialise` costs, because [ADR-0021](adr/0021-brep-kernel-residency.md)'s
+whole rule rests on it being paid **once**. Measured on a drilled plate — six holes cut into a
+20 × 12 × 2 block, twelve faces and thirty edges after the cuts:
+
+- **first structural question: 0.44 ms** (the read, the decode, the nine arrays)
+- **two thousand further questions: 0.04 ms**
+
+So the arrays are built once and everything after is a field access, which is what the design
+claims. The number worth remembering is the *ratio*, not the milliseconds: a bound on the absolute
+time would be a bound on this machine, and the claim being tested is *paid once*.
+
+**And it says something about the alternative.** Converting after every operation — the design
+ADR-0021 rejected — would have added that 0.44 ms to every step of a chain, plus a re-import, plus
+the drift the record is actually about. The time is the smallest of the three costs and is the only
+one anybody would have noticed.

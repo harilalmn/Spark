@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 07:55 +0530
+**Last updated:** 2026-08-31 08:40 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3 and M4 are done. M5 is substantially done** (the software renderer and CI visual regression, `E11-T16`, are **deferred past M6** deliberately). **M6 delivers its headline sentence** - solids that can be combined, filleted, shelled, **trimmed** and **exported to STEP**. **M1.6 was taken**: `C1`, `C2`, `C3`, `C7` and `C8` are answered and `C2` passed, so ADR-0020 stands |
 | **Working on** | Nothing. Between steps, inside M6 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The cache's native budget, and diagnostics across the boundary** — `E13-T3` and `E13-T13`, both closed. `EvaluationCache` evicts against an entry count **and** a 512 MB native ceiling, so NFR-4's failure is a test rather than a sentence. A failing operation appends the algorithm's own `Message_Report` alerts, and writes its inputs as Draw-Harness `.brep` files when `SPARK_OCCT_DUMP` names a directory. `OcctBrepKernel.Check` runs `BRepCheck_Analyzer` on demand. |
+| **Last completed step** | **The four untaken `M1.6` criteria, the threading policy, and NFR-8** — `M1.6-C4` (a materialisation costs **0.44 ms**, and two thousand further questions cost 0.04), `C5` and `E13-T14` (**500 concurrent operations, zero failures** — distinct shapes concurrently, one shape never from two threads), `C6` (**yes**: `ShapeFix`'s fixes are individually settable, and healing a shape that needs nothing changes nothing that can be seen), `C9` (the row was spent rather than estimated). **NFR-8 is restated rather than suppressed**: a BRep's mesh is geometrically closed and topologically split, and the new `Mesh.Welded(tolerance)` closes it where the topology is what matters. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | The remaining M6 work is the **six `M1.6` criteria nobody has taken** and the **pipeline rows**. In order: **`M1.6-C4`** (what a `Materialise` costs on a realistic shape — [ADR-0021](adr/0021-brep-kernel-residency.md)'s whole rule rests on it being paid once, and nobody has timed one), **`M1.6-C5`** and **`E13-T14`** (the threading envelope, which **Q14** says M6 needs the answer to), **`M1.6-C6`** (whether `ShapeFix` can be constrained to a policy we choose — now on the *import* path and the *file-read* path, not only behind `Heal`), and **`M1.6-C9`**. Then `E13-T8`'s draft angles, and the three pipeline rows `E13-T15`, `E13-T16` and `E13-T17`, which are release engineering and partly wait on **Q13** (counsel) and **Q15(c)** (the ubuntu CI job). **`E13-T12`'s acceptance — a public corpus and a third-party viewer — needs a human and cannot be closed here.** |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1744**: Geometry.Tests 757, UI.Tests 439, Engine.Tests 367, Viewport.Tests 74, Geometry.Properties 43, **Geometry.Occt.Tests 48**, Architecture.Tests 11, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, and `spark export --out OUT.step`. **Check the counts** - [N30](NOTES.md) - **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | What is left of M6 is **three pipeline rows and one thing that needs a person**. `E13-T8`'s **draft angles** are the last piece of modelling anybody is owed and are straightforward (`BRepOffsetAPI_DraftAngle`). Then **`E13-T16`** (the licence obligations met by the pipeline rather than by remembering: the LGPL and exception texts shipped, the build key `(occt-tag, vcpkg-baseline, shim-source-hash, rid)` recorded, and `E12-T18`'s About-box notice), **`E13-T15`** (the per-RID build and cache, which is inseparable from **Q15(c)**) and **`E13-T17`** (distribution, now against a measured **45.1 MB**). **`E13-T12`'s acceptance — a public corpus and a third-party viewer — needs a human, and so does `Q13`'s counsel question.** |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1750**: Geometry.Tests 763, UI.Tests 439, Engine.Tests 367, Viewport.Tests 74, Geometry.Properties 43, **Geometry.Occt.Tests 54**, Architecture.Tests 11, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, and `spark export --open docs/examples/solids.spark --out OUT.step`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ **or STEP** in a third-party viewer (M1's stated acceptance, and `E13-T12`'s), watching the first nightly benchmark run, and deciding **Q15(c)** — whether the ubuntu CI job survives now that **D16** has removed its release argument and `E13-T15` has priced its native half. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -2588,3 +2588,59 @@ are reproducing something.
 
 **Verified.** Build clean with `-warnaserror`; **1,744 tests, 0 failures, 0 skipped** (Engine 356 →
 367, Geometry.Occt 39 → 48); `dotnet format` clean; docs harness green.
+
+### 2026-08-31 — Four criteria, one requirement restated, and a mesh that welds
+
+**`M1.6-C4`, `C5`, `C6` and `C9`; `E13-T11`'s NFR-8 question; `E13-T14`.** Every one of these was
+written before the spike and says a **finding either way passes**. The only failure available was
+not asking, and they had not been asked.
+
+**`M1.6-C4` — a materialisation costs 0.44 ms.** On a drilled plate — six holes cut into a
+20 × 12 × 2 block — the first structural question costs **0.44 ms** and **two thousand further
+questions cost 0.04 ms**. The arrays are built once and everything after is a field access, which is
+what ADR-0021 claims. The assertion is on the **ratio**, not the milliseconds: a bound on the
+absolute time would be a bound on this machine, and the claim under test is *paid once*.
+
+**`M1.6-C5` and `E13-T14` — independent work is independent.** Twenty threads × twenty-five
+union-and-tessellate: **500 results in 2.73 seconds, zero failures**, and all five hundred volumes
+came back 42. The assertion is on the volume rather than on the absence of an exception, because a
+race corrupting a shared table shows up as a **wrong number** first. The thread-local error channel
+was checked rather than assumed — twenty threads failing at once each read their own reason. **The
+policy is written down**: distinct shapes concurrently, one shape never from two threads. R20's
+single-writer fallback is not needed for the case replication actually produces.
+
+**`M1.6-C6` — yes, and the record's own Notes anticipated it.** `ShapeFix_Face` and
+`ShapeFix_Solid` expose their fixes as individually settable modes, which is the mechanism the
+question was about. Measured on behaviour rather than API: **healing a shape that needs nothing
+changes nothing that can be seen** — a healed box keeps six faces, twelve edges, eight vertices, one
+shell, every surface still a plane, its volume to six decimal places and its corners to nine. So
+ADR-0021's drift argument is about what `ShapeFix` is *allowed* to do rather than what it does
+unprompted, which is exactly the revisiting that record invited.
+
+**`M1.6-C9` — the row was spent rather than estimated.** `E13-T3` is `Done`, and the 2–4 week
+bracket was never re-estimated because it was overtaken. The honest form: the bracket was wrong in
+the safe direction, and [N49](NOTES.md) says why — the ABI is thirty entry points rather than
+hundreds, so the handle table it budgeted for is three `SafeHandle` subclasses.
+
+**NFR-8 is restated, which is one of the two outcomes it demanded and is not the suppression.** The
+provider's mesh of a box has **twenty-four naked edges**, and welding by default would be the wrong
+repair. Every kernel tessellates a BRep **face by face** — ours and OpenCascade's alike — so every
+vertex on a shared edge exists twice, at identical coordinates. **The mesh is geometrically closed
+and topologically split.** The split is what makes shading right: a vertex carries one normal, and a
+welded cube shades like a ball.
+
+So `Mesh.Welded(tolerance)` is an **operation**, and the guarantee is *a mesh that welds closed at a
+tolerance the caller chooses*. Measured against the provider's own output: a box 24 vertices → 8, a
+cylinder 1442 → 720, a union 60 → 20, a drilled plate 8676 → 4328, every one closing with zero naked
+edges. **Ask for it when the topology is what matters — a volume, an STL, a printer — and not when
+the shading is.** [N55](NOTES.md).
+
+**One implementation detail in the weld is a correctness detail.** The merge hashes positions into a
+grid, and **a grid is not a metric**: two points a hair apart can land in adjacent cells. All
+twenty-seven neighbours are checked, so the same mesh translated by half a cell welds the same way.
+`WeldingIsNotSensitiveToWhereTheGridFalls` translates it eight times and is the test for it.
+
+**Verified.** Build clean with `-warnaserror`; **1,750 tests, 0 failures, 0 skipped** (Geometry
+757 → 763, Geometry.Occt 48 → 54); `dotnet format` clean; docs harness green. Every measurement in
+this entry is printed by the test that made it and recorded against its criterion in
+[TASKS.md](TASKS.md).

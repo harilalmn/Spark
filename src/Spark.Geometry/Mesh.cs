@@ -381,6 +381,145 @@ public sealed class Mesh
     }
 
     /// <summary>
+    /// Merges vertices that occupy the same place, so the mesh closes.
+    /// </summary>
+    /// <param name="tolerance">
+    /// How far apart two vertices may be and still be the same one. Zero or unset uses a
+    /// hundred-thousandth of the mesh's own size, which is the scale at which two copies of one
+    /// point produced by two different faces differ.
+    /// </param>
+    /// <returns>The welded mesh, or this one when nothing merged.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>A mesh of a solid is geometrically closed and topologically split, and this is what
+    /// closes the topology.</b> Tessellating a BRep face by face — which is what every kernel does,
+    /// ours and OpenCascade's alike — produces two copies of every vertex on a shared edge, one per
+    /// face. Nothing leaks through the seam: the two copies are at the same place. But
+    /// <see cref="MeshTopology.IsClosed"/> counts <i>edges</i>, and two coincident vertices are two
+    /// edges, so a perfectly sound box reports twenty-four naked edges.
+    /// </para>
+    /// <para>
+    /// <b>The split is deliberate and welding costs something real.</b> A vertex carries one
+    /// normal, so a shared corner has one normal, so a welded box shades like a ball. That is why
+    /// this is an operation and not what tessellation does: <b>ask for it when you need the
+    /// topology</b> — a volume, an STL for a printer, a watertightness check — and not when you
+    /// need the shading.
+    /// </para>
+    /// <para>
+    /// <b>Normals, texture coordinates and colours are taken from the first vertex of each merged
+    /// group</b> rather than averaged. Averaging two normals that disagree by ninety degrees
+    /// produces a direction that is neither, and a caller who wants smooth shading should ask for
+    /// <see cref="WithVertexNormals"/> afterwards, which computes them from the welded topology.
+    /// </para>
+    /// </remarks>
+    public Mesh Welded(double tolerance = 0.0)
+    {
+        double epsilon = tolerance > 0.0 && double.IsFinite(tolerance)
+            ? tolerance
+            : Math.Max(BoundingBox.Diagonal.Length * 1e-5, 1e-12);
+
+        double cell = epsilon * 2.0;
+        Dictionary<(long X, long Y, long Z), int> lookup = new(_vertices.Length);
+        int[] remap = new int[_vertices.Length];
+        List<Point3d> kept = new(_vertices.Length);
+        List<int> keptFrom = new(_vertices.Length);
+
+        for (int i = 0; i < _vertices.Length; i++)
+        {
+            Point3d point = _vertices[i];
+            (long X, long Y, long Z) key = (
+                (long)Math.Round(point.X / cell),
+                (long)Math.Round(point.Y / cell),
+                (long)Math.Round(point.Z / cell));
+
+            // A grid is not a metric: two points a hair apart can land in adjacent cells. The
+            // twenty-seven neighbours are checked, which makes the merge symmetric — otherwise
+            // whether two vertices weld would depend on which side of a cell boundary they fell,
+            // and the same mesh translated by half a cell would weld differently.
+            int found = -1;
+
+            for (long dx = -1; dx <= 1 && found < 0; dx++)
+            {
+                for (long dy = -1; dy <= 1 && found < 0; dy++)
+                {
+                    for (long dz = -1; dz <= 1 && found < 0; dz++)
+                    {
+                        if (lookup.TryGetValue((key.X + dx, key.Y + dy, key.Z + dz), out int candidate)
+                            && kept[candidate].DistanceTo(point) <= epsilon)
+                        {
+                            found = candidate;
+                        }
+                    }
+                }
+            }
+
+            if (found >= 0)
+            {
+                remap[i] = found;
+                continue;
+            }
+
+            int index = kept.Count;
+            kept.Add(point);
+            keptFrom.Add(i);
+            lookup[key] = index;
+            remap[i] = index;
+        }
+
+        if (kept.Count == _vertices.Length)
+        {
+            return this;
+        }
+
+        MeshFace[] faces = new MeshFace[_faces.Length];
+
+        for (int i = 0; i < _faces.Length; i++)
+        {
+            MeshFace face = _faces[i];
+
+            faces[i] = face.IsQuad
+                ? new MeshFace(remap[face.A], remap[face.B], remap[face.C], remap[face.D])
+                : new MeshFace(remap[face.A], remap[face.B], remap[face.C]);
+        }
+
+        Vector3d[]? normals = null;
+        UV[]? textureCoordinates = null;
+        uint[]? colours = null;
+
+        if (_normals is not null)
+        {
+            normals = new Vector3d[kept.Count];
+
+            for (int i = 0; i < kept.Count; i++)
+            {
+                normals[i] = _normals[keptFrom[i]];
+            }
+        }
+
+        if (_textureCoordinates is not null)
+        {
+            textureCoordinates = new UV[kept.Count];
+
+            for (int i = 0; i < kept.Count; i++)
+            {
+                textureCoordinates[i] = _textureCoordinates[keptFrom[i]];
+            }
+        }
+
+        if (_colours is not null)
+        {
+            colours = new uint[kept.Count];
+
+            for (int i = 0; i < kept.Count; i++)
+            {
+                colours[i] = _colours[keptFrom[i]];
+            }
+        }
+
+        return new Mesh(kept, faces, normals, textureCoordinates, colours);
+    }
+
+    /// <summary>
     /// The same mesh with a normal per vertex, averaged from the faces around it.
     /// </summary>
     /// <returns>A mesh with normals, or this one when it already has them.</returns>

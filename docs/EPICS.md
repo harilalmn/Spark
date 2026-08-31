@@ -1239,11 +1239,17 @@ which goes from 14 weeks to **20–24**.
       that is not evidence our use of it is right.*
 - [ ] The licence obligations are met **by the pipeline rather than by remembering**
       (**E13-T16**, **R21**).
-- [ ] **NFR-8 is answered rather than suppressed.** Either the watertightness property holds
-      against OCCT's mesher at a deflection we choose, or the requirement is restated to say
-      exactly what it guarantees (**E13-T11**).
-- [ ] The threading policy is **decided on evidence**, not assumed (**E13-T14**, **R20**,
-      **Q14**).
+- [x] **NFR-8 is answered rather than suppressed** (**E13-T11**). *It is the restatement rather
+      than the deflection. A BRep's mesh is **geometrically closed and topologically split** —
+      every kernel tessellates face by face, so a shared edge carries two copies of every vertex —
+      and welding by default would trade correct creasing for closure, because a vertex carries one
+      normal. `Mesh.Welded(tolerance)` closes it where the topology is what matters: a volume, an
+      STL, a printer. See [N55](NOTES.md).*
+- [x] The threading policy is **decided on evidence**, not assumed (**E13-T14**, **R20**,
+      **Q14**). *Distinct shapes may be operated on concurrently — 500 concurrent operations, zero
+      failures, every answer right — and one shape must not be touched by two threads at once.
+      R20's single-writer fallback is not needed for the case replication produces, which is the
+      case it would have cost the most. See [N56](NOTES.md).*
 
 **What is deliberately not claimed here.** Seven things are unknown and are recorded in
 [ADR-0020](adr/0020-occt-via-c-abi-shim.md) as open with how to find out: real binary sizes;

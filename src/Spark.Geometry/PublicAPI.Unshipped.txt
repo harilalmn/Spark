@@ -334,6 +334,7 @@ Spark.Geometry.Mesh.Vertex(int index) -> Spark.Geometry.Point3d
 Spark.Geometry.Mesh.VertexCount.get -> int
 Spark.Geometry.Mesh.Vertices() -> Spark.Geometry.Point3d[]!
 Spark.Geometry.Mesh.Volume() -> double
+Spark.Geometry.Mesh.Welded(double tolerance = 0) -> Spark.Geometry.Mesh!
 Spark.Geometry.Mesh.WithVertexNormals() -> Spark.Geometry.Mesh!
 Spark.Geometry.MeshBuilder
 Spark.Geometry.MeshBuilder.AddQuad(int a, int b, int c, int d) -> void

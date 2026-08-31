@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Spark.Geometry;
 
@@ -422,5 +423,138 @@ public sealed class MeshTests
 
         Assert.True(topology.IsClosed);
         Assert.Equal(18, topology.EdgeCount);
+    }
+
+    /// <summary>
+    /// <b>The case welding exists for.</b> A cube built face by face has four vertices per face
+    /// and twenty-four in all, none shared — which is exactly what a BRep tessellator produces and
+    /// what makes a perfectly sound mesh report naked edges everywhere.
+    /// </summary>
+    [Fact]
+    public void WeldingClosesACubeBuiltFaceByFace()
+    {
+        Mesh split = FaceByFaceCube();
+
+        Assert.Equal(24, split.VertexCount);
+        Assert.False(split.Topology.IsClosed);
+        Assert.Equal(24, split.Topology.NakedEdges().Length);
+
+        Mesh welded = split.Welded();
+
+        Assert.Equal(8, welded.VertexCount);
+        Assert.Equal(6, welded.FaceCount);
+        Assert.True(welded.Topology.IsClosed);
+        Assert.Empty(welded.Topology.NakedEdges());
+    }
+
+    /// <summary>A mesh with nothing to merge is returned unchanged, by reference.</summary>
+    [Fact]
+    public void WeldingAMeshWithNothingToMergeReturnsTheSameInstance()
+    {
+        Mesh cube = Cube();
+
+        Assert.Same(cube, cube.Welded());
+    }
+
+    /// <summary>Welding preserves the volume, because it moves nothing.</summary>
+    [Fact]
+    public void WeldingMovesNoVertexAndSoKeepsTheVolume()
+    {
+        Mesh split = FaceByFaceCube();
+
+        Assert.Equal(split.Volume(), split.Welded().Volume(), 12);
+    }
+
+    /// <summary>
+    /// <b>Normals come from the first vertex of each group rather than an average.</b> Averaging
+    /// two normals ninety degrees apart gives a direction that is neither, and a caller who wants
+    /// smooth shading asks for <c>WithVertexNormals</c> afterwards.
+    /// </summary>
+    [Fact]
+    public void WeldingTakesOneNormalPerGroupRatherThanAveraging()
+    {
+        Mesh split = FaceByFaceCube();
+        Mesh withNormals = split.WithVertexNormals();
+
+        Mesh welded = withNormals.Welded();
+
+        Assert.True(welded.HasNormals);
+        Assert.Equal(welded.VertexCount, welded.Normals()!.Length);
+
+        // Each surviving normal is one that was actually there, not a blend of several.
+        Vector3d[] before = withNormals.Normals()!;
+
+        Assert.All(
+            welded.Normals()!,
+            normal => Assert.Contains(before, original => (original - normal).Length < 1e-12));
+    }
+
+    /// <summary>
+    /// A tolerance far larger than the mesh collapses it, which is the caller asking for that.
+    /// The point of the assertion is that the tolerance is honoured rather than clamped.
+    /// </summary>
+    [Fact]
+    public void AHugeToleranceCollapsesEverythingToOnePoint()
+    {
+        Mesh welded = FaceByFaceCube().Welded(1000.0);
+
+        Assert.Equal(1, welded.VertexCount);
+    }
+
+    /// <summary>
+    /// <b>The grid is checked with its neighbours, so welding does not depend on where the cell
+    /// boundaries fell.</b> Two vertices a hair apart can land in adjacent cells; a merge that
+    /// only looked in one cell would join them here and not after a half-cell translation.
+    /// </summary>
+    [Fact]
+    public void WeldingIsNotSensitiveToWhereTheGridFalls()
+    {
+        Mesh split = FaceByFaceCube();
+        int expected = split.Welded(0.001).VertexCount;
+
+        for (int i = 1; i <= 8; i++)
+        {
+            double shift = i * 0.000123;
+            Mesh moved = split.TransformedBy(Transform.Translation(new Vector3d(shift, shift, shift)));
+
+            Assert.Equal(expected, moved.Welded(0.001).VertexCount);
+        }
+    }
+
+    /// <summary>A cube whose six faces share no vertices at all: 24 vertices, 6 quads.</summary>
+    private static Mesh FaceByFaceCube()
+    {
+        Point3d[] corners =
+        [
+            new(0, 0, 0), new(1, 0, 0), new(1, 1, 0), new(0, 1, 0),
+            new(0, 0, 1), new(1, 0, 1), new(1, 1, 1), new(0, 1, 1),
+        ];
+
+        int[][] quads =
+        [
+            [0, 3, 2, 1],
+            [4, 5, 6, 7],
+            [0, 1, 5, 4],
+            [1, 2, 6, 5],
+            [2, 3, 7, 6],
+            [3, 0, 4, 7],
+        ];
+
+        List<Point3d> vertices = [];
+        List<MeshFace> faces = [];
+
+        foreach (int[] quad in quads)
+        {
+            int start = vertices.Count;
+
+            foreach (int corner in quad)
+            {
+                vertices.Add(corners[corner]);
+            }
+
+            faces.Add(new MeshFace(start, start + 1, start + 2, start + 3));
+        }
+
+        return new Mesh(vertices, faces);
     }
 }
