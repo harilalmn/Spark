@@ -25,6 +25,7 @@
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepLib.hxx>
 #include <BRepMesh_IncrementalMesh.hxx>
+#include <BRepOffsetAPI_DraftAngle.hxx>
 #include <BRepOffsetAPI_MakeOffsetShape.hxx>
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepOffsetAPI_ThruSections.hxx>
@@ -41,6 +42,10 @@
 #include <IGESControl_Controller.hxx>
 #include <IGESControl_Reader.hxx>
 #include <IGESControl_Writer.hxx>
+#include <Geom_ConicalSurface.hxx>
+#include <Geom_CylindricalSurface.hxx>
+#include <Geom_Plane.hxx>
+#include <Geom_RectangularTrimmedSurface.hxx>
 #include <Geom_Surface.hxx>
 #include <BRepTools.hxx>
 #include <Message.hxx>
@@ -71,6 +76,7 @@
 #include <TopoDS_Wire.hxx>
 #include <gp.hxx>
 #include <gp_Ax1.hxx>
+#include <gp_Pln.hxx>
 #include <gp_Dir.hxx>
 #include <gp_Trsf.hxx>
 #include <gp_Vec.hxx>
@@ -1258,6 +1264,137 @@ extern "C" spark_status SPARK_OCCT_CALL spark_occt_shell(
         }
 
         return emit(wall.Shape(), out);
+    });
+}
+
+extern "C" spark_status SPARK_OCCT_CALL spark_occt_draft(
+    const spark_shape* shape,
+    const int32_t* faces,
+    int32_t face_count,
+    const double* pull_direction,
+    double angle,
+    const double* neutral_origin,
+    const double* neutral_normal,
+    spark_shape** out)
+{
+    return guard("A draft", [&]() -> spark_status
+    {
+        const spark_status ready = require_shape(shape, "drafted");
+        if (ready != SPARK_OK)
+        {
+            return ready;
+        }
+
+        if (out == nullptr || pull_direction == nullptr
+            || neutral_origin == nullptr || neutral_normal == nullptr)
+        {
+            return fail(
+                SPARK_ERR_ARGUMENT,
+                "A draft needs a pull direction, a neutral plane and somewhere to go.");
+        }
+
+        const gp_Vec pull(pull_direction[0], pull_direction[1], pull_direction[2]);
+        const gp_Vec normal(neutral_normal[0], neutral_normal[1], neutral_normal[2]);
+
+        if (pull.Magnitude() <= gp::Resolution() || normal.Magnitude() <= gp::Resolution())
+        {
+            return fail(SPARK_ERR_ARGUMENT, "A draft's directions must have a length.");
+        }
+
+        if (angle == 0.0 || angle != angle)
+        {
+            return fail(SPARK_ERR_ARGUMENT, "A draft angle must be a non-zero finite number.");
+        }
+
+        SparkShapeList chosen;
+        const spark_status selected = select(shape->shape, TopAbs_FACE, faces, face_count, "face", chosen);
+
+        if (selected != SPARK_OK)
+        {
+            return selected;
+        }
+
+        const gp_Pln neutral(spark::point(neutral_origin), gp_Dir(normal));
+
+        // WHICH FACES CAN BE DRAFTED IS DECIDED BEFORE ASKING, NOT BY ASKING. OpenCascade only
+        // tapers planar, cylindrical and conical faces, and a failed `Add` poisons every later
+        // one — the next call raises `Standard_ConstructionError` until `Remove` cancels the bad
+        // one. Handing it a box's flat top and recovering afterwards turned out to leave the
+        // algorithm in a state where `Build` itself raised, with no message. Skipping what cannot
+        // be tapered is both simpler and the behaviour a moulder means by "draft this part".
+        BRepOffsetAPI_DraftAngle draft(shape->shape);
+
+        const gp_Dir pullDirection(pull);
+        int32_t added = 0;
+        int32_t skipped = 0;
+
+        for (SparkShapeList::Iterator it(chosen); it.More(); it.Next())
+        {
+            const TopoDS_Face face = TopoDS::Face(it.Value());
+            Handle(Geom_Surface) surface = BRep_Tool::Surface(face);
+
+            while (!surface.IsNull() && surface->IsKind(STANDARD_TYPE(Geom_RectangularTrimmedSurface)))
+            {
+                surface = Handle(Geom_RectangularTrimmedSurface)::DownCast(surface)->BasisSurface();
+            }
+
+            if (surface.IsNull())
+            {
+                skipped++;
+                continue;
+            }
+
+            // A plane whose normal is along the pull has no line to tilt about: the neutral plane
+            // and the face are parallel. That is a box's top and bottom, and it is the ordinary
+            // case rather than an error.
+            if (surface->IsKind(STANDARD_TYPE(Geom_Plane)))
+            {
+                const gp_Dir facing = Handle(Geom_Plane)::DownCast(surface)->Position().Direction();
+
+                if (facing.IsParallel(pullDirection, 1.0e-6))
+                {
+                    skipped++;
+                    continue;
+                }
+            }
+            else if (!surface->IsKind(STANDARD_TYPE(Geom_CylindricalSurface))
+                && !surface->IsKind(STANDARD_TYPE(Geom_ConicalSurface)))
+            {
+                skipped++;
+                continue;
+            }
+
+            draft.Add(face, pullDirection, angle, neutral);
+
+            if (!draft.AddDone())
+            {
+                draft.Remove(face);
+                skipped++;
+                continue;
+            }
+
+            added++;
+        }
+
+        if (added == 0)
+        {
+            return fail(
+                SPARK_ERR_REFUSED,
+                "No face could be drafted in that direction: " + std::to_string(skipped)
+                    + " face(s) are parallel to the pull, or are neither planar, cylindrical nor "
+                    "conical, which are the only kinds a draft can tilt.");
+        }
+
+        draft.Build();
+
+        if (!draft.IsDone())
+        {
+            return fail(
+                SPARK_ERR_REFUSED,
+                "The draft tilted " + std::to_string(added) + " face(s) and then did not complete.");
+        }
+
+        return emit(draft.Shape(), out);
     });
 }
 

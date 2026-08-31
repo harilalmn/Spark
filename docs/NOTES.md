@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N49-N57 added)
+**Last updated:** 2026-08-31 (N49-N59 added)
 
 ---
 
@@ -1645,3 +1645,43 @@ time would be a bound on this machine, and the claim being tested is *paid once*
 ADR-0021 rejected — would have added that 0.44 ms to every step of a chain, plus a re-import, plus
 the drift the record is actually about. The time is the smallest of the three costs and is the only
 one anybody would have noticed.
+
+## N58 — A failed `Add` poisons `BRepOffsetAPI_DraftAngle`, so decide before asking
+
+Drafting a box pulled along +Z refused **all six faces**, and the reason took three attempts to
+find because each attempt hid the next one.
+
+**OpenCascade only tapers planar, cylindrical and conical faces**, and a box's top and bottom are
+parallel to the neutral plane — there is no line to tilt about, so those two cannot be drafted. That
+much is expected. What is not documented anywhere obvious is the consequence: **a failed `Add`
+leaves the algorithm in a state where every later `Add` raises `Standard_ConstructionError`** until
+`Remove` cancels the bad one. So one undraftable face turns into a solid on which nothing can be
+drafted.
+
+**And recovering is not enough.** Catching the raise and calling `Remove` got past the per-face
+problem and then `Build()` itself raised, with an empty message — the algorithm had been handed a
+face it could not use and the recovery did not fully undo it.
+
+**The fix is to not ask.** Look at each face's surface first: skip a plane whose normal is parallel
+to the pull, skip anything that is not planar, cylindrical or conical, and only then call `Add`.
+That is both simpler than the recovery and the behaviour a moulder means by *draft this part* —
+refusing a whole solid because its top is flat would be the wrong answer to the right question.
+
+**The general shape, which is not specific to drafting:** when a library's failure mode is *poisons
+the object* rather than *returns false*, a precondition check is not defensive programming, it is
+the only correct structure.
+
+## N59 — The docs harness was right about a document it had never seen
+
+`scripts/build-native.ps1` stages `THIRD-PARTY-NOTICES.md` beside the binaries, because a notice
+left behind in a source tree is a notice nobody who received the software can read. The next run of
+the documentation harness went red: three broken relative links, all in
+`artifacts/native/win-x64/THIRD-PARTY-NOTICES.md`.
+
+**It was right.** That copy is the same document with different neighbours, so a relative link
+written as *`licences/`* resolves from the repository root and not from where the file lands. The repair is to exclude
+`artifacts/` from the harness's scan, not to make the links absolute — a staged copy is a build
+output and the harness's job is the documents somebody wrote.
+
+Worth recording because the same shape will recur: **anything the build copies into `artifacts/`
+becomes a second copy of a file some other gate has opinions about.**

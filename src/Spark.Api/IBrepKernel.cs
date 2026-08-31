@@ -313,6 +313,27 @@ public interface IBrepKernel
     /// <returns>The solid, or why not.</returns>
     KernelResult<Brep> Thicken(Brep sheet, double thickness, in Tolerance tolerance);
 
+    /// <summary>Tilts faces away from a pull direction, the way a moulded part is drafted.</summary>
+    /// <param name="solid">The solid.</param>
+    /// <param name="faces">The indices of the faces to tilt, or empty for all of them.</param>
+    /// <param name="pullDirection">The direction the part comes out of the mould.</param>
+    /// <param name="angle">How far to tilt. Positive tilts outwards.</param>
+    /// <param name="neutral">The plane the tilt pivots about, where the shape keeps its size.</param>
+    /// <param name="tolerance">The modelling tolerance.</param>
+    /// <returns>The drafted solid, or why not.</returns>
+    /// <remarks>
+    /// <b>The neutral plane has to be named, and that is not ceremony.</b> "Tilt this face by two
+    /// degrees" does not say around *what*, and the answer changes the part: pivoting about the
+    /// top and pivoting about the bottom give the same angle and different sizes.
+    /// </remarks>
+    KernelResult<Brep> Draft(
+        Brep solid,
+        IReadOnlyList<int> faces,
+        in Vector3d pullDirection,
+        Angle angle,
+        in Plane neutral,
+        in Tolerance tolerance);
+
     /// <summary>Joins loose faces into shells, closing what nearly meets.</summary>
     /// <param name="pieces">The shapes to join.</param>
     /// <param name="tolerance">How far apart edges may be and still be sewn.</param>

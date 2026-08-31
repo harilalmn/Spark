@@ -89,6 +89,16 @@ public sealed class UnavailableBrepKernel : IBrepKernel
         Refuse<Brep>("thicken");
 
     /// <inheritdoc/>
+    public KernelResult<Brep> Draft(
+        Brep solid,
+        IReadOnlyList<int> faces,
+        in Vector3d pullDirection,
+        Angle angle,
+        in Plane neutral,
+        in Tolerance tolerance) =>
+        Refuse<Brep>("draft");
+
+    /// <inheritdoc/>
     public KernelResult<Brep> Sew(IReadOnlyList<Brep> pieces, in Tolerance tolerance) => Refuse<Brep>("sew");
 
     /// <inheritdoc/>

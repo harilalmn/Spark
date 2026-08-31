@@ -347,6 +347,41 @@ public sealed class OcctBrepKernel : IBrepKernel
     }
 
     /// <inheritdoc/>
+    public KernelResult<Brep> Draft(
+        Brep solid,
+        IReadOnlyList<int> faces,
+        in Vector3d pullDirection,
+        Angle angle,
+        in Plane neutral,
+        in Tolerance tolerance)
+    {
+        ArgumentNullException.ThrowIfNull(solid);
+        ArgumentNullException.ThrowIfNull(faces);
+
+        int[] chosen = [.. faces];
+        double linear = tolerance.Linear;
+        double[] pull = [pullDirection.X, pullDirection.Y, pullDirection.Z];
+        double[] origin = [neutral.Origin.X, neutral.Origin.Y, neutral.Origin.Z];
+        double[] normal = [neutral.Normal.X, neutral.Normal.Y, neutral.Normal.Z];
+        double radians = angle.Radians;
+
+        return Modify("draft", solid, linear, (shape, buffers) =>
+        {
+            int status = NativeMethods.spark_occt_draft(
+                shape,
+                buffers.Pin(chosen),
+                chosen.Length,
+                buffers.Pin(pull),
+                radians,
+                buffers.Pin(origin),
+                buffers.Pin(normal),
+                out IntPtr result);
+
+            return (status, status == NativeMethods.Ok ? result : IntPtr.Zero);
+        });
+    }
+
+    /// <inheritdoc/>
     public KernelResult<Brep> Sew(IReadOnlyList<Brep> pieces, in Tolerance tolerance)
     {
         ArgumentNullException.ThrowIfNull(pieces);

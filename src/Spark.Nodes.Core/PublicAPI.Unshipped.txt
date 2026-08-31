@@ -91,6 +91,7 @@ static Spark.Nodes.Core.PolyLine.ByRegularPolygon(Spark.Geometry.Plane plane, do
 static Spark.Nodes.Core.Solid.Box(Spark.Geometry.Plane plane, double length = 1, double width = 1, double height = 1) -> Spark.Geometry.Brep!
 static Spark.Nodes.Core.Solid.Cylinder(Spark.Geometry.Plane plane, double radius = 1, double height = 1) -> Spark.Geometry.Brep!
 static Spark.Nodes.Core.Solid.Difference(Spark.Geometry.Brep! solid, Spark.Geometry.Brep! cutter) -> Spark.Geometry.Brep!
+static Spark.Nodes.Core.Solid.Draft(Spark.Geometry.Brep! solid, Spark.Geometry.Vector3d pullDirection, Spark.Geometry.Plane neutral, double angle = 2) -> Spark.Geometry.Brep!
 static Spark.Nodes.Core.Solid.Extrude(Spark.Geometry.Curve! profile, Spark.Geometry.Vector3d direction) -> Spark.Geometry.Brep!
 static Spark.Nodes.Core.Solid.FaceCount(Spark.Geometry.Brep! solid) -> int
 static Spark.Nodes.Core.Solid.FilletAll(Spark.Geometry.Brep! solid, double radius = 0.1) -> Spark.Geometry.Brep!

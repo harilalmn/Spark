@@ -148,6 +148,22 @@ public static class Solid
         return Unwrap(BrepKernel.Current.Fillet(solid, edges, radius, Tolerance.Default));
     }
 
+    /// <summary>Tilts a solid's faces so it can leave a mould.</summary>
+    /// <param name="solid">The solid.</param>
+    /// <param name="pullDirection">The direction the part comes out.</param>
+    /// <param name="neutral">The plane the tilt pivots about, where the shape keeps its size.</param>
+    /// <param name="angle">How far to tilt, in degrees. Positive tilts outwards.</param>
+    /// <returns>The drafted solid.</returns>
+    /// <remarks>
+    /// Faces perpendicular to the pull cannot be drafted and are left alone, which is what a
+    /// moulder means by "draft this part" — the alternative is refusing the whole solid because
+    /// its top is flat.
+    /// </remarks>
+    [return: NodePort("solid")]
+    public static Brep Draft(Brep solid, Vector3d pullDirection, Spark.Geometry.Plane neutral, double angle = 2) =>
+        Unwrap(BrepKernel.Current.Draft(
+            solid, [], pullDirection, Angle.FromDegrees(angle), neutral, Tolerance.Default));
+
     /// <summary>Hollows a solid.</summary>
     /// <param name="solid">The solid.</param>
     /// <param name="thickness">The wall thickness.</param>

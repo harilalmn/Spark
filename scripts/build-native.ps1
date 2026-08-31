@@ -145,6 +145,71 @@ $count = (Get-ChildItem $stage -Filter *.dll).Count
 Write-Host "    $count DLLs staged."
 
 # ------------------------------------------------------------------------------------------------
+# The build key
+#
+# R22: a standing source offer has to be honourable against a SPECIFIC artefact, not approximately.
+# The key records what this DLL was built from, beside the DLL, so an offer made a year from now
+# resolves to an exact OpenCascade tag, an exact vcpkg baseline and an exact shim commit. Writing it
+# here rather than at release time is E13-T16's whole point: an obligation met by the pipeline
+# rather than by remembering.
+# ------------------------------------------------------------------------------------------------
+
+Write-Host "==> Recording the build key"
+
+$manifest = Get-Content (Join-Path $source 'vcpkg.json') -Raw | ConvertFrom-Json
+
+# The shim's own hash: every source file that goes into the DLL, in a fixed order, hashed together.
+# It is not a git commit on purpose - an uncommitted edit must change the key, because it changes
+# the artefact.
+$sources = Get-ChildItem -Path (Join-Path $source 'include'), (Join-Path $source 'src') -File |
+    Sort-Object -Property Name
+
+$combined = New-Object System.Text.StringBuilder
+foreach ($file in $sources) {
+    [void]$combined.Append((Get-FileHash -Algorithm SHA256 -Path $file.FullName).Hash)
+}
+
+$bytes = [System.Text.Encoding]::UTF8.GetBytes($combined.ToString())
+$stream = New-Object System.IO.MemoryStream(, $bytes)
+$shimHash = (Get-FileHash -Algorithm SHA256 -InputStream $stream).Hash
+
+$commit = ''
+try { $commit = (& git -C $repo rev-parse HEAD 2>$null) } catch { }
+
+$key = [ordered]@{
+    rid              = 'win-x64'
+    configuration    = $Configuration
+    occtVersion      = ($manifest.overrides | Where-Object { $_.name -eq 'opencascade' }).version
+    vcpkgBaseline    = $manifest.'builtin-baseline'
+    vcpkgRoot        = $VcpkgRoot
+    shimSourceHash   = $shimHash
+    shimSourceFiles  = @($sources | ForEach-Object { $_.Name })
+    sparkCommit      = $commit
+    builtUtc         = (Get-Date).ToUniversalTime().ToString('o')
+    licences         = @{
+        opencascade = 'LGPL-2.1-only WITH Open CASCADE exception; texts in licences/'
+        sparkOcct   = 'MIT'
+    }
+    notices          = 'THIRD-PARTY-NOTICES.md'
+}
+
+$key | ConvertTo-Json -Depth 5 |
+    Out-File -FilePath (Join-Path $stage 'spark_occt.buildkey.json') -Encoding utf8
+
+Write-Host "    shim source hash $($shimHash.Substring(0, 16))..., OpenCascade $($key.occtVersion)."
+
+# The notices and the licence texts travel with the binaries they are about. A notice file left
+# behind in a source tree is a notice nobody who received the software can read.
+Copy-Item (Join-Path $repo 'THIRD-PARTY-NOTICES.md') $stage -Force
+
+$licences = Join-Path $stage 'licences'
+if (-not (Test-Path $licences)) {
+    New-Item -ItemType Directory -Path $licences -Force | Out-Null
+}
+
+Copy-Item (Join-Path $repo 'licences\*') $licences -Force
+
+# ------------------------------------------------------------------------------------------------
 # Test
 # ------------------------------------------------------------------------------------------------
 

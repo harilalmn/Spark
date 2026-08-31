@@ -26,7 +26,7 @@ internal static partial class NativeMethods
     internal const string Library = "spark_occt";
 
     /// <summary>The ABI this binding was written against. Must match the library's own.</summary>
-    internal const int AbiVersion = 4;
+    internal const int AbiVersion = 5;
 
     internal const int Ok = 0;
     internal const int ErrorArgument = 1;
@@ -180,6 +180,18 @@ internal static partial class NativeMethods
         int faceCount,
         double thickness,
         double tolerance,
+        out IntPtr result);
+
+    [LibraryImport(Library)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    internal static partial int spark_occt_draft(
+        IntPtr shape,
+        IntPtr faces,
+        int faceCount,
+        IntPtr pullDirection,
+        double angle,
+        IntPtr neutralOrigin,
+        IntPtr neutralNormal,
         out IntPtr result);
 
     [LibraryImport(Library)]

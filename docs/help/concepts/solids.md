@@ -188,12 +188,20 @@ It is off by default and that is deliberate: an exact kernel refuses constantly 
 a build that wrote a file on every refusal would fill a disk with evidence of things working as
 designed.
 
+## Where OpenCascade comes into it
+
+**Spark's exact solid modelling makes use of facilities provided by the Open CASCADE Technology
+software.** OpenCascade is LGPL-2.1 with the Open CASCADE exception; its licence texts ship in
+`licences/`, the full notice is in `THIRD-PARTY-NOTICES.md`, and `spark --version` prints which
+version this build carries. The libraries ship unmodified and replaceable, and the build records
+exactly what they were built from, so a request for the corresponding source can be answered
+against *this* build rather than approximately.
+
 ## What is not built yet
 
 - **Trimmed faces in Spark's own model.** A face Spark *builds* is bounded by its surface's own
   edges. Faces that come *back* from the provider are fully trimmed, so the result of a boolean is
   as trimmed as it needs to be; what is missing is the ability to author a trimmed face directly.
-- **Draft angles** — greyed out rather than missing.
 - **AP242.** STEP goes out as AP214. AP242 carries assemblies, names and colours, and Spark has
   none of those to put in a file yet.
 - **Mesh booleans** — combining two *meshes* rather than two solids. Deferred.

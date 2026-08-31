@@ -609,9 +609,36 @@ internal static class Program
         }
     }
 
+    /// <summary>
+    /// Prints the version, and what this build links.
+    /// </summary>
+    /// <remarks>
+    /// <b>The kernel line is a licence obligation, not a courtesy.</b> The Open CASCADE exception
+    /// requires <i>prominent notice in supporting documentation</i> that the work makes use of
+    /// facilities provided by OpenCascade, and `spark --version` is where somebody with only a
+    /// binary looks. `E12-T18` puts the same thing in the application's About box; this is the
+    /// half a command line has. **Nothing here is legal advice** — see `Q13`.
+    /// </remarks>
     private static int Version()
     {
         Console.WriteLine(typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown");
+
+        IBrepKernel kernel = BrepKernel.Current;
+
+        if (kernel is Spark.Geometry.Occt.OcctBrepKernel occt)
+        {
+            Console.WriteLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"solid-modelling kernel: {occt.Version} — LGPL-2.1 with the Open CASCADE "
+                + $"exception. This software makes use of facilities provided by the Open CASCADE "
+                + $"Technology software. See THIRD-PARTY-NOTICES.md."));
+        }
+        else
+        {
+            Console.WriteLine(
+                "solid-modelling kernel: none installed. Booleans, fillets and STEP are "
+                + "unavailable; everything else works.");
+        }
 
         return 0;
     }

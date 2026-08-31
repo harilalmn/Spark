@@ -291,12 +291,23 @@ public sealed class DocumentationChecks
             .Where(NotGenerated);
     }
 
+    /// <summary>
+    /// Whether a document is one somebody wrote, rather than one a build produced.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>artifacts/</c> joined this list the day the native build started staging the
+    /// third-party notices beside the binaries.</b> That copy is the same document with different
+    /// neighbours, so its relative links resolve from the repository root and not from where it
+    /// lands — and the harness was right to notice, which is why it is excluded rather than the
+    /// links being made absolute.
+    /// </remarks>
     private static bool NotGenerated(string path)
     {
         char separator = Path.DirectorySeparatorChar;
 
         return !path.Contains($"{separator}obj{separator}", StringComparison.Ordinal)
             && !path.Contains($"{separator}bin{separator}", StringComparison.Ordinal)
+            && !path.Contains($"{separator}artifacts{separator}", StringComparison.Ordinal)
             && !path.Contains($"{separator}.git{separator}", StringComparison.Ordinal);
     }
 

@@ -79,7 +79,7 @@ typedef int32_t spark_status;
 #define SPARK_ERR_EXCEPTION     4 /**< OpenCascade raised. The message says what. */
 
 /** The ABI revision. Bumped whenever a signature or an encoding below changes. */
-#define SPARK_OCCT_ABI 4
+#define SPARK_OCCT_ABI 5
 
 /* --------------------------------------------------------------------------------------------
  * Geometry encodings
@@ -342,6 +342,23 @@ SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_shell(
     int32_t face_count,
     double thickness,
     double tolerance,
+    spark_shape** out);
+
+/**
+ * Tilts faces away from a pull direction, the way a moulded part is drafted.
+ *
+ * `angle` is in radians and positive tilts outwards. The neutral plane is the one the tilt pivots
+ * about: it is where the shape keeps its size, and it has to be named because "tilt this face"
+ * otherwise does not say around what.
+ */
+SPARK_OCCT_API spark_status SPARK_OCCT_CALL spark_occt_draft(
+    const spark_shape* shape,
+    const int32_t* faces,
+    int32_t face_count,
+    const double* pull_direction,
+    double angle,
+    const double* neutral_origin,
+    const double* neutral_normal,
     spark_shape** out);
 
 /** Joins pieces along coincident edges. */

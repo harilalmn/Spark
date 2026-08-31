@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 08:40 +0530
+**Last updated:** 2026-08-31 09:25 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3 and M4 are done. M5 is substantially done** (the software renderer and CI visual regression, `E11-T16`, are **deferred past M6** deliberately). **M6 delivers its headline sentence** - solids that can be combined, filleted, shelled, **trimmed** and **exported to STEP**. **M1.6 was taken**: `C1`, `C2`, `C3`, `C7` and `C8` are answered and `C2` passed, so ADR-0020 stands |
 | **Working on** | Nothing. Between steps, inside M6 |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The four untaken `M1.6` criteria, the threading policy, and NFR-8** — `M1.6-C4` (a materialisation costs **0.44 ms**, and two thousand further questions cost 0.04), `C5` and `E13-T14` (**500 concurrent operations, zero failures** — distinct shapes concurrently, one shape never from two threads), `C6` (**yes**: `ShapeFix`'s fixes are individually settable, and healing a shape that needs nothing changes nothing that can be seen), `C9` (the row was spent rather than estimated). **NFR-8 is restated rather than suppressed**: a BRep's mesh is geometrically closed and topologically split, and the new `Mesh.Welded(tolerance)` closes it where the topology is what matters. |
+| **Last completed step** | **Draft angles, and the licence obligations met by the pipeline** — `E13-T8` closes, `E13-T16` lands everything that does not need counsel, and `E12-T18`'s command-line half. `THIRD-PARTY-NOTICES.md`, `licences/`, and a `spark_occt.buildkey.json` written beside the binaries recording exactly what they were built from, all staged with the binaries and asserted by four architecture tests. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | What is left of M6 is **three pipeline rows and one thing that needs a person**. `E13-T8`'s **draft angles** are the last piece of modelling anybody is owed and are straightforward (`BRepOffsetAPI_DraftAngle`). Then **`E13-T16`** (the licence obligations met by the pipeline rather than by remembering: the LGPL and exception texts shipped, the build key `(occt-tag, vcpkg-baseline, shim-source-hash, rid)` recorded, and `E12-T18`'s About-box notice), **`E13-T15`** (the per-RID build and cache, which is inseparable from **Q15(c)**) and **`E13-T17`** (distribution, now against a measured **45.1 MB**). **`E13-T12`'s acceptance — a public corpus and a third-party viewer — needs a human, and so does `Q13`'s counsel question.** |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1750**: Geometry.Tests 763, UI.Tests 439, Engine.Tests 367, Viewport.Tests 74, Geometry.Properties 43, **Geometry.Occt.Tests 54**, Architecture.Tests 11, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, and `spark export --open docs/examples/solids.spark --out OUT.step`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | M6 is down to **two pipeline rows and three things that need a person**. The rows: **`E13-T15`** (per-RID build and cache, keyed on `(occt-tag, vcpkg-baseline, shim-source-hash, rid)` — the key is written now, so what is left is the CI job that consumes it) and **`E13-T17`** (distribution, against the measured **45.1 MB**). Both are inseparable from **Q15(c)**, whether the ubuntu CI leg survives, which is a decision rather than a task. **The three that need a person**: `E13-T12`'s acceptance (a public corpus and a *third-party viewer*), `Q13`'s counsel questions, and `E12-T18`'s About box, which needs a dialog that does not exist yet. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1762**: Geometry.Tests 763, UI.Tests 439, Engine.Tests 367, Viewport.Tests 74, Geometry.Properties 43, **Geometry.Occt.Tests 56**, Architecture.Tests 15, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, and `spark export --open docs/examples/solids.spark --out OUT.step`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | Nothing. **Three things need a human**: opening an exported OBJ **or STEP** in a third-party viewer (M1's stated acceptance, and `E13-T12`'s), watching the first nightly benchmark run, and deciding **Q15(c)** — whether the ubuntu CI job survives now that **D16** has removed its release argument and `E13-T15` has priced its native half. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -2644,3 +2644,62 @@ twenty-seven neighbours are checked, so the same mesh translated by half a cell 
 757 → 763, Geometry.Occt 48 → 54); `dotnet format` clean; docs harness green. Every measurement in
 this entry is printed by the test that made it and recorded against its criterion in
 [TASKS.md](TASKS.md).
+
+### 2026-08-31 — Draft angles, and licence obligations met by the pipeline
+
+**`E13-T8` closes; `E13-T16` lands everything that does not need counsel; `E12-T18`'s command-line
+half.** ABI version 5.
+
+**Drafting refused all six faces of a box, and the reason took three attempts to find because each
+attempt hid the next.** OpenCascade only tapers planar, cylindrical and conical faces, and a box's
+top and bottom are parallel to the neutral plane — no line to tilt about. Expected. What is not
+documented anywhere obvious is the consequence: **a failed `Add` poisons the algorithm**, so every
+later `Add` raises `Standard_ConstructionError` until `Remove` cancels the bad one. Catching and
+removing got past that, and then **`Build()` itself raised, with an empty message**.
+
+**The fix is to not ask.** Look at each face's surface first, skip a plane whose normal is parallel
+to the pull, skip anything that is not planar, cylindrical or conical, and only then call `Add`.
+Simpler than the recovery, and it is what a moulder means by *draft this part* — refusing a whole
+solid because its top is flat would be the wrong answer to the right question. **The general shape,
+which is not about drafting:** when a library's failure mode is *poisons the object* rather than
+*returns false*, a precondition check is not defensive programming, it is the only correct
+structure. [N58](NOTES.md).
+
+**The neutral plane is a parameter and that is not ceremony.** "Tilt this face by two degrees" does
+not say around *what*, and the answer changes the part: pivot about the top and pivot about the
+bottom give the same angle and different sizes.
+
+**The licence obligations are met by the pipeline now, which is what `E13-T16` asks for.**
+`THIRD-PARTY-NOTICES.md` names OpenCascade, its licence and the exception, carries the sentence the
+exception actually requires, and maps every obligation to where the build meets it. `licences/`
+ships the LGPL-2.1 text and the Open CASCADE exception rather than linking them. And
+`spark_occt.buildkey.json` is written beside the binaries recording
+`(rid, configuration, occt-version, vcpkg-baseline, shim-source-hash, spark-commit)`.
+
+**The shim hash is over the source files rather than a git commit, deliberately.** An uncommitted
+edit changes the artefact, so it has to change the key — R22 is that a source offer must be
+honourable against *a specific artefact*, and a commit hash that no longer describes the binary is
+worse than no key.
+
+**The notices travel with the binaries.** A notice left behind in a source tree is a notice nobody
+who received the software can read, so `build-native.ps1` stages it and the licence texts beside the
+DLLs. `spark --version` prints the OpenCascade version and the required sentence, or says no kernel
+is installed — that is `E12-T18`'s command-line half; the About box still needs a dialog that does
+not exist.
+
+**Four architecture tests hold all of it**, including that nothing in the repository turns on
+`PublishSingleFile` or `PublishAot`, which the relink obligation forbids over OpenCascade.
+
+**And the docs harness was right about a document it had never seen.** Staging the notices beside
+the binaries put a second copy in `artifacts/`, whose relative links resolve from the repository root
+and not from where it lands. Three broken links, correctly reported. The repair is to exclude
+`artifacts/` from the scan — a staged copy is build output — and the shape will recur for anything
+else the build copies there. [N59](NOTES.md).
+
+**What is explicitly not done.** `Q13`'s six counsel questions, which cannot be settled by writing
+more of this. The About box. And this file is not a compliance audit — **nothing in it is legal
+advice**.
+
+**Verified.** Shim builds with zero warnings; its C smoke test drafts a box and checks the face
+count stays six; build clean with `-warnaserror`; **1,762 tests, 0 failures, 0 skipped**
+(Geometry.Occt 54 → 56, Architecture 11 → 15); `dotnet format` clean; docs harness green.

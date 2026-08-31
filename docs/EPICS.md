@@ -1237,8 +1237,12 @@ which goes from 14 weeks to **20–24**.
 - [ ] STEP AP203/AP214/**AP242** and IGES read and write, validated against a public corpus and
       a **third-party viewer, never our own reader** (**E13-T12**). *OCCT wrote the exporter;
       that is not evidence our use of it is right.*
-- [ ] The licence obligations are met **by the pipeline rather than by remembering**
-      (**E13-T16**, **R21**).
+- [x] The licence obligations are met **by the pipeline rather than by remembering**
+      (**E13-T16**, **R21**). *`THIRD-PARTY-NOTICES.md`, the licence texts in `licences/`, and a
+      `spark_occt.buildkey.json` written beside the binaries recording exactly what they were built
+      from — all staged with the binaries, all asserted by `LicenceObligationTests`, including that
+      nothing turns on `PublishSingleFile` or `PublishAot`. **`Q13`'s counsel questions are not
+      settled and cannot be settled here.***
 - [x] **NFR-8 is answered rather than suppressed** (**E13-T11**). *It is the restatement rather
       than the deflection. A BRep's mesh is **geometrically closed and topologically split** —
       every kernel tessellates face by face, so a shared edge carries two copies of every vertex —

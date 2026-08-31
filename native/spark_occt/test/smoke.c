@@ -309,6 +309,28 @@ int main(void)
         spark_occt_shape_release(plate);
     }
 
+    /* A draft, on a natively built box: the walls tilt, the caps cannot and are left alone. */
+    {
+        spark_shape* drafted = NULL;
+        const double pull[3] = { 0.0, 0.0, 1.0 };
+        const double neutral_origin[3] = { 0.0, 0.0, 2.0 };
+        const double neutral_normal[3] = { 0.0, 0.0, 1.0 };
+
+        check(
+            spark_occt_draft(box, NULL, 0, pull, 0.0872665, neutral_origin, neutral_normal, &drafted)
+                == SPARK_OK,
+            "a box drafts");
+
+        if (drafted != NULL)
+        {
+            spark_occt_shape_counts(drafted, counts);
+            printf("  ..   the drafted box has %d faces\n", counts[1]);
+            check(counts[1] == 6, "drafting tilts faces rather than adding them");
+        }
+
+        spark_occt_shape_release(drafted);
+    }
+
     /* A cylinder, because it is the shape whose exactness is the whole argument: three faces. */
     {
         spark_shape* cylinder = NULL;

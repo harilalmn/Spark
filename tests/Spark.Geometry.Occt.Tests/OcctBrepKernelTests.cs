@@ -399,6 +399,53 @@ public sealed class OcctBrepKernelTests
         Assert.Equal(16.0 * 0.5, Kernel.Tessellate(solid, Fine).Value.Volume(), 1);
     }
 
+    /// <summary>
+    /// Drafting tilts the walls so a moulded part can leave its mould. A box pulled upwards and
+    /// pivoted about its base comes out bigger at the top and the same size at the bottom.
+    /// </summary>
+    [NativeFact]
+    public void DraftingTiltsTheWallsAndLeavesTheNeutralPlaneAlone()
+    {
+        Brep block = Box(0, 0, 0, 4, 4, 4);
+
+        KernelResult<Brep> drafted = Kernel.Draft(
+            block,
+            [],
+            Vector3d.ZAxis,
+            Angle.FromDegrees(5),
+            Plane.ByOriginNormal(new Point3d(0, 0, 2), Vector3d.ZAxis),
+            Fine);
+
+        Assert.True(drafted.IsSuccess, drafted.Diagnostic?.Detail);
+
+        // Six faces still: drafting tilts them, it does not add any.
+        Assert.Equal(6, drafted.Value.FaceCount);
+
+        // Tilting the four walls outwards adds material above the neutral plane and none below.
+        double volume = Kernel.Tessellate(drafted.Value, Fine).Value.Volume();
+        Assert.True(volume > 64.0, $"drafting outwards shrank it to {volume}");
+        Assert.True(volume < 90.0, $"drafting five degrees grew it to {volume}");
+
+        // And the height is untouched: drafting tilts the walls, it does not move the caps.
+        BoundingBox bounds = drafted.Value.BoundingBox;
+        Assert.Equal(0.0, bounds.Min.Z, 6);
+        Assert.Equal(4.0, bounds.Max.Z, 6);
+
+        // Narrower at the bottom than at the top, which is what a draft is.
+        Assert.True(bounds.Min.X < 0.0, $"the bottom did not move outwards: {bounds.Min.X}");
+        Assert.True(bounds.Max.X > 4.0, $"the top did not move outwards: {bounds.Max.X}");
+    }
+
+    /// <summary>A zero angle is an argument error, not a no-op that pretends to have worked.</summary>
+    [NativeFact]
+    public void AZeroDraftAngleIsRefused()
+    {
+        KernelResult<Brep> result = Kernel.Draft(
+            Box(0, 0, 0, 1, 1, 1), [], Vector3d.ZAxis, Angle.FromDegrees(0), Plane.WorldXY, Fine);
+
+        Assert.False(result.IsSuccess);
+    }
+
     [NativeFact]
     public void SewingTwoHalvesMakesOneShape()
     {

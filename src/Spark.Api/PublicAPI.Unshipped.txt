@@ -38,6 +38,7 @@ Spark.Api.IBrepKernel
 Spark.Api.IBrepKernel.Capabilities.get -> Spark.Api.BrepCapabilities
 Spark.Api.IBrepKernel.Chamfer(Spark.Geometry.Brep! solid, System.Collections.Generic.IReadOnlyList<int>! edges, double distance, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.IBrepKernel.Difference(Spark.Geometry.Brep! first, Spark.Geometry.Brep! second, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.IBrepKernel.Draft(Spark.Geometry.Brep! solid, System.Collections.Generic.IReadOnlyList<int>! faces, in Spark.Geometry.Vector3d pullDirection, Spark.Geometry.Angle angle, in Spark.Geometry.Plane neutral, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.IBrepKernel.Extrude(Spark.Geometry.Curve! profile, in Spark.Geometry.Vector3d direction, bool cap, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.IBrepKernel.Fillet(Spark.Geometry.Brep! solid, System.Collections.Generic.IReadOnlyList<int>! edges, double radius, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.IBrepKernel.Heal(Spark.Geometry.Brep! shape, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
@@ -161,6 +162,7 @@ Spark.Api.UnavailableBrepKernel
 Spark.Api.UnavailableBrepKernel.Capabilities.get -> Spark.Api.BrepCapabilities
 Spark.Api.UnavailableBrepKernel.Chamfer(Spark.Geometry.Brep! solid, System.Collections.Generic.IReadOnlyList<int>! edges, double distance, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.UnavailableBrepKernel.Difference(Spark.Geometry.Brep! first, Spark.Geometry.Brep! second, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
+Spark.Api.UnavailableBrepKernel.Draft(Spark.Geometry.Brep! solid, System.Collections.Generic.IReadOnlyList<int>! faces, in Spark.Geometry.Vector3d pullDirection, Spark.Geometry.Angle angle, in Spark.Geometry.Plane neutral, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.UnavailableBrepKernel.Extrude(Spark.Geometry.Curve! profile, in Spark.Geometry.Vector3d direction, bool cap, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.UnavailableBrepKernel.Fillet(Spark.Geometry.Brep! solid, System.Collections.Generic.IReadOnlyList<int>! edges, double radius, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
 Spark.Api.UnavailableBrepKernel.Heal(Spark.Geometry.Brep! shape, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
