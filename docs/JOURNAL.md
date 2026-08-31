@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 03:10 +0530
+**Last updated:** 2026-09-02 05:05 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | **Nothing. The tree is clean and the gates are green.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Five things from a hands-on.** `E6-T21` (every syntax colour legible - `StringInterpolation` was `#000000`, 1.26:1, so an interpolated string was invisible), `E8-T24` (the library grouped by category, as a `TreeView`), `E4-T13` (nineteen date and time nodes, with the clock ones declared `[NodeSideEffect]` or the cache serves the first answer forever), `E8-T25` (number and integer sliders dragged on the canvas) and **`E8-T5` closes** (the hybrid overlay: a real `TextBox` over the one node being typed into, which is what `Number.Value` and `String.Value` needed). **2172 tests.** |
+| **Last completed step** | **`E6-T20` - the headless hang is explained, and it is Avalonia's.** A data-bound `TextBlock` with `TextWrapping="Wrap"` inside a `Grid` hangs `Window.Show()`, reproduced in nine lines with no Spark control in them. It hangs **before** any frame, so neither capture nor a layout assertion is available for `InspectorPane`. Nothing was changed in the product - the real application lays it out correctly. `GraphCanvas` wraps no text, so `CanvasWidgetGestureTests` now presses actual buttons on the slider and the value field, and three of its six go red if the widget hit test stops running before the node's. **2178 tests.** |
 | **Working tree** | Clean at the moment this was written. The step has not started. |
-| **Next action** | **`E6-T20` - a rendering test for the properties pane, and it is now owed twice over.** Everything added today that a person can see - a type dropdown, a category tree, a slider track, an in-place field - is drawn by code no headless test in this repository can assert. [N90](NOTES.md) has the bisection: showing `InspectorPane` with a bound view model hangs the dispatcher, and it is not the session, not the window, not construction, not binding, and **not the pane's contents**. **Start with the narrower case**: capture a frame of one row `DataTemplate` in a bare `ItemsControl` with a hand-built view model, and find out whether **any** bound Spark control renders headless or only this pane fails. If the narrow case renders, bisect the pane downward; if it hangs too, the question is about the headless session itself and the answer may be that this class of test needs a real window. Then `GraphCanvas`, which has the same exposure and is now drawing four kinds of widget. Also owed: the `tessellate` verb wired into `nightly.yml` (Windows runs it, other legs pass `--no-tessellation`), and a second sighting of `UnloadingReleasesTheScriptAssemblies` failing under parallel load would make it a pattern worth fixing rather than a flake worth noting. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, `dotnet test Spark.slnx` (**2172** over **nine** projects: Geometry.Tests 763, UI.Tests 573, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 15, Packages.Tests 71, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** - [N30](NOTES.md) - **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **The Help pass, which is where the queue points once the client's list is done.** `E10-T3` (the help index), then `E11-T2`'s XML `<example>` half, then E10-T9/T10/T12/T14. **Two smaller things are owed first and both are quick.** (1) The `tessellate` verb is not wired into `.github/workflows/nightly.yml` - Windows should run it and the other legs pass `--no-tessellation`, which is the shape the canvas benchmark already uses. (2) The new nodes from `E4-T13` and `E8-T25` have XML docs but no help topic; `D19` defers topics past 1.0, so this is a queue entry rather than a gap. **And one thing to watch rather than act on:** `UnloadingReleasesTheScriptAssemblies` failed once under full-suite parallelism and passed alone; a second sighting makes it a pattern worth fixing rather than a flake worth noting. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, `dotnet test Spark.slnx` (**2178** over **nine** projects: Geometry.Tests 763, UI.Tests 573, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 15, Packages.Tests 71, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** - [N30](NOTES.md) - **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -4665,3 +4665,67 @@ so a second sighting is a pattern rather than a surprise.
 **Still owed, and unchanged by any of this:** `E6-T20`, a rendering test for the properties pane.
 Every widget added today is drawn by code no headless test in this repository can assert, for the
 reason [N90](NOTES.md) bisects.
+
+### 2026-09-02 — `E6-T20`: the hang is found, and it is Avalonia's
+
+**The owed item, taken while the client tried the five things from the hands-on.** A test that
+shows `InspectorPane` with a bound view model hangs the headless session. It killed
+`InspectorLayoutTests`, it is why [N89](NOTES.md)'s theme fix was verified by eye, and it had been
+bisected once already — down to "not the session, not the window, not construction, not binding,
+and not the pane's contents", which is a list of things it is not.
+
+**It is this**, reproduced in nine lines with no Spark control in them at all:
+
+```csharp
+TextBlock text = new() { TextWrapping = TextWrapping.Wrap };
+text.Bind(TextBlock.TextProperty, new Binding("SelectionDescription"));
+
+Grid grid = new() { RowDefinitions = new RowDefinitions("Auto,Auto") };
+grid.Children.Add(text);
+
+new Window { Content = grid, DataContext = model }.Show();   // never returns
+```
+
+The same `TextBlock` as the window's direct content renders. Without `Wrap`, the grid version
+renders. It is the combination, and it hangs in **`Show()`** — before any frame — so neither
+`CaptureRenderedFrame` nor a layout assertion is available: there is nothing to hook after `Show()`
+because `Show()` does not return.
+
+**Fourteen runs to get there, and the shape of the search is the lesson.** Each hang costs two
+minutes of wall clock and returns no message, so bisection had to be by elimination with a print
+before and after every step. Eliminated in order: the headless session itself, a plain window, the
+pane's construction, the pane shown *unbound*, attaching the data context, a `CodeBlockEditor` with
+real text in it, the port rows, the row `DataTemplate` cut to a bare `TextBlock`, a `ToolTip.Tip`
+binding, the `Border.pane` style, the grid's `*` row, and finally the pane itself — the last cut
+reproduced it with three `TextBlock`s and no Spark control at all. **The first bisection stopped
+one step too early**: "not the pane's contents" was true and was read as "not the pane", when what
+remained was the pane's *chrome*.
+
+**Nothing was changed in the product.** The real application lays these panes out correctly; this
+is a limitation of the headless platform, and changing Spark's markup to suit a test harness would
+be the tail wagging the dog.
+
+**What the finding bought, which is the point of chasing it.** `GraphCanvas` draws its own text
+with `DrawingContext` and wraps nothing, so it shows, renders and hit-tests normally — and that is
+exactly where the widgets added yesterday live. `CanvasWidgetGestureTests` now presses actual
+buttons: dragging the slider track moves the value, dragging past the end clamps, dragging the
+track does **not** move the node, and clicking a value field asks for an editor at a real
+rectangle. **Three of the six go red when the widget hit test is made to run after the node's** —
+which is the regression that would otherwise be reported as "I can't set the slider, it just moves
+the node".
+
+**And a smaller finding that had wasted a cycle:** `CaptureRenderedFrame` returns **null** in this
+backend even when it has plainly rendered — the hit-testing tests depend on it having rendered and
+get that. A frame can be *driven* but not *inspected*, so asserting on the returned bitmap is
+asserting on null. The test that tried to says so in its own remarks rather than quietly asserting
+less than it claims.
+
+**What is still not covered, now with a named cause.** `InspectorPane` cannot be shown headlessly,
+so the type dropdown and the port rows stay verified by eye. That is a stated limitation with a
+reproduction and an upstream owner, which is a different thing from the gap it was yesterday.
+
+**Verified.** `dotnet test Spark.slnx` **2178 passed / 0 failed**; `dotnet format` clean; every
+changed project clean under `--no-incremental -warnaserror`. **The solution-wide clean build was
+blocked by the running Spark instance holding `Spark.Desktop.exe`** — the client was using it — so
+the six changed projects were rebuilt individually instead, and `Spark.Desktop` was not touched by
+this step.

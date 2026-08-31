@@ -2452,47 +2452,54 @@ headless dispatcher and was deleted rather than left in the suite, which fails A
 
 ---
 
-## N90 — `InspectorPane` cannot be rendered in the headless session, and it is not the pane's data
+## N90 — A wrapped, data-bound `TextBlock` inside a `Grid` hangs Avalonia's headless `Window.Show()`
 
-A test that shows `InspectorPane` with a `MainWindowViewModel` as its data context **hangs the
-headless dispatcher**. It does not fail, it does not time out with a message: the run sits there
-until the harness kills it. This killed `InspectorLayoutTests`, which was deleted rather than left
-in the suite, and it is why the `App.axaml` fix in [N89](#n89) is verified by a person's eyes and
-nothing else.
+**The symptom.** A test that shows `InspectorPane` with a `MainWindowViewModel` as its data context
+hangs. It does not fail and it does not time out with a message: the run sits there until the
+harness kills it. This killed `InspectorLayoutTests`, which was deleted rather than left in the
+suite, and it is why the `App.axaml` fix in [N89](#n89) was verified by a person's eyes and nothing
+else.
 
-**It has now been bisected, which the first attempt never did.** In one run, in order, on the
-session's UI thread:
+**The cause, bisected.** Not the session, the window, the pane's construction, the data context,
+the code editor, the port rows, the row `DataTemplate`, a `ToolTip.Tip`, the `Border.pane` style,
+or the grid's `*` row — every one of those was eliminated by rendering it on its own. What
+reproduces it, outside `InspectorPane` entirely, is this:
 
-| Step | Result |
-|---|---|
-| A `Window` holding a plain `ComboBox`, shown and captured | **ok** |
-| Constructing `InspectorPane` | **ok** |
-| Showing it in a `Window` with **no** data context, and capturing | **ok** |
-| Attaching the `MainWindowViewModel` | **ok** |
-| Capturing a frame with the data context attached | **hangs** |
+```csharp
+TextBlock text = new() { TextWrapping = TextWrapping.Wrap };
+text.Bind(TextBlock.TextProperty, new Binding("SelectionDescription"));
 
-So it is neither the session, nor the window, nor the pane's construction, nor binding — it is
-rendering a bound pane. And it is **not** the pane's contents: the hang survives hiding the code
-editor (`ShowCodeBlock(null)`) *and* emptying the port list (`Inspector.Clear()`), so it happens
-with a pane that has almost nothing left to draw.
+Grid grid = new() { RowDefinitions = new RowDefinitions("Auto,Auto") };
+grid.Children.Add(text);
 
-**The view model must be built outside `HeadlessSession.Run`.** That much is [N71](#n71) and it is
-real — building it inside deadlocks before any of the above is reached. Doing so is necessary and
-not sufficient; the hang above is with the model already built.
+new Window { Content = grid, DataContext = model }.Show();   // never returns
+```
 
-**What this costs, stated plainly.** Every defect in the properties pane this session — the
-invisible editor, the four controls sharing a grid row — is a rendering defect, and rendering is
-exactly what cannot be asserted here. The view-model tests pass either way; that is the whole
-lesson of [N88](#n88) and [N89](#n89) and it applies to this pane with no way round it yet.
+The same `TextBlock` as the window's **direct content** renders and captures normally. Without
+`TextWrapping.Wrap`, the grid version renders normally. It is the combination, and it hangs in
+`Show()` — before any frame is captured — so **neither `CaptureRenderedFrame` nor a layout
+assertion is available**: there is nothing to hook after `Show()` because `Show()` does not return.
 
-**Not chased further, on purpose.** The interactive application renders the pane correctly, so
-this is a test-harness problem rather than a product one, and it was found while shipping
-something else. It is a row in [TODO.md](TODO.md) rather than a note that pretends to be finished.
-The next thing to try is a captured frame of a *narrower* control — the row `DataTemplate` alone,
-hosted in a bare `ItemsControl` — to find out whether any bound Spark control renders here or only
-this pane does.
+**It is a headless-platform limitation, not a Spark defect.** The real application lays these panes
+out correctly; every pane in Spark is on screen and readable. Nothing was changed in the product
+for this.
 
----
+**What it costs, stated plainly.** Every properties-pane defect found by a person in this session
+was a *rendering* defect — an editor with no theme drawing nothing, four controls sharing one grid
+row — and `InspectorPane` wraps text in a grid in four places, so it cannot be shown headlessly at
+all. That whole surface is verified by eye.
+
+**What it does not cost.** `GraphCanvas` draws its own text with `DrawingContext` and wraps
+nothing, so it shows, renders and hit-tests normally — which is where
+`CanvasWidgetGestureTests` lives and why the on-canvas slider and value field *are* covered by
+tests that press buttons. A bound `ItemsControl`, `TextBox`, `ComboBox` and the `CodeBlockEditor`
+were each shown headlessly during the bisection, so the limitation is narrow and the technique is
+available to any control that does not wrap text inside a grid.
+
+**One more finding, recorded because it wasted a cycle.** `CaptureRenderedFrame` returns **null**
+in this backend even when it has plainly rendered — the hit-testing tests depend on it having
+rendered and get that. So a frame can be *driven* but not *inspected*: asserting on the returned
+bitmap is asserting on null.
 
 ## N91 — Recolouring a syntax theme must sweep every named colour, not the ones you listed
 
