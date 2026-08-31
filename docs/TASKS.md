@@ -7,7 +7,7 @@ order for what to do next is in [TODO.md](TODO.md); the requirements behind them
 **Last updated:** 2026-08-31 (D19 — the Help pass moves after 1.0; E10 recounted against the tree)
 **Legend:** `Done` · `In progress` · `Open` · `Blocked` · `Withdrawn`
 
-**Summary:** 133 done · 17 in progress · 108 open · 9 withdrawn — **267 rows**
+**Summary:** 134 done · 17 in progress · 107 open · 9 withdrawn — **267 rows**
 *(the previous revision's open count was 147 by arithmetic and 148 by the register; the register was right, and the four columns now add up to the total again.)*
 
 **This revision opens the marathon run to 1.0** — a resumable sequence of small verified steps, with
@@ -426,7 +426,7 @@ Everything else in this file is a plan, not a claim.
 | E9-T2 | Scene, camera and navigation | Done | **Built in `85e3183`/`35107f0`.** |
 | E9-T3 | `RenderPackage` | Done | **Built in `85e3183`/`35107f0`.** Immutable: `{ NodeId, PortIndex, ElementPath, Positions, Normals, Indices, EdgeIndices, Appearance }` |
 | E9-T4 | OpenGL 3.3 core backend on Avalonia's `OpenGlControlBase` | Done | **Built in `85e3183`, with a finding that changes how every shader here is written.** Avalonia on Windows defaults to **ANGLE**, so the surface is OpenGL ES 3.0 over Direct3D 11, never desktop GL 3.3. The first run failed on a missing precision qualifier; shaders are now dialect-adaptive and a test asserts the precision statement precedes any declaration in every dialect - a defect that passes on a Linux desktop-GL machine and fails on the platform we ship to. Chosen over Silk.NET (adds a dependency without solving surface interop) and Veldrid (effectively unmaintained since around 2023 — a poor bet on a multi-year horizon) |
-| E9-T5 | Software renderer | Open | Earns its place three ways: GL-init failures on VMs and RDP, headless thumbnails, and **deterministic `spark render` for CI visual regression**. GPU output is not testable; software output is |
+| E9-T5 | Software renderer | Done | **Built 2026-08-31.** `Spark.Viewport/Software/SoftwareViewportRenderer.cs` and `SoftwareFramebuffer.cs`: a CPU rasteriser with a depth buffer, near-plane polygon clipping, **perspective-correct** attribute interpolation, and the GL path's draw order, two-sided lighting model, camera-relative key light, selection tint and `0.0006` edge depth bias all reproduced deliberately. Three divergences are documented on the type and all three are in the direction of reproducibility: an integer-hash dither rather than `fract(sin(...))`, a DDA line walk rather than GL's diamond-exit rule, and no multisampling. **13 tests read pixels back**, including that the same scene renders byte-identically across two independently constructed renderers — the property `E9-T12` is built on. Found [N63](NOTES.md) |
 | E9-T6 | One GPU buffer set per `(NodeId, PortIndex)` | Done | **Built in `85e3183`/`35107f0`.** So re-evaluating one node re-uploads one buffer |
 | E9-T7 | Parallel tessellation, streamed during a run | Open | |
 | E9-T8 | Picking through the kernel's BVH ray caster | Open | [E2-T15](#e2--geometry-kernel) serves this and mesh booleans from the same code |

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-08-31 08:32 +0530
+**Last updated:** 2026-08-31 09:55 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4 and M6 are done. M5 is substantially done** — the software renderer and CI visual regression (`E9-T5`, `E9-T11`, `E9-T12`) are **deferred past M6** deliberately and are now the largest thing it still owes. **M6 delivers its headline sentence in full** — solids that can be combined, filleted, shelled, trimmed and exported to STEP — and every `E13` row that is engineering is `Done`. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **D19: 1.0 first, then the Help** — the client's sequencing decision recorded in `PRD.md` §13, with the `AGENTS.md` standing instruction it contradicts **amended and dated rather than quietly rewritten**. Documents only, no code. It also corrected a defect: *Next action* had named **`E11-T16`** for the software renderer, which is actually **`E9-T5`**. |
+| **Last completed step** | **`E9-T5` — the software rasteriser.** A CPU renderer behind `IViewportRenderer` that reproduces the GL path's draw order and lighting, with perspective-correct interpolation and a real depth buffer. 13 pixel-reading tests; `Viewport.Tests` 74 → 87. Found [N63](NOTES.md): a freshly allocated depth buffer is zeroes, and zero is the **nearest** depth, so an uncleared buffer renders an empty frame that looks exactly like an empty scene. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **Take `E9-T5` — the software renderer**, then `E9-T11` (headless thumbnails) and `E9-T12` (CI visual regression). All three are `Open` in `TASKS.md` under `E9`; the seam they plug into, `IViewportRenderer`, already exists and its XML docs already describe the software backend's three jobs. **Do not look for `E11-T16` — that is the benchmark suite**, and the mistake is recorded in the log entry for this step. After `E9`, **M7**, then **M8 and 1.0**. **The end-user Help is post-1.0 by D19** and its plan is [TODO.md](TODO.md#after-10--the-help-pass) — its harness rows come first. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**: each is `In progress` for a stated reason that is not a missing commit, and all three are in *Blocked on*. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1769**: Geometry.Tests 763, UI.Tests 439, Engine.Tests 367, Viewport.Tests 74, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E9-T11` — the headless thumbnail entry point, and the `ViewportControl` fallback.** The rasteriser exists and is tested but **nothing uses it**: `ViewportControl` still shows a status message when `OnOpenGlInit` fails instead of falling back to software, and there is no way to render a frame without a window. Both are `E9-T5`'s stated justifications. Then **`E9-T12`** — the CI visual regression, which is what the byte-identical determinism test was built for. Then **M7**. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**: each is `In progress` for a stated reason that is not a missing commit, and all three are in *Blocked on*. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**1782**: Geometry.Tests 763, UI.Tests 439, Engine.Tests 367, Viewport.Tests 87, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Four things need a human and no amount of further work substitutes.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with. **(4)** Opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance. *And still: watching the first nightly benchmark run.* |
 
 **Step status vocabulary**, and it means exactly this:
@@ -2866,3 +2866,54 @@ link-resolution and `Last updated` checks are the only thing standing behind fiv
 documents — still 5/5.
 
 **Cost.** One step, documents only. **What it did not do:** touch `E9-T5`. That is the next step.
+
+### 2026-08-31 — `E9-T5`: the software rasteriser, and a depth buffer that was never cleared
+
+**What.** `src/Spark.Viewport/Software/SoftwareViewportRenderer.cs` and `SoftwareFramebuffer.cs`,
+plus `tests/Spark.Viewport.Tests/SoftwareRendererTests.cs`. A CPU rasteriser behind
+`IViewportRenderer`: near-plane polygon clipping, a depth buffer, perspective-correct
+interpolation, DDA lines with Liang–Barsky viewport clipping, and the GL path's draw order,
+lighting model, key-light derivation, selection tint and `0.0006` edge depth bias reproduced term
+for term.
+
+**Why it is a match rather than an approximation.** A fallback that draws a recognisably
+different picture is a fallback nobody trusts, and — more to the point — `E9-T12` is going to diff
+its output against a golden image. Three divergences are deliberate and documented on the type,
+all three in the direction of reproducibility rather than fidelity: an **integer-hash dither**
+instead of the shader's `fract(sin(...))`, because the sine of a large argument is exactly where
+two conforming IEEE 754 implementations may still disagree and this backend exists to produce the
+same bytes everywhere; a **DDA line walk** rather than GL's diamond-exit rule; and **no
+multisampling**. None affects a software-against-software comparison, which is the only comparison
+that will ever be made.
+
+**The defect, and it is [N63](NOTES.md).** A freshly allocated depth buffer is all zeroes, and
+**zero is the nearest representable depth, not the furthest** — so a buffer that has not been
+cleared rejects every fragment and renders a perfect background with no geometry on it. That is
+indistinguishable from an empty scene, from a camera pointing the wrong way, and from a
+tessellator that produced nothing. It survived every test except the one that renders *without*
+calling `Render` first, because every other test clears depth as its first act.
+**Regression-proven the way this project requires:** reverting the two-line fix turns
+`AnUninitialisedRendererDrawsNothingAndDoesNotThrow` red, and it was red before the fix went in.
+
+**A claim removed rather than left standing.** The first draft of the lighting method's doc
+comment said `SoftwareRendererTests` asserts the software and GL shading agree. **It does not, and
+it cannot** — comparing them needs a GPU, which is the thing this backend exists to do without.
+The comment now says so, and two tests hold what actually can be held: every shaded pixel lies
+between the ambient floor and the fully-lit ceiling computed from the shader's own coefficients,
+and a face turned towards the key light is brighter than the same face turned away. The second
+test was checked by hand against the derived light vector before it was trusted — the two cases
+give Lambert terms of 0.909 and 0.285, so it is not a test that cannot fail.
+
+**Also recorded in N63, because it is a trap:** `System.Numerics`'s perspective matrix is
+right-handed with a **Direct3D depth range**, so NDC z runs 0..1, not −1..1. The GL backend has
+always fed that matrix to GL and therefore uses only half its depth buffer. The rasteriser matches
+the convention deliberately instead of correcting it, because two backends disagreeing about what
+a depth means would make every cross-check meaningless.
+
+**Verified.** `Spark.Viewport.Tests` 74 → **87**, all passing. Full build clean at 0 warnings.
+Every assertion in the new file reads pixels or depths back; a renderer that initialises and draws
+nothing would fail eleven of the thirteen.
+
+**Cost.** One step. **What it does not yet do:** it is not wired into `ViewportControl` as the
+actual GL-failure fallback, there is no thumbnail entry point, and there is no CI job. Those are
+`E9-T5`'s three justifications and they are the next two steps.

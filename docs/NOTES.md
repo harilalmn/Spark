@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-08-31 (N49-N62 added)
+**Last updated:** 2026-08-31 (N63 added)
 
 ---
 
@@ -1755,3 +1755,33 @@ distance.
 paths and one path reads a subset of it, the subset is invisible: nothing fails, and the missing
 information is quietly replaced by a worse answer. The tell here was `ModelWriter.Approximated`
 being true for shapes that had no business being approximate.
+
+## N63 — A cleared depth buffer is not a zeroed one, and the difference renders an empty frame
+
+`SoftwareFramebuffer` allocates `new float[Width * Height]` for depth. A fresh float array is all
+zeroes, and in this projection's convention **zero is the nearest representable depth, not the
+furthest**. A buffer that has never been cleared therefore rejects every fragment offered to it,
+and what reaches the screen is a correctly drawn background with no geometry on it — which is
+indistinguishable from a scene that is genuinely empty, from a camera pointing the wrong way, and
+from a tessellator that produced nothing.
+
+It was caught by the one test that renders **without** calling `Render` first —
+`AnUninitialisedRendererDrawsNothingAndDoesNotThrow` — because every other test clears depth as
+its first act and so could never have seen it. The fix is one line in the constructor and one in
+`Resize`: clear on allocation, so the invariant holds from the first instant rather than from the
+first frame.
+
+**The general shape, which is worth more than the bug.** A default value that is *valid but
+extreme* is more dangerous than one that is invalid. `0.0` is a perfectly legal depth; nothing
+throws, nothing warns, and the failure presents as an absence. Had the sentinel been `NaN` the
+first comparison would have behaved visibly oddly instead.
+
+**Also recorded here because it will be rediscovered otherwise:**
+`System.Numerics.Matrix4x4.CreatePerspectiveFieldOfView` is **right-handed with a Direct3D depth
+range**, so normalised device z runs **0..1**, not the −1..1 an OpenGL reflex expects. Spark's
+camera has always produced that matrix and the GL backend has always fed it to GL, which maps
+`[-1, 1]` into the depth range by default — so the GL path uses only the far half of its depth
+buffer and has done since it was written. It is correct, it is consistent, and it costs one bit of
+depth precision. The software rasteriser matches the convention deliberately rather than
+"fixing" it, because a backend that disagreed with the other about what a depth means would make
+every cross-check meaningless.
