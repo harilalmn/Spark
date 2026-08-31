@@ -6,9 +6,15 @@ related: [concepts.lacing]
 since: "0.1"
 ---
 
-**Status:** Specification. Written before any UI code exists, and the UI is written to match it.
+**Status:** Current, and **partly executed**. Written before any UI code existed; the shell, the
+canvas and the viewport now exist and follow it. The contrast arithmetic on this page is asserted
+against the real palette by `PaletteContrastTests` — thirty assertions across twelve tests,
+including that no state is carried by colour alone. **The colour tables are not asserted in full**:
+the named tokens are real, but several values below are worked examples, rejected candidates or
+derived ladder steps, and no test tells those apart from tokens. If you change a colour here,
+change it in `SparkPalette` and `NodeCategory` too.
 **Owner:** `spark-ui`
-**Last updated:** 2026-08-28
+**Last updated:** 2026-09-01
 
 > This topic is both an end-user reference — *why does Spark look like this?* — and the
 > executable specification for the shell, the node canvas renderer and the viewport. Every

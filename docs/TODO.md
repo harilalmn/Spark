@@ -163,10 +163,16 @@ CAD licence, which was wrong.
 descoped. This section exists so that *later* does not quietly become *never*, which is the only
 failure mode a sequencing decision has.
 
-**What exists today:** nine concept topics under `docs/help/concepts/` (3,755 lines), three
-worked example graphs in `docs/examples/`, and XML doc comments on `Spark.Geometry`'s 387 public
-members. Two of the nine topics are `Specification` rather than `Current` — they were written
-ahead of their code, which is the pattern D19 is betting against.
+**What exists today, updated 2026-09-01 when the pass began:** **eleven** concept topics under
+`docs/help/concepts/` (4,000+ lines), **115 node pages and 18 diagnostic pages generated from the
+live library**, an in-product renderer with context-sensitive F1 and search, worked example graphs
+in `docs/examples/`, and XML doc comments on `Spark.Geometry`'s 387 public members. **Much of what
+this section said 1.0 would ship without has since been built** — `E10-T5`, `E10-T7`,
+`E10-T11`, `E10-T13` and the whole `E11` harness are `Done`.
+
+**The two `Specification` topics were the debt D19 predicted**, and both said something false: they
+claimed to predate an engine and a UI that had existed for months. Reconciled 2026-09-01 by reading
+each against its code rather than by editing a line — see [N84](NOTES.md).
 
 **What 1.0 therefore ships without, stated plainly so nobody is surprised at release:** a
 reference for **108 nodes** (one topic names ten of them; the rest name none), the generated API
@@ -189,9 +195,10 @@ Deferring guarantees the Help is written **in bulk**, and a bulk write with noth
 
 Only then the writing:
 
-- [ ] **`E10-T3`, `E10-T6`** — the help index, and the front-matter schema the topics already
-      follow informally.
-- [ ] **`E10-T4`** — the topic authoring guide.
+- [x] **`E10-T6`** — the front-matter schema the topics already followed informally, now
+      written down and enforced by `HelpTopicSchemaTests`. **`E10-T3`**, the help index, is what
+      remains of that pair.
+- [x] **`E10-T4`** — the topic authoring guide. **Done 2026-09-01**: [docs/HELP-AUTHORING.md](HELP-AUTHORING.md).
 - [ ] **`E10-T9`, `E10-T10`** — XML doc comments across `Spark.Api` and `Spark.Nodes.Core`. These
       become runtime node tooltips as well as documentation, so they are worth more than their row
       count suggests.

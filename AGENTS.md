@@ -35,7 +35,10 @@ end-user Help — a topic per node family, the generated API reference, the in-p
 a topic per `SPK####` code — is written in one pass **after** 1.0 rather than step by step before
 it. **What is not suspended, and is what this rule means per step until then:** XML doc comments
 on the contract projects, and the project documents — PRD, EPICS, TASKS, TODO, NOTES, the ADRs
-and the journal. Those are mechanisms 1 and 2 below and both still fail a build. The blockquote
+and the journal. Those are mechanisms 1 and 2 below and both still fail a build. **When the pass
+begins, [docs/HELP-AUTHORING.md](docs/HELP-AUTHORING.md) is the guide** — the front-matter
+schema, what a topic owes its reader, and what is generated rather than written by hand. The
+blockquote
 is left exactly as written, because it is what the rule returns to the day 1.0 ships, and a rule
 that is edited rather than dated loses the fact that it was ever different.
 

@@ -364,10 +364,10 @@ to it on its own** when no OpenGL context arrives; the switch exists so the fall
 reached deliberately, which is what a support conversation needs and what lets the path be
 photographed and checked rather than trusted.
 
-The suite is **2,046 tests** across nine projects. `Spark.Geometry.Tests` (763) and
+The suite is **2,060 tests** across nine projects. `Spark.Geometry.Tests` (763) and
 `Spark.Geometry.Properties` (43) cover the kernel by example and by CsCheck property
 respectively; `Spark.Engine.Tests` (432) covers the graph, the replicator and the importer;
-`Spark.UI.Tests` (546) drives the canvas headlessly with real pointer gestures;
+`Spark.UI.Tests` (560) drives the canvas headlessly with real pointer gestures;
 `Spark.Viewport.Tests` (108) covers the scene, the camera and the software rasteriser;
 `Spark.Geometry.Occt.Tests` (63) drives the OpenCascade provider and **skips itself** when the
 native shim is absent; `Spark.Packages.Tests` (71) installs real packages from real feeds;
@@ -470,7 +470,8 @@ tested, not yet run inside a CAD application**, and the proof is deferred past 1
 | [AGENTS.md](AGENTS.md) | The working agreement. Read before committing |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | MIT, DCO sign-off, how to build, what a PR needs |
 | [docs/adr/](docs/adr/README.md) | Twenty-one architecture decision records: what was decided, what was rejected, and what it costs |
-| [docs/help/concepts/lacing.md](docs/help/concepts/lacing.md) | How lists, ranks and lacing work — **written before the engine, and the engine will be written to match it** |
+| [docs/HELP-AUTHORING.md](docs/HELP-AUTHORING.md) | How to write a help topic: the front-matter schema, what a topic owes its reader, and what is generated rather than written |
+| [docs/help/concepts/lacing.md](docs/help/concepts/lacing.md) | How lists, ranks and lacing work — written before the engine as a specification, and **its 90-row case table is now run as tests on every build** |
 | [docs/help/concepts/geometry-basics.md](docs/help/concepts/geometry-basics.md) | Points, vectors, planes, right-handedness, unitless coordinates, `Angle`, and tolerance — aimed at a designer, with every example run against the assembly |
 | [docs/help/concepts/design-language.md](docs/help/concepts/design-language.md) | Spark's visual design language — **written before any UI code exists, and the UI is written to match it** |
 

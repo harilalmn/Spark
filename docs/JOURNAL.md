@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 13:55 +0530
+**Last updated:** 2026-09-01 15:05 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E12-T8` — three words, three answers.** Self-contained and single-file stay refused on the relink obligation. **ReadyToRun was refused on a measurement instead**: +43.3 MB on the CLI and +60.5 MB on the desktop for **52 ms against 51 ms** and **2,032 ms against 2,035 ms**. Nothing, twice. `D21` records what the harness could not see, and notes that R2R is the reversible one. A row reading *blocked on counsel* when a third of it was blocked on nobody is now three answers. |
+| **Last completed step** | **The Help pass begins — two topics that claimed to predate their own code.** `lacing.md` and `design-language.md` both said *written before the engine/UI exists* about things that had existed for months. Retired by **re-reading each against its code** ([N84](NOTES.md)): lacing is fully executed, 90 cases run two ways; design-language is only partly, and now says so. `E10-T6`'s schema written down and enforced — the `related:` check was clean **by luck**. `E10-T4`'s guide written, and [N85](NOTES.md): the harness stopped it being filed as a topic. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E12` is done bar the errands, so the next thing is the Help pass** — `docs/TODO.md#after-10--the-help-pass`, deferred there by `D19`. **Read `D19` before starting it**, because it names the trap: deferring made a **bulk write** certain, and a bulk write is exactly what `DocGenerator` was when it drifted. **The harness `D19` demanded already exists** — `E11-T2` compiles every fence, `E11-T3` executes every example graph, `E11-T4` and `E11-T5` check coverage both ways, `E11-T6` checks every `SPK` code has a topic — so the bulk write can begin. What exists today: **11 concept topics**, 115 node pages and 18 diagnostic pages generated from the live library, F1 context-sensitive, all searchable. What `D19` promised and has not delivered is the completeness pass over the concept topics. **What still needs a person and cannot be closed here:** `E12-T9`'s signing identity, `E13-T12`'s third-party viewer, and `Q13`'s counsel questions. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**2046** over **nine** projects: Geometry.Tests 763, UI.Tests 546, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 71**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
+| **Next action** | **`E10-T3`, the help index, then `E11-T2`'s remaining half.** `E10-T3` is the last structural row: a topic that introduces the others, so a reader who opens Help without a node selected lands somewhere that orients them rather than on an alphabetical list. The window already orders concepts before the node index, so what is missing is the page, not the plumbing. Then **`E11-T2`'s XML `<example>` half**: every ` ```csharp ` fence in the help already compiles, but `<example>` blocks in XML doc comments do not, and those are what the generated node pages show — a sample that does not compile is worse on a generated page than in a topic, because nobody proof-reads a generated page. After that the remaining Help rows are **`E10-T9`/`E10-T10`** (the quality of XML docs across `Spark.Api` and `Spark.Nodes.Core` — note CS1591 already forces them to *exist*, so this is about whether they are any good), **`E10-T12`** changelog fragments, and **`E10-T14`** the website, which waits on [Q8](PRD.md#14-open-questions). **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**2060** over **nine** projects: Geometry.Tests 763, UI.Tests 560, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 71**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -4319,3 +4319,59 @@ measurement cost less than the conversation about it would have.
 **Verified.** No product code changed. `publish.ps1` gained a paragraph saying why R2R is off, next
 to the switches that turn the other two off, because the reasoning belongs where somebody would
 otherwise turn it on. Build clean, `dotnet format` clean, suite unchanged at **2,046**.
+
+### 2026-09-01 @ The Help pass begins: two topics that claimed to predate their own code
+
+**What.** `E10-T6` and `E10-T4`, fourteen schema tests, `docs/HELP-AUTHORING.md`, and two status
+lines reconciled against the code rather than edited.
+
+**Surveying first changed what the pass is.** `docs/TODO.md` described the Help as nine topics with
+no node reference, no in-product renderer and *F1 does nothing*. That was true when `D19` was taken
+and is not true now: **eleven** concept topics, **115 node pages and 18 diagnostic pages generated
+from the live library**, a renderer with context-sensitive F1 and search, and the entire `E11`
+harness `Done`. The section has been brought level with the repository, because a plan describing a
+state that ended a week ago sends the next reader to build things that exist.
+
+**What had genuinely rotted is exactly what `D19` predicted would.** Two topics carried
+`Status: Specification` — *written before the engine exists*, *written before any UI code
+exists*. The engine has existed since M2 and the UI since M3. **Both sentences were false, in the
+two topics a reader is most likely to treat as authoritative.**
+
+**Retiring `Specification` means re-reading the page, not editing the line** [N84](NOTES.md), and
+the answer was different for each:
+
+- **`lacing.md` is fully executed.** Its 90-row case table is run twice over on every build —
+  once against the values it specifies, once to check every diagnostic it raises carries a help
+  topic. 2 x 90 + 1 is the 181 tests that class reports, which is how the 90 was confirmed rather
+  than assumed. Its claim that *if the table and the implementation disagree, the table is right*
+  is enforced, and the status now says so.
+- **`design-language.md` is only partly executed**, and saying so was the honest outcome.
+  `PaletteContrastTests` asserts the contrast arithmetic; **the colour tables are not asserted in
+  full**. A naive check comparing every hex in the topic against the palette reports 25 unmatched,
+  and inspecting five of them showed most are worked examples, rejected candidates or derived
+  ladder steps rather than tokens. **A test that cannot tell those apart would cry wolf**, so none
+  was written, and the topic now states which half is enforced instead of implying both are.
+
+**`E10-T6`: the schema was already unanimous, which is the argument for writing it down.** All
+eleven topics agreed on `id, title, nodes, related, since` and nothing checked it. **The
+`related:` check is the one that earns its place** — every entry named a real topic on the day
+it was written, and did so **by luck**. Proven to bite by pointing one at a topic that does not
+exist, and it named the file and the id.
+
+**`examples[]` was in the row and is deliberately not adopted.** The harness already requires a
+worked example in the body; a second, unenforced list of them would drift from the thing it
+duplicates.
+
+**[N85](NOTES.md): the docs harness stopped the guide being filed as a help topic.** It was first
+written to `docs/help/AUTHORING.md` and `Spark.Docs.Verify` failed at once — *no YAML front
+matter*. The check was right and the file was wrong: everything under `docs/help/` is end-user help,
+listed by the help window and checked as a topic, and a contributor guide is none of those things.
+**The tempting fix, narrowing the harness to `concepts/`, would have traded a real invariant for one
+file's convenience.** The guide moved, and says so in its own first paragraph.
+
+**One more stale sentence found while linking it**: the README still described `lacing.md` as
+*written before the engine, and the engine will be written to match it*. Same debt, different
+document.
+
+**Verified.** Build clean at 0 warnings. `UI.Tests` 546 -> 560. Suite **2,060** over nine projects,
+0 failed, 0 skipped. `dotnet format` clean.

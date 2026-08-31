@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N63-N83 added)
+**Last updated:** 2026-09-01 (N63-N85 added)
 
 ---
 
@@ -2248,3 +2248,45 @@ the action.
 **What this pass cannot claim.** No screen reader was run; none is available here. What is asserted
 is that a name exists and is not the label repeated. Whether it reads well aloud is a judgement a
 person makes with a screen reader running, and nobody has made it.
+
+## N84 — A status line that nobody re-reads becomes decoration
+
+Two help topics carried **`Status: Specification. Written before the engine exists`** and
+**`written before any UI code exists`**. The engine has existed since M2 and the UI since M3. Both
+sentences were false, in the two topics a reader is most likely to treat as authoritative, and
+[D19](PRD.md#13-decision-log) predicted exactly this when it deferred the Help pass.
+
+**The fix is not editing the line.** `Specification` means *this page came first and the code is
+written to match it*, so retiring it means **re-reading the page against the code**, and the answer
+was different for each:
+
+- **`lacing.md` is fully executed.** Its 90-row case table is `LacingCaseTable`, run twice over by
+  `LacingCaseTests` — once against the values it specifies and once to check every diagnostic it
+  raises carries a help topic. 2 x 90 + 1 = the 181 tests that class reports. The topic's own claim
+  that *if the table and the implementation disagree, the table is right* is enforced.
+- **`design-language.md` is only partly executed**, and saying so was the honest outcome.
+  `PaletteContrastTests` asserts the contrast arithmetic — thirty assertions across twelve tests.
+  The **colour tables are not asserted in full**, and a naive check comparing every `#RRGGBB` in the
+  topic against the palette reports 25 unmatched values, of which most are worked examples, rejected
+  candidates or derived ladder steps rather than tokens. **A test that cannot tell those apart would
+  cry wolf**, so none was written and the topic now says which half is enforced.
+
+**The general shape**: a document that claims to lead the code has a debt attached, and the debt is
+only visible in a line nobody re-reads. `HelpTopicSchemaTests` now at least requires the status to
+be one of the two words, so a third state cannot appear quietly; it cannot tell you the word is out
+of date, and the note says so.
+
+## N85 — The docs harness stopped a guide from being filed as a help topic
+
+`docs/HELP-AUTHORING.md` was first written to `docs/help/AUTHORING.md`, which seemed the obvious
+place for a guide about writing help. `Spark.Docs.Verify` failed immediately:
+*docs/help/AUTHORING.md: no YAML front matter.*
+
+The check was right and the file was in the wrong place. **Everything under `docs/help/` is
+end-user help**: the help window lists all of it, `HelpTopicSchemaTests` checks it as a topic, and
+`NodeTopicCoverageTests` checks its node coverage. A contributor guide is none of those things, and
+the two ways to make the build pass were to move the file or to weaken the check.
+
+Moving it was right, and the guide now says so in its own first paragraph so the next person does
+not repeat it. **The tempting fix — narrowing the harness to `docs/help/concepts/` — would have
+traded a real invariant for one file's convenience.**

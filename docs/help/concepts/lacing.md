@@ -6,10 +6,12 @@ related: [concepts.lists, concepts.evaluation]
 since: "0.1"
 ---
 
-**Status:** Specification. Written before the engine exists, and the engine is written to
-match it.
+**Status:** Current, and **executed**. Written before the engine as a specification; the engine
+now exists and matches it. The **90-row case table** in [section 6](#6-the-case-table) is run twice
+over on every build: once against the values it specifies, and once to check that every diagnostic
+it raises carries a help topic.
 **Owner:** `graph-engine`
-**Last updated:** 2026-08-27
+**Last updated:** 2026-09-01
 
 > This topic is both an end-user help page and the executable specification for Spark's
 > replication engine. The [case table](#the-case-table) at the end is consumed directly as
