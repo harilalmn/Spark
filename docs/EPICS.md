@@ -1236,7 +1236,12 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
       installer, and a portable zip (**E12-T8**, **E12-T9**, **E12-T10**).
 - [ ] The release workflow refuses to publish when the computed version and the tag disagree
       (**E12-T11**).
-- [ ] A performance pass and an accessibility pass before 1.0 (**E12-T12**, **E12-T13**).
+- [x] A performance pass before 1.0 (**E12-T12**). *Done 2026-09-01, and most of it was already
+      done — evaluation, marshalling, the scene index and the canvas frame were budgeted and
+      checked nightly. Measured: render pass 1.2-1.4 ms median at 2 000 nodes against a 16.7 ms
+      ceiling. Two findings: the benchmark's wall-clock number reads as the claim being missed and
+      is not, and its floor does not scale with node count; and startup was measured by nothing.*
+- [ ] An accessibility pass before 1.0 (**E12-T13**).
 - [ ] ~~Exact NURBS booleans, and fillet and chamfer on solids, are stated publicly as **out
       of scope for 1.0**~~ — **withdrawn** (**E12-T15**). They are *in* 1.0 under
       [ADR-0020](adr/0020-occt-via-c-abi-shim.md), so the sentence this criterion existed to

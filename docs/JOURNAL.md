@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 10:55 +0530
+**Last updated:** 2026-09-01 12:10 +0530
 **Protocol version:** 2
 
 ---
@@ -19,9 +19,9 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. Between steps |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`D20` — Spark ships standalone, and the CAD proof defers.** The client asked why a Revit licence bore on a standalone application; it does not, and the register already said so. The embedding **mechanism** ships and is tested; the **demonstration inside a commercial product** defers past 1.0 with `E12-T2`. The cost is recorded: a seam tested against a fake host, never against Revit's external events. The README now says *designed to be embedded, seam tested, not yet run inside a CAD application*. |
+| **Last completed step** | **`E12-T12` — a performance pass that mostly found the work already done.** The canvas holds **1.2-1.4 ms median at 2 000 nodes** against a 16.7 ms ceiling. [N81](NOTES.md): the benchmark's *other* number reads as the claim being missed and is not — its floor is ~27 ms and **does not scale with node count**, so the output now says which number is judged. [N82](NOTES.md): startup was measured by nothing; **48 ms** CLI, **3.0 s** desktop to a rendered shell. The budget was not touched. |
 | **Working tree** | Clean at the time of writing; verify with `git status` |
-| **Next action** | **`E12-T12`, the performance pass.** It is a *pass* rather than a feature, so the first job is writing down what would count as done — a pass with no stated bar is one that ends when somebody gets tired. The claims to check already exist and are specific: **ADR-0013's 60 fps at 2000 nodes**, **`R15`'s payload bracket** (now measured at 225 MB staged, 52 MB of it OpenCascade), and the benchmark budgets in `bench/`, which a nightly already runs. Start by reading what `bench/` measures and what it does not, because the gap between those two is the pass. Then **`E12-T13`, accessibility**: the design language already carries contrast figures that `PaletteContrastTests` asserts, so the gap is **keyboard reach and screen-reader naming**, not colour — which means the bar is *every gesture reachable without a mouse* and *every control named*, and both are checkable. **Do not mark `E13-T12`, `E13-T16` or `E13-T17` `Done`**. |
+| **Next action** | **`E12-T13`, the accessibility pass, and the same discipline: state the bar first.** Colour is the part already done — the design language carries contrast figures and `PaletteContrastTests` asserts them, including that no state is carried by colour alone. So the gap is **keyboard reach and screen-reader naming**, and both are checkable rather than matters of taste: *every gesture reachable without a mouse* and *every control named*. Start by listing the gestures that exist — the toolbar buttons, the canvas selection and wiring, the dock, the package and help windows — and marking which have a keyboard path today; F1, Escape and Ctrl+Z are known to. Avalonia gives `AutomationProperties` for the naming half. **Be honest about what cannot be checked here**: a screen reader on this machine is not available, so naming can be asserted in tests and not experienced. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, the per-project executables (**2036** over **nine** projects: Geometry.Tests 763, UI.Tests 536, Engine.Tests 432, Viewport.Tests 108, Geometry.Properties 43, **Geometry.Occt.Tests 63**, Architecture.Tests 15, **Packages.Tests 71**, Docs.Verify 5), `dotnet format`, `--graph solids --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
@@ -4178,3 +4178,52 @@ host, and nobody had.
 
 **Verified.** No code changed, so the gates are unchanged; `Spark.Docs.Verify` green, `dotnet format`
 clean. Suite still **2,036** over nine projects.
+
+### 2026-09-01 @ `E12-T12`: a performance pass that mostly found the work already done
+
+**What.** Six lines of benchmark output, [N81](NOTES.md), [N82](NOTES.md), and a row closed on
+measurements rather than on effort.
+
+**Reading before measuring is what made this cheap.** Already budgeted and checked by the nightly:
+evaluation cold and warm, marshalling both directions, the scene index, and **the canvas frame
+against ADR-0013's own ceiling** — 16.7 ms median, one frame at 60 fps. `R15`'s payload was
+measured and reconciled on 2026-08-31. There was far less missing here than the row's title implies,
+and finding that out cost twenty minutes rather than a day.
+
+**The headline claim holds with room.** Release, 2 000 nodes: render pass **1.2-1.4 ms median,
+2.8-3.7 ms p95**, thirteen times inside the ceiling.
+
+**[N81](NOTES.md): the benchmark prints two numbers and only one answers the claim.** Beside the
+render pass it prints a wall clock of 24 fps, which read cold looks like a 60 fps claim missed by
+two and a half times. `bench/budgets.jsonc` already explains why the render pass is what is judged,
+but nobody reads a budget file while looking at a benchmark's output — so the output now says
+so itself, in full, once.
+
+**What settles it is a measurement rather than an argument.** The wall-clock floor **does not scale
+with node count**: 28.5 ms at 100 nodes, 36.5 ms at 500, 41.1 ms at 2 000. The canvas contributes
+about 12 ms across a twentyfold increase; something else contributes a fixed ~27 ms that is there
+when the canvas is nearly empty. A second observation says the same thing: Release renders *faster*
+than Debug (1.32 ms against 1.75 ms) and reports a *worse* wall clock (45.7 against 31.8). Two
+numbers moving in opposite directions between two builds of one program are not measuring one thing.
+
+**The budget was not touched.** Widening a claim to fit a measurement is the failure that note
+exists to prevent. The nightly's regexes were re-run against the new output to confirm they still
+match, because appending to a line a machine parses is exactly how a guard stops guarding.
+
+**[N82](NOTES.md): startup was measured by nothing.** Now: **48 ms** for `spark --version`, and
+**3.0 s** median for the desktop from launch to a rendered shell with geometry and the process
+exited. The second is an upper bound rather than a startup time — it goes through the screenshot
+path, which waits for a full evaluation and polls for a GL frame at 150 ms granularity — and it is
+still the number a user would feel. **The first attempt measured 4 ms**, because
+`Measure-Command { & $exe }` does not wait for a `WinExe`; five runs of a plausible-looking wrong
+answer is how that kind of mistake survives.
+
+**Not budgeted in CI, deliberately.** Wall-clock startup on a hosted runner is dominated by disk
+cache and antivirus, and [N29](NOTES.md) already makes that argument.
+
+**What this pass does not cover, said plainly rather than left implied:** the viewport's own render,
+and opening or saving a large document. Neither is budgeted and neither was measured.
+
+**Verified.** Build clean at 0 warnings, `dotnet format` clean, suite unchanged at **2,036**. The
+canvas benchmark re-run after the output change: `nodes=2000 frames=250`, median 1.23 ms, p95
+2.84 ms, and the nightly's two regexes matched the new text.

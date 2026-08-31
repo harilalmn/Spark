@@ -1109,13 +1109,17 @@ public sealed partial class MainWindow : Window
             CultureInfo.InvariantCulture,
             $"canvas-benchmark nodes={Canvas.Graph.Nodes.Count} wires={Canvas.Graph.Wires.Count} " +
             $"frames={measured} surface={Canvas.Bounds.Width:F0}x{Canvas.Bounds.Height:F0}"));
+        // Two numbers, and which one answers ADR-0013 has to be said HERE rather than only in
+        // bench/budgets.jsonc. A reader seeing "24 fps" beside a claim of 60 would reasonably
+        // conclude the claim is missed; the budget file explains why that is the wrong reading,
+        // but nobody reads a budget file while looking at a benchmark's output.
         Console.WriteLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"  render pass: {Canvas.Frames.Summary()}"));
+            $"  render pass: {Canvas.Frames.Summary()}   <- ADR-0013 is judged on this"));
         Console.WriteLine(string.Create(
             CultureInfo.InvariantCulture,
             $"  wall clock:  {wallMilliseconds / measured:F2} ms per frame, " +
-            $"{measured / (wallMilliseconds / 1000.0):F0} fps"));
+            $"{measured / (wallMilliseconds / 1000.0):F0} fps   <- includes compositor and present"));
         Console.WriteLine(string.Create(
             CultureInfo.InvariantCulture,
             $"  cull:        peak {_peakVisibleNodes} nodes on screen; last frame " +
@@ -1124,6 +1128,22 @@ public sealed partial class MainWindow : Window
         Console.WriteLine(string.Create(
             CultureInfo.InvariantCulture,
             $"  viewport:    {Viewport.Status ?? "no GL callback ran"}"));
+
+        // Said in full, once, because the two-number ambiguity above has already been misread once
+        // by somebody reading this output cold.
+        Console.WriteLine();
+        Console.WriteLine(
+            "  ADR-0013's claim is that the CANVAS holds 60 fps with 2 000 nodes, and the render");
+        Console.WriteLine(
+            "  pass is what tests it: it is the time this control spends drawing. Wall clock adds");
+        Console.WriteLine(
+            "  everything between frames - the whole window composed and presented, and the frame");
+        Console.WriteLine(
+            "  scheduler's own cadence - none of which this control governs. Measured 2026-09-01:");
+        Console.WriteLine(
+            "  the wall-clock floor is ~27 ms and DOES NOT SCALE WITH NODE COUNT (35 fps at 100");
+        Console.WriteLine(
+            "  nodes, 24 fps at 2 000), which is what makes it evidence rather than an excuse.");
 
         Close();
     }

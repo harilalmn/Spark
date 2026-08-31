@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N63-N80 added)
+**Last updated:** 2026-09-01 (N63-N82 added)
 
 ---
 
@@ -2164,3 +2164,53 @@ which is better than a plausible wrong one.
 
 **The first version of this note claimed `Compress-Archive` differs between two runs over one
 folder.** It does not, and the claim was in the script's own documentation before it was checked.
+
+## N81 — The canvas benchmark prints two numbers and only one of them answers the claim
+
+`--canvas-benchmark` prints a **render pass** figure and a **wall clock** figure. On this machine,
+Release, 2 000 nodes: render pass **1.2-1.4 ms median, 2.8-3.7 ms p95** — against ADR-0013's ceiling
+of 16.7 ms, one frame at 60 fps — and wall clock **41 ms, 24 fps**.
+
+Read cold, that looks like the headline claim being missed by a factor of two and a half. It is not.
+`bench/budgets.jsonc` already explains why the render pass is the number judged, but **nobody reads
+a budget file while looking at a benchmark's output**, so the output now says so itself.
+
+**The evidence that settles it is that the wall-clock floor does not scale with node count.**
+Measured at three sizes: 100 nodes 28.5 ms (35 fps), 500 nodes 36.5 ms (27 fps), 2 000 nodes 41.1 ms
+(24 fps). The canvas contributes the difference — about 12 ms across a twentyfold increase in nodes
+— and something else contributes a fixed ~27 ms that is there when the canvas is nearly empty. That
+residual is the whole window composed and presented plus the frame scheduler's cadence, none of
+which the canvas governs.
+
+**A second measurement worth keeping**: Release renders *faster* than Debug on the render pass
+(1.32 ms against 1.75 ms) and reports a *worse* wall clock (45.7 ms against 31.8 ms). Two numbers
+moving in opposite directions between two builds of the same code is on its own enough to show they
+are not measuring the same thing.
+
+**What was changed is the output, not the budget.** Widening a claim to fit a measurement is the
+failure this note exists to prevent; the claim and its ceiling are untouched, and the nightly's
+regexes were re-run against the new output to confirm they still match.
+
+## N82 — Startup was measured by nothing, and measuring it needed the right harness
+
+Nothing in `bench/` measured startup, which for an end-user application is the first impression it
+makes. Measured 2026-09-01, Release, five runs each:
+
+| | |
+|---|---|
+| `spark --version` | **48 ms** median (46 min) |
+| Desktop launch to a rendered shell with geometry, PNG on disk, process exited | **3.0 s** median (2.0 s min) |
+
+The desktop figure is an **upper bound**, not a startup time: it goes through the screenshot path,
+which waits for a full evaluation and then polls for a GL frame at 150 ms granularity. It is still
+the honest end-to-end number a user would feel, and it is the one worth quoting until something
+measures the window appearing.
+
+**The first attempt measured 4 ms and was wrong.** `Measure-Command { & $exe ... }` does not wait for
+a GUI process — `Spark.Desktop` is a `WinExe`, so the shell returns immediately. Five runs of "4 ms"
+looked plausible enough to believe. `Start-Process -Wait` gives the real figure. **A startup
+measurement that comes back implausibly good has usually measured the launch, not the start.**
+
+**Deliberately not budgeted in CI.** Wall-clock startup on a hosted runner is dominated by disk
+cache and antivirus, and [N29](NOTES.md) already argues that wall-clock ceilings there are only good
+for catching a step change. It is recorded here so a regression has something to be compared against.
