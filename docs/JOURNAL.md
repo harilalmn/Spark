@@ -18,11 +18,11 @@ this file says what is happening.
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | **The client’s list of eleven, taken ahead of the Help pass because the client asked for it directly.** Four steps, in this order: **(A)** the canvas gestures — `E8-T26` marquee visibility and window-versus-crossing, `E8-T27` double-click places a code block, `E8-T28` the orange selection halo. **(B)** the library — `E8-T29`, Create/Action/Query subgroups with coloured rails and icons, plus row spacing. **(C)** the properties pane — `E8-T30` compact spec-sheet rows, `E8-T31` a lacing selector. **(D)** the shell chrome — `E8-T32` menu bar, ribbon and logo, and `E3-T13` run modes. |
-| **Step status** | `IN PROGRESS` — step **A of four is committed**; step **B** has not started. |
-| **Last completed step** | **`E8-T26`, `E8-T27`, `E8-T28` — step A of the client's list, the three canvas gestures.** The marquee was invisible because `new Rect(start, end)` subtracts rather than orders, so every right-to-left drag had a negative width; direction now also chooses window versus crossing. Double-clicking empty canvas drops a code block, as Dynamo does, and the node search moved to right-click. Selected nodes carry an orange halo under the accent ring. **2184 tests.** |
-| **Working tree** | Clean. Step B has not started. |
-| **Next action** | **Step B of the client's list: the library pane (`E8-T29`).** Two things in one row. **(1)** Entries need a bottom margin — the rows are flush against each other and the pane reads as a wall. **(2)** Each category splits into **Create / Action / Query** subgroups, as Dynamo does, each with a coloured vertical rail and Dynamo's own three icons. The classification cannot be guessed from the ports, so it is recorded where it is actually known — `NodeImporter` has the `MemberInfo` in hand: a constructor, or a member returning its own declaring type with no input of that type, is **Create**; a property getter is **Query**; everything else is **Action**. That means a new `NodeMemberKind` on `Spark.Api` and therefore a `PublicAPI.Unshipped.txt` entry, which is a build error if forgotten (RS0016). **Then C** (`E8-T30` compact properties rows, `E8-T31` the lacing selector) **and D** (`E8-T32` menu bar, ribbon, logo and window icon; `E3-T13` run modes). *The Help pass still follows the list, with the two owed items: the* `tessellate` *verb is not wired into* `.github/workflows/nightly.yml`*, and the new nodes from* `E4-T13` *and* `E8-T25` *have XML docs but no help topic.* |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2184**: Geometry.Tests 763, UI.Tests 648, Engine.Tests 468, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 15, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, and `dotnet run --project src/Spark.Desktop -- --graph demo --select 3 --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
+| **Step status** | `IN PROGRESS` — steps **A and B are committed**; step **C** has not started. |
+| **Last completed step** | **`E8-T29` — step B of the client's list: the library splits three ways.** Every category now holds Create / Action / Query blocks with Dynamo's glyphs and a coloured rail. The classification does not exist to be read — a Spark node is a static method on a static facade, identical to reflection whatever it means — so `NodeImporter` infers it from the ports and the name and `SparkNodeAttribute.Kind` overrides it, which twenty-four first-party nodes use. **2196 tests.** |
+| **Working tree** | Clean. Step C has not started. |
+| **Next action** | **Step C of the client's list: the properties pane.** `E8-T30` — the pane is the client's fourth complaint and the type dropdown is the specific one: it is full-width, under the value box, and with several inputs it will dominate the pane. Rebuild the rows as a compact spec sheet — name and type in one tight left column, value on the right, the code-block type picker a small dropdown beside the port name, sections separated by thin rules. **The client chose this shape over stacked cards.** `E8-T31` — **lacing cannot be changed anywhere**: `Graph.SetLacing` exists and nothing in the UI calls it, so the pane prints `Lacing: Longest` as prose and offers no way to alter it. A selector at the top of the pane, an undo step, and a re-run. **Then D**: `E8-T32` (menu bar, ribbon, logo, window icon) and `E3-T13` (run modes — Manual, Automatic, Periodic). *The Help pass still follows the list, with the two owed items: the* `tessellate` *verb is not wired into* `.github/workflows/nightly.yml`*, and the new nodes from* `E4-T13` *and* `E8-T25` *have XML docs but no help topic.* |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2196**: Geometry.Tests 763, UI.Tests 652, Engine.Tests 476, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 15, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, and `dotnet run --project src/Spark.Desktop -- --graph demo --library curve --select 3 --screenshot PREFIX`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -4782,3 +4782,66 @@ with the switch that makes the capture possible. It shows three haloed nodes on 
 **Verified.** `dotnet build Spark.slnx --no-incremental -warnaserror` clean; the nine test
 executables **2184 passed / 0 failed / 0 skipped** (UI 648, up six); `dotnet format` clean;
 `--graph demo --select 3 --screenshot` read by eye.
+
+
+### 2026-09-02 — The client's list, step B: the library splits three ways (`E8-T29`)
+
+**What.** Every library category now holds up to three blocks — **Create**, **Action**, **Query** —
+each with Dynamo's own glyph, a coloured rail down its left edge and a count. Entries carry vertical
+padding, which was the client's other request for this panel.
+
+**The classification is the whole of the work, and Dynamo gets it for free.** A zero-touch node
+*is* the CLR member, so Dynamo reads a constructor as Create, a property getter as Query and an
+instance method as Action. A Spark node is a static method on a static facade —
+`Point.Translate(Point3d, Vector3d, double)` — and to reflection every single one of them is the
+same shape. **That information does not exist to be read**, so it has to be inferred or declared.
+
+**What is honestly inferable**, in `NodeImporter.InferKind`, three rules in order:
+a `By`/`From`/`Create` prefix or **no inputs at all** is a **Create** — a node given nothing that
+produces something is making it, which is what catches `Vector.ZAxis`, `Math.Pi` and `Plane.XY`;
+exactly one input with **no output of that same type** is a **Query**, which is the rule that
+separates `Curve.Length` from `Curve.Reverse` — both take one curve, one hands back a number;
+everything else is an **Action**, and that catch-all is honest rather than lazy.
+
+**And what is not**, so it is declared. `SparkNodeAttribute.Kind` overrides the inference, and
+twenty-four first-party nodes use it because their shape and their meaning disagree.
+`Number.Value` takes a number and returns one, which is structurally an action and is plainly how
+you *make* a number. `Solid.Box` is the same shape as `Solid.Union` to reflection and the opposite
+thing to a person. The classification was **read before it was trusted**: a throwaway test dumped
+all 136 nodes by kind, the outliers were annotated, and it was dumped again.
+
+**`NodeMemberKind.Auto` follows `LacingMode.Auto` exactly** — a sentinel meaning "not stated",
+resolved by the importer, and refused by `NodeDefinition`'s constructor so that nothing downstream
+has to decide what an unresolved value means.
+
+**Two things that were only found by running it.**
+
+**(1) `Geometry.Parse` needs Avalonia's render interface**, and a static field initialiser holding
+one runs the moment *any* member of its class is touched — including `BrushOf`, which a view model
+calls while building the library. Ten view-model tests that have no rendering platform started
+throwing `TypeInitializationException`. The geometries are `Lazy` now: a brush needs no platform, a
+geometry does, so only the geometry waits for one.
+
+**(2) A two-way `IsExpanded` binding on a lazily realised container writes the container's own
+default back over the view model's.** Every Create/Action/Query block came up shut even though the
+view model said open, because the block's `TreeViewItem` is not created until its category is
+expanded, and it arrives collapsed. The nested items get a constant `True` instead.
+
+**And one that only a screenshot would have caught:** the third tree level costs indentation, and
+long names were cut off mid-glyph with no ellipsis and no scrollbar, because a `TreeViewItem` is
+measured unconstrained when horizontal scrolling is on. Scrolling off, trimming on.
+
+**The rail is why the spacing is padding and not margin.** The client asked for a bottom margin on
+the entries and for a continuous coloured line beside them, and those two requests fight: the line
+is the left border of each row, so a margin *between* rows would have chopped it into dashes. The
+same space as padding *inside* each border gives both.
+
+**Documented.** `concepts/finding-nodes.md` was materially wrong before this and is now current —
+it still said double-clicking opened the search box and that Spark had no code block, which stopped
+being true at M4. It gains the grouping table and loses the section explaining why code blocks did
+not exist.
+
+**Verified.** `dotnet build Spark.slnx --no-incremental -warnaserror` clean, **0 warnings**; the
+nine test executables **2196 passed / 0 failed / 0 skipped** (Engine 476, UI 652); `dotnet format`
+clean; `--graph demo --library curve --screenshot` read by eye, three times, which is how the two
+findings above were found.

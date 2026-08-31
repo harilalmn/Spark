@@ -110,7 +110,7 @@ public static class Text
     /// <c>Number.Value</c>'s is: a label is what the node is *for*, and a graph full of boxes all
     /// reading <c>String.Value</c> tells you nothing about which is which.
     /// </remarks>
-    [SparkNode(Name = "String.Value")]
+    [SparkNode(Name = "String.Value", Kind = NodeMemberKind.Create)]
     [NodeField]
     [return: NodePort("text")]
     public static string Value(string value = "") => value ?? string.Empty;
@@ -143,7 +143,7 @@ public static class Text
     /// <c>3,14</c> on another produces files that differ by locale, and a `.spark` file is meant to
     /// diff cleanly wherever it was written ([ADR-0017](../../docs/adr/0017-spark-file-is-plain-json.md)).
     /// </remarks>
-    [SparkNode(Name = "String.FromNumber")]
+    [SparkNode(Name = "String.FromNumber", Kind = NodeMemberKind.Action)]
     [return: NodePort("text")]
     public static string FromNumber(double value = 0, [NoReplication] int decimals = 3)
     {
@@ -163,7 +163,7 @@ public static class Text
     /// Invariant culture again, and it throws rather than returning zero: a graph that silently
     /// turned a typo into zero would produce geometry at the origin and no explanation.
     /// </remarks>
-    [SparkNode(Name = "String.ToNumber")]
+    [SparkNode(Name = "String.ToNumber", Kind = NodeMemberKind.Action)]
     [return: NodePort("number")]
     public static double ToNumber(string text = "0")
     {

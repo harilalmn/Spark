@@ -25,6 +25,7 @@ public static class Number
     /// the wall height means clicking each in turn.
     /// </remarks>
     [NodeField]
+    [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("value")]
     public static double Value(double value = 0) => value;
 
@@ -55,6 +56,7 @@ public static class Number
     /// </para>
     /// </remarks>
     [NodeSlider]
+    [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("value")]
     public static double Slider(double value = 0, double min = 0, double max = 100, double step = 0)
     {
@@ -85,7 +87,7 @@ public static class Number
     /// into a node that wants an integer must not arrive as <c>4.000000001</c>, and the only way to
     /// promise that is for the port to say <c>int</c>.
     /// </remarks>
-    [SparkNode(Name = "Integer.Slider")]
+    [SparkNode(Name = "Integer.Slider", Kind = NodeMemberKind.Create)]
     [NodeSlider]
     [return: NodePort("value")]
     public static int IntegerSlider(int value = 0, int min = 0, int max = 100, int step = 1)
@@ -125,6 +127,7 @@ public static class Number
     /// <paramref name="step"/> is zero or not finite, either bound is not finite, or the range
     /// would exceed <see cref="MaximumRangeCount"/> values.
     /// </exception>
+    [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("numbers")]
     public static IReadOnlyList<double> Range(double start = 0, double end = 10, double step = 1)
     {

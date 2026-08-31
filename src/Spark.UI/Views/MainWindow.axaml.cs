@@ -753,6 +753,11 @@ public sealed partial class MainWindow : Window
             OnCollapseSelection(this, new RoutedEventArgs());
         }
 
+        if (Options.LibrarySearch is { } query && Model is { } libraryModel)
+        {
+            libraryModel.LibrarySearch = query;
+        }
+
         // After the collapse, so `--collapse` and `--select` together select the custom node the
         // collapse produced rather than the nodes it consumed.
         if (Options.SelectFirst > 0)

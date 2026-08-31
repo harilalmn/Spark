@@ -278,7 +278,8 @@ public static class NodeImporter
             inputs,
             outputs,
             NodeInvoker.ForMethod(method),
-            docs.SummaryOf(method)));
+            docs.SummaryOf(method),
+            InferKind(method.Name, inputs, outputs)));
     }
 
     private static void ClassifyConstructor(
@@ -322,7 +323,8 @@ public static class NodeImporter
             inputs,
             [new PortDefinition(CamelCase(type.Name), type, PortDefinition.RankOfType(type))],
             NodeInvoker.ForConstructor(constructor),
-            docs.SummaryOf(constructor)));
+            docs.SummaryOf(constructor),
+            NodeMemberKind.Create));
     }
 
     private static void ClassifyProperty(
@@ -361,7 +363,8 @@ public static class NodeImporter
             [new PortDefinition(
                 CamelCase(property.Name), property.PropertyType, PortDefinition.RankOfType(property.PropertyType))],
             NodeInvoker.ForMethod(getter),
-            docs.SummaryOf(property)));
+            docs.SummaryOf(property),
+            getter.IsStatic ? NodeMemberKind.Create : NodeMemberKind.Query));
     }
 
     private static string SpecialNameReason(MethodInfo method)
@@ -378,6 +381,49 @@ public static class NodeImporter
         }
 
         return "a compiler-generated special-name method is not part of the author's public surface.";
+    }
+
+    /// <summary>
+    /// Works out whether a node makes a thing, changes one, or reports something about one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Dynamo reads this off the CLR member and Spark cannot</b>, because a Spark node is a
+    /// static method on a static facade rather than the member itself: <c>Point.Translate</c> is a
+    /// static method taking a <c>Point3d</c>, not an instance method on one. So the shape of the
+    /// ports and the naming convention ADR-0004 already relies on are what is left to read, and
+    /// <see cref="SparkNodeAttribute.Kind"/> is how an author overrides the answer.
+    /// </para>
+    /// <para>
+    /// Three rules, in order, and the last one is a catch-all on purpose. <b>Create</b>: the
+    /// <c>By</c>/<c>From</c>/<c>Create</c> prefix, or no inputs at all — a node given nothing that
+    /// produces something is making it. <b>Query</b>: exactly one input and no output of that same
+    /// type — it reports <i>about</i> the thing rather than returning another one, which is what
+    /// separates <c>Curve.Length</c> from <c>Curve.Reverse</c>. <b>Action</b>: everything else,
+    /// because "it does something with it" is the honest description of a node nothing else fits.
+    /// </para>
+    /// </remarks>
+    /// <param name="memberName">The member's name, unqualified.</param>
+    /// <param name="inputs">The input ports.</param>
+    /// <param name="outputs">The output ports.</param>
+    /// <returns>The inferred kind, never <see cref="NodeMemberKind.Auto"/>.</returns>
+    private static NodeMemberKind InferKind(
+        string memberName, IReadOnlyList<PortDefinition> inputs, IReadOnlyList<PortDefinition> outputs)
+    {
+        if (memberName.StartsWith("By", StringComparison.Ordinal)
+            || memberName.StartsWith("From", StringComparison.Ordinal)
+            || memberName.StartsWith("Create", StringComparison.Ordinal)
+            || inputs.Count == 0)
+        {
+            return NodeMemberKind.Create;
+        }
+
+        if (inputs.Count == 1 && !outputs.Any(port => port.ValueType == inputs[0].ValueType))
+        {
+            return NodeMemberKind.Query;
+        }
+
+        return NodeMemberKind.Action;
     }
 
     private static bool IsFacadeFactory(MethodInfo method, Type type) =>
@@ -550,6 +596,13 @@ public static class NodeImporter
 
             bool hasField = candidate.Member.IsDefined(typeof(NodeFieldAttribute), inherit: false);
 
+            // The member's own word wins; the type's is not consulted, because a whole type of
+            // queries is not a thing and inheriting it would misfile every future member of that
+            // type by accident. Auto means the author did not say, so the inference stands.
+            NodeMemberKind kind = memberAttribute?.Kind is { } declared and not NodeMemberKind.Auto
+                ? declared
+                : candidate.Kind;
+
             NodeDefinition definition = new(
                 new NodeKey(package, memberAttribute?.Name ?? name),
                 memberAttribute?.Name ?? name,
@@ -563,7 +616,8 @@ public static class NodeImporter
                 category: memberAttribute?.Category ?? typeAttribute?.Category ?? NodeCategories.Custom,
                 showsValue: showsValue,
                 hasSlider: hasSlider,
-                hasField: hasField);
+                hasField: hasField,
+                memberKind: kind);
 
             nodes.Add(new ImportedNode(definition, candidate.Member));
         }
@@ -584,5 +638,6 @@ public static class NodeImporter
         IReadOnlyList<PortDefinition> Inputs,
         IReadOnlyList<PortDefinition> Outputs,
         NodeInvocation Invoke,
-        string? Description);
+        string? Description,
+        NodeMemberKind Kind);
 }

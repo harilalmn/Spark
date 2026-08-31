@@ -29,6 +29,7 @@ public static class Surface
     /// <param name="centre">The centre.</param>
     /// <param name="radius">The radius.</param>
     /// <returns>The surface.</returns>
+    [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("surface")]
     public static SphericalSurface Sphere(Point3d centre, double radius = 1) =>
         new(Spark.Geometry.Plane.ByOriginNormal(centre, Vector3d.ZAxis), radius);
@@ -38,6 +39,7 @@ public static class Surface
     /// <param name="radius">The radius.</param>
     /// <param name="height">How far it extends along the axis.</param>
     /// <returns>The surface.</returns>
+    [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("surface")]
     public static CylindricalSurface Cylinder(Spark.Geometry.Plane plane, double radius = 1, double height = 1) =>
         new(plane, radius, new Interval(0.0, height));
@@ -53,6 +55,7 @@ public static class Surface
     /// actually has: the kernel's half-angle is the honest internal parameterisation and a
     /// truncated cone described by its two ends is what a user types.
     /// </remarks>
+    [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("surface")]
     public static ConicalSurface Cone(Spark.Geometry.Plane plane, double baseRadius = 1, double topRadius = 0, double height = 1) =>
         new(
@@ -66,6 +69,7 @@ public static class Surface
     /// <param name="majorRadius">From the axis to the centre of the tube.</param>
     /// <param name="minorRadius">The radius of the tube.</param>
     /// <returns>The surface.</returns>
+    [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("surface")]
     public static ToroidalSurface Torus(Spark.Geometry.Plane plane, double majorRadius = 2, double minorRadius = 0.5) =>
         new(plane, majorRadius, minorRadius);
@@ -74,6 +78,7 @@ public static class Surface
     /// <param name="curve">The profile to sweep.</param>
     /// <param name="direction">Which way and how far to sweep it.</param>
     /// <returns>The surface.</returns>
+    [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("surface")]
     public static ExtrusionSurface Extrude(Spark.Geometry.Curve curve, Vector3d direction) =>
         new(curve, direction);
@@ -84,6 +89,7 @@ public static class Surface
     /// <param name="axisDirection">The axis direction.</param>
     /// <param name="sweepAngle">How far to turn.</param>
     /// <returns>The surface.</returns>
+    [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("surface")]
     public static RevolutionSurface Revolve(
         Spark.Geometry.Curve curve, Point3d axisOrigin, Vector3d axisDirection, Angle sweepAngle) =>
@@ -93,6 +99,7 @@ public static class Surface
     /// <param name="first">The curve at one edge.</param>
     /// <param name="second">The curve at the other.</param>
     /// <returns>The surface.</returns>
+    [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("surface")]
     public static RuledSurface Loft(Spark.Geometry.Curve first, Spark.Geometry.Curve second) =>
         new(first, second);
@@ -153,6 +160,7 @@ public static class Surface
     /// parameterisation — a rational quadratic's parameter is a projective function of the angle —
     /// so the corners line up and the interior does not.
     /// </remarks>
+    [SparkNode(Kind = NodeMemberKind.Action)]
     [return: NodePort("surface")]
     public static NurbsSurface ToNurbs(SphericalSurface surface) => surface.ToNurbsSurface();
 }

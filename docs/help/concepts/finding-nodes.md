@@ -8,21 +8,44 @@ since: "0.1"
 
 **Status:** Current. Describes the library panel and the canvas creation box, both of which exist.
 **Owner:** `spark-ui`
-**Last updated:** 2026-08-28
+**Last updated:** 2026-09-02
 
-> **Scope.** How to get a node onto the canvas: the library panel, how its search ranks, and the
-> box that opens when you double-click empty canvas. **Double-clicking does not create a code
-> block** — Spark does not have one yet, and the last section says why and what it will change.
+> **Scope.** How to get a node onto the canvas: the library panel, how it is grouped, how its search
+> ranks, and the two canvas gestures — **right-click** for the search box, **double-click** for a
+> code block.
 
 ---
 
 ## Three ways to place a node
 
-1. **Double-click empty canvas.** A search box opens where you clicked. Type, press Enter, and the
+1. **Right-click empty canvas.** A search box opens where you clicked. Type, press Enter, and the
    node lands at that point. This is the fast one.
 2. **The library panel**, on the left. Select a node and press *Place node*, or double-click the
    entry. It lands near the middle of the view.
-3. **Undo**, if you placed the wrong one. Every placement is one step ([undo](undo.md)).
+3. **Double-click empty canvas** for a [code block](code-blocks.md), which is the other fast one:
+   a number, a formula or a list is quicker written than hunted for. This is Dynamo's gesture and
+   it does the same thing here.
+
+And **undo**, if you placed the wrong one. Every placement is one step ([undo](undo.md)).
+
+## The library panel is grouped twice
+
+The panel files every node under its **category** — `Curve`, `Solid`, `Point`, the same ten the
+canvas colours node headers by — and then splits each category three ways:
+
+| | | |
+|---|---|---|
+| **Create** | green `+` | Makes a new thing out of values that are not one. `Circle.ByCentreRadius`, `Vector.ZAxis`, `Number.Value`. |
+| **Action** | amber bolt | Takes one of these and produces another. `Curve.Reverse`, `Solid.Union`, `Math.Divide`. |
+| **Query** | blue `?` | Reports something about one without producing another. `Curve.Length`, `Solid.IsClosed`, `List.Count`. |
+
+Each block has a coloured rail down its left edge, so which of the three you are reading is legible
+without going back to the heading. The order is always Create, then Action, then Query — the order
+a graph is built in, not alphabetical — and a block with nothing in it is not shown at all.
+
+**Why it is worth the two levels.** `Solid` alone holds thirty-eight nodes. Split three ways, a
+user who wants to *make* a solid reads sixteen names instead of thirty-eight, and never reads the
+five that measure one.
 
 ## The search ranks; it does not filter
 
@@ -49,7 +72,7 @@ gets you `Circle.ByCentreRadius`, `bbc` gets you `BoundingBox.ByCorners`.
 
 Open Spark on the demo graph.
 
-1. **Double-click an empty part of the canvas**, somewhere below the existing nodes. A box appears
+1. **Right-click an empty part of the canvas**, somewhere below the existing nodes. A box appears
    under the pointer with a text field and the hint *Enter places it here · Esc cancels*.
 
 2. **Type `cbcr`.** One result: `Circle.ByCentreRadius`, showing its signature
@@ -69,17 +92,12 @@ Try `circle` instead of `cbcr` and the list is longer, with `Circle.ByPlaneRadiu
 is the shortest of the equally good matches. Use the arrow keys to move the highlight without
 leaving the text field.
 
-## What double-click does *not* do yet
+## Why the search box moved to right-click
 
-**In Dynamo, double-clicking blank canvas creates a Code Block** — a node you type an expression
-into. Spark's code block is a real plan and is not built: it needs a Roslyn compilation pipeline,
-nodes whose ports are inferred per instance from what you typed, and somewhere in the `.spark` file
-to keep the script. That is a milestone of its own.
+It used to be on the double-click, and the double-click belongs to code blocks. **In Dynamo,
+double-clicking blank canvas creates a code block** — double-click, then type — and a user arriving
+with that habit got a search dialog instead. Now the double-click drops a code block at the point
+you clicked, and the search box has right-click, which had no other job on the canvas.
 
-So the gesture is here and its result is different: **you name a node instead of writing an
-expression.** When the code block arrives, this same box gains the other half — if what you typed
-looks like an expression rather than a node name, you get a code block containing it — and the
-gesture will not have to be relearned.
-
-Nothing here fakes it in the meantime. A node that looked like a code block and did not compile
-anything would be worse than the wait.
+Right-clicking a node, a port or a wire does nothing. That is a context menu, which is a feature
+with a menu behind it rather than half of one taught now and untaught later.

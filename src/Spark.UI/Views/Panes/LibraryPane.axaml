@@ -16,17 +16,24 @@
                PlaceholderText="Search"
                Text="{Binding LibrarySearch, Mode=TwoWay}" />
 
-      <!-- E8-T24: grouped by category, because a flat list of a hundred and eight nodes is a list
-           nobody reads - it is scrolled past on the way to the search box, so the panel only ever
-           answers a question the user already knew how to ask.
+      <!-- E8-T24: grouped by category, because a flat list of a hundred and thirty-six nodes is a
+           list nobody reads - it is scrolled past on the way to the search box, so the panel only
+           ever answers a question the user already knew how to ask.
+
+           E8-T29: and then split again into Create / Action / Query, because a category is still a
+           wall - `Solid` alone holds thirty-eight. Dynamo's three marks, asked for by name.
 
            A TreeView rather than a stack of Expanders each holding a ListBox. Selection is the
            reason: several ListBoxes have several selections, so "the selected entry" would stop
            being a single thing and clicking in one group would leave the highlight standing in
            another. One TreeView has one SelectedItem across the whole tree, which is what the
            Place button and the F1 help lookup both assume. -->
+      <!-- Horizontal scrolling off, so the rows are measured against the pane's width and the
+           trimming below actually happens. Left on, a TreeViewItem is measured unconstrained and
+           a long name is cut off mid-glyph with no ellipsis and no scrollbar to reach it. -->
       <TreeView Grid.Row="2" Margin="6,0,6,6"
                 x:Name="LibraryTree"
+                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 ItemsSource="{Binding LibraryGroups}"
                 SelectionChanged="OnLibrarySelectionChanged"
                 DoubleTapped="OnLibraryDoubleTapped">
@@ -35,11 +42,37 @@
           <Style Selector="TreeViewItem" x:DataType="vm:LibraryGroupViewModel">
             <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
           </Style>
+
+          <!--
+            The row's own vertical padding is zero, and the padding that separates one entry from
+            the next lives INSIDE the rail border instead. That is the whole trick behind the
+            coloured rail: the client asked for a bottom margin on the entries and for a continuous
+            vertical line beside them, and a margin BETWEEN rows would have chopped the line into
+            dashes. Padding inside the row gives the same breathing space and leaves the borders
+            touching.
+          -->
+          <Style Selector="TreeViewItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+          </Style>
+
+          <!--
+            A Create / Action / Query block opens with its category and is not separately collapsed
+            by default: three blocks of three entries is the shape the split exists to produce, and
+            a category that opened onto three more closed headings would have made finding a node
+            take one more click than it did before. Declared as a constant on the nested item rather
+            than bound, because a two-way binding on a container realised lazily writes the
+            container's own default back over the view model's the moment it appears - which is what
+            happened, and why every block came up shut.
+          -->
+          <Style Selector="TreeViewItem TreeViewItem">
+            <Setter Property="IsExpanded" Value="True" />
+          </Style>
         </TreeView.Styles>
 
         <TreeView.DataTemplates>
-          <TreeDataTemplate x:DataType="vm:LibraryGroupViewModel" ItemsSource="{Binding Entries}">
-            <StackPanel Orientation="Horizontal" Spacing="6">
+          <TreeDataTemplate x:DataType="vm:LibraryGroupViewModel" ItemsSource="{Binding Subgroups}">
+            <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,3">
               <TextBlock Text="{Binding Category}" FontWeight="SemiBold" />
               <!-- The count is what makes a collapsed group legible, and what makes a search
                    result readable without opening anything. -->
@@ -48,11 +81,38 @@
             </StackPanel>
           </TreeDataTemplate>
 
-          <DataTemplate x:DataType="vm:LibraryEntryViewModel">
-            <StackPanel Spacing="1" ToolTip.Tip="{Binding Description}">
-              <TextBlock Text="{Binding DisplayName}" />
-              <TextBlock Classes="muted" FontSize="10" Text="{Binding Signature}" />
+          <!--
+            The Create / Action / Query block. Dynamo shows the glyph alone; the word is here as
+            well because an icon with no label has to be taught, and because a screen reader cannot
+            read a path. The glyph is drawn geometry rather than a font glyph - a character taken
+            from a font is a character missing on the machine without that font, and the bolt is in
+            none of them.
+          -->
+          <TreeDataTemplate x:DataType="vm:LibraryKindGroupViewModel" ItemsSource="{Binding Entries}">
+            <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,2"
+                        ToolTip.Tip="{Binding Description}"
+                        AutomationProperties.Name="{Binding Label}">
+              <Path Data="{Binding Glyph}" Fill="{Binding Rail}"
+                    Width="12" Height="12" Stretch="Uniform" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding Label}" FontSize="10" FontWeight="SemiBold"
+                         VerticalAlignment="Center" Foreground="{Binding Rail}" />
+              <TextBlock Classes="muted" FontSize="10" VerticalAlignment="Center"
+                         Text="{Binding Count}" />
             </StackPanel>
+          </TreeDataTemplate>
+
+          <DataTemplate x:DataType="vm:LibraryEntryViewModel">
+            <!-- Trimmed rather than wrapped, and the tooltip carries the whole of it. A node name
+                 is `Type.Member`, so the half that identifies it is at the front; wrapping would
+                 make every long entry two rows tall to show a suffix the user already knows. -->
+            <Border BorderThickness="2,0,0,0" BorderBrush="{Binding Rail}" Padding="6,4,0,4"
+                    ToolTip.Tip="{Binding Description}">
+              <StackPanel Spacing="1">
+                <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="muted" FontSize="10" Text="{Binding Signature}"
+                           TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </Border>
           </DataTemplate>
         </TreeView.DataTemplates>
       </TreeView>

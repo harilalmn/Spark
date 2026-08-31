@@ -64,9 +64,16 @@ public sealed class NodeDefinition
     /// because a third-party package must be able to file its nodes under a name Spark has never
     /// heard of and still get a legible node.
     /// </param>
+    /// <param name="memberKind">
+    /// Whether the node makes a thing, changes one or reports something about one — the second axis
+    /// the library panel files nodes on. Defaults to <see cref="NodeMemberKind.Action"/>, which is
+    /// the bucket a node nothing else describes belongs in. <see cref="NodeMemberKind.Auto"/> is a
+    /// sentinel for "not stated" and is resolved by the importer, so it never arrives here.
+    /// </param>
     /// <exception cref="ArgumentNullException">A required argument is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">
-    /// There are no output ports, or <paramref name="defaultLacing"/> is <see cref="LacingMode.Auto"/>.
+    /// There are no output ports, <paramref name="defaultLacing"/> is <see cref="LacingMode.Auto"/>,
+    /// or <paramref name="memberKind"/> is <see cref="NodeMemberKind.Auto"/>.
     /// </exception>
     public NodeDefinition(
         NodeKey key,
@@ -81,7 +88,8 @@ public sealed class NodeDefinition
         string? category = null,
         bool showsValue = false,
         bool hasSlider = false,
-        bool hasField = false)
+        bool hasField = false,
+        NodeMemberKind memberKind = NodeMemberKind.Action)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
         ArgumentNullException.ThrowIfNull(inputs);
@@ -105,6 +113,15 @@ public sealed class NodeDefinition
                 nameof(defaultLacing));
         }
 
+        // The same rule Auto lacing follows: a sentinel meaning "not stated" is resolved before a
+        // definition is built, so nothing downstream has to ask what an unresolved value means.
+        if (memberKind == NodeMemberKind.Auto)
+        {
+            throw new ArgumentException(
+                $"Node '{displayName}' declares Auto as its member kind. Auto means 'infer it', so it is resolved by the importer and cannot be stored. Pass Create, Action or Query.",
+                nameof(memberKind));
+        }
+
         Key = key;
         DisplayName = displayName;
         Inputs = [.. inputs];
@@ -118,6 +135,7 @@ public sealed class NodeDefinition
         ShowsValue = showsValue;
         HasSlider = hasSlider;
         HasField = hasField;
+        MemberKind = memberKind;
     }
 
     /// <summary>The definition's stable identity, including the package that published it.</summary>
@@ -190,6 +208,16 @@ public sealed class NodeDefinition
 
     /// <summary>The output ports, in port order.</summary>
     public IReadOnlyList<PortDefinition> Outputs { get; }
+
+    /// <summary>
+    /// Whether the node makes a thing, changes one, or reports something about one.
+    /// </summary>
+    /// <remarks>
+    /// Never <see cref="NodeMemberKind.Auto"/>: that is the "not stated" sentinel and it is
+    /// resolved before a definition exists. The library panel groups on this under the category
+    /// (<c>E8-T29</c>); nothing in the engine reads it.
+    /// </remarks>
+    public NodeMemberKind MemberKind { get; }
 
     /// <summary>What <see cref="LacingMode.Auto"/> resolves to on an instance of this node.</summary>
     public LacingMode DefaultLacing { get; }

@@ -137,6 +137,11 @@ Spark.Api.LacingMode.Shortest = 1 -> Spark.Api.LacingMode
 Spark.Api.NoReplicationAttribute
 Spark.Api.NoReplicationAttribute.NoReplicationAttribute() -> void
 Spark.Api.NodeCategories
+Spark.Api.NodeMemberKind
+Spark.Api.NodeMemberKind.Action = 2 -> Spark.Api.NodeMemberKind
+Spark.Api.NodeMemberKind.Auto = 0 -> Spark.Api.NodeMemberKind
+Spark.Api.NodeMemberKind.Create = 1 -> Spark.Api.NodeMemberKind
+Spark.Api.NodeMemberKind.Query = 3 -> Spark.Api.NodeMemberKind
 Spark.Api.NodeDefinitionSource
 Spark.Api.NodeDefinitionSource.ContentHash.get -> string!
 Spark.Api.NodeDefinitionSource.ContentHash.init -> void
@@ -224,6 +229,8 @@ Spark.Api.SparkNodeAttribute.Category.get -> string?
 Spark.Api.SparkNodeAttribute.Category.set -> void
 Spark.Api.SparkNodeAttribute.DefaultLacing.get -> Spark.Api.LacingMode
 Spark.Api.SparkNodeAttribute.DefaultLacing.set -> void
+Spark.Api.SparkNodeAttribute.Kind.get -> Spark.Api.NodeMemberKind
+Spark.Api.SparkNodeAttribute.Kind.set -> void
 Spark.Api.SparkNodeAttribute.Name.get -> string?
 Spark.Api.SparkNodeAttribute.Name.set -> void
 Spark.Api.SparkNodeAttribute.SparkNodeAttribute() -> void

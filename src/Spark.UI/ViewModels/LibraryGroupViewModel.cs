@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Spark.Api;
 
 namespace Spark.UI.ViewModels;
 
@@ -33,13 +34,51 @@ public sealed partial class LibraryGroupViewModel : ObservableObject
 
         Category = category;
         Entries = [.. entries];
+
+        // Built here rather than by the panel, so the two collections cannot fall out of step: a
+        // subgroup is a view of `Entries`, not a second list that has to be kept level with it.
+        // Empty kinds are omitted rather than shown at zero — a `Create` heading over nothing is a
+        // row that costs a line and answers no question.
+        foreach (NodeMemberKind kind in Kinds)
+        {
+            List<LibraryEntryViewModel> matching = [];
+            foreach (LibraryEntryViewModel entry in Entries)
+            {
+                if (entry.Kind == kind)
+                {
+                    matching.Add(entry);
+                }
+            }
+
+            if (matching.Count > 0)
+            {
+                Subgroups.Add(new LibraryKindGroupViewModel(kind, matching));
+            }
+        }
     }
+
+    /// <summary>
+    /// The three kinds, in the order the panel shows them.
+    /// </summary>
+    /// <remarks>
+    /// <b>Create, then Action, then Query</b> — the order a graph is built in rather than
+    /// alphabetical. You make a thing before you change it and change it before you measure it, and
+    /// that is the order Dynamo shows them in for the same reason.
+    /// </remarks>
+    private static readonly NodeMemberKind[] Kinds =
+        [NodeMemberKind.Create, NodeMemberKind.Action, NodeMemberKind.Query];
 
     /// <summary>The category's name, as it is written on the node's attribute.</summary>
     public string Category { get; }
 
     /// <summary>The entries filed under it, in library order.</summary>
     public ObservableCollection<LibraryEntryViewModel> Entries { get; }
+
+    /// <summary>
+    /// The same entries split into <b>Create</b>, <b>Action</b> and <b>Query</b> blocks
+    /// (<c>E8-T29</c>), skipping any block that would be empty.
+    /// </summary>
+    public ObservableCollection<LibraryKindGroupViewModel> Subgroups { get; } = [];
 
     /// <summary>
     /// How many entries the group holds, shown beside its name.

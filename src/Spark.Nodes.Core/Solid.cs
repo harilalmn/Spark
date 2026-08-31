@@ -33,6 +33,7 @@ public static class Solid
     /// <param name="width">Its extent along the plane's y-axis.</param>
     /// <param name="height">Its extent along the plane's normal.</param>
     /// <returns>The solid.</returns>
+    [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("solid")]
     public static Brep Box(Spark.Geometry.Plane plane, double length = 1, double width = 1, double height = 1) =>
         BrepPrimitives.Box(plane, length, width, height);
@@ -42,6 +43,7 @@ public static class Solid
     /// <param name="radius">The radius.</param>
     /// <param name="height">How tall it is.</param>
     /// <returns>The solid.</returns>
+    [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("solid")]
     public static Brep Cylinder(Spark.Geometry.Plane plane, double radius = 1, double height = 1) =>
         BrepPrimitives.Cylinder(plane, radius, height);
@@ -74,6 +76,7 @@ public static class Solid
     /// <param name="profile">The closed curve to sweep.</param>
     /// <param name="direction">Which way and how far.</param>
     /// <returns>The solid.</returns>
+    [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("solid")]
     public static Brep Extrude(Spark.Geometry.Curve profile, Vector3d direction) =>
         Unwrap(BrepKernel.Current.Extrude(profile, direction, cap: true, Tolerance.Default));
@@ -86,6 +89,7 @@ public static class Solid
     /// The general case of <see cref="Extrude"/>, which sweeps along a straight line. Use that
     /// one when the path is straight — it needs no second curve and is what most graphs mean.
     /// </remarks>
+    [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("solid")]
     public static Brep Sweep(Spark.Geometry.Curve profile, Spark.Geometry.Curve rail) =>
         Unwrap(BrepKernel.Current.Sweep(profile, rail, cap: true, Tolerance.Default));
@@ -98,6 +102,7 @@ public static class Solid
     /// a patch is handed a circuit and finds a surface that meets it. Asking for one when you
     /// meant the other produces a plausible answer to the wrong question.
     /// </remarks>
+    [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("patch")]
     public static Brep Patch(IReadOnlyList<Spark.Geometry.Curve> boundary) =>
         Unwrap(BrepKernel.Current.Patch(boundary, Tolerance.Default));

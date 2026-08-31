@@ -1,5 +1,8 @@
 using System;
+using Avalonia.Media;
+using Spark.Api;
 using Spark.Engine;
+using Spark.UI.Theming;
 
 namespace Spark.UI.ViewModels;
 
@@ -20,6 +23,8 @@ public sealed class LibraryEntryViewModel
         Key = definition.Key.Value;
         DisplayName = definition.DisplayName;
         Category = definition.Category;
+        Kind = definition.MemberKind;
+        Rail = NodeKindGlyphs.BrushOf(definition.MemberKind);
         Description = definition.Description ?? "No description.";
         Signature = Describe(definition);
     }
@@ -39,6 +44,23 @@ public sealed class LibraryEntryViewModel
 
     /// <summary>The library category.</summary>
     public string Category { get; }
+
+    /// <summary>
+    /// Whether the node makes a thing, changes one, or reports something about one — the subgroup
+    /// it is filed under inside its category (<c>E8-T29</c>).
+    /// </summary>
+    public NodeMemberKind Kind { get; }
+
+    /// <summary>
+    /// The colour of the vertical rail drawn down the left of the row, from <see cref="Kind"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>On the row rather than only on the group, and that is what makes the rail continuous.</b>
+    /// The line beside a block of entries is the left border of each entry in it, drawn with no
+    /// margin between the rows; the spacing the client asked for is padding <i>inside</i> each
+    /// border. A margin between rows would have chopped the line into dashes.
+    /// </remarks>
+    public IBrush Rail { get; }
 
     /// <summary>One paragraph describing the node, from its author's XML comment.</summary>
     public string Description { get; }

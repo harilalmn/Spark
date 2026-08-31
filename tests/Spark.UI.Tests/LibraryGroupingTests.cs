@@ -151,6 +151,91 @@ public sealed class LibraryGroupingTests
             group => Assert.Contains(group.Category, known, StringComparer.Ordinal));
     }
 
+    /// <summary>
+    /// Every entry in a category lands in exactly one of its Create / Action / Query blocks.
+    /// </summary>
+    /// <remarks>
+    /// <b>The subgroups are a view of <c>Entries</c>, not a second list</b> (<c>E8-T29</c>), so
+    /// this is what says the view has not lost anything. A node whose kind matched none of the
+    /// three would simply vanish from the panel with no error raised anywhere — the tree renders
+    /// the subgroups and never the flat list.
+    /// </remarks>
+    [Fact]
+    public void EveryEntryLandsInExactlyOneSubgroup()
+    {
+        MainWindowViewModel model = new();
+
+        foreach (LibraryGroupViewModel group in model.LibraryGroups)
+        {
+            Assert.Equal(group.Entries.Count, group.Subgroups.Sum(kind => kind.Entries.Count));
+
+            Assert.Equal(
+                group.Entries.OrderBy(e => e.Key, StringComparer.Ordinal).Select(e => e.Key),
+                group.Subgroups
+                    .SelectMany(kind => kind.Entries)
+                    .OrderBy(e => e.Key, StringComparer.Ordinal)
+                    .Select(e => e.Key));
+        }
+    }
+
+    /// <summary>A block holds only the kind it is named for, and its rail matches.</summary>
+    [Fact]
+    public void ASubgroupHoldsOnlyItsOwnKind()
+    {
+        MainWindowViewModel model = new();
+
+        foreach (LibraryKindGroupViewModel subgroup in model.LibraryGroups.SelectMany(g => g.Subgroups))
+        {
+            Assert.All(subgroup.Entries, entry => Assert.Equal(subgroup.Kind, entry.Kind));
+
+            // The rail is on the entry as well as on the block, because the continuous vertical
+            // line beside a block is the left border of each row in it. Two sources for one colour
+            // is exactly the kind of thing that goes wrong silently.
+            Assert.All(subgroup.Entries, entry => Assert.Same(subgroup.Rail, entry.Rail));
+        }
+    }
+
+    /// <summary>
+    /// <b>Create, then Action, then Query</b> — the order a graph is built in, never alphabetical.
+    /// </summary>
+    /// <remarks>
+    /// You make a thing before you change it and change it before you measure it. Dynamo shows them
+    /// in this order for the same reason, and a user arriving from it should not have to re-learn
+    /// where to look.
+    /// </remarks>
+    [Fact]
+    public void SubgroupsAreInBuildOrder()
+    {
+        MainWindowViewModel model = new();
+
+        foreach (LibraryGroupViewModel group in model.LibraryGroups)
+        {
+            NodeMemberKind[] kinds = [.. group.Subgroups.Select(s => s.Kind)];
+            NodeMemberKind[] expected =
+                [.. new[] { NodeMemberKind.Create, NodeMemberKind.Action, NodeMemberKind.Query }
+                    .Where(kinds.Contains)];
+
+            Assert.Equal(expected, kinds);
+        }
+    }
+
+    /// <summary>
+    /// An empty block is not shown at all.
+    /// </summary>
+    /// <remarks>
+    /// A <c>Create</c> heading over nothing costs a line and answers no question, and three of them
+    /// per category would undo the compression the split was for.
+    /// </remarks>
+    [Fact]
+    public void NoSubgroupIsEmpty()
+    {
+        MainWindowViewModel model = new();
+
+        Assert.All(
+            model.LibraryGroups.SelectMany(g => g.Subgroups),
+            subgroup => Assert.NotEmpty(subgroup.Entries));
+    }
+
     /// <summary>A node built by the user reaches the tree, not only the flat list.</summary>
     [Fact]
     public void APublishedCustomNodeReachesTheTree()

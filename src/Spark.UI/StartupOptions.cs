@@ -91,6 +91,12 @@ namespace Spark.UI;
 /// asserted in a headless test, because headless drawing produces no pixels. It can only be looked
 /// at, and looking at it needs a click that a headless run cannot make.
 /// </param>
+/// <param name="LibrarySearch">
+/// A query to type into the library panel's search box at startup (<c>--library "text"</c>), or
+/// null. Aimed at the screenshot path for the reason <c>--select</c> is: the library's groups start
+/// closed, so a capture of the running application shows ten headings and none of the structure
+/// underneath them.
+/// </param>
 /// <param name="BenchmarkZoom">
 /// A zoom to pin the benchmark at, or zero to sweep. Pinning is what separates "how much does the
 /// graph cost" from "how much does what is on screen cost", which is the claim ADR-0013 actually
@@ -113,7 +119,8 @@ public readonly record struct StartupOptions(
     string? ReferenceAssembly = null,
     int FreezeFirst = 0,
     int CollapseFirst = 0,
-    int SelectFirst = 0)
+    int SelectFirst = 0,
+    string? LibrarySearch = null)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
     public static StartupOptions Default => new(0, 0, 0, null, null, null);
@@ -203,6 +210,7 @@ public readonly record struct StartupOptions(
         int freezeFirst = 0;
         int collapseFirst = 0;
         int selectFirst = 0;
+        string? librarySearch = null;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -282,6 +290,10 @@ public readonly record struct StartupOptions(
                     selectFirst = ParseCount(args[++i], 0);
                     break;
 
+                case "--library" when i + 1 < args.Length:
+                    librarySearch = args[++i];
+                    break;
+
                 case "--help-window":
                     helpTopic = "nodes.index";
                     if (i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal))
@@ -305,7 +317,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch);
     }
 
     private static int ParseCount(string text, int fallback) =>

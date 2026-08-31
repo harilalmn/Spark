@@ -65,7 +65,7 @@ public static class ListNodes
     /// <param name="list">The list.</param>
     /// <returns>The first item.</returns>
     /// <exception cref="ArgumentException">The list is empty.</exception>
-    [SparkNode(Name = "List.FirstItem")]
+    [SparkNode(Name = "List.FirstItem", Kind = NodeMemberKind.Query)]
     [return: NodePort("item")]
     public static object? FirstItem([KeepStructure] object? list) => Single(list, first: true);
 
@@ -73,14 +73,14 @@ public static class ListNodes
     /// <param name="list">The list.</param>
     /// <returns>The last item.</returns>
     /// <exception cref="ArgumentException">The list is empty.</exception>
-    [SparkNode(Name = "List.LastItem")]
+    [SparkNode(Name = "List.LastItem", Kind = NodeMemberKind.Query)]
     [return: NodePort("item")]
     public static object? LastItem([KeepStructure] object? list) => Single(list, first: false);
 
     /// <summary>The list in the opposite order.</summary>
     /// <param name="list">The list.</param>
     /// <returns>The reversed list.</returns>
-    [SparkNode(Name = "List.Reverse")]
+    [SparkNode(Name = "List.Reverse", Kind = NodeMemberKind.Action)]
     [return: NodePort("list")]
     public static SparkList Reverse([KeepStructure] object? list)
     {
@@ -119,7 +119,7 @@ public static class ListNodes
     /// Compared by value, which is what makes it useful on geometry: the value layer is built of
     /// equatable structs, so two points computed by different routes are one point here.
     /// </remarks>
-    [SparkNode(Name = "List.UniqueItems")]
+    [SparkNode(Name = "List.UniqueItems", Kind = NodeMemberKind.Action)]
     [return: NodePort("list")]
     public static SparkList UniqueItems([KeepStructure] object? list)
     {
@@ -141,7 +141,7 @@ public static class ListNodes
     /// <param name="count">How many times. Not negative.</param>
     /// <returns>The list.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
-    [SparkNode(Name = "List.OfRepeatedItem")]
+    [SparkNode(Name = "List.OfRepeatedItem", Kind = NodeMemberKind.Create)]
     [return: NodePort("list")]
     public static SparkList OfRepeatedItem([KeepStructure] object? value, int count = 1)
     {
@@ -161,7 +161,7 @@ public static class ListNodes
     /// correspondence between items that the rank was carrying — and a node makes that visible in
     /// the graph.
     /// </remarks>
-    [SparkNode(Name = "List.Flatten")]
+    [SparkNode(Name = "List.Flatten", Kind = NodeMemberKind.Action)]
     [return: NodePort("list")]
     public static SparkList Flatten([KeepStructure] object? list)
     {

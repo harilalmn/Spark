@@ -49,6 +49,18 @@ public sealed class SparkNodeAttribute : Attribute
     /// chain. A definition that declares no default gets <see cref="LacingMode.Longest"/>.
     /// </remarks>
     public LacingMode DefaultLacing { get; set; } = LacingMode.Longest;
+
+    /// <summary>
+    /// Whether the node makes a thing, changes one, or reports something about one — the second
+    /// axis the library panel files nodes on (<c>E8-T29</c>).
+    /// </summary>
+    /// <remarks>
+    /// Left at <see cref="NodeMemberKind.Auto"/> the importer infers it from the node's ports and
+    /// its name, which is right for most of the library and wrong for the nodes whose shape does
+    /// not match what they mean — <c>Number.Value</c> takes a number and returns one, so it looks
+    /// like an action and is plainly a way of <i>making</i> a number. Say so here when it is.
+    /// </remarks>
+    public NodeMemberKind Kind { get; set; } = NodeMemberKind.Auto;
 }
 
 /// <summary>
