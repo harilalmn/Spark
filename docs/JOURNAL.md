@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 01:00 +0530
+**Last updated:** 2026-09-02 01:25 +0530
 **Protocol version:** 2
 
 ---
@@ -16,12 +16,12 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Cutting `v0.1.0`, the first release.** The client said the one word the procedure in [AGENTS.md](../AGENTS.md#cutting-a-release) is written for. **The number is `0.1.0`**: nothing has ever been tagged, so it cannot be a patch, and `1.0.0` would promise a stability M8 has not reached — the Help pass is unwritten, nothing is signed, and STEP's acceptance still needs a third-party viewer. Pre-1.0, `0.x` promises nothing, which is the honest thing for a first build to say. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`E8-T38` — a node is grey until somebody colours it.** The library category no longer decides the header fill; `cat.custom` grey does, and `E8-T35`'s dropdown is how a user marks the nodes that matter. **2,374 tests.** |
-| **Working tree** | Clean at the moment this was written. |
-| **Next action** | **Tag `v0.1.0` and push it; the workflow publishes.** The gates are green at 2,374 tests and the four public-API baselines have been promoted from `Unshipped` to `Shipped` — the first release is what they ship against, and `E1-T23` said they would stay empty until there was one. **Then report the release URL and say plainly that nothing is signed**, which is `E13-T17`'s remaining half and needs an identity a session cannot produce. |
+| **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.1.0` shipped on 2026-09-02** — the first tag in the repository's history, and the first time the release pipeline has run end to end rather than been argued about. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
+| **Working on** | **Nothing. The tree is clean, the gates are green, and `v0.1.0` is tagged and pushed.** |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`v0.1.0` — the first release.** Tagged at `721d2a9` after the three gates, with the four public-API baselines promoted from `Unshipped` to `Shipped` because a release is what they ship against. The workflow builds, tests, formats, builds the native shim, packs the portable zip and the installer, checks the artefact's version against the tag, and publishes. **Nothing is signed**, and the release notes say so rather than letting a user find SmartScreen on their own. **2,374 tests.** |
+| **Working tree** | Clean at the moment this was written; `main` and `v0.1.0` are pushed. |
+| **Next action** | **Watch the first release actually publish** — this is the one link no test could reach, and it is now running for the first time: `scripts/check-version.ps1` reading a version back out of a built assembly, the installer packed by the workflow rather than by hand, and the update endpoint the application polls. **If it fails, the fix is a commit and a new tag, never a moved one.** **Then the Help pass**: `E10-T3` (the help index), then `E11-T2`'s XML `<example>` half, then E10-T9/T10/T12/T14 — and the code editor has earned two topics of its own, because nothing outside `TASKS.md` tells a user that Ctrl+D exists. **And a dirty flag is owed**: New and Open both discard unsaved work without asking. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2343**: Geometry.Tests 763, UI.Tests 765, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets. **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
@@ -5602,4 +5602,39 @@ category**, because *what kind of node is this* is the question the library exis
 **Verified.** Photographed at 120%: every header grey, the port lozenges reading clearly against
 them, and the library still colour-coded. One test replaced by two — that an uncoloured node is
 grey, and that it still knows what it is. **2,374 tests**, all three gates clean.
+
+### 2026-09-02 — `v0.1.0`: the first tag
+
+**What.** The client said the one word the procedure in
+[AGENTS.md](../AGENTS.md#cutting-a-release) exists for. `v0.1.0` is tagged at `721d2a9` and pushed;
+the workflow does the rest.
+
+**Why that number, in one sentence, as the procedure asks.** Nothing has ever been tagged, so it
+cannot be a patch; and `1.0.0` would promise a stability M8 has not reached — the Help pass is
+unwritten, nothing is signed, and STEP's acceptance still wants a third-party viewer. Pre-1.0,
+`0.x` promises nothing, which is the honest thing for a first build to say.
+
+**The public-API baselines were promoted as part of it.** `E1-T23` wrote down that
+`PublicAPI.Shipped.txt` would stay empty *until there was a release to ship against*; this is that
+release, so 353 members in `Spark.Api`, 1,039 in `Spark.Geometry`, 19 in `Spark.Geometry.Io` and
+160 in `Spark.Nodes.Core` moved across. From here a shipped member that changes or vanishes is a
+diff in a checked-in file that somebody has to explain, which is what makes the SemVer rule in
+AGENTS readable rather than remembered — and it answers the half of NFR-6 that was waiting for a
+release to exist.
+
+**The gates ran before the tag, deliberately.** A tag is permanent in a way a commit is not: a
+machine that has already fetched one keeps the old commit forever, so moving it is worse than the
+mistake it fixes. Build clean under `--no-incremental -warnaserror`, `dotnet format` clean, and all
+nine test executables green at **2,374**.
+
+**What this run is actually testing, and what no test could.** Everything up to the tag has been
+verified for weeks; the tag is what exercises `release.yml` end to end for the first time —
+`fetch-depth: 0`, MinVer deriving the version from the tag, `scripts/check-version.ps1` reading it
+back out of a built assembly, the installer packed by the workflow rather than by hand, and the
+update endpoint the application polls. **If any of it fails, the fix is a commit and a new tag.**
+
+**Said plainly, because the procedure says to say it plainly: nothing is signed.** The installer
+and the executables carry no Authenticode signature, so the first run shows a SmartScreen warning.
+That needs a certificate issued to a verified identity — `E13-T17`'s remaining half, and not
+something a session can produce.
 

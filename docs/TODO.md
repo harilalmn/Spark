@@ -5,7 +5,7 @@ What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full i
 
 **Last updated:** 2026-09-01 (E6-T22 to E6-T25, E9-T13 and E8-T33 to E8-T37 closed: the code editor's IntelliSense and Selection menu, typed code-block outputs, the two docking defects, click-to-connect, node names and colours, Dynamo-style port lozenges, New, Control+drag to copy, and grey node headers)
 
-**M0 through M6 have all landed. M7 has started.** The application opens, a graph evaluates,
+**`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
 combined exactly**. `--graph solids` fuses a box to a cylinder, drills a hole through both, hollows
 a second box and rounds every edge of a third. **F1 opens help for the selected node.** Selecting a
