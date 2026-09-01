@@ -185,6 +185,9 @@ public sealed class GraphCanvas : Control
     /// A hand on a mouse moves a pixel or two between press and release, and a wire that refused to
     /// arm because of it would be a feature that works for some people and not others.
     /// </remarks>
+    /// <summary>The inset from a port tab's outer end to its name.</summary>
+    private const double PortTabTextInset = 8;
+
     private const double ClickSlopScreen = 3;
 
     private const double WireHitScreenSize = 6;
@@ -1753,10 +1756,21 @@ public sealed class GraphCanvas : Control
 
         bool shaped = detail >= CanvasDetail.Lip;
 
+        // The tabs are drawn at any detail that draws port names at all. Below that a node is a
+        // silhouette and its ports are the dots §7.6 asks for, because a lozenge with no room for
+        // a word in it is a rectangle that means nothing.
+        bool tabs = CanvasLevelOfDetail.DrawsPortLabels(detail);
+
         for (int i = 0; i < node.Inputs.Count; i++)
         {
             node.InputPortCentre(i, out double x, out double y);
             CanvasPort port = new(slot, i, IsOutput: false);
+
+            if (tabs)
+            {
+                DrawPortTab(context, pens, node, port, i);
+            }
+
             DrawPort(context, pens, port, x, y, radius, shaped ? node.Inputs[i].DeclaredRank : 0);
         }
 
@@ -1764,7 +1778,65 @@ public sealed class GraphCanvas : Control
         {
             node.OutputPortCentre(i, out double x, out double y);
             CanvasPort port = new(slot, i, IsOutput: true);
+
+            if (tabs)
+            {
+                DrawPortTab(context, pens, node, port, i);
+            }
+
             DrawPort(context, pens, port, x, y, radius, shaped ? node.Outputs[i].DeclaredRank : 0);
+        }
+    }
+
+    /// <summary>
+    /// Draws a port as the lozenge that carries its name (`E8-T36`).
+    /// </summary>
+    /// <remarks>
+    /// <b>The tab is the target, and it is drawn so that it looks like one.</b> A connected port
+    /// fills in <c>port.connected</c>, an unconnected one sits on a raised surface, and the hovered
+    /// one takes the accent outline every other hoverable thing on this canvas takes — so the thing
+    /// a user is about to click is the thing that lit up, which is the whole reason to draw a port
+    /// bigger than a dot.
+    /// </remarks>
+    private void DrawPortTab(
+        DrawingContext context, in FramePens pens, CanvasNode node, CanvasPort port, int index)
+    {
+        node.PortTab(index, port.IsOutput, out double left, out double top, out double right, out double bottom);
+
+        Rect rect = new(left, top, right - left, bottom - top);
+        RoundedRect rounded = new(rect, (bottom - top) / 2);
+
+        bool hovered = _hoverPort == port;
+        bool connected = _connectedPorts.Contains(port);
+
+        // An INSET WELL, not a raised chip. A port is a socket - something a wire goes into - and
+        // `surface.sunken` is the token the design language names for exactly that (§7.1), so a
+        // port reads as a hole in the node rather than as a button on it. It is also the ground
+        // `text.primary` is measured against, which is what keeps the name inside it legible.
+        IBrush fill = connected
+            ? SparkPalette.Frozen(SparkPalette.Mix(SparkPalette.SurfaceSunken, SparkPalette.PortConnected, 0.45))
+            : SparkPalette.Frozen(SparkPalette.SurfaceSunken);
+
+        context.DrawRectangle(fill, hovered ? pens.AccentThin : null, rounded);
+
+        string name = port.IsOutput ? node.Outputs[index].Name : node.Inputs[index].Name;
+
+        if (name.Length == 0)
+        {
+            return;
+        }
+
+        FormattedText run = LabelRun(name);
+
+        // Clipped to the tab, so a name too long for the lozenge is cut by it rather than running
+        // out across the node's own body.
+        using (context.PushClip(rect))
+        {
+            double x = port.IsOutput
+                ? right - PortTabTextInset - run.Width
+                : left + PortTabTextInset;
+
+            context.DrawText(run, new Point(x, ((top + bottom) / 2) - (run.Height / 2)));
         }
     }
 
@@ -1824,9 +1896,10 @@ public sealed class GraphCanvas : Control
 
             if (row < node.Inputs.Count)
             {
-                FormattedText name = LabelRun(node.Inputs[row].Name);
-                context.DrawText(name, new Point(leftEnd, y - (name.Height / 2)));
-                leftEnd += name.Width;
+                // The name itself is drawn inside the port's tab (`E8-T36`); what is left here is
+                // the room it takes, so the type beside it still starts clear of the lozenge.
+                node.PortTab(row, isOutput: false, out _, out _, out double tabRight, out _);
+                leftEnd = Math.Max(leftEnd, tabRight + PortLabelInset);
             }
 
             if (row < node.Outputs.Count)
@@ -2796,7 +2869,9 @@ public sealed class GraphCanvas : Control
             for (int i = 0; i < node.Inputs.Count; i++)
             {
                 node.InputPortCentre(i, out double x, out double y);
-                if (Math.Abs(x - world.X) <= reach && Math.Abs(y - world.Y) <= reach)
+
+                if ((Math.Abs(x - world.X) <= reach && Math.Abs(y - world.Y) <= reach)
+                    || InPortTab(node, i, isOutput: false, world))
                 {
                     return new CanvasPort(slot, i, IsOutput: false);
                 }
@@ -2805,7 +2880,9 @@ public sealed class GraphCanvas : Control
             for (int i = 0; i < node.Outputs.Count; i++)
             {
                 node.OutputPortCentre(i, out double x, out double y);
-                if (Math.Abs(x - world.X) <= reach && Math.Abs(y - world.Y) <= reach)
+
+                if ((Math.Abs(x - world.X) <= reach && Math.Abs(y - world.Y) <= reach)
+                    || InPortTab(node, i, isOutput: true, world))
                 {
                     return new CanvasPort(slot, i, IsOutput: true);
                 }
@@ -2813,6 +2890,20 @@ public sealed class GraphCanvas : Control
         }
 
         return null;
+    }
+
+    /// <summary>Whether a point is inside a port's tab, which is the whole of the target.</summary>
+    /// <remarks>
+    /// <b>This is the reason the tabs exist</b> (`E8-T36`): the port's name is part of the port, so
+    /// clicking the word <c>radius</c> starts the wire that <c>radius</c> wants. The disc's own
+    /// screen-space reach is still tested as well, because it extends *outside* the node where the
+    /// tab does not, and that is where a wire is aimed from.
+    /// </remarks>
+    private static bool InPortTab(CanvasNode node, int index, bool isOutput, Point world)
+    {
+        node.PortTab(index, isOutput, out double left, out double top, out double right, out double bottom);
+
+        return world.X >= left && world.X <= right && world.Y >= top && world.Y <= bottom;
     }
 
     private void PortCentre(CanvasPort port, out double x, out double y)

@@ -869,6 +869,16 @@ port rather than stopping next to it.
 The **hit target is 14 × 14 px regardless of the drawn size**, and it does not shrink below 10 px
 of screen space as you zoom out. Ports are the smallest thing anyone has to aim at in the product.
 
+**A port is a lozenge carrying its own name, and the whole lozenge is the target.** It is an inset
+well in `surface.sunken` — a port is a socket, something a wire goes *into*, so it reads as a hole
+in the node rather than as a button on it — flush with the node's edge, 15 px tall, as wide as the
+word with 8 px either side and never wider than two fifths of the node. A connected one fills 45%
+towards `port.connected`; the hovered one takes the same `accent` outline everything hoverable on
+this canvas takes. **The point of the shape is the target**: clicking the word `radius` starts the
+wire that `radius` wants, which is a fifty-pixel target instead of a five-pixel one. Below the zoom
+that draws port names, the lozenges go and the discs are all that is left, because a lozenge with
+no room for a word in it is a rectangle that means nothing.
+
 **The port disc is 7 px and its hit target is 18.** It was 5 px over 14 and a user reported that
 the dots were hard to pick — which is the one complaint a canvas cannot argue with, because a port
 is the smallest thing anybody has to aim at and it is where every wire starts. The disc grew with

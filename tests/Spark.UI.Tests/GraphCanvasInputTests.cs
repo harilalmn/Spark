@@ -295,6 +295,40 @@ public sealed class GraphCanvasInputTests
         Assert.Equal(1, canvas.Graph.Wires[0].To.NodeIndex);
     });
 
+    /// <summary>
+    /// <b>The port's name is part of the port</b> — `E8-T36`, which is the whole reason for drawing
+    /// a port as a lozenge: clicking the word <c>x</c> starts the wire that <c>x</c> wants, from
+    /// twenty pixels inside the node rather than from a disc on its edge.
+    /// </summary>
+    [Fact]
+    public void ClickingAPortsNameStartsItsWire() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+
+        CanvasNode node = canvas.Graph.Nodes[1];
+        node.PortTab(0, isOutput: false, out double left, out double top, out double right, out double bottom);
+
+        Point inside = Screen(canvas, (left + right) / 2, (top + bottom) / 2);
+
+        window.MouseMove(inside, RawInputModifiers.None);
+
+        Assert.NotNull(canvas.HoveredPort);
+        Assert.Equal(1, canvas.HoveredPort!.Value.NodeIndex);
+        Assert.False(canvas.HoveredPort.Value.IsOutput);
+
+        // And it connects from there, without ever touching the disc on the node's edge.
+        canvas.Graph.Nodes[0].OutputPortCentre(0, out double fromX, out double fromY);
+        Point from = Screen(canvas, fromX, fromY);
+
+        window.MouseDown(from, MouseButton.Left, RawInputModifiers.None);
+        window.MouseUp(from, MouseButton.Left, RawInputModifiers.None);
+        window.MouseMove(inside, RawInputModifiers.None);
+        window.MouseDown(inside, MouseButton.Left, RawInputModifiers.None);
+        window.MouseUp(inside, MouseButton.Left, RawInputModifiers.None);
+
+        Assert.Single(canvas.Graph.Wires);
+    });
+
     /// <summary>A click on empty canvas abandons a wire a click armed, and selects nothing.</summary>
     [Fact]
     public void ClickingAwayAbandonsAPendingWire() => OnUiThread(() =>

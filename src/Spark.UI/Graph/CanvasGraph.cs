@@ -123,6 +123,15 @@ public sealed class CanvasNode
     /// <summary>The radius of the draggable thumb.</summary>
     public const double SliderThumbRadius = 6;
 
+    /// <summary>The height of a port's tab, from §7.4.</summary>
+    public const double PortTabHeight = 15;
+
+    /// <summary>The narrowest a port tab is drawn, so a one-letter port is still a target.</summary>
+    public const double PortTabMinimumWidth = 26;
+
+    /// <summary>The space either side of a port's name inside its tab.</summary>
+    private const double PortTabPadding = 8;
+
     /// <summary>The horizontal inset a port label starts at, on either side.</summary>
     private const double PortInset = 9;
 
@@ -424,6 +433,49 @@ public sealed class CanvasNode
     {
         x = X;
         y = Y + HeaderHeight + (PortPitch * (index + 0.5));
+    }
+
+    /// <summary>
+    /// The lozenge a port is drawn as, and the whole of what a click on it may land on (`E8-T36`).
+    /// </summary>
+    /// <param name="index">The zero-based port index.</param>
+    /// <param name="isOutput">Whether it is an output port.</param>
+    /// <param name="left">The tab's left edge.</param>
+    /// <param name="top">Its top edge.</param>
+    /// <param name="right">Its right edge.</param>
+    /// <param name="bottom">Its bottom edge.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>A port is a tab carrying its own name, not a dot beside a label</b> — which is Dynamo's
+    /// shape, and the client asked for it by name for the reason it is worth copying: the target is
+    /// the width of the word rather than the width of a disc. A five-pixel dot is a hard thing to
+    /// hit with a mouse and an unreasonable one with a trackpad; a fifty-pixel lozenge is neither.
+    /// </para>
+    /// <para>
+    /// It is flush with the node's edge and grows inwards, so the wire still meets the node where
+    /// it always did and nothing outside the node's bounds has to be hit-tested or redrawn.
+    /// </para>
+    /// </remarks>
+    public void PortTab(
+        int index, bool isOutput, out double left, out double top, out double right, out double bottom)
+    {
+        string name = isOutput
+            ? (index >= 0 && index < Outputs.Count ? Outputs[index].Name : string.Empty)
+            : (index >= 0 && index < Inputs.Count ? Inputs[index].Name : string.Empty);
+
+        // Wide enough for the word with room either side, never wider than two fifths of the node —
+        // the two tabs plus the type labels between them have to fit on one row.
+        double width = System.Math.Clamp(
+            (name.Length * PortCharWidth) + (PortTabPadding * 2),
+            PortTabMinimumWidth,
+            System.Math.Max(PortTabMinimumWidth, Width * 0.4));
+
+        double centre = Y + HeaderHeight + (PortPitch * (index + 0.5));
+
+        top = centre - (PortTabHeight / 2);
+        bottom = centre + (PortTabHeight / 2);
+        left = isOutput ? X + Width - width : X;
+        right = left + width;
     }
 
     /// <summary>The world position of an output port's centre.</summary>
