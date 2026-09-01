@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 13:20 +0530
+**Last updated:** 2026-09-01 15:10 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | **Nothing. The tree is clean and the gates are green.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E6-T24` — VS Code's Selection menu, in the code block editor.** All fourteen commands, VS Code's bindings, in a context menu on the editor. Eight of them need multiple carets and AvaloniaEdit has one, so there is now a caret layer: `TextAnchor` pairs the document moves through every edit, a background renderer that draws them, and text input applied at every caret **inside one document update, so Ctrl+Z takes the whole edit back once** ([N97](NOTES.md)). Photographing it is what found `N98`: both popups were a sliver at the right edge of a 280 px pane, on the one axis the headless harness cannot assert. **2,328 tests.** |
+| **Last completed step** | **`E6-T25` — a code block's output port carries the type its script returns.** Found by a user drawing a wire: a block returning a `Circle` displayed the circle in its own watch and could not be connected to anything that wanted a `Curve`, because every output port was `typeof(object)` and `object` into `Curve` is a narrowing that `TypeCompatibility` refuses on purpose. The type now comes off the semantic model of the compilation that is emitted anyway, and **the disk cache carries it**, or a port would be `Circle` in the session that compiled it and `object` in the one that reopened the file ([N99](NOTES.md)). **2,340 tests.** |
 | **Working tree** | Clean at the moment this was written. |
-| **Next action** | **Cut the first release, when the client says so** — unchanged by these three steps, and still the thing that exercises `release.yml` and the update endpoint end to end. **Then the Help pass**: `E10-T3` (the help index), then `E11-T2`'s XML `<example>` half, then E10-T9/T10/T12/T14 — and the code editor has earned two topics of its own now, because nothing outside `TASKS.md` tells a user that Ctrl+D exists. **Two smaller things are owed and both are quick.** (1) The `tessellate` verb is not wired into `.github/workflows/nightly.yml`. (2) The new nodes from `E4-T13` and `E8-T25` have XML docs but no help topic. **And things deliberately left behind:** a context menu on a *node*; `E3-T13`'s ~200 ms debounce; the Spark mark; code signing. **Three things to watch rather than act on:** `UnloadingReleasesTheScriptAssemblies` and now `TheRunAfterAnUndoRecomputesNothing` have each failed once under full-suite load and passed alone many times; and the three multi-output node examples pass `out var` into a dynamically dispatched call, which does compile ([N94](NOTES.md)). |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2328**: Geometry.Tests 763, UI.Tests 750, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and now the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
+| **Next action** | **Infer the return type from the semantic model, and make the disk cache carry it.** (1) `ScriptOutputTypes.Infer` over the compilation that already exists: the return statements whose nearest enclosing function is the generated `Run`, their expression types from `GetTypeInfo`, one distinct type or `object`; tuple elements one per port. (2) An `ITypeSymbol` is not a `System.Type`, so a mapping that is deliberately partial - special types, arrays, resolvable named types - and falls back to `object` on any doubt, because a wrongly typed port refuses wires that should be legal. (3) **The disk cache has to carry the types**, or a port's type would depend on whether the cache was warm; `CachedScript` grows an outputs list and `GeneratorVersion` goes to 2. **Verify with** new tests in `Spark.UI.Tests` for the inference and for a cache round trip, `TypeCompatibility` accepting Circle into a `Curve` port, and the three gates. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2340**: Geometry.Tests 763, UI.Tests 762, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -5312,4 +5312,49 @@ background renderer cannot be photographed by the harness. Multi-caret editing a
 Backspace, Delete, Enter, Tab and the left/right arrows; anything else drops the extra carets on
 purpose, which is documented rather than fixed. Expand Selection is structural rather than
 semantic, for the reason the control's remarks give.
+
+### 2026-09-01 — `E6-T25`: a code block's output has a type, and the cache has to remember it
+
+**What.** Every code block output port was `typeof(object)`, whatever the script returned. A user
+wrote `return Circle.ByCentreRadius(new Point3d(10, 10, 0), 10);`, watched the properties pane
+display *Circle(centre (10, 10, 0), radius 10)*, and could not connect the block to
+`Curve.PointAtParameter`. That is not a wiring bug: `object` into a port declared `Curve` is a
+**narrowing**, and `TypeCompatibility` refuses narrowing when the wire is drawn, deliberately, so
+that a downcast is a node on the canvas rather than a silent cast inside a wire. The defect was the
+asymmetry — a block's inputs have taken their type from the wire since `E6-T7` and from a
+declaration since `E6-T19`, and its outputs had nothing.
+
+`ScriptOutputTypes.Infer` now reads the type off the semantic model of the compilation that is
+being emitted anyway: the return statements whose nearest enclosing **function** is the generated
+`Run`, one distinct type or nothing, one element per port for a tuple return.
+
+**What surprised me, and it changed the shape of the change.**
+
+*The compile cache had to grow.* Inferring the type needs the compilation that `E6-T10`'s disk
+cache exists to skip. Storing nothing would have made a port `Circle` in the session that compiled
+the block and `object` in every session that reopened the file — a wire that works until you close
+Spark, which is the worst kind of intermittent. So `CachedScript` carries the output ports,
+`GeneratorVersion` goes to 2, and the `.outputs` file is written *before* the `.ports` file that
+marks an entry complete. Port names still come from the syntax on a hit; only types come from the
+entry, and an entry whose port count disagrees with the script is discarded.
+
+*An `ITypeSymbol` is not a `System.Type`, and the honest rule is "when in doubt, object".* A port
+typed **wrongly** is worse than a port typed `object`: it refuses wires that should be legal and
+names a type the user never wrote. So error types, `dynamic`, anonymous types, pointers, nullable
+value types — `double?` is not assignable from `double`, so inferring it would refuse the very wire
+it was inferred for — and any type from an assembly this process has not loaded all stay `object`.
+Named types resolve through **loaded assemblies**, because a type loaded twice from one file is two
+types to `IsAssignableFrom` ([N99](NOTES.md)).
+
+**Verified.** The three gates green; **2,340 tests**, up 12, all in `ScriptOutputTypeTests`.
+**Reverted once to watch them go red, per AGENTS step 7, and eight of the twelve failed** —
+including `ACodeBlockCanBeWiredIntoACurvePortAndRun`, which wires a block returning a circle into
+`Curve.PointAtParameter` and runs the graph, and `TheTypeSurvivesTheDiskCache`, which is the one
+that would otherwise fail only after a restart.
+
+**What is not done.** Two returns of different types leave the port `object` rather than finding a
+common base — `Circle` and `Line` could be called `Curve`, and choosing between the several equally
+true answers is a guess. Nothing types a port from a *runtime* value, and nothing should: ports come
+from compilation, and a port that changed shape when a graph ran would change what is wireable
+after the fact.
 

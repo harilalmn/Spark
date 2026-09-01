@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
+using Spark.Api;
 
 namespace Spark.Scripting;
 
@@ -12,7 +14,14 @@ namespace Spark.Scripting;
 /// </summary>
 /// <param name="Assembly">The emitted assembly's bytes.</param>
 /// <param name="Inputs">The input port names, in port order.</param>
-public readonly record struct CachedScript(byte[] Assembly, IReadOnlyList<string> Inputs);
+/// <param name="Outputs">
+/// The output ports, with the types the compiler inferred for them (`E6-T25`), or empty when the
+/// entry predates that or the types could not be written down.
+/// </param>
+public readonly record struct CachedScript(
+    byte[] Assembly,
+    IReadOnlyList<string> Inputs,
+    IReadOnlyList<ScriptPort> Outputs);
 
 /// <summary>
 /// The on-disk half of the compile cache: a script that has been compiled once is not compiled
@@ -34,12 +43,19 @@ public readonly record struct CachedScript(byte[] Assembly, IReadOnlyList<string
 /// themselves and means the same thing tomorrow.
 /// </para>
 /// <para>
-/// <b>Only the input names are stored beside the assembly.</b> Everything else is re-derivable
-/// without a compiler: the output ports come from the script's syntax, and an input's type is
-/// whatever the graph has wired into it — which the caller already knows, and which is part of the
-/// key, so a cached entry cannot be read back under different types. The input *names* are the one
-/// thing that took a compilation to learn (`E6-T5`), which is exactly why they are the one thing
-/// written down.
+/// <b>What is stored beside the assembly is what a compiler was needed to learn.</b> The input
+/// *names* (`E6-T5`) and, since `E6-T25`, the output *types*: an output port carries whatever the
+/// script's return expression turned out to be, which only a semantic model can say. Everything
+/// else is re-derivable without one — the output port *names* are syntax, and an input's type is
+/// whatever the graph wired into it, which the caller already knows and which is part of the key,
+/// so an entry cannot be read back under different types.
+/// </para>
+/// <para>
+/// <b>The types have to be here, rather than being inferred again on a hit.</b> Inferring them
+/// needs the compilation this cache exists to avoid — so without them a port would be typed
+/// <c>Circle</c> in the session that compiled the block and <c>object</c> in every session that
+/// reopened the file, and a wire drawn in one would be refused in the other. A port whose type
+/// depends on whether a cache was warm is not a type.
 /// </para>
 /// <para>
 /// <b>Every failure here is silent and falls back to compiling.</b> A cache that throws is worse
@@ -59,7 +75,7 @@ public sealed class ScriptAssemblyCache
     /// frame is loaded by a new build and behaves like the code that build no longer writes, which
     /// is the hardest class of bug this cache could produce.
     /// </remarks>
-    public const int GeneratorVersion = 1;
+    public const int GeneratorVersion = 2;
 
     private readonly string? _directory;
 
@@ -102,6 +118,7 @@ public sealed class ScriptAssemblyCache
         {
             string assembly = Path.Combine(_directory, key + ".dll");
             string ports = Path.Combine(_directory, key + ".ports");
+            string outputs = Path.Combine(_directory, key + ".outputs");
 
             if (!File.Exists(assembly) || !File.Exists(ports))
             {
@@ -119,7 +136,7 @@ public sealed class ScriptAssemblyCache
                 return false;
             }
 
-            cached = new CachedScript(bytes, [.. names]);
+            cached = new CachedScript(bytes, [.. names], ReadOutputs(outputs));
 
             return true;
         }
@@ -133,17 +150,19 @@ public sealed class ScriptAssemblyCache
     /// <param name="key">The compile key.</param>
     /// <param name="assembly">The emitted assembly's bytes.</param>
     /// <param name="inputs">The input port names, in port order.</param>
+    /// <param name="outputs">The output ports and their inferred types, in port order.</param>
     /// <exception cref="ArgumentNullException">Any argument is null.</exception>
     /// <remarks>
     /// <b>Written through a temporary file and moved into place</b>, so a reader never sees a
     /// half-written assembly — and the ports file is moved last, because it is what a reader checks
     /// for.
     /// </remarks>
-    public void Write(string key, byte[] assembly, IReadOnlyList<string> inputs)
+    public void Write(string key, byte[] assembly, IReadOnlyList<string> inputs, IReadOnlyList<ScriptPort> outputs)
     {
         ArgumentNullException.ThrowIfNull(key);
         ArgumentNullException.ThrowIfNull(assembly);
         ArgumentNullException.ThrowIfNull(inputs);
+        ArgumentNullException.ThrowIfNull(outputs);
 
         if (_directory is null)
         {
@@ -161,6 +180,11 @@ public sealed class ScriptAssemblyCache
             File.WriteAllBytes(scratch, assembly);
             File.Move(scratch, assemblyPath, overwrite: true);
 
+            // Before the ports file, which stays the completion marker: a reader that finds
+            // `.ports` must find everything the entry promises.
+            File.WriteAllLines(scratch, outputs.Select(Describe));
+            File.Move(scratch, Path.Combine(_directory, key + ".outputs"), overwrite: true);
+
             File.WriteAllLines(scratch, inputs);
             File.Move(scratch, portsPath, overwrite: true);
         }
@@ -169,6 +193,56 @@ public sealed class ScriptAssemblyCache
             // Nothing to do and nothing to report: the script has already compiled, and the only
             // thing lost is a faster start next time.
         }
+    }
+
+    /// <summary>One output port on one line: its name, then the type it carries.</summary>
+    /// <remarks>
+    /// The assembly-qualified name, because a cache entry is local and short-lived — it is keyed on
+    /// a fingerprint of the reference files themselves, so an assembly that changes version
+    /// invalidates the entry before this string is ever read against it. A port whose type cannot
+    /// be written down is written as a name alone and read back as <see cref="object"/>, which is
+    /// what it would have been.
+    /// </remarks>
+    private static string Describe(ScriptPort port) =>
+        port.ValueType == typeof(object) || port.ValueType.AssemblyQualifiedName is not { } qualified
+            ? port.Name
+            : port.Name + "\t" + qualified;
+
+    /// <summary>The output ports an entry recorded, or none at all.</summary>
+    /// <remarks>
+    /// A missing file, an unreadable one or a type that no longer resolves all mean the same thing
+    /// and all answer it the same way: no types, so the caller falls back to what the syntax says.
+    /// </remarks>
+    private static IReadOnlyList<ScriptPort> ReadOutputs(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return [];
+        }
+
+        List<ScriptPort> ports = [];
+
+        foreach (string line in File.ReadAllLines(path))
+        {
+            if (line.Length == 0)
+            {
+                continue;
+            }
+
+            int tab = line.IndexOf('\t', StringComparison.Ordinal);
+
+            if (tab < 0)
+            {
+                ports.Add(new ScriptPort(line, typeof(object)));
+                continue;
+            }
+
+            Type? type = Type.GetType(line[(tab + 1)..], throwOnError: false);
+
+            ports.Add(new ScriptPort(line[..tab], type ?? typeof(object)));
+        }
+
+        return ports;
     }
 
     /// <summary>The default cache directory, or null when there is nowhere sensible to write.</summary>

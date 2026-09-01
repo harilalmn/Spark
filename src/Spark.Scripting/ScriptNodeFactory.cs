@@ -260,7 +260,11 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         if (_persistent.TryRead(diskKey, out CachedScript cached)
             && Bind(cached.Assembly) is { } restored)
         {
-            return Definition(script, inputTypes, cached.Inputs, restored);
+            // The output types were written down beside the assembly because inferring them needs
+            // the compilation this branch exists to skip (`E6-T25`). An entry that has none — one
+            // written before that, or one whose types could not be spelt — falls back to the
+            // syntax, which is what every entry did before.
+            return Definition(script, inputTypes, cached.Inputs, restored, Restore(script, cached.Outputs));
         }
 
         string[] inputs = InferInputs(script);
@@ -319,9 +323,13 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
                     "The script compiled but its entry point could not be bound."));
         }
 
-        _persistent.Write(diskKey, emittedBytes, inputs);
+        // `E6-T25`. From the compilation that has just been emitted, so nothing extra is compiled
+        // to learn what the script returns.
+        ScriptPort[] outputs = ScriptOutputTypes.Infer(compilation, tree, OutputsOf(script));
 
-        return Definition(script, inputTypes, inputs, entry);
+        _persistent.Write(diskKey, emittedBytes, inputs, outputs);
+
+        return Definition(script, inputTypes, inputs, entry, outputs);
     }
 
     /// <summary>Builds the definition around an entry point, however it was obtained.</summary>
@@ -333,14 +341,15 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         string script,
         IReadOnlyDictionary<string, Type> inputTypes,
         IReadOnlyList<string> inputs,
-        Func<object?[], CancellationToken, object?> entry)
+        Func<object?[], CancellationToken, object?> entry,
+        ScriptPort[]? outputs = null)
     {
         ScriptPort[] inputPorts =
         [
             .. inputs.Select(name => new ScriptPort(name, DeclaredType(name, inputTypes) ?? typeof(object))),
         ];
 
-        ScriptPort[] outputPorts = OutputsOf(script);
+        ScriptPort[] outputPorts = outputs ?? OutputsOf(script);
 
         return new NodeDefinitionSource(
             "CodeBlock",
@@ -349,6 +358,40 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             outputPorts,
             (arguments, cancellationToken) =>
                 Unpack(entry(arguments, cancellationToken), outputPorts.Length));
+    }
+
+    /// <summary>
+    /// The output ports a cache entry recorded, or null when it did not record usable ones.
+    /// </summary>
+    /// <remarks>
+    /// <b>The names still come from the syntax and only the types come from the entry.</b> A tuple
+    /// element's name exists nowhere but the source, and the source is in front of us; taking the
+    /// count from the file as well would let a stale entry give a block the wrong number of ports,
+    /// which is a defect nothing downstream could diagnose. So an entry whose port count disagrees
+    /// with the script is discarded rather than trusted.
+    /// </remarks>
+    private static ScriptPort[]? Restore(string script, IReadOnlyList<ScriptPort> cached)
+    {
+        if (cached.Count == 0)
+        {
+            return null;
+        }
+
+        ScriptPort[] fromSyntax = OutputsOf(script);
+
+        if (fromSyntax.Length != cached.Count)
+        {
+            return null;
+        }
+
+        ScriptPort[] restored = new ScriptPort[fromSyntax.Length];
+
+        for (int i = 0; i < restored.Length; i++)
+        {
+            restored[i] = fromSyntax[i] with { ValueType = cached[i].ValueType };
+        }
+
+        return restored;
     }
 
     /// <summary>Loads an emitted assembly and binds its entry point.</summary>

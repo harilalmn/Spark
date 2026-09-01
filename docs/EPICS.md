@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-01 (E6 gains signature help, the completion triggers and the Selection menu)
+**Last updated:** 2026-09-01 (E6 gains signature help, the completion triggers, the Selection menu and typed code-block outputs)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -610,6 +610,10 @@ diverge most; rework is budgeted there specifically.
 - [x] **Every command in VS Code's Selection menu works in a code block** (**E6-T24**) — done
       2026-09-01, with the multiple carets eight of them need ([N97](NOTES.md)) and a context menu
       on the editor to reach them from.
+- [x] **A code block's output can be wired into a typed port** (**E6-T25**) — done 2026-09-01.
+      The output port carries the type the script returns, inferred from the compilation that is
+      emitted anyway, and written into the compile cache so it does not depend on whether the cache
+      was warm ([N99](NOTES.md)).
 - [ ] A graph containing no script nodes never loads `Spark.Scripting` (**E6-T14**).
 
 **Status.** **Complete except the docked C# Script Node (E6-T14's second half), as of

@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N95-N97 added)
+**Last updated:** 2026-09-01 (N95-N99 added)
 
 ---
 
@@ -2727,3 +2727,39 @@ measures its children with infinite width and wrapping never takes effect.
 placement, which is why the scroll-offset subtraction has been guarded since the M1.5 spike; it
 cannot assert the horizontal one at all. Anything that depends on measured text width is verified
 by photographing it — which is what `--code-block` and `--code-block-command` exist for.
+
+---
+
+## N99 — A code block's output type is inferable, and the disk cache has to carry it
+
+Every code block output port was `typeof(object)`, whatever the script returned. That is not a
+cosmetic gap: `object` into a port declared `Curve` is a **narrowing**, and `TypeCompatibility`
+refuses narrowing when the wire is drawn — deliberately, so a downcast is a node on the canvas
+rather than a silent cast inside a wire. So a block returning a `Circle` could not be connected to
+anything that wanted a curve, while its own watch displayed the circle. A user found it by trying
+to draw the wire.
+
+**The type is already known at the only moment it is cheap to ask.** The generated frame's `Run`
+returns `object` — the invocation contract requires it — but the *expression* in the user's
+`return` has a natural type, and the compilation that is about to be emitted has a semantic model.
+`ScriptOutputTypes.Infer` reads it: the return statements whose nearest enclosing **function** is
+`Run` (a `return` inside a lambda belongs to the lambda), one distinct type or nothing, and one
+element per port for a tuple return.
+
+**Mapping an `ITypeSymbol` to a `System.Type` is where the care goes, and the rule is: when in
+doubt, `object`.** A port typed *wrongly* is worse than a port typed `object`, because it refuses
+wires that should be legal and names a type the user never wrote. So an error type, `dynamic`, an
+anonymous type, a pointer, a nullable value type (`double?` is not assignable from `double`, which
+would refuse the very wire it was inferred for) and any type from an assembly this process has not
+loaded all come back as `object`. Named types are resolved through **loaded assemblies** rather
+than through the reference files, because a type loaded twice from one file is two types to
+`IsAssignableFrom` — the same trap the same-name rule in `TypeCompatibility` exists to explain.
+
+**The disk cache had to change, and that is the part that is easy to miss.** Inferring the type
+needs the compilation that `E6-T10`'s cache exists to skip. Without storing it, a port would be
+`Circle` in the session that compiled the block and `object` in every session that reopened the
+file — a wire that works until you close Spark. So `CachedScript` carries the output ports,
+`GeneratorVersion` went to 2 so older entries are ignored, and the `.outputs` file is written
+*before* the `.ports` file, which stays the marker that says an entry is complete. Port **names**
+still come from the syntax on a cache hit; only the types come from the entry, and an entry whose
+port count disagrees with the script is discarded rather than trusted.
