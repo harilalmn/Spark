@@ -77,6 +77,18 @@
           two are one decision: a user who has just been made to wait is looking at Run.
         -->
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <!--
+            E12-T21. Collapsed unless a newer release exists, which is most of the time - a control
+            that is usually invisible can afford to be loud when it is not. It sits in the ribbon
+            rather than in a banner because a banner costs a row of the canvas permanently in order
+            to say something occasionally, and beside Run because that is where the eye already is.
+          -->
+          <Button x:Name="UpdateBadge" Classes="update"
+                  IsVisible="{Binding IsUpdateAvailable}"
+                  Content="{Binding UpdateLabel}"
+                  AutomationProperties.Name="A newer version of Spark is available"
+                  ToolTip.Tip="Open the release page in your browser"
+                  Click="OnOpenUpdate" />
           <TextBlock Classes="muted" VerticalAlignment="Center" Text="Run" />
           <ComboBox Width="120" FontSize="11" MinHeight="0"
                     AutomationProperties.Name="When the graph runs"
@@ -180,6 +192,16 @@
 
         <MenuItem Header="_Help">
           <MenuItem Header="_Help for the selected node" InputGesture="F1" Click="OnOpenHelp" />
+          <Separator />
+          <!--
+            E12-T21. The switch for the one outbound request Spark makes on its own behalf. It is
+            in the menu rather than buried in a settings dialog because PRD NFR-13 promises no
+            telemetry, and a user who wants to hold Spark to that has to be able to find the thing
+            they are turning off.
+          -->
+          <MenuItem Header="Check for _updates on startup" x:Name="UpdateCheckToggle"
+                    ToggleType="CheckBox" Click="OnToggleUpdateCheck" />
+          <MenuItem Header="Check for updates _now" Click="OnCheckForUpdatesNow" />
           <Separator />
           <MenuItem Header="_About Spark" Click="OnOpenAbout" />
         </MenuItem>

@@ -137,8 +137,14 @@ was never that it was large — it was that it was somebody else's commercial pr
 Spark meant buying into a CAD licence for a component you never asked for.** OpenCascade is
 open source (LGPL with the Open CASCADE exception), freely redistributable, installed *with*
 Spark, and needs **no account, no licence purchase, no subscription and no other vendor's
-software**. You install Spark and everything works. Nothing phones home, nothing expires, and
-nothing asks who you are.
+software**. You install Spark and everything works. Nothing expires and nothing asks who you are.
+
+**Spark makes exactly one outbound request, and it is worth naming rather than glossing.** Once
+per session it asks GitHub whether there is a newer release of Spark, so it can show you a label
+if there is. It sends no identifier, no machine details, no graph and no usage data — and if the
+request fails, for any reason, nothing is shown and nothing is said. Turn it off under
+**Help → Check for updates on startup**, or start with `--no-update-check`; off is remembered.
+There is no telemetry of any kind ([NFR-13](docs/PRD.md), [D22](docs/PRD.md#13-decision-log)).
 
 Three things follow, and they are all true at once:
 

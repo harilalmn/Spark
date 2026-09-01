@@ -137,11 +137,6 @@ Spark.Api.LacingMode.Shortest = 1 -> Spark.Api.LacingMode
 Spark.Api.NoReplicationAttribute
 Spark.Api.NoReplicationAttribute.NoReplicationAttribute() -> void
 Spark.Api.NodeCategories
-Spark.Api.NodeMemberKind
-Spark.Api.NodeMemberKind.Action = 2 -> Spark.Api.NodeMemberKind
-Spark.Api.NodeMemberKind.Auto = 0 -> Spark.Api.NodeMemberKind
-Spark.Api.NodeMemberKind.Create = 1 -> Spark.Api.NodeMemberKind
-Spark.Api.NodeMemberKind.Query = 3 -> Spark.Api.NodeMemberKind
 Spark.Api.NodeDefinitionSource
 Spark.Api.NodeDefinitionSource.ContentHash.get -> string!
 Spark.Api.NodeDefinitionSource.ContentHash.init -> void
@@ -157,9 +152,16 @@ Spark.Api.NodeDefinitionSource.NodeDefinitionSource() -> void
 Spark.Api.NodeDefinitionSource.NodeDefinitionSource(string! Name, string! ContentHash, System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>! Inputs, System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>! Outputs, Spark.Api.ScriptInvocation! Invoke) -> void
 Spark.Api.NodeDefinitionSource.Outputs.get -> System.Collections.Generic.IReadOnlyList<Spark.Api.ScriptPort>!
 Spark.Api.NodeDefinitionSource.Outputs.init -> void
+Spark.Api.NodeFieldAttribute
+Spark.Api.NodeFieldAttribute.NodeFieldAttribute() -> void
 Spark.Api.NodeIgnoreAttribute
 Spark.Api.NodeIgnoreAttribute.NodeIgnoreAttribute(string! reason) -> void
 Spark.Api.NodeIgnoreAttribute.Reason.get -> string!
+Spark.Api.NodeMemberKind
+Spark.Api.NodeMemberKind.Action = 2 -> Spark.Api.NodeMemberKind
+Spark.Api.NodeMemberKind.Auto = 0 -> Spark.Api.NodeMemberKind
+Spark.Api.NodeMemberKind.Create = 1 -> Spark.Api.NodeMemberKind
+Spark.Api.NodeMemberKind.Query = 3 -> Spark.Api.NodeMemberKind
 Spark.Api.NodePortAttribute
 Spark.Api.NodePortAttribute.Description.get -> string?
 Spark.Api.NodePortAttribute.Description.set -> void
@@ -171,6 +173,8 @@ Spark.Api.NodeSideEffectAttribute
 Spark.Api.NodeSideEffectAttribute.NodeSideEffectAttribute() -> void
 Spark.Api.NodeSideEffectAttribute.NodeSideEffectAttribute(string! reason) -> void
 Spark.Api.NodeSideEffectAttribute.Reason.get -> string?
+Spark.Api.NodeSliderAttribute
+Spark.Api.NodeSliderAttribute.NodeSliderAttribute() -> void
 Spark.Api.NoticeLine
 Spark.Api.NoticeLine.Deconstruct(out string! Label, out string! Text) -> void
 Spark.Api.NoticeLine.Equals(Spark.Api.NoticeLine other) -> bool
@@ -234,6 +238,16 @@ Spark.Api.SparkNodeAttribute.Kind.set -> void
 Spark.Api.SparkNodeAttribute.Name.get -> string?
 Spark.Api.SparkNodeAttribute.Name.set -> void
 Spark.Api.SparkNodeAttribute.SparkNodeAttribute() -> void
+Spark.Api.SparkVersion
+Spark.Api.SparkVersion.CompareTo(Spark.Api.SparkVersion other) -> int
+Spark.Api.SparkVersion.Equals(Spark.Api.SparkVersion other) -> bool
+Spark.Api.SparkVersion.IsNewerThan(Spark.Api.SparkVersion other) -> bool
+Spark.Api.SparkVersion.IsPrerelease.get -> bool
+Spark.Api.SparkVersion.Major.get -> int
+Spark.Api.SparkVersion.Minor.get -> int
+Spark.Api.SparkVersion.Patch.get -> int
+Spark.Api.SparkVersion.Prerelease.get -> string?
+Spark.Api.SparkVersion.SparkVersion() -> void
 Spark.Api.UnavailableBrepKernel
 Spark.Api.UnavailableBrepKernel.Capabilities.get -> Spark.Api.BrepCapabilities
 Spark.Api.UnavailableBrepKernel.Chamfer(Spark.Geometry.Brep! solid, System.Collections.Generic.IReadOnlyList<int>! edges, double distance, in Spark.Geometry.Tolerance tolerance) -> Spark.Api.KernelResult<Spark.Geometry.Brep!>
@@ -287,6 +301,9 @@ override Spark.Api.Rgba.ToString() -> string!
 override Spark.Api.ScriptPort.GetHashCode() -> int
 override Spark.Api.SparkDiagnostic.ToString() -> string!
 override Spark.Api.SparkList.ToString() -> string!
+override Spark.Api.SparkVersion.Equals(object? obj) -> bool
+override Spark.Api.SparkVersion.GetHashCode() -> int
+override Spark.Api.SparkVersion.ToString() -> string!
 static Spark.Api.Appearance.Default.get -> Spark.Api.Appearance!
 static Spark.Api.BrepKernel.Current.get -> Spark.Api.IBrepKernel!
 static Spark.Api.BrepKernel.Install(Spark.Api.IBrepKernel! kernel) -> void
@@ -313,6 +330,14 @@ static Spark.Api.SparkDiagnostic.FormatElementPath(System.Collections.Generic.IR
 static Spark.Api.SparkList.Empty(int rank) -> Spark.Api.SparkList!
 static Spark.Api.SparkList.Of(params object?[]! items) -> Spark.Api.SparkList!
 static Spark.Api.SparkList.RankOf(object? value) -> int
+static Spark.Api.SparkVersion.Of(System.Reflection.Assembly! assembly) -> Spark.Api.SparkVersion?
+static Spark.Api.SparkVersion.TryParse(string? text, out Spark.Api.SparkVersion version) -> bool
+static Spark.Api.SparkVersion.operator !=(Spark.Api.SparkVersion left, Spark.Api.SparkVersion right) -> bool
+static Spark.Api.SparkVersion.operator <(Spark.Api.SparkVersion left, Spark.Api.SparkVersion right) -> bool
+static Spark.Api.SparkVersion.operator <=(Spark.Api.SparkVersion left, Spark.Api.SparkVersion right) -> bool
+static Spark.Api.SparkVersion.operator ==(Spark.Api.SparkVersion left, Spark.Api.SparkVersion right) -> bool
+static Spark.Api.SparkVersion.operator >(Spark.Api.SparkVersion left, Spark.Api.SparkVersion right) -> bool
+static Spark.Api.SparkVersion.operator >=(Spark.Api.SparkVersion left, Spark.Api.SparkVersion right) -> bool
 static Spark.Api.UnavailableBrepKernel.Instance.get -> Spark.Api.UnavailableBrepKernel!
 static Spark.Api.ValueText.Full(object? value) -> string!
 static Spark.Api.ValueText.Shape(int rank, int count) -> string!
@@ -327,7 +352,3 @@ virtual Spark.Api.ScriptInvocation.Invoke(object?[]! arguments, System.Threading
 ~override Spark.Api.NoticeLine.ToString() -> string
 ~override Spark.Api.ScriptPort.Equals(object obj) -> bool
 ~override Spark.Api.ScriptPort.ToString() -> string
-Spark.Api.NodeSliderAttribute
-Spark.Api.NodeSliderAttribute.NodeSliderAttribute() -> void
-Spark.Api.NodeFieldAttribute
-Spark.Api.NodeFieldAttribute.NodeFieldAttribute() -> void

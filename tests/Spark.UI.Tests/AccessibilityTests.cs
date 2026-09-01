@@ -107,21 +107,50 @@ public sealed class AccessibilityTests
     /// The ribbon keeps Run and the run-mode dropdown, and nothing else.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>"Remove all buttons on top and place them all in a proper Menu bar"</b> is what was
     /// asked, and the run controls are the stated exception: they are what a graph author reaches
     /// for over and over, and a Run button behind two clicks is a Run button nobody uses. This
     /// keeps the exception from quietly growing back into a toolbar.
+    /// </para>
+    /// <para>
+    /// <b>There is now a second exception and it is stated rather than tolerated</b>
+    /// (<c>E12-T21</c>): the update badge. It is not a command - it commands nothing, it announces
+    /// something - and it is invisible in every session where there is nothing to announce, so it
+    /// costs the ribbon no permanent room. A third exception should be argued for here before it
+    /// is written, which is the whole reason this test names them one at a time instead of
+    /// counting them.
+    /// </para>
     /// </remarks>
     [Fact]
     public void TheRibbonKeepsOnlyTheRunControls()
     {
         // The banner's two buttons are not the ribbon - they belong to a message that is collapsed
-        // unless a package is missing - so they are excluded by name rather than by position.
+        // unless a package is missing - so they are excluded by name rather than by position. The
+        // badge is excluded by its x:Name instead, because its content is bound rather than
+        // literal and there is no text to match on.
         List<string> ribbon = [.. Regex.Matches(Markup, @"<Button\b[^>]*?/>|<Button\b[^>]*?>", RegexOptions.Singleline)
+            .Where(button => !button.Value.Contains("x:Name=\"UpdateBadge\"", StringComparison.Ordinal))
             .Select(button => Content(button.Value))
             .Where(content => content is not ("Dismiss" or "Find it" or "Run once" or "Always trust this file"))];
 
         Assert.Equal(["Run"], ribbon);
+    }
+
+    /// <summary>
+    /// The update badge is the ribbon's second exception, and it is invisible by default.
+    /// </summary>
+    /// <remarks>
+    /// The exception is only defensible because of the second half: a control that announced
+    /// nothing but still occupied the ribbon would be a toolbar button with extra steps.
+    /// </remarks>
+    [Fact]
+    public void TheRibbonsOnlyOtherControlIsHiddenUntilItHasSomethingToSay()
+    {
+        Match badge = Regex.Match(Markup, "(?s)<Button x:Name=\"UpdateBadge\".*?/>");
+
+        Assert.True(badge.Success, "the update badge is not in the markup");
+        Assert.Contains("IsVisible=\"{Binding IsUpdateAvailable}\"", badge.Value, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -196,6 +225,31 @@ public sealed class AccessibilityTests
                 value.Contains('+', StringComparison.Ordinal) || value.StartsWith('F'),
                 $"'{value}' is a bare key at window level, which would be taken from a text box.");
         }
+    }
+
+    /// <summary>
+    /// <b>The update badge says what it is in words, not only in colour</b> (<c>E12-T21</c>).
+    /// </summary>
+    /// <remarks>
+    /// It is the only filled-accent control in the shell, which is what makes it noticeable — and
+    /// a control that carried its meaning in the fill alone would carry no meaning at all for a
+    /// reader who cannot distinguish it, or for a screen reader. Section 4.6: colour is never the
+    /// only carrier.
+    /// </remarks>
+    [Fact]
+    public void TheUpdateBadgeIsReadableWithoutItsColour()
+    {
+        Match badge = Regex.Match(Markup, "(?s)<Button x:Name=\"UpdateBadge\".*?/>");
+
+        Assert.True(badge.Success, "the update badge is not in the markup");
+        Assert.Contains("AutomationProperties.Name=", badge.Value, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsUpdateAvailable}\"", badge.Value, StringComparison.Ordinal);
+
+        // The label itself is the words, and it is built in the handler rather than in markup.
+        string handler = File.ReadAllText(
+            Path.Combine(Root(), "src", "Spark.UI", "Views", "MainWindow.axaml.cs"));
+
+        Assert.Contains("Update available: ", handler, StringComparison.Ordinal);
     }
 
     /// <summary>The six headings on the menu bar, as written including their access keys.</summary>

@@ -25,6 +25,22 @@ namespace Spark.UI;
 /// <param name="OpenPath">
 /// A `.spark` file to open instead of a seeded graph, or null.
 /// </param>
+/// <param name="NoUpdateCheck">
+/// True when the update check is refused for this session (<c>--no-update-check</c>). The check
+/// is the one outbound request Spark makes on its own behalf, and a switch that turns it off
+/// without writing anything down is what a locked-down environment, a test and a screenshot run
+/// all need. The persisted preference is <c>UpdatePreference</c>; this overrides it downwards
+/// only, because a flag that could turn a setting back <i>on</i> would make the setting a
+/// suggestion.
+/// </param>
+/// <param name="UpdateBadge">
+/// A version to show in the update badge at startup (<c>--update-badge 9.9.9</c>), or null.
+/// Aimed at the screenshot path for the reason <c>--about-window</c> and <c>--help-window</c> are:
+/// the badge only appears when a newer release genuinely exists, so without this the one control
+/// in the shell whose whole job is to be noticed could never be photographed, and a badge that
+/// laid out wrongly would still pass every test that only asks whether it is visible. It sets the
+/// label directly and makes no request.
+/// </param>
 /// <param name="NoScript">
 /// True when scripting is refused for the whole session (`E6-T16`). A graph containing a code
 /// block then fails to open, naming the node, rather than opening with the node quietly missing —
@@ -120,7 +136,9 @@ public readonly record struct StartupOptions(
     int FreezeFirst = 0,
     int CollapseFirst = 0,
     int SelectFirst = 0,
-    string? LibrarySearch = null)
+    string? LibrarySearch = null,
+    bool NoUpdateCheck = false,
+    string? UpdateBadge = null)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
     public static StartupOptions Default => new(0, 0, 0, null, null, null);
@@ -200,6 +218,8 @@ public readonly record struct StartupOptions(
         string? graph = null;
         string? open = null;
         bool noScript = false;
+        bool noUpdateCheck = false;
+        string? updateBadge = null;
         bool software = false;
         string? helpTopic = null;
         bool aboutWindow = false;
@@ -246,6 +266,14 @@ public readonly record struct StartupOptions(
 
                 case "--no-script":
                     noScript = true;
+                    break;
+
+                case "--no-update-check":
+                    noUpdateCheck = true;
+                    break;
+
+                case "--update-badge" when i + 1 < args.Length:
+                    updateBadge = args[++i];
                     break;
 
                 case "--software-renderer":
@@ -317,7 +345,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge);
     }
 
     private static int ParseCount(string text, int fallback) =>

@@ -103,6 +103,43 @@
     <Setter Property="BorderThickness" Value="0,0,0,2" />
   </Style>
 
+  <!--
+    E12-T21. The update badge: the one control in the ribbon that is allowed to shout.
+
+    It is an accent FILL rather than accent text, and it is the only filled-accent control in the
+    shell - which is the whole reason it reads as new information among twenty-six commands that
+    all look alike on purpose. Dark text on the accent, not light: accent is a pale violet, so the
+    legible pairing is bg.void over it rather than text.primary.
+
+    Colour is not the only carrier (section 4.6 again): the label itself says what it is, so a
+    reader who cannot distinguish the fill still reads "Update available".
+  -->
+  <Style Selector="Button.update">
+    <Setter Property="Padding" Value="10,3" />
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="FontSize" Value="11.5" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Foreground" Value="{DynamicResource SparkBackgroundVoidBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SparkAccentBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="12" />
+  </Style>
+
+  <Style Selector="Button.update /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SparkAccentBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="12" />
+  </Style>
+
+  <Style Selector="Button.update:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SparkAccentHoverBrush}" />
+  </Style>
+
+  <Style Selector="Button.update:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SparkAccentPressBrush}" />
+  </Style>
+
   <!-- Splitters are dock gutters and sit on bg.void, which carries no elevation of its own. -->
   <!--
     surface.float is the elevation this design language reserves for menus, popups, dialogs,

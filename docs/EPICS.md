@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-02 (E10-T5 gains the code-block form of every node; E10-T13 files the generated pages under their index)
+**Last updated:** 2026-09-02 (E12 gains the installer, the publishing release and the update check)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -1257,6 +1257,17 @@ repository-wide. Embedders reference `Spark.Host` from an install and node autho
       shallow checkout has no tags, MinVer stamps 0.0.0-alpha.0, and the workflow publishes it
       under a real-looking name. Both branches were run against this repository, which has no
       tags and fails the gate exactly as designed.*
+- [x] **Spark installs, and a tag publishes a release** (**E13-T17**, **E12-T11**). *Done
+      2026-09-02. Inno Setup, per-user into `%LOCALAPPDATA%\Programs\Spark`, unelevated, removing
+      the previous version before installing and chaining the .NET runtime only when it is missing.
+      Pushing a `v*` tag builds, tests, checks the artefact's version against the tag, and
+      publishes the installer and the portable zip together. **Nothing is signed**, and the release
+      notes say so rather than letting a user meet SmartScreen unprepared.*
+- [x] **The application says when there is a newer release** (**E12-T21**). *Done 2026-09-02. An
+      accent badge in the ribbon, invisible unless there is something to announce, opening the
+      release page. One unauthenticated request per session, nothing collected, every failure
+      silent, and switchable off — which is [D22](PRD.md#13-decision-log) answering NFR-13 rather
+      than reinterpreting it.*
 - [x] A performance pass before 1.0 (**E12-T12**). *Done 2026-09-01, and most of it was already
       done — evaluation, marshalling, the scene index and the canvas frame were budgeted and
       checked nightly. Measured: render pass 1.2-1.4 ms median at 2 000 nodes against a 16.7 ms

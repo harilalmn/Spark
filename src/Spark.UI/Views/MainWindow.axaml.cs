@@ -13,6 +13,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using Spark.Host;
 using Spark.UI.Canvas;
 using Spark.UI.Controls;
 using Spark.UI.Graph;
@@ -97,6 +98,10 @@ public sealed partial class MainWindow : Window
             Model?.RequestRun();
         };
 
+        // The toggle shows what the preference actually is rather than a hard-coded default, or
+        // the menu would say "on" for a user who turned it off last week.
+        UpdateCheckToggle.IsChecked = _updatePreference.Enabled;
+
         DataContextChanged += OnDataContextChanged;
         Opened += OnOpened;
     }
@@ -104,6 +109,12 @@ public sealed partial class MainWindow : Window
     private HelpWindow? _help;
     private AboutWindow? _about;
     private PackageWindow? _packages;
+
+    /// <summary>
+    /// Whether the user wants Spark to look for updates, read once and written when they say
+    /// otherwise (<c>E12-T21</c>).
+    /// </summary>
+    private readonly UpdatePreference _updatePreference = new();
 
     private MainWindowViewModel? Model => DataContext as MainWindowViewModel;
 
@@ -371,6 +382,123 @@ public sealed partial class MainWindow : Window
     /// The text itself is in <c>ProductNotice</c>, shared with <c>spark --version</c>, because two
     /// copies of a licence statement is one copy that eventually stops matching the build.
     /// </remarks>
+    /// <summary>
+    /// Opens the release page for the update the badge is announcing (<c>E12-T21</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>It opens a browser rather than downloading or installing anything.</b> That was the
+    /// request, and it is also the honest boundary: Spark has no signing identity, so an
+    /// in-application updater would be asking users to trust an unsigned binary fetched by an
+    /// unsigned binary. The release page shows the notes, the checksums and what is attached, and
+    /// the user decides.
+    /// </remarks>
+    private void OnOpenUpdate(object? sender, RoutedEventArgs e)
+    {
+        if (Model is { UpdateUrl.Length: > 0 } model)
+        {
+            OpenInBrowser(model.UpdateUrl);
+        }
+    }
+
+    /// <summary>Turns the update check on or off, and remembers the answer.</summary>
+    private void OnToggleUpdateCheck(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem item)
+        {
+            return;
+        }
+
+        _updatePreference.Enabled = item.IsChecked;
+
+        // Turning it off does not take down a badge that is already showing: the update is still
+        // available and the user asked to stop being *told about new ones*, not to be lied to
+        // about this one. Turning it on checks straight away, because somebody who just enabled it
+        // is asking a question now.
+        if (item.IsChecked)
+        {
+            StartUpdateCheck(force: true);
+        }
+    }
+
+    /// <summary>Checks now, whatever the preference says.</summary>
+    /// <remarks>
+    /// An explicit request is not governed by the "on startup" setting, for the same reason the Run
+    /// button ignores the run mode: a user who asked for something now means now.
+    /// </remarks>
+    private void OnCheckForUpdatesNow(object? sender, RoutedEventArgs e) =>
+        StartUpdateCheck(force: true);
+
+    /// <summary>
+    /// Asks whether there is a newer release, and shows the badge if there is.
+    /// </summary>
+    /// <param name="force">
+    /// True for an explicit request, which ignores the persisted preference but never
+    /// <c>--no-update-check</c>. A session switch that a menu item could override would not be a
+    /// switch.
+    /// </param>
+    private void StartUpdateCheck(bool force = false)
+    {
+        if (Options.NoUpdateCheck || Model is null)
+        {
+            return;
+        }
+
+        if (!force && !_updatePreference.Enabled)
+        {
+            return;
+        }
+
+        _ = CheckForUpdateAsync(Model);
+    }
+
+    private static async Task CheckForUpdateAsync(MainWindowViewModel model)
+    {
+        Spark.Api.SparkVersion? current = Spark.Api.SparkVersion.Of(typeof(MainWindow).Assembly);
+
+        if (current is null)
+        {
+            // No version to compare against, so every comparison would be a guess. Silence.
+            return;
+        }
+
+        using UpdateCheck check = new();
+        UpdateAvailable? update = await check.CheckAsync(current.Value).ConfigureAwait(true);
+
+        if (update is null)
+        {
+            return;
+        }
+
+        model.UpdateUrl = update.ReleaseUrl;
+        model.UpdateLabel = "Update available: " + update.Version;
+        model.IsUpdateAvailable = true;
+    }
+
+    /// <summary>
+    /// Hands a URL to the operating system's browser.
+    /// </summary>
+    /// <remarks>
+    /// <c>UseShellExecute</c> is what makes a URL open in a browser rather than being treated as a
+    /// program to run, and its failures are ordinary - a machine with no browser association, a
+    /// locked-down shell. Swallowed rather than reported: the worst outcome is a click that does
+    /// nothing, and a crash dialog would be worse.
+    /// </remarks>
+    private static void OpenInBrowser(string url)
+    {
+        try
+        {
+            using Process? started = Process.Start(
+                new ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch (Exception failure) when (
+            failure is System.ComponentModel.Win32Exception
+                or PlatformNotSupportedException
+                or ObjectDisposedException
+                or InvalidOperationException)
+        {
+        }
+    }
+
     private void OnOpenAbout(object? sender, RoutedEventArgs e)
     {
         // Asked through the contract rather than by type, because Spark.UI deliberately does not
@@ -380,8 +508,9 @@ public sealed partial class MainWindow : Window
         Spark.Api.IBrepKernel kernel = Spark.Api.BrepKernel.Current;
         string? description = kernel is Spark.Api.UnavailableBrepKernel ? null : kernel.Description;
 
+        // The full SemVer, not Assembly.GetName().Version, which MinVer truncates to major.0.0.0.
         AboutWindow about = new(
-            typeof(MainWindow).Assembly.GetName().Version?.ToString(), description);
+            Spark.Api.SparkVersion.Of(typeof(MainWindow).Assembly)?.ToString(), description);
 
         about.ShowDialog(this);
     }
@@ -849,7 +978,7 @@ public sealed partial class MainWindow : Window
         if (Options.OpenAbout)
         {
             _about = new AboutWindow(
-                typeof(MainWindow).Assembly.GetName().Version?.ToString(),
+                Spark.Api.SparkVersion.Of(typeof(MainWindow).Assembly)?.ToString(),
                 Spark.Api.BrepKernel.Current is Spark.Api.UnavailableBrepKernel
                     ? null
                     : Spark.Api.BrepKernel.Current.Description);
@@ -870,6 +999,22 @@ public sealed partial class MainWindow : Window
 
         UpdateStatus();
         UpdateMissingBanner();
+
+        // E12-T21. Started here rather than in the constructor: the window is on screen, so a slow
+        // or hanging request costs the user nothing. It is fire-and-forget on purpose - nothing
+        // downstream waits for it, and its only effect is to make a badge appear later.
+        if (Options.UpdateBadge is { Length: > 0 } pretend && Model is { } badgeModel)
+        {
+            // The screenshot path. No request is made: this is the badge being posed, which is the
+            // only way to photograph a control that appears solely when a real release is newer.
+            badgeModel.UpdateUrl = "https://github.com/harilalmn/Spark/releases/latest";
+            badgeModel.UpdateLabel = "Update available: " + pretend;
+            badgeModel.IsUpdateAvailable = true;
+        }
+        else
+        {
+            StartUpdateCheck();
+        }
 
         if (Options.IsBenchmark)
         {

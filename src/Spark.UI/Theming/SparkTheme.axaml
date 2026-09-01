@@ -67,6 +67,10 @@
   <SolidColorBrush x:Key="SparkLipRestBrush" Color="{StaticResource SparkLipRest}" />
   <SolidColorBrush x:Key="SparkLipHoverBrush" Color="{StaticResource SparkLipHover}" />
   <SolidColorBrush x:Key="SparkAccentBrush" Color="{StaticResource SparkAccent}" />
+  <!-- The hover and press steps of the accent, which had colours and no brushes until the update
+       badge (E12-T21) became the first filled-accent control in the shell. -->
+  <SolidColorBrush x:Key="SparkAccentHoverBrush" Color="{StaticResource SparkAccentHover}" />
+  <SolidColorBrush x:Key="SparkAccentPressBrush" Color="{StaticResource SparkAccentPress}" />
   <SolidColorBrush x:Key="SparkFocusRingBrush" Color="{StaticResource SparkFocusRing}" />
   <SolidColorBrush x:Key="SparkFocusContourBrush" Color="{StaticResource SparkFocusContour}" />
 

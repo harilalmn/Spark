@@ -98,6 +98,33 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _diagnosticsText = "No run yet.";
 
+    /// <summary>
+    /// The text of the update badge, or empty when there is no update to announce (<c>E12-T21</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>One string and one URL rather than a model object</b>, because the shell shows exactly
+    /// two things — a label and where clicking it goes — and a type carrying a version the view
+    /// never renders would be a type the view has to know how to render tomorrow.
+    /// </remarks>
+    [ObservableProperty]
+    private string _updateLabel = string.Empty;
+
+    /// <summary>Where the update badge sends the user, or empty when there is no update.</summary>
+    [ObservableProperty]
+    private string _updateUrl = string.Empty;
+
+    /// <summary>
+    /// Whether the update badge is shown. False until a check has said otherwise.
+    /// </summary>
+    /// <remarks>
+    /// <b>Default false, and it stays false on every failure.</b> The check is silent when it
+    /// cannot reach GitHub, so a user offline sees exactly what a user on the newest build sees,
+    /// which is nothing. A badge that appeared saying "could not check for updates" would be a
+    /// permanent complaint about a background request nobody asked for.
+    /// </remarks>
+    [ObservableProperty]
+    private bool _isUpdateAvailable;
+
     /// <summary>The note the properties pane is editing, or null when it is not editing one.</summary>
     /// <remarks>
     /// Also the flag the pane's note editor is shown by. A separate <c>IsNoteSelected</c> boolean

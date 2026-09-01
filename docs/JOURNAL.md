@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 14:30 +0530
+**Last updated:** 2026-09-02 15:45 +0530
 **Protocol version:** 2
 
 ---
@@ -17,11 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **The update check - step 2 of 2 of the client's release request.** A label on the main window when a newer release exists, linking to its page. **Step 1 landed**: Spark installs, and a tag publishes. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`E13-T17` and `E12-T11` - Spark installs itself and a tag publishes a release.** Inno Setup, per-user into `%LOCALAPPDATA%\Programs\Spark`, unelevated, removing the previous version first and chaining the .NET runtime only when it is missing. Verified by installing, upgrading and uninstalling on this machine. `release.yml` publishes rather than drafts, prerelease on a hyphenated tag, notes in `.github/release-notes.md` that say the build is unsigned. **2225 tests.** |
-| **Working tree** | Clean at the moment this was written. The step has not started. |
-| **Next action** | **The update check.** `Spark.Host` gets the check - `GET https://api.github.com/repos/harilalmn/Spark/releases/latest`, parsed for `tag_name` and `html_url`, compared against the running assembly's **`InformationalVersion`** and not `Assembly.GetName().Version`, which MinVer truncates to `major.0.0.0` and which is why `spark --version` currently prints `0.0.0.0`. **Fix that at the same time**, in `ProductNotice`, or the CLI keeps lying about a number the shell now depends on. **The comparison is SemVer, not string equality** - `0.10.0` is newer than `0.9.0` and a prerelease is older than the release it precedes. **PRD NFR-13 says no telemetry of any kind in v1 and that has to be answered, not stepped around**: this sends nothing, but it is an outbound request that reveals an IP and a time, so it needs a decision-log entry, `--no-update-check`, a persisted opt-out beside `ScriptTrustStore`, and a sentence in the help. **The failure path is silence** - no dialog, no banner, no log spam; a user offline or behind a proxy must not be told anything. Then an accent pill in the ribbon beside Run, visible only when there is something to say, opening the release page. |
+| **Working on** | **Nothing. The tree is clean and the gates are green.** |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`E12-T21` - the update badge, and step 2 of 2 of the client's release request.** An accent pill in the ribbon when a newer release exists, opening its page; invisible otherwise. `SparkVersion` compares by SemVer because string comparison goes silent at `0.10.0`, and orders prereleases properly so a local build does not announce an update to itself. `D22` answers NFR-13 rather than reinterpreting it: nothing collected, one request, off in a click, silent on every failure. `spark --version` no longer prints `0.0.0.0`. **2277 tests.** |
+| **Working tree** | Clean at the moment this was written. |
+| **Next action** | **Cut the first release, when the client says so** - there are no tags at all yet, so the whole pipeline is unexercised end to end and `v0.1.0` is the number the procedure in [AGENTS.md](../AGENTS.md#cutting-a-release) would choose. Everything before the tag is verified; the tag is what checks `release.yml`, and it is also what checks the update endpoint, which is the one link no test can reach. **Then the Help pass, where the queue pointed before this**: `E10-T3` (the help index), then `E11-T2`'s XML `<example>` half, then E10-T9/T10/T12/T14. **Two smaller things are owed and both are quick.** (1) The `tessellate` verb is not wired into `.github/workflows/nightly.yml` - Windows should run it and the other legs pass `--no-tessellation`. (2) The new nodes from `E4-T13` and `E8-T25` have XML docs but no help topic; `D19` defers topics past 1.0, so this is a queue entry rather than a gap. **And things deliberately left behind:** a context menu on a node; `E3-T13`'s ~200 ms debounce and its auto-suggest-Manual threshold; the Spark mark, a designed placeholder swapped by replacing `src/Spark.UI/Assets/spark-logo.svg` and re-running `scripts/make-logo.py`; and code signing, which needs an identity and is what would remove the SmartScreen warning. **Two things to watch rather than act on:** `UnloadingReleasesTheScriptAssemblies` failed once under full-suite parallelism and passed alone; and the three multi-output node examples pass `out var` into a dynamically dispatched call, which does compile ([N94](NOTES.md)). |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2277**: Geometry.Tests 763, UI.Tests 699, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall - one Add/Remove entry throughout and nothing left behind. **The badge and the help window are photographed**: `--update-badge 0.9.0 --screenshot PREFIX` and `--help-window <topic> --screenshot PREFIX`. **Check the counts** - [N30](NOTES.md) - **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -5125,3 +5126,74 @@ loaded, which catches the two things that would otherwise fail on release day.
 `Assembly.GetName().Version` and MinVer truncates that to `major.0.0.0`. The full SemVer is in
 `InformationalVersion`. It is cosmetic today and it is **load-bearing for step 2**, which has to
 compare the running version against a published tag, so it is fixed there rather than twice.
+
+---
+
+### 2026-09-02 - The badge that says there is a newer Spark (`E12-T21`)
+
+**Step 2 of 2.** The installer landed an hour ago; this is the half that tells somebody a newer one
+exists.
+
+**`SparkVersion` is most of the work, and it is not obvious why until you write the naive
+version.** `"0.10.0" < "0.9.0"` as text. A check built on string comparison therefore works
+perfectly, announces every release faithfully, and then goes permanently silent at the tenth minor
+release - and **every test written before that point passes**. That is the whole argument for a
+type: the question "is this newer" has a specification, and SemVer §11 is it.
+
+**Prerelease ordering is the half that earns its keep in daily use.** MinVer stamps a local build
+after `v0.1.0` as `0.1.1-alpha.0.5`: ahead of the release that exists, behind the release that does
+not. Treating the tail as noise - the obvious shortcut - would put a permanent *update available*
+badge in front of everybody working on Spark, which is the fastest way to teach a person to ignore
+a notification. The ordering test is SemVer's own worked example, taken from the specification
+rather than invented, so it can be checked against something.
+
+**`spark --version` had printed `0.0.0.0` for every build ever made.** It read
+`Assembly.GetName().Version`, which MinVer truncates to `major.0.0.0` on purpose, because the
+assembly version participates in binding and moving it on every patch would break every reference.
+Nobody had noticed because nothing depended on it. The update check does, so it is fixed in all
+three places that ask - the CLI and both About paths - and `SparkVersion.Of` is now the only way
+anything reads it.
+
+**NFR-13 said "no telemetry of any kind in v1" and that had to be answered, not stepped around.**
+The check collects nothing and sends nothing; its request body is empty. It is also an HTTP request,
+and an HTTP request reveals an IP and a time. **Calling that nothing because the body is empty is
+how a no-telemetry promise stops being worth anything** - the next request is always also "not
+really telemetry". So [D22](PRD.md#13-decision-log) says what it does, NFR-13's row now says it
+too, and the README's "nothing phones home" - which was no longer true - says what happens instead.
+On by default, because an update nobody hears about is an update nobody installs; off in one click
+from the Help menu, and off is remembered; `--no-update-check` for a session, and the menu cannot
+override it.
+
+**The endpoint is not configurable, and that is a security decision rather than an oversight.** A
+settable update endpoint is a mechanism for pointing somebody's installation at a build that is not
+Spark. [D22a](PRD.md#13-decision-log) is the matching one: the badge opens a browser and does not
+download or install anything, because an unsigned binary fetching and running another unsigned
+binary is a supply-chain shape Spark should not teach its users to accept. Revisit when there is a
+signing identity.
+
+**Every failure is silence, and the tests are mostly about that.** Offline, timed out, 403
+rate-limited, 404, 503, and - the one worth naming - **a captive portal or corporate proxy
+answering with an HTML login page and a 200**, which no amount of endpoint correctness prevents.
+All produce null, and a user offline sees exactly what a user on the newest build sees: nothing.
+
+**The ribbon guard caught the badge, and it was right to.** `TheRibbonKeepsOnlyTheRunControls`
+exists because `E8-T32` moved twenty-six buttons into a menu bar and the run controls were the one
+stated exception. Adding a button to the ribbon is exactly what it is there to stop. The badge is
+now a **second stated exception** rather than a quietly widened rule: it is not a command - it
+commands nothing, it announces something - and it is invisible in every session with nothing to
+announce, so it costs the ribbon no permanent room. A third has to be argued for in that test's own
+remarks before it can be written.
+
+**Verified by photographing it.** `--update-badge 0.9.0` poses the badge without a request, which
+is the only way to see a control that appears solely when a real release is newer - the same reason
+`--about-window` and `--help-window` exist. The pill reads *Update available: 0.9.0* in the ribbon,
+and it is the only filled-accent control in the shell, which is what makes it register among
+twenty-six commands that look alike on purpose.
+
+**Verified**: build clean under `-warnaserror`, **2277 tests** across the nine executables (up 52),
+`dotnet format` clean, `spark --version` now prints `0.0.0-alpha.0.131` instead of `0.0.0.0`, and
+the shell photographed with the badge showing.
+
+**What is not proven, and cannot be until a release exists**: the live path against the real GitHub
+endpoint. Everything up to and including the JSON is tested; the one untested link is whether
+`api.github.com` answers the way its documentation says. The first release is what checks it.

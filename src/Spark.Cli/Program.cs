@@ -628,8 +628,11 @@ internal static class Program
         // the fact somebody reporting a problem needs and "opencascade" is not.
         string? description = kernel is UnavailableBrepKernel ? null : kernel.Description;
 
+        // SparkVersion.Of and not Assembly.GetName().Version. MinVer truncates the assembly
+        // version to major.0.0.0 because it participates in binding, so this printed `0.0.0.0` for
+        // every build ever made until E12-T21 needed a real number to compare a release against.
         Console.Write(ProductNotice.ToText(
-            typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown", description));
+            SparkVersion.Of(typeof(Program).Assembly)?.ToString() ?? "unknown", description));
 
         return 0;
     }
