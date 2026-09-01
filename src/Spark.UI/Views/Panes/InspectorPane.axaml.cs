@@ -87,6 +87,43 @@ public sealed partial class InspectorPane : UserControl
         }
     }
 
+    /// <summary>
+    /// Opens both of the editor's popups over the selected block's source, for a screenshot.
+    /// </summary>
+    /// <remarks>
+    /// <b>A pose, in the sense <c>--update-badge</c> is one.</b> A completion list and a signature
+    /// exist only while somebody is typing, so a screenshot of the application can never contain
+    /// either unless the application is asked to put them there. It asks the same two methods a
+    /// keystroke asks.
+    /// </remarks>
+    /// <param name="command">
+    /// A Selection command to run instead, named as the context menu names it, or null to open the
+    /// two popups.
+    /// </param>
+    public void PoseCodeEditor(string? command = null)
+    {
+        if (_script is null)
+        {
+            return;
+        }
+
+        _script.FocusEditor();
+
+        if (command is { Length: > 0 })
+        {
+            // From the top of the source, because a Selection command acts where the caret is and
+            // filling the editor leaves it at the end - past the last identifier, where every
+            // command that works on a word correctly does nothing at all.
+            _script.CaretOffset = 0;
+            _script.Invoke(command);
+
+            return;
+        }
+
+        _ = _script.RequestSignatureAsync();
+        _ = _script.RequestCompletionAsync();
+    }
+
     /// <summary>Raised when the selected note's text has been changed and committed.</summary>
     /// <remarks>
     /// An event rather than a call, for the reason <c>LibraryPane.PlaceRequested</c> is one: the

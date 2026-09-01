@@ -33,6 +33,17 @@ namespace Spark.UI;
 /// only, because a flag that could turn a setting back <i>on</i> would make the setting a
 /// suggestion.
 /// </param>
+/// <param name="CodeBlock">
+/// Source to pose a code block with, so that the editor and its popups can be photographed
+/// (`E6-T22`). A block is placed, selected and filled with this text, and both popups are asked
+/// for at the caret — which is the only way to see a completion list and a signature in a
+/// screenshot, since neither exists until somebody types.
+/// </param>
+/// <param name="CodeBlockCommand">
+/// A Selection command to run on the posed code block instead of opening its popups (`E6-T24`),
+/// named as the context menu's tags name them — <c>SelectAllOccurrences</c>, <c>AddCaretBelow</c>.
+/// Multiple carets, like a completion list, exist only after somebody has pressed something.
+/// </param>
 /// <param name="UpdateBadge">
 /// A version to show in the update badge at startup (<c>--update-badge 9.9.9</c>), or null.
 /// Aimed at the screenshot path for the reason <c>--about-window</c> and <c>--help-window</c> are:
@@ -138,7 +149,9 @@ public readonly record struct StartupOptions(
     int SelectFirst = 0,
     string? LibrarySearch = null,
     bool NoUpdateCheck = false,
-    string? UpdateBadge = null)
+    string? UpdateBadge = null,
+    string? CodeBlock = null,
+    string? CodeBlockCommand = null)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
     public static StartupOptions Default => new(0, 0, 0, null, null, null);
@@ -220,6 +233,8 @@ public readonly record struct StartupOptions(
         bool noScript = false;
         bool noUpdateCheck = false;
         string? updateBadge = null;
+        string? codeBlock = null;
+        string? codeBlockCommand = null;
         bool software = false;
         string? helpTopic = null;
         bool aboutWindow = false;
@@ -270,6 +285,14 @@ public readonly record struct StartupOptions(
 
                 case "--no-update-check":
                     noUpdateCheck = true;
+                    break;
+
+                case "--code-block" when i + 1 < args.Length:
+                    codeBlock = args[++i];
+                    break;
+
+                case "--code-block-command" when i + 1 < args.Length:
+                    codeBlockCommand = args[++i];
                     break;
 
                 case "--update-badge" when i + 1 < args.Length:
@@ -345,7 +368,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand);
     }
 
     private static int ParseCount(string text, int fallback) =>

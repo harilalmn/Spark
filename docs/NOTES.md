@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N95-N96 added)
+**Last updated:** 2026-09-01 (N95-N97 added)
 
 ---
 
@@ -2673,3 +2673,57 @@ the rest.** The fix here was to hoist the comment above the statement, which is 
 The thing to remember is the diagnosis: *formatting errors on lines you did not touch, in a file
 you did touch, are probably older than your change* — read them before assuming your edit caused
 them, and do not "fix" your own new code to make them go away.
+
+---
+
+## N97 — Multiple carets on AvaloniaEdit: anchors, one update, and the two things that stay single
+
+AvaloniaEdit has one caret and no multi-caret support at all, and eight of VS Code's fourteen
+Selection commands are about having several. The layer that makes them work is smaller than it
+looks, and it rests on three facts.
+
+**`TextDocument.CreateAnchor` is what makes it tractable.** A secondary caret is a pair of
+`TextAnchor` — the selection anchor and the caret — and the document moves both through every
+edit, ours or AvaloniaEdit's own. Set `SurviveDeletion = true` so a caret whose text is deleted
+collapses to the deletion point instead of vanishing, and `MovementType = AfterInsertion` so
+typing at a caret leaves it after what was typed rather than before it. Storing plain offsets
+instead works right up until an edit arrives from a path you did not write.
+
+**Edit ascending, carry one delta, and wrap the lot in `BeginUpdate`/`EndUpdate`.** In document
+order every later offset is stale by exactly the length the earlier edits changed, which is one
+number rather than a re-sort per edit. The single update is not cosmetic: without it Ctrl+Z undoes
+a five-caret edit five times, which makes the feature a trap rather than a convenience.
+
+**The editing path only diverges when there is more than one caret.** With one caret every
+keystroke goes to AvaloniaEdit exactly as before. The alternative — always routing text input
+through our own code — trades the common case against the rare one.
+
+**Two things deliberately stay single.** The *primary* caret is still AvaloniaEdit's own, so its
+selection, its blinking and its scrolling are unmodified; the extras are drawn by a background
+renderer on the `Selection` and `Caret` layers and do not blink. And any key the multi-caret path
+does not understand — a word jump, a page, a keyboard selection — **drops the extra carets** rather
+than guessing, because a wrong guess at several carets is several wrong edits at once.
+
+---
+
+## N98 — A popup that is clipped to its pane has to be pulled back inside it
+
+`CodeBlockEditor` draws its completion list on a `Canvas` over the editor rather than in a
+`Popup`, because the headless session every UI test runs in has no window overlay layer
+([N47](NOTES.md)). The cost of that trade was known — the list is clipped to the pane instead of
+to the screen — and the consequence was not noticed until the signature popup was photographed:
+the caret was at the end of a long line in a properties pane about 280 px wide, so **both popups
+were a two-pixel sliver at the right edge**. On screen it read as a rendering fault; in the tests
+it read as nothing at all, because headless drawing has no font metrics and every glyph measures
+zero wide, which is precisely the axis that was wrong.
+
+Three things fix it, and none of them is exotic: measure the frame and clamp its origin into the
+control's bounds; hang the signature *below* the caret's line when there is no room above it, with
+the completion list moved down to clear it; and give the signature `MaxWidth` the pane's width with
+`TextWrapping="Wrap"` — **inside a `DockPanel`, not a horizontal `StackPanel`**, because a stack
+measures its children with infinite width and wrapping never takes effect.
+
+**The lesson is about the harness rather than the popup.** A headless test can assert the vertical
+placement, which is why the scroll-offset subtraction has been guarded since the M1.5 spike; it
+cannot assert the horizontal one at all. Anything that depends on measured text width is verified
+by photographing it — which is what `--code-block` and `--code-block-command` exist for.

@@ -102,6 +102,24 @@ public sealed partial class CodeBlockEditor : UserControl
         _editor.TextChanged += OnTextChanged;
         _editor.AddHandler(KeyDownEvent, OnEditorKeyDown, RoutingStrategies.Tunnel);
         _editor.LostFocus += OnEditorLostFocus;
+
+        // The Selection commands and the carets they need (`E6-T24`). Text input is tunnelled so
+        // that a multi-caret edit can be applied everywhere as one document update; the pointer
+        // handlers add a caret on Alt+Click and drag the box in column-selection mode.
+        _editor.AddHandler(TextInputEvent, OnEditorTextInput, RoutingStrategies.Tunnel);
+        _editor.AddHandler(PointerPressedEvent, OnEditorPointerPressed, RoutingStrategies.Tunnel);
+        _editor.AddHandler(PointerMovedEvent, OnEditorPointerMoved, RoutingStrategies.Tunnel);
+        _editor.AddHandler(PointerReleasedEvent, OnEditorPointerReleased, RoutingStrategies.Tunnel);
+
+        _editor.TextArea.TextView.BackgroundRenderers.Add(
+            new ExtraCaretRenderer(this, AvaloniaEdit.Rendering.KnownLayer.Selection));
+        _editor.TextArea.TextView.BackgroundRenderers.Add(
+            new ExtraCaretRenderer(this, AvaloniaEdit.Rendering.KnownLayer.Caret));
+
+        if (_editor.ContextMenu is { } menu)
+        {
+            menu.Opening += (_, _) => ShowModes(menu);
+        }
     }
 
     /// <summary>
@@ -185,6 +203,31 @@ public sealed partial class CodeBlockEditor : UserControl
             }
         }
     }
+
+    /// <summary>Where the caret is, in characters from the start of the source.</summary>
+    /// <remarks>
+    /// The inner editor is private, and a caller that wants the caret somewhere — a screenshot
+    /// pose, a test — should not have to reach through the visual tree to find out where it is.
+    /// </remarks>
+    public int CaretOffset
+    {
+        get => _editor?.CaretOffset ?? 0;
+
+        set
+        {
+            if (_editor?.Document is { } document)
+            {
+                _editor.CaretOffset = Math.Clamp(value, 0, document.TextLength);
+            }
+        }
+    }
+
+    /// <summary>Puts the keyboard focus in the text, rather than on this control.</summary>
+    /// <remarks>
+    /// The inner editor is what handles keys, so focusing the <see cref="UserControl"/> would put
+    /// the caret nowhere. Public because the screenshot pose has to do exactly what a user does.
+    /// </remarks>
+    public void FocusEditor() => _editor?.Focus();
 
     /// <summary>Whether the completion list is on screen.</summary>
     public bool IsCompletionOpen => _frame?.IsVisible == true;
@@ -323,7 +366,11 @@ public sealed partial class CodeBlockEditor : UserControl
             {
                 CloseSignature();
                 e.Handled = true;
+
+                return;
             }
+
+            e.Handled = HandleSelectionKey(e);
 
             return;
         }
@@ -400,10 +447,31 @@ public sealed partial class CodeBlockEditor : UserControl
         TextView view = _editor.TextArea.TextView;
         Point visual = view.GetVisualPosition(_editor.TextArea.Caret.Position, VisualYPosition.LineBottom);
 
-        CompletionOrigin = visual - view.ScrollOffset;
+        CompletionOrigin = Fit(_frame, (visual - view.ScrollOffset) + new Point(0, SignatureClearance));
 
         Avalonia.Controls.Canvas.SetLeft(_frame, CompletionOrigin.X);
         Avalonia.Controls.Canvas.SetTop(_frame, CompletionOrigin.Y);
+    }
+
+    /// <summary>Keeps a popup inside the pane it is drawn on.</summary>
+    /// <remarks>
+    /// <b>The overlay is clipped to the pane, so a popup that starts past the right edge is not
+    /// merely awkward — it is invisible.</b> That is the trade this control made deliberately when
+    /// it chose a canvas over a <c>Popup</c> (`E6-T12`), and the first screenshot of the signature
+    /// popup is what showed the other half of the bargain being owed: the caret was at the end of a
+    /// long line, so both popups were a sliver at the edge of the properties pane. They are pulled
+    /// back inside instead, which is what an editor with a narrow gutter has to do.
+    /// </remarks>
+    private Point Fit(Avalonia.Layout.Layoutable frame, Point origin)
+    {
+        frame.Measure(Size.Infinity);
+
+        double width = frame.DesiredSize.Width;
+        double right = Math.Max(0.0, Bounds.Width - width);
+
+        return new Point(
+            Bounds.Width > width ? Math.Clamp(origin.X, 0.0, right) : 0.0,
+            Math.Max(0.0, origin.Y));
     }
 
     /// <summary>Narrows the list to what has been typed since it opened.</summary>

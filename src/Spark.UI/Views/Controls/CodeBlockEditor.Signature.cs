@@ -56,6 +56,7 @@ public sealed partial class CodeBlockEditor
 {
     private CancellationTokenSource? _pendingSignature;
     private CodeSignatureInfo _signature;
+    private bool _signatureBelow;
 
     /// <summary>Where signatures come from: the text, the caret, and a token.</summary>
     /// <remarks>
@@ -227,9 +228,10 @@ public sealed partial class CodeBlockEditor
     /// then the frame's own height comes off as well, because this one hangs above the line rather
     /// than below it. It is measured before it is placed, since an unmeasured frame has no height
     /// and would land on the caret's own line, over the code it is describing.
-    /// <b>On the top line of the pane there is nowhere above to hang</b>, so it is clamped to the
-    /// pane's own top edge rather than drawn off it: half a popup at the top of the view is worth
-    /// more than a whole one nobody can see.
+    /// <b>On the top line of the pane there is nowhere above to hang</b>, so it goes below the line
+    /// instead and the completion list moves down to sit under it — which is what VS Code does in
+    /// the same corner, and what the first screenshot of this popup demanded: a code block whose
+    /// call is on line one is the common case, not the exception.
     /// </remarks>
     private void PlaceSignature()
     {
@@ -239,17 +241,35 @@ public sealed partial class CodeBlockEditor
         }
 
         TextView view = _editor.TextArea.TextView;
-        Point visual = view.GetVisualPosition(_editor.TextArea.Caret.Position, VisualYPosition.LineTop);
+        Point top = view.GetVisualPosition(_editor.TextArea.Caret.Position, VisualYPosition.LineTop) - view.ScrollOffset;
+        Point bottom = view.GetVisualPosition(_editor.TextArea.Caret.Position, VisualYPosition.LineBottom) - view.ScrollOffset;
 
+        // Never wider than the pane it is drawn on, because the overlay is clipped to that pane
+        // and a signature running off the right edge is a signature nobody can read.
+        _signatureFrame.MaxWidth = Math.Max(160.0, Bounds.Width);
         _signatureFrame.Measure(Size.Infinity);
 
-        Point above = (visual - view.ScrollOffset) - new Point(0, _signatureFrame.DesiredSize.Height);
+        double height = _signatureFrame.DesiredSize.Height;
 
-        SignatureOrigin = above.WithY(Math.Max(0.0, above.Y));
+        _signatureBelow = top.Y - height < 0.0;
+
+        SignatureOrigin = Fit(
+            _signatureFrame,
+            _signatureBelow ? bottom : top - new Point(0, height));
 
         Avalonia.Controls.Canvas.SetLeft(_signatureFrame, SignatureOrigin.X);
         Avalonia.Controls.Canvas.SetTop(_signatureFrame, SignatureOrigin.Y);
     }
+
+    /// <summary>How far down the completion list has to move to clear the signature.</summary>
+    /// <remarks>
+    /// Zero unless the signature had to be drawn below the caret's line, which is the only case in
+    /// which the two popups want the same pixels.
+    /// </remarks>
+    private double SignatureClearance =>
+        IsSignatureOpen && _signatureBelow && _signatureFrame is not null
+            ? _signatureFrame.DesiredSize.Height
+            : 0.0;
 
     private void CloseSignature()
     {
@@ -257,5 +277,7 @@ public sealed partial class CodeBlockEditor
         {
             _signatureFrame.IsVisible = false;
         }
+
+        _signatureBelow = false;
     }
 }

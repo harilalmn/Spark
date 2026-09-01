@@ -23,7 +23,48 @@
                    FontSize="12"
                    ShowLineNumbers="True"
                    HorizontalScrollBarVisibility="Auto"
-                   VerticalScrollBarVisibility="Auto" />
+                   VerticalScrollBarVisibility="Auto">
+      <!--
+        VS Code's Selection menu, on the editor rather than in the main menu bar (`E6-T24`).
+
+        Spark's own Edit menu is about nodes - group, collapse, align - and a Selection menu beside
+        it would be greyed out or, worse, silently inert whenever the focus was anywhere but a code
+        block. A context menu on the editor is where these commands are true, and it is also the
+        only place their gestures are discoverable: eight of the fourteen do something no other
+        part of the application can do.
+      -->
+      <ae:TextEditor.ContextMenu>
+        <ContextMenu Name="SelectionMenu">
+          <MenuItem Header="Select _All" InputGesture="Ctrl+A" Tag="SelectAll" Click="OnSelectionMenu" />
+          <MenuItem Header="_Expand Selection" InputGesture="Shift+Alt+Right" Tag="ExpandSelection" Click="OnSelectionMenu" />
+          <MenuItem Header="_Shrink Selection" InputGesture="Shift+Alt+Left" Tag="ShrinkSelection" Click="OnSelectionMenu" />
+          <Separator />
+          <MenuItem Header="Copy Line _Up" InputGesture="Shift+Alt+Up" Tag="CopyLineUp" Click="OnSelectionMenu" />
+          <MenuItem Header="Copy Line _Down" InputGesture="Shift+Alt+Down" Tag="CopyLineDown" Click="OnSelectionMenu" />
+          <MenuItem Header="_Move Line Up" InputGesture="Alt+Up" Tag="MoveLinesUp" Click="OnSelectionMenu" />
+          <MenuItem Header="Mo_ve Line Down" InputGesture="Alt+Down" Tag="MoveLinesDown" Click="OnSelectionMenu" />
+          <MenuItem Header="Duplicate Selection" InputGesture="Ctrl+Shift+D" Tag="DuplicateSelection" Click="OnSelectionMenu" />
+          <Separator />
+          <MenuItem Header="Add Cursor Abo_ve" InputGesture="Ctrl+Alt+Up" Tag="AddCaretAbove" Click="OnSelectionMenu" />
+          <MenuItem Header="Add Cursor _Below" InputGesture="Ctrl+Alt+Down" Tag="AddCaretBelow" Click="OnSelectionMenu" />
+          <MenuItem Header="Add Cursors to Line Ends" InputGesture="Shift+Alt+I" Tag="AddCaretsToLineEnds" Click="OnSelectionMenu" />
+          <MenuItem Header="Add _Next Occurrence" InputGesture="Ctrl+D" Tag="AddNextOccurrence" Click="OnSelectionMenu" />
+          <MenuItem Header="Add _Previous Occurrence" Tag="AddPreviousOccurrence" Click="OnSelectionMenu" />
+          <MenuItem Header="Select All _Occurrences" InputGesture="Ctrl+Shift+L" Tag="SelectAllOccurrences" Click="OnSelectionMenu" />
+          <Separator />
+          <MenuItem Name="ControlClickItem"
+                    Header="Switch to Ctrl+Click for Multi-Cursor"
+                    ToggleType="CheckBox"
+                    Tag="ControlClick"
+                    Click="OnSelectionMenu" />
+          <MenuItem Name="ColumnSelectionItem"
+                    Header="Column Selection Mode"
+                    ToggleType="CheckBox"
+                    Tag="ColumnSelection"
+                    Click="OnSelectionMenu" />
+        </ContextMenu>
+      </ae:TextEditor.ContextMenu>
+    </ae:TextEditor>
 
     <Canvas Name="CompletionLayer" IsHitTestVisible="False">
       <!--
@@ -39,17 +80,24 @@
               CornerRadius="2"
               Padding="6,3"
               MaxWidth="560">
-        <StackPanel Orientation="Horizontal" Spacing="8">
+        <!--
+          A DockPanel rather than a horizontal StackPanel, so that the signature wraps. A stack
+          measures its children with infinite width, which means TextWrapping never takes effect
+          and a long signature runs off a pane that clips it.
+        -->
+        <DockPanel LastChildFill="True">
           <TextBlock Name="SignatureOverloads"
+                     DockPanel.Dock="Left"
+                     Margin="0,0,8,0"
                      Opacity="0.55"
                      FontSize="10"
                      VerticalAlignment="Center" />
           <TextBlock Name="SignatureText"
                      FontFamily="Cascadia Code,Consolas,monospace"
                      FontSize="12"
-                     TextWrapping="NoWrap"
+                     TextWrapping="Wrap"
                      VerticalAlignment="Center" />
-        </StackPanel>
+        </DockPanel>
       </Border>
 
       <Border Name="CompletionFrame"

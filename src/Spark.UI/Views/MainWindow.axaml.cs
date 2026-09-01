@@ -986,6 +986,27 @@ public sealed partial class MainWindow : Window
             _about.Show(this);
         }
 
+        // E6-T22. The screenshot path for the code editor: place a block, fill it with the source
+        // given, and ask for both popups at the caret. Nothing here is reachable without the flag.
+        if (Options.CodeBlock is { Length: > 0 } source && Model is { } scriptModel)
+        {
+            Canvas.SuggestPlacement(scriptModel.PlacementOrdinal, out double blockX, out double blockY);
+
+            int slot = scriptModel.PlaceCodeBlock(blockX, blockY);
+
+            if (slot >= 0)
+            {
+                Canvas.RefreshStructure();
+                Canvas.SelectOnly(slot);
+
+                scriptModel.ScriptText = source.Replace("\\n", "\n", StringComparison.Ordinal);
+                scriptModel.CommitScriptText();
+
+                _inspectorPane.ShowScript();
+                _inspectorPane.PoseCodeEditor(Options.CodeBlockCommand);
+            }
+        }
+
         if (Options.SyntheticNodeCount > 0)
         {
             LoadSynthetic(Options.SyntheticNodeCount);
