@@ -85,9 +85,47 @@ jobs:
       - name: Verify formatting
         run: dotnet format Spark.slnx --verify-no-changes --severity warn
 
+      # OPENCASCADE HAS TO BE INSTALLED HERE, AND THE FIRST RELEASE FOUND OUT THE HARD WAY.
+      #
+      # `v0.1.0` called build-native.ps1 straight, as a developer machine can: there, vcpkg has
+      # OpenCascade in it already. A hosted runner has vcpkg at C:\vcpkg and **no ports built**, so
+      # the script found a vcpkg without OpenCascade and stopped - before the installer, before the
+      # publish, and therefore before the release page had anything on it but source archives.
+      #
+      # This is `ci.yml`'s native job, copied deliberately rather than factored out: the two are
+      # allowed to diverge (CI measures the payload, this one ships it), and a shared composite
+      # action that silently changed both is a worse failure than two files that agree by review.
+      # The cache key is the OpenCascade version and the vcpkg baseline out of the port manifest,
+      # without the shim hash - editing the shim must not throw away an hour of dependency build.
+      - name: Compute the OpenCascade key
+        id: occtkey
+        shell: pwsh
+        run: |
+          $manifest = Get-Content native/spark_occt/vcpkg.json -Raw | ConvertFrom-Json
+          $occt = ($manifest.overrides | Where-Object { $_.name -eq 'opencascade' }).version
+
+          "occt=$occt"                                >> $env:GITHUB_OUTPUT
+          "baseline=$($manifest.'builtin-baseline')"  >> $env:GITHUB_OUTPUT
+
+      - name: Cache OpenCascade
+        id: occt
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\vcpkg\installed
+            C:\vcpkg\packages
+          key: occt-${{ steps.occtkey.outputs.occt }}-${{ steps.occtkey.outputs.baseline }}-win-x64
+
+      - name: Install OpenCascade
+        if: steps.occt.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          Write-Host 'Building OpenCascade from the pinned port. This takes about an hour.'
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install opencascade:x64-windows
+
       - name: Build the native provider
         shell: pwsh
-        run: ./scripts/build-native.ps1
+        run: ./scripts/build-native.ps1 -VcpkgRoot $env:VCPKG_INSTALLATION_ROOT
 
       - name: Stage
         shell: pwsh

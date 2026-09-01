@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N95-N101 added)
+**Last updated:** 2026-09-02 (N95-N102 added)
 
 ---
 
@@ -2834,3 +2834,37 @@ at once.
 restart: `WorkspaceLayout` has `ToJson`/`FromJson` and nothing calls either. That is worth knowing
 before somebody adds persistence — a saved *broken* layout would turn a restart from the escape
 hatch into the trap.
+
+---
+
+## N102 — A release workflow that builds native code has to install the native dependencies itself
+
+`v0.1.0` tagged, built, tested, formatted — and then stopped at *Build the native provider*, so no
+installer was packed, `gh release create` never ran, and the release page had nothing on it but the
+source archives GitHub generates on its own.
+
+**The cause is a difference between a developer machine and a hosted runner that reads as no
+difference at all.** `release.yml` called `scripts/build-native.ps1` bare, exactly as a person does
+here. The script looks for vcpkg in `VCPKG_ROOT`, then `C:\dev\vcpkg`, then `C:\vcpkg` — and a
+`windows-latest` image *has* vcpkg at `C:\vcpkg`, with **no ports built in it**. So the script found
+a vcpkg, and OpenCascade was not in it.
+
+`ci.yml` had this right from the beginning: compute a cache key from the port manifest, restore or
+`vcpkg install opencascade:x64-windows`, then call the script with
+`-VcpkgRoot $env:VCPKG_INSTALLATION_ROOT`. The release job simply never got the same three steps.
+
+**Two things worth keeping.**
+
+*The failing step was one nobody would have chosen to test.* Everything in that workflow up to it
+was exercised by CI on every push; the native build was exercised by CI's own job, in CI's own
+environment, with CI's own preparation. The release job's copy of it had never run anywhere.
+**A step that exists in two workflows is two steps.**
+
+*The fix is a new tag, never a moved one.* `v0.1.1` is the release that ships; `v0.1.0` stays where
+it is, pointing at a commit whose workflow failed, because a machine that already fetched a tag
+keeps whatever it fetched.
+
+**And why the two jobs are still copies rather than a shared composite action:** they are allowed to
+diverge — CI measures the payload against `E13-T17`'s budget, the release job ships it — and a
+shared action that silently changed both is a worse failure than two files somebody has to keep in
+agreement by reading them.
