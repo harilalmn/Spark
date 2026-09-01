@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-08-31 (D19 — the Help pass moves after 1.0; E10's status recounted against the tree)
+**Last updated:** 2026-09-02 (E10-T5 gains the code-block form of every node; E10-T13 files the generated pages under their index)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -980,7 +980,11 @@ user needs. XML doc = what this member does.*
       **E10-T10**).
 - [x] Generated API reference pages (**E10-T5**). *Built 2026-08-31 and generated **at runtime
       from the live node library**, so a page cannot drift from the node it describes and a package
-      installed this session has help the moment it loads.*
+      installed this session has help the moment it loads. **Extended 2026-09-02: every page also
+      shows the node as code** — the code-block body that calls its underlying member, written by
+      the importer from the `MemberInfo` and not from the key, which is a display name and disagrees
+      with the CLR for three of the 136 ([N93](NOTES.md)). All 136 are compiled through a real
+      `ScriptNodeFactory` on every test run.*
 - [x] Every help topic contains a worked example (**E10-T3**, enforced by
       [E11-T2](#e11--quality-and-verification)). *Enforced 2026-08-31 in two places, and the
       definition was widened from "a fence" to "a fence, a table, or a section headed example"
@@ -992,13 +996,19 @@ user needs. XML doc = what this member does.*
       graph goes red the same day.*
 - [x] Every `SPK####` code has a help topic (**E10-T11**). *Built 2026-08-31 by reflecting
       over the code constants, so the set cannot fall behind the codes. Checking it also
-      found five codes pointing at a concept topic that had never been written.*
+      found five codes pointing at a concept topic that had never been written. **2026-09-02:
+      seven of the nineteen pages showed a severity of `—`**, because the severity is read off the
+      front of the doc comment and seven comments carried no severity word. Fixed, and now
+      enforced by a test rather than by the class's own belief that it already held.*
 - [ ] Per-PR changelog fragments, so a single changelog file never becomes a merge-conflict
       magnet (**E10-T12**).
 - [x] An in-product Markdown help renderer lives in `Spark.Api`, free of UI dependencies so
       the harness can exercise it anywhere (**E10-T13**). *Built 2026-08-31. `HelpView` draws the
       model and knows nothing about Markdown; `HelpWindow` lists, searches and links; **F1 opens
-      the selected node's page**. Photographed rather than only tested.*
+      the selected node's page**. Photographed rather than only tested. **2026-09-02: the generated
+      pages are filed under their own index**, indented, the way the node pages already were — the
+      nineteen `SPK####` pages were not, so they filled the top of the navigation above the index
+      that explains them, and a reader asked what they were and whether they could be deleted.*
 - [x] `docs/NOTES.md` uses stable numbers that are never renumbered and never reused, with
       gaps left on deletion (**E10-T1**).
 

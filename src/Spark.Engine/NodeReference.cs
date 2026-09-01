@@ -74,6 +74,20 @@ public static class NodeReference
         blocks.Add(new HelpBlock(HelpBlockKind.Heading, HelpMarkdown.ParseInlines("Outputs"), 2));
         blocks.Add(new HelpBlock(HelpBlockKind.Table, rows: Ports(definition.Outputs, showDefaults: false)));
 
+        if (!string.IsNullOrWhiteSpace(definition.CodeExample))
+        {
+            blocks.Add(new HelpBlock(HelpBlockKind.Heading, HelpMarkdown.ParseInlines("In a code block"), 2));
+            blocks.Add(new HelpBlock(
+                HelpBlockKind.Paragraph,
+                HelpMarkdown.ParseInlines(
+                    "This node is a plain C# member, so a code block can call it directly. The "
+                    + "identifiers below are this node's port names, and a name a code block does "
+                    + "not declare becomes an input port — so pasting this gives a block with the "
+                    + "same ports. See [Code blocks](concepts.code-blocks).")));
+            blocks.Add(new HelpBlock(
+                HelpBlockKind.Code, language: "csharp", text: definition.CodeExample));
+        }
+
         blocks.Add(new HelpBlock(HelpBlockKind.Heading, HelpMarkdown.ParseInlines("Lacing"), 2));
         blocks.Add(new HelpBlock(HelpBlockKind.Paragraph, HelpMarkdown.ParseInlines(LacingSentence(definition))));
 
@@ -82,7 +96,9 @@ public static class NodeReference
             definition.DisplayName,
             blocks,
             nodes: [definition.Key.Value],
-            related: ["concepts.lacing"]);
+            related: definition.CodeExample is null
+                ? ["concepts.lacing"]
+                : ["concepts.lacing", "concepts.code-blocks"]);
     }
 
     /// <summary>Builds a page for every node in a library, ordered by key.</summary>

@@ -132,7 +132,7 @@ public static class DiagnosticCodes
     public const string FileTopic = "concepts.files";
 
     /// <summary>
-    /// A node is frozen, so it and everything downstream of it were not evaluated
+    /// Information. A node is frozen, so it and everything downstream of it were not evaluated
     /// (<c>E7-T14</c>).
     /// </summary>
     /// <remarks>
@@ -144,24 +144,28 @@ public static class DiagnosticCodes
     public const string NodeFrozen = "SPK1070";
 
     /// <summary>
-    /// A `.spark` file is not valid JSON, is not a graph, or is missing something it must have.
+    /// Error. A `.spark` file is not valid JSON, is not a graph, or is missing something it must
+    /// have.
     /// </summary>
     public const string MalformedGraphFile = "SPK1060";
 
     /// <summary>
-    /// A `.spark` file names a format version newer than this build can read. Refused whole rather
+    /// Error. A `.spark` file names a format version newer than this build can read. Refused whole
+    /// rather
     /// than partly read, because guessing at an unknown format is how a graph silently loses work.
     /// </summary>
     public const string UnreadableFormatVersion = "SPK1061";
 
     /// <summary>
-    /// A `.spark` file names a node definition that is not loaded — a package that is not
+    /// Error. A `.spark` file names a node definition that is not loaded — a package that is
+    /// not
     /// installed, or a node that has been renamed since the graph was saved.
     /// </summary>
     public const string UnknownNodeDefinition = "SPK1062";
 
     /// <summary>
-    /// A port holds a value no `.spark` file can represent, so saving would lose it. Refused at
+    /// Error. A port holds a value no `.spark` file can represent, so saving would lose it. Refused
+    /// at
     /// save time, where the user still has the value, rather than at load time when it is gone.
     /// </summary>
     public const string UnwritableLiteral = "SPK1063";
@@ -172,7 +176,7 @@ public static class DiagnosticCodes
     public const string SolidsTopic = KernelDiagnostics.SolidsTopic;
 
     /// <summary>
-    /// An exact solid operation was asked for and no kernel provider is installed.
+    /// Error. An exact solid operation was asked for and no kernel provider is installed.
     /// </summary>
     /// <remarks>
     /// <b>Declared here and defined in <c>Spark.Api</c>.</b> The seam is a contract, so
@@ -183,7 +187,7 @@ public static class DiagnosticCodes
     public const string KernelUnavailable = KernelDiagnostics.Unavailable;
 
     /// <summary>
-    /// A kernel provider refused an operation: the geometry does not permit what was asked.
+    /// Error. A kernel provider refused an operation: the geometry does not permit what was asked.
     /// </summary>
     public const string KernelRefused = KernelDiagnostics.Refused;
 }

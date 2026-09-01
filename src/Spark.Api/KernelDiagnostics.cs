@@ -16,7 +16,7 @@ public static class KernelDiagnostics
     public const string SolidsTopic = "concepts.solids";
 
     /// <summary>
-    /// An exact solid operation was asked for and no kernel provider is installed.
+    /// Error. An exact solid operation was asked for and no kernel provider is installed.
     /// </summary>
     /// <remarks>
     /// Distinct from <see cref="Refused"/> on purpose: *nothing here can do this* and *the geometry
@@ -26,7 +26,7 @@ public static class KernelDiagnostics
     public const string Unavailable = "SPK1080";
 
     /// <summary>
-    /// A kernel provider refused an operation because the geometry does not permit it.
+    /// Error. A kernel provider refused an operation because the geometry does not permit it.
     /// </summary>
     /// <remarks>
     /// <b>Ordinary rather than exceptional.</b> A fillet whose radius does not fit, a boolean of

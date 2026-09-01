@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using Spark.Api.Help;
 using Spark.Engine;
 using Spark.UI.Controls;
@@ -222,6 +224,52 @@ public sealed class HelpWindowTests
             }
 
             Assert.True(missing.Count == 0, "Codes with no page: " + string.Join(", ", missing));
+        });
+    }
+
+    /// <summary>
+    /// <b>The generated pages sit under their own index, indented, and the concept topics are not
+    /// buried among them.</b>
+    /// </summary>
+    /// <remarks>
+    /// The node pages were already filed this way; the 19 <c>SPK####</c> pages were not, so they
+    /// filled the top of the navigation above the index that explains them. A reader asked what
+    /// they were and whether they could be deleted, which is the question a mis-filed page
+    /// provokes. They stay - a node in error shows its code and this is where <i>read more</i>
+    /// lands - and they are filed.
+    /// </remarks>
+    [Fact]
+    public void GeneratedPagesAreListedUnderTheirIndex()
+    {
+        HeadlessSession.Run(() =>
+        {
+            MainWindowViewModel model = new();
+            HelpWindow window = new(model.Help());
+
+            IReadOnlyList<string> labels = window.VisibleEntryLabels;
+            int diagnostics = labels.ToList().IndexOf("Diagnostic codes");
+            int nodes = labels.ToList().IndexOf("Node reference");
+
+            Assert.True(diagnostics > 0, "the diagnostics index is not in the list");
+            Assert.True(nodes > diagnostics, "the node index should follow the diagnostics index");
+
+            // Nothing above the first index is indented: those are the hand-written topics.
+            for (int i = 0; i < diagnostics; i++)
+            {
+                Assert.False(
+                    labels[i].StartsWith(' '),
+                    $"'{labels[i].Trim()}' is a generated page listed above every index");
+            }
+
+            // Every entry between the two indexes is an indented diagnostic page, and there is at
+            // least one - the section would otherwise be an index with nothing under it.
+            Assert.True(nodes - diagnostics > 1, "the diagnostics index has no pages under it");
+            for (int i = diagnostics + 1; i < nodes; i++)
+            {
+                Assert.StartsWith("    ", labels[i], StringComparison.Ordinal);
+            }
+
+            Assert.All(labels.Skip(nodes + 1), label => Assert.StartsWith("    ", label, StringComparison.Ordinal));
         });
     }
 

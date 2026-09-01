@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N63-N92 added)
+**Last updated:** 2026-09-02 (N93-N94 added)
 
 ---
 
@@ -2568,3 +2568,53 @@ sometimes jumps for no reason visible to the person dragging it.
 against a port holding the wrong type, and a test asserting a *type* passes against the wrong
 rounding. Both had to be asserted for either to be found, and the second one only surfaced because
 the first was fixed first.
+
+---
+
+## N93 — A node key is a display name, not a code path
+
+The node reference now prints the C# a code block would write to call each node. The obvious
+implementation reads the key — `Spark.Nodes.Core/Number.Range` is package and name, and the name
+already looks like `Type.Member` — and it is wrong for three of the 136 nodes on the first run:
+
+| Key | The member it is |
+|---|---|
+| `Integer.Slider` | `Number.IntegerSlider` |
+| `List.Count` | `ListNodes.Count` |
+| `TimeSpan.Components` | `Duration.Components` |
+
+A key is what the library panel shows and what a `.spark` file stores; `[SparkNode(Name = …)]`
+sets it freely, and the importer's own naming does not have to agree with the CLR either. **The
+`MemberInfo` is the only thing that knows**, and the only place it exists is `NodeImporter` —
+`NodeLibrary` keeps definitions. So the example is written at import and carried on the
+definition, which is also why it comes free for a third-party package.
+
+**Three wrong examples out of 136 is the worst possible failure rate**: high enough to mislead,
+low enough that spot-checking a page or two finds nothing. Compiling all of them is what makes
+the difference, and that is `NodeCodeExampleTests` — every example goes through a real
+`ScriptNodeFactory` and its inferred ports are asserted against the node's own.
+
+---
+
+## N94 — A code block cannot host a `using` directive, and `Spark.Nodes.Core` must not be imported
+
+Two facts that decide how a generated example has to be written, and the first of them was
+written down backwards.
+
+**`ScriptNodeFactory.Wrap` puts the user's script inside a method body.** So a leading
+`using Spark.Nodes.Core;` is not a using *directive* at all — it is parsed as a using *statement*
+and fails with `Identifier expected` and `You must provide an initializer in a fixed or using
+statement declaration`, neither of which names the real problem.
+[DYNAMO-COVERAGE §5](DYNAMO-COVERAGE.md) said the opposite — "E6's code block hosts arbitrary
+`using` directives written by users" — as half the justification for the `Point` → `Point3d`
+rename. The rename stands on its other half, which is FR-60's planar layer; the sentence was
+wrong and is now corrected.
+
+**A user therefore cannot add an import, so the imports are the five in
+`ReferenceCatalog.DefaultImports`**: `System`, `System.Collections.Generic`, `System.Linq`,
+`Spark.Api`, `Spark.Geometry`. Adding `Spark.Nodes.Core` to that list is the obvious way to
+shorten every generated example and **it must not be done**: that namespace declares a `Math`,
+so importing it makes `Math.PI` ambiguous in every script already written — including the worked
+example in `concepts/code-blocks.md`. Generated examples are fully qualified instead, which is
+also the only thing that can work for a package whose namespace nobody can predict.
+

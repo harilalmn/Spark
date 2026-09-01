@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-08-29
+**Last updated:** 2026-09-02 (§5 corrected: a code block does not host `using` directives)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -517,9 +517,12 @@ one. FR-60 commits Spark to a planar supporting layer with `Point2d`, `Curve2d` 
 so an unqualified `Point` would have collided the moment that arrived, and renaming a type
 after node graphs reference it is not something ADR-0019 lets us do casually. More sharply:
 `Point` is one of the most-collided type names in .NET — `System.Drawing.Point`,
-`System.Windows.Point`, `Avalonia.Point` — and E6's code block hosts arbitrary `using`
-directives written by users. A kernel type that a user's own `using` can silently shadow is a
-support burden we can decline for the price of two characters.
+`System.Windows.Point`, `Avalonia.Point` — and a code block is compiled with `Spark.Geometry`
+already imported, beside `System` and three others, on a surface where a package author's
+namespace is next. A kernel type whose name collides in that position is a support burden we can
+decline for the price of two characters. *(Corrected 2026-09-02: this read "E6's code block hosts
+arbitrary `using` directives written by users", which it does not — the script is wrapped inside
+a method body, where a `using` directive is a syntax error. See [N94](NOTES.md).)*
 
 **`CoEdge` → `BrepTrim`.** A co-edge is one face's use of a shared edge; an edge between two
 faces has two of them, running in opposite directions. Dynamo names it for its topological

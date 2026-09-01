@@ -176,6 +176,38 @@ public sealed class HelpTests
     }
 
     /// <summary>
+    /// <b>Every code's summary opens with its severity word</b>, because that is where
+    /// <c>DiagnosticReference</c> reads the Severity column from.
+    /// </summary>
+    /// <remarks>
+    /// The class was written believing this already held of every code, and it held of twelve of
+    /// nineteen: the seven file and kernel codes carried no severity word, so their pages showed a
+    /// severity of <c>—</c>. Nobody noticed until a reader photographed <c>SPK1061</c>. A
+    /// convention a generator depends on and nothing enforces is a convention that is already
+    /// half broken, so this is the enforcement rather than a second pass of proofreading.
+    /// </remarks>
+    [Fact]
+    public void EveryDiagnosticSummaryOpensWithItsSeverity()
+    {
+        string[] severities = ["Error.", "Warning.", "Information."];
+        List<string> silent = [];
+
+        foreach ((string code, string? summary, _) in DiagnosticReference.All())
+        {
+            if (summary is null
+                || !severities.Any(severity => summary.StartsWith(severity, StringComparison.Ordinal)))
+            {
+                silent.Add(code);
+            }
+        }
+
+        Assert.True(
+            silent.Count == 0,
+            "These codes' summaries do not open with Error., Warning. or Information., so their "
+            + "pages show no severity: " + string.Join(", ", silent));
+    }
+
+    /// <summary>
     /// Every code resolves to a concept topic that exists. The mapping has been in
     /// <c>DiagnosticCodes</c> since M0 and nothing ever checked that the other end was there.
     /// </summary>
@@ -299,6 +331,47 @@ public sealed class HelpTests
         Assert.Equal("fallback", topic.Id);
         Assert.NotEmpty(topic.Blocks);
     }
+
+    /// <summary>
+    /// <b>A node page shows the code a code block would write to call the node</b> (<c>E10-T5</c>),
+    /// and shows nothing where there is no member to call.
+    /// </summary>
+    /// <remarks>
+    /// The client's request was "every node's page must show the code version". The example itself
+    /// is written by <c>NodeImporter</c>, which is the only place the <c>MemberInfo</c> is, and
+    /// whether all 136 of them compile is asserted in <c>NodeCodeExampleTests</c> - through a real
+    /// <c>ScriptNodeFactory</c>, because an example nobody compiles is a claim rather than a
+    /// sample. This asserts only the arrangement: the section appears with the example in it.
+    /// </remarks>
+    [Fact]
+    public void AGeneratedNodePageShowsTheCodeBlockForm()
+    {
+        HelpDocument page = NodeReference.For(WithExample());
+
+        Assert.Contains("In a code block", page.PlainText(), StringComparison.Ordinal);
+        Assert.Contains("Spark.Nodes.Core.Number.Add(a, b)", page.PlainText(), StringComparison.Ordinal);
+        Assert.Contains(
+            page.Blocks,
+            block => block.Kind == HelpBlockKind.Code
+                && string.Equals(block.Language, "csharp", StringComparison.Ordinal));
+
+        // A node with no CLR member behind it - a code block, a custom node - has nothing to show,
+        // and an empty heading would be worse than no heading.
+        Assert.DoesNotContain("In a code block", NodeReference.For(Sample()).PlainText(), StringComparison.Ordinal);
+    }
+
+    private static NodeDefinition WithExample() => new(
+        NodeKey.Parse("Test/Number.Add"),
+        "Number.Add",
+        [
+            new PortDefinition("a", typeof(double), 0, "the first addend"),
+            new PortDefinition("b", typeof(double), 0, "the second addend"),
+        ],
+        [new PortDefinition("sum", typeof(double), 0, "the total")],
+        args => [Convert.ToDouble(args[0]) + Convert.ToDouble(args[1])],
+        description: "Adds two numbers together.",
+        category: NodeCategories.Math,
+        codeExample: "return Spark.Nodes.Core.Number.Add(a, b);");
 
     private static NodeDefinition Sample() => new(
         NodeKey.Parse("Test/Number.Add"),

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
@@ -40,6 +41,13 @@ public sealed class HelpWindow : Window
     private readonly TextBox _search = new();
     private readonly ObservableCollection<Entry> _entries = [];
     private readonly List<string> _history = [];
+
+    // Spelt here rather than referenced from Spark.Engine: the window is a view, and ADR-0005 keeps
+    // views off engine types. These are topic ids, which are strings in the library either way.
+    private const string NodePrefix = "nodes.";
+    private const string NodeIndexId = "nodes.index";
+    private const string DiagnosticPrefix = "diagnostics.";
+    private const string DiagnosticIndexId = "diagnostics.index";
 
     /// <summary>Creates the window over a help library.</summary>
     /// <param name="library">Every topic available, hand-written and generated alike.</param>
@@ -96,6 +104,16 @@ public sealed class HelpWindow : Window
 
     /// <summary>How many entries the list is currently showing.</summary>
     public int VisibleEntryCount => _entries.Count;
+
+    /// <summary>
+    /// The labels the list is currently showing, in order, indentation included.
+    /// </summary>
+    /// <remarks>
+    /// Exposed so a test can assert the <i>shape</i> of the navigation rather than only its size:
+    /// that the generated pages sit under their index and are indented, which is a claim about the
+    /// label text and the order together.
+    /// </remarks>
+    public IReadOnlyList<string> VisibleEntryLabels => [.. _entries.Select(entry => entry.Label)];
 
     /// <summary>Shows a topic by id, or the nearest thing to it.</summary>
     /// <param name="topicId">The topic to show. Unknown ids fall back to the index.</param>
@@ -217,25 +235,44 @@ public sealed class HelpWindow : Window
     }
 
     /// <summary>
-    /// The default order: concepts, then the node index, then the node pages. Concepts first
-    /// because they are the pages that answer <i>how does this work</i>, and a reader who opened
-    /// help without searching usually has that question rather than a specific node in mind.
+    /// The default order: concepts, then each generated section behind its own index. Concepts
+    /// first because they are the pages that answer <i>how does this work</i>, and a reader who
+    /// opened help without searching usually has that question rather than a specific node in mind.
     /// </summary>
+    /// <remarks>
+    /// <b>A generated page is listed under the index it belongs to, never beside a concept.</b>
+    /// There are 136 node pages and 19 <c>SPK####</c> pages against eleven hand-written topics, so
+    /// a flat list is a list of generated pages with the topics lost in it — which is what the
+    /// diagnostics were, until a reader asked what the <c>SPK</c> entries filling the top of their
+    /// navigation were and whether they could be removed. They cannot: a node in error shows its
+    /// code and this is where <i>read more</i> lands. So they are filed rather than deleted, the
+    /// way the node pages already were.
+    /// </remarks>
     private IReadOnlyList<HelpDocument> Ordered()
     {
         List<HelpDocument> concepts = [];
         List<HelpDocument> nodes = [];
-        HelpDocument? index = null;
+        List<HelpDocument> diagnostics = [];
+        HelpDocument? nodeIndex = null;
+        HelpDocument? diagnosticIndex = null;
 
         foreach (HelpDocument topic in _library.Topics)
         {
-            if (string.Equals(topic.Id, "nodes.index", StringComparison.Ordinal))
+            if (string.Equals(topic.Id, NodeIndexId, StringComparison.Ordinal))
             {
-                index = topic;
+                nodeIndex = topic;
             }
-            else if (topic.Id.StartsWith("nodes.", StringComparison.Ordinal))
+            else if (string.Equals(topic.Id, DiagnosticIndexId, StringComparison.Ordinal))
+            {
+                diagnosticIndex = topic;
+            }
+            else if (topic.Id.StartsWith(NodePrefix, StringComparison.Ordinal))
             {
                 nodes.Add(topic);
+            }
+            else if (topic.Id.StartsWith(DiagnosticPrefix, StringComparison.Ordinal))
+            {
+                diagnostics.Add(topic);
             }
             else
             {
@@ -244,20 +281,37 @@ public sealed class HelpWindow : Window
         }
 
         List<HelpDocument> ordered = [.. concepts];
-        if (index is not null)
+
+        if (diagnosticIndex is not null)
         {
-            ordered.Add(index);
+            ordered.Add(diagnosticIndex);
+        }
+
+        ordered.AddRange(diagnostics);
+
+        if (nodeIndex is not null)
+        {
+            ordered.Add(nodeIndex);
         }
 
         ordered.AddRange(nodes);
         return ordered;
     }
 
+    /// <summary>
+    /// A row's label: a generated page is indented under the index it belongs to, so the two
+    /// levels are visible without a tree control and without a second list.
+    /// </summary>
     private static string Label(HelpDocument topic) =>
-        topic.Id.StartsWith("nodes.", StringComparison.Ordinal)
-            && !string.Equals(topic.Id, "nodes.index", StringComparison.Ordinal)
+        IsGeneratedPage(topic.Id)
             ? string.Create(CultureInfo.InvariantCulture, $"    {topic.Title}")
             : topic.Title;
+
+    private static bool IsGeneratedPage(string id) =>
+        (id.StartsWith(NodePrefix, StringComparison.Ordinal)
+            && !string.Equals(id, NodeIndexId, StringComparison.Ordinal))
+        || (id.StartsWith(DiagnosticPrefix, StringComparison.Ordinal)
+            && !string.Equals(id, DiagnosticIndexId, StringComparison.Ordinal));
 
     private sealed record Entry(string Id, string Label);
 }

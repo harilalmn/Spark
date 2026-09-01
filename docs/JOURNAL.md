@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 09:40 +0530
+**Last updated:** 2026-09-02 12:40 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | **Nothing. The tree is clean and the gates are green.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E8-T32` and `E3-T13` - step D, the last of the client's list of eleven.** The toolbar's twenty-six buttons became a six-heading menu bar under a ribbon carrying a newly designed Spark mark, which is also the window icon and the executable's. Run and the run-mode dropdown are the stated exception that stays in the ribbon. `E3-T13` closes: Automatic, Manual and Periodic, with `RequestRun` as the seam twelve call sites now ask - the debounce and the graph-size suggestion are explicitly not built. **2217 tests.** |
-| **Working tree** | Clean at the moment this was written. The step has not started. |
-| **Next action** | **The Help pass, which is where the queue points now that the client's list of eleven is done.** `E10-T3` (the help index), then `E11-T2`'s XML `<example>` half, then E10-T9/T10/T12/T14. **Two smaller things are owed first and both are quick.** (1) The `tessellate` verb is not wired into `.github/workflows/nightly.yml` - Windows should run it and the other legs pass `--no-tessellation`, which is the shape the canvas benchmark already uses. (2) The new nodes from `E4-T13` and `E8-T25` have XML docs but no help topic; `D19` defers topics past 1.0, so this is a queue entry rather than a gap. **And three things the client's list left behind, all deliberate:** a context menu on a node - right-clicking one does nothing, and half a menu taught now would have to be untaught; `E3-T13`'s ~200 ms debounce and its auto-suggest-Manual threshold; and the Spark mark itself, which is a designed placeholder and is swapped by replacing `src/Spark.UI/Assets/spark-logo.svg` and re-running `scripts/make-logo.py`. **And one thing to watch rather than act on:** `UnloadingReleasesTheScriptAssemblies` failed once under full-suite parallelism and passed alone; a second sighting makes it a pattern worth fixing rather than a flake worth noting. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2217**: Geometry.Tests 763, UI.Tests 669, Engine.Tests 480, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 15, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **Check the counts** - [N30](NOTES.md) - **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
+| **Last completed step** | **`E10-T5` and `E10-T13`, from a client reading the help window.** Every node page now shows the node as code — the code-block body that calls its member, written by the importer from the `MemberInfo` because a key is a display name and disagrees with the CLR for three of the 136 — and all 136 examples are compiled through a real `ScriptNodeFactory` on every run. The nineteen `SPK####` pages moved from the top of the navigation to under their own index, indented, where the node pages already were; they were mis-filed rather than irrelevant. Seven of them showed a severity of `—` and now do not, enforced by a test that found two more than the survey did. **2222 tests.** |
+| **Working tree** | Clean at the moment this was written. |
+| **Next action** | **The Help pass, where the queue already pointed.** `E10-T3` (the help index), then `E11-T2`'s XML `<example>` half, then E10-T9/T10/T12/T14. **Two smaller things are owed first and both are quick.** (1) The `tessellate` verb is not wired into `.github/workflows/nightly.yml` — Windows should run it and the other legs pass `--no-tessellation`, which is the shape the canvas benchmark already uses. (2) The new nodes from `E4-T13` and `E8-T25` have XML docs but no help topic; `D19` defers topics past 1.0, so this is a queue entry rather than a gap. **And three things the client's list left behind, all deliberate:** a context menu on a node — right-clicking one does nothing; `E3-T13`'s ~200 ms debounce and its auto-suggest-Manual threshold; and the Spark mark itself, a designed placeholder swapped by replacing `src/Spark.UI/Assets/spark-logo.svg` and re-running `scripts/make-logo.py`. **And two things to watch rather than act on:** `UnloadingReleasesTheScriptAssemblies` failed once under full-suite parallelism and passed alone — a second sighting makes it a pattern; and the three multi-output nodes' examples pass `out var` into a dynamically dispatched call, which does compile ([N94](NOTES.md)) and should not be "fixed" without a failing test first. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2222**: Geometry.Tests 763, UI.Tests 672, Engine.Tests 482, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 15, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The help window is photographable and that is how it was checked**: `--help-window <topic> --screenshot PREFIX` writes `PREFIX-help.png`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -4985,3 +4985,75 @@ nine test executables **2217 passed / 0 failed / 0 skipped** (UI 669); `dotnet f
 shell captured with the ribbon, the mark and the menu; and `--graph curves --screenshot` read back
 from the GPU, because routing twelve call sites through a new method is exactly the change that
 silently stops a graph running on load.
+
+---
+
+### 2026-09-02 - Two things a client asked for while reading the help window (`E10-T5`, `E10-T13`)
+
+**Both came from screenshots, and one of them was a question rather than a request.** "Help topics
+must show the code version example for every node", and "what are these `SPK` items? Remove them if
+they are not relevant for end user."
+
+**`E10-T5`. Every node page now shows the node as code.** A node is a plain public C# member - that
+is the whole of ADR-0005's reflection importer - so a code block can call it directly, and a reader
+who can see both forms on one page can move between the canvas and a script without guessing at the
+mapping. The identifiers are the node's own port names, which is what makes the snippet pasteable:
+a free identifier in a code block *becomes* an input port, so pasting `Number.Range`'s example
+gives a block with ports `start`, `end` and `step`.
+
+**The obvious implementation is wrong and quietly so.** A node key already looks like a code path -
+`Spark.Nodes.Core/Number.Range` - and building the call out of it works for 133 of 136 nodes. It
+fails for `Integer.Slider`, which is `Number.IntegerSlider`; `List.Count`, which is
+`ListNodes.Count`; and `TimeSpan.Components`, which is `Duration.Components`. **Three wrong out of
+136 is the worst possible failure rate**: high enough to mislead somebody, low enough that opening
+a page or two to check finds nothing. A key is a display name, `[SparkNode(Name = …)]` sets it
+freely, and only the `MemberInfo` knows - which lives in `NodeImporter` and nowhere else, because
+`NodeLibrary` keeps definitions. So the example is written at import and carried on the definition,
+where a third-party package gets it for the same free ([N93](NOTES.md)).
+
+**What makes that a fact rather than a hope is that all 136 are compiled.** `NodeCodeExampleTests`
+puts every example through a real `ScriptNodeFactory` - the same pipeline a code block gets - and
+asserts the ports it infers are the node's own input ports, in order. An example nobody compiles is
+a claim, and a generated one is worse than a typed one, because a single broken shape breaks a
+hundred pages at once.
+
+**Two facts settled how the code has to be written, and the first was recorded backwards.** A code
+block's script is wrapped **inside a method body**, so a leading `using Spark.Nodes.Core;` is not a
+using directive at all - it parses as a using *statement* and fails with `Identifier expected`.
+`DYNAMO-COVERAGE.md` said the opposite and used it as half the argument for the `Point` →
+`Point3d` rename; the rename stands on its other half and the sentence is corrected. And since a
+user cannot add an import, the temptation is to add `Spark.Nodes.Core` to the default five.
+**It must not be added**: that namespace declares a `Math`, so importing it makes `Math.PI`
+ambiguous in every script already written, including the worked example in `code-blocks.md`. Full
+qualification instead, which is the only thing that could work for a package namespace anyway
+([N94](NOTES.md)).
+
+**`E10-T13`. The `SPK` pages were not noise, they were mis-filed.** `Ordered` special-cased
+`nodes.` and nothing else, so nineteen generated diagnostic pages sorted in among eleven
+hand-written topics and filled the top of the navigation - above `Diagnostic codes`, the index that
+would have explained them. Asked what they were, the honest answer is that they are exactly what a
+user needs when a node goes red and shows a code, which is why the request was conditional and why
+deleting them would have been the wrong half of it. They are filed under their index, indented, the
+way the node pages already were. `GeneratedPagesAreListedUnderTheirIndex` asserts the shape - what
+is above the first index, what is between the two, what is below - rather than only the count.
+
+**And the defect in the same screenshot: seven of nineteen pages showed a severity of `—`.**
+`DiagnosticReference` reads the severity off the front of the constant's doc comment, and its own
+remarks assert that every comment opens with `Error.` or `Warning.` That held for twelve. **A
+convention a generator depends on and nothing enforces is already half broken**, so the fix is the
+test and not the proofreading - and the test immediately found two more than the survey had,
+because `DiagnosticCodes` re-exports `SPK1080` and `SPK1081` from `Spark.Api` with a **second copy
+of the summary**, and the re-export is the copy the page reads. The severities on the constants now
+match what their raise sites actually pass.
+
+**Verified**: build clean under `-warnaserror`; **2222 tests** across the nine executables, up five;
+`dotnet format --verify-no-changes` clean; and photographed rather than assumed -
+`--help-window nodes.Spark.Nodes.Core/Number.Range` shows the *In a code block* section with
+`return Spark.Nodes.Core.Number.Range(start, end, step);` in it, `--help-window diagnostics.SPK1061`
+shows `Severity  Error`, and `--help-window concepts.lacing` shows the navigation reading concepts,
+then `Diagnostic codes` with the codes indented under it, then `Node reference`.
+
+**What this did not do.** The three multi-output nodes render `out var` inside a dynamically
+dispatched call, which compiles and which I expected not to - checked rather than reasoned about,
+and worth knowing before somebody "fixes" it. Custom nodes and code blocks have no CLR member and
+so get no section, which is right and is why the heading is conditional.

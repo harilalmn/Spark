@@ -70,6 +70,10 @@ public sealed class NodeDefinition
     /// the bucket a node nothing else describes belongs in. <see cref="NodeMemberKind.Auto"/> is a
     /// sentinel for "not stated" and is resolved by the importer, so it never arrives here.
     /// </param>
+    /// <param name="codeExample">
+    /// The body of a code block that calls this node's underlying member, or
+    /// <see langword="null"/> when there is no such member. See <see cref="CodeExample"/>.
+    /// </param>
     /// <exception cref="ArgumentNullException">A required argument is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">
     /// There are no output ports, <paramref name="defaultLacing"/> is <see cref="LacingMode.Auto"/>,
@@ -89,7 +93,8 @@ public sealed class NodeDefinition
         bool showsValue = false,
         bool hasSlider = false,
         bool hasField = false,
-        NodeMemberKind memberKind = NodeMemberKind.Action)
+        NodeMemberKind memberKind = NodeMemberKind.Action,
+        string? codeExample = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
         ArgumentNullException.ThrowIfNull(inputs);
@@ -136,6 +141,7 @@ public sealed class NodeDefinition
         HasSlider = hasSlider;
         HasField = hasField;
         MemberKind = memberKind;
+        CodeExample = codeExample;
     }
 
     /// <summary>The definition's stable identity, including the package that published it.</summary>
@@ -202,6 +208,40 @@ public sealed class NodeDefinition
     /// is derived from that text, which is why the text and not the derivation is what persists.
     /// </remarks>
     public string? Script { get; private init; }
+
+    /// <summary>
+    /// The body of a code block that calls this node's underlying member, or
+    /// <see langword="null"/> when there is no such member (<c>E10-T5</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A node is a plain C# member, and this is the sentence that says so.</b> Every node in the
+    /// library was imported by reflection from a public member, so a code block can call that
+    /// member directly — and a reader who can see both forms on one page can move between the
+    /// canvas and a script without guessing at the mapping.
+    /// </para>
+    /// <para>
+    /// <b>It is written by the importer, from the member, and cannot be derived from the key.</b>
+    /// A key is a display name: <c>Integer.Slider</c> is <c>Number.IntegerSlider</c> and
+    /// <c>List.Count</c> is <c>ListNodes.Count</c>, so a page that built the call out of the key
+    /// would print code that does not compile. <see cref="NodeImporter"/> is the only place that
+    /// holds the <see cref="System.Reflection.MemberInfo"/>, so it is the only place this can be
+    /// written.
+    /// </para>
+    /// <para>
+    /// <b>The identifiers are the node's own port names</b>, which is what makes the snippet
+    /// pasteable: a free identifier in a code block becomes an input port, so pasting this gives a
+    /// block whose ports are the ports of the node it came from.
+    /// </para>
+    /// <para>
+    /// <b>The declaring type is written in full</b>, because a code block imports <c>System</c>,
+    /// <c>System.Collections.Generic</c>, <c>System.Linq</c>, <c>Spark.Api</c> and
+    /// <c>Spark.Geometry</c> and nothing else. <c>Spark.Nodes.Core</c> is deliberately not among
+    /// them: it declares a <c>Math</c>, and importing it would make <c>Math.PI</c> ambiguous in
+    /// every script anybody has already written.
+    /// </para>
+    /// </remarks>
+    public string? CodeExample { get; }
 
     /// <summary>The input ports, in port order.</summary>
     public IReadOnlyList<PortDefinition> Inputs { get; }

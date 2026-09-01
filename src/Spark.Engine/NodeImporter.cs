@@ -617,13 +617,109 @@ public static class NodeImporter
                 showsValue: showsValue,
                 hasSlider: hasSlider,
                 hasField: hasField,
-                memberKind: kind);
+                memberKind: kind,
+                codeExample: CodeExampleFor(candidate));
 
             nodes.Add(new ImportedNode(definition, candidate.Member));
         }
 
         return nodes;
     }
+
+    /// <summary>
+    /// The body of a code block that calls a candidate's member, with the node's own port names as
+    /// its identifiers.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Written here because here is the only place the member is.</b> The library keeps
+    /// <see cref="NodeDefinition"/>s and not <see cref="MemberInfo"/>s, and a node key is a display
+    /// name rather than a code path — <c>Integer.Slider</c> is <c>Number.IntegerSlider</c> — so a
+    /// help page that rebuilt the call from the key would print code that does not compile.
+    /// </para>
+    /// <para>
+    /// <b>Fully qualified, always.</b> A code block imports <c>Spark.Geometry</c> and
+    /// <c>Spark.Api</c> but not <c>Spark.Nodes.Core</c>, and that is not an oversight to correct:
+    /// <c>Spark.Nodes.Core</c> declares a <c>Math</c>, so importing it would make <c>Math.PI</c>
+    /// ambiguous in every script already written. Qualifying costs a few characters and is right
+    /// for a package whose namespace nobody can predict either.
+    /// </para>
+    /// <para>
+    /// <b>Out parameters become a returned tuple</b>, which is the code block's own convention for
+    /// several outputs, so a multi-output node reads on the page the way it reads on the canvas.
+    /// </para>
+    /// </remarks>
+    private static string? CodeExampleFor(Candidate candidate)
+    {
+        string type = candidate.DeclaringType.FullName?.Replace('+', '.') ?? candidate.DeclaringType.Name;
+
+        switch (candidate.Member)
+        {
+            case ConstructorInfo:
+                return "return new " + type + "(" + string.Join(", ", candidate.Inputs.Select(port => port.Name)) + ");";
+
+            case PropertyInfo property:
+                return property.GetGetMethod()?.IsStatic ?? true
+                    ? "return " + type + "." + property.Name + ";"
+                    : "return " + candidate.Inputs[0].Name + "." + property.Name + ";";
+
+            case MethodInfo method:
+                return MethodExample(method, type, candidate);
+
+            default:
+                return null;
+        }
+    }
+
+    private static string MethodExample(MethodInfo method, string type, Candidate candidate)
+    {
+        // The receiver is input 0 on an instance member and nothing on a static one, which is the
+        // same shape Classify built the port list with.
+        int input = method.IsStatic ? 0 : 1;
+        string receiver = method.IsStatic ? type : candidate.Inputs[0].Name;
+
+        // Output 0 is the return value when there is one, so the out parameters start after it.
+        int output = method.ReturnType == typeof(void) ? 0 : 1;
+
+        List<string> arguments = [];
+        List<string> outNames = [];
+
+        foreach (ParameterInfo parameter in method.GetParameters())
+        {
+            if (parameter.IsOut)
+            {
+                string name = candidate.Outputs[output++].Name;
+                outNames.Add(name);
+                arguments.Add("out var " + name);
+                continue;
+            }
+
+            arguments.Add(candidate.Inputs[input++].Name);
+        }
+
+        string call = receiver + "." + method.Name + "(" + string.Join(", ", arguments) + ")";
+
+        if (outNames.Count == 0)
+        {
+            return "return " + call + ";";
+        }
+
+        // Several outputs, so the block returns a named tuple - the shape a code block uses for
+        // exactly this, and the shape the canvas already shows for this node.
+        if (method.ReturnType == typeof(void))
+        {
+            return outNames.Count == 1
+                ? call + ";" + Environment.NewLine + "return " + outNames[0] + ";"
+                : call + ";" + Environment.NewLine + "return (" + Tuple(outNames) + ");";
+        }
+
+        string returned = candidate.Outputs[0].Name;
+        return "var " + returned + " = " + call + ";" + Environment.NewLine
+            + "return (" + Tuple([returned, .. outNames]) + ");";
+    }
+
+    private static string Tuple(IReadOnlyList<string> names) =>
+        string.Join(", ", names.Select(name => name + ": " + name));
 
     private static string CamelCase(string name) =>
         name.Length == 0 ? name : char.ToLowerInvariant(name[0]) + name[1..];
