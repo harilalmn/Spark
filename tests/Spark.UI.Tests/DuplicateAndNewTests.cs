@@ -108,6 +108,74 @@ public sealed class DuplicateAndNewTests
     });
 
     /// <summary>
+    /// <b>Copies chain: Control+drag the copy and you get another.</b> Reported by the client after
+    /// the first version — a copy lands selected, Control+click used to toggle it straight back out
+    /// of the selection, and the drag then had nothing to copy. One extra click per node, in the
+    /// gesture that exists to save clicks.
+    /// </summary>
+    [Fact]
+    public void ControlDraggingACopyMakesAnotherCopy() => HeadlessSession.Run(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open();
+
+        int before = canvas.Graph.Nodes.Count;
+        CanvasNode node = canvas.Graph.Nodes[0];
+
+        double x = node.X + 30;
+        double y = node.Y + 8;
+
+        // Three copies in a row, each one dragged out of the one before it, with no click in
+        // between and nothing deselected.
+        for (int copy = 0; copy < 3; copy++)
+        {
+            Point from = Screen(canvas, x, y);
+            Point to = Screen(canvas, x + 120, y);
+
+            window.MouseDown(from, MouseButton.Left, RawInputModifiers.Control);
+            window.MouseMove(to, RawInputModifiers.Control);
+            window.MouseUp(to, MouseButton.Left, RawInputModifiers.Control);
+
+            x += 120;
+        }
+
+        Assert.Equal(before + 3, canvas.Graph.Nodes.Count);
+        Assert.Single(canvas.Selection);
+    });
+
+    /// <summary>
+    /// Control+click still takes a node out of a selection — the toggle waits for the release
+    /// rather than going away.
+    /// </summary>
+    [Fact]
+    public void ControlClickStillDeselectsASelectedNode() => HeadlessSession.Run(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open();
+
+        int before = canvas.Graph.Nodes.Count;
+        CanvasNode first = canvas.Graph.Nodes[0];
+        CanvasNode second = canvas.Graph.Nodes[1];
+
+        Point at = Screen(canvas, first.X + 30, first.Y + 8);
+        Point other = Screen(canvas, second.X + 30, second.Y + 8);
+
+        window.MouseDown(at, MouseButton.Left, RawInputModifiers.None);
+        window.MouseUp(at, MouseButton.Left, RawInputModifiers.None);
+
+        window.MouseDown(other, MouseButton.Left, RawInputModifiers.Control);
+        window.MouseUp(other, MouseButton.Left, RawInputModifiers.Control);
+
+        Assert.Equal(2, canvas.Selection.Count);
+
+        window.MouseDown(other, MouseButton.Left, RawInputModifiers.Control);
+        window.MouseUp(other, MouseButton.Left, RawInputModifiers.Control);
+
+        Assert.Single(canvas.Selection);
+
+        // And neither click copied anything: a deselection is not a duplicate.
+        Assert.Equal(before, canvas.Graph.Nodes.Count);
+    });
+
+    /// <summary>
     /// <b>Control+click on its own copies nothing.</b> The duplicate happens on the first movement,
     /// or a canvas would fill with copies made by people selecting things.
     /// </summary>

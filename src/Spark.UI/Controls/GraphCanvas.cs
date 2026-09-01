@@ -254,6 +254,7 @@ public sealed class GraphCanvas : Control
     private CanvasPort? _dragSourcePort;
     private bool _wireDragMoved;
     private bool _duplicateOnDrag;
+    private bool _deselectOnRelease;
     private CanvasWire? _selectedWire;
     private CanvasNote? _selectedNote;
     private CanvasNote? _hoverNote;
@@ -712,32 +713,46 @@ public sealed class GraphCanvas : Control
         int node = HitTestNode(world);
         if (node >= 0)
         {
-            bool additive = e.KeyModifiers.HasFlag(KeyModifiers.Shift)
-                || e.KeyModifiers.HasFlag(KeyModifiers.Control);
+            bool control = e.KeyModifiers.HasFlag(KeyModifiers.Control);
+            bool additive = e.KeyModifiers.HasFlag(KeyModifiers.Shift) || control;
+            bool alreadySelected = _selection.Contains(node);
 
+            // CONTROL ON AN ALREADY-SELECTED NODE DEFERS ITS DESELECTION UNTIL THE RELEASE
+            // (`E8-T37`), AND THAT ONE LINE IS WHAT MAKES COPIES CHAIN.
+            //
+            // Control+click has always toggled a node out of the selection, and a copy made by
+            // Control+drag lands *selected* — so pressing Control on the copy to drag another one
+            // out of it deselected it, and the drag then had nothing to copy. The user had to click
+            // away and click back between every copy, which is an extra click per node in exactly
+            // the gesture that exists to avoid extra clicks.
+            //
+            // So the toggle waits: on a click it happens on release, on a drag it never happens.
+            // Shift keeps toggling immediately, because Shift is only ever about the selection.
             if (additive)
             {
-                if (!_selection.Add(node))
+                if (!alreadySelected)
+                {
+                    _selection.Add(node);
+                }
+                else if (!control)
                 {
                     _selection.Remove(node);
                 }
             }
-            else if (!_selection.Contains(node))
+            else if (!alreadySelected)
             {
                 _selection.Clear();
                 _selection.Add(node);
             }
 
-            // CONTROL ARMS A COPY; IT DOES NOT MAKE ONE (`E8-T37`).
+            // CONTROL ARMS A COPY; IT DOES NOT MAKE ONE.
             //
-            // Control still adds to a selection, as it always has - so this is armed rather than
-            // done, and the copy happens on the first movement. A Control+click that never becomes
-            // a drag therefore selects, exactly as before, and a Control+drag leaves the original
-            // behind and takes a copy with the pointer, which is what Dynamo, Grasshopper and every
-            // drawing application do. Only when the node under the pointer is still selected: a
-            // Control+click that toggled it *out* is a deselection, and duplicating then would
-            // copy something the user has just said they did not mean.
-            _duplicateOnDrag = e.KeyModifiers.HasFlag(KeyModifiers.Control) && _selection.Contains(node);
+            // Armed rather than done, so the copy happens on the first movement: a Control+click
+            // that never becomes a drag selects or deselects exactly as it always has, and a
+            // Control+drag leaves the original behind and takes a copy with the pointer — which is
+            // what Dynamo, Grasshopper and every drawing application do.
+            _duplicateOnDrag = control;
+            _deselectOnRelease = control && alreadySelected;
 
             _selectedWire = null;
             _selectedNote = null;
@@ -976,6 +991,22 @@ public sealed class GraphCanvas : Control
             default:
                 break;
         }
+
+        // The deselection a Control+press on a selected node deferred. It happens only if the press
+        // never became a drag — a drag was a copy, and a copy that deselected what it copied would
+        // leave nothing to copy next time.
+        if (_deselectOnRelease)
+        {
+            _deselectOnRelease = false;
+
+            if (_mode is InteractionMode.DraggingNodes && _dragTotalX == 0 && _dragTotalY == 0
+                && _focusNode >= 0 && _selection.Remove(_focusNode))
+            {
+                SelectionChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        _duplicateOnDrag = false;
 
         // A press and release on one port, with no travel in between, is a *click*: the wire stays
         // armed and waits for a second one. Every other release ends the interaction.
