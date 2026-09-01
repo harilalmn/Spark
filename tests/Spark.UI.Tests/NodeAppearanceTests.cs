@@ -34,7 +34,24 @@ public sealed class NodeAppearanceTests
 
         Assert.Null(node.CustomTitle);
         Assert.Equal(node.Title, node.DisplayTitle);
-        Assert.Equal(node.Category, node.DisplayCategory);
+    }
+
+    /// <summary>
+    /// <b>A node nobody has coloured is grey</b> (`E8-T38`), whatever library category it came
+    /// from — asked for by the client, and it is what Dynamo does. Colour on this canvas means
+    /// <i>somebody marked this</i>, not <i>this came from that folder</i>; the library panel still
+    /// colours its rows by category, which is where that fact belongs.
+    /// </summary>
+    [Fact]
+    public void ANodeNobodyHasColouredIsGrey()
+    {
+        CanvasGraph graph = TestGraphs.Demo();
+
+        Assert.All(graph.Nodes, node => Assert.Equal(NodeCategory.Custom, node.DisplayCategory));
+
+        // And the node still knows what it really is, for the library and for anything else that
+        // asks.
+        Assert.Contains(graph.Nodes, node => node.LibraryCategory != NodeCategory.Custom);
     }
 
     /// <summary>

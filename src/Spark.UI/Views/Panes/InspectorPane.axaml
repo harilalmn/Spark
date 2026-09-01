@@ -84,7 +84,7 @@
         </Grid>
         <Grid ColumnDefinitions="92,*">
           <TextBlock Grid.Column="0" Classes="muted" VerticalAlignment="Center" Text="Colour"
-                     ToolTip.Tip="The header colour. Default is the colour this node's own category has." />
+                     ToolTip.Tip="The header colour. Default is grey; a colour is a mark you have chosen to put on this node." />
           <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" FontSize="11"
                     AutomationProperties.Name="Node colour"
                     ItemsSource="{Binding NodeColourNames}"

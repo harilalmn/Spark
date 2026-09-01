@@ -249,7 +249,31 @@ public sealed class CanvasNode
     public NodeCategory? ColourOverride { get; set; }
 
     /// <summary>The category whose colour the header is actually drawn in.</summary>
-    public NodeCategory DisplayCategory => ColourOverride ?? Category;
+    /// <remarks>
+    /// <para>
+    /// <b>Grey until somebody chooses otherwise</b> (`E8-T38`), which the client asked for and
+    /// which is what Dynamo does: a canvas where every node is coloured by its library category is
+    /// a canvas where colour means *what kind of node this is*, and that is a fact the node's own
+    /// name already states. Grey gives the colour back to the user, so that a colour on this canvas
+    /// means <i>somebody chose to mark this</i>.
+    /// </para>
+    /// <para>
+    /// <c>Custom</c> is the grey, rather than a new colour: it is already in the palette with its
+    /// contrast measured against the header text, at rest and hovered, and it is already what a
+    /// node from outside the ten categories is drawn in. <b>What this costs</b> is the silhouette
+    /// zoom — below 40% the header fill was the only thing carrying identity (§7.2), and now it
+    /// carries none. That is the trade the request makes, and it is written down here rather than
+    /// discovered later.
+    /// </para>
+    /// </remarks>
+    public NodeCategory DisplayCategory => ColourOverride ?? NodeCategory.Custom;
+
+    /// <summary>The category this node's definition belongs to, whatever it is drawn in.</summary>
+    /// <remarks>
+    /// Still the library's answer, and still what the library panel colours its rows by. Only the
+    /// canvas header stopped using it.
+    /// </remarks>
+    public NodeCategory LibraryCategory => Category;
 
     /// <summary>One paragraph describing the node, or null.</summary>
     public string? Description { get; }

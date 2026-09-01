@@ -18,14 +18,15 @@ namespace Spark.UI.Theming;
 /// measurements taken again at runtime, which is a second pass and not this one.
 /// </para>
 /// <para>
-/// <b><see cref="Default"/> is a choice rather than the absence of one</b>, and it is first for the
-/// reason <c>any</c> is first in the input-type dropdown: it is what the node already is, and it is
-/// the way back from a colour somebody regrets.
+/// <b><see cref="Default"/> is grey</b> (`E8-T38`), and it is first for the reason <c>any</c> is
+/// first in the input-type dropdown: it is what every node already is, and it is the way back from
+/// a colour somebody regrets. A node is grey until a person marks it, so a colour on the canvas
+/// means <i>somebody chose this</i> rather than <i>this came from that library folder</i>.
 /// </para>
 /// </remarks>
 public static class NodeColourChoices
 {
-    /// <summary>The name of the entry that means "the colour this node's own category has".</summary>
+    /// <summary>The name of the entry that means "grey, the colour a node has until it is marked".</summary>
     public const string Default = "Default";
 
     private static readonly string[] Names =

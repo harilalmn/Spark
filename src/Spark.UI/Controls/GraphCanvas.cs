@@ -1406,8 +1406,10 @@ public sealed class GraphCanvas : Control
 
             if (detail == CanvasDetail.Silhouette)
             {
-                // Below 40% the category fill is the only thing carrying identity, and it clears
-                // 3:1 against the canvas on its own — 5.39:1 at worst, for cat.script.
+                // Below 40% the header fill is the whole node. It used to carry the library
+                // category and now carries only what a user chose to mark it with (`E8-T38`), so
+                // most of a graph is grey at this zoom - which is the trade §7.2 records. Every
+                // fill it can be clears 3:1 against the canvas on its own.
                 context.DrawRectangle(new ImmutableSolidColorBrush(categoryColour), null, rounded);
                 DrawStateRings(context, pens, node, nodeRect, selected);
                 continue;

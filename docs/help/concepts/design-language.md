@@ -691,9 +691,25 @@ carries the category identity, it provides the node's most visible boundary agai
 
 ### 7.2 Category colour identity
 
-Because ADR-0013 degrades a node to a plain coloured rectangle below 40% zoom, **colour is the
-only thing left carrying identity at that scale.** Category colours are therefore chosen for
-mutual separation and for contrast against the canvas, not for prettiness.
+**A node on the canvas is grey until somebody colours it.** That was not always so: every node used
+to take its library category's fill, and the client asked for the Dynamo behaviour instead. The
+reasoning is worth keeping, because it is about what colour is *for* — a canvas where every node is
+coloured by its category spends all of its colour saying *what kind of node this is*, which is a
+fact the node's own name already states. Grey gives the colour back to the user, so that a coloured
+node means **somebody chose to mark this one**. The palette below is what they may choose from, and
+`cat.custom` grey is what a node has until they do.
+
+**What this costs is the silhouette.** ADR-0013 degrades a node to a plain coloured rectangle below
+40% zoom, and colour was the only thing left carrying identity at that scale; a canvas of grey
+rectangles carries none. That is a real loss and it is the trade the request makes: at that zoom a
+graph is a shape to navigate rather than a thing to read, and the colours somebody applied
+themselves are the ones that survive it — which is arguably what they were for.
+
+**The library panel still colours its rows by category.** *What kind of node is this* is a question
+the library exists to answer, and that is where the answer belongs.
+
+Category colours are chosen for mutual separation and for contrast against the canvas, not for
+prettiness.
 
 | Category | Token | Hex | L\* | vs `canvas.bg` (LOD, floor 3) | `text.inverse` on it | Hover (+14% white) | Hover ratio |
 |---|---|---|---|---|---|---|---|
