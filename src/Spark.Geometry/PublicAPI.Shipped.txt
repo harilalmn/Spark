@@ -1,0 +1,1040 @@
+#nullable enable
+Spark.Geometry.Angle
+Spark.Geometry.Angle.Abs() -> Spark.Geometry.Angle
+Spark.Geometry.Angle.Angle() -> void
+Spark.Geometry.Angle.CompareTo(Spark.Geometry.Angle other) -> int
+Spark.Geometry.Angle.Degrees.get -> double
+Spark.Geometry.Angle.Equals(Spark.Geometry.Angle other) -> bool
+Spark.Geometry.Angle.EqualsWithin(Spark.Geometry.Angle other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Angle.Normalised() -> Spark.Geometry.Angle
+Spark.Geometry.Angle.NormalisedSigned() -> Spark.Geometry.Angle
+Spark.Geometry.Angle.Radians.get -> double
+Spark.Geometry.Arc
+Spark.Geometry.Arc.Centre.get -> Spark.Geometry.Point3d
+Spark.Geometry.Arc.MidPoint.get -> Spark.Geometry.Point3d
+Spark.Geometry.Arc.Plane.get -> Spark.Geometry.Plane
+Spark.Geometry.Arc.Radius.get -> double
+Spark.Geometry.Arc.StartAngle.get -> Spark.Geometry.Angle
+Spark.Geometry.Arc.SweepAngle.get -> Spark.Geometry.Angle
+Spark.Geometry.BoundingBox
+Spark.Geometry.BoundingBox.Area.get -> double
+Spark.Geometry.BoundingBox.BoundingBox() -> void
+Spark.Geometry.BoundingBox.BoundingBox(in Spark.Geometry.Point3d corner, in Spark.Geometry.Point3d oppositeCorner) -> void
+Spark.Geometry.BoundingBox.Centre.get -> Spark.Geometry.Point3d
+Spark.Geometry.BoundingBox.ClosestPoint(in Spark.Geometry.Point3d point) -> Spark.Geometry.Point3d
+Spark.Geometry.BoundingBox.Contains(in Spark.Geometry.BoundingBox other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.BoundingBox.Contains(in Spark.Geometry.Point3d point, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.BoundingBox.Corners() -> Spark.Geometry.Point3d[]!
+Spark.Geometry.BoundingBox.Diagonal.get -> Spark.Geometry.Vector3d
+Spark.Geometry.BoundingBox.Equals(Spark.Geometry.BoundingBox other) -> bool
+Spark.Geometry.BoundingBox.EqualsWithin(in Spark.Geometry.BoundingBox other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.BoundingBox.Inflated(double amount) -> Spark.Geometry.BoundingBox
+Spark.Geometry.BoundingBox.Inflated(double x, double y, double z) -> Spark.Geometry.BoundingBox
+Spark.Geometry.BoundingBox.Intersection(in Spark.Geometry.BoundingBox other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.BoundingBox?
+Spark.Geometry.BoundingBox.Intersects(in Spark.Geometry.BoundingBox other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.BoundingBox.IsValid.get -> bool
+Spark.Geometry.BoundingBox.Max.get -> Spark.Geometry.Point3d
+Spark.Geometry.BoundingBox.Min.get -> Spark.Geometry.Point3d
+Spark.Geometry.BoundingBox.Union(in Spark.Geometry.BoundingBox other) -> Spark.Geometry.BoundingBox
+Spark.Geometry.BoundingBox.Union(in Spark.Geometry.Point3d point) -> Spark.Geometry.BoundingBox
+Spark.Geometry.BoundingBox.Volume.get -> double
+Spark.Geometry.BoundingVolumeHierarchy
+Spark.Geometry.BoundingVolumeHierarchy.Bounds.get -> Spark.Geometry.BoundingBox
+Spark.Geometry.BoundingVolumeHierarchy.Count.get -> int
+Spark.Geometry.BoundingVolumeHierarchy.FirstHit(in Spark.Geometry.Ray ray, System.Func<int, double, double?>! hit) -> (int Index, double Distance)
+Spark.Geometry.BoundingVolumeHierarchy.NearestTo(in Spark.Geometry.Point3d point) -> (int Index, double Distance)
+Spark.Geometry.BoundingVolumeHierarchy.NodeCount.get -> int
+Spark.Geometry.BoundingVolumeHierarchy.Query(in Spark.Geometry.BoundingBox region, System.Collections.Generic.List<int>! results, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> void
+Spark.Geometry.BoundingVolumeHierarchy.Query(in Spark.Geometry.Ray ray, System.Collections.Generic.List<int>! results) -> void
+Spark.Geometry.Brep
+Spark.Geometry.Brep.BoundingBox.get -> Spark.Geometry.BoundingBox
+Spark.Geometry.Brep.Brep(Spark.Geometry.BrepResidency! residency) -> void
+Spark.Geometry.Brep.Brep(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>! curves, System.Collections.Generic.IReadOnlyList<Spark.Geometry.Surface!>! surfaces, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepVertex>! vertices, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepEdge>! edges, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepTrim>! trims, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepLoop>! loops, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepFace>! faces, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepShell>! shells) -> void
+Spark.Geometry.Brep.Curves() -> Spark.Geometry.Curve![]!
+Spark.Geometry.Brep.Edge(int index) -> Spark.Geometry.BrepEdgeView
+Spark.Geometry.Brep.EdgeCount.get -> int
+Spark.Geometry.Brep.Edges() -> Spark.Geometry.BrepEdge[]!
+Spark.Geometry.Brep.Face(int index) -> Spark.Geometry.BrepFaceView
+Spark.Geometry.Brep.FaceCount.get -> int
+Spark.Geometry.Brep.Faces() -> Spark.Geometry.BrepFace[]!
+Spark.Geometry.Brep.IsResident.get -> bool
+Spark.Geometry.Brep.IsSolid.get -> bool
+Spark.Geometry.Brep.IsUntrimmed.get -> bool
+Spark.Geometry.Brep.Loop(int index) -> Spark.Geometry.BrepLoopView
+Spark.Geometry.Brep.LoopCount.get -> int
+Spark.Geometry.Brep.Loops() -> Spark.Geometry.BrepLoop[]!
+Spark.Geometry.Brep.NativeBytes.get -> long
+Spark.Geometry.Brep.Points() -> Spark.Geometry.Point3d[]!
+Spark.Geometry.Brep.Shell(int index) -> Spark.Geometry.BrepShellView
+Spark.Geometry.Brep.ShellCount.get -> int
+Spark.Geometry.Brep.Shells() -> Spark.Geometry.BrepShell[]!
+Spark.Geometry.Brep.Surfaces() -> Spark.Geometry.Surface![]!
+Spark.Geometry.Brep.TrimCount.get -> int
+Spark.Geometry.Brep.Trims() -> Spark.Geometry.BrepTrim[]!
+Spark.Geometry.Brep.Validate() -> System.Collections.Generic.IReadOnlyList<string!>!
+Spark.Geometry.Brep.VertexCount.get -> int
+Spark.Geometry.Brep.VertexPoint(int index) -> Spark.Geometry.Point3d
+Spark.Geometry.Brep.Vertices() -> Spark.Geometry.BrepVertex[]!
+Spark.Geometry.BrepBuilder
+Spark.Geometry.BrepBuilder.AddEdge(int start, int end, Spark.Geometry.Curve! curve) -> int
+Spark.Geometry.BrepBuilder.AddFace(Spark.Geometry.Surface! surface, System.Collections.Generic.IReadOnlyList<int>! loops, bool isReversed = false) -> int
+Spark.Geometry.BrepBuilder.AddLineEdge(int start, int end) -> int
+Spark.Geometry.BrepBuilder.AddLoop(System.Collections.Generic.IReadOnlyList<(int Edge, bool IsReversed)>! edges, Spark.Geometry.BrepLoopKind kind = Spark.Geometry.BrepLoopKind.Outer) -> int
+Spark.Geometry.BrepBuilder.AddVertex(in Spark.Geometry.Point3d point) -> int
+Spark.Geometry.BrepBuilder.BrepBuilder() -> void
+Spark.Geometry.BrepBuilder.Build() -> Spark.Geometry.Brep!
+Spark.Geometry.BrepBuilder.CloseShell() -> int
+Spark.Geometry.BrepData
+Spark.Geometry.BrepData.BrepData() -> void
+Spark.Geometry.BrepData.BrepData(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! Points, System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>! Curves, System.Collections.Generic.IReadOnlyList<Spark.Geometry.Surface!>! Surfaces, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepVertex>! Vertices, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepEdge>! Edges, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepTrim>! Trims, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepLoop>! Loops, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepFace>! Faces, System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepShell>! Shells) -> void
+Spark.Geometry.BrepData.Curves.get -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>!
+Spark.Geometry.BrepData.Curves.init -> void
+Spark.Geometry.BrepData.Deconstruct(out System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! Points, out System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>! Curves, out System.Collections.Generic.IReadOnlyList<Spark.Geometry.Surface!>! Surfaces, out System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepVertex>! Vertices, out System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepEdge>! Edges, out System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepTrim>! Trims, out System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepLoop>! Loops, out System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepFace>! Faces, out System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepShell>! Shells) -> void
+Spark.Geometry.BrepData.Edges.get -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepEdge>!
+Spark.Geometry.BrepData.Edges.init -> void
+Spark.Geometry.BrepData.Equals(Spark.Geometry.BrepData other) -> bool
+Spark.Geometry.BrepData.Faces.get -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepFace>!
+Spark.Geometry.BrepData.Faces.init -> void
+Spark.Geometry.BrepData.Loops.get -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepLoop>!
+Spark.Geometry.BrepData.Loops.init -> void
+Spark.Geometry.BrepData.Points.get -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
+Spark.Geometry.BrepData.Points.init -> void
+Spark.Geometry.BrepData.Shells.get -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepShell>!
+Spark.Geometry.BrepData.Shells.init -> void
+Spark.Geometry.BrepData.Surfaces.get -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Surface!>!
+Spark.Geometry.BrepData.Surfaces.init -> void
+Spark.Geometry.BrepData.Trims.get -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepTrim>!
+Spark.Geometry.BrepData.Trims.init -> void
+Spark.Geometry.BrepData.Vertices.get -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.BrepVertex>!
+Spark.Geometry.BrepData.Vertices.init -> void
+Spark.Geometry.BrepEdge
+Spark.Geometry.BrepEdge.BrepEdge() -> void
+Spark.Geometry.BrepEdge.BrepEdge(int Start, int End, int Curve) -> void
+Spark.Geometry.BrepEdge.Curve.get -> int
+Spark.Geometry.BrepEdge.Curve.init -> void
+Spark.Geometry.BrepEdge.Deconstruct(out int Start, out int End, out int Curve) -> void
+Spark.Geometry.BrepEdge.End.get -> int
+Spark.Geometry.BrepEdge.End.init -> void
+Spark.Geometry.BrepEdge.Equals(Spark.Geometry.BrepEdge other) -> bool
+Spark.Geometry.BrepEdge.Start.get -> int
+Spark.Geometry.BrepEdge.Start.init -> void
+Spark.Geometry.BrepEdgeView
+Spark.Geometry.BrepEdgeView.AdjacentFaces() -> int[]!
+Spark.Geometry.BrepEdgeView.BrepEdgeView() -> void
+Spark.Geometry.BrepEdgeView.Curve.get -> Spark.Geometry.Curve!
+Spark.Geometry.BrepEdgeView.Edge.get -> Spark.Geometry.BrepEdge
+Spark.Geometry.BrepEdgeView.EndPoint.get -> Spark.Geometry.Point3d
+Spark.Geometry.BrepEdgeView.Index.get -> int
+Spark.Geometry.BrepEdgeView.StartPoint.get -> Spark.Geometry.Point3d
+Spark.Geometry.BrepFace
+Spark.Geometry.BrepFace.BrepFace() -> void
+Spark.Geometry.BrepFace.BrepFace(int Surface, int FirstLoop, int LoopCount, bool IsReversed) -> void
+Spark.Geometry.BrepFace.Deconstruct(out int Surface, out int FirstLoop, out int LoopCount, out bool IsReversed) -> void
+Spark.Geometry.BrepFace.Equals(Spark.Geometry.BrepFace other) -> bool
+Spark.Geometry.BrepFace.FirstLoop.get -> int
+Spark.Geometry.BrepFace.FirstLoop.init -> void
+Spark.Geometry.BrepFace.IsReversed.get -> bool
+Spark.Geometry.BrepFace.IsReversed.init -> void
+Spark.Geometry.BrepFace.LoopCount.get -> int
+Spark.Geometry.BrepFace.LoopCount.init -> void
+Spark.Geometry.BrepFace.Surface.get -> int
+Spark.Geometry.BrepFace.Surface.init -> void
+Spark.Geometry.BrepFaceView
+Spark.Geometry.BrepFaceView.BrepFaceView() -> void
+Spark.Geometry.BrepFaceView.Face.get -> Spark.Geometry.BrepFace
+Spark.Geometry.BrepFaceView.Index.get -> int
+Spark.Geometry.BrepFaceView.IsReversed.get -> bool
+Spark.Geometry.BrepFaceView.Loop(int position) -> Spark.Geometry.BrepLoopView
+Spark.Geometry.BrepFaceView.LoopCount.get -> int
+Spark.Geometry.BrepFaceView.NormalAt(double u, double v) -> Spark.Geometry.Vector3d
+Spark.Geometry.BrepFaceView.OuterLoop() -> Spark.Geometry.BrepLoopView
+Spark.Geometry.BrepFaceView.Surface.get -> Spark.Geometry.Surface!
+Spark.Geometry.BrepLoop
+Spark.Geometry.BrepLoop.BrepLoop() -> void
+Spark.Geometry.BrepLoop.BrepLoop(int FirstTrim, int TrimCount, Spark.Geometry.BrepLoopKind Kind) -> void
+Spark.Geometry.BrepLoop.Deconstruct(out int FirstTrim, out int TrimCount, out Spark.Geometry.BrepLoopKind Kind) -> void
+Spark.Geometry.BrepLoop.Equals(Spark.Geometry.BrepLoop other) -> bool
+Spark.Geometry.BrepLoop.FirstTrim.get -> int
+Spark.Geometry.BrepLoop.FirstTrim.init -> void
+Spark.Geometry.BrepLoop.Kind.get -> Spark.Geometry.BrepLoopKind
+Spark.Geometry.BrepLoop.Kind.init -> void
+Spark.Geometry.BrepLoop.TrimCount.get -> int
+Spark.Geometry.BrepLoop.TrimCount.init -> void
+Spark.Geometry.BrepLoopKind
+Spark.Geometry.BrepLoopKind.Inner = 1 -> Spark.Geometry.BrepLoopKind
+Spark.Geometry.BrepLoopKind.Outer = 0 -> Spark.Geometry.BrepLoopKind
+Spark.Geometry.BrepLoopView
+Spark.Geometry.BrepLoopView.BrepLoopView() -> void
+Spark.Geometry.BrepLoopView.Edge(int position) -> Spark.Geometry.BrepEdgeView
+Spark.Geometry.BrepLoopView.Index.get -> int
+Spark.Geometry.BrepLoopView.Kind.get -> Spark.Geometry.BrepLoopKind
+Spark.Geometry.BrepLoopView.Loop.get -> Spark.Geometry.BrepLoop
+Spark.Geometry.BrepLoopView.Trim(int position) -> Spark.Geometry.BrepTrim
+Spark.Geometry.BrepLoopView.TrimCount.get -> int
+Spark.Geometry.BrepLoopView.VertexIndices() -> int[]!
+Spark.Geometry.BrepPrimitives
+Spark.Geometry.BrepResidency
+Spark.Geometry.BrepResidency.BrepResidency() -> void
+Spark.Geometry.BrepShell
+Spark.Geometry.BrepShell.BrepShell() -> void
+Spark.Geometry.BrepShell.BrepShell(int FirstFace, int FaceCount) -> void
+Spark.Geometry.BrepShell.Deconstruct(out int FirstFace, out int FaceCount) -> void
+Spark.Geometry.BrepShell.Equals(Spark.Geometry.BrepShell other) -> bool
+Spark.Geometry.BrepShell.FaceCount.get -> int
+Spark.Geometry.BrepShell.FaceCount.init -> void
+Spark.Geometry.BrepShell.FirstFace.get -> int
+Spark.Geometry.BrepShell.FirstFace.init -> void
+Spark.Geometry.BrepShellView
+Spark.Geometry.BrepShellView.BrepShellView() -> void
+Spark.Geometry.BrepShellView.Face(int position) -> Spark.Geometry.BrepFaceView
+Spark.Geometry.BrepShellView.FaceCount.get -> int
+Spark.Geometry.BrepShellView.Index.get -> int
+Spark.Geometry.BrepShellView.Shell.get -> Spark.Geometry.BrepShell
+Spark.Geometry.BrepTrim
+Spark.Geometry.BrepTrim.BrepTrim() -> void
+Spark.Geometry.BrepTrim.BrepTrim(int Edge, bool IsReversed) -> void
+Spark.Geometry.BrepTrim.Deconstruct(out int Edge, out bool IsReversed) -> void
+Spark.Geometry.BrepTrim.Edge.get -> int
+Spark.Geometry.BrepTrim.Edge.init -> void
+Spark.Geometry.BrepTrim.Equals(Spark.Geometry.BrepTrim other) -> bool
+Spark.Geometry.BrepTrim.IsReversed.get -> bool
+Spark.Geometry.BrepTrim.IsReversed.init -> void
+Spark.Geometry.BrepVertex
+Spark.Geometry.BrepVertex.BrepVertex() -> void
+Spark.Geometry.BrepVertex.BrepVertex(int Point) -> void
+Spark.Geometry.BrepVertex.Deconstruct(out int Point) -> void
+Spark.Geometry.BrepVertex.Equals(Spark.Geometry.BrepVertex other) -> bool
+Spark.Geometry.BrepVertex.Point.get -> int
+Spark.Geometry.BrepVertex.Point.init -> void
+Spark.Geometry.Circle
+Spark.Geometry.Circle.Centre.get -> Spark.Geometry.Point3d
+Spark.Geometry.Circle.Circle(in Spark.Geometry.Plane plane, double radius) -> void
+Spark.Geometry.Circle.Plane.get -> Spark.Geometry.Plane
+Spark.Geometry.Circle.Radius.get -> double
+Spark.Geometry.ConicalSurface
+Spark.Geometry.ConicalSurface.ConicalSurface(in Spark.Geometry.Plane baseFrame, double radius, Spark.Geometry.Angle halfAngle, in Spark.Geometry.Interval domainU, in Spark.Geometry.Interval height) -> void
+Spark.Geometry.ConicalSurface.ConicalSurface(in Spark.Geometry.Plane baseFrame, double radius, Spark.Geometry.Angle halfAngle, in Spark.Geometry.Interval height) -> void
+Spark.Geometry.ConicalSurface.Frame.get -> Spark.Geometry.Plane
+Spark.Geometry.ConicalSurface.HalfAngle.get -> Spark.Geometry.Angle
+Spark.Geometry.ConicalSurface.Radius.get -> double
+Spark.Geometry.ConicalSurface.RadiusAt(double v) -> double
+Spark.Geometry.CoordinateSystem
+Spark.Geometry.CoordinateSystem.CoordinateSystem() -> void
+Spark.Geometry.CoordinateSystem.CoordinateSystem(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d xAxis, in Spark.Geometry.Vector3d yAxis) -> void
+Spark.Geometry.CoordinateSystem.Equals(Spark.Geometry.CoordinateSystem other) -> bool
+Spark.Geometry.CoordinateSystem.EqualsWithin(in Spark.Geometry.CoordinateSystem other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.CoordinateSystem.IsValid.get -> bool
+Spark.Geometry.CoordinateSystem.Origin.get -> Spark.Geometry.Point3d
+Spark.Geometry.CoordinateSystem.ToLocal(in Spark.Geometry.Point3d worldPoint) -> Spark.Geometry.Point3d
+Spark.Geometry.CoordinateSystem.ToLocal(in Spark.Geometry.Vector3d worldVector) -> Spark.Geometry.Vector3d
+Spark.Geometry.CoordinateSystem.ToPlane() -> Spark.Geometry.Plane
+Spark.Geometry.CoordinateSystem.ToTransform() -> Spark.Geometry.Transform
+Spark.Geometry.CoordinateSystem.ToWorld(in Spark.Geometry.Point3d localPoint) -> Spark.Geometry.Point3d
+Spark.Geometry.CoordinateSystem.ToWorld(in Spark.Geometry.Vector3d localVector) -> Spark.Geometry.Vector3d
+Spark.Geometry.CoordinateSystem.XAxis.get -> Spark.Geometry.Vector3d
+Spark.Geometry.CoordinateSystem.YAxis.get -> Spark.Geometry.Vector3d
+Spark.Geometry.CoordinateSystem.ZAxis.get -> Spark.Geometry.Vector3d
+Spark.Geometry.Curve
+Spark.Geometry.Curve.BoundingBox.get -> Spark.Geometry.BoundingBox
+Spark.Geometry.Curve.ClosestPoint(in Spark.Geometry.Point3d point) -> Spark.Geometry.Point3d
+Spark.Geometry.Curve.CoordinateSystemAt(double parameter) -> Spark.Geometry.CoordinateSystem
+Spark.Geometry.Curve.DerivativeAt(double parameter) -> Spark.Geometry.Vector3d
+Spark.Geometry.Curve.DistanceTo(in Spark.Geometry.Point3d point) -> double
+Spark.Geometry.Curve.DivideByLength(double length) -> Spark.Geometry.Point3d[]!
+Spark.Geometry.Curve.DivideEqually(int segments) -> Spark.Geometry.Point3d[]!
+Spark.Geometry.Curve.EndPoint.get -> Spark.Geometry.Point3d
+Spark.Geometry.Curve.Length.get -> double
+Spark.Geometry.Curve.NormalAt(double parameter) -> Spark.Geometry.Vector3d
+Spark.Geometry.Curve.PlaneAt(double parameter) -> Spark.Geometry.Plane
+Spark.Geometry.Curve.PointAt(double parameter) -> Spark.Geometry.Point3d
+Spark.Geometry.Curve.PointAtLength(double distance) -> Spark.Geometry.Point3d
+Spark.Geometry.Curve.SecondDerivativeAt(double parameter) -> Spark.Geometry.Vector3d
+Spark.Geometry.Curve.StartPoint.get -> Spark.Geometry.Point3d
+Spark.Geometry.Curve.TangentAt(double parameter) -> Spark.Geometry.Vector3d
+Spark.Geometry.CurveOffset
+Spark.Geometry.CylindricalSurface
+Spark.Geometry.CylindricalSurface.Axis.get -> Spark.Geometry.Vector3d
+Spark.Geometry.CylindricalSurface.CylindricalSurface(in Spark.Geometry.Plane baseFrame, double radius, in Spark.Geometry.Interval domainU, in Spark.Geometry.Interval height) -> void
+Spark.Geometry.CylindricalSurface.CylindricalSurface(in Spark.Geometry.Plane baseFrame, double radius, in Spark.Geometry.Interval height) -> void
+Spark.Geometry.CylindricalSurface.Frame.get -> Spark.Geometry.Plane
+Spark.Geometry.CylindricalSurface.Radius.get -> double
+Spark.Geometry.EllipseCurve
+Spark.Geometry.EllipseCurve.Centre.get -> Spark.Geometry.Point3d
+Spark.Geometry.EllipseCurve.Plane.get -> Spark.Geometry.Plane
+Spark.Geometry.EllipseCurve.StartAngle.get -> Spark.Geometry.Angle
+Spark.Geometry.EllipseCurve.SweepAngle.get -> Spark.Geometry.Angle
+Spark.Geometry.EllipseCurve.XRadius.get -> double
+Spark.Geometry.EllipseCurve.YRadius.get -> double
+Spark.Geometry.ExtrusionSurface
+Spark.Geometry.ExtrusionSurface.Direction.get -> Spark.Geometry.Vector3d
+Spark.Geometry.ExtrusionSurface.ExtrusionSurface(Spark.Geometry.Curve! profile, in Spark.Geometry.Vector3d direction) -> void
+Spark.Geometry.ExtrusionSurface.ExtrusionSurface(Spark.Geometry.Curve! profile, in Spark.Geometry.Vector3d direction, in Spark.Geometry.Interval height) -> void
+Spark.Geometry.ExtrusionSurface.Profile.get -> Spark.Geometry.Curve!
+Spark.Geometry.GeometryJson
+Spark.Geometry.ITessellationSink
+Spark.Geometry.ITessellationSink.AddQuad(int a, int b, int c, int d) -> void
+Spark.Geometry.ITessellationSink.AddTriangle(int a, int b, int c) -> void
+Spark.Geometry.ITessellationSink.AddVertex(in Spark.Geometry.Point3d position, in Spark.Geometry.Vector3d normal, in Spark.Geometry.UV textureCoordinate) -> int
+Spark.Geometry.Interval
+Spark.Geometry.Interval.Clamp(double value) -> double
+Spark.Geometry.Interval.Denormalise(double t) -> double
+Spark.Geometry.Interval.Equals(Spark.Geometry.Interval other) -> bool
+Spark.Geometry.Interval.EqualsWithin(in Spark.Geometry.Interval other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Interval.Expanded(double amount) -> Spark.Geometry.Interval
+Spark.Geometry.Interval.Includes(double value, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Interval.Intersection(in Spark.Geometry.Interval other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Interval?
+Spark.Geometry.Interval.Interval() -> void
+Spark.Geometry.Interval.Interval(double min, double max) -> void
+Spark.Geometry.Interval.IsDecreasing.get -> bool
+Spark.Geometry.Interval.IsValid.get -> bool
+Spark.Geometry.Interval.Length.get -> double
+Spark.Geometry.Interval.MakeIncreasing() -> Spark.Geometry.Interval
+Spark.Geometry.Interval.Max.get -> double
+Spark.Geometry.Interval.Mid.get -> double
+Spark.Geometry.Interval.Min.get -> double
+Spark.Geometry.Interval.Normalise(double value) -> double
+Spark.Geometry.Interval.Reversed() -> Spark.Geometry.Interval
+Spark.Geometry.Interval.Union(in Spark.Geometry.Interval other) -> Spark.Geometry.Interval
+Spark.Geometry.KnotVector
+Spark.Geometry.KnotVector.BasisFunctions(int span, double parameter) -> double[]!
+Spark.Geometry.KnotVector.ControlPointCount.get -> int
+Spark.Geometry.KnotVector.Count.get -> int
+Spark.Geometry.KnotVector.Degree.get -> int
+Spark.Geometry.KnotVector.Domain.get -> Spark.Geometry.Interval
+Spark.Geometry.KnotVector.Equals(Spark.Geometry.KnotVector? other) -> bool
+Spark.Geometry.KnotVector.FindSpan(double parameter) -> int
+Spark.Geometry.KnotVector.IsClamped.get -> bool
+Spark.Geometry.KnotVector.KnotVector(int degree, System.Collections.Generic.IReadOnlyList<double>! knots) -> void
+Spark.Geometry.KnotVector.Multiplicity(double knot, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> int
+Spark.Geometry.KnotVector.ToArray() -> double[]!
+Spark.Geometry.KnotVector.this[int index].get -> double
+Spark.Geometry.Line
+Spark.Geometry.Line.Direction.get -> Spark.Geometry.Vector3d
+Spark.Geometry.Line.Line(in Spark.Geometry.Point3d start, in Spark.Geometry.Point3d end) -> void
+Spark.Geometry.Mesh
+Spark.Geometry.Mesh.Area.get -> double
+Spark.Geometry.Mesh.BoundingBox.get -> Spark.Geometry.BoundingBox
+Spark.Geometry.Mesh.Colours() -> uint[]?
+Spark.Geometry.Mesh.Face(int index) -> Spark.Geometry.MeshFace
+Spark.Geometry.Mesh.FaceCount.get -> int
+Spark.Geometry.Mesh.FaceNormal(int index) -> Spark.Geometry.Vector3d
+Spark.Geometry.Mesh.Faces() -> Spark.Geometry.MeshFace[]!
+Spark.Geometry.Mesh.HasColours.get -> bool
+Spark.Geometry.Mesh.HasNormals.get -> bool
+Spark.Geometry.Mesh.HasTextureCoordinates.get -> bool
+Spark.Geometry.Mesh.Mesh(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! vertices, System.Collections.Generic.IReadOnlyList<Spark.Geometry.MeshFace>! faces) -> void
+Spark.Geometry.Mesh.Mesh(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! vertices, System.Collections.Generic.IReadOnlyList<Spark.Geometry.MeshFace>! faces, System.Collections.Generic.IReadOnlyList<Spark.Geometry.Vector3d>? normals, System.Collections.Generic.IReadOnlyList<Spark.Geometry.UV>? textureCoordinates, System.Collections.Generic.IReadOnlyList<uint>? colours) -> void
+Spark.Geometry.Mesh.Normals() -> Spark.Geometry.Vector3d[]?
+Spark.Geometry.Mesh.QuadCount.get -> int
+Spark.Geometry.Mesh.TextureCoordinates() -> Spark.Geometry.UV[]?
+Spark.Geometry.Mesh.Topology.get -> Spark.Geometry.MeshTopology!
+Spark.Geometry.Mesh.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Mesh!
+Spark.Geometry.Mesh.Triangulated() -> Spark.Geometry.Mesh!
+Spark.Geometry.Mesh.Vertex(int index) -> Spark.Geometry.Point3d
+Spark.Geometry.Mesh.VertexCount.get -> int
+Spark.Geometry.Mesh.Vertices() -> Spark.Geometry.Point3d[]!
+Spark.Geometry.Mesh.Volume() -> double
+Spark.Geometry.Mesh.Welded(double tolerance = 0) -> Spark.Geometry.Mesh!
+Spark.Geometry.Mesh.WithVertexNormals() -> Spark.Geometry.Mesh!
+Spark.Geometry.MeshBuilder
+Spark.Geometry.MeshBuilder.AddQuad(int a, int b, int c, int d) -> void
+Spark.Geometry.MeshBuilder.AddTriangle(int a, int b, int c) -> void
+Spark.Geometry.MeshBuilder.AddVertex(in Spark.Geometry.Point3d position, in Spark.Geometry.Vector3d normal, in Spark.Geometry.UV textureCoordinate) -> int
+Spark.Geometry.MeshBuilder.Build() -> Spark.Geometry.Mesh!
+Spark.Geometry.MeshBuilder.FaceCount.get -> int
+Spark.Geometry.MeshBuilder.MeshBuilder() -> void
+Spark.Geometry.MeshBuilder.VertexCount.get -> int
+Spark.Geometry.MeshFace
+Spark.Geometry.MeshFace.A.get -> int
+Spark.Geometry.MeshFace.B.get -> int
+Spark.Geometry.MeshFace.C.get -> int
+Spark.Geometry.MeshFace.Count.get -> int
+Spark.Geometry.MeshFace.D.get -> int
+Spark.Geometry.MeshFace.Equals(Spark.Geometry.MeshFace other) -> bool
+Spark.Geometry.MeshFace.IsDegenerate.get -> bool
+Spark.Geometry.MeshFace.IsQuad.get -> bool
+Spark.Geometry.MeshFace.MeshFace() -> void
+Spark.Geometry.MeshFace.MeshFace(int a, int b, int c) -> void
+Spark.Geometry.MeshFace.MeshFace(int a, int b, int c, int d) -> void
+Spark.Geometry.MeshFace.Triangulated() -> Spark.Geometry.MeshFace[]!
+Spark.Geometry.MeshFace.this[int corner].get -> int
+Spark.Geometry.MeshTopology
+Spark.Geometry.MeshTopology.AdjacentFaces(int face) -> int[]!
+Spark.Geometry.MeshTopology.EdgeCount.get -> int
+Spark.Geometry.MeshTopology.FacesAroundVertex(int vertex) -> int[]!
+Spark.Geometry.MeshTopology.HalfedgeCount.get -> int
+Spark.Geometry.MeshTopology.IsClosed.get -> bool
+Spark.Geometry.MeshTopology.IsConsistentlyWound.get -> bool
+Spark.Geometry.MeshTopology.IsManifold.get -> bool
+Spark.Geometry.MeshTopology.NakedEdgeCount.get -> int
+Spark.Geometry.MeshTopology.NakedEdges() -> (int From, int To)[]!
+Spark.Geometry.MeshTopology.NonManifoldEdgeCount.get -> int
+Spark.Geometry.NurbsCurve
+Spark.Geometry.NurbsCurve.ControlPoints() -> Spark.Geometry.Point3d[]!
+Spark.Geometry.NurbsCurve.Degree.get -> int
+Spark.Geometry.NurbsCurve.IsRational.get -> bool
+Spark.Geometry.NurbsCurve.Knots.get -> Spark.Geometry.KnotVector!
+Spark.Geometry.NurbsCurve.NurbsCurve(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! controlPoints, Spark.Geometry.KnotVector! knots, System.Collections.Generic.IReadOnlyList<double>? weights = null) -> void
+Spark.Geometry.NurbsCurve.NurbsCurve(int degree, System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! controlPoints, System.Collections.Generic.IReadOnlyList<double>! knots, System.Collections.Generic.IReadOnlyList<double>? weights = null) -> void
+Spark.Geometry.NurbsCurve.Reduced(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> (Spark.Geometry.NurbsCurve! Curve, int Removed)
+Spark.Geometry.NurbsCurve.Split(double parameter) -> (Spark.Geometry.NurbsCurve! Left, Spark.Geometry.NurbsCurve! Right)
+Spark.Geometry.NurbsCurve.Weights() -> double[]!
+Spark.Geometry.NurbsCurve.WithDegreeElevated(int by = 1) -> Spark.Geometry.NurbsCurve!
+Spark.Geometry.NurbsCurve.WithKnotInserted(double knot, int times = 1) -> Spark.Geometry.NurbsCurve!
+Spark.Geometry.NurbsCurve.WithKnotRemoved(double knot, int times = 1, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> (Spark.Geometry.NurbsCurve! Curve, int Removed)
+Spark.Geometry.NurbsSurface
+Spark.Geometry.NurbsSurface.ControlPoint(int i, int j) -> Spark.Geometry.Point3d
+Spark.Geometry.NurbsSurface.ControlPointCountU.get -> int
+Spark.Geometry.NurbsSurface.ControlPointCountV.get -> int
+Spark.Geometry.NurbsSurface.ControlPoints() -> Spark.Geometry.Point3d[,]!
+Spark.Geometry.NurbsSurface.DegreeU.get -> int
+Spark.Geometry.NurbsSurface.DegreeV.get -> int
+Spark.Geometry.NurbsSurface.IsRational.get -> bool
+Spark.Geometry.NurbsSurface.KnotsU.get -> Spark.Geometry.KnotVector!
+Spark.Geometry.NurbsSurface.KnotsV.get -> Spark.Geometry.KnotVector!
+Spark.Geometry.NurbsSurface.NurbsSurface(Spark.Geometry.KnotVector! knotsU, Spark.Geometry.KnotVector! knotsV, Spark.Geometry.Point3d[,]! controlPoints) -> void
+Spark.Geometry.NurbsSurface.NurbsSurface(Spark.Geometry.KnotVector! knotsU, Spark.Geometry.KnotVector! knotsV, Spark.Geometry.Point3d[,]! controlPoints, double[,]? weights) -> void
+Spark.Geometry.NurbsSurface.Weight(int i, int j) -> double
+Spark.Geometry.NurbsSurface.Weights() -> double[,]!
+Spark.Geometry.Plane
+Spark.Geometry.Plane.ClosestPoint(in Spark.Geometry.Point3d point) -> Spark.Geometry.Point3d
+Spark.Geometry.Plane.Contains(in Spark.Geometry.Point3d point, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Plane.DistanceTo(in Spark.Geometry.Point3d point) -> double
+Spark.Geometry.Plane.Equals(Spark.Geometry.Plane other) -> bool
+Spark.Geometry.Plane.EqualsWithin(in Spark.Geometry.Plane other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Plane.Flipped() -> Spark.Geometry.Plane
+Spark.Geometry.Plane.IsCoplanar(in Spark.Geometry.Plane other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Plane.IsValid.get -> bool
+Spark.Geometry.Plane.Normal.get -> Spark.Geometry.Vector3d
+Spark.Geometry.Plane.Offset(double distance) -> Spark.Geometry.Plane
+Spark.Geometry.Plane.Origin.get -> Spark.Geometry.Point3d
+Spark.Geometry.Plane.Plane() -> void
+Spark.Geometry.Plane.Plane(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal) -> void
+Spark.Geometry.Plane.Project(in Spark.Geometry.Vector3d vector) -> Spark.Geometry.Vector3d
+Spark.Geometry.Plane.To2d(in Spark.Geometry.Point3d point) -> Spark.Geometry.Point2d
+Spark.Geometry.Plane.To3d(in Spark.Geometry.Point2d point) -> Spark.Geometry.Point3d
+Spark.Geometry.Plane.XAxis.get -> Spark.Geometry.Vector3d
+Spark.Geometry.Plane.YAxis.get -> Spark.Geometry.Vector3d
+Spark.Geometry.PlaneSurface
+Spark.Geometry.PlaneSurface.Plane.get -> Spark.Geometry.Plane
+Spark.Geometry.PlaneSurface.PlaneSurface(in Spark.Geometry.Plane plane, in Spark.Geometry.Interval domainU, in Spark.Geometry.Interval domainV) -> void
+Spark.Geometry.Point2d
+Spark.Geometry.Point2d.DistanceSquaredTo(in Spark.Geometry.Point2d other) -> double
+Spark.Geometry.Point2d.DistanceTo(in Spark.Geometry.Point2d other) -> double
+Spark.Geometry.Point2d.Equals(Spark.Geometry.Point2d other) -> bool
+Spark.Geometry.Point2d.EqualsWithin(in Spark.Geometry.Point2d other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Point2d.IsValid.get -> bool
+Spark.Geometry.Point2d.Midpoint(in Spark.Geometry.Point2d other) -> Spark.Geometry.Point2d
+Spark.Geometry.Point2d.Point2d() -> void
+Spark.Geometry.Point2d.Point2d(double x, double y) -> void
+Spark.Geometry.Point2d.ToVector2d() -> Spark.Geometry.Vector2d
+Spark.Geometry.Point2d.X.get -> double
+Spark.Geometry.Point2d.Y.get -> double
+Spark.Geometry.Point3d
+Spark.Geometry.Point3d.DistanceSquaredTo(in Spark.Geometry.Point3d other) -> double
+Spark.Geometry.Point3d.DistanceTo(in Spark.Geometry.Point3d other) -> double
+Spark.Geometry.Point3d.Equals(Spark.Geometry.Point3d other) -> bool
+Spark.Geometry.Point3d.EqualsWithin(in Spark.Geometry.Point3d other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Point3d.IsValid.get -> bool
+Spark.Geometry.Point3d.Midpoint(in Spark.Geometry.Point3d other) -> Spark.Geometry.Point3d
+Spark.Geometry.Point3d.Point3d() -> void
+Spark.Geometry.Point3d.Point3d(double x, double y, double z) -> void
+Spark.Geometry.Point3d.ToVector3d() -> Spark.Geometry.Vector3d
+Spark.Geometry.Point3d.X.get -> double
+Spark.Geometry.Point3d.Y.get -> double
+Spark.Geometry.Point3d.Z.get -> double
+Spark.Geometry.PolyCurve
+Spark.Geometry.PolyCurve.SegmentAt(int index) -> Spark.Geometry.Curve!
+Spark.Geometry.PolyCurve.SegmentCount.get -> int
+Spark.Geometry.PolyCurve.Segments() -> Spark.Geometry.Curve![]!
+Spark.Geometry.PolyLine
+Spark.Geometry.PolyLine.PointAtIndex(int index) -> Spark.Geometry.Point3d
+Spark.Geometry.PolyLine.PointCount.get -> int
+Spark.Geometry.PolyLine.Points() -> Spark.Geometry.Point3d[]!
+Spark.Geometry.PolyLine.PolyLine(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> void
+Spark.Geometry.PolyLine.SegmentAt(int index) -> Spark.Geometry.Line!
+Spark.Geometry.PolyLine.SegmentCount.get -> int
+Spark.Geometry.Quaternion
+Spark.Geometry.Quaternion.Conjugate() -> Spark.Geometry.Quaternion
+Spark.Geometry.Quaternion.Equals(Spark.Geometry.Quaternion other) -> bool
+Spark.Geometry.Quaternion.EqualsWithin(in Spark.Geometry.Quaternion other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Quaternion.IsSameRotation(in Spark.Geometry.Quaternion other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Quaternion.IsUnit(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Quaternion.IsValid.get -> bool
+Spark.Geometry.Quaternion.Length.get -> double
+Spark.Geometry.Quaternion.LengthSquared.get -> double
+Spark.Geometry.Quaternion.Normalised() -> Spark.Geometry.Quaternion
+Spark.Geometry.Quaternion.OfPoint(in Spark.Geometry.Point3d point) -> Spark.Geometry.Point3d
+Spark.Geometry.Quaternion.OfVector(in Spark.Geometry.Vector3d vector) -> Spark.Geometry.Vector3d
+Spark.Geometry.Quaternion.Quaternion() -> void
+Spark.Geometry.Quaternion.Quaternion(double x, double y, double z, double w) -> void
+Spark.Geometry.Quaternion.ToAxisAngle() -> (Spark.Geometry.Vector3d Axis, Spark.Geometry.Angle Angle)
+Spark.Geometry.Quaternion.ToTransform() -> Spark.Geometry.Transform
+Spark.Geometry.Quaternion.TryGetInverse(out Spark.Geometry.Quaternion inverse) -> bool
+Spark.Geometry.Quaternion.TryNormalise(out Spark.Geometry.Quaternion unit) -> bool
+Spark.Geometry.Quaternion.Vector.get -> Spark.Geometry.Vector3d
+Spark.Geometry.Quaternion.W.get -> double
+Spark.Geometry.Quaternion.X.get -> double
+Spark.Geometry.Quaternion.Y.get -> double
+Spark.Geometry.Quaternion.Z.get -> double
+Spark.Geometry.Ray
+Spark.Geometry.Ray.ClosestPointTo(in Spark.Geometry.Point3d point) -> (Spark.Geometry.Point3d Point, double Distance)
+Spark.Geometry.Ray.Direction.get -> Spark.Geometry.Vector3d
+Spark.Geometry.Ray.Equals(Spark.Geometry.Ray other) -> bool
+Spark.Geometry.Ray.EqualsWithin(in Spark.Geometry.Ray other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Ray.Intersects(in Spark.Geometry.BoundingBox box) -> bool
+Spark.Geometry.Ray.Intersects(in Spark.Geometry.BoundingBox box, out double entry, out double exit) -> bool
+Spark.Geometry.Ray.IsValid.get -> bool
+Spark.Geometry.Ray.Origin.get -> Spark.Geometry.Point3d
+Spark.Geometry.Ray.PointAt(double distance) -> Spark.Geometry.Point3d
+Spark.Geometry.Ray.Ray() -> void
+Spark.Geometry.Ray.Ray(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d direction) -> void
+Spark.Geometry.RevolutionSurface
+Spark.Geometry.RevolutionSurface.Axis.get -> Spark.Geometry.Vector3d
+Spark.Geometry.RevolutionSurface.AxisOrigin.get -> Spark.Geometry.Point3d
+Spark.Geometry.RevolutionSurface.Profile.get -> Spark.Geometry.Curve!
+Spark.Geometry.RevolutionSurface.RevolutionSurface(Spark.Geometry.Curve! profile, in Spark.Geometry.Point3d axisOrigin, in Spark.Geometry.Vector3d axisDirection) -> void
+Spark.Geometry.RevolutionSurface.RevolutionSurface(Spark.Geometry.Curve! profile, in Spark.Geometry.Point3d axisOrigin, in Spark.Geometry.Vector3d axisDirection, in Spark.Geometry.Interval sweep) -> void
+Spark.Geometry.RuledSurface
+Spark.Geometry.RuledSurface.First.get -> Spark.Geometry.Curve!
+Spark.Geometry.RuledSurface.RuledSurface(Spark.Geometry.Curve! first, Spark.Geometry.Curve! second) -> void
+Spark.Geometry.RuledSurface.Second.get -> Spark.Geometry.Curve!
+Spark.Geometry.SphericalSurface
+Spark.Geometry.SphericalSurface.Centre.get -> Spark.Geometry.Point3d
+Spark.Geometry.SphericalSurface.Frame.get -> Spark.Geometry.Plane
+Spark.Geometry.SphericalSurface.Radius.get -> double
+Spark.Geometry.SphericalSurface.SphericalSurface(in Spark.Geometry.Plane centre, double radius) -> void
+Spark.Geometry.SphericalSurface.SphericalSurface(in Spark.Geometry.Plane centre, double radius, in Spark.Geometry.Interval domainU, in Spark.Geometry.Interval domainV) -> void
+Spark.Geometry.Surface
+Spark.Geometry.Surface.ClosestPoint(in Spark.Geometry.Point3d point, out double u, out double v) -> Spark.Geometry.Point3d
+Spark.Geometry.Surface.DerivativeAt(double u, double v, out Spark.Geometry.Vector3d derivativeU, out Spark.Geometry.Vector3d derivativeV) -> void
+Spark.Geometry.Surface.FrameAt(double u, double v) -> Spark.Geometry.Plane
+Spark.Geometry.Surface.GaussianCurvature(double u, double v) -> double
+Spark.Geometry.Surface.IsoCurveU(double v) -> Spark.Geometry.Curve!
+Spark.Geometry.Surface.IsoCurveV(double u) -> Spark.Geometry.Curve!
+Spark.Geometry.Surface.MeanCurvature(double u, double v) -> double
+Spark.Geometry.Surface.NormalAt(double u, double v) -> Spark.Geometry.Vector3d
+Spark.Geometry.Surface.PointAt(double u, double v) -> Spark.Geometry.Point3d
+Spark.Geometry.Surface.PointAt(in Spark.Geometry.UV uv) -> Spark.Geometry.Point3d
+Spark.Geometry.Surface.PrincipalCurvatures(double u, double v) -> (double Minimum, double Maximum)
+Spark.Geometry.SurfaceConversion
+Spark.Geometry.Tessellation
+Spark.Geometry.Tolerance
+Spark.Geometry.Tolerance.Angular.get -> Spark.Geometry.Angle
+Spark.Geometry.Tolerance.AreEqual(double a, double b) -> bool
+Spark.Geometry.Tolerance.Equals(Spark.Geometry.Tolerance other) -> bool
+Spark.Geometry.Tolerance.IsGreaterThan(double a, double b) -> bool
+Spark.Geometry.Tolerance.IsLessThan(double a, double b) -> bool
+Spark.Geometry.Tolerance.IsNegative(double value) -> bool
+Spark.Geometry.Tolerance.IsNegligible(double separation, double scale) -> bool
+Spark.Geometry.Tolerance.IsPositive(double value) -> bool
+Spark.Geometry.Tolerance.IsZero(double value) -> bool
+Spark.Geometry.Tolerance.Linear.get -> double
+Spark.Geometry.Tolerance.RelativeEpsilon.get -> double
+Spark.Geometry.Tolerance.Scaled(double factor) -> Spark.Geometry.Tolerance
+Spark.Geometry.Tolerance.Tolerance() -> void
+Spark.Geometry.Tolerance.Tolerance(double linear, Spark.Geometry.Angle angular, double relativeEpsilon) -> void
+Spark.Geometry.ToroidalSurface
+Spark.Geometry.ToroidalSurface.Frame.get -> Spark.Geometry.Plane
+Spark.Geometry.ToroidalSurface.MajorRadius.get -> double
+Spark.Geometry.ToroidalSurface.MinorRadius.get -> double
+Spark.Geometry.ToroidalSurface.ToroidalSurface(in Spark.Geometry.Plane frame, double majorRadius, double minorRadius) -> void
+Spark.Geometry.ToroidalSurface.ToroidalSurface(in Spark.Geometry.Plane frame, double majorRadius, double minorRadius, in Spark.Geometry.Interval domainU, in Spark.Geometry.Interval domainV) -> void
+Spark.Geometry.Transform
+Spark.Geometry.Transform.Determinant.get -> double
+Spark.Geometry.Transform.Equals(Spark.Geometry.Transform other) -> bool
+Spark.Geometry.Transform.EqualsWithin(in Spark.Geometry.Transform other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Transform.IsAffine(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Transform.IsIdentity(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Transform.IsRigid(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Transform.M00.get -> double
+Spark.Geometry.Transform.M01.get -> double
+Spark.Geometry.Transform.M02.get -> double
+Spark.Geometry.Transform.M03.get -> double
+Spark.Geometry.Transform.M10.get -> double
+Spark.Geometry.Transform.M11.get -> double
+Spark.Geometry.Transform.M12.get -> double
+Spark.Geometry.Transform.M13.get -> double
+Spark.Geometry.Transform.M20.get -> double
+Spark.Geometry.Transform.M21.get -> double
+Spark.Geometry.Transform.M22.get -> double
+Spark.Geometry.Transform.M23.get -> double
+Spark.Geometry.Transform.M30.get -> double
+Spark.Geometry.Transform.M31.get -> double
+Spark.Geometry.Transform.M32.get -> double
+Spark.Geometry.Transform.M33.get -> double
+Spark.Geometry.Transform.OfBoundingBox(in Spark.Geometry.BoundingBox box) -> Spark.Geometry.BoundingBox
+Spark.Geometry.Transform.OfPoint(in Spark.Geometry.Point3d point) -> Spark.Geometry.Point3d
+Spark.Geometry.Transform.OfVector(in Spark.Geometry.Vector3d vector) -> Spark.Geometry.Vector3d
+Spark.Geometry.Transform.Transform() -> void
+Spark.Geometry.Transform.Transform(double m00, double m01, double m02, double m03, double m10, double m11, double m12, double m13, double m20, double m21, double m22, double m23, double m30, double m31, double m32, double m33) -> void
+Spark.Geometry.Transform.TryGetInverse(out Spark.Geometry.Transform inverse) -> bool
+Spark.Geometry.Transform.this[int row, int column].get -> double
+Spark.Geometry.UV
+Spark.Geometry.UV.Equals(Spark.Geometry.UV other) -> bool
+Spark.Geometry.UV.EqualsWithin(in Spark.Geometry.UV other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.UV.IsValid.get -> bool
+Spark.Geometry.UV.U.get -> double
+Spark.Geometry.UV.UV() -> void
+Spark.Geometry.UV.UV(double u, double v) -> void
+Spark.Geometry.UV.V.get -> double
+Spark.Geometry.Vector2d
+Spark.Geometry.Vector2d.AngleTo(in Spark.Geometry.Vector2d other) -> Spark.Geometry.Angle
+Spark.Geometry.Vector2d.Cross(in Spark.Geometry.Vector2d other) -> double
+Spark.Geometry.Vector2d.Dot(in Spark.Geometry.Vector2d other) -> double
+Spark.Geometry.Vector2d.Equals(Spark.Geometry.Vector2d other) -> bool
+Spark.Geometry.Vector2d.EqualsWithin(in Spark.Geometry.Vector2d other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Vector2d.IsUnit(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Vector2d.IsValid.get -> bool
+Spark.Geometry.Vector2d.IsZero(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Vector2d.Length.get -> double
+Spark.Geometry.Vector2d.LengthSquared.get -> double
+Spark.Geometry.Vector2d.Normalised() -> Spark.Geometry.Vector2d
+Spark.Geometry.Vector2d.Perpendicular() -> Spark.Geometry.Vector2d
+Spark.Geometry.Vector2d.Rotate(Spark.Geometry.Angle angle) -> Spark.Geometry.Vector2d
+Spark.Geometry.Vector2d.SignedAngleTo(in Spark.Geometry.Vector2d other) -> Spark.Geometry.Angle
+Spark.Geometry.Vector2d.TryNormalise(out Spark.Geometry.Vector2d unit) -> bool
+Spark.Geometry.Vector2d.Vector2d() -> void
+Spark.Geometry.Vector2d.Vector2d(double x, double y) -> void
+Spark.Geometry.Vector2d.X.get -> double
+Spark.Geometry.Vector2d.Y.get -> double
+Spark.Geometry.Vector3d
+Spark.Geometry.Vector3d.AngleTo(in Spark.Geometry.Vector3d other) -> Spark.Geometry.Angle
+Spark.Geometry.Vector3d.Cross(in Spark.Geometry.Vector3d other) -> Spark.Geometry.Vector3d
+Spark.Geometry.Vector3d.Dot(in Spark.Geometry.Vector3d other) -> double
+Spark.Geometry.Vector3d.Equals(Spark.Geometry.Vector3d other) -> bool
+Spark.Geometry.Vector3d.EqualsWithin(in Spark.Geometry.Vector3d other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Vector3d.IsParallelTo(in Spark.Geometry.Vector3d other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Vector3d.IsPerpendicularTo(in Spark.Geometry.Vector3d other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Vector3d.IsUnit(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Vector3d.IsValid.get -> bool
+Spark.Geometry.Vector3d.IsZero(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
+Spark.Geometry.Vector3d.Length.get -> double
+Spark.Geometry.Vector3d.LengthSquared.get -> double
+Spark.Geometry.Vector3d.Normalised() -> Spark.Geometry.Vector3d
+Spark.Geometry.Vector3d.ProjectOnto(in Spark.Geometry.Vector3d direction) -> Spark.Geometry.Vector3d
+Spark.Geometry.Vector3d.Reflect(in Spark.Geometry.Vector3d normal) -> Spark.Geometry.Vector3d
+Spark.Geometry.Vector3d.Rotate(in Spark.Geometry.Vector3d axis, Spark.Geometry.Angle angle) -> Spark.Geometry.Vector3d
+Spark.Geometry.Vector3d.SignedAngleTo(in Spark.Geometry.Vector3d other, in Spark.Geometry.Vector3d axis) -> Spark.Geometry.Angle
+Spark.Geometry.Vector3d.TripleProduct(in Spark.Geometry.Vector3d b, in Spark.Geometry.Vector3d c) -> double
+Spark.Geometry.Vector3d.TryNormalise(out Spark.Geometry.Vector3d unit) -> bool
+Spark.Geometry.Vector3d.Vector3d() -> void
+Spark.Geometry.Vector3d.Vector3d(double x, double y, double z) -> void
+Spark.Geometry.Vector3d.X.get -> double
+Spark.Geometry.Vector3d.Y.get -> double
+Spark.Geometry.Vector3d.Z.get -> double
+abstract Spark.Geometry.BrepResidency.Dispose() -> void
+abstract Spark.Geometry.BrepResidency.Materialise() -> Spark.Geometry.BrepData
+abstract Spark.Geometry.BrepResidency.NativeBytes.get -> long
+abstract Spark.Geometry.Curve.Domain.get -> Spark.Geometry.Interval
+abstract Spark.Geometry.Curve.IsClosed.get -> bool
+abstract Spark.Geometry.Curve.Reversed() -> Spark.Geometry.Curve!
+abstract Spark.Geometry.Curve.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
+abstract Spark.Geometry.Curve.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
+abstract Spark.Geometry.Surface.DomainU.get -> Spark.Geometry.Interval
+abstract Spark.Geometry.Surface.DomainV.get -> Spark.Geometry.Interval
+abstract Spark.Geometry.Surface.IsClosedU.get -> bool
+abstract Spark.Geometry.Surface.IsClosedV.get -> bool
+abstract Spark.Geometry.Surface.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Surface!
+const Spark.Geometry.CurveOffset.OffsetSamples = 200 -> int
+const Spark.Geometry.GeometryJson.CurrentVersion = 1 -> int
+const Spark.Geometry.MeshFace.NoVertex = -1 -> int
+const Spark.Geometry.Tessellation.MaximumSamplesPerDirection = 512 -> int
+override Spark.Geometry.Angle.Equals(object? obj) -> bool
+override Spark.Geometry.Angle.GetHashCode() -> int
+override Spark.Geometry.Angle.ToString() -> string!
+override Spark.Geometry.Arc.Domain.get -> Spark.Geometry.Interval
+override Spark.Geometry.Arc.IsClosed.get -> bool
+override Spark.Geometry.Arc.LengthAt(double parameter) -> double
+override Spark.Geometry.Arc.ParameterAtLength(double distance) -> double
+override Spark.Geometry.Arc.Reversed() -> Spark.Geometry.Curve!
+override Spark.Geometry.Arc.ToString() -> string!
+override Spark.Geometry.Arc.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
+override Spark.Geometry.Arc.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
+override Spark.Geometry.BoundingBox.Equals(object? obj) -> bool
+override Spark.Geometry.BoundingBox.GetHashCode() -> int
+override Spark.Geometry.BoundingBox.ToString() -> string!
+override Spark.Geometry.Brep.ToString() -> string!
+override Spark.Geometry.BrepData.GetHashCode() -> int
+override Spark.Geometry.BrepEdge.GetHashCode() -> int
+override Spark.Geometry.BrepFace.GetHashCode() -> int
+override Spark.Geometry.BrepLoop.GetHashCode() -> int
+override Spark.Geometry.BrepShell.GetHashCode() -> int
+override Spark.Geometry.BrepShell.ToString() -> string!
+override Spark.Geometry.BrepTrim.GetHashCode() -> int
+override Spark.Geometry.BrepVertex.GetHashCode() -> int
+override Spark.Geometry.Circle.Domain.get -> Spark.Geometry.Interval
+override Spark.Geometry.Circle.IsClosed.get -> bool
+override Spark.Geometry.Circle.LengthAt(double parameter) -> double
+override Spark.Geometry.Circle.ParameterAtLength(double distance) -> double
+override Spark.Geometry.Circle.Reversed() -> Spark.Geometry.Curve!
+override Spark.Geometry.Circle.ToString() -> string!
+override Spark.Geometry.Circle.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
+override Spark.Geometry.Circle.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
+override Spark.Geometry.ConicalSurface.Area.get -> double
+override Spark.Geometry.ConicalSurface.DomainU.get -> Spark.Geometry.Interval
+override Spark.Geometry.ConicalSurface.DomainV.get -> Spark.Geometry.Interval
+override Spark.Geometry.ConicalSurface.IsClosedU.get -> bool
+override Spark.Geometry.ConicalSurface.IsClosedV.get -> bool
+override Spark.Geometry.ConicalSurface.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Surface!
+override Spark.Geometry.CoordinateSystem.Equals(object? obj) -> bool
+override Spark.Geometry.CoordinateSystem.GetHashCode() -> int
+override Spark.Geometry.CoordinateSystem.ToString() -> string!
+override Spark.Geometry.CylindricalSurface.Area.get -> double
+override Spark.Geometry.CylindricalSurface.DomainU.get -> Spark.Geometry.Interval
+override Spark.Geometry.CylindricalSurface.DomainV.get -> Spark.Geometry.Interval
+override Spark.Geometry.CylindricalSurface.IsClosedU.get -> bool
+override Spark.Geometry.CylindricalSurface.IsClosedV.get -> bool
+override Spark.Geometry.CylindricalSurface.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Surface!
+override Spark.Geometry.EllipseCurve.Domain.get -> Spark.Geometry.Interval
+override Spark.Geometry.EllipseCurve.IsClosed.get -> bool
+override Spark.Geometry.EllipseCurve.Reversed() -> Spark.Geometry.Curve!
+override Spark.Geometry.EllipseCurve.ToString() -> string!
+override Spark.Geometry.EllipseCurve.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
+override Spark.Geometry.EllipseCurve.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
+override Spark.Geometry.ExtrusionSurface.Area.get -> double
+override Spark.Geometry.ExtrusionSurface.DomainU.get -> Spark.Geometry.Interval
+override Spark.Geometry.ExtrusionSurface.DomainV.get -> Spark.Geometry.Interval
+override Spark.Geometry.ExtrusionSurface.IsClosedU.get -> bool
+override Spark.Geometry.ExtrusionSurface.IsClosedV.get -> bool
+override Spark.Geometry.ExtrusionSurface.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Surface!
+override Spark.Geometry.Interval.Equals(object? obj) -> bool
+override Spark.Geometry.Interval.GetHashCode() -> int
+override Spark.Geometry.Interval.ToString() -> string!
+override Spark.Geometry.KnotVector.Equals(object? obj) -> bool
+override Spark.Geometry.KnotVector.GetHashCode() -> int
+override Spark.Geometry.KnotVector.ToString() -> string!
+override Spark.Geometry.Line.ClosestParameter(in Spark.Geometry.Point3d point) -> double
+override Spark.Geometry.Line.Domain.get -> Spark.Geometry.Interval
+override Spark.Geometry.Line.IsClosed.get -> bool
+override Spark.Geometry.Line.LengthAt(double parameter) -> double
+override Spark.Geometry.Line.ParameterAtLength(double distance) -> double
+override Spark.Geometry.Line.Reversed() -> Spark.Geometry.Curve!
+override Spark.Geometry.Line.Tessellate(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Point3d[]!
+override Spark.Geometry.Line.ToString() -> string!
+override Spark.Geometry.Line.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
+override Spark.Geometry.Line.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
+override Spark.Geometry.Mesh.ToString() -> string!
+override Spark.Geometry.MeshFace.Equals(object? obj) -> bool
+override Spark.Geometry.MeshFace.GetHashCode() -> int
+override Spark.Geometry.MeshFace.ToString() -> string!
+override Spark.Geometry.NurbsCurve.Domain.get -> Spark.Geometry.Interval
+override Spark.Geometry.NurbsCurve.IsClosed.get -> bool
+override Spark.Geometry.NurbsCurve.Reversed() -> Spark.Geometry.Curve!
+override Spark.Geometry.NurbsCurve.ToString() -> string!
+override Spark.Geometry.NurbsCurve.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
+override Spark.Geometry.NurbsCurve.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
+override Spark.Geometry.NurbsSurface.BoundingBox.get -> Spark.Geometry.BoundingBox
+override Spark.Geometry.NurbsSurface.DomainU.get -> Spark.Geometry.Interval
+override Spark.Geometry.NurbsSurface.DomainV.get -> Spark.Geometry.Interval
+override Spark.Geometry.NurbsSurface.IsClosedU.get -> bool
+override Spark.Geometry.NurbsSurface.IsClosedV.get -> bool
+override Spark.Geometry.NurbsSurface.ToString() -> string!
+override Spark.Geometry.NurbsSurface.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Surface!
+override Spark.Geometry.Plane.Equals(object? obj) -> bool
+override Spark.Geometry.Plane.GetHashCode() -> int
+override Spark.Geometry.Plane.ToString() -> string!
+override Spark.Geometry.PlaneSurface.Area.get -> double
+override Spark.Geometry.PlaneSurface.BoundingBox.get -> Spark.Geometry.BoundingBox
+override Spark.Geometry.PlaneSurface.DomainU.get -> Spark.Geometry.Interval
+override Spark.Geometry.PlaneSurface.DomainV.get -> Spark.Geometry.Interval
+override Spark.Geometry.PlaneSurface.IsClosedU.get -> bool
+override Spark.Geometry.PlaneSurface.IsClosedV.get -> bool
+override Spark.Geometry.PlaneSurface.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Surface!
+override Spark.Geometry.Point2d.Equals(object? obj) -> bool
+override Spark.Geometry.Point2d.GetHashCode() -> int
+override Spark.Geometry.Point2d.ToString() -> string!
+override Spark.Geometry.Point3d.Equals(object? obj) -> bool
+override Spark.Geometry.Point3d.GetHashCode() -> int
+override Spark.Geometry.Point3d.ToString() -> string!
+override Spark.Geometry.PolyCurve.Domain.get -> Spark.Geometry.Interval
+override Spark.Geometry.PolyCurve.IsClosed.get -> bool
+override Spark.Geometry.PolyCurve.LengthAt(double parameter) -> double
+override Spark.Geometry.PolyCurve.ParameterAtLength(double distance) -> double
+override Spark.Geometry.PolyCurve.Reversed() -> Spark.Geometry.Curve!
+override Spark.Geometry.PolyCurve.Tessellate(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Point3d[]!
+override Spark.Geometry.PolyCurve.ToString() -> string!
+override Spark.Geometry.PolyCurve.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
+override Spark.Geometry.PolyCurve.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
+override Spark.Geometry.PolyLine.Domain.get -> Spark.Geometry.Interval
+override Spark.Geometry.PolyLine.IsClosed.get -> bool
+override Spark.Geometry.PolyLine.LengthAt(double parameter) -> double
+override Spark.Geometry.PolyLine.ParameterAtLength(double distance) -> double
+override Spark.Geometry.PolyLine.Reversed() -> Spark.Geometry.Curve!
+override Spark.Geometry.PolyLine.Tessellate(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Point3d[]!
+override Spark.Geometry.PolyLine.ToString() -> string!
+override Spark.Geometry.PolyLine.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
+override Spark.Geometry.PolyLine.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
+override Spark.Geometry.Quaternion.Equals(object? obj) -> bool
+override Spark.Geometry.Quaternion.GetHashCode() -> int
+override Spark.Geometry.Quaternion.ToString() -> string!
+override Spark.Geometry.Ray.Equals(object? obj) -> bool
+override Spark.Geometry.Ray.GetHashCode() -> int
+override Spark.Geometry.Ray.ToString() -> string!
+override Spark.Geometry.RevolutionSurface.DomainU.get -> Spark.Geometry.Interval
+override Spark.Geometry.RevolutionSurface.DomainV.get -> Spark.Geometry.Interval
+override Spark.Geometry.RevolutionSurface.IsClosedU.get -> bool
+override Spark.Geometry.RevolutionSurface.IsClosedV.get -> bool
+override Spark.Geometry.RevolutionSurface.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Surface!
+override Spark.Geometry.RuledSurface.DomainU.get -> Spark.Geometry.Interval
+override Spark.Geometry.RuledSurface.DomainV.get -> Spark.Geometry.Interval
+override Spark.Geometry.RuledSurface.IsClosedU.get -> bool
+override Spark.Geometry.RuledSurface.IsClosedV.get -> bool
+override Spark.Geometry.RuledSurface.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Surface!
+override Spark.Geometry.SphericalSurface.Area.get -> double
+override Spark.Geometry.SphericalSurface.DomainU.get -> Spark.Geometry.Interval
+override Spark.Geometry.SphericalSurface.DomainV.get -> Spark.Geometry.Interval
+override Spark.Geometry.SphericalSurface.IsClosedU.get -> bool
+override Spark.Geometry.SphericalSurface.IsClosedV.get -> bool
+override Spark.Geometry.SphericalSurface.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Surface!
+override Spark.Geometry.Tolerance.Equals(object? obj) -> bool
+override Spark.Geometry.Tolerance.GetHashCode() -> int
+override Spark.Geometry.Tolerance.ToString() -> string!
+override Spark.Geometry.ToroidalSurface.Area.get -> double
+override Spark.Geometry.ToroidalSurface.DomainU.get -> Spark.Geometry.Interval
+override Spark.Geometry.ToroidalSurface.DomainV.get -> Spark.Geometry.Interval
+override Spark.Geometry.ToroidalSurface.IsClosedU.get -> bool
+override Spark.Geometry.ToroidalSurface.IsClosedV.get -> bool
+override Spark.Geometry.ToroidalSurface.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Surface!
+override Spark.Geometry.Transform.Equals(object? obj) -> bool
+override Spark.Geometry.Transform.GetHashCode() -> int
+override Spark.Geometry.Transform.ToString() -> string!
+override Spark.Geometry.UV.Equals(object? obj) -> bool
+override Spark.Geometry.UV.GetHashCode() -> int
+override Spark.Geometry.UV.ToString() -> string!
+override Spark.Geometry.Vector2d.Equals(object? obj) -> bool
+override Spark.Geometry.Vector2d.GetHashCode() -> int
+override Spark.Geometry.Vector2d.ToString() -> string!
+override Spark.Geometry.Vector3d.Equals(object? obj) -> bool
+override Spark.Geometry.Vector3d.GetHashCode() -> int
+override Spark.Geometry.Vector3d.ToString() -> string!
+static Spark.Geometry.Angle.Add(Spark.Geometry.Angle left, Spark.Geometry.Angle right) -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.Divide(Spark.Geometry.Angle angle, double divisor) -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.FromDegrees(double degrees) -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.FromRadians(double radians) -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.FullTurn.get -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.HalfTurn.get -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.Multiply(Spark.Geometry.Angle angle, double factor) -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.Negate(Spark.Geometry.Angle value) -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.QuarterTurn.get -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.Subtract(Spark.Geometry.Angle left, Spark.Geometry.Angle right) -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.Zero.get -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.operator !=(Spark.Geometry.Angle left, Spark.Geometry.Angle right) -> bool
+static Spark.Geometry.Angle.operator *(Spark.Geometry.Angle angle, double factor) -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.operator *(double factor, Spark.Geometry.Angle angle) -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.operator +(Spark.Geometry.Angle left, Spark.Geometry.Angle right) -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.operator -(Spark.Geometry.Angle left, Spark.Geometry.Angle right) -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.operator -(Spark.Geometry.Angle value) -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.operator /(Spark.Geometry.Angle angle, double divisor) -> Spark.Geometry.Angle
+static Spark.Geometry.Angle.operator <(Spark.Geometry.Angle left, Spark.Geometry.Angle right) -> bool
+static Spark.Geometry.Angle.operator <=(Spark.Geometry.Angle left, Spark.Geometry.Angle right) -> bool
+static Spark.Geometry.Angle.operator ==(Spark.Geometry.Angle left, Spark.Geometry.Angle right) -> bool
+static Spark.Geometry.Angle.operator >(Spark.Geometry.Angle left, Spark.Geometry.Angle right) -> bool
+static Spark.Geometry.Angle.operator >=(Spark.Geometry.Angle left, Spark.Geometry.Angle right) -> bool
+static Spark.Geometry.Arc.ByCentreStartPointSweepAngle(in Spark.Geometry.Point3d centre, in Spark.Geometry.Point3d startPoint, in Spark.Geometry.Vector3d normal, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Arc!
+static Spark.Geometry.Arc.ByPlaneRadiusAngles(in Spark.Geometry.Plane plane, double radius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Arc!
+static Spark.Geometry.Arc.ByThreePoints(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> Spark.Geometry.Arc!
+static Spark.Geometry.BoundingBox.Empty.get -> Spark.Geometry.BoundingBox
+static Spark.Geometry.BoundingBox.FromPoints(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> Spark.Geometry.BoundingBox
+static Spark.Geometry.BoundingBox.FromPoints(System.ReadOnlySpan<Spark.Geometry.Point3d> points) -> Spark.Geometry.BoundingBox
+static Spark.Geometry.BoundingBox.Union(in Spark.Geometry.BoundingBox a, in Spark.Geometry.BoundingBox b) -> Spark.Geometry.BoundingBox
+static Spark.Geometry.BoundingBox.operator !=(in Spark.Geometry.BoundingBox left, in Spark.Geometry.BoundingBox right) -> bool
+static Spark.Geometry.BoundingBox.operator ==(in Spark.Geometry.BoundingBox left, in Spark.Geometry.BoundingBox right) -> bool
+static Spark.Geometry.BoundingVolumeHierarchy.Build(System.Collections.Generic.IReadOnlyList<Spark.Geometry.BoundingBox>! boxes) -> Spark.Geometry.BoundingVolumeHierarchy!
+static Spark.Geometry.BoundingVolumeHierarchy.Build(System.ReadOnlySpan<Spark.Geometry.BoundingBox> boxes) -> Spark.Geometry.BoundingVolumeHierarchy!
+static Spark.Geometry.BrepData.operator !=(Spark.Geometry.BrepData left, Spark.Geometry.BrepData right) -> bool
+static Spark.Geometry.BrepData.operator ==(Spark.Geometry.BrepData left, Spark.Geometry.BrepData right) -> bool
+static Spark.Geometry.BrepEdge.operator !=(Spark.Geometry.BrepEdge left, Spark.Geometry.BrepEdge right) -> bool
+static Spark.Geometry.BrepEdge.operator ==(Spark.Geometry.BrepEdge left, Spark.Geometry.BrepEdge right) -> bool
+static Spark.Geometry.BrepFace.operator !=(Spark.Geometry.BrepFace left, Spark.Geometry.BrepFace right) -> bool
+static Spark.Geometry.BrepFace.operator ==(Spark.Geometry.BrepFace left, Spark.Geometry.BrepFace right) -> bool
+static Spark.Geometry.BrepLoop.operator !=(Spark.Geometry.BrepLoop left, Spark.Geometry.BrepLoop right) -> bool
+static Spark.Geometry.BrepLoop.operator ==(Spark.Geometry.BrepLoop left, Spark.Geometry.BrepLoop right) -> bool
+static Spark.Geometry.BrepPrimitives.Box(in Spark.Geometry.Plane plane, double length = 1, double width = 1, double height = 1) -> Spark.Geometry.Brep!
+static Spark.Geometry.BrepPrimitives.Cylinder(in Spark.Geometry.Plane plane, double radius = 1, double height = 1) -> Spark.Geometry.Brep!
+static Spark.Geometry.BrepShell.operator !=(Spark.Geometry.BrepShell left, Spark.Geometry.BrepShell right) -> bool
+static Spark.Geometry.BrepShell.operator ==(Spark.Geometry.BrepShell left, Spark.Geometry.BrepShell right) -> bool
+static Spark.Geometry.BrepTrim.operator !=(Spark.Geometry.BrepTrim left, Spark.Geometry.BrepTrim right) -> bool
+static Spark.Geometry.BrepTrim.operator ==(Spark.Geometry.BrepTrim left, Spark.Geometry.BrepTrim right) -> bool
+static Spark.Geometry.BrepVertex.operator !=(Spark.Geometry.BrepVertex left, Spark.Geometry.BrepVertex right) -> bool
+static Spark.Geometry.BrepVertex.operator ==(Spark.Geometry.BrepVertex left, Spark.Geometry.BrepVertex right) -> bool
+static Spark.Geometry.Circle.ByCentreNormalRadius(in Spark.Geometry.Point3d centre, in Spark.Geometry.Vector3d normal, double radius) -> Spark.Geometry.Circle!
+static Spark.Geometry.Circle.ByCentreRadius(in Spark.Geometry.Point3d centre, double radius) -> Spark.Geometry.Circle!
+static Spark.Geometry.Circle.ByPlaneRadius(in Spark.Geometry.Plane plane, double radius) -> Spark.Geometry.Circle!
+static Spark.Geometry.Circle.ByThreePoints(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> Spark.Geometry.Circle!
+static Spark.Geometry.CoordinateSystem.ByOrigin(in Spark.Geometry.Point3d origin) -> Spark.Geometry.CoordinateSystem
+static Spark.Geometry.CoordinateSystem.ByOriginXAxisYAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d xAxis, in Spark.Geometry.Vector3d yAxis) -> Spark.Geometry.CoordinateSystem
+static Spark.Geometry.CoordinateSystem.ByOriginZAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d zAxis) -> Spark.Geometry.CoordinateSystem
+static Spark.Geometry.CoordinateSystem.ByPlane(in Spark.Geometry.Plane plane) -> Spark.Geometry.CoordinateSystem
+static Spark.Geometry.CoordinateSystem.Identity.get -> Spark.Geometry.CoordinateSystem
+static Spark.Geometry.CoordinateSystem.operator !=(in Spark.Geometry.CoordinateSystem left, in Spark.Geometry.CoordinateSystem right) -> bool
+static Spark.Geometry.CoordinateSystem.operator ==(in Spark.Geometry.CoordinateSystem left, in Spark.Geometry.CoordinateSystem right) -> bool
+static Spark.Geometry.CurveOffset.FilletLines(Spark.Geometry.Line! first, Spark.Geometry.Line! second, double radius) -> (Spark.Geometry.Arc! Fillet, Spark.Geometry.Line! First, Spark.Geometry.Line! Second)
+static Spark.Geometry.CurveOffset.Offset(Spark.Geometry.Curve! curve, double distance, in Spark.Geometry.Vector3d normal, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> (Spark.Geometry.Curve! Curve, bool Exact)
+static Spark.Geometry.EllipseCurve.ByPlaneRadii(in Spark.Geometry.Plane plane, double xRadius, double yRadius) -> Spark.Geometry.EllipseCurve!
+static Spark.Geometry.EllipseCurve.ByPlaneRadiiAngles(in Spark.Geometry.Plane plane, double xRadius, double yRadius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.EllipseCurve!
+static Spark.Geometry.GeometryJson.Deserialize(string! json) -> object!
+static Spark.Geometry.GeometryJson.Deserialize<T>(string! json) -> T
+static Spark.Geometry.GeometryJson.Serialize(object! value, bool indented = false) -> string!
+static Spark.Geometry.Interval.Unit.get -> Spark.Geometry.Interval
+static Spark.Geometry.Interval.operator !=(in Spark.Geometry.Interval left, in Spark.Geometry.Interval right) -> bool
+static Spark.Geometry.Interval.operator ==(in Spark.Geometry.Interval left, in Spark.Geometry.Interval right) -> bool
+static Spark.Geometry.KnotVector.CreateClamped(int degree, int controlPoints) -> Spark.Geometry.KnotVector!
+static Spark.Geometry.Line.ByStartPointDirectionLength(in Spark.Geometry.Point3d start, in Spark.Geometry.Vector3d direction, double length) -> Spark.Geometry.Line!
+static Spark.Geometry.Line.ByStartPointEndPoint(in Spark.Geometry.Point3d start, in Spark.Geometry.Point3d end) -> Spark.Geometry.Line!
+static Spark.Geometry.MeshFace.operator !=(Spark.Geometry.MeshFace left, Spark.Geometry.MeshFace right) -> bool
+static Spark.Geometry.MeshFace.operator ==(Spark.Geometry.MeshFace left, Spark.Geometry.MeshFace right) -> bool
+static Spark.Geometry.NurbsCurve.ApproximatePoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, int controlPoints, int degree = 3) -> Spark.Geometry.NurbsCurve!
+static Spark.Geometry.NurbsCurve.ByPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.NurbsCurve!
+static Spark.Geometry.NurbsCurve.FitPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance), int degree = 3) -> (Spark.Geometry.NurbsCurve! Curve, double Deviation, bool Fits)
+static Spark.Geometry.NurbsCurve.InterpolatePoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, int degree = 3) -> Spark.Geometry.NurbsCurve!
+static Spark.Geometry.NurbsSurface.ByCorners(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! corners) -> Spark.Geometry.NurbsSurface!
+static Spark.Geometry.Plane.ByOriginNormal(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal) -> Spark.Geometry.Plane
+static Spark.Geometry.Plane.ByOriginNormalXAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal, in Spark.Geometry.Vector3d xAxis) -> Spark.Geometry.Plane
+static Spark.Geometry.Plane.ByOriginXAxisYAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d xAxis, in Spark.Geometry.Vector3d yAxis) -> Spark.Geometry.Plane
+static Spark.Geometry.Plane.ByThreePoints(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> Spark.Geometry.Plane
+static Spark.Geometry.Plane.WorldXY.get -> Spark.Geometry.Plane
+static Spark.Geometry.Plane.WorldXZ.get -> Spark.Geometry.Plane
+static Spark.Geometry.Plane.WorldYZ.get -> Spark.Geometry.Plane
+static Spark.Geometry.Plane.operator !=(in Spark.Geometry.Plane left, in Spark.Geometry.Plane right) -> bool
+static Spark.Geometry.Plane.operator ==(in Spark.Geometry.Plane left, in Spark.Geometry.Plane right) -> bool
+static Spark.Geometry.PlaneSurface.ByPlaneCorners(in Spark.Geometry.Plane plane, in Spark.Geometry.Point2d corner, in Spark.Geometry.Point2d oppositeCorner) -> Spark.Geometry.PlaneSurface!
+static Spark.Geometry.PlaneSurface.ByPlaneSize(in Spark.Geometry.Plane plane, double width, double height) -> Spark.Geometry.PlaneSurface!
+static Spark.Geometry.Point2d.Add(in Spark.Geometry.Point2d point, in Spark.Geometry.Vector2d offset) -> Spark.Geometry.Point2d
+static Spark.Geometry.Point2d.Lerp(in Spark.Geometry.Point2d start, in Spark.Geometry.Point2d end, double t) -> Spark.Geometry.Point2d
+static Spark.Geometry.Point2d.Origin.get -> Spark.Geometry.Point2d
+static Spark.Geometry.Point2d.Subtract(in Spark.Geometry.Point2d left, in Spark.Geometry.Point2d right) -> Spark.Geometry.Vector2d
+static Spark.Geometry.Point2d.Unset.get -> Spark.Geometry.Point2d
+static Spark.Geometry.Point2d.explicit operator Spark.Geometry.Point2d(in Spark.Geometry.Vector2d vector) -> Spark.Geometry.Point2d
+static Spark.Geometry.Point2d.explicit operator Spark.Geometry.Vector2d(in Spark.Geometry.Point2d point) -> Spark.Geometry.Vector2d
+static Spark.Geometry.Point2d.operator !=(in Spark.Geometry.Point2d left, in Spark.Geometry.Point2d right) -> bool
+static Spark.Geometry.Point2d.operator +(in Spark.Geometry.Point2d point, in Spark.Geometry.Vector2d offset) -> Spark.Geometry.Point2d
+static Spark.Geometry.Point2d.operator -(in Spark.Geometry.Point2d left, in Spark.Geometry.Point2d right) -> Spark.Geometry.Vector2d
+static Spark.Geometry.Point2d.operator -(in Spark.Geometry.Point2d point, in Spark.Geometry.Vector2d offset) -> Spark.Geometry.Point2d
+static Spark.Geometry.Point2d.operator ==(in Spark.Geometry.Point2d left, in Spark.Geometry.Point2d right) -> bool
+static Spark.Geometry.Point3d.Add(in Spark.Geometry.Point3d point, in Spark.Geometry.Vector3d offset) -> Spark.Geometry.Point3d
+static Spark.Geometry.Point3d.Lerp(in Spark.Geometry.Point3d start, in Spark.Geometry.Point3d end, double t) -> Spark.Geometry.Point3d
+static Spark.Geometry.Point3d.Origin.get -> Spark.Geometry.Point3d
+static Spark.Geometry.Point3d.Subtract(in Spark.Geometry.Point3d left, in Spark.Geometry.Point3d right) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Point3d.Unset.get -> Spark.Geometry.Point3d
+static Spark.Geometry.Point3d.explicit operator Spark.Geometry.Point3d(in Spark.Geometry.Vector3d vector) -> Spark.Geometry.Point3d
+static Spark.Geometry.Point3d.explicit operator Spark.Geometry.Vector3d(in Spark.Geometry.Point3d point) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Point3d.operator !=(in Spark.Geometry.Point3d left, in Spark.Geometry.Point3d right) -> bool
+static Spark.Geometry.Point3d.operator +(in Spark.Geometry.Point3d point, in Spark.Geometry.Vector3d offset) -> Spark.Geometry.Point3d
+static Spark.Geometry.Point3d.operator -(in Spark.Geometry.Point3d left, in Spark.Geometry.Point3d right) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Point3d.operator -(in Spark.Geometry.Point3d point, in Spark.Geometry.Vector3d offset) -> Spark.Geometry.Point3d
+static Spark.Geometry.Point3d.operator ==(in Spark.Geometry.Point3d left, in Spark.Geometry.Point3d right) -> bool
+static Spark.Geometry.PolyCurve.ByJoinedCurves(System.Collections.Generic.IEnumerable<Spark.Geometry.Curve!>! curves, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.PolyCurve!
+static Spark.Geometry.PolyLine.ByClosedPoints(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> Spark.Geometry.PolyLine!
+static Spark.Geometry.PolyLine.ByPoints(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> Spark.Geometry.PolyLine!
+static Spark.Geometry.PolyLine.ByRectangle(in Spark.Geometry.Plane plane, double width, double length) -> Spark.Geometry.PolyLine!
+static Spark.Geometry.PolyLine.ByRegularPolygon(in Spark.Geometry.Plane plane, double radius, int sides) -> Spark.Geometry.PolyLine!
+static Spark.Geometry.Quaternion.ByAxisAngle(in Spark.Geometry.Vector3d axis, Spark.Geometry.Angle angle) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.ByRotationBetween(in Spark.Geometry.Vector3d from, in Spark.Geometry.Vector3d to) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.Identity.get -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.Multiply(in Spark.Geometry.Quaternion a, in Spark.Geometry.Quaternion b) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.Slerp(in Spark.Geometry.Quaternion from, in Spark.Geometry.Quaternion to, double parameter) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.operator !=(in Spark.Geometry.Quaternion left, in Spark.Geometry.Quaternion right) -> bool
+static Spark.Geometry.Quaternion.operator *(in Spark.Geometry.Quaternion a, in Spark.Geometry.Quaternion b) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.operator ==(in Spark.Geometry.Quaternion left, in Spark.Geometry.Quaternion right) -> bool
+static Spark.Geometry.Ray.ByTwoPoints(in Spark.Geometry.Point3d from, in Spark.Geometry.Point3d towards) -> Spark.Geometry.Ray
+static Spark.Geometry.Ray.operator !=(in Spark.Geometry.Ray left, in Spark.Geometry.Ray right) -> bool
+static Spark.Geometry.Ray.operator ==(in Spark.Geometry.Ray left, in Spark.Geometry.Ray right) -> bool
+static Spark.Geometry.SurfaceConversion.ToNurbsSurface(this Spark.Geometry.ConicalSurface! surface) -> Spark.Geometry.NurbsSurface!
+static Spark.Geometry.SurfaceConversion.ToNurbsSurface(this Spark.Geometry.CylindricalSurface! surface) -> Spark.Geometry.NurbsSurface!
+static Spark.Geometry.SurfaceConversion.ToNurbsSurface(this Spark.Geometry.PlaneSurface! surface) -> Spark.Geometry.NurbsSurface!
+static Spark.Geometry.SurfaceConversion.ToNurbsSurface(this Spark.Geometry.SphericalSurface! surface) -> Spark.Geometry.NurbsSurface!
+static Spark.Geometry.SurfaceConversion.ToNurbsSurface(this Spark.Geometry.ToroidalSurface! surface) -> Spark.Geometry.NurbsSurface!
+static Spark.Geometry.Tessellation.Tessellate(Spark.Geometry.Surface! surface, Spark.Geometry.ITessellationSink! sink, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> void
+static Spark.Geometry.Tessellation.ToMesh(this Spark.Geometry.Surface! surface, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Mesh!
+static Spark.Geometry.Tolerance.Default.get -> Spark.Geometry.Tolerance
+static Spark.Geometry.Tolerance.ForScale(double characteristicLength) -> Spark.Geometry.Tolerance
+static Spark.Geometry.Tolerance.operator !=(Spark.Geometry.Tolerance left, Spark.Geometry.Tolerance right) -> bool
+static Spark.Geometry.Tolerance.operator ==(Spark.Geometry.Tolerance left, Spark.Geometry.Tolerance right) -> bool
+static Spark.Geometry.Transform.ChangeBasis(in Spark.Geometry.Plane plane) -> Spark.Geometry.Transform
+static Spark.Geometry.Transform.Identity.get -> Spark.Geometry.Transform
+static Spark.Geometry.Transform.Mirror(in Spark.Geometry.Plane plane) -> Spark.Geometry.Transform
+static Spark.Geometry.Transform.Multiply(in Spark.Geometry.Transform left, in Spark.Geometry.Transform right) -> Spark.Geometry.Transform
+static Spark.Geometry.Transform.PlaneToPlane(in Spark.Geometry.Plane from, in Spark.Geometry.Plane to) -> Spark.Geometry.Transform
+static Spark.Geometry.Transform.Rotation(in Spark.Geometry.Vector3d axis, Spark.Geometry.Angle angle) -> Spark.Geometry.Transform
+static Spark.Geometry.Transform.Rotation(in Spark.Geometry.Vector3d axis, Spark.Geometry.Angle angle, in Spark.Geometry.Point3d centre) -> Spark.Geometry.Transform
+static Spark.Geometry.Transform.Scale(double factor) -> Spark.Geometry.Transform
+static Spark.Geometry.Transform.Scale(double x, double y, double z) -> Spark.Geometry.Transform
+static Spark.Geometry.Transform.Scale(in Spark.Geometry.Point3d centre, double factor) -> Spark.Geometry.Transform
+static Spark.Geometry.Transform.Scale(in Spark.Geometry.Point3d centre, double x, double y, double z) -> Spark.Geometry.Transform
+static Spark.Geometry.Transform.Translation(double x, double y, double z) -> Spark.Geometry.Transform
+static Spark.Geometry.Transform.Translation(in Spark.Geometry.Vector3d offset) -> Spark.Geometry.Transform
+static Spark.Geometry.Transform.operator !=(in Spark.Geometry.Transform left, in Spark.Geometry.Transform right) -> bool
+static Spark.Geometry.Transform.operator *(in Spark.Geometry.Transform left, in Spark.Geometry.Transform right) -> Spark.Geometry.Transform
+static Spark.Geometry.Transform.operator *(in Spark.Geometry.Transform transform, in Spark.Geometry.BoundingBox box) -> Spark.Geometry.BoundingBox
+static Spark.Geometry.Transform.operator *(in Spark.Geometry.Transform transform, in Spark.Geometry.Point3d point) -> Spark.Geometry.Point3d
+static Spark.Geometry.Transform.operator *(in Spark.Geometry.Transform transform, in Spark.Geometry.Vector3d vector) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Transform.operator ==(in Spark.Geometry.Transform left, in Spark.Geometry.Transform right) -> bool
+static Spark.Geometry.UV.Add(in Spark.Geometry.UV left, in Spark.Geometry.UV right) -> Spark.Geometry.UV
+static Spark.Geometry.UV.Multiply(in Spark.Geometry.UV value, double factor) -> Spark.Geometry.UV
+static Spark.Geometry.UV.Subtract(in Spark.Geometry.UV left, in Spark.Geometry.UV right) -> Spark.Geometry.UV
+static Spark.Geometry.UV.Unset.get -> Spark.Geometry.UV
+static Spark.Geometry.UV.Zero.get -> Spark.Geometry.UV
+static Spark.Geometry.UV.operator !=(in Spark.Geometry.UV left, in Spark.Geometry.UV right) -> bool
+static Spark.Geometry.UV.operator *(double factor, in Spark.Geometry.UV value) -> Spark.Geometry.UV
+static Spark.Geometry.UV.operator *(in Spark.Geometry.UV value, double factor) -> Spark.Geometry.UV
+static Spark.Geometry.UV.operator +(in Spark.Geometry.UV left, in Spark.Geometry.UV right) -> Spark.Geometry.UV
+static Spark.Geometry.UV.operator -(in Spark.Geometry.UV left, in Spark.Geometry.UV right) -> Spark.Geometry.UV
+static Spark.Geometry.UV.operator ==(in Spark.Geometry.UV left, in Spark.Geometry.UV right) -> bool
+static Spark.Geometry.Vector2d.Add(in Spark.Geometry.Vector2d left, in Spark.Geometry.Vector2d right) -> Spark.Geometry.Vector2d
+static Spark.Geometry.Vector2d.Cross(in Spark.Geometry.Vector2d a, in Spark.Geometry.Vector2d b) -> double
+static Spark.Geometry.Vector2d.Divide(in Spark.Geometry.Vector2d vector, double divisor) -> Spark.Geometry.Vector2d
+static Spark.Geometry.Vector2d.Dot(in Spark.Geometry.Vector2d a, in Spark.Geometry.Vector2d b) -> double
+static Spark.Geometry.Vector2d.Multiply(in Spark.Geometry.Vector2d vector, double factor) -> Spark.Geometry.Vector2d
+static Spark.Geometry.Vector2d.Negate(in Spark.Geometry.Vector2d value) -> Spark.Geometry.Vector2d
+static Spark.Geometry.Vector2d.Subtract(in Spark.Geometry.Vector2d left, in Spark.Geometry.Vector2d right) -> Spark.Geometry.Vector2d
+static Spark.Geometry.Vector2d.XAxis.get -> Spark.Geometry.Vector2d
+static Spark.Geometry.Vector2d.YAxis.get -> Spark.Geometry.Vector2d
+static Spark.Geometry.Vector2d.Zero.get -> Spark.Geometry.Vector2d
+static Spark.Geometry.Vector2d.operator !=(in Spark.Geometry.Vector2d left, in Spark.Geometry.Vector2d right) -> bool
+static Spark.Geometry.Vector2d.operator *(double factor, in Spark.Geometry.Vector2d vector) -> Spark.Geometry.Vector2d
+static Spark.Geometry.Vector2d.operator *(in Spark.Geometry.Vector2d vector, double factor) -> Spark.Geometry.Vector2d
+static Spark.Geometry.Vector2d.operator +(in Spark.Geometry.Vector2d left, in Spark.Geometry.Vector2d right) -> Spark.Geometry.Vector2d
+static Spark.Geometry.Vector2d.operator -(in Spark.Geometry.Vector2d left, in Spark.Geometry.Vector2d right) -> Spark.Geometry.Vector2d
+static Spark.Geometry.Vector2d.operator -(in Spark.Geometry.Vector2d value) -> Spark.Geometry.Vector2d
+static Spark.Geometry.Vector2d.operator /(in Spark.Geometry.Vector2d vector, double divisor) -> Spark.Geometry.Vector2d
+static Spark.Geometry.Vector2d.operator ==(in Spark.Geometry.Vector2d left, in Spark.Geometry.Vector2d right) -> bool
+static Spark.Geometry.Vector3d.Add(in Spark.Geometry.Vector3d left, in Spark.Geometry.Vector3d right) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.Cross(in Spark.Geometry.Vector3d a, in Spark.Geometry.Vector3d b) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.Divide(in Spark.Geometry.Vector3d vector, double divisor) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.Dot(in Spark.Geometry.Vector3d a, in Spark.Geometry.Vector3d b) -> double
+static Spark.Geometry.Vector3d.Multiply(in Spark.Geometry.Vector3d vector, double factor) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.Negate(in Spark.Geometry.Vector3d value) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.Subtract(in Spark.Geometry.Vector3d left, in Spark.Geometry.Vector3d right) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.TripleProduct(in Spark.Geometry.Vector3d a, in Spark.Geometry.Vector3d b, in Spark.Geometry.Vector3d c) -> double
+static Spark.Geometry.Vector3d.XAxis.get -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.YAxis.get -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.ZAxis.get -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.Zero.get -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.operator !=(in Spark.Geometry.Vector3d left, in Spark.Geometry.Vector3d right) -> bool
+static Spark.Geometry.Vector3d.operator *(double factor, in Spark.Geometry.Vector3d vector) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.operator *(in Spark.Geometry.Vector3d vector, double factor) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.operator +(in Spark.Geometry.Vector3d left, in Spark.Geometry.Vector3d right) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.operator -(in Spark.Geometry.Vector3d left, in Spark.Geometry.Vector3d right) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.operator -(in Spark.Geometry.Vector3d value) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.operator /(in Spark.Geometry.Vector3d vector, double divisor) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Vector3d.operator ==(in Spark.Geometry.Vector3d left, in Spark.Geometry.Vector3d right) -> bool
+virtual Spark.Geometry.Curve.ClosestParameter(in Spark.Geometry.Point3d point) -> double
+virtual Spark.Geometry.Curve.LengthAt(double parameter) -> double
+virtual Spark.Geometry.Curve.ParameterAtLength(double distance) -> double
+virtual Spark.Geometry.Curve.Tessellate(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Point3d[]!
+virtual Spark.Geometry.Surface.Area.get -> double
+virtual Spark.Geometry.Surface.BoundingBox.get -> Spark.Geometry.BoundingBox
+~override Spark.Geometry.BrepData.Equals(object obj) -> bool
+~override Spark.Geometry.BrepData.ToString() -> string
+~override Spark.Geometry.BrepEdge.Equals(object obj) -> bool
+~override Spark.Geometry.BrepEdge.ToString() -> string
+~override Spark.Geometry.BrepFace.Equals(object obj) -> bool
+~override Spark.Geometry.BrepFace.ToString() -> string
+~override Spark.Geometry.BrepLoop.Equals(object obj) -> bool
+~override Spark.Geometry.BrepLoop.ToString() -> string
+~override Spark.Geometry.BrepShell.Equals(object obj) -> bool
+~override Spark.Geometry.BrepTrim.Equals(object obj) -> bool
+~override Spark.Geometry.BrepTrim.ToString() -> string
+~override Spark.Geometry.BrepVertex.Equals(object obj) -> bool
+~override Spark.Geometry.BrepVertex.ToString() -> string
