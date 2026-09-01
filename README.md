@@ -236,7 +236,20 @@ That produces `artifacts/publish/win-x64/` — the application, `spark.exe`, the
 licence texts and the notices — and prints what it weighs. **224.4 MB, of which OpenCascade is 52.0
 MB.** It is deliberately *not* self-contained, single-file or NativeAOT: the LGPL relink obligation
 needs OpenCascade to stay replaceable, and an architecture test stops anybody turning those on by
-accident. It is a folder that runs, not an installer.
+accident. It is a folder that runs.
+
+**Making the installer:**
+
+```powershell
+pwsh scripts/pack-installer.ps1
+```
+
+That compiles `installer/spark.iss` over the staged folder with Inno Setup and writes
+`artifacts/spark-<version>-setup.exe` and its `.sha256`. The installer is **per-user**, into
+`%LOCALAPPDATA%\Programs\Spark` with no administrator prompt, it **removes the previous version
+before installing**, and it fetches the .NET 10 runtime from Microsoft only if the machine does not
+have it. Releases are cut by pushing a `v*` tag; the workflow publishes the installer and the
+portable zip together. **Nothing is signed yet**, so the first run shows a SmartScreen warning.
 
 **Without it, Spark still runs.** The solid operations are greyed out and a graph that reaches one
 gets a sentence saying what is missing — that is a supported configuration, not a broken install

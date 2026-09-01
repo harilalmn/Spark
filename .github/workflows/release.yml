@@ -13,9 +13,20 @@ name: Release
 # the version back out of the built assembly afterwards. Belt and braces, because the belt is a
 # YAML line that a future edit can drop without anything failing until release day.
 #
-# The release is created as a DRAFT. Signing, the installer and the antivirus submissions need an
-# identity to sign with (E13-T17), and a person has to do that before anything is published. A
-# workflow that published automatically would be claiming those steps had happened.
+# The release PUBLISHES. It drafted until 2026-09-02, on the reasoning that signing and the
+# installer needed a person and a workflow that published would be claiming they had happened. The
+# installer is now built here (scripts/pack-installer.ps1), and the client asked for one word -
+# "release" - to produce a downloadable one, so the draft step was a hand-crank in the middle of an
+# automated pipeline.
+#
+# WHAT IS STILL NOT TRUE, AND IS SAID IN THE RELEASE NOTES RATHER THAN HIDDEN: nothing is signed.
+# The installer and the executables carry no Authenticode signature, so the first run shows a
+# SmartScreen warning. That needs an identity to sign with and is the remaining half of E13-T17.
+# Publishing does not claim otherwise; it claims a build exists, which it does.
+#
+# A tag with a hyphen in it - v0.2.0-beta.1 - is published as a PRERELEASE, so "Latest release"
+# on the repository front page and the update check inside the application both keep pointing at
+# the last stable one.
 
 on:
   push:
@@ -30,6 +41,9 @@ permissions:
   contents: write
 
 env:
+  # Named here so the release notes and installer/spark.iss cannot disagree about which runtime a
+  # user is being asked to install.
+  SPARK_DOTNET: '10'
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
@@ -96,6 +110,13 @@ jobs:
         shell: pwsh
         run: ./scripts/pack-portable.ps1
 
+      # Inno Setup is preinstalled on windows-latest, which is most of why it was chosen: no
+      # tooling step, nothing to pin, nothing to go stale. pack-installer.ps1 finds ISCC itself and
+      # fails with a sentence naming what to install if the image ever drops it.
+      - name: Pack the installer
+        shell: pwsh
+        run: ./scripts/pack-installer.ps1
+
       # Same reasoning as the CI job: run it from outside the tree, or the kernel resolver finds
       # the shim in artifacts/native and a zip missing every native DLL passes.
       - name: Run what was packed, from outside the tree
@@ -114,23 +135,63 @@ jobs:
               throw 'the packed build could not export solids, so the native payload did not travel with it.'
           }
 
-      - name: Draft the release
+      # The installer is the thing a user runs, so it is named first in the notes and attached
+      # first. The portable zip stays, and stays documented, because "unzip it anywhere" is the
+      # only option on a locked-down machine where nothing may be installed.
+      # The installer is what a user runs, so it is named first in the notes and attached first.
+      # The portable zip stays, and stays documented, because "unzip it anywhere" is the only
+      # option on a machine where nothing may be installed.
+      - name: Publish the release
         if: github.event_name == 'push'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create '${{ github.ref_name }}' `
-            --draft `
-            --title '${{ github.ref_name }}' `
-            --notes 'Draft. The portable zip is attached with its SHA-256. The installer and the signed build are not produced here: they need an identity to sign with (E13-T17).' `
-            artifacts/spark-portable-win-x64.zip `
-            artifacts/spark-portable-win-x64.zip.sha256
+          $tag = '${{ github.ref_name }}'
+          $installer = Get-ChildItem artifacts/spark-*-setup.exe | Select-Object -First 1
+
+          if (-not $installer) { throw 'No installer was produced, so there is nothing to release.' }
+
+          # The template's leading HTML comment is for whoever edits it, not for whoever reads
+          # the release. Stripped before substitution, or the placeholders inside the comment get
+          # substituted too and it stops making sense to the next editor.
+          $notes = (Get-Content .github/release-notes.md -Raw -Encoding utf8) -replace '(?s)^<!--.*?-->\s*', ''
+          $notes = $notes.Replace('{INSTALLER}', $installer.Name).Replace('{DOTNET}', $env:SPARK_DOTNET)
+
+          Set-Content -LiteralPath notes.md -Value $notes -Encoding utf8
+
+          $arguments = @(
+              'release', 'create', $tag,
+              '--title', $tag,
+              '--notes-file', 'notes.md',
+              '--generate-notes'
+          )
+
+          # A hyphen in a SemVer tag is what makes it a prerelease, and GitHub will not work that
+          # out on its own. Getting this wrong points "Latest release" - and the update check
+          # inside the application - at a beta.
+          if ($tag -match '-') {
+              $arguments += '--prerelease'
+              Write-Host "$tag is a prerelease."
+          }
+
+          $arguments += @(
+              $installer.FullName
+              "$($installer.FullName).sha256"
+              'artifacts/spark-portable-win-x64.zip'
+              'artifacts/spark-portable-win-x64.zip.sha256'
+          )
+
+          & gh @arguments
+
+          if ($LASTEXITCODE -ne 0) { throw "gh release create failed with $LASTEXITCODE." }
 
       - uses: actions/upload-artifact@v4
         with:
           name: spark-release-win-x64
           path: |
+            artifacts/spark-*-setup.exe
+            artifacts/spark-*-setup.exe.sha256
             artifacts/spark-portable-win-x64.zip
             artifacts/spark-portable-win-x64.zip.sha256
           retention-days: 90

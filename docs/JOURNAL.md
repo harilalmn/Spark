@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 12:40 +0530
+**Last updated:** 2026-09-02 14:30 +0530
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing. The tree is clean and the gates are green.** |
-| **Step status** | `CLEAN` |
-| **Last completed step** | **`E10-T5` and `E10-T13`, from a client reading the help window.** Every node page now shows the node as code — the code-block body that calls its member, written by the importer from the `MemberInfo` because a key is a display name and disagrees with the CLR for three of the 136 — and all 136 examples are compiled through a real `ScriptNodeFactory` on every run. The nineteen `SPK####` pages moved from the top of the navigation to under their own index, indented, where the node pages already were; they were mis-filed rather than irrelevant. Seven of them showed a severity of `—` and now do not, enforced by a test that found two more than the survey did. **2222 tests.** |
-| **Working tree** | Clean at the moment this was written. |
-| **Next action** | **The Help pass, where the queue already pointed.** `E10-T3` (the help index), then `E11-T2`'s XML `<example>` half, then E10-T9/T10/T12/T14. **Two smaller things are owed first and both are quick.** (1) The `tessellate` verb is not wired into `.github/workflows/nightly.yml` — Windows should run it and the other legs pass `--no-tessellation`, which is the shape the canvas benchmark already uses. (2) The new nodes from `E4-T13` and `E8-T25` have XML docs but no help topic; `D19` defers topics past 1.0, so this is a queue entry rather than a gap. **And three things the client's list left behind, all deliberate:** a context menu on a node — right-clicking one does nothing; `E3-T13`'s ~200 ms debounce and its auto-suggest-Manual threshold; and the Spark mark itself, a designed placeholder swapped by replacing `src/Spark.UI/Assets/spark-logo.svg` and re-running `scripts/make-logo.py`. **And two things to watch rather than act on:** `UnloadingReleasesTheScriptAssemblies` failed once under full-suite parallelism and passed alone — a second sighting makes it a pattern; and the three multi-output nodes' examples pass `out var` into a dynamically dispatched call, which does compile ([N94](NOTES.md)) and should not be "fixed" without a failing test first. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2222**: Geometry.Tests 763, UI.Tests 672, Engine.Tests 482, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 15, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The help window is photographable and that is how it was checked**: `--help-window <topic> --screenshot PREFIX` writes `PREFIX-help.png`. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
+| **Working on** | **The update check - step 2 of 2 of the client's release request.** A label on the main window when a newer release exists, linking to its page. **Step 1 landed**: Spark installs, and a tag publishes. |
+| **Step status** | `IN PROGRESS` |
+| **Last completed step** | **`E13-T17` and `E12-T11` - Spark installs itself and a tag publishes a release.** Inno Setup, per-user into `%LOCALAPPDATA%\Programs\Spark`, unelevated, removing the previous version first and chaining the .NET runtime only when it is missing. Verified by installing, upgrading and uninstalling on this machine. `release.yml` publishes rather than drafts, prerelease on a hyphenated tag, notes in `.github/release-notes.md` that say the build is unsigned. **2225 tests.** |
+| **Working tree** | Clean at the moment this was written. The step has not started. |
+| **Next action** | **The update check.** `Spark.Host` gets the check - `GET https://api.github.com/repos/harilalmn/Spark/releases/latest`, parsed for `tag_name` and `html_url`, compared against the running assembly's **`InformationalVersion`** and not `Assembly.GetName().Version`, which MinVer truncates to `major.0.0.0` and which is why `spark --version` currently prints `0.0.0.0`. **Fix that at the same time**, in `ProductNotice`, or the CLI keeps lying about a number the shell now depends on. **The comparison is SemVer, not string equality** - `0.10.0` is newer than `0.9.0` and a prerelease is older than the release it precedes. **PRD NFR-13 says no telemetry of any kind in v1 and that has to be answered, not stepped around**: this sends nothing, but it is an outbound request that reveals an IP and a time, so it needs a decision-log entry, `--no-update-check`, a persisted opt-out beside `ScriptTrustStore`, and a sentence in the help. **The failure path is silence** - no dialog, no banner, no log spam; a user offline or behind a proxy must not be told anything. Then an accent pill in the ribbon beside Run, visible only when there is something to say, opening the release page. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -5057,3 +5056,72 @@ then `Diagnostic codes` with the codes indented under it, then `Node reference`.
 dispatched call, which compiles and which I expected not to - checked rather than reasoned about,
 and worth knowing before somebody "fixes" it. Custom nodes and code blocks have no CLR member and
 so get no section, which is right and is why the heading is conditional.
+
+---
+
+### 2026-09-02 - Spark installs itself, and a tag publishes a release (`E13-T17`, `E12-T11`)
+
+**Step 1 of a two-part client request**: stop being a portable app, let a user install it, make
+installing remove the previous version, and make one word - "release" - produce a downloadable
+build. Step 2, the in-application update check, is next and is not in this commit.
+
+**Inno Setup rather than WiX, and the reason is boring and decisive**: it is preinstalled on
+`windows-latest`, so the workflow gains a script step and no tooling step, nothing to pin and
+nothing to go stale. WiX's `MajorUpgrade` is a closer literal match to "uninstall the previous
+version" and would have cost a `dotnet tool install` and a Burn bundle for the runtime.
+
+**Per-user, into `%LOCALAPPDATA%\Programs\Spark`, unelevated.** Spark needs nothing outside its own
+folder, so machine-wide buys the user nothing - and nothing is signed, so an unsigned installer
+that *also* demanded administrator is the single worst shape to hand SmartScreen. That becomes a
+decision worth taking on its merits the day there is a certificate.
+
+**The `AppId` is the one value in the file that must never change**, and it is guarded rather than
+commented. Change it and every future installer stops recognising every current installation: two
+Sparks in Add/Remove Programs, two Start-menu entries, an upgrade that upgrades nothing - and a
+green build, because nothing about it fails on the machine that made the mistake. `InstallerTests`
+holds the GUID **a second time, deliberately**. Sharing one constant between the script and the
+check would let a single careless edit move both and leave the test passing, which is exactly the
+failure being guarded against, and it is the only place in this repository where a second copy is
+the right answer.
+
+**The runtime is chained, and it is not the one the name suggests.** Spark stays
+framework-dependent, so `publish.ps1`'s no-`--self-contained` line and the licence reasoning behind
+it are untouched. The prerequisite is **`Microsoft.NETCore.App`**, not `Microsoft.WindowsDesktop.App`
+- Avalonia is its own rendering stack rather than a WPF wrapper - and that was read off
+`Spark.Desktop.runtimeconfig.json`, which names the framework outright, rather than inferred from
+the words *desktop application*. The desktop runtime would have worked and been a bigger download
+for nothing. Detection probes the shared-framework directory rather than running
+`dotnet --list-runtimes`, because a machine with the runtime and no SDK has no `dotnet` on PATH at
+all - which is precisely the machine where the answer matters.
+
+**Verified by installing it, not by reading it.** Clean install to the right place with an
+Add/Remove entry and a Start-menu shortcut; `spark.exe --version` run from the installed folder; a
+second version installed over the top leaving **one** entry showing the new version; then an
+uninstall leaving no folder, no entry and no shortcut. The machine is back as it was.
+
+**`E12-T11`. The release stopped drafting.** Drafting was right while the installer needed a person
+and a published release would have been claiming otherwise. Now the installer is built in the
+workflow, so the draft was a hand-crank in the middle of an automated pipeline. It publishes, and a
+tag with a hyphen publishes as a **prerelease** - which matters more than it sounds, because step
+2's update check reads *latest release*, and a beta marked stable by accident is visible to every
+user rather than to whoever tagged it.
+
+**What is still not true is said in the release notes rather than hidden**: nothing is signed, so
+the first run shows SmartScreen, and the notes say which buttons to press. The notes live in
+`.github/release-notes.md` because a PowerShell here-string inside a YAML block scalar is two
+quoting rules fighting each other - it broke on the first attempt, which is how the file came to
+exist - and because the sentences a user reads first deserve editing without touching the pipeline.
+
+**And the procedure is written down in AGENTS.md**, because the client says "release" and the
+version number is mine to choose. Before 1.0 a breaking change is a **minor** bump: `0.x` promises
+nothing, and burning major numbers on it would make the first stable release mean nothing.
+
+**Verified**: build clean under `-warnaserror`, the suites green, `dotnet format` clean, the
+installer built and exercised end to end. **The workflow itself is not proven** - it cannot be,
+until a tag is pushed - so its PowerShell was parsed with `[Parser]::ParseInput` and its YAML
+loaded, which catches the two things that would otherwise fail on release day.
+
+**One thing found and not fixed here**: `spark --version` prints `0.0.0.0`, because it reads
+`Assembly.GetName().Version` and MinVer truncates that to `major.0.0.0`. The full SemVer is in
+`InformationalVersion`. It is cosmetic today and it is **load-bearing for step 2**, which has to
+compare the running version against a published tag, so it is fixed there rather than twice.

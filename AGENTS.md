@@ -184,6 +184,47 @@ writes a picture of the shell and a GPU read-back of the viewport, and exits. Th
 passed 873 tests and its first screenshot still showed an empty viewport, because three
 evaluations were racing at startup — a defect no test in the suite was positioned to see.
 
+## Cutting a release
+
+**The client says one word — "release" — and expects a downloadable installer to exist afterwards.
+The version number is the assistant's judgement, not theirs.** That is a standing instruction, so
+the rule has to live here or the next session will invent a different one.
+
+### What "release" means, in order
+
+1. **Read what has happened since the last tag.** `git log --oneline $(git describe --tags
+   --abbrev=0)..HEAD` when there is a tag, the whole log when there is not.
+2. **Choose the number, and say why in one sentence** before pushing anything. The rule is SemVer
+   read against Spark's own public surface — `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io`
+   and `Spark.Nodes.Core`, whose `PublicAPI.Shipped.txt` files are the record of what was promised:
+   - **Major** — a shipped public member changed or vanished, a node key changed, or a `.spark`
+     file written by this version cannot be read by the last one.
+   - **Minor** — new nodes, new public API, new user-visible capability. Nothing broke.
+   - **Patch** — fixes, documentation, internals. A user's graphs and code carry on unchanged.
+   Before 1.0, a breaking change is a **minor** bump: `0.x` promises nothing, and pretending
+   otherwise by burning major numbers makes the first stable release meaningless.
+3. **Run the gates first.** A tag is permanent in a way a commit is not — moving one is worse than
+   the mistake it fixes, because a machine that already fetched it keeps the old commit forever.
+4. **Tag and push:** `git tag -a v0.2.0 -m "..."` then `git push origin v0.2.0`.
+5. **The workflow does the rest** — builds, tests, formats, builds the native shim, stages,
+   checks the artefact's version against the tag, packs the portable zip and the installer, and
+   **publishes**. It does not draft. A tag with a hyphen in it is published as a prerelease.
+6. **Report the release URL**, and say plainly that the build is unsigned.
+
+### The things that are easy to get wrong here
+
+- **`scripts/check-version.ps1` is the gate that matters** and it exists because of one specific
+  failure: a shallow checkout has no tags, MinVer stamps `0.0.0-alpha.0`, and the workflow
+  publishes it as `v1.0.0`. `fetch-depth: 0` in the workflow is load-bearing, not tidiness.
+- **The installer's `AppId` may never change.** It is Windows' identity for the product; changing
+  it means no future installer removes any current installation. `InstallerTests` fails the build
+  if it moves, and the GUID is written out a second time there deliberately.
+- **Nothing is signed.** Say so when reporting a release rather than letting the user discover
+  SmartScreen on their own. Fixing it needs a certificate issued to a verified identity
+  (`E13-T17`), which is not something a session can produce.
+- **The update check inside the application reads the published release**, so a wrong tag or a
+  release marked prerelease by accident is visible to every user, not only to whoever tagged it.
+
 ## Things that will bite you
 
 **A `dotnet build` reporting "0 warnings" may be reusing a cached analysis.**
@@ -465,14 +506,15 @@ tests/                   one flat project per source project, plus Docs.Verify,
 bench/Spark.Benchmarks/  BenchmarkDotNet: marshalling, evaluation, the canvas spatial index
 docs/                    PRD, EPICS, TASKS, TODO, NOTES, adr/, help/, examples/
 scripts/                 repository helper scripts
-.github/workflows/       CI
+installer/               spark.iss, the Inno Setup script. Its AppId may never change
+.github/workflows/       CI, and release-notes.md, the top of every release's notes
 ```
 
 Two of those lines are intent rather than description, and are marked. Everything else matches
-disk, with one qualification worth knowing before you add a project: `tests/` holds **eight**
+disk, with one qualification worth knowing before you add a project: `tests/` holds **nine**
 projects — `Spark.Architecture.Tests`, `Spark.Docs.Verify`, `Spark.Geometry.Tests`,
-`Spark.Geometry.Properties`, `Spark.Geometry.Occt.Tests`, `Spark.Engine.Tests`, `Spark.UI.Tests`
-and `Spark.Viewport.Tests` — and nothing else. `tests/corpus/` does not exist yet. Each of the last three arrived **with
+`Spark.Geometry.Properties`, `Spark.Geometry.Occt.Tests`, `Spark.Engine.Tests`,
+`Spark.Packages.Tests`, `Spark.UI.Tests` and `Spark.Viewport.Tests` — and nothing else. `tests/corpus/` does not exist yet. Each of the last three arrived **with
 the code it tests**, not ahead of it, because a test project containing no tests fails the run
 outright — [NOTES.md N12](docs/NOTES.md). The ceiling on `InternalsVisibleTo` for the kernel was two and is now **three**:
 `Spark.Geometry.Tests`, `Spark.Geometry.Properties` and `Spark.Geometry.Occt` —
