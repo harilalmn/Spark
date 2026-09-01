@@ -1300,9 +1300,12 @@ public sealed class GraphCanvas : Control
 
             Rect nodeRect = new(node.X, node.Y, node.Width, node.Height);
             RoundedRect rounded = new(nodeRect, CornerRadius);
+            // The node's own category, unless the user chose another one's colour for it
+            // (`E8-T35`). Hover, desaturation and every level of detail follow from this one
+            // value, so a recoloured node behaves exactly like a node of that category.
             Color categoryColour = hovered
-                ? NodeCategoryColours.HoverColourOf(node.Category)
-                : NodeCategoryColours.ColourOf(node.Category);
+                ? NodeCategoryColours.HoverColourOf(node.DisplayCategory)
+                : NodeCategoryColours.ColourOf(node.DisplayCategory);
 
             if (notEvaluated)
             {
@@ -1395,7 +1398,7 @@ public sealed class GraphCanvas : Control
 
             if (drawsTitle)
             {
-                FormattedText title = HeaderRun(node.Title);
+                FormattedText title = HeaderRun(node.DisplayTitle);
                 using (context.PushClip(headerRect))
                 {
                     context.DrawText(

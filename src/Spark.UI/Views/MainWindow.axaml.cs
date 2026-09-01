@@ -168,6 +168,14 @@ public sealed partial class MainWindow : Window
 
         model.WorkspaceChanged += (_, _) => _dock.Apply(model.Layout);
         model.LayoutReset += (_, _) => RebuildShell();
+
+        // A rename or a recolour changes no value, so nothing re-runs; the canvas only has to be
+        // repainted, and its structure refreshed because a longer name makes a wider node.
+        model.NodeAppearanceChanged += (_, _) =>
+        {
+            Canvas.RefreshStructure();
+            Canvas.InvalidateVisual();
+        };
         _dock.Apply(model.Layout);
 
         Viewport.Scene = model.Scene;

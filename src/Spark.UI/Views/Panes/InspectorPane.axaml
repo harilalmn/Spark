@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:Spark.UI.ViewModels"
              xmlns:controls="clr-namespace:Spark.UI.Views.Controls"
+             xmlns:theming="using:Spark.UI.Theming"
              x:Class="Spark.UI.Views.Panes.InspectorPane"
              x:DataType="vm:MainWindowViewModel"
              x:CompileBindings="True">
@@ -18,7 +19,7 @@
       A code block wants BOTH at once - the ports are how you see what your identifiers turned
       into - so the fix is two rows rather than hiding one of them.
     -->
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto">
       <TextBlock Grid.Row="0" Classes="paneTitle" Text="PROPERTIES" />
 
       <StackPanel Grid.Row="1" Margin="10,0,10,8" Spacing="2">
@@ -57,6 +58,51 @@
       </StackPanel>
 
       <!--
+        E8-T35: the node's own name and header colour, asked for by the client.
+
+        A node is an instance of something, and after twenty of them a graph is easier to read when
+        the six that matter say what they are *for* rather than what they are. So the name is the
+        user's, the definition's name stays as the field's watermark - which is the answer to "what
+        is this really?" - and clearing the field puts it back.
+
+        The colours are the ten category fills and nothing else. Those are the ones whose contrast
+        against the header text is already measured, at rest, hovered and desaturated, so a
+        recoloured node is legible by construction rather than by luck. An arbitrary picker would
+        need the title to flip between light and dark by luminance, which is a different feature.
+      -->
+      <StackPanel Grid.Row="3" Margin="10,0,10,8" Spacing="3"
+                  IsVisible="{Binding CanStyleNode}">
+        <Grid ColumnDefinitions="92,*">
+          <TextBlock Grid.Column="0" Classes="muted" VerticalAlignment="Center" Text="Name"
+                     ToolTip.Tip="What this node is called on the canvas. Clear it to go back to its own name." />
+          <TextBox Grid.Column="1" FontSize="11" Padding="6,2"
+                   AutomationProperties.Name="Node name"
+                   Text="{Binding NodeTitle, Mode=TwoWay}"
+                   PlaceholderText="{Binding NodeTitlePlaceholder}"
+                   LostFocus="OnNodeTitleCommitted"
+                   KeyDown="OnNodeTitleKeyDown" />
+        </Grid>
+        <Grid ColumnDefinitions="92,*">
+          <TextBlock Grid.Column="0" Classes="muted" VerticalAlignment="Center" Text="Colour"
+                     ToolTip.Tip="The header colour. Default is the colour this node's own category has." />
+          <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" FontSize="11"
+                    AutomationProperties.Name="Node colour"
+                    ItemsSource="{Binding NodeColourNames}"
+                    SelectedItem="{Binding NodeColour, Mode=TwoWay}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Border Width="10" Height="10" CornerRadius="2" VerticalAlignment="Center"
+                          Background="{Binding ., Converter={x:Static theming:NodeColourSwatchConverter.Instance}}" />
+                  <TextBlock Text="{Binding .}" VerticalAlignment="Center" />
+                </StackPanel>
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </Grid>
+      </StackPanel>
+
+      <!--
         E8-T30: the inputs, as a compact spec sheet.
 
         THE TYPE DROPDOWN USED TO BE A FULL-WIDTH CONTROL ON A ROW OF ITS OWN, UNDER THE VALUE BOX.
@@ -66,13 +112,13 @@
         occupies on every other node's row - so declaring a type costs no extra row and no extra
         width, and the row height is the same whether the port has one or not.
       -->
-      <StackPanel Grid.Row="3" Margin="10,0,10,0" Spacing="4"
+      <StackPanel Grid.Row="4" Margin="10,0,10,0" Spacing="4"
                   IsVisible="{Binding HasInputs}">
         <Border Height="1" Background="{DynamicResource SparkBorderHairlineBrush}" />
         <TextBlock Classes="paneTitle" Margin="0,2,0,2" Text="INPUTS" />
       </StackPanel>
 
-      <ItemsControl Grid.Row="4" Margin="10,0,10,10" ItemsSource="{Binding Inspector}">
+      <ItemsControl Grid.Row="5" Margin="10,0,10,10" ItemsSource="{Binding Inspector}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="vm:PortLiteralViewModel">
             <Grid ColumnDefinitions="92,*" Margin="0,0,0,5">
@@ -118,7 +164,7 @@
            surface that hosts no controls (ADR-0013), so a caret in it would mean writing a text
            editor to avoid writing a binding. Shown only when a note is selected, off the same
            property that holds the note - one source of truth rather than two that can disagree. -->
-      <TextBox Grid.Row="5" Margin="10,0,10,10"
+      <TextBox Grid.Row="6" Margin="10,0,10,10"
                IsVisible="{Binding SelectedNote, Converter={x:Static ObjectConverters.IsNotNull}}"
                Text="{Binding NoteText, Mode=TwoWay}"
                AcceptsReturn="True"
@@ -130,12 +176,12 @@
            built from the types the wires carry (E6-T11, E6-T12, E6-T7). The text is pushed in and
            read back by the pane rather than bound, because a two-way binding onto a document the
            user is typing into buys nothing and invites a feedback loop. -->
-      <controls:CodeBlockEditor Name="ScriptEditor" Grid.Row="5" Margin="10,0,10,10"
+      <controls:CodeBlockEditor Name="ScriptEditor" Grid.Row="6" Margin="10,0,10,10"
                                 IsVisible="{Binding SelectedCodeBlock, Converter={x:Static ObjectConverters.IsNotNull}}"
                                 VerticalAlignment="Stretch" />
 
       <!-- A group's title, on the same principle as a note's text. -->
-      <TextBox Grid.Row="5" Margin="10,0,10,10" VerticalAlignment="Top"
+      <TextBox Grid.Row="6" Margin="10,0,10,10" VerticalAlignment="Top"
                IsVisible="{Binding SelectedGroup, Converter={x:Static ObjectConverters.IsNotNull}}"
                Text="{Binding GroupTitle, Mode=TwoWay}"
                LostFocus="OnGroupTitleCommitted" />
@@ -143,7 +189,7 @@
       <!-- The watch panel. A bubble on the canvas is a glance and is cut at sixty characters;
            this is where somebody goes to read the value. Read-only and selectable, because the
            thing people do with a watched value next is copy part of it. -->
-      <StackPanel Grid.Row="6" Margin="10,0,10,10" Spacing="3"
+      <StackPanel Grid.Row="7" Margin="10,0,10,10" Spacing="3"
                   IsVisible="{Binding WatchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
         <Border Height="1" Margin="0,0,0,3" Background="{DynamicResource SparkBorderHairlineBrush}" />
         <TextBlock Classes="paneTitle" Text="WATCH" Margin="0,0,0,2" />
@@ -158,7 +204,7 @@
       <!-- E6-T16: a graph containing a code block is opened, drawn, and not run. The banner is
            where the user is told so, and where they say otherwise. Saying it in the diagnostics
            pane would read as a failure, which this is not. -->
-      <Border Grid.Row="6" Margin="10,0,10,10" Padding="8" CornerRadius="3"
+      <Border Grid.Row="7" Margin="10,0,10,10" Padding="8" CornerRadius="3"
               IsVisible="{Binding ScriptBanner, Converter={x:Static ObjectConverters.IsNotNull}}"
               Background="{DynamicResource ThemeAccentBrush4}"
               BorderBrush="{DynamicResource ThemeBorderMidBrush}"
@@ -174,9 +220,9 @@
         </StackPanel>
       </Border>
 
-      <Border Grid.Row="7" Height="1" Margin="10,0,10,6"
+      <Border Grid.Row="8" Height="1" Margin="10,0,10,6"
               Background="{DynamicResource SparkBorderHairlineBrush}" />
-      <StackPanel Grid.Row="8" Margin="0,0,0,4">
+      <StackPanel Grid.Row="9" Margin="0,0,0,4">
         <TextBlock Classes="paneTitle" Text="DIAGNOSTICS" />
         <TextBlock Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
                    Text="{Binding DiagnosticsText}" />

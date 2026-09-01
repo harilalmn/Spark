@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-01 (E6-T22 to E6-T25, E9-T13, E8-T33 and E8-T34 closed: the code editor's IntelliSense and Selection menu, typed code-block outputs, the two docking defects, and click-to-connect with bigger ports)
+**Last updated:** 2026-09-01 (E6-T22 to E6-T25, E9-T13 and E8-T33 to E8-T35 closed: the code editor's IntelliSense and Selection menu, typed code-block outputs, the two docking defects, click-to-connect with bigger ports, and node names and colours)
 
 **M0 through M6 have all landed. M7 has started.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are

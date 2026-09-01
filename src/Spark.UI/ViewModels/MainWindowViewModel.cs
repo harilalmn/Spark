@@ -16,6 +16,7 @@ using Spark.Host;
 using Spark.Scripting;
 using Spark.UI.Graph;
 using Spark.UI.Shell;
+using Spark.UI.Theming;
 using Spark.UI.Views.Controls;
 using Spark.Viewport;
 
@@ -180,6 +181,33 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private bool _canSetLacing;
+
+    /// <summary>Whether one node is selected, so its name and colour can be changed (`E8-T35`).</summary>
+    [ObservableProperty]
+    private bool _canStyleNode;
+
+    [ObservableProperty]
+    private string _nodeTitle = string.Empty;
+
+    [ObservableProperty]
+    private string _nodeTitlePlaceholder = string.Empty;
+
+    [ObservableProperty]
+    private string _nodeColour = NodeColourChoices.Default;
+
+    /// <summary>
+    /// True while the selected node's own name and colour are being pushed into the pane, so the
+    /// change handlers know the user did not do it.
+    /// </summary>
+    /// <remarks>
+    /// The same guard <see cref="_showingLacing"/> is, for the same reason: without it, selecting a
+    /// node would write that node's own name back onto it as an undo step, once per click.
+    /// </remarks>
+    private bool _showingStyle;
+
+    private int _styleSlot = -1;
+
+    private string _committedTitle = string.Empty;
 
     [ObservableProperty]
     private string _selectedLacing = LacingNames.Auto;
@@ -568,6 +596,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         RefreshHistory();
     }
+
+    /// <summary>The colours a node's header can be set to.</summary>
+    /// <remarks>Static because the list is the palette and never depends on the selection.</remarks>
+    public static IReadOnlyList<string> NodeColourNames => NodeColourChoices.All;
+
+    /// <summary>Raised when a node's name or colour changed and the canvas has to redraw.</summary>
+    /// <remarks>
+    /// Neither is an evaluation input — a renamed node computes exactly what it computed before —
+    /// so this is deliberately not a re-run. It is the smallest signal that says *repaint*.
+    /// </remarks>
+    public event EventHandler? NodeAppearanceChanged;
 
     /// <summary>Steps the document back one edit.</summary>
     [RelayCommand(CanExecute = nameof(CanUndo))]
@@ -1549,6 +1588,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         LacingNote = string.Empty;
         _lacingSlot = -1;
 
+        CanStyleNode = false;
+        _styleSlot = -1;
+
         if (selection.Count != 1)
         {
             SelectionTitle = selection.Count == 0 ? "Nothing selected" : $"{selection.Count} nodes selected";
@@ -1567,8 +1609,21 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         CanvasNode node = _graph.Nodes[slot];
         NodeInstance instance = _graph.Engine.Node(node.Id);
 
-        SelectionTitle = node.Title;
+        SelectionTitle = node.DisplayTitle;
         SelectionDescription = BuildSelectionDescription(node, instance);
+
+        // Pushed and guarded, exactly as the lacing below is. The placeholder is the name the
+        // node's *definition* gives it, which is the answer to "what is this really?" for somebody
+        // looking at a node they renamed last week — and it is why the definition's name is kept
+        // beside the custom one rather than replaced by it.
+        _styleSlot = slot;
+        _showingStyle = true;
+        NodeTitle = node.CustomTitle ?? string.Empty;
+        NodeTitlePlaceholder = node.Title;
+        NodeColour = NodeColourChoices.Of(node.ColourOverride);
+        _committedTitle = NodeTitle;
+        _showingStyle = false;
+        CanStyleNode = true;
 
         // Pushed rather than bound, and guarded, because assigning the property is indistinguishable
         // from a user choosing that value in the dropdown.
@@ -1751,6 +1806,75 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// </para>
     /// </remarks>
     /// <param name="value">The chosen mode's name.</param>
+    /// <summary>
+    /// Renames the selected node as it is typed, without recording an edit for every keystroke.
+    /// </summary>
+    /// <remarks>
+    /// <b>The canvas renames live and the undo stack learns about it once.</b> Recording per
+    /// keystroke would put eleven steps on the stack for the word <i>centreline</i>; recording only
+    /// on commit would leave the canvas showing the old name while the field showed the new one.
+    /// So the model changes here and <see cref="CommitNodeTitle"/> is what the pane calls when the
+    /// field is finished with.
+    /// </remarks>
+    partial void OnNodeTitleChanged(string value)
+    {
+        if (_showingStyle || StyledNode() is not { } node)
+        {
+            return;
+        }
+
+        node.CustomTitle = value;
+        SelectionTitle = node.DisplayTitle;
+        NodeAppearanceChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Records the rename as one undo step, if it changed anything.</summary>
+    public void CommitNodeTitle()
+    {
+        if (StyledNode() is not { } node)
+        {
+            return;
+        }
+
+        string current = node.CustomTitle ?? string.Empty;
+
+        if (string.Equals(current, _committedTitle, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _committedTitle = current;
+        RecordEdit(current.Length == 0 ? "Reset node name" : "Rename node");
+    }
+
+    /// <summary>Recolours the selected node's header, as one undo step.</summary>
+    /// <remarks>
+    /// A dropdown commits the moment it is closed, so unlike the name there is no separate commit:
+    /// one choice is one edit.
+    /// </remarks>
+    partial void OnNodeColourChanged(string value)
+    {
+        if (_showingStyle || StyledNode() is not { } node)
+        {
+            return;
+        }
+
+        NodeCategory? chosen = NodeColourChoices.Parse(value);
+
+        if (node.ColourOverride == chosen)
+        {
+            return;
+        }
+
+        node.ColourOverride = chosen;
+        NodeAppearanceChanged?.Invoke(this, EventArgs.Empty);
+        RecordEdit(chosen is null ? "Reset node colour" : "Colour node");
+    }
+
+    /// <summary>The node whose name and colour the pane is editing, if it is still there.</summary>
+    private CanvasNode? StyledNode() =>
+        _styleSlot >= 0 && _styleSlot < _graph.Nodes.Count ? _graph.Nodes[_styleSlot] : null;
+
     partial void OnSelectedLacingChanged(string value)
     {
         if (_showingLacing || !CanSetLacing || _lacingSlot < 0 || _lacingSlot >= _graph.Nodes.Count)

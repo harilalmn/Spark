@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Spark.Api;
 using Spark.Engine;
+using Spark.UI.Theming;
 
 namespace Spark.UI.Graph;
 
@@ -31,9 +32,18 @@ public static class CanvasDocument
         ArgumentNullException.ThrowIfNull(graph);
 
         Dictionary<NodeId, (double X, double Y)> positions = [];
+        Dictionary<NodeId, (string? Title, string? Colour)> appearance = [];
+
         foreach (CanvasNode node in graph.Nodes)
         {
             positions[node.Id] = (node.X, node.Y);
+
+            if (node.CustomTitle is not null || node.ColourOverride is { } colour)
+            {
+                appearance[node.Id] = (
+                    node.CustomTitle,
+                    node.ColourOverride is { } chosen ? NodeCategoryNames.NameOf(chosen) : null);
+            }
         }
 
         List<GraphDocumentNote> notes = [];
@@ -53,7 +63,10 @@ public static class CanvasDocument
             graph.Engine,
             id => positions.TryGetValue(id, out (double X, double Y) at) ? at : (0.0, 0.0),
             notes,
-            groups));
+            groups,
+            id => appearance.TryGetValue(id, out (string? Title, string? Colour) styled)
+                ? styled
+                : (null, null)));
     }
 
     /// <summary>Reads the text of a `.spark` file into a canvas graph.</summary>
@@ -81,7 +94,19 @@ public static class CanvasDocument
         // reopened graph is stable rather than an accident of how it was built the first time.
         foreach (GraphDocumentNode node in document.Nodes)
         {
-            graph.Adopt(engine.Node(node.Id), node.X, node.Y);
+            int slot = graph.Adopt(engine.Node(node.Id), node.X, node.Y);
+
+            graph.Nodes[slot].CustomTitle = node.Title;
+
+            // A colour token this build does not know loads as no colour, rather than as `custom`
+            // grey: `Parse` answers Custom for anything unrecognised, which is right for a node's
+            // own category and wrong for a choice somebody made. A file from a later Spark should
+            // cost a user the setting and never the graph.
+            if (node.Colour is { Length: > 0 } token
+                && NodeCategoryNames.NameOf(NodeCategoryNames.Parse(token)) == token)
+            {
+                graph.Nodes[slot].ColourOverride = NodeCategoryNames.Parse(token);
+            }
         }
 
         // Notes keep the identity they were saved with, so that re-saving a file that was only

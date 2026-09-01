@@ -33,6 +33,15 @@ namespace Spark.Engine;
 /// Whether the node is frozen (<c>E7-T14</c>). Written only when true, so a file containing no
 /// frozen nodes is byte-for-byte what it was before freezing existed.
 /// </param>
+/// <param name="Title">
+/// What the user renamed this node to, or <see langword="null"/> when it still shows the name its
+/// definition gives it (`E8-T35`).
+/// </param>
+/// <param name="Colour">
+/// The token for the header colour the user chose, or <see langword="null"/> for the one its
+/// category decides. A token rather than a hex value, for the reason a declared input type is one:
+/// a palette can be re-tuned for contrast without rewriting everybody's files.
+/// </param>
 /// <param name="InputTypes">
 /// The types the user declared for a code block's input ports (<c>E6-T11</c>), sparsely — only
 /// ports that have one, and empty for every other kind of node. Written only when non-empty, for
@@ -47,7 +56,9 @@ public sealed record GraphDocumentNode(
     IReadOnlyList<GraphLiteral> Literals,
     string? Script = null,
     bool Frozen = false,
-    IReadOnlyList<GraphInputType>? InputTypes = null)
+    IReadOnlyList<GraphInputType>? InputTypes = null,
+    string? Title = null,
+    string? Colour = null)
 {
     /// <summary>
     /// The declared input types, never null.
@@ -171,7 +182,7 @@ public sealed class GraphDocument
     /// change and a release is a release, and tying them together makes every release a format
     /// question.
     /// </remarks>
-    public const int CurrentFormatVersion = 3;
+    public const int CurrentFormatVersion = 4;
 
     /// <summary>
     /// The version a document writes when it contains nothing that needs a newer reader.
@@ -201,6 +212,16 @@ public sealed class GraphDocument
     /// reader that exists.
     /// </remarks>
     public const int ScriptsFormatVersion = 3;
+
+    /// <summary>
+    /// The version that added a node's own title and header colour (`E8-T35`).
+    /// </summary>
+    /// <remarks>
+    /// Written only by a document that carries one, for the reason every other version bump here
+    /// is conditional: a graph nobody has renamed or recoloured still saves as a version-1 file and
+    /// still opens in a build that predates this.
+    /// </remarks>
+    public const int AppearanceFormatVersion = 4;
 
     /// <summary>
     /// The first version whose reader understands groups. The same as
@@ -325,6 +346,7 @@ public sealed class GraphDocument
     /// <param name="notes">How many notes the document carries.</param>
     /// <param name="groups">How many groups it carries.</param>
     /// <param name="scripts">How many of its nodes carry their own source.</param>
+    /// <param name="appearance">How many of its nodes carry a title or a colour of their own.</param>
     /// <returns>
     /// <see cref="NotesFormatVersion"/> when there is anything a version-1 reader would drop,
     /// otherwise <see cref="BaselineFormatVersion"/>.
@@ -335,8 +357,13 @@ public sealed class GraphDocument
     /// outcome, and asking for it costs exactly this: writing 2 when, and only when, there is
     /// something a version-1 reader would throw away.
     /// </remarks>
-    public static int MinimumReaderVersion(int notes, int groups = 0, int scripts = 0)
+    public static int MinimumReaderVersion(int notes, int groups = 0, int scripts = 0, int appearance = 0)
     {
+        if (appearance > 0)
+        {
+            return AppearanceFormatVersion;
+        }
+
         if (scripts > 0)
         {
             return ScriptsFormatVersion;
@@ -359,6 +386,11 @@ public sealed class GraphDocument
     /// that it stays byte-identical to what earlier builds wrote.
     /// </param>
     /// <param name="groups">The canvas groups, or <see langword="null"/> for none.</param>
+    /// <param name="appearance">
+    /// What each node has been renamed and recoloured to, or <see langword="null"/> when nothing
+    /// has been — which is what a headless caller and every graph nobody has restyled both look
+    /// like (`E8-T35`).
+    /// </param>
     /// <returns>The document.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="graph"/> is <see langword="null"/>.</exception>
     /// <exception cref="SparkFileException">
@@ -369,7 +401,8 @@ public sealed class GraphDocument
         Graph graph,
         Func<NodeId, (double X, double Y)>? positions = null,
         IReadOnlyList<GraphDocumentNote>? notes = null,
-        IReadOnlyList<GraphDocumentGroup>? groups = null)
+        IReadOnlyList<GraphDocumentGroup>? groups = null,
+        Func<NodeId, (string? Title, string? Colour)>? appearance = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -377,6 +410,7 @@ public sealed class GraphDocument
         foreach (NodeInstance instance in graph.Nodes())
         {
             (double x, double y) = positions?.Invoke(instance.Id) ?? (0.0, 0.0);
+            (string? title, string? colour) = appearance?.Invoke(instance.Id) ?? (null, null);
 
             List<GraphLiteral> literals = [];
             IReadOnlyList<object?> values = instance.Literals();
@@ -441,7 +475,9 @@ public sealed class GraphDocument
                 literals,
                 instance.Definition.Script,
                 instance.IsFrozen,
-                declared.Count > 0 ? declared : null));
+                declared.Count > 0 ? declared : null,
+                string.IsNullOrWhiteSpace(title) ? null : title,
+                string.IsNullOrWhiteSpace(colour) ? null : colour));
         }
 
         List<GraphDocumentWire> wires =
@@ -451,16 +487,27 @@ public sealed class GraphDocument
         ];
 
         int scripts = 0;
+        int restyled = 0;
+
         foreach (GraphDocumentNode node in nodes)
         {
             if (node.Script is not null)
             {
                 scripts++;
             }
+
+            if (node.Title is not null || node.Colour is not null)
+            {
+                restyled++;
+            }
         }
 
         return new GraphDocument(
-            MinimumReaderVersion(notes?.Count ?? 0, groups?.Count ?? 0, scripts), nodes, wires, notes, groups);
+            MinimumReaderVersion(notes?.Count ?? 0, groups?.Count ?? 0, scripts, restyled),
+            nodes,
+            wires,
+            notes,
+            groups);
     }
 
     /// <summary>

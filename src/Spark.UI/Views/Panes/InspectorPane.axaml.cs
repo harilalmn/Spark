@@ -187,6 +187,27 @@ public sealed partial class InspectorPane : UserControl
         }
     }
 
+    /// <summary>Records the rename as one undo step when the field is finished with.</summary>
+    /// <remarks>
+    /// The canvas has already been renaming as the user typed; this is only the moment the undo
+    /// stack learns about it, for the reason a port literal commits on the same two events.
+    /// </remarks>
+    private void OnNodeTitleCommitted(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as MainWindowViewModel)?.CommitNodeTitle();
+    }
+
+    private void OnNodeTitleKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key is not Key.Enter and not Key.Return)
+        {
+            return;
+        }
+
+        (DataContext as MainWindowViewModel)?.CommitNodeTitle();
+        e.Handled = true;
+    }
+
     private void OnLiteralCommitted(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: PortLiteralViewModel literal })

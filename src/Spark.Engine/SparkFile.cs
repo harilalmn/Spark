@@ -307,6 +307,20 @@ public static class SparkFile
         {
             writer.WriteBoolean("frozen", value: true);
         }
+
+        // What the user renamed and recoloured it to (`E8-T35`), both omitted when untouched -
+        // which is what keeps a graph nobody has restyled byte-identical to what earlier builds
+        // wrote, the property E7-T7's round trip is an assertion about.
+        if (node.Title is { } title)
+        {
+            writer.WriteString("title", title);
+        }
+
+        if (node.Colour is { } colour)
+        {
+            writer.WriteString("colour", colour);
+        }
+
         writer.WriteNumber("x", node.X);
         writer.WriteNumber("y", node.Y);
 
@@ -455,6 +469,19 @@ public static class SparkFile
         bool frozen = element.TryGetProperty("frozen", out JsonElement frozenElement)
             && frozenElement.ValueKind == JsonValueKind.True;
 
+        string? title = element.TryGetProperty("title", out JsonElement titleElement)
+            && titleElement.ValueKind == JsonValueKind.String
+                ? titleElement.GetString()
+                : null;
+
+        // An unknown colour token loads as no colour rather than failing the open, for the reason
+        // an unknown input-type token loses the declaration and not the document: a file from a
+        // later Spark should cost a user a setting, never their graph.
+        string? colour = element.TryGetProperty("colour", out JsonElement colourElement)
+            && colourElement.ValueKind == JsonValueKind.String
+                ? colourElement.GetString()
+                : null;
+
         // A malformed entry is skipped rather than refused. The token is validated on the way in
         // to the graph, not here, because "a type this build does not know" and "a type this file
         // spelled wrongly" are the same thing from the reader's side and neither is worth losing
@@ -479,7 +506,9 @@ public static class SparkFile
 
         return new GraphDocumentNode(
             id, nodeKey, lacing, x, y, literals, script, frozen,
-            inputTypes.Count > 0 ? inputTypes : null);
+            inputTypes.Count > 0 ? inputTypes : null,
+            string.IsNullOrWhiteSpace(title) ? null : title,
+            string.IsNullOrWhiteSpace(colour) ? null : colour);
     }
 
     private static GraphLiteral ReadLiteral(JsonElement element)

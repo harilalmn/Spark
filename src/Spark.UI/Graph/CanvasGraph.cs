@@ -170,20 +170,76 @@ public sealed class CanvasNode
         // node claiming a field it has no port for would draw an editor over nothing.
         HasField = hasField && inputs.Count >= 1;
 
-        // Roughly 6.6 px per character at 12 px semibold, plus the two 8 px header insets and room
-        // for a state glyph. A title that overflows is clipped by the header, which reads as a bug.
-        // The port rows are measured too, because a row carries a name and the type beside it and
-        // the two sides of a row must not meet in the middle.
-        Width = System.Math.Max(
-            System.Math.Max(MinimumWidth, 34 + (title.Length * 6.8)),
-            WidestRow(inputs, outputs));
+        Remeasure();
     }
+
+    /// <summary>
+    /// Sets the node's width from its title and its widest port row.
+    /// </summary>
+    /// <remarks>
+    /// Roughly 6.8 px per character at 12 px semibold, plus the two 8 px header insets and room for
+    /// a state glyph. A title that overflows is clipped by the header, which reads as a bug — which
+    /// is why renaming a node re-measures it (`E8-T35`) rather than leaving a longer name to be cut
+    /// off by a width measured from the old one. The port rows are measured too, because a row
+    /// carries a name and the type beside it and the two sides must not meet in the middle.
+    /// </remarks>
+    private void Remeasure() =>
+        Width = System.Math.Max(
+            System.Math.Max(MinimumWidth, 34 + (DisplayTitle.Length * 6.8)),
+            WidestRow(Inputs, Outputs));
+
+    private string? _customTitle;
 
     /// <summary>The engine identity of the node instance this draws.</summary>
     public NodeId Id { get; }
 
-    /// <summary>The name drawn in the header.</summary>
+    /// <summary>The name the node's definition gives it.</summary>
     public string Title { get; }
+
+    /// <summary>
+    /// What the user renamed this node to, or <see langword="null"/> to show <see cref="Title"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Kept beside the definition's name rather than replacing it</b> (`E8-T35`). A renamed node
+    /// is still an instance of something — the properties pane says what, the library still finds
+    /// it, and clearing the field puts the real name back. Replacing <see cref="Title"/> would make
+    /// "what is this node?" unanswerable the moment somebody called it *radius*.
+    /// </remarks>
+    public string? CustomTitle
+    {
+        get => _customTitle;
+
+        set
+        {
+            string? trimmed = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+            if (_customTitle == trimmed)
+            {
+                return;
+            }
+
+            _customTitle = trimmed;
+            Remeasure();
+        }
+    }
+
+    /// <summary>The name actually drawn in the header.</summary>
+    public string DisplayTitle => _customTitle ?? Title;
+
+    /// <summary>
+    /// The category whose colour this node's header borrows, or <see langword="null"/> for its own.
+    /// </summary>
+    /// <remarks>
+    /// <b>A category rather than a colour, and that is the whole design of the feature.</b> The ten
+    /// category fills are the palette whose contrast against the header text is already measured —
+    /// in the rest state, the hover state and desaturated — so a node recoloured to one of them is
+    /// legible by construction. An arbitrary colour would need the title to flip between light and
+    /// dark by luminance, and would need every one of those measurements taken again at runtime.
+    /// </remarks>
+    public NodeCategory? ColourOverride { get; set; }
+
+    /// <summary>The category whose colour the header is actually drawn in.</summary>
+    public NodeCategory DisplayCategory => ColourOverride ?? Category;
 
     /// <summary>One paragraph describing the node, or null.</summary>
     public string? Description { get; }
@@ -727,6 +783,12 @@ public sealed class CanvasGraph
 
         int rebuilt = Adopt(Engine.Node(node.Id), x, y);
         CanvasNode replacement = _nodes[rebuilt];
+
+        // A rename and a colour survive the node being rebuilt, for the reason its position does:
+        // editing a code block's source replaces its definition, and a block somebody called
+        // *profile* must not go back to being called *CodeBlock* because they added a line.
+        replacement.CustomTitle = node.CustomTitle;
+        replacement.ColourOverride = node.ColourOverride;
 
         foreach ((NodeId source, int sourcePort, string portName) in incoming)
         {

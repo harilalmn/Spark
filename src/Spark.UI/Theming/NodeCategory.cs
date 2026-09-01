@@ -71,6 +71,28 @@ public static class NodeCategoryNames
         Spark.Api.NodeCategories.Math => NodeCategory.Math,
         _ => NodeCategory.Custom,
     };
+
+    /// <summary>The name a category is written as, in a file and in a menu.</summary>
+    /// <param name="category">The category.</param>
+    /// <returns>The name <see cref="Parse"/> turns back into it.</returns>
+    /// <remarks>
+    /// The inverse of <see cref="Parse"/>, and it exists because a node can borrow another
+    /// category's colour (`E8-T35`) and that choice is saved. A token rather than a hex value, so
+    /// the palette can be re-tuned for contrast without rewriting everybody's graphs.
+    /// </remarks>
+    public static string NameOf(NodeCategory category) => category switch
+    {
+        NodeCategory.Input => Spark.Api.NodeCategories.Input,
+        NodeCategory.Logic => Spark.Api.NodeCategories.Logic,
+        NodeCategory.Display => Spark.Api.NodeCategories.Display,
+        NodeCategory.Solid => Spark.Api.NodeCategories.Solid,
+        NodeCategory.Curve => Spark.Api.NodeCategories.Curve,
+        NodeCategory.Point => Spark.Api.NodeCategories.Point,
+        NodeCategory.Script => Spark.Api.NodeCategories.Script,
+        NodeCategory.List => Spark.Api.NodeCategories.List,
+        NodeCategory.Math => Spark.Api.NodeCategories.Math,
+        _ => "custom",
+    };
 }
 
 /// <summary>
