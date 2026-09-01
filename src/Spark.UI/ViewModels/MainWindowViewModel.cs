@@ -1002,6 +1002,54 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         return [.. items.Select(item => new CodeCompletionCandidate(item.DisplayText, item.Kind))];
     }
 
+    /// <summary>
+    /// Asks what the call the caret is inside wants, for the selected code block (`E6-T22`).
+    /// </summary>
+    /// <param name="code">The source as the editor holds it.</param>
+    /// <param name="caret">The caret offset.</param>
+    /// <param name="cancellationToken">Cancels a request a later keystroke has superseded.</param>
+    /// <returns>The overloads, or null when there is no call there, no block or no scripting.</returns>
+    /// <remarks>
+    /// <b>The same ports as the completion list, for the same reason.</b> A signature taken
+    /// against different types than the compile would describe a call the compiler will reject —
+    /// `E6-T13`'s invariant applies to signature help exactly as it does to the list, and both
+    /// come from one <see cref="Spark.Scripting.ScriptCompletion"/> so that they cannot drift
+    /// apart or compose Roslyn's MEF catalogue twice.
+    /// </remarks>
+    public async Task<CodeSignatureInfo?> SignatureScriptAsync(
+        string code, int caret, CancellationToken cancellationToken)
+    {
+        if (SelectedCodeBlock is not { } node || _session.Completion() is not { } completion)
+        {
+            return null;
+        }
+
+        Dictionary<string, Type?> ports = new(StringComparer.Ordinal);
+
+        foreach (PortDefinition port in _graph.Engine.Node(node.Id).Definition.Inputs)
+        {
+            ports[port.Name] = port.ValueType == typeof(object) ? null : port.ValueType;
+        }
+
+        ScriptSignatureHelp? help =
+            await completion.SignatureAsync(code, caret, ports, cancellationToken).ConfigureAwait(true);
+
+        if (help is not { } found)
+        {
+            return null;
+        }
+
+        return new CodeSignatureInfo(
+            [
+                .. found.Signatures.Select(signature => new CodeSignatureCandidate(
+                    signature.Name,
+                    signature.Parameters,
+                    signature.ReturnType)),
+            ],
+            found.ActiveSignature,
+            found.ActiveParameter);
+    }
+
     /// <summary>How many code blocks are waiting on the user's decision.</summary>
     public int PendingScripts { get; private set; }
 

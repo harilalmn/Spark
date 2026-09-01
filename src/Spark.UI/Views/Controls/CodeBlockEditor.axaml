@@ -26,6 +26,32 @@
                    VerticalScrollBarVisibility="Auto" />
 
     <Canvas Name="CompletionLayer" IsHitTestVisible="False">
+      <!--
+        Signature help sits *above* the caret's line and the completion list below it, so that a
+        call being typed with the list open is described and completed at once without either
+        covering the other.
+      -->
+      <Border Name="SignatureFrame"
+              IsVisible="False"
+              Background="{DynamicResource ThemeBackgroundBrush}"
+              BorderBrush="{DynamicResource ThemeBorderMidBrush}"
+              BorderThickness="1"
+              CornerRadius="2"
+              Padding="6,3"
+              MaxWidth="560">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBlock Name="SignatureOverloads"
+                     Opacity="0.55"
+                     FontSize="10"
+                     VerticalAlignment="Center" />
+          <TextBlock Name="SignatureText"
+                     FontFamily="Cascadia Code,Consolas,monospace"
+                     FontSize="12"
+                     TextWrapping="NoWrap"
+                     VerticalAlignment="Center" />
+        </StackPanel>
+      </Border>
+
       <Border Name="CompletionFrame"
               IsVisible="False"
               Background="{DynamicResource ThemeBackgroundBrush}"

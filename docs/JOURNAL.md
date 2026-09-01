@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 15:45 +0530
+**Last updated:** 2026-09-01 12:05 +0530
 **Protocol version:** 2
 
 ---
@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing. The tree is clean and the gates are green.** |
-| **Step status** | `CLEAN` |
-| **Last completed step** | **`E12-T21` - the update badge, and step 2 of 2 of the client's release request.** An accent pill in the ribbon when a newer release exists, opening its page; invisible otherwise. `SparkVersion` compares by SemVer because string comparison goes silent at `0.10.0`, and orders prereleases properly so a local build does not announce an update to itself. `D22` answers NFR-13 rather than reinterpreting it: nothing collected, one request, off in a click, silent on every failure. `spark --version` no longer prints `0.0.0.0`. **2277 tests.** |
+| **Working on** | **`E6-T24` — the Selection menu, in the code block editor.** The client listed VS Code's *Selection* menu and asked for all of it: expand and shrink selection, copy and move lines, duplicate, the multi-cursor family, column selection mode, and the Ctrl+Click switch. AvaloniaEdit has one caret, so most of that list is a multi-caret layer this editor does not have yet. |
+| **Step status** | `IN PROGRESS` |
+| **Last completed step** | **`E6-T22` and `E6-T23` — the code block's IntelliSense, made contextual.** Signature help exists: the overloads of the call the caret is inside, above the caret's line, active parameter in bold, `1/2` and Alt+Up/Down when there is more than one, following the wires exactly as the completion list does. Roslyn publishes no signature-help service, so it is the semantic model directly and the *member group* rather than the resolved symbol, because a call being typed does not bind ([N95](NOTES.md)). And the list now opens after `=`, after `new `, and on the first letter of an identifier as well as on a dot. **2,299 tests.** |
 | **Working tree** | Clean at the moment this was written. |
-| **Next action** | **Cut the first release, when the client says so** - there are no tags at all yet, so the whole pipeline is unexercised end to end and `v0.1.0` is the number the procedure in [AGENTS.md](../AGENTS.md#cutting-a-release) would choose. Everything before the tag is verified; the tag is what checks `release.yml`, and it is also what checks the update endpoint, which is the one link no test can reach. **Then the Help pass, where the queue pointed before this**: `E10-T3` (the help index), then `E11-T2`'s XML `<example>` half, then E10-T9/T10/T12/T14. **Two smaller things are owed and both are quick.** (1) The `tessellate` verb is not wired into `.github/workflows/nightly.yml` - Windows should run it and the other legs pass `--no-tessellation`. (2) The new nodes from `E4-T13` and `E8-T25` have XML docs but no help topic; `D19` defers topics past 1.0, so this is a queue entry rather than a gap. **And things deliberately left behind:** a context menu on a node; `E3-T13`'s ~200 ms debounce and its auto-suggest-Manual threshold; the Spark mark, a designed placeholder swapped by replacing `src/Spark.UI/Assets/spark-logo.svg` and re-running `scripts/make-logo.py`; and code signing, which needs an identity and is what would remove the SmartScreen warning. **Two things to watch rather than act on:** `UnloadingReleasesTheScriptAssemblies` failed once under full-suite parallelism and passed alone; and the three multi-output node examples pass `out var` into a dynamically dispatched call, which does compile ([N94](NOTES.md)). |
+| **Next action** | **Build the multi-caret layer first, because eight of the fourteen Selection commands are it.** AvaloniaEdit has one caret and no multi-caret support at all; `TextDocument.CreateAnchor` gives offsets that survive edits, which is the piece that makes secondary carets tractable, and `TextView.BackgroundRenderers` is where they are drawn. Then the line commands (copy up/down, move up/down, duplicate), then expand/shrink selection, then column-selection mode and the Ctrl+Click switch. **A context menu on the editor is where they are reachable from** — Spark's own Edit menu is about nodes, and a *Selection* menu in the main bar that only worked when a code block had focus would be worse than no menu. **Verify with** a new `EditorSelectionTests`, the three gates, and the application actually run. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2277**: Geometry.Tests 763, UI.Tests 699, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall - one Add/Remove entry throughout and nothing left behind. **The badge and the help window are photographed**: `--update-badge 0.9.0 --screenshot PREFIX` and `--help-window <topic> --screenshot PREFIX`. **Check the counts** - [N30](NOTES.md) - **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
@@ -5197,3 +5197,60 @@ the shell photographed with the badge showing.
 **What is not proven, and cannot be until a release exists**: the live path against the real GitHub
 endpoint. Everything up to and including the JSON is tested; the one untested link is whether
 `api.github.com` answers the way its documentation says. The first release is what checks it.
+
+### 2026-09-01 — `E6-T22`/`E6-T23`: the editor tells you what the call wants, and opens when you expect it
+
+**What.** Two complaints from the client, both from the running application, both about the code
+block's IntelliSense being less contextual than it looks.
+
+*Signature help (`E6-T22`).* Typing `Circle.ByCentreNormalRadius(` said nothing at all, so the
+only way to learn the parameters was to finish the line, run the graph and read `SPK1046`.
+`ScriptCompletion.SignatureAsync` now answers the overloads of the call the caret is inside, over
+**the same workspace, the same document and the same port declarations** as the completion list —
+`E6-T13`'s invariant applies here unchanged, and sharing one instance also keeps Roslyn's MEF
+composition to one per session. The popup hangs above the caret's line with the list below it, the
+parameter being typed in bold, `1/2` when there are overloads, Alt+Up/Down to cycle, Escape to
+dismiss, Ctrl+Shift+Space to ask.
+
+*Triggers (`E6-T23`).* The list opened on a dot and on Ctrl+Space and nothing else. It now opens
+on `=`, on the space after `new` or after an assignment, and on the first letter of an identifier
+as well — with the rest of the word narrowing the open list rather than asking again.
+
+**What surprised me, and both cost real time.**
+
+*Roslyn publishes completion as a service and signature help not at all.* Everything around
+`ISignatureHelpProvider` is `internal` to the Features layer. The semantic model answers the same
+question directly, and the important detail is to use `GetMemberGroup` rather than the resolved
+symbol: a call being typed **does not bind**, so `GetSymbolInfo(...).Symbol` is null exactly when
+the popup is wanted ([N95](NOTES.md)). All eight scripting-side tests passed first run once that
+was right.
+
+*`IDE0055` was true of a file for days and silent until the file was touched.* A comment block
+inside a fluent chain in `ScriptCompletion.cs` is a formatting violation; the build never said so,
+and `dotnet format --verify-no-changes` did not want to change it. Adding **any** member to that
+file made five diagnostics appear at once on lines nobody had edited — a trivial
+`public int Foo() => 1;` reproduced it, and removing it made them vanish. The comment was hoisted
+above the statement, where it belonged. The diagnosis is the note ([N96](NOTES.md)): formatting
+errors on lines you did not touch, in a file you did, are probably older than your change.
+
+*One design consequence worth naming.* Opening the list on `=` only works because a word narrows
+the list and **anything else closes it and is then offered to the trigger rules afresh** — the
+space after `=` matches no candidate, so under the old "filter or nothing" rule the list would
+have closed half a keystroke after it opened. That is one line of control flow and it is the
+difference between the feature working and appearing to be broken.
+
+**Verified.** `dotnet build Spark.slnx --no-incremental -warnaserror` clean, zero warnings;
+`dotnet format Spark.slnx --verify-no-changes --severity warn` clean; the nine test executables
+green at **2,299** (Geometry 763, UI 721, Engine 507, Viewport 108, Properties 43, Occt 63,
+Architecture 18, Packages 71, Docs 5) — UI up 22, of which 8 are `SignatureHelpTests` against real
+Roslyn and 14 are `CodeBlockEditorTests` against a stub. The placement of the signature popup is
+guarded the way the list's is: the caret's position **minus the scroll offset**, and a second test
+that it sits above the list. **One flake seen once and not reproduced**: the UI suite reported a
+single failure in the batch run immediately after the OpenCascade suite, and came back green five
+times in a row afterwards; the failing name was not captured. It is recorded rather than fixed,
+beside the `UnloadingReleasesTheScriptAssemblies` flake already on that watch list.
+
+**What is not done.** The horizontal position of both popups is still unasserted — headless
+drawing has no font metrics — and `InspectorPane` still cannot be rendered in the harness
+([N90](NOTES.md)), so *that the popup looks right* remains a check by eye.
+

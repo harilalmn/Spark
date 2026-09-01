@@ -30,6 +30,12 @@ namespace Spark.UI.Tests;
 /// </remarks>
 public sealed class CodeBlockEditorTests
 {
+    private static readonly CodeSignatureCandidate[] Overloads =
+    [
+        new("ByCentreNormalRadius", ["Point3d centre", "Vector3d normal", "double radius"], "Circle"),
+        new("ByThreePoints", ["Point3d first", "Point3d second", "Point3d third"], "Circle"),
+    ];
+
     private static readonly CodeCompletionCandidate[] Members =
     [
         new("DistanceTo", "Method"),
@@ -235,9 +241,262 @@ public sealed class CodeBlockEditorTests
             $"the origin ({offset}) should be the caret minus the scroll offset ({scrolled}), not the document position");
     });
 
+    /// <summary>
+    /// <b>An assignment opens the list.</b> `E6-T23`: the client typed <c>var circle = </c> in the
+    /// running application and nothing happened, which is the moment a graph tool is supposed to
+    /// be more helpful than a text editor rather than less.
+    /// </summary>
+    [Fact]
+    public void AnAssignmentOpensTheList() => OnUiThread(() =>
+    {
+        (Window _, CodeBlockEditor editor) = Open(Stub(Members));
+
+        Type(editor, "var circle =");
+
+        Assert.True(editor.IsCompletionOpen);
+    });
+
+    /// <summary>
+    /// The space after the assignment keeps it open rather than closing it, which is the whole
+    /// difference between a list that helps and a list that flickers.
+    /// </summary>
+    [Fact]
+    public void TheSpaceAfterAnAssignmentKeepsItOpen() => OnUiThread(() =>
+    {
+        (Window _, CodeBlockEditor editor) = Open(Stub(Members));
+
+        Type(editor, "var circle = ");
+
+        Assert.True(editor.IsCompletionOpen);
+    });
+
+    /// <summary><c>new </c> opens it, which is the other place the client named.</summary>
+    [Fact]
+    public void NewOpensTheList() => OnUiThread(() =>
+    {
+        (Window _, CodeBlockEditor editor) = Open(Stub(Members));
+
+        Type(editor, "var circle = new ");
+
+        Assert.True(editor.IsCompletionOpen);
+    });
+
+    /// <summary>
+    /// <b>A comparison is not an assignment.</b> <c>==</c> opens nothing: somebody writing a
+    /// condition is not asking what exists in scope, and a list over the code they are reading is
+    /// exactly the complaint that kept this trigger to a dot for so long.
+    /// </summary>
+    [Fact]
+    public void AComparisonDoesNotOpenTheList() => OnUiThread(() =>
+    {
+        (Window _, CodeBlockEditor editor) = Open(Stub(Members));
+
+        Type(editor, "if (a ==");
+
+        Assert.False(editor.IsCompletionOpen);
+    });
+
+    /// <summary>
+    /// The first letter of a name opens it and the rest narrow it, which is one request per word
+    /// rather than one per keystroke — and is the ordinary IDE behaviour the client expected.
+    /// </summary>
+    [Fact]
+    public void TheFirstLetterOfANameOpensTheList() => OnUiThread(() =>
+    {
+        (Window _, CodeBlockEditor editor) = Open(Stub(Members));
+
+        Type(editor, "D");
+
+        Assert.True(editor.IsCompletionOpen);
+
+        Type(editor, "ist");
+
+        Assert.True(editor.IsCompletionOpen);
+        Assert.Equal("DistanceTo", Selected(editor));
+    });
+
+    /// <summary>
+    /// <b>Nothing opens inside a comment.</b> The starter script of every new code block is a
+    /// comment line, so getting this wrong would put a list over the first thing a user sees.
+    /// </summary>
+    [Fact]
+    public void ACommentOpensNothing() => OnUiThread(() =>
+    {
+        (Window _, CodeBlockEditor editor) = Open(Stub(Members));
+
+        Type(editor, "// any name you have not declared");
+
+        Assert.False(editor.IsCompletionOpen);
+    });
+
+    /// <summary>
+    /// <b>An open parenthesis says what the call wants</b> — `E6-T22`, and the defect it fixes is
+    /// that the only way to learn the parameters of <c>Circle.ByCentreNormalRadius</c> was to run
+    /// the graph and read the compiler error.
+    /// </summary>
+    [Fact]
+    public void AnOpenParenthesisShowsTheSignature() => OnUiThread(() =>
+    {
+        (Window _, CodeBlockEditor editor) = Open(Stub([]), Signatures());
+
+        Type(editor, "var c = Circle.ByCentreNormalRadius(");
+
+        Assert.True(editor.IsSignatureOpen);
+        Assert.Equal("ByCentreNormalRadius", editor.ActiveSignature?.Name);
+        Assert.Equal(0, editor.ActiveParameter);
+    });
+
+    /// <summary>The parameter being typed is the one the popup emphasises.</summary>
+    [Fact]
+    public void TheActiveParameterFollowsTheCommas() => OnUiThread(() =>
+    {
+        (Window _, CodeBlockEditor editor) = Open(Stub([]), Signatures(activeParameter: 2));
+
+        Type(editor, "var c = Circle.ByCentreNormalRadius(a, b,");
+
+        Assert.True(editor.IsSignatureOpen);
+        Assert.Equal(2, editor.ActiveParameter);
+    });
+
+    /// <summary>
+    /// <b>Alt+Down cycles the overloads while the popup is up</b>, and wraps — VS Code's binding,
+    /// and the reason Move Line Down has to yield to it for exactly as long as it is visible.
+    /// </summary>
+    [Fact]
+    public void AltDownCyclesTheOverloads() => OnUiThread(() =>
+    {
+        (Window _, CodeBlockEditor editor) = Open(Stub([]), Signatures());
+
+        Type(editor, "var c = Circle.ByCentreNormalRadius(");
+
+        Assert.Equal(2, editor.SignatureCount);
+
+        Key(editor, Avalonia.Input.Key.Down, KeyModifiers.Alt);
+
+        Assert.Equal("ByThreePoints", editor.ActiveSignature?.Name);
+
+        Key(editor, Avalonia.Input.Key.Down, KeyModifiers.Alt);
+
+        Assert.Equal("ByCentreNormalRadius", editor.ActiveSignature?.Name);
+    });
+
+    /// <summary>Escape closes the popup, and the text is untouched.</summary>
+    [Fact]
+    public void EscapeClosesTheSignature() => OnUiThread(() =>
+    {
+        (Window _, CodeBlockEditor editor) = Open(Stub([]), Signatures());
+
+        Type(editor, "var c = Circle.ByCentreNormalRadius(");
+        Key(editor, Avalonia.Input.Key.Escape);
+
+        Assert.False(editor.IsSignatureOpen);
+        Assert.Equal("var c = Circle.ByCentreNormalRadius(", editor.Text);
+    });
+
+    /// <summary>
+    /// <b>A caret that leaves the call closes the popup.</b> The source answers null once the
+    /// arguments are finished, and a popup that stays up describes a call the user has moved on
+    /// from while covering the one they are writing.
+    /// </summary>
+    [Fact]
+    public void LeavingTheCallClosesTheSignature() => OnUiThread(() =>
+    {
+        bool inside = true;
+
+        (Window _, CodeBlockEditor editor) = Open(
+            Stub([]),
+            (_, _, _) => Task.FromResult<CodeSignatureInfo?>(
+                inside ? new CodeSignatureInfo(Overloads, 0, 0) : null));
+
+        Type(editor, "var c = Circle.ByCentreNormalRadius(");
+
+        Assert.True(editor.IsSignatureOpen);
+
+        inside = false;
+        Type(editor, ")");
+
+        Assert.False(editor.IsSignatureOpen);
+    });
+
+    /// <summary>With no signature source — scripting off — a parenthesis does nothing.</summary>
+    [Fact]
+    public void WithNoSignatureSourceNothingOpens() => OnUiThread(() =>
+    {
+        (Window _, CodeBlockEditor editor) = Open(Stub([]));
+
+        Type(editor, "var c = Circle.ByCentreNormalRadius(");
+
+        Assert.False(editor.IsSignatureOpen);
+    });
+
+    /// <summary>
+    /// <b>The signature is placed by the caret's position on screen, not in the document</b> — the
+    /// same subtraction the completion list makes, and this is the second popup that the M1.5
+    /// spike's C3 finding now guards.
+    /// </summary>
+    [Fact]
+    public void TheSignatureFollowsTheCaretOnScreenRatherThanInTheDocument() => OnUiThread(() =>
+    {
+        (Window window, CodeBlockEditor editor) = Open(Stub(Members), Signatures());
+
+        editor.Text = string.Join('\n', Enumerable.Range(0, 200).Select(i => $"var line{i} = {i};"));
+        Layout(window);
+
+        TextEditor inner = Inner(editor);
+
+        inner.CaretOffset = inner.Document.GetOffset(180, 1);
+        inner.TextArea.Caret.BringCaretToView();
+        Layout(window);
+
+        double scrolled = inner.TextArea.TextView.ScrollOffset.Y;
+        Assert.True(scrolled > 100.0, $"the view should have scrolled: {scrolled}");
+
+        Pump(editor.RequestSignatureAsync());
+        Layout(window);
+
+        // Taken from the document position it would be two and a half thousand pixels below the
+        // control, which is to say invisible on every screenful but the first.
+        Assert.InRange(editor.SignatureOrigin.Y, 0.0, window.Height);
+    });
+
+    /// <summary>
+    /// <b>The signature hangs above the caret's line and the list below it</b>, so that a call
+    /// being written is described and completed at once with neither popup covering the other or
+    /// the code.
+    /// </summary>
+    /// <remarks>
+    /// Unscrolled on purpose. <c>BringCaretToView</c> in the headless session leaves the caret's
+    /// line exactly at the top edge, where both popups clamp to the pane's top and the ordering
+    /// cannot be seen — which is a property of the test harness rather than of the placement.
+    /// </remarks>
+    [Fact]
+    public void TheSignatureSitsAboveTheList() => OnUiThread(() =>
+    {
+        (Window window, CodeBlockEditor editor) = Open(Stub(Members), Signatures());
+
+        editor.Text = "var a = 1;\nvar b = 2;\nvar c = Circle.ByCentreNormalRadius(";
+        Layout(window);
+
+        Pump(editor.RequestSignatureAsync());
+        Pump(editor.RequestCompletionAsync());
+        Layout(window);
+
+        Assert.True(editor.IsSignatureOpen);
+        Assert.True(
+            editor.SignatureOrigin.Y < editor.CompletionOrigin.Y,
+            $"the signature ({editor.SignatureOrigin.Y}) sits above the list ({editor.CompletionOrigin.Y})");
+    });
+
     private static Func<string, int, CancellationToken, Task<IReadOnlyList<CodeCompletionCandidate>>> Stub(
         IReadOnlyList<CodeCompletionCandidate> answer) =>
         (_, _, _) => Task.FromResult(answer);
+
+    /// <summary>A signature source that always answers the same overloads.</summary>
+    private static Func<string, int, CancellationToken, Task<CodeSignatureInfo?>> Signatures(
+        int activeParameter = 0,
+        params CodeSignatureCandidate[] overloads) =>
+        (_, _, _) => Task.FromResult<CodeSignatureInfo?>(
+            new CodeSignatureInfo(overloads.Length > 0 ? overloads : Overloads, 0, activeParameter));
 
     /// <summary>Appends text the way a user types it, so the control's own handlers run.</summary>
     private static void Type(CodeBlockEditor editor, string text)
@@ -251,7 +510,7 @@ public sealed class CodeBlockEditorTests
         }
     }
 
-    private static void Key(CodeBlockEditor editor, Key key)
+    private static void Key(CodeBlockEditor editor, Key key, KeyModifiers modifiers = KeyModifiers.None)
     {
         TextEditor inner = Inner(editor);
 
@@ -259,6 +518,7 @@ public sealed class CodeBlockEditorTests
         {
             RoutedEvent = InputElement.KeyDownEvent,
             Key = key,
+            KeyModifiers = modifiers,
             Source = inner,
         });
     }
@@ -270,9 +530,10 @@ public sealed class CodeBlockEditorTests
         editor.GetVisualDescendants().OfType<TextEditor>().First();
 
     private static (Window Window, CodeBlockEditor Editor) Open(
-        Func<string, int, CancellationToken, Task<IReadOnlyList<CodeCompletionCandidate>>>? source = null)
+        Func<string, int, CancellationToken, Task<IReadOnlyList<CodeCompletionCandidate>>>? source = null,
+        Func<string, int, CancellationToken, Task<CodeSignatureInfo?>>? signatures = null)
     {
-        CodeBlockEditor editor = new() { CompletionSource = source };
+        CodeBlockEditor editor = new() { CompletionSource = source, SignatureSource = signatures };
         Window window = new() { Width = 600, Height = 400, Content = editor };
 
         window.Show();

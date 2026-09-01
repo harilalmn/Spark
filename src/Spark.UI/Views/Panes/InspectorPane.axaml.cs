@@ -35,6 +35,11 @@ public sealed partial class InspectorPane : UserControl
                 DataContext is MainWindowViewModel model
                     ? model.CompleteScriptAsync(code, caret, token)
                     : System.Threading.Tasks.Task.FromResult<IReadOnlyList<Views.Controls.CodeCompletionCandidate>>([]);
+
+            _script.SignatureSource = (code, caret, token) =>
+                DataContext is MainWindowViewModel model
+                    ? model.SignatureScriptAsync(code, caret, token)
+                    : System.Threading.Tasks.Task.FromResult<Views.Controls.CodeSignatureInfo?>(null);
         }
 
         // The view model raises `ScriptText` when the selection changes, and that - not a

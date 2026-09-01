@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-02 (N93-N94 added)
+**Last updated:** 2026-09-01 (N95-N96 added)
 
 ---
 
@@ -2618,3 +2618,58 @@ so importing it makes `Math.PI` ambiguous in every script already written — in
 example in `concepts/code-blocks.md`. Generated examples are fully qualified instead, which is
 also the only thing that can work for a package whose namespace nobody can predict.
 
+---
+
+## N95 — Roslyn publishes completion as a service and signature help not at all
+
+`CompletionService.GetService(document)` is public, documented and is what `ScriptCompletion`
+uses. Its sibling for signature help is not: `ISignatureHelpProvider`, `SignatureHelpItems` and
+every provider in `Microsoft.CodeAnalysis.CSharp.Features` are `internal`, reachable only through
+`InternalsVisibleTo` on assemblies we are not. There is no public equivalent, and looking for one
+costs an afternoon.
+
+**The semantic model answers the same question directly**, and `ScriptSignature` is forty lines of
+it: find the innermost `ArgumentList` whose parentheses straddle the caret, ask
+`GetMemberGroup` for the expression being called — or the type's `InstanceConstructors` for a
+`new` — and count the argument separators before the caret for the active parameter.
+
+**Use the member group, not the resolved symbol, and this is the part that is easy to get
+backwards.** Signature help is wanted precisely while a call is *unfinished*:
+`Circle.ByCentreNormalRadius(` has no arguments at all, overload resolution therefore fails, and
+`GetSymbolInfo(...).Symbol` is null exactly when the popup should appear. `GetMemberGroup` answers
+with every accessible overload regardless of whether the call binds, which is also the list the
+popup cycles through. `SymbolInfo.CandidateSymbols` is the fallback for the positions where a
+*finished* call has an empty member group.
+
+**The caret is one past the character just typed, so the token is looked up at `caret - 1`.**
+`FindToken(caret)` on `Foo(` lands past the call entirely; `FindToken(caret - 1)` lands on the
+open parenthesis, whose parent is the argument list. And the closing parenthesis is normally
+*missing* while typing — a missing token has a zero-width span at the end of the text, so treating
+it as the far edge of the list is right in the finished and the unfinished case alike.
+
+---
+
+## N96 — IDE0055 can be true of code that has been in the tree for days and silent until you touch the file
+
+`ScriptCompletion.cs` had a comment block sitting inside a fluent chain, after a blank line:
+
+```csharp
+ProjectInfo project = ProjectInfo
+    .Create(...)
+    .WithCompilationOptions(...)
+
+    // A code block is a *script*, not a compilation unit, and Roslyn has to be told: ...
+    .WithParseOptions(...);
+```
+
+That is an IDE0055 violation. The build did not say so — not with `--no-incremental`, not with
+`-warnaserror`, and `dotnet format --verify-no-changes` did not want to change it either.
+**Adding any member to the file made all five diagnostics appear at once**, pointing at lines
+nobody had edited, which reads exactly like a change breaking unrelated code. Reverting the
+addition made them vanish again; a trivial `public int Foo() => 1;` brought them back.
+
+**So a green formatting gate is evidence about the files that changed, and weaker evidence about
+the rest.** The fix here was to hoist the comment above the statement, which is where it belonged.
+The thing to remember is the diagnosis: *formatting errors on lines you did not touch, in a file
+you did touch, are probably older than your change* — read them before assuming your edit caused
+them, and do not "fix" your own new code to make them go away.

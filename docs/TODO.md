@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-02 (E6-T20 closed; N90 explained)
+**Last updated:** 2026-09-01 (E6-T22 and E6-T23 closed: signature help, and a list that opens after `=` and `new`)
 
 **M0 through M6 have all landed. M7 has started.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are

@@ -599,6 +599,14 @@ diverge most; rework is budgeted there specifically.
       decisions and are offered as two**; a store that recorded every run would turn a one-off
       into a standing permission. Required packages are `E7`'s to list, and the banner has
       the place for them.
+- [x] **The editor tells you what a call wants while you are writing it** (**E6-T22**) — done
+      2026-09-01. Signature help over the same Roslyn document and the same references as the
+      completion list, hanging above the caret's line with the active parameter in bold, and
+      following the wires the same way the list does. Roslyn publishes no service for this, so it
+      is the semantic model directly ([N95](NOTES.md)).
+- [x] **The list opens where a person expects it to** (**E6-T23**) — done 2026-09-01. A dot, `=`,
+      the space after `new` or an assignment, and the first letter of an identifier; not inside a
+      comment or a string, and not after `==` or `=>`.
 - [ ] A graph containing no script nodes never loads `Spark.Scripting` (**E6-T14**).
 
 **Status.** **Complete except the docked C# Script Node (E6-T14's second half), as of

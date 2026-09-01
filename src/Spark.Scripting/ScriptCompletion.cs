@@ -99,17 +99,16 @@ public sealed class ScriptCompletion : IDisposable
             Assembly.Load("Microsoft.CodeAnalysis.CSharp.Workspaces"),
         ]));
 
+        // A code block is a *script*, not a compilation unit, and Roslyn has to be told: parsed as
+        // SourceCodeKind.Regular, `var p = new Point3d(...);` at the top of a file is a syntax
+        // error, the semantic model has nothing to say about it, and completion returns an empty
+        // list with no error anywhere.
         ProjectInfo project = ProjectInfo
             .Create(ProjectId.CreateNewId(), VersionStamp.Create(), "Script", "Script", LanguageNames.CSharp)
             .WithMetadataReferences(metadata)
             .WithCompilationOptions(new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 usings: [.. usings]))
-
-            // A code block is a *script*, not a compilation unit, and Roslyn has to be told:
-            // parsed as SourceCodeKind.Regular, `var p = new Point3d(...);` at the top of a file
-            // is a syntax error, the semantic model has nothing to say about it, and completion
-            // returns an empty list with no error anywhere.
             .WithParseOptions(new CSharpParseOptions(kind: SourceCodeKind.Script));
 
         _projectId = _workspace.AddProject(project).Id;
@@ -195,6 +194,50 @@ public sealed class ScriptCompletion : IDisposable
                 item.Tags.Length > 0 ? item.Tags[0] : string.Empty,
                 item.SortText)),
         ];
+    }
+
+    /// <summary>
+    /// Asks which overloads the call around the caret has, and which parameter is being typed.
+    /// </summary>
+    /// <param name="code">The snippet, as the editor currently holds it.</param>
+    /// <param name="caret">The caret offset, in characters from the start.</param>
+    /// <param name="inputs">The block's input ports and their wire types, exactly as for
+    /// <see cref="CompleteAsync"/>.</param>
+    /// <param name="cancellationToken">Cancels a slow request — a keystroke supersedes it.</param>
+    /// <returns>The overloads, or null when the caret is not inside a call's arguments.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="code"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown when <paramref name="caret"/> is outside the snippet.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>The same document, the same references and the same port declarations as the completion
+    /// list</b>, for `E6-T13`'s reason: a signature that disagrees with the compiler is worse than
+    /// no signature, because the user believes it. Sharing one <see cref="ScriptCompletion"/> is
+    /// also what keeps Roslyn's MEF composition to one per session rather than two.
+    /// </para>
+    /// <para>
+    /// <b>Everything below this is syntax and symbols rather than a service</b>, because Roslyn
+    /// does not publish one for signature help — see <see cref="ScriptSignature"/>.
+    /// </para>
+    /// </remarks>
+    public async Task<ScriptSignatureHelp?> SignatureAsync(
+        string code,
+        int caret,
+        IReadOnlyDictionary<string, Type?>? inputs = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(code);
+        ArgumentOutOfRangeException.ThrowIfNegative(caret);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(caret, code.Length);
+
+        string prefix = Declarations(inputs);
+
+        Document document = Replace(prefix + code);
+
+        return await ScriptSignature
+            .FindAsync(document, caret + prefix.Length, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>Puts the current text into the one script document, creating it once.</summary>

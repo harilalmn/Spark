@@ -54,19 +54,14 @@ public readonly record struct CodeCompletionCandidate(string DisplayText, string
 /// </remarks>
 public sealed partial class CodeBlockEditor : UserControl
 {
-    /// <summary>The characters that open the list without being asked.</summary>
-    /// <remarks>
-    /// A dot only. Opening on every letter is what a language service in an IDE does and it is
-    /// wrong in a one-line editor: the list covers the code the moment you begin a variable name.
-    /// Ctrl+Space is the explicit request.
-    /// </remarks>
-    private const char TriggerCharacter = '.';
-
     private readonly ObservableCollection<CodeCompletionCandidate> _candidates = [];
 
     private readonly TextEditor? _editor;
     private readonly Border? _frame;
     private readonly ListBox? _list;
+    private readonly Border? _signatureFrame;
+    private readonly TextBlock? _signatureText;
+    private readonly TextBlock? _signatureOverloads;
     private CancellationTokenSource? _pending;
     private int _filterStart;
     private bool _suppressTextChanged;
@@ -79,6 +74,9 @@ public sealed partial class CodeBlockEditor : UserControl
         _editor = this.FindControl<TextEditor>("Editor");
         _frame = this.FindControl<Border>("CompletionFrame");
         _list = this.FindControl<ListBox>("CompletionList");
+        _signatureFrame = this.FindControl<Border>("SignatureFrame");
+        _signatureText = this.FindControl<TextBlock>("SignatureText");
+        _signatureOverloads = this.FindControl<TextBlock>("SignatureOverloads");
 
         if (_list is not null)
         {
@@ -254,14 +252,34 @@ public sealed partial class CodeBlockEditor : UserControl
         }
 
         int caret = _editor.CaretOffset;
+        string text = document.Text;
+        char typed = caret > 0 && caret <= text.Length ? text[caret - 1] : '\0';
 
-        if (IsCompletionOpen)
+        // An open signature popup is re-asked on every change, because its whole content is the
+        // parameter the caret is on: a comma moves it and a `)` ends it, and a popup that
+        // remembers the answer to a question the caret has moved past is worse than none at all.
+        if (IsSignatureOpen || typed is '(' or ',' or ')')
         {
-            Filter();
-            return;
+            _ = RequestSignatureAsync();
         }
 
-        if (caret > 0 && document.GetCharAt(caret - 1) == TriggerCharacter)
+        // **A word narrows the open list; anything else ends it and is then offered to the trigger
+        // rules afresh.** Without the second half, opening on `=` would be pointless: the space
+        // after it matches no candidate, so the list would close half a keystroke after it opened
+        // and never come back. Closing and re-asking is also what makes `centre.Position.` list
+        // the second type rather than filtering the first one to nothing.
+        if (IsCompletionOpen)
+        {
+            if (Identifier(typed))
+            {
+                Filter();
+                return;
+            }
+
+            Close();
+        }
+
+        if (Opens(text, caret))
         {
             _ = RequestCompletionAsync();
         }
@@ -272,13 +290,41 @@ public sealed partial class CodeBlockEditor : UserControl
         if (e.Key == Key.Space && e.KeyModifiers.HasFlag(KeyModifiers.Control))
         {
             e.Handled = true;
-            _ = RequestCompletionAsync();
+
+            // Ctrl+Space asks what can be written here; Ctrl+Shift+Space asks what the call being
+            // written wants. VS Code spells them the same way, and this editor is judged against
+            // VS Code by everybody who opens it.
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+            {
+                _ = RequestSignatureAsync();
+            }
+            else
+            {
+                _ = RequestCompletionAsync();
+            }
+
+            return;
+        }
+
+        // **Cycling overloads outranks moving lines, and only while the popup is up.** Alt+Up and
+        // Alt+Down are Move Line Up and Move Line Down (`E6-T24`) at every other moment; VS Code
+        // resolves the same collision the same way, by letting the visible popup win.
+        if (IsSignatureOpen && e.KeyModifiers.HasFlag(KeyModifiers.Alt) && e.Key is Key.Up or Key.Down)
+        {
+            CycleSignature(e.Key == Key.Up ? -1 : 1);
+            e.Handled = true;
 
             return;
         }
 
         if (!IsCompletionOpen || _list is null)
         {
+            if (e.Key == Key.Escape && IsSignatureOpen)
+            {
+                CloseSignature();
+                e.Handled = true;
+            }
+
             return;
         }
 
@@ -312,6 +358,7 @@ public sealed partial class CodeBlockEditor : UserControl
     private void OnEditorLostFocus(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         Close();
+        CloseSignature();
         Committed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -450,6 +497,115 @@ public sealed partial class CodeBlockEditor : UserControl
         {
             _frame.IsVisible = false;
         }
+    }
+
+    /// <summary>Whether what was just typed should open the completion list unasked.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Four openings, and the last three were asked for from the running application.</b> A dot
+    /// was the only one, on the reasoning that opening on every letter covers the code in a narrow
+    /// pane — which was right about a one-line editor and wrong about the pane this became. The
+    /// client's report is exact: <c>var circle = </c> and <c>new </c> are the two places a person
+    /// most wants to be told what exists, and both were silent unless Ctrl+Space was pressed.
+    /// </para>
+    /// <para>
+    /// <b>The first letter of an identifier opens the list; the rest of the word filters it.</b>
+    /// That is what keeps this to one request per word rather than one per keystroke, and it is
+    /// also why a prefix that has matched nothing stays closed until the next word — the list shut
+    /// because the user is writing a name Roslyn has never heard of, and reopening it on every
+    /// further letter would be arguing with them.
+    /// </para>
+    /// </remarks>
+    /// <param name="text">The document, as it now reads.</param>
+    /// <param name="caret">Where the caret is, immediately after the character just typed.</param>
+    private static bool Opens(string text, int caret)
+    {
+        if (caret <= 0 || caret > text.Length)
+        {
+            return false;
+        }
+
+        char typed = text[caret - 1];
+
+        if (Quoted(text, caret))
+        {
+            return false;
+        }
+
+        if (typed == '.')
+        {
+            return true;
+        }
+
+        // `=` opens the list; `==`, `!=`, `<=`, `>=` and `=>` are comparisons and lambdas, and a
+        // list of everything in scope is not what somebody writing one is asking for.
+        if (typed == '=')
+        {
+            return !Operator(text, caret - 2);
+        }
+
+        // A space opens it after `new` and after an assignment, which are the two places where the
+        // next thing typed is a name the user is trying to remember.
+        if (typed == ' ')
+        {
+            string before = text[..(caret - 1)].TrimEnd();
+
+            if (before.EndsWith("new", StringComparison.Ordinal)
+                && (before.Length == 3 || !Identifier(before[^4])))
+            {
+                return true;
+            }
+
+            return before.EndsWith('=') && !Operator(before, before.Length - 2);
+        }
+
+        return Identifier(typed) && !char.IsDigit(typed) && WordStart(text, caret) == caret - 1;
+    }
+
+    /// <summary>Whether a character can appear in an identifier.</summary>
+    private static bool Identifier(char c) => char.IsLetterOrDigit(c) || c == '_';
+
+    /// <summary>Whether the character at an offset makes an `=` after it part of a longer operator.</summary>
+    private static bool Operator(string text, int index) =>
+        index >= 0 && index < text.Length && "=!<>+-*/%&|^".Contains(text[index], StringComparison.Ordinal);
+
+    /// <summary>Whether the caret is inside a line comment, or a string on its own line.</summary>
+    /// <remarks>
+    /// <b>A heuristic, and it can only ever suppress a request.</b> Roslyn answers an empty list
+    /// inside a comment anyway, so the worst this can be wrong by is one request that would have
+    /// come back with nothing — which is why it is a scan of one line rather than a lexer. Block
+    /// comments and verbatim strings that span lines are not tracked, for the same reason.
+    /// </remarks>
+    private static bool Quoted(string text, int caret)
+    {
+        int start = text.LastIndexOf('\n', Math.Min(caret - 1, text.Length - 1)) + 1;
+
+        bool inString = false;
+        bool inChar = false;
+
+        for (int i = start; i < caret; i++)
+        {
+            char c = text[i];
+
+            if (c == '\\' && (inString || inChar))
+            {
+                i++;
+            }
+            else if (c == '"' && !inChar)
+            {
+                inString = !inString;
+            }
+            else if (c == '\'' && !inString)
+            {
+                inChar = !inChar;
+            }
+            else if (c == '/' && !inString && !inChar && i + 1 < caret && text[i + 1] == '/')
+            {
+                return true;
+            }
+        }
+
+        return inString || inChar;
     }
 
     /// <summary>Where the identifier under the caret begins.</summary>
