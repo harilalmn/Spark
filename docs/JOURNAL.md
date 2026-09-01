@@ -5647,8 +5647,8 @@ provider*. No installer was packed, `gh release create` never ran, and the page 
 source archives GitHub generates by itself. The tag is real, the release was not.
 
 **Why.** The job called `scripts/build-native.ps1` bare, exactly as a person does here. The script
-looks for vcpkg in `VCPKG_ROOT`, then `C:\devcpkg`, then `C:cpkg` — and a `windows-latest`
-image **has** vcpkg at `C:cpkg` with no ports built in it. So it found a vcpkg, and OpenCascade
+looks for vcpkg in `VCPKG_ROOT`, then `C:\dev\vcpkg`, then `C:\vcpkg` — and a `windows-latest`
+image **has** vcpkg at `C:\vcpkg` with no ports built in it. So it found a vcpkg, and OpenCascade
 was not in it. `ci.yml` has had the three steps that make this work since `E13-T15`: a cache key
 from the port manifest, `vcpkg install opencascade:x64-windows`, and the script called with
 `-VcpkgRoot $env:VCPKG_INSTALLATION_ROOT`. The release job never got them ([N102](NOTES.md)).
