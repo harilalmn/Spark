@@ -169,10 +169,24 @@ public sealed class CanvasCreateRequestedEventArgs(
 public sealed class GraphCanvas : Control
 {
     private const double CornerRadius = 6;
-    private const double PortRadius = 2.5;
-    private const double PortHoverRadius = 3.5;
-    private const double PortHitScreenSize = 14;
-    private const double PortMinimumHitScreenSize = 10;
+    /// <summary>The radius of a port disc, in world units — a 7 px disc at 100%.</summary>
+    /// <remarks>
+    /// <b>Grown from 5 px on a user's report that the dots were hard to pick.</b> The design
+    /// language's §7.4 row moves with it: 7 px at rest, 9 px hovered, over an 18 px hit target.
+    /// A port is the smallest thing on the canvas anybody has to aim at, and it is the one that
+    /// starts every wire.
+    /// </remarks>
+    private const double PortRadius = 3.5;
+    private const double PortHoverRadius = 4.5;
+    private const double PortHitScreenSize = 18;
+    private const double PortMinimumHitScreenSize = 14;
+    /// <summary>How far a press may travel, in screen pixels, and still count as a click.</summary>
+    /// <remarks>
+    /// A hand on a mouse moves a pixel or two between press and release, and a wire that refused to
+    /// arm because of it would be a feature that works for some people and not others.
+    /// </remarks>
+    private const double ClickSlopScreen = 3;
+
     private const double WireHitScreenSize = 6;
     private const int WireHitSamples = 16;
     private const double GlyphFontSize = 12;
@@ -235,6 +249,7 @@ public sealed class GraphCanvas : Control
     private int _focusNode = -1;
     private CanvasPort? _hoverPort;
     private CanvasPort? _dragSourcePort;
+    private bool _wireDragMoved;
     private CanvasWire? _selectedWire;
     private CanvasNote? _selectedNote;
     private CanvasNote? _hoverNote;
@@ -312,6 +327,12 @@ public sealed class GraphCanvas : Control
         DraggingNodes,
         Marquee,
         DraggingWire,
+
+        /// <summary>
+        /// A port has been <i>clicked</i>, and the wire is following the pointer with no button
+        /// held until a second click lands (`E8-T34`).
+        /// </summary>
+        PendingWire,
         DraggingNote,
         DraggingGroup,
         DraggingSlider,
@@ -577,11 +598,46 @@ public sealed class GraphCanvas : Control
         }
 
         CanvasPort? port = HitTestPort(world);
+
+        // THE SECOND CLICK OF A TWO-CLICK CONNECTION (`E8-T34`).
+        //
+        // Asked for directly: dragging a wire from one port to another is precise work with the
+        // button held, and on a trackpad it is worse than that. So a click on a port arms it, the
+        // wire follows the pointer, and a click on a second port finishes the connection. The drag
+        // is untouched and still works - this is an addition, not a replacement, because a drag is
+        // what everybody who has used a node editor before will try first.
+        if (_mode == InteractionMode.PendingWire && _dragSourcePort is { } armed)
+        {
+            StandDownPendingWire();
+
+            if (port is { } second && !PortEquals(second, armed))
+            {
+                TryConnect(armed, second);
+                e.Handled = true;
+                InvalidateVisual();
+
+                return;
+            }
+
+            // A click on the armed port itself cancels and stops there; a click anywhere else
+            // cancels and then does whatever that click would ordinarily have done, because a
+            // pending wire must never swallow a selection.
+            InvalidateVisual();
+
+            if (port is not null)
+            {
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (port is not null)
         {
             _mode = InteractionMode.DraggingWire;
             _dragSourcePort = port;
             _dragWireWorldEnd = world;
+            _dragStartWorld = world;
+            _wireDragMoved = false;
             _dragOutcome = WireOutcome.Refused;
             _selectedWire = null;
             e.Pointer.Capture(this);
@@ -810,6 +866,13 @@ public sealed class GraphCanvas : Control
                 return;
 
             case InteractionMode.DraggingWire:
+            case InteractionMode.PendingWire:
+                // A press that has travelled further than a hand shakes is a drag, and a drag
+                // ends where it is released rather than arming a second click.
+                _wireDragMoved = _wireDragMoved
+                    || (Math.Abs(world.X - _dragStartWorld.X) * _transform.Zoom) > ClickSlopScreen
+                    || (Math.Abs(world.Y - _dragStartWorld.Y) * _transform.Zoom) > ClickSlopScreen;
+
                 _dragWireWorldEnd = world;
                 _hoverPort = HitTestPort(world);
                 _dragOutcome = EvaluateDrag(_dragSourcePort, _hoverPort);
@@ -844,8 +907,10 @@ public sealed class GraphCanvas : Control
                 CommitMarquee();
                 break;
 
-            case InteractionMode.DraggingWire when _dragSourcePort is { } source && _hoverPort is { } target:
+            case InteractionMode.DraggingWire
+                when _dragSourcePort is { } source && _hoverPort is { } target && !PortEquals(source, target):
                 TryConnect(source, target);
+                _wireDragMoved = true;
                 break;
 
             // The whole drag becomes one undo step here, having already run the graph on every
@@ -892,10 +957,34 @@ public sealed class GraphCanvas : Control
                 break;
         }
 
-        _mode = InteractionMode.None;
-        _dragSourcePort = null;
+        // A press and release on one port, with no travel in between, is a *click*: the wire stays
+        // armed and waits for a second one. Every other release ends the interaction.
+        bool armed = _mode is InteractionMode.DraggingWire && !_wireDragMoved && _dragSourcePort is not null;
+
+        _mode = armed ? InteractionMode.PendingWire : InteractionMode.None;
+
+        if (!armed)
+        {
+            _dragSourcePort = null;
+        }
+
         e.Pointer.Capture(null);
         InvalidateVisual();
+    }
+
+    /// <summary>Whether two ports are the same port.</summary>
+    private static bool PortEquals(CanvasPort left, CanvasPort right) =>
+        left.NodeIndex == right.NodeIndex
+        && left.PortIndex == right.PortIndex
+        && left.IsOutput == right.IsOutput;
+
+    /// <summary>Cancels a wire that a click armed, leaving everything else alone.</summary>
+    private void StandDownPendingWire()
+    {
+        _mode = InteractionMode.None;
+        _dragSourcePort = null;
+        _wireDragMoved = false;
+        _dragOutcome = WireOutcome.Refused;
     }
 
     /// <inheritdoc/>
@@ -961,6 +1050,14 @@ public sealed class GraphCanvas : Control
         {
             case Key.Home:
                 ZoomToFit();
+                e.Handled = true;
+                break;
+
+            // Before the selection, because a pending wire is the more recent thing the user
+            // started and is the one they mean to abandon.
+            case Key.Escape when _mode is InteractionMode.PendingWire:
+                StandDownPendingWire();
+                InvalidateVisual();
                 e.Handled = true;
                 break;
 
@@ -1992,7 +2089,8 @@ public sealed class GraphCanvas : Control
 
     private void DrawDragWire(DrawingContext context, in FramePens pens)
     {
-        if (_mode is not InteractionMode.DraggingWire || _dragSourcePort is not { } source)
+        if (_mode is not (InteractionMode.DraggingWire or InteractionMode.PendingWire)
+            || _dragSourcePort is not { } source)
         {
             return;
         }

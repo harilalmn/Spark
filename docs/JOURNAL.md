@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 19:05 +0530
+**Last updated:** 2026-09-01 19:55 +0530
 **Protocol version:** 2
 
 ---
@@ -19,9 +19,9 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | **Nothing. The tree is clean and the gates are green.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E8-T33` — *Reset layout* rebuilds the shell instead of adjusting it.** A user dragged all four panes around until the window was empty and the command did nothing: Dock had removed the docks the factory recorded and made new ones, so every proportion was being set on an orphan ([N101](NOTES.md)). Reset now raises its own event and the window builds the layout again from the same four pane controls, dropping the old tree first and closing any floating windows the dragging produced. **2,346 tests.** |
+| **Last completed step** | **`E8-T34` — a wire can be made with two clicks, and a port is big enough to aim at.** A click on a port arms it and the wire follows the pointer with no button held; a second click connects. The drag is untouched. The port disc is 7 px over an 18 px hit target, up from 5 over 14, and the design language moved with it. **2,350 tests.** |
 | **Working tree** | Clean at the moment this was written. |
-| **Next action** | **Take the client's next request: a node's title text and title-bar colour should be editable** — the properties pane is where it belongs, since `D-context-menu` is still deferred and that pane already renames notes and groups. It needs a per-instance title and colour on `CanvasNode`, the canvas drawing them, a `.spark` round trip, an undo step each, and the design language's contrast floor honoured rather than assumed. **Then the queue as it stood**: cut the first release when the client says so, then the Help pass — `E10-T3`, `E11-T2`'s `<example>` half, E10-T9/T10/T12/T14 — and the code editor has earned two topics of its own. |
+| **Next action** | **Take the client's other outstanding request: a node's title text and title-bar colour should be editable.** It needs a per-instance title and colour on `CanvasNode` (the title decides the node's width, so it has to re-measure), the canvas drawing them, a `.spark` round trip, an undo step each, and the properties pane as the place to edit both — `D-context-menu` is still deferred and that pane already renames notes and groups. **The colours are swatches from the design language's own category palette rather than a picker**, because those are the ones whose contrast against the title text is already measured; an arbitrary picker needs the text to flip between light and dark by luminance, which is a second pass. **Then the queue as it stood**: cut the first release when the client says so, then the Help pass. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2343**: Geometry.Tests 763, UI.Tests 765, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets. **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
@@ -5431,4 +5431,30 @@ build — and close the application before running the gates.
 today — `WorkspaceLayout.ToJson`/`FromJson` exist and nothing calls them — which is why the
 immediate workaround for the user was "restart". Persisting a *broken* layout would turn the escape
 hatch into the trap, so persistence and this rebuild have to land together.
+
+### 2026-09-01 — `E8-T34`: two clicks make a wire, and the ports are big enough to hit
+
+**What.** Two requests from the client, both about the same twenty pixels.
+
+*Click to connect.* A click on a port now arms it: the wire follows the pointer with no button
+held, and a click on a second port connects. **The drag is untouched** — it is what anybody who has
+used a node editor before will try first, so this is an addition rather than a replacement. A press
+that travels more than 3 px is a drag and ends where it is released; one that does not is a click
+and arms. Escape abandons a pending wire, and so does a click on empty canvas — which then still
+does whatever that click would ordinarily have done, because a pending wire must never swallow a
+selection.
+
+*Bigger ports.* The disc went from 5 px to 7 px, hover from 7 to 9, and the hit target from 14 px
+to 18. **The disc grew as well as the target on purpose**: an invisible margin that works is still
+a control that looks wrong, and the complaint was that the dots were hard to *pick*, which is both
+halves at once.
+
+**The design language moved with the code.** §7.4's port row, the zoom table's *5–7 px* and the
+level-of-detail row's *4 px discs* are all numbers other people read as specification, so leaving
+them would have made that document wrong rather than merely out of date.
+
+**Verified.** Four new tests — two clicks connect, a click away abandons, Escape abandons, and a
+port is picked from 8 px off centre — **2,350 tests** across the nine executables, build and format
+clean. The two-click test fails without the change, because the first release ends the interaction
+and the second click has nothing to complete.
 

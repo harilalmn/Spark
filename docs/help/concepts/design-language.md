@@ -519,7 +519,7 @@ For every interactive element. "L−1", "L−2" refer to the state ladder in
 | **Menu item** | E0 on `surface.float` | fill → L−1 (11.42 → 12.66) | fill → L−2 | focus sandwich | check glyph in `accent` | `text.disabled` (4.56:1), no hover | n/a |
 | **Tab** | E0, `text.secondary`, no depth | fill → L−1, text → `text.primary` | fill → L−2 | focus sandwich | E2 raised, fill `surface.raised`, `text.primary`, 2 px `accent` bottom bar | `text.disabled`, no hover | 6 px `state.error` dot after the label |
 | **Node** | E2, `node.body`, category header | body → L−1, header → +14% white, lip → `lip.hover`, ports grow 5→7 px | n/a (drag begins) | focus sandwich outside the node outline **plus corner ticks** | 2 px `accent` ring + body → L−1 + header underline | frozen, not disabled — see [§7.7](#77-frozen-preview-off-and-not-evaluated) | 2 px `state.error` ring + `✕` glyph in the header + badge |
-| **Port** | 5 px disc, `port.rest` `#8A93A2` (4.59:1 on `node.body`) | 7 px, 2 px `accent` ring, 14 px hit target | wire begins | 2 px `accent` ring + focus sandwich | ring in `accent` | n/a | 2 px `state.error` ring on a required-but-empty input |
+| **Port** | 7 px disc, `port.rest` `#8A93A2` (4.59:1 on `node.body`) | 9 px, 2 px `accent` ring, 18 px hit target | wire begins | 2 px `accent` ring + focus sandwich | ring in `accent` | n/a | 2 px `state.error` ring on a required-but-empty input |
 | **Wire** | 1.75 px `wire.core` over 3.75 px `wire.casing` | core → 2.25 px, `accent.hover` | n/a | focus sandwich along the path | core → `accent`, 2.5 px | greyed with the not-evaluated node it feeds | `state.error` core |
 
 ### 5.3 Worked hover ratios
@@ -667,7 +667,7 @@ zoom nodes degrade to plain category-coloured rectangles with no text at all.
 | Header | 22 px | full category colour | `text.inverse`, 12 px / 600 |
 | Body | content | `node.body` `#262B33` | `text.secondary`, 11 px / 400 |
 | Outline | 1 px | `border.control` `#7C8595` | — |
-| Ports | 5–7 px | `port.rest` / `port.connected` | — |
+| Ports | 7–9 px | `port.rest` / `port.connected` | — |
 | Preview toggle | 14 px pill | E2 raised (on) / E1 inset (off) | — |
 | Corner radius | 6 px | — | — |
 
@@ -736,10 +736,10 @@ paying for itself, and something cheaper takes over its job.
 
 | Zoom | Depth | Text | Ports | Boundary | What carries identity |
 |---|---|---|---|---|---|
-| **≥100%** | Full E2: shadow, highlight, lip | header 12 px, ports 11 px, port types 10 px, preview label | shaped, 5–7 px, rank glyphs | 1 px `border.control` | Header colour + title + glyph |
+| **≥100%** | Full E2: shadow, highlight, lip | header 12 px, ports 11 px, port types 10 px, preview label | shaped, 7–9 px, rank glyphs | 1 px `border.control` | Header colour + title + glyph |
 | **82–100%** | Highlight half dropped (6 px blur → under 5 px device) | all | all | 1 px | as above |
 | **73–82%** | Shadow dropped entirely; lip retained | **port types dropped** (10 px × 0.82 = 8.2 px); names stay | shapes → plain discs | 1 px | Header colour + title |
-| **67–73%** | Lip dropped; E0 flat | port labels dropped (11 px × 0.73 = 8.03 px) | 4 px discs | 1 px | Header colour + title |
+| **67–73%** | Lip dropped; E0 flat | port labels dropped (11 px × 0.73 = 8.03 px) | 5 px discs | 1 px | Header colour + title |
 | **40–67%** | E0 flat | **all text dropped** (12 px × 0.67 = 8.04 px); body fill begins lerping toward the category colour at 60% | 2 px screen-space dots | 1 px | Header colour, growing |
 | **<40%** (ADR-0013 LOD) | E0 flat | none | none; wires terminate at the node edge | none — the fill is ≥5.39:1 on its own | **Category colour alone** |
 
@@ -868,6 +868,12 @@ port rather than stopping next to it.
 
 The **hit target is 14 × 14 px regardless of the drawn size**, and it does not shrink below 10 px
 of screen space as you zoom out. Ports are the smallest thing anyone has to aim at in the product.
+
+**The port disc is 7 px and its hit target is 18.** It was 5 px over 14 and a user reported that
+the dots were hard to pick — which is the one complaint a canvas cannot argue with, because a port
+is the smallest thing anybody has to aim at and it is where every wire starts. The disc grew with
+the target rather than only the target growing: an invisible margin that works is still a control
+that looks wrong.
 
 **Beside the port name, in `text.muted` at 10 px, is the type the port wants.** `centre  Point3d`.
 `radius  number`. `sweepAngle  degrees`. Without it a port is a word and not an instruction: a user

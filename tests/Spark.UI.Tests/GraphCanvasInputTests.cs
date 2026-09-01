@@ -266,6 +266,104 @@ public sealed class GraphCanvasInputTests
         Assert.False(canvas.Graph.Wires[0].To.IsOutput);
     });
 
+    /// <summary>
+    /// <b>Two clicks connect, without holding the button down</b> — `E8-T34`, asked for directly:
+    /// dragging between two small targets is precise work, and worse on a trackpad.
+    /// </summary>
+    [Fact]
+    public void ClickingAPortAndThenAnotherCreatesAWire() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+
+        canvas.Graph.Nodes[0].OutputPortCentre(0, out double fromX, out double fromY);
+        canvas.Graph.Nodes[1].InputPortCentre(0, out double toX, out double toY);
+
+        Point from = Screen(canvas, fromX, fromY);
+        Point to = Screen(canvas, toX, toY);
+
+        window.MouseDown(from, MouseButton.Left, RawInputModifiers.None);
+        window.MouseUp(from, MouseButton.Left, RawInputModifiers.None);
+
+        // No button held: the wire follows the pointer between the two clicks.
+        window.MouseMove(to, RawInputModifiers.None);
+
+        window.MouseDown(to, MouseButton.Left, RawInputModifiers.None);
+        window.MouseUp(to, MouseButton.Left, RawInputModifiers.None);
+
+        Assert.Single(canvas.Graph.Wires);
+        Assert.True(canvas.Graph.Wires[0].From.IsOutput);
+        Assert.Equal(1, canvas.Graph.Wires[0].To.NodeIndex);
+    });
+
+    /// <summary>A click on empty canvas abandons a wire a click armed, and selects nothing.</summary>
+    [Fact]
+    public void ClickingAwayAbandonsAPendingWire() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+
+        canvas.Graph.Nodes[0].OutputPortCentre(0, out double fromX, out double fromY);
+        Point from = Screen(canvas, fromX, fromY);
+
+        window.MouseDown(from, MouseButton.Left, RawInputModifiers.None);
+        window.MouseUp(from, MouseButton.Left, RawInputModifiers.None);
+
+        window.MouseDown(new Point(700, 520), MouseButton.Left, RawInputModifiers.None);
+        window.MouseUp(new Point(700, 520), MouseButton.Left, RawInputModifiers.None);
+
+        canvas.Graph.Nodes[1].InputPortCentre(0, out double toX, out double toY);
+        Point to = Screen(canvas, toX, toY);
+
+        window.MouseDown(to, MouseButton.Left, RawInputModifiers.None);
+        window.MouseUp(to, MouseButton.Left, RawInputModifiers.None);
+
+        // The click on the input port armed a new wire rather than completing the abandoned one.
+        Assert.Empty(canvas.Graph.Wires);
+    });
+
+    /// <summary>Escape abandons a pending wire, which is the other way out of one.</summary>
+    [Fact]
+    public void EscapeAbandonsAPendingWire() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+
+        canvas.Graph.Nodes[0].OutputPortCentre(0, out double fromX, out double fromY);
+        Point from = Screen(canvas, fromX, fromY);
+
+        window.MouseDown(from, MouseButton.Left, RawInputModifiers.None);
+        window.MouseUp(from, MouseButton.Left, RawInputModifiers.None);
+
+        window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+        window.KeyReleaseQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+
+        canvas.Graph.Nodes[1].InputPortCentre(0, out double toX, out double toY);
+        Point to = Screen(canvas, toX, toY);
+
+        window.MouseDown(to, MouseButton.Left, RawInputModifiers.None);
+        window.MouseUp(to, MouseButton.Left, RawInputModifiers.None);
+
+        Assert.Empty(canvas.Graph.Wires);
+    });
+
+    /// <summary>
+    /// <b>A port is easier to hit than it is to see.</b> The disc is 7 px and the target is 18, so
+    /// a click 8 px off centre still lands on the port — which is what the size complaint was
+    /// really about.
+    /// </summary>
+    [Fact]
+    public void APortIsPickedFromEightPixelsAway() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+
+        canvas.Graph.Nodes[0].OutputPortCentre(0, out double x, out double y);
+
+        Point centre = Screen(canvas, x, y);
+
+        window.MouseMove(new Point(centre.X + 8, centre.Y), RawInputModifiers.None);
+
+        Assert.NotNull(canvas.HoveredPort);
+        Assert.True(canvas.HoveredPort!.Value.IsOutput);
+    });
+
     [Fact]
     public void DraggingFromAPortToEmptyCanvasCreatesNothing() => OnUiThread(() =>
     {
