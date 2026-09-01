@@ -60,13 +60,7 @@ public sealed partial class MainWindow : Window
         // Content is a template (N34): declaring them inline would build them into a namescope
         // this window cannot reach, and everything below reaches them.
         Shell.Factory = _dock;
-        Shell.Layout = _dock.Build(new Dictionary<WorkspacePane, object?>
-        {
-            [WorkspacePane.Library] = _libraryPane,
-            [WorkspacePane.Canvas] = _canvasPane,
-            [WorkspacePane.Viewport] = _viewportPane,
-            [WorkspacePane.Inspector] = _inspectorPane,
-        });
+        Shell.Layout = _dock.Build(Panes());
 
         Canvas.ShowFrameStatistics = true;
 
@@ -128,6 +122,41 @@ public sealed partial class MainWindow : Window
     /// <summary>The viewport inside <c>ViewportPane</c>, for the same reason.</summary>
     private ViewportControl Viewport => _viewportPane.Viewport;
 
+    /// <summary>The four panes, by the position each one starts in.</summary>
+    /// <remarks>
+    /// The controls are fields rather than being made here, because a rebuild has to put the
+    /// <i>same</i> panes back: they hold the canvas, the viewport's scene and whatever the user
+    /// was part-way through typing, and a fresh set would quietly discard all of it.
+    /// </remarks>
+    private Dictionary<WorkspacePane, object?> Panes() => new()
+    {
+        [WorkspacePane.Library] = _libraryPane,
+        [WorkspacePane.Canvas] = _canvasPane,
+        [WorkspacePane.Viewport] = _viewportPane,
+        [WorkspacePane.Inspector] = _inspectorPane,
+    };
+
+    /// <summary>
+    /// Builds the shell again from nothing, which is what <i>Reset layout</i> means once the
+    /// docks themselves have been rearranged (`E8-T33`).
+    /// </summary>
+    /// <remarks>
+    /// <b>The old layout is dropped before the new one is built.</b> The panes are the same four
+    /// controls, and a control cannot be in two visual trees at once — assigning the new tree
+    /// while the old one still held them is how a recovery command turns into an exception.
+    /// </remarks>
+    private void RebuildShell()
+    {
+        Shell.Layout = null;
+        Shell.Layout = _dock.Build(Panes());
+
+        if (Model is { } model)
+        {
+            _dock.SetContext(model);
+            _dock.Apply(model.Layout);
+        }
+    }
+
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
         if (Model is not { } model)
@@ -138,6 +167,7 @@ public sealed partial class MainWindow : Window
         _dock.SetContext(model);
 
         model.WorkspaceChanged += (_, _) => _dock.Apply(model.Layout);
+        model.LayoutReset += (_, _) => RebuildShell();
         _dock.Apply(model.Layout);
 
         Viewport.Scene = model.Scene;

@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N95-N100 added)
+**Last updated:** 2026-09-01 (N95-N101 added)
 
 ---
 
@@ -2802,3 +2802,35 @@ still *waiting for a context* when it draws and never reaches the software branc
 `ForceSoftwareRenderer` is what puts it into the state a real machine is in immediately after a
 re-dock — GL de-initialised, software drawing until a new context arrives — and with that one line
 the crash reproduces in a test in under a second.
+
+---
+
+## N101 — Dock rebuilds the tree as you drag, so a layout command that edits the old one edits nothing
+
+A user dragged all four panes around, ended up with an empty window, and *View → Reset layout* did
+nothing at all.
+
+**`SparkDockFactory` recorded the `Tool` and `ToolDock` objects it built** and every later
+operation — the presets, the visibility toggles, `Reset layout` — went through those records. That
+is correct exactly until somebody drags a tool: Dock **removes a `ToolDock` from the tree when its
+last tool leaves**, and makes a new one wherever the tool is dropped. The recorded docks are then
+orphans, still perfectly valid objects, no longer attached to anything. Setting `Proportion` on
+them succeeds and changes nothing anybody can see, and `RestoreDockable` puts a tool back into an
+owner that is not in the tree — which is *worse* than an error, because the command reports
+success.
+
+**So the recovery command has to rebuild rather than adjust.** `Reset layout` now raises a distinct
+event, the window builds the layout again from the same four pane controls and assigns it to the
+`DockControl`, and the factory closes any floating windows the dragging produced first — they hold
+panes, and a rebuilt shell that left them open would be showing the same controls twice.
+
+**Two details that are easy to get wrong.** The pane controls must be *the same instances*: they
+hold the canvas, the viewport's scene and the text the user is part-way through typing, and a fresh
+set would recover the layout by discarding the work. And the old layout has to be dropped
+(`Layout = null`) before the new one is assigned, because a control cannot be in two visual trees
+at once.
+
+**Nothing about the dock arrangement is persisted**, which is why the immediate workaround was to
+restart: `WorkspaceLayout` has `ToJson`/`FromJson` and nothing calls either. That is worth knowing
+before somebody adds persistence — a saved *broken* layout would turn a restart from the escape
+hatch into the trap.

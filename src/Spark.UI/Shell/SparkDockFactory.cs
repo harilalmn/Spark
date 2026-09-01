@@ -48,6 +48,24 @@ public sealed class SparkDockFactory : Factory
     {
         ArgumentNullException.ThrowIfNull(content);
 
+        // A REBUILD IS THE ONLY WAY BACK FROM A LAYOUT A USER HAS DRAGGED APART.
+        //
+        // Dock removes a ToolDock from the tree once its last tool is dragged out of it, and
+        // makes new ones where a tool is dropped. So the objects this factory recorded when it
+        // first built the shell can all be orphans - which is why `Apply` had no visible effect
+        // for a user who had rearranged everything and then asked for the layout back (`E8-T33`):
+        // it was setting proportions on docks that were no longer in the tree.
+        //
+        // Whatever floating windows the dragging produced are closed first. They hold panes, and
+        // a rebuilt shell that left them open would be a second copy of the same controls.
+        foreach (IDockWindow window in (_root?.Windows ?? []).ToArray())
+        {
+            window.Exit();
+        }
+
+        _tools.Clear();
+        _docks.Clear();
+
         _centre = Column(
             Pane(WorkspacePane.Canvas, "Canvas", content),
             Pane(WorkspacePane.Viewport, "Viewport", content));

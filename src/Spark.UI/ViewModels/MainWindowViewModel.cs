@@ -424,6 +424,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// </remarks>
     public event EventHandler? WorkspaceChanged;
 
+    /// <summary>
+    /// Raised when the shell is to be built again from nothing, rather than adjusted.
+    /// </summary>
+    /// <remarks>
+    /// <b>Distinct from <see cref="WorkspaceChanged"/>, and the difference is what makes Reset
+    /// layout work.</b> A preset adjusts the docks that are there; a reset is what somebody asks
+    /// for when the docks that are there are the problem — every pane dragged somewhere else, or
+    /// into each other, until the window is empty. Nothing short of building the tree again can
+    /// answer that (`E8-T33`).
+    /// </remarks>
+    public event EventHandler? LayoutReset;
+
     /// <summary>The shell's pane arrangement.</summary>
     public WorkspaceLayout Layout { get; }
 
@@ -1839,9 +1851,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         WorkspaceChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Returns every pane to its default size and makes them all visible.</summary>
+    /// <summary>Builds the shell again, with every pane back at its default size.</summary>
+    /// <remarks>
+    /// <b>A rebuild rather than a preset.</b> This is the command a user reaches for when the
+    /// panes are not where they should be, and the commonest way to get there — dragging them into
+    /// one another until the window is empty — leaves the docks themselves wrong. Applying a
+    /// preset to those docks changes numbers nobody can see (`E8-T33`).
+    /// </remarks>
     [RelayCommand]
-    public void ResetLayout() => ApplyWorkspace("Default");
+    public void ResetLayout()
+    {
+        ApplyWorkspace("Default");
+        LayoutReset?.Invoke(this, EventArgs.Empty);
+    }
 
     /// <inheritdoc/>
     public void Dispose()

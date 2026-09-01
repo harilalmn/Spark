@@ -184,6 +184,99 @@ public sealed class SparkDockFactoryTests
     private static double Proportion(SparkDockFactory factory, WorkspacePane pane) =>
         factory.DockFor(pane)!.Proportion;
 
+    /// <summary>
+    /// <b>Building again is the way back from a layout somebody has dragged apart.</b> A user
+    /// moved all four panes around until the window was empty and <i>Reset layout</i> did nothing:
+    /// Dock had removed the docks this factory recorded and made new ones, so applying a preset was
+    /// setting proportions on orphans (`E8-T33`).
+    /// </summary>
+    [Fact]
+    public void BuildingAgainRecoversAShellThatHasBeenDraggedApart() => HeadlessSession.Run(() =>
+    {
+        (SparkDockFactory factory, Dictionary<WorkspacePane, UserControl> panes) = BuildShell();
+
+        // Every tool into one dock, which is the shape dragging them all together produces - and
+        // it empties the three docks they came from.
+        IDock home = factory.DockFor(WorkspacePane.Canvas)!;
+
+        foreach (WorkspacePane pane in AllPanes)
+        {
+            if (pane == WorkspacePane.Canvas)
+            {
+                continue;
+            }
+
+            IDock source = factory.DockFor(pane)!;
+
+            factory.MoveDockable(source, home, source.VisibleDockables![0], home.VisibleDockables![0]);
+        }
+
+        Assert.False(factory.IsShowing(WorkspacePane.Library), "the library is no longer in its own dock");
+
+        factory.Build(Content(panes));
+
+        foreach (WorkspacePane pane in AllPanes)
+        {
+            Assert.True(factory.IsShowing(pane), $"{pane} should be back after a rebuild.");
+        }
+    });
+
+    /// <summary>A rebuilt shell holds the same pane controls, not a fresh set of empty ones.</summary>
+    /// <remarks>
+    /// The panes carry the canvas, the viewport's scene and whatever the user was part-way through
+    /// typing. A reset that replaced them would recover the layout by discarding the work.
+    /// </remarks>
+    [Fact]
+    public void ARebuiltShellKeepsTheSamePanes() => HeadlessSession.Run(() =>
+    {
+        (SparkDockFactory factory, Dictionary<WorkspacePane, UserControl> panes) = BuildShell();
+        object model = new();
+
+        factory.Build(Content(panes));
+        factory.SetContext(model);
+
+        foreach (WorkspacePane pane in AllPanes)
+        {
+            Assert.Same(model, panes[pane].DataContext);
+        }
+    });
+
+    /// <summary>
+    /// <b>Reset layout asks for a rebuild, not for a preset.</b> The window listens for this and
+    /// builds the shell again; without it the command adjusts docks that may no longer be in the
+    /// tree, which is what a user saw as <i>Reset layout does nothing</i>.
+    /// </summary>
+    [Fact]
+    public void ResetLayoutAsksForTheShellToBeBuiltAgain()
+    {
+        using Spark.UI.ViewModels.MainWindowViewModel model = new();
+
+        int rebuilds = 0;
+        model.LayoutReset += (_, _) => rebuilds++;
+
+        model.ApplyWorkspace("Modelling");
+
+        Assert.Equal(0, rebuilds);
+
+        model.ResetLayout();
+
+        Assert.Equal(1, rebuilds);
+        Assert.True(model.Layout.IsVisible(WorkspacePane.Viewport));
+    }
+
+    private static Dictionary<WorkspacePane, object?> Content(
+        IReadOnlyDictionary<WorkspacePane, UserControl> panes)
+    {
+        Dictionary<WorkspacePane, object?> content = [];
+
+        foreach ((WorkspacePane pane, UserControl control) in panes)
+        {
+            content[pane] = control;
+        }
+
+        return content;
+    }
+
     private static (SparkDockFactory Factory, Dictionary<WorkspacePane, UserControl> Panes) BuildShell()
     {
         SparkDockFactory factory = new();
