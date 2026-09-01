@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-01 (N95-N99 added)
+**Last updated:** 2026-09-01 (N95-N100 added)
 
 ---
 
@@ -2763,3 +2763,42 @@ file — a wire that works until you close Spark. So `CachedScript` carries the 
 *before* the `.ports` file, which stays the marker that says an entry is complete. Port **names**
 still come from the syntax on a cache hit; only the types come from the entry, and an entry whose
 port count disagrees with the script is discarded rather than trusted.
+
+---
+
+## N100 — A detach is not a death: re-parenting disposes what a control expected to keep
+
+Dragging the viewport pane out of its dock exited the application. The stack ends in
+`Dispatcher.MainLoop`, which is what an exception thrown *inside rendering* looks like:
+
+```
+System.ObjectDisposedException: Cannot access a disposed object.
+Object name: 'Spark.Viewport.Software.SoftwareViewportRenderer'.
+   at SoftwareViewportRenderer.Initialise()
+   at ViewportControl.DrawSoftwareFrame(DrawingContext)
+   at ViewportControl.Render(DrawingContext)
+   at Avalonia.Rendering.Composition.CompositingRenderer.UpdateCore()
+```
+
+**Docking re-parents a control**, and re-parenting is a detach followed immediately by an attach.
+`ViewportControl.OnDetachedFromVisualTree` disposed the CPU rasteriser, on the reasonable-sounding
+grounds that a control is not `IDisposable` and a detach is the only hook there is. But a disposed
+rasteriser is disposed for good: `Initialise` starts with `ObjectDisposedException.ThrowIf`, so the
+first frame after the re-attach threw — and a `Render` override runs on the compositor's dispatch,
+where **there is no handler anywhere above it**. The application does not report an error; it
+stops.
+
+**The fix is one word: replace rather than dispose.** The field stops being `readonly`, and the
+detach hands back a fresh renderer. The GL path never had the bug because it already worked this
+way — `OnOpenGlDeinit` nulls the renderer and `OnOpenGlInit` builds another.
+
+**Two general things worth keeping.** (1) `OnDetachedFromVisualTree` is a *transition*, not a
+destructor; anything released there has to be re-creatable, because docking, tab switching and
+virtualisation all re-attach. (2) An exception in `Render` is fatal in a way an exception in a
+click handler is not, so the render path deserves the same suspicion as a background thread.
+
+**And why no test caught it:** the headless session has no OpenGL, so a viewport in a test is
+still *waiting for a context* when it draws and never reaches the software branch at all. Setting
+`ForceSoftwareRenderer` is what puts it into the state a real machine is in immediately after a
+re-dock — GL de-initialised, software drawing until a new context arrives — and with that one line
+the crash reproduces in a test in under a second.

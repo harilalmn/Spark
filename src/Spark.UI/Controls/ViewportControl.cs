@@ -46,7 +46,16 @@ namespace Spark.UI.Controls;
 public sealed class ViewportControl : OpenGlControlBase
 {
     private readonly Camera _camera = new();
-    private readonly SoftwareViewportRenderer _software = new();
+    /// <summary>
+    /// The CPU rasteriser, replaced rather than merely disposed when the control is detached.
+    /// </summary>
+    /// <remarks>
+    /// <b>Not readonly, and that is the whole of `E9-T13`.</b> A detach is not the end of this
+    /// control's life: docking a pane re-parents it, which detaches and immediately re-attaches,
+    /// and the disposed renderer left behind threw from <c>Initialise</c> on the very next frame —
+    /// inside the compositor, where nothing catches it and the process dies.
+    /// </remarks>
+    private SoftwareViewportRenderer _software = new();
     private WriteableBitmap? _softwareBitmap;
     private long _softwareSignature = -1;
     private bool _glReported;
@@ -423,7 +432,21 @@ public sealed class ViewportControl : OpenGlControlBase
         _softwareBitmap?.Dispose();
         _softwareBitmap = null;
         _softwareSignature = -1;
+
+        // REPLACED, NOT JUST DISPOSED, AND THE DIFFERENCE IS A CRASH.
+        //
+        // Docking a pane re-parents its content: Avalonia detaches the control and attaches it
+        // again a moment later. A disposed rasteriser is disposed for good — `Initialise` throws
+        // `ObjectDisposedException` — so the next frame threw from inside `Render`, on the
+        // compositor's own dispatch, where there is no handler and the application simply exits.
+        // Reported by a user dragging the viewport out of its dock (`E9-T13`).
+        //
+        // The GL path never had this: `OnOpenGlDeinit` nulls its renderer and `OnOpenGlInit`
+        // builds another. This is the same lifecycle, written down for the backend that has no
+        // callbacks to hang it on.
         _software.Dispose();
+        _software = new SoftwareViewportRenderer();
+
         base.OnDetachedFromVisualTree(e);
     }
 

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 15:10 +0530
+**Last updated:** 2026-09-01 18:05 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | **Nothing. The tree is clean and the gates are green.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E6-T25` — a code block's output port carries the type its script returns.** Found by a user drawing a wire: a block returning a `Circle` displayed the circle in its own watch and could not be connected to anything that wanted a `Curve`, because every output port was `typeof(object)` and `object` into `Curve` is a narrowing that `TypeCompatibility` refuses on purpose. The type now comes off the semantic model of the compilation that is emitted anyway, and **the disk cache carries it**, or a port would be `Circle` in the session that compiled it and `object` in the one that reopened the file ([N99](NOTES.md)). **2,340 tests.** |
+| **Last completed step** | **`E9-T13` — docking the viewport exited the application, and now does not.** Re-parenting a control is a detach followed by an attach; `ViewportControl` disposed its CPU rasteriser on detach, and a disposed rasteriser throws from `Initialise` — so the next frame threw inside `Render`, on the compositor's dispatch, where nothing catches it and the process simply stops. The renderer is **replaced** rather than disposed, which is what the GL path already did. **2,343 tests.** |
 | **Working tree** | Clean at the moment this was written. |
 | **Next action** | **Infer the return type from the semantic model, and make the disk cache carry it.** (1) `ScriptOutputTypes.Infer` over the compilation that already exists: the return statements whose nearest enclosing function is the generated `Run`, their expression types from `GetTypeInfo`, one distinct type or `object`; tuple elements one per port. (2) An `ITypeSymbol` is not a `System.Type`, so a mapping that is deliberately partial - special types, arrays, resolvable named types - and falls back to `object` on any doubt, because a wrongly typed port refuses wires that should be legal. (3) **The disk cache has to carry the types**, or a port's type would depend on whether the cache was warm; `CachedScript` grows an outputs list and `GeneratorVersion` goes to 2. **Verify with** new tests in `Spark.UI.Tests` for the inference and for a cache round trip, `TypeCompatibility` accepting Circle into a `Curve` port, and the three gates. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2340**: Geometry.Tests 763, UI.Tests 762, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2343**: Geometry.Tests 763, UI.Tests 765, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets. **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -5357,4 +5357,45 @@ common base — `Circle` and `Line` could be called `Curve`, and choosing betwee
 true answers is a guess. Nothing types a port from a *runtime* value, and nothing should: ports come
 from compilation, and a port that changed shape when a graph ran would change what is wireable
 after the fact.
+
+### 2026-09-01 — `E9-T13`: docking the viewport exited the application
+
+**What.** A user dragged the viewport pane out of its dock and Spark vanished — no dialog, no
+diagnostic, exit code 0 from the process's own point of view. The stack, captured by rerunning the
+application with its output redirected to a file, ends in `Dispatcher.MainLoop`:
+
+```
+System.ObjectDisposedException: Cannot access a disposed object.
+Object name: 'Spark.Viewport.Software.SoftwareViewportRenderer'.
+   at SoftwareViewportRenderer.Initialise()
+   at ViewportControl.DrawSoftwareFrame(DrawingContext)
+   at ViewportControl.Render(DrawingContext)
+```
+
+**Why it happened.** Re-parenting a control is a detach followed immediately by an attach, and
+`ViewportControl.OnDetachedFromVisualTree` disposed the CPU rasteriser — reasonably enough, since a
+control is not `IDisposable` and a detach is the only hook there is. But `Initialise` begins with
+`ObjectDisposedException.ThrowIf`, so the first frame after the re-attach threw from inside
+`Render`, which runs on the compositor's dispatch where nothing catches anything. The GL path never
+had the bug: `OnOpenGlDeinit` nulls its renderer and `OnOpenGlInit` builds another. The fix writes
+the same lifecycle for the backend that has no callbacks to hang it on — the field stops being
+`readonly`, and the detach hands back a fresh renderer.
+
+**What surprised me, and it is the reusable part.** *Nothing in the suite could have caught this,
+and the reason is not "no test for docking".* The headless session has no OpenGL, so a viewport
+under test is still **waiting for a context** when it draws and never reaches the software branch
+at all — the first reproduction attempt moved the tool between docks, floated it, re-parented the
+control and rendered it, and passed every time. One line changes that: `ForceSoftwareRenderer`
+puts the control into exactly the state a real machine is in immediately after a re-dock, with GL
+de-initialised and the software path drawing until a new context arrives. With it, the crash
+reproduces in under a second and the stack in the test is the stack from the user's log
+([N100](NOTES.md)).
+
+**Verified.** Reproduced first, then fixed: `TheViewportSurvivesBeingReparented` fails with the
+user's exception against the old code and passes against the new. Build clean, **2,343 tests**
+across the nine executables (up 3), `dotnet format` clean.
+
+**What this says about the gates.** Docking is mouse work, and no headless test performs a drag.
+Three panes' worth of dragging by hand would have found this in a minute, and none of the three
+gates ever will — so *Verify with* now says so out loud.
 

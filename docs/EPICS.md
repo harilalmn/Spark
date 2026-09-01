@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-01 (E6 gains signature help, the completion triggers, the Selection menu and typed code-block outputs)
+**Last updated:** 2026-09-01 (E6 gains signature help, the completion triggers, the Selection menu and typed code-block outputs; E9 gains the docking crash)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -894,6 +894,9 @@ unmaintained since around 2023 — a poor bet on a multi-year horizon.
 - [x] A software fallback that earns its place three ways: GL-init failures on VMs and RDP,
       headless thumbnails, and **deterministic `spark render` for CI visual regression** —
       GPU output is not testable, software output is (**E9-T5**, **E9-T11**, **E9-T12**).
+- [x] **A pane can be dragged and re-docked without taking the application with it**
+      (**E9-T13**) — done 2026-09-01. Re-parenting detaches and re-attaches a control, and the
+      viewport's rasteriser is replaced rather than disposed for good ([N100](NOTES.md)).
       *Two of the three are **done** as of 2026-08-31. The rasteriser's determinism is asserted
       rather than assumed — two independently constructed renderers produce byte-identical output
       for the same scene — and `ThumbnailRenderer` renders headlessly. `ViewportControl` now falls
