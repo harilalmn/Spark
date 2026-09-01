@@ -53,6 +53,12 @@ jobs:
     name: Release (win-x64)
     runs-on: windows-latest
 
+    # The OpenCascade build is about an hour on a cold cache and the rest is minutes, so this is
+    # generous rather than tight: what it is for is a hung step, not a slow one. Without it the
+    # default is six hours of a Windows runner, which on a private repository is six hours billed
+    # at twice the rate.
+    timeout-minutes: 180
+
     steps:
       - uses: actions/checkout@v5
         with:

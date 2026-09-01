@@ -5692,6 +5692,13 @@ key CI does, restores or installs the port, builds the shim, runs the verb and h
 check. The Linux leg passes `--no-tessellation`, deliberately, because the shim is win-x64 and
 `build-native.ps1` is a vcpkg script.
 
+**And the fix carried a trap of its own, found by reading the file it was in.** The nightly job had
+`timeout-minutes: 60`, written when the longest thing it did was run benchmarks. An OpenCascade
+build is about an hour on a cold cache, so the new step would have been killed on exactly the run
+that needed to build it and passed on every run that did not — a limit that only fires when the
+work is real. It is 180 now, and `release.yml` has one for the first time, because the default is
+six hours of a Windows runner and a private repository bills those at twice the rate.
+
 **Twice in one evening, the same shape.** `release.yml` called `build-native.ps1` without
 installing OpenCascade; `nightly.yml` needed the kernel and never built it at all. Both were steps
 that existed in one workflow and were assumed in another. The three of them stay copies rather than

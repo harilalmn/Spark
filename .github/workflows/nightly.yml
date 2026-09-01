@@ -35,7 +35,13 @@ jobs:
   benchmarks:
     name: Benchmarks (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    # RAISED FROM 60 WHEN THE TESSELLATION MEASUREMENT ARRIVED, AND THE OLD VALUE WAS A TRAP.
+    #
+    # The Windows leg can now build OpenCascade from the pinned port, which takes about an hour on
+    # a cold cache - so a 60-minute job would be killed by the timeout on exactly the run that
+    # needed to build it, and pass on every run that did not. A limit that only fires when the work
+    # is real is worse than none.
+    timeout-minutes: 180
 
     # Both operating systems, for the same reason ci.yml builds both — and here it is not merely
     # a rot-guard: allocation is the half of these budgets that is machine-independent, so a
