@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using Spark.Api;
 using Spark.Engine;
 using Spark.UI.Canvas;
@@ -953,6 +954,93 @@ public sealed class CanvasGraph
         _wiresDirty = true;
 
         return _nodes.Count - 1;
+    }
+
+    /// <summary>
+    /// Copies a set of nodes, and every wire that runs between them (`E8-T37`).
+    /// </summary>
+    /// <param name="slots">The nodes to copy.</param>
+    /// <param name="offsetX">How far right to put the copies.</param>
+    /// <param name="offsetY">How far down to put the copies.</param>
+    /// <returns>The copies' slots, in the order the originals were given.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>A copy is the same definition with the same settings, not a fresh node of the same
+    /// kind.</b> Its literals, its lacing, its freeze, a code block's declared input types and the
+    /// name and colour somebody gave it all come across — everything except its identity, which has
+    /// to differ, and its wires to nodes outside the set, which would make the copy a second reader
+    /// of somebody else's output rather than a copy of what was selected.
+    /// </para>
+    /// <para>
+    /// <b>The wires *between* copied nodes are copied too.</b> Duplicating three nodes of a chain
+    /// and getting three unconnected nodes is the behaviour that makes people stop using the
+    /// gesture.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyList<int> Duplicate(IReadOnlyCollection<int> slots, double offsetX, double offsetY)
+    {
+        ArgumentNullException.ThrowIfNull(slots);
+
+        List<int> copies = [];
+        Dictionary<NodeId, NodeId> made = [];
+
+        foreach (int slot in slots.Order())
+        {
+            if (slot < 0 || slot >= _nodes.Count)
+            {
+                continue;
+            }
+
+            CanvasNode source = _nodes[slot];
+            NodeInstance instance = Engine.Node(source.Id);
+
+            int copy = Add(instance.Definition, source.X + offsetX, source.Y + offsetY);
+            CanvasNode drawn = _nodes[copy];
+            NodeId id = drawn.Id;
+
+            IReadOnlyList<object?> literals = instance.Literals();
+
+            Edit(() =>
+            {
+                for (int port = 0; port < literals.Count; port++)
+                {
+                    if (literals[port] is { } value)
+                    {
+                        Engine.SetLiteral(id, port, value);
+                    }
+                }
+
+                Engine.SetLacing(id, instance.Lacing);
+
+                foreach ((string name, Type declared) in Engine.DeclaredInputTypes(source.Id))
+                {
+                    Engine.SetDeclaredInputType(id, name, declared);
+                }
+
+                if (instance.IsFrozen)
+                {
+                    Engine.SetFrozen(id, frozen: true);
+                }
+            });
+
+            drawn.CustomTitle = source.CustomTitle;
+            drawn.ColourOverride = source.ColourOverride;
+
+            made[source.Id] = id;
+            copies.Add(copy);
+        }
+
+        foreach (Wire wire in Engine.Wires())
+        {
+            if (made.TryGetValue(wire.Source, out NodeId from) && made.TryGetValue(wire.Target, out NodeId to))
+            {
+                Edit(() => Engine.TryConnect(from, wire.SourcePort, to, wire.TargetPort));
+            }
+        }
+
+        _wiresDirty = true;
+
+        return copies;
     }
 
     /// <summary>Removes a node and every wire touching it, renumbering the slots after it.</summary>

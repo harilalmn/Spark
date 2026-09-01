@@ -253,6 +253,7 @@ public sealed class GraphCanvas : Control
     private CanvasPort? _hoverPort;
     private CanvasPort? _dragSourcePort;
     private bool _wireDragMoved;
+    private bool _duplicateOnDrag;
     private CanvasWire? _selectedWire;
     private CanvasNote? _selectedNote;
     private CanvasNote? _hoverNote;
@@ -727,6 +728,17 @@ public sealed class GraphCanvas : Control
                 _selection.Add(node);
             }
 
+            // CONTROL ARMS A COPY; IT DOES NOT MAKE ONE (`E8-T37`).
+            //
+            // Control still adds to a selection, as it always has - so this is armed rather than
+            // done, and the copy happens on the first movement. A Control+click that never becomes
+            // a drag therefore selects, exactly as before, and a Control+drag leaves the original
+            // behind and takes a copy with the pointer, which is what Dynamo, Grasshopper and every
+            // drawing application do. Only when the node under the pointer is still selected: a
+            // Control+click that toggled it *out* is a deselection, and duplicating then would
+            // copy something the user has just said they did not mean.
+            _duplicateOnDrag = e.KeyModifiers.HasFlag(KeyModifiers.Control) && _selection.Contains(node);
+
             _selectedWire = null;
             _selectedNote = null;
             _selectedGroup = null;
@@ -833,6 +845,11 @@ public sealed class GraphCanvas : Control
                 return;
 
             case InteractionMode.DraggingNodes:
+                if (_duplicateOnDrag)
+                {
+                    DuplicateDraggedSelection();
+                }
+
                 MoveSelection(world.X - _dragStartWorld.X, world.Y - _dragStartWorld.Y);
                 _dragStartWorld = world;
                 InvalidateVisual();
@@ -973,6 +990,42 @@ public sealed class GraphCanvas : Control
 
         e.Pointer.Capture(null);
         InvalidateVisual();
+    }
+
+    /// <summary>
+    /// Leaves the dragged nodes where they were and drags copies of them instead (`E8-T37`).
+    /// </summary>
+    /// <remarks>
+    /// Called on the first movement rather than on the press, so a Control+click that never becomes
+    /// a drag copies nothing. The copies land exactly on top of the originals and are then moved by
+    /// the same delta the drag would have applied, which is what makes the gesture read as *peeling
+    /// one off* rather than as *a copy appeared somewhere*.
+    /// </remarks>
+    private void DuplicateDraggedSelection()
+    {
+        _duplicateOnDrag = false;
+
+        IReadOnlyList<int> copies = _graph.Duplicate([.. _selection], 0, 0);
+
+        if (copies.Count == 0)
+        {
+            return;
+        }
+
+        _selection.Clear();
+
+        foreach (int slot in copies)
+        {
+            _selection.Add(slot);
+        }
+
+        _focusNode = copies[0];
+        _wireVisuals.Clear();
+        _indexDirty = true;
+
+        GraphChanged?.Invoke(
+            this, new GraphEditedEventArgs(Plural("Duplicate", copies.Count), affectsEvaluation: true));
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Whether two ports are the same port.</summary>

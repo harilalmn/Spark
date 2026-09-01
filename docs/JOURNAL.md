@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-01 22:15 +0530
+**Last updated:** 2026-09-01 23:05 +0530
 **Protocol version:** 2
 
 ---
@@ -19,9 +19,9 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done.** M7 closed on 2026-09-01 when `E7`'s last row landed: a package can be found on nuget.org, read, installed, used and removed; a graph missing one opens unharmed and offers to fetch it; a local DLL can be referenced **without locking it**; and a branch can be frozen. **M1.6 is taken**: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | **Nothing. The tree is clean and the gates are green.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E8-T36` — a port is a lozenge carrying its own name, and the whole lozenge is the target.** Dynamo's shape, asked for by name, for the reason the client gave: its ports are easy to connect to. Clicking the word `radius` now starts the wire that `radius` wants — a fifty-pixel target rather than a seven-pixel disc. **2,364 tests.** |
+| **Last completed step** | **`E8-T37` — File → New, and Control+drag copies what it drags.** New empties the document on Ctrl+N; Control+drag is armed on the press and done on the first movement, so Control+click still adds to a selection and a copy only happens when something is actually dragged. A copy carries every setting of the original and the wires between copied nodes come with it. **2,371 tests.** |
 | **Working tree** | Clean at the moment this was written. |
-| **Next action** | **Show the client the ports and ask how much further the Dynamo look should go.** The request was *nodes and wires and ports*, and this step deliberately took the ports first because that is the half with a stated benefit. What is left is styling: Dynamo's node body is lighter than its header and carries an icon, and its wires are thicker and paler than Spark's. Both are §7 of the design language rather than code, so both want a look before a rewrite. **Then the queue as it stood**: cut the first release when the client says so, then the Help pass. |
+| **Next action** | **Show the client, and ask how far the Dynamo look should go** — the ports landed in `E8-T36` and the node and wire styling was deliberately left, because those are styling with no stated problem behind them. **Then the queue as it stood**: cut the first release when the client says so, then the Help pass — `E10-T3`, `E11-T2`'s `<example>` half, E10-T9/T10/T12/T14, and the code editor has earned two topics of its own. **A dirty flag is now owed**: New and Open both discard unsaved work without asking, and that is a defensible pair only until somebody loses an afternoon to it. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2343**: Geometry.Tests 763, UI.Tests 765, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets. **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
@@ -5522,4 +5522,33 @@ the picture.
 hovers and then connects from the *middle of a tab*, twenty pixels inside the node, without ever
 touching the disc. **2,364 tests**, build, format and the docs harness clean, and the design
 language's §7.4 rewritten to describe the shape rather than the disc it replaced.
+
+### 2026-09-01 — `E8-T37`: New, and Control+drag copies
+
+**What.** Two requests, both small, both about gestures people arrive already knowing.
+
+*File → New* empties the document and starts a fresh history, on Ctrl+N and in the menu above
+*Open*. It asks nothing and saves nothing — which is exactly what *Open* has always done. A prompt
+about unsaved work needs a document that knows whether it has any, and Spark has no dirty flag; a
+prompt on *New* alone would make it the one careful door into an unguarded house. That is recorded
+as owed rather than pretended about.
+
+*Control+drag* leaves the original where it is and takes a copy with the pointer. The copy carries
+the original's literals, lacing, freeze, declared input types, name and colour — everything but its
+identity — and **the wires between copied nodes are copied too**, because duplicating a chain and
+getting three unconnected nodes is what makes people stop using the gesture.
+
+**The design decision worth keeping is where the copy happens.** Control already meant *add to the
+selection* on this canvas, and my first version took it away — six alignment tests went red, all of
+them Control+clicking to build a selection, which is exactly what a user who had learned this
+canvas would do. So the copy is **armed on the press and made on the first movement**: a
+Control+click still selects, a Control+drag copies, and neither has to be untaught. It is armed
+only when the node under the pointer is still selected after the click, because a Control+click
+that toggled it *out* is a deselection and copying then would duplicate something the user has just
+said they did not mean.
+
+**Verified.** Seven new tests — the settings a copy carries, the wires it copies and the ones it
+does not, the drag, the click that copies nothing, that Shift still adds, and that New empties the
+document without leaving it on the undo stack. **2,371 tests**, build, format and the docs harness
+clean.
 

@@ -573,6 +573,13 @@ public sealed partial class MainWindow : Window
         // Ctrl is required on all three. A bare F5 would be fine, but a bare letter would be taken
         // from a user typing into the library search or a code block, and the rule is easier to
         // keep than the exceptions are.
+        if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.N)
+        {
+            OnNewGraph(this, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
         if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.O)
         {
             OnOpenGraph(this, new RoutedEventArgs());
@@ -1307,6 +1314,8 @@ public sealed partial class MainWindow : Window
     private void OnFrameViewport(object? sender, RoutedEventArgs e) => Viewport.ZoomToFit();
 
     private void OnLoadSynthetic(object? sender, RoutedEventArgs e) => LoadSynthetic(2000);
+
+    private void OnNewGraph(object? sender, RoutedEventArgs e) => Model?.NewGraph();
 
     private void OnLoadDemo(object? sender, RoutedEventArgs e) => Model?.LoadDemo();
 

@@ -530,6 +530,26 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <summary>How many nodes the last run served from the cache.</summary>
     public int LastRunCacheHits { get; private set; }
 
+    /// <summary>Replaces the document with an empty one (`E8-T37`).</summary>
+    /// <remarks>
+    /// <b>Nothing is asked and nothing is saved</b>, which is exactly what <i>Open</i> already does
+    /// and is the reason this is a small command rather than a large one. A prompt about unsaved
+    /// work needs a document that knows whether it has any, and Spark has no dirty flag yet; adding
+    /// one to *this* command alone would make New the only careful door into an unguarded house.
+    /// </remarks>
+    [RelayCommand]
+    public void NewGraph()
+    {
+        AdoptGraph(new CanvasGraph());
+
+        // A new document cannot be waiting on a trust decision the old one asked for.
+        PendingScripts = 0;
+        PendingOrigin = null;
+        ScriptBanner = null;
+
+        GraphReplaced?.Invoke(this, EventArgs.Empty);
+    }
+
     /// <summary>Replaces the document with the seeded demo graph.</summary>
     [RelayCommand]
     public void LoadDemo()

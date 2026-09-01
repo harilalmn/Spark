@@ -110,6 +110,7 @@
     <Border Grid.Row="1" Classes="chrome" Padding="4,0">
       <Menu>
         <MenuItem Header="_File">
+          <MenuItem Header="_New" InputGesture="Ctrl+N" Click="OnNewGraph" />
           <MenuItem Header="_Open…" InputGesture="Ctrl+O" Click="OnOpenGraph" />
           <MenuItem Header="_Save as…" InputGesture="Ctrl+S" Click="OnSaveGraph" />
           <Separator />
