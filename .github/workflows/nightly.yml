@@ -87,6 +87,61 @@ jobs:
         shell: bash
         run: dotnet run --project src/Spark.Desktop --configuration Release -- --canvas-benchmark 600 | tee canvas.log
 
+      # E12-T19'S MEASUREMENT NEEDS THE SOLID-MODELLING KERNEL, SO THE WINDOWS LEG BUILDS THE SHIM.
+      #
+      # `tessellate` is a verb rather than a BenchmarkDotNet case precisely because it needs a
+      # provider: a case would run without one, measure a failed operation and report an excellent
+      # time. So the kernel has to be here, and these four steps are `ci.yml`'s native job with the
+      # same cache key — the OpenCascade version and the vcpkg baseline out of the port manifest —
+      # which makes this a restore rather than an hour, as long as CI has run since the port moved.
+      #
+      # The Linux leg says `--no-tessellation` instead, and says it deliberately: the shim is
+      # win-x64 and `build-native.ps1` is a vcpkg script. A budgeted-but-unmeasured number is a
+      # failure unless a run states the omission, which is what stopped this from being wired with
+      # a shrug in the first place — and what turned the first nightly red on both legs.
+      - name: Compute the OpenCascade key
+        if: runner.os == 'Windows'
+        id: occtkey
+        shell: pwsh
+        run: |
+          $manifest = Get-Content native/spark_occt/vcpkg.json -Raw | ConvertFrom-Json
+          $occt = ($manifest.overrides | Where-Object { $_.name -eq 'opencascade' }).version
+
+          "occt=$occt"                                >> $env:GITHUB_OUTPUT
+          "baseline=$($manifest.'builtin-baseline')"  >> $env:GITHUB_OUTPUT
+
+      - name: Cache OpenCascade
+        if: runner.os == 'Windows'
+        id: occt
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\vcpkg\installed
+            C:\vcpkg\packages
+          key: occt-${{ steps.occtkey.outputs.occt }}-${{ steps.occtkey.outputs.baseline }}-win-x64
+
+      - name: Install OpenCascade
+        if: runner.os == 'Windows' && steps.occt.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          Write-Host 'Building OpenCascade from the pinned port. This takes about an hour.'
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install opencascade:x64-windows
+
+      - name: Build the native provider
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/build-native.ps1 -VcpkgRoot $env:VCPKG_INSTALLATION_ROOT
+
+      # Run from the repository root, where the kernel resolver finds the staged shim in
+      # artifacts/native. The verb prints one line the check parses; `tee` keeps it and still shows
+      # it in the log, so a regression is readable without downloading an artefact.
+      - name: Tessellation measurement
+        if: runner.os == 'Windows'
+        shell: bash
+        run: >
+          dotnet run --project bench/Spark.Benchmarks --configuration Release --
+          tessellate | tee tessellation.log
+
       # The check is a verb on the benchmark host rather than a shell script, so that it reads the
       # same JSON on both operating systems without a jq dependency, and so that it can be run
       # locally exactly as CI runs it. --no-canvas is how a run states that it deliberately did not
@@ -101,8 +156,14 @@ jobs:
             canvas=(--no-canvas)
           fi
 
+          if [ -f tessellation.log ]; then
+            tessellation=(--tessellation tessellation.log)
+          else
+            tessellation=(--no-tessellation)
+          fi
+
           dotnet run --project bench/Spark.Benchmarks --configuration Release --no-build -- \
-            check --results artifacts/benchmarks/results "${canvas[@]}"
+            check --results artifacts/benchmarks/results "${canvas[@]}" "${tessellation[@]}"
 
       # Kept whether the check passed or failed. The failure message names the case and the
       # ceiling; the reports are what let somebody see how far and since when.
@@ -113,6 +174,7 @@ jobs:
           name: benchmark-reports-${{ matrix.os }}
           path: |
             artifacts/benchmarks/results/
+            tessellation.log
             canvas.log
           retention-days: 30
           if-no-files-found: warn
