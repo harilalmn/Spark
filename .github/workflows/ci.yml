@@ -143,10 +143,13 @@ jobs:
       # `actions/cache` saves in a post step declared `post-if: success()`, so a job that fails
       # AFTER the install saves nothing. Every run from #110 to #118 failed at *Build the native
       # provider*, which is downstream of this - so each one spent an hour building OpenCascade,
-      # threw it away, and the next one started from nothing. Eight times, on Windows minutes a
-      # private repository bills at twice the rate, which is how the account reached its spending
-      # limit. `cache/save` as its own step banks the hour the moment it has been paid for,
-      # whatever the rest of the job then does.
+      # threw it away, and the next one started from nothing. Eight times - on Windows minutes,
+      # which billed at twice the rate while this repository was private, and which is how the
+      # account reached its spending limit and stopped CI dead. `cache/save` as its own step banks
+      # the hour the moment it has been paid for, whatever the rest of the job then does.
+      #
+      # Going public removed the bill. It did not remove the reason: an hour of wall clock is an
+      # hour whoever is waiting for the run.
       #
       # `C:\vcpkg\packages` is gone from the path with it. That is vcpkg's per-port staging tree;
       # only `installed` is read - by `find_package` here and by `Test-Occt` in build-native.ps1 -

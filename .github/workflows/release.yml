@@ -55,8 +55,9 @@ jobs:
 
     # The OpenCascade build is about an hour on a cold cache and the rest is minutes, so this is
     # generous rather than tight: what it is for is a hung step, not a slow one. Without it the
-    # default is six hours of a Windows runner, which on a private repository is six hours billed
-    # at twice the rate.
+    # default is six hours of a Windows runner held by a job that is never going to finish - which
+    # was money while this repository was private, and is a blocked queue and a wasted afternoon
+    # now that it is not.
     timeout-minutes: 180
 
     steps:
