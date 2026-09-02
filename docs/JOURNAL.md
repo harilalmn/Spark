@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-03 16:05 +0530
+**Last updated:** 2026-09-03 18:30 +0530
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,11 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.2.0` shipped on 2026-09-03** — published by `Release #4`, with `spark-0.2.0-setup.exe` (50.9 MB) and `spark-portable-win-x64.zip` (77.3 MB) attached, not a draft and not a prerelease. `v0.1.0` was the first tag in the repository's history; this is the first release cut end to end without a hand-crank in the middle. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | Nothing. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E8-T44` — the running version, under the mark in the ribbon.** Get-only and never notified, because an application cannot change the version it is running while it runs. At 11 px like the name above it: the design language's floor is 11 px at any scale in any state, so a version is made quieter by being second rather than by being smaller. **And `Release #4` was read at last**, which resolves the release step: `v0.2.0` published with both artefacts. **Before that: `E8-T39` to `E8-T43`** — the editor on the node, and the four defects the client reported against it — and **`E6-T26`**, one output port per declared variable. |
+| **Last completed step** | **`E11-T24` — the screenshot harness photographs what is on screen.** Four steps running were verified with a switch that showed none of them, and the Roslyn race the queue item blamed was the smallest of four faults ([N114](NOTES.md)): the capture path ran against a window with no size, so every fit and every world-to-screen conversion was arithmetic on zero; `RenderTargetBitmap.Render` does not run layout, so a popup opened for the photograph had `Bounds` of `0,0,0,0` and drew nothing while every property said it was open; and the pose was asked for twice, the fire-and-forget one cancelling the awaited one. It now **waits** for a layout rather than asking for one, lays out before it renders, and asks once. **`--frame-node`** centres on the block rather than the graph, and **`--code-block-type`** types through the input path, which is the gap `N112` named. **Before that: `E8-T44`** (the running version in the ribbon) and **`v0.2.0`**, published by `Release #4` with both artefacts. |
 | **Working tree** | Clean, and `main` is pushed. `v0.2.0` is tagged at `6f403ba` and published. |
-| **Next action** | **The screenshot harness**, which four steps running have caught out and which the release notes rely on: `E8-T41` could not be photographed at all, `E8-T42` was a defect the screenshot path was structurally incapable of showing because it *is* the pose, `E8-T43`'s framing pushes the block being edited off screen, and none of it is the Roslyn race the queue item still names. It needs a way to frame **a node** rather than the graph, and a capture that runs a layout pass. Then **the installer install/over-install/uninstall cycle** — `spark-0.2.0-setup.exe` exists and is downloadable now, so the one thing standing between this journal and its own stated bar is somebody running it. Then **`N108`** and **`N107`**. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2470**: Geometry.Tests 763, UI.Tests 892, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets, and **`--code-block "..." --code-block-in-node --screenshot PREFIX` for the editor on the node** (`E8-T39`). **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
+| **Next action** | **The installer install/over-install/uninstall cycle.** `spark-0.2.0-setup.exe` exists and is downloadable, so the only thing standing between this journal and its own stated bar is somebody running it: install, install a second version over it, uninstall — one Add/Remove entry throughout and nothing left behind. Then **`N108`** (the fingerprint that moves with load order, which quietly defeats the on-disk compile cache) and **`N107`** (completion parses as a script while the compiler wraps a method body). |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2472**: Geometry.Tests 763, UI.Tests 894, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets, **`--code-block "..." --code-block-in-node --frame-node --screenshot PREFIX` for the editor on the node**, and the same with **`--code-block-type "
+Circle circle = new "`** for a completion list that was *typed* rather than asked for (`E11-T24`). **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -6508,3 +6509,50 @@ ribbon photographed reading `v0.2.0`, which is MinVer on the tag rather than a s
 typed.
 
 **Cost.** Half an hour, and most of the value was in the two API calls rather than the feature.
+
+### 2026-09-03 — `E11-T24`: the screenshot harness photographs what is on screen
+
+**What.** The capture path waits for a layout instead of asking for one, lays out before it
+renders, and asks for the pose once. Two switches were added: `--frame-node`, which centres on the
+block being photographed, and `--code-block-type`, which types through the input path.
+
+**Why it mattered enough to stop for.** `--screenshot` is in this journal's own *Verify with* row.
+Four steps running were checked with it and it showed none of them — and each time the entry said
+so and moved on, which is three sessions treating a broken instrument as a fact about the world.
+
+**Four faults, and the one the queue named was the smallest** ([N114](NOTES.md)).
+
+- **The window had no size.** `Opened` fires before the first layout, so `Canvas.Bounds` was
+  `0,0,0,0`: `ZoomToFit` fitted into nothing, `CentreOn` centred against a zero viewport, and the
+  in-node editor's "screen" rectangle was a world rectangle wearing a screen name. **`UpdateLayout()`
+  does not fix this**, which is the finding worth keeping — the platform has not sized the window
+  yet, so measuring measures nothing. It waits now, with a deadline, because a screenshot switch
+  that hangs is worse than one that photographs the wrong thing.
+- **`RenderTargetBitmap.Render` does not run layout.** A control made visible a moment earlier has
+  never been arranged: `Bounds` of `0,0,0,0` and no pixels, while `IsVisible` is true and every
+  property a test could assert says it is open. The evidence and the image disagreed, and the
+  evidence was the more convenient one to read.
+- **The pose was asked for twice.** A fire-and-forget request from the layout handler raced the
+  awaited one in the capture path, and since each completion request cancels the one before it, the
+  list was closed at the shutter. The awaited call — which was the careful-looking fix from
+  `E8-T41` — was awaiting work that had already been superseded.
+- **And a pose is not a behaviour**, which `N112` had already said. `--code-block-type` enters text
+  through `CodeBlockEditor.TypeText`, one character at a time, raising real text input; the editor
+  tests now call the same method, so the harness and the suite exercise one path rather than two
+  that can drift.
+
+**Verified, and this is the first entry in a while where the screenshot is the evidence rather
+than a formality**: the in-node editor open on a framed block with a completion list hanging out of
+it over the canvas, `Circle` preselected at the top, from text that was typed rather than pushed
+into the document. Nothing before this step could produce that image. The properties pane's
+signature popup is now photographable too, which it had never been. Clean `--no-incremental` build
+`-warnaserror`, format clean, nine executables green at **2472**.
+
+**The rule I would keep from it.** Every one of these faults produced a *plausible* picture — a
+real window, real nodes, the right graph, subject absent. A capture that failed would have been
+noticed on its first run. **A verification step that cannot fail is worse than none, and the tell
+is that it has never once been red.**
+
+**Cost.** About two hours, nearly all diagnosis: four instrumentation cycles to establish, in
+order, that the pose ran after the shutter, that the frame had never been arranged, that the canvas
+had no size, and that two requests were cancelling each other.

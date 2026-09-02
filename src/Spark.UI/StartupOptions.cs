@@ -50,6 +50,17 @@ namespace Spark.UI;
 /// like the completion list it cannot appear in a screenshot unless the application is asked to
 /// put it there.
 /// </param>
+/// <param name="FrameNode">
+/// Whether the view is centred on the posed code block rather than on the whole graph
+/// (`E11-T22`). A block being edited is inflated to hold its editor, so framing the graph frames
+/// bounds that include it and pushes the thing under test off the edge.
+/// </param>
+/// <param name="CodeBlockTyped">
+/// Text to <i>type</i> into the posed code block's editor through the input path, rather than
+/// push into its document (`E11-T22`). Bracket completion, the completion triggers and signature
+/// help all hang off text input, so a pose that writes to the document exercises none of them —
+/// which is how `E8-T42` stayed invisible to three verification paths at once ([N112]).
+/// </param>
 /// <param name="UpdateBadge">
 /// A version to show in the update badge at startup (<c>--update-badge 9.9.9</c>), or null.
 /// Aimed at the screenshot path for the reason <c>--about-window</c> and <c>--help-window</c> are:
@@ -158,7 +169,9 @@ public readonly record struct StartupOptions(
     string? UpdateBadge = null,
     string? CodeBlock = null,
     string? CodeBlockCommand = null,
-    bool CodeBlockInNode = false)
+    bool CodeBlockInNode = false,
+    bool FrameNode = false,
+    string? CodeBlockTyped = null)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
     public static StartupOptions Default => new(0, 0, 0, null, null, null);
@@ -243,6 +256,8 @@ public readonly record struct StartupOptions(
         string? codeBlock = null;
         string? codeBlockCommand = null;
         bool codeBlockInNode = false;
+        bool frameNode = false;
+        string? codeBlockTyped = null;
         bool software = false;
         string? helpTopic = null;
         bool aboutWindow = false;
@@ -305,6 +320,14 @@ public readonly record struct StartupOptions(
 
                 case "--code-block-in-node":
                     codeBlockInNode = true;
+                    break;
+
+                case "--frame-node":
+                    frameNode = true;
+                    break;
+
+                case "--code-block-type" when i + 1 < args.Length:
+                    codeBlockTyped = args[++i];
                     break;
 
                 case "--update-badge" when i + 1 < args.Length:
@@ -380,7 +403,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped);
     }
 
     private static int ParseCount(string text, int fallback) =>

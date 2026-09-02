@@ -582,6 +582,30 @@ public sealed partial class CanvasPane : UserControl
 
         await ScriptEditor.RequestSignatureAsync().ConfigureAwait(true);
         await ScriptEditor.RequestCompletionAsync().ConfigureAwait(true);
+
+    }
+
+    /// <summary>
+    /// Types text into the open in-node editor the way a keyboard does (<c>E11-T22</c>).
+    /// </summary>
+    /// <param name="text">The characters to enter, or null to type nothing.</param>
+    /// <remarks>
+    /// <b>Entered rather than written into the document, and that distinction is the point.</b>
+    /// Bracket completion, the completion triggers and signature help all hang off text
+    /// <i>input</i>; a document write raises `TextChanged` and never `TextEntered`, so a pose
+    /// built on one exercises none of them. `E8-T42` was a defect that three verification paths
+    /// missed for exactly that reason ([N112](../../../docs/NOTES.md)), and this is the switch
+    /// that would have caught it.
+    /// </remarks>
+    public void TypeIntoScriptEditor(string? text)
+    {
+        if (text is not { Length: > 0 } typed || !ScriptEditor.IsVisible)
+        {
+            return;
+        }
+
+        ScriptEditor.FocusEditor();
+        ScriptEditor.TypeText(typed.Replace("\\n", "\n", StringComparison.Ordinal));
     }
 
     /// <summary>The line count and the longest line of a block's source.</summary>

@@ -1199,12 +1199,34 @@ public sealed partial class MainWindow : Window
         _posedAgainst = view;
         Canvas.RequestScriptEdit(model.Graph.SlotOf(posed.Id));
 
-        // The editor is open by the time that returns - the canvas raises the request and the
-        // pane serves it synchronously - so the popups can be asked for straight away. Not
-        // awaited here, because a layout handler cannot be; the capture path awaits it.
-        _ = _canvasPane.PoseScriptPopupsAsync();
+        // **The popups are not asked for here** (`E11-T22`). This handler runs again on every
+        // view change, and each request cancels the one before it - so a fire-and-forget pose
+        // from here raced the awaited one in the capture path and left the list closed at the
+        // moment of the shutter, which is one of the two reasons three defects in a row went
+        // unphotographed. The capture path asks once, and awaits it.
     }
 
+    /// <summary>
+    /// Gets the window into the state that is being photographed, then takes the picture
+    /// (<c>E11-T22</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The order here is the whole of what was wrong with this path, and it made screenshots
+    /// lie rather than fail.</b> `Opened` fires before the first layout, so the canvas has no
+    /// size, `ZoomToFit` fits into nothing and the in-node editor could not be placed
+    /// ([N111](../../../docs/NOTES.md)) — the pose deferred itself to a `LayoutUpdated` that fired
+    /// <i>after</i> the shutter. The awaited pose below was therefore an await on a method that
+    /// returned immediately having done nothing, which is the most convincing shape a no-op can
+    /// take.
+    /// </para>
+    /// <para>
+    /// <b>So the layout is forced first</b>, and everything after it operates on a window that
+    /// has a real size: the fit fits, the pose places, and the await is an await on work that is
+    /// actually happening.
+    /// </para>
+    /// </remarks>
+    /// <param name="prefix">The file path prefix the images are written under.</param>
     private async Task CaptureWhenReadyAsync(string prefix)
     {
         if (Model is { } model)
@@ -1212,21 +1234,98 @@ public sealed partial class MainWindow : Window
             await model.EvaluateAsync().ConfigureAwait(true);
         }
 
+        // **Waited for, not asked for.** `UpdateLayout()` here was the first attempt and it does
+        // nothing: the window is shown but the platform has not sized it yet, so measuring it
+        // measures nothing. Everything below this line reads a size - the fit, the framing, the
+        // editor's screen rectangle - and against a zero-size canvas they all quietly produce
+        // world coordinates wearing screen names ([N111](../../../docs/NOTES.md)).
+        await WaitForLayoutAsync().ConfigureAwait(true);
 
         Canvas.ZoomToFit();
         Viewport.ZoomToFit();
 
+        // `E11-T22`: a node rather than the graph, when one was asked for. Framing the graph is
+        // right for a picture of a graph and wrong for a picture of one node's editor, which is
+        // how `E8-T43` came to be photographed with the block it was about off screen.
+        FrameRequestedNode();
+
         // After the framing and before the shutter (`E8-T39`). The editor is placed in screen
-        // coordinates, so it has to be opened once the view it sits over has stopped moving -
-        // and `ZoomToFit` two lines up is the last thing that moves it.
+        // coordinates, so it has to be opened once the view it sits over has stopped moving.
         PoseScriptEditor();
 
+        // `E11-T22`: typed through the input path rather than pushed into the document, so the
+        // triggers a user's keystroke would fire actually fire. A pose that asks the language
+        // service directly photographs a mechanism; this photographs a behaviour ([N112]).
+        _canvasPane.TypeIntoScriptEditor(Options.CodeBlockTyped);
+
         // **Awaited**, so the shutter is not racing Roslyn. The first completion request pays
-        // for MEF composition, and a capture taken before it lands photographs a closed list -
-        // which a screenshot check would then report as a pass (`E8-T41`).
+        // for MEF composition, and a capture taken before it lands photographs a closed list.
         await _canvasPane.PoseScriptPopupsAsync().ConfigureAwait(true);
 
         StartCapture(prefix);
+    }
+
+    /// <summary>
+    /// Completes once the canvas has a real size, so the capture path can read one
+    /// (<c>E11-T22</c>).
+    /// </summary>
+    /// <returns>A task that completes on the first layout that produces a size, or on a deadline.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>There is a deadline, and it exists so that a capture is worse rather than absent.</b> A
+    /// wait with no way out turns an environment that never lays out into an application that
+    /// never exits, and a screenshot switch that hangs is harder to diagnose than one that
+    /// photographs the wrong thing.
+    /// </para>
+    /// </remarks>
+    private Task WaitForLayoutAsync()
+    {
+        if (Canvas.Bounds.Width >= 1 && Canvas.Bounds.Height >= 1)
+        {
+            return Task.CompletedTask;
+        }
+
+        TaskCompletionSource ready = new();
+
+        void OnLayout(object? sender, EventArgs e)
+        {
+            if (Canvas.Bounds.Width < 1 || Canvas.Bounds.Height < 1)
+            {
+                return;
+            }
+
+            Canvas.LayoutUpdated -= OnLayout;
+            ready.TrySetResult();
+        }
+
+        Canvas.LayoutUpdated += OnLayout;
+        DispatcherTimer.RunOnce(() => ready.TrySetResult(), TimeSpan.FromSeconds(5));
+
+        return ready.Task;
+    }
+
+    /// <summary>
+    /// Centres the view on the node the screenshot is about, when one was named (<c>E11-T22</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>A block being edited is bigger than it will be a moment later</b>, because the editor
+    /// reserves room on it (<c>E8-T40</c>) — so framing the whole graph frames bounds that
+    /// include an inflated block and pushes the very thing under test off the edge. Centring on
+    /// the node instead is what a picture of that node needs.
+    /// </remarks>
+    private void FrameRequestedNode()
+    {
+        if (!Options.FrameNode || _poseScript is not { } posed || Model is not { } model)
+        {
+            return;
+        }
+
+        int slot = model.Graph.SlotOf(posed.Id);
+
+        if (slot >= 0)
+        {
+            Canvas.CentreOn(model.Graph.Nodes[slot].Bounds);
+        }
     }
 
     /// <summary>
@@ -1293,6 +1392,13 @@ public sealed partial class MainWindow : Window
     private void WriteCaptures(string prefix)
     {
         UpdateStatus();
+
+        // `E11-T22`. **A control that has just been made visible has not been arranged**, and
+        // `RenderTargetBitmap.Render` draws the tree rather than running the loop - so a popup
+        // opened for the photograph came out with `Bounds` of `0,0,0,0` and no pixels, while
+        // every property a test could assert said it was open. That is a screenshot that lies,
+        // and it is why three defects in a row went unphotographed.
+        UpdateLayout();
 
         int width = Math.Max(1, (int)Bounds.Width);
         int height = Math.Max(1, (int)Bounds.Height);

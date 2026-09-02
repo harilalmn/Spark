@@ -694,34 +694,13 @@ public sealed class CodeBlockEditorTests
         editor.FocusEditor();
         Inner(editor).CaretOffset = editor.Text.Length;
 
-        Enter(editor, "(");
+        editor.TypeText("(");
         Pump();
         Pump();
 
         Assert.Equal("var p = new Point3d()", editor.Text);
         Assert.True(editor.IsSignatureOpen, "typing '(' left no signature open");
     });
-
-    /// <summary>
-    /// Enters text the way a keystroke does, so <c>TextEntered</c> - and therefore bracket
-    /// completion - actually runs.
-    /// </summary>
-    /// <remarks>
-    /// <see cref="Type"/> writes into the document directly, which is right for the tests that only
-    /// care what the text became. It is not enough here: bracket completion hangs off text
-    /// <i>input</i>, and a document write raises nothing.
-    /// </remarks>
-    private static void Enter(CodeBlockEditor editor, string text)
-    {
-        TextArea area = Inner(editor).TextArea;
-
-        area.RaiseEvent(new TextInputEventArgs
-        {
-            RoutedEvent = InputElement.TextInputEvent,
-            Text = text,
-            Source = area,
-        });
-    }
 
     /// <summary>
     /// A signature source that answers the way the real one does: nothing when the caret is not

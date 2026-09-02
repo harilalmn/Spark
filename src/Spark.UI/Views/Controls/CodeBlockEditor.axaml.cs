@@ -242,6 +242,45 @@ public sealed partial class CodeBlockEditor : UserControl
     /// <summary>The area a popup has to fit in: the one given, or this control.</summary>
     private Rect PopupBounds => _popupArea ?? new Rect(Bounds.Size);
 
+    /// <summary>
+    /// Enters text the way a keyboard does, one character at a time (`E11-T22`).
+    /// </summary>
+    /// <param name="text">The characters to enter.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Entered, not written.</b> Setting <see cref="Text"/> or inserting into the document
+    /// raises <c>TextChanged</c> and never <c>TextEntered</c>, so bracket completion, the
+    /// completion triggers and signature help — every one of which hangs off text <i>input</i> —
+    /// do not run. `E8-T42` was a defect three separate verification paths missed for exactly
+    /// that reason ([N112](../../../docs/NOTES.md)).
+    /// </para>
+    /// <para>
+    /// <b>One character at a time</b>, because that is what the editor's own handlers are written
+    /// against: a closing bracket is inserted per opener, and a trigger rule reads the character
+    /// before the caret.
+    /// </para>
+    /// </remarks>
+    public void TypeText(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        if (_editor is null)
+        {
+            return;
+        }
+
+        foreach (char character in text)
+        {
+            _editor.TextArea.RaiseEvent(new TextInputEventArgs
+            {
+                RoutedEvent = InputElement.TextInputEvent,
+                Text = character.ToString(),
+                Source = _editor.TextArea,
+            });
+        }
+    }
+
     /// <summary>Raised when the text has been changed and committed — on losing focus.</summary>
     public event EventHandler? Committed;
 

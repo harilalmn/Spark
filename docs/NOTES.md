@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-03 (N113 added)
+**Last updated:** 2026-09-03 (N114 added)
 
 ---
 
@@ -3273,3 +3273,40 @@ none re-derived it. **A blocker recorded as a tool failure rather than as a ques
 re-tests**, because the note answers "have we tried?" instead of "what do we actually need?"
 
 The rule: write a blocker as the thing that is unavailable, not as the command that failed.
+
+---
+
+## N114 — Three ways a screenshot lies, and all three said the feature was fine
+
+`--screenshot` is listed in this journal's *Verify with* row. Four steps running were checked with
+it and it showed none of them. The Roslyn race the queue item blamed was real and was fixed; it
+was one of four faults, and the smallest.
+
+**1. The window has no size when the capture path runs.** `Opened` fires before the first layout.
+`Canvas.Bounds` is `0,0,0,0`, so `ZoomToFit` fits into nothing, `CentreOn` centres against a zero
+viewport, and any world-to-screen conversion returns the world coordinate unchanged — the identity
+transform satisfies the types and nothing else ([N111](#n111--opened-fires-before-the-first-layout-so-a-screen-rectangle-taken-there-is-a-world-one)).
+**`UpdateLayout()` does not fix this**, which is the part worth writing down: the platform has not
+sized the window yet, so asking it to measure measures nothing. You have to *wait* for a layout,
+not ask for one.
+
+**2. `RenderTargetBitmap.Render` does not run layout.** A control made visible a moment earlier has
+never been measured or arranged: its `Bounds` are `0,0,0,0` and it draws nothing — while
+`IsVisible` is true, its position is set, and every property a test could assert says it is open.
+That is the worst shape a bug can take, because the evidence and the image disagree and the
+evidence is more convenient to read.
+
+**3. Two requests, and the second cancels the first.** The pose was asked for from a layout handler
+*and* awaited in the capture path. Each completion request cancels the one before it, so the
+fire-and-forget one issued later left the list closed at the moment of the shutter — and the
+awaited call, which looked like the careful fix, was awaiting work that had already been
+superseded.
+
+**4. And the pose is not the behaviour** ([N112](#n112--one-keystroke-two-text-changes-and-three-verifications-that-all-missed-it)).
+Asking the language service directly photographs a mechanism. Typing photographs what a user gets.
+
+**What they have in common.** Every one of them produces a *plausible* image — a real window, real
+nodes, the right graph — with the subject absent. A capture that failed would have been noticed on
+the first run. A capture that succeeds and omits the thing it was taken for gets pasted into a
+journal entry as evidence. **A verification step that cannot fail is worse than no verification
+step**, and the tell is that it has never once been red.

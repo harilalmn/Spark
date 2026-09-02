@@ -485,6 +485,55 @@ public sealed class EditorSelectionTests
         Assert.Null(Spark.UI.StartupOptions.Parse([]).CodeBlock);
     }
 
+    /// <summary>
+    /// <b>`E11-T22`: the two switches that make a screenshot show a behaviour rather than a
+    /// mechanism.</b> <c>--frame-node</c> centres on the block being photographed instead of the
+    /// graph, which is how `E8-T43` came to be captured with its own subject off screen; and
+    /// <c>--code-block-type</c> enters text through the input path, which is the only way a
+    /// screenshot can exercise bracket completion or a completion trigger at all ([N112]).
+    /// </summary>
+    [Fact]
+    public void TheHarnessSwitchesAreParsed()
+    {
+        Spark.UI.StartupOptions options = Spark.UI.StartupOptions.Parse(
+            ["--code-block", "var a = 1;", "--code-block-in-node", "--frame-node", "--code-block-type", "b."]);
+
+        Assert.True(options.CodeBlockInNode);
+        Assert.True(options.FrameNode);
+        Assert.Equal("b.", options.CodeBlockTyped);
+
+        Spark.UI.StartupOptions bare = Spark.UI.StartupOptions.Parse([]);
+
+        Assert.False(bare.FrameNode);
+        Assert.Null(bare.CodeBlockTyped);
+    }
+
+    /// <summary>
+    /// <b>Typing is not writing, and the editor's own handlers are the difference.</b>
+    /// <see cref="CodeBlockEditor.TypeText"/> raises text input one character at a time, so bracket
+    /// completion runs — a document write raises <c>TextChanged</c> and never <c>TextEntered</c>,
+    /// which is exactly how `E8-T42` stayed invisible to three verification paths.
+    /// </summary>
+    [Fact]
+    public void TypedTextRunsTheEditorsOwnHandlers() => HeadlessSession.Run(() =>
+    {
+        CodeBlockEditor editor = new();
+        Window window = new() { Width = 600, Height = 400, Content = editor };
+
+        window.Show();
+
+        editor.Text = "var c = Circle.ByCentreNormalRadius";
+        editor.FocusEditor();
+        editor.CaretOffset = editor.Text.Length;
+
+        editor.TypeText("(");
+
+        // The closing bracket is the editor's, not the caller's: typing one character produced two.
+        Assert.Equal("var c = Circle.ByCentreNormalRadius()", Text(editor));
+
+        window.Close();
+    });
+
     private static string Text(CodeBlockEditor editor) =>
         editor.Text.Replace("\r\n", "\n", StringComparison.Ordinal);
 
