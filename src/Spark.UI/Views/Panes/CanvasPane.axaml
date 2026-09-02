@@ -17,7 +17,12 @@
     <Panel>
       <controls:GraphCanvas x:Name="CanvasControl" />
 
-      <Canvas x:Name="OverlayLayer" IsHitTestVisible="True">
+      <!--
+        E8-T43: clipped to the pane. The editor follows the block it is over, so it can be
+        followed off the edge of the canvas - and an unclipped overlay would draw it across
+        the viewport and the library instead of letting it leave.
+      -->
+      <Canvas x:Name="OverlayLayer" IsHitTestVisible="True" ClipToBounds="True">
         <Border x:Name="CreateBox" Classes="float" Width="300" IsVisible="False">
           <Grid RowDefinitions="Auto,Auto,Auto">
             <TextBox Grid.Row="0" x:Name="CreateSearchBox" Margin="8,8,8,4"

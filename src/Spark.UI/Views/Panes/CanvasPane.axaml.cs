@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -25,6 +26,9 @@ public sealed partial class CanvasPane : UserControl
     private double _createWorldY;
     private int _editingSlot = -1;
     private int _editingScript = -1;
+
+    /// <summary>What the open editor asked for, in screen pixels, so a moved view can ask again.</summary>
+    private Size _editorWanted;
 
     /// <summary>
     /// Roughly how tall one line is in the editor, so the editor opens tall enough to show the
@@ -70,7 +74,7 @@ public sealed partial class CanvasPane : UserControl
         CanvasControl.CodeBlockRequested += OnCanvasCodeBlockRequested;
         CanvasControl.FieldEditRequested += OnCanvasFieldEditRequested;
         CanvasControl.ScriptEditRequested += OnCanvasScriptEditRequested;
-        CanvasControl.PointerWheelChanged += OnCanvasWheel;
+        CanvasControl.ViewChanged += OnCanvasViewChanged;
 
         // `E8-T39`. The same four sources the properties pane gives its editor, because it is
         // the same editor over the same block - a list that answered differently depending on
@@ -395,19 +399,44 @@ public sealed partial class CanvasPane : UserControl
         // that goes, because the node's geometry is the canvas's.
         Measure(e.Text, out int lines, out int columns);
 
-        double wanted = Math.Clamp(
-            (columns * EditorCharWidth) + EditorChrome, EditorMinimumWidth, EditorMaximumWidth);
+        _editorWanted = new Size(
+            Math.Clamp((columns * EditorCharWidth) + EditorChrome, EditorMinimumWidth, EditorMaximumWidth),
+            (lines * EditorLineHeight) + EditorChromeHeight);
 
+        if (!Place(e.Slot))
+        {
+            return;
+        }
+
+        ScriptEditor.Text = e.Text;
+        ScriptEditor.IsVisible = true;
+        ScriptEditor.FocusEditor();
+    }
+
+    /// <summary>
+    /// Puts the editor over a block's source at the current pan and zoom (<c>E8-T43</c>).
+    /// </summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <returns>False when the slot is no longer a code block, in which case nothing moved.</returns>
+    /// <remarks>
+    /// <b>The size asked for is in screen pixels and does not change with the zoom</b>, which is
+    /// the whole of what makes this work: the reservation the canvas makes is that size divided by
+    /// the zoom, so re-asking on every view change keeps the editor a constant, legible size while
+    /// the block grows and shrinks around it. It is <c>E8-T40</c>'s rule applied at every zoom
+    /// rather than only at the one the editor happened to open at.
+    /// </remarks>
+    private bool Place(int slot)
+    {
         if (!CanvasControl.ScriptEditorSpace(
-            e.Slot,
-            wanted,
-            (lines * EditorLineHeight) + EditorChromeHeight,
+            slot,
+            _editorWanted.Width,
+            _editorWanted.Height,
             out double x,
             out double y,
             out double width,
             out double height))
         {
-            return;
+            return false;
         }
 
         // Placed in the rectangle the canvas answered with and not one pixel outside it. Every
@@ -421,13 +450,40 @@ public sealed partial class CanvasPane : UserControl
         // `E8-T41`: the completion list and the signature are drawn on an overlay inside the
         // editor, so on a block two lines tall they came out as a sliver inside the block. They
         // are allowed the whole pane instead - given relative to the editor, which is why the
-        // origin is negative.
-        ScriptEditor.PopupArea = new Avalonia.Rect(
+        // origin is negative, and why it is recomputed on every move.
+        ScriptEditor.PopupArea = new Rect(
             -x, -y, OverlayLayer.Bounds.Width, OverlayLayer.Bounds.Height);
 
-        ScriptEditor.Text = e.Text;
-        ScriptEditor.IsVisible = true;
-        ScriptEditor.FocusEditor();
+        return true;
+    }
+
+    /// <summary>Keeps the open editor over its block when the view moves (<c>E8-T43</c>).</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This replaces closing the editor, which is what the wheel used to do.</b> A control
+    /// positioned in screen coordinates over a surface that pans and zooms is correct until the
+    /// surface moves, and there are only two honest answers: move with it, or get out of the way.
+    /// The second was the cheaper one and it reads as the application snapping shut on a user who
+    /// was typing.
+    /// </para>
+    /// <para>
+    /// <b>A block whose slot has gone takes the editor with it</b> rather than leaving it floating
+    /// over a node that is not there — which is what a deletion from elsewhere would otherwise
+    /// produce.
+    /// </para>
+    /// </remarks>
+    private void OnCanvasViewChanged(object? sender, EventArgs e)
+    {
+        if (_editingScript < 0)
+        {
+            return;
+        }
+
+        if (!Place(_editingScript))
+        {
+            _editingScript = -1;
+            ScriptEditor.IsVisible = false;
+        }
     }
 
     /// <summary>
@@ -562,18 +618,4 @@ public sealed partial class CanvasPane : UserControl
         }
     }
 
-    /// <summary>Takes the editor away when the view moves out from under it.</summary>
-    /// <remarks>
-    /// A control positioned in screen coordinates over a surface that pans and zooms is correct
-    /// until the surface moves. Pressing anywhere on the canvas already focuses it, which commits;
-    /// the wheel does not, so it is handled here. Closing on a zoom is the honest answer — the
-    /// alternative is repositioning the editor mid-gesture while somebody is typing into it.
-    /// </remarks>
-    private void OnCanvasWheel(object? sender, PointerWheelEventArgs e)
-    {
-        if (ScriptEditor.IsVisible)
-        {
-            CanvasControl.Focus();
-        }
-    }
 }

@@ -345,6 +345,16 @@ public sealed class GraphCanvas : Control
     /// </remarks>
     public event EventHandler<CanvasFieldEditEventArgs>? ScriptEditRequested;
 
+    /// <summary>The pan or the zoom moved (<c>E8-T43</c>).</summary>
+    /// <remarks>
+    /// <b>For the overlay above, which positions real controls in screen coordinates over a
+    /// surface that moves.</b> Everything the canvas draws is in world units and follows the view
+    /// for free; the one control the hybrid overlay is holding does not, and before this the
+    /// collision was resolved by closing it — one notch of the wheel and the editor a user was
+    /// typing in snapped shut.
+    /// </remarks>
+    public event EventHandler? ViewChanged;
+
     private enum InteractionMode
     {
         None,
@@ -419,6 +429,20 @@ public sealed class GraphCanvas : Control
         _wireVisuals.Clear();
         _indexDirty = true;
         InvalidateVisual();
+    }
+
+    /// <summary>Redraws, and tells the overlay that the view has moved (<c>E8-T43</c>).</summary>
+    /// <remarks>
+    /// <b>Every site that moves the pan or the zoom calls this instead of
+    /// <c>InvalidateVisual</c>.</b> They all had to invalidate anyway, so routing them through one
+    /// place costs nothing and makes "did anything move?" answerable — the alternative is five
+    /// call sites that each have to remember a second thing, which is four opportunities to
+    /// forget.
+    /// </remarks>
+    private void ViewMoved()
+    {
+        InvalidateVisual();
+        ViewChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Adds a slot to the selection, leaving whatever else is selected alone.</summary>
@@ -517,7 +541,7 @@ public sealed class GraphCanvas : Control
         double zoom = _transform.Zoom;
         _transform.OffsetX = ((bounds.MinX + bounds.MaxX) / 2) - (Bounds.Width / (2 * zoom));
         _transform.OffsetY = ((bounds.MinY + bounds.MaxY) / 2) - (Bounds.Height / (2 * zoom));
-        InvalidateVisual();
+        ViewMoved();
     }
 
     /// <summary>Frames the whole graph in the control, with a margin.</summary>
@@ -554,7 +578,7 @@ public sealed class GraphCanvas : Control
 
         _fitPending = false;
         _transform.FitTo(_graph.ComputeBounds(), Bounds.Width, Bounds.Height);
-        InvalidateVisual();
+        ViewMoved();
     }
 
     /// <inheritdoc/>
@@ -576,7 +600,7 @@ public sealed class GraphCanvas : Control
             if (untouched)
             {
                 _transform.FitTo(_graph.ComputeBounds(), finalSize.Width, finalSize.Height);
-                InvalidateVisual();
+                ViewMoved();
             }
         }
 
@@ -876,7 +900,7 @@ public sealed class GraphCanvas : Control
             case InteractionMode.Panning:
                 _transform.PanByScreen(screen.X - _pointerAnchor.X, screen.Y - _pointerAnchor.Y);
                 _pointerAnchor = screen;
-                InvalidateVisual();
+                ViewMoved();
                 return;
 
             case InteractionMode.DraggingNodes:
@@ -1150,7 +1174,7 @@ public sealed class GraphCanvas : Control
         double factor = Math.Pow(1.15, e.Delta.Y);
         _transform.ZoomAbout(factor, screen.X, screen.Y);
         e.Handled = true;
-        InvalidateVisual();
+        ViewMoved();
     }
 
     /// <inheritdoc/>

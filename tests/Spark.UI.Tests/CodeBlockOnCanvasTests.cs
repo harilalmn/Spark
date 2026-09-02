@@ -293,4 +293,61 @@ public sealed class CodeBlockOnCanvasTests
         Assert.False(canvas.ScriptEditorSpace(slot, 400, 200, out _, out _, out _, out _));
         Assert.Equal(before, graph.Nodes[slot].Width);
     });
+
+    /// <summary>
+    /// <b>`E8-T43`: the wheel moves the view, and the view says so.</b> Everything the canvas draws
+    /// follows the pan and the zoom for free; the one real control the hybrid overlay holds does
+    /// not, and it can only follow if it is told.
+    /// </summary>
+    [Fact]
+    public void MovingTheViewIsAnnounced() => HeadlessSession.Run(() =>
+    {
+        (CanvasGraph graph, int slot) = Block(TwoLines);
+
+        GraphCanvas canvas = new() { Graph = graph };
+        Window window = new() { Width = 900, Height = 700, Content = canvas };
+
+        window.Show();
+        window.CaptureRenderedFrame();
+
+        int moves = 0;
+        canvas.ViewChanged += (_, _) => moves++;
+
+        window.MouseWheel(new Point(400, 300), new Vector(0, 1));
+
+        Assert.True(moves > 0, "zooming the canvas announced nothing");
+        Assert.True(slot >= 0);
+
+        window.Close();
+    });
+
+    /// <summary>
+    /// <b>And the editor's rectangle comes back the same size at a different zoom.</b> The
+    /// reservation is the screen size divided by the zoom, so asking again after the view moves is
+    /// what keeps the editor legible and constant while the block grows around it — which is what
+    /// lets it follow instead of closing.
+    /// </summary>
+    [Fact]
+    public void TheEditorsRectangleIsTheSameSizeAtEveryZoom() => HeadlessSession.Run(() =>
+    {
+        (CanvasGraph graph, int slot) = Block(TwoLines);
+
+        GraphCanvas canvas = new() { Graph = graph };
+
+        Assert.True(canvas.ScriptEditorSpace(slot, 400, 200, out _, out _, out double wide, out double tall));
+
+        double worldWidth = graph.Nodes[slot].Width;
+
+        canvas.Transform.Zoom = 0.5;
+
+        Assert.True(canvas.ScriptEditorSpace(slot, 400, 200, out _, out _, out double zoomedWide, out double zoomedTall));
+
+        // The same rectangle on screen at half the zoom, which can only be true if the block took
+        // twice the world units to hold it.
+        Assert.Equal(wide, zoomedWide, 3);
+        Assert.Equal(tall, zoomedTall, 3);
+        Assert.True(
+            graph.Nodes[slot].Width > worldWidth,
+            $"the block should have grown in world units: {worldWidth} to {graph.Nodes[slot].Width}");
+    });
 }

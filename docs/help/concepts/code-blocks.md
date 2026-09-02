@@ -133,6 +133,10 @@ On the canvas it opens over the block's own source, and **the block widens to ho
 editor is drawn at a readable size whatever the canvas is zoomed to, so the node makes room
 rather than the editor covering the ports. It goes back to its own size when you close it.
 
+**Panning and zooming leave it open** and carry it with the block, which stays big enough to
+hold it: the editor is drawn at a readable size whatever the canvas is at, so zooming out grows
+the block rather than shrinking the text.
+
 It closes when you click away. **Escape closes it and keeps what you typed** — Ctrl+Z takes the edit back if you did not want it, which
 is not something that can bring typing back the other way. **Enter is a newline**, so it is
 clicking away, or Escape, that commits.
