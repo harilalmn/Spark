@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-03 01:20 +0530
+**Last updated:** 2026-09-03 02:05 +0530
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.1.0` shipped on 2026-09-02** — the first tag in the repository's history, and the first time the release pipeline has run end to end rather than been argued about. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | Nothing. Both halves of what the client asked for are in: `E6-T26` gives a code block one output port per line, and `E8-T39` puts the editor on the node. |
+| **Working on** | Nothing. The client's two asks are in — one output port per line (`E6-T26`) and the editor on the node (`E8-T39`) — and the defect they reported against the second is fixed (`E8-T40`). |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E8-T39` — the code editor inside the code block node.** Double-click a block and the same `CodeBlockEditor` the properties pane hosts opens over the source the canvas drew, in the overlay layer [ADR-0013](adr/0013-immediate-mode-node-canvas.md) set aside for *the one node being interacted with* — so this confirmed that ADR rather than bending it. Every other block stays a **drawing** of its source. The source sits **between** the port tabs rather than below them, so a block whose every line is a port comes out the height of its ports; nothing new goes in `.spark`, because the size is derived from source that was already saved. **Escape commits rather than abandoning**, which is the opposite of `E8-T5`'s value field and deliberate: a field holds a number somebody can retype. **Before that: `E6-T26`** — a code block with no `return` gives one output port per variable it declares, Dynamo's Code Block rule, which exposed two silent defects that had been in the tree since `E6-T8` ([N110](NOTES.md)): `Unpack` filled every port past the seventh with null because a `ValueTuple` nests past seven, and the starter script had never compiled because a generated method returning `object` with no `return` is `CS0161`, reported against the frame and therefore dropped by the source map. **Before that: the RCS editor port, all six slices.** |
-| **Working tree** | Clean at the commit carrying this journal. **`Release #3` was not watched**: `gh` is not authenticated on this machine and no token is set, so whether `v0.1.2` published is unread rather than reported — it is the first thing a session with credentials should look at. |
-| **Next action** | **Read `Release #3`** and finish cutting `v0.1.2`, which is the item this session interrupted and did not resume. Then the queue as it stood: **`N108`** (the fingerprint that moves with load order, which quietly defeats the on-disk compile cache), **`N107`** (completion parses as a script while the compiler wraps a method body), **the screenshot harness** (it races Roslyn and photographs an empty popup), and **the installer install/over-install/uninstall cycle**, which is this journal's own stated bar and has never been run. **Two things `E8-T39` left on the table, neither of them blocking**: the in-node editor is opaque, so while it is open it covers the port tabs of a narrow block; and it does not follow a pan or a zoom — the canvas takes focus on a press and the wheel closes it, so it commits rather than drifting, which is correct but is a close rather than a follow. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2457**: Geometry.Tests 763, UI.Tests 879, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets, and **`--code-block "..." --code-block-in-node --screenshot PREFIX` for the editor on the node** (`E8-T39`). **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
+| **Last completed step** | **`E8-T40` — the in-node editor makes room for itself instead of covering the port tabs.** Reported by the client against `E8-T39` the moment it landed. **The editor cannot be sized to the source rectangle**: it is drawn at a fixed legible size and the rectangle is scaled by the zoom, so on a short block the rectangle is the smaller of the two and the floors that made up the difference landed on the lozenges. The block grows instead — the pane says what the editor needs in *screen* pixels, the canvas divides by the zoom, reserves that much source area, re-measures the node and answers with a rectangle the editor is placed in exactly. **A reservation, not a resize**: a node's width is derived from its content on every measure, so nothing reaches `.spark`, and the room goes back *before* the commit because committing replaces the node. **Before that: `E8-T39`**, the editor inside the node, which confirmed [ADR-0013](adr/0013-immediate-mode-node-canvas.md) rather than bending it — the overlay layer exists for exactly this, and every other block on the canvas stays a drawing. **Before that: `E6-T26`**, one output port per declared variable, which exposed two silent defects neither reachable before it ([N110](NOTES.md)). |
+| **Working tree** | Clean at the commit carrying this journal. **`Release #3` is still unread**: `gh` is not authenticated on this machine and no token is set, so whether `v0.1.2` published is unknown rather than reported. |
+| **Next action** | **Read `Release #3`** and finish cutting `v0.1.2`, which is the item this session interrupted and has not resumed. Then: **`N108`** (the fingerprint that moves with load order, which quietly defeats the on-disk compile cache), **`N107`** (completion parses as a script while the compiler wraps a method body), **the screenshot harness** (it races Roslyn and photographs an empty popup), and **the installer install/over-install/uninstall cycle**, which is this journal's own stated bar and has never been run. **One thing `E8-T39` still leaves open, and it is smaller than it was**: the in-node editor does not *follow* a pan or a zoom — pressing the canvas focuses it, which commits, and the wheel closes it, so it never drifts, but it closes rather than tracking. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2461**: Geometry.Tests 763, UI.Tests 883, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets, and **`--code-block "..." --code-block-in-node --screenshot PREFIX` for the editor on the node** (`E8-T39`). **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -6270,3 +6270,50 @@ a close and not a follow.
 
 **Cost.** One session, after `E6-T26` in the same one. The model and the drawing were quick; the
 placement of a control over an immediate-mode surface was three attempts.
+
+### 2026-09-03 — `E8-T40`: the block makes room for its own editor
+
+**What.** The in-node editor no longer covers the port tabs. `CanvasNode.ReserveScriptSpace`
+makes the source area at least a given size while the editor is open;
+`GraphCanvas.ScriptEditorSpace` takes the size in screen pixels, divides by the zoom, reserves it,
+re-measures the node and answers with the rectangle to place the editor in;
+`CanvasPane.EndScriptEdit` gives the room back when it closes.
+
+**Why a floor on the editor could never have worked.** The editor is drawn at a fixed legible size
+and the node is scaled by the zoom, so *what a usable editor needs* and *what the source rectangle
+has* are two independent numbers — and on a short block, or at any zoom much below 100%, the first
+is the larger. There were only ever three options: shrink the editor into the rectangle, which
+gives 6 px text; leave it overflowing, which is the reported defect; or grow the block. Growing
+the block is the only one that keeps both the text readable and the ports visible, and it is what
+Dynamo's code block does too — its editor *is* the node.
+
+**The division of labour is the part worth keeping.** The pane says what the editor needs, because
+the editor's metrics belong to the pane that hosts it; the canvas decides where that goes, because
+the node's geometry belongs to the canvas that draws it. The bug was the pane asking for a
+rectangle and then quietly making it bigger. It now places the editor in the rectangle it is given
+and not one pixel outside it.
+
+**A reservation rather than a resize**, and that distinction is load-bearing. A node's width is
+derived from its content every time it is measured and only a `CanvasNote` persists a size — so a
+reservation cannot reach `.spark` however the edit ends, and ADR-0016's byte-identical re-save is
+untouched. The room goes back **before** the commit, because committing replaces the node's
+definition: a release aimed at it afterwards either does nothing or shrinks whichever node has
+taken its slot.
+
+**Verified.** Four new tests in `CodeBlockOnCanvasTests`, and **two of them were watched red** with
+the reserved width taken back out of `ScriptWidth` — the one that asserts the editor's rectangle
+ends before the output tab starts, and the one that asserts 400 screen pixels are still 400 screen
+pixels at 50% zoom. The block also visibly returns to its own size when the editor closes, which is
+the failure a reservation quietly left behind would produce. Clean `--no-incremental` build
+`-warnaserror`, `dotnet format --verify-no-changes` clean, all nine executables green at **2461**,
+and photographed twice: a three-line block whose three output tabs are now beside the editor rather
+than under it, and the eleven-line one with `x`, `y`, `z` down the left and eleven ports down the
+right.
+
+**What surprised me.** A latent `CS1574` in the previous commit — a cref to `CanvasNode` from a
+file that does not import `Spark.UI.Graph` — that the incremental build had not re-reported. The
+clean `--no-incremental` build in the verify list is there for exactly this and it earned its place
+again.
+
+**Cost.** Under an hour. The fix is about forty lines; deciding that the node grows rather than the
+editor shrinking was the whole of the work.

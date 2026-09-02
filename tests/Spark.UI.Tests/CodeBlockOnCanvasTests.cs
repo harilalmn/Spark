@@ -199,4 +199,98 @@ public sealed class CodeBlockOnCanvasTests
 
         return (graph, graph.Add(NodeDefinition.FromScript(scripts.Create(source), source), 0, 0));
     }
+
+    /// <summary>
+    /// <b>`E8-T40`: making room for the editor keeps it clear of the port tabs.</b> The reported
+    /// defect, and the reason it is a reservation rather than a floor on the editor's size — the
+    /// editor is drawn at a fixed legible size while the source rectangle is scaled by the zoom, so
+    /// on a short block the second is smaller than the first and the difference used to land on the
+    /// lozenges either side.
+    /// </summary>
+    [Fact]
+    public void MakingRoomForTheEditorKeepsItClearOfThePortTabs() => HeadlessSession.Run(() =>
+    {
+        (CanvasGraph graph, int slot) = Block("var a1 = 1.0;\nvar a2 = 2.0;\n");
+
+        GraphCanvas canvas = new() { Graph = graph };
+        CanvasNode node = graph.Nodes[slot];
+
+        double before = node.Width;
+
+        Assert.True(
+            canvas.ScriptEditorSpace(slot, 400, 200, out double x, out double y, out double width, out double height),
+            "a code block was not given room");
+
+        Assert.True(width >= 400, $"asked for 400 and was given {width}");
+        Assert.True(height >= 200, $"asked for 200 and was given {height}");
+        Assert.True(node.Width > before, $"the block did not grow: {before} to {node.Width}");
+
+        // The tabs are outside the rectangle the editor is placed in, which is the whole of the
+        // fix - at zoom 1 the screen rectangle is the world one.
+        node.PortTab(0, isOutput: true, out double outputLeft, out _, out _, out _);
+
+        Assert.True(
+            x + width <= outputLeft,
+            $"the editor ends at {x + width} and the output tab starts at {outputLeft}");
+
+        Assert.True(y + height <= node.Y + node.Height);
+    });
+
+    /// <summary>
+    /// <b>And the block goes back to its own size when the editor closes.</b> The reservation is
+    /// not a resize: a node's width is derived from its content every time it is measured, so
+    /// nothing here can reach the file — but a reservation left behind would leave a block sitting
+    /// at editor width for the rest of the session.
+    /// </summary>
+    [Fact]
+    public void ClosingTheEditorGivesTheRoomBack() => HeadlessSession.Run(() =>
+    {
+        (CanvasGraph graph, int slot) = Block("var a1 = 1.0;\nvar a2 = 2.0;\n");
+
+        GraphCanvas canvas = new() { Graph = graph };
+
+        double before = graph.Nodes[slot].Width;
+        double heightBefore = graph.Nodes[slot].Height;
+
+        canvas.ScriptEditorSpace(slot, 400, 200, out _, out _, out _, out _);
+        canvas.EndScriptEdit(slot);
+
+        Assert.Equal(before, graph.Nodes[slot].Width);
+        Assert.Equal(heightBefore, graph.Nodes[slot].Height);
+    });
+
+    /// <summary>
+    /// <b>The room asked for is in screen pixels and the reservation is in world units.</b> That
+    /// division by the zoom is what makes zooming out grow the block rather than shrink the editor
+    /// into it — the editor is the one thing on the canvas that is not scaled, because 6 px text is
+    /// not text anybody can edit.
+    /// </summary>
+    [Fact]
+    public void TheRoomIsAskedForInScreenPixelsWhateverTheZoom() => HeadlessSession.Run(() =>
+    {
+        (CanvasGraph graph, int slot) = Block("var a1 = 1.0;\n");
+
+        GraphCanvas canvas = new() { Graph = graph };
+        canvas.Transform.Zoom = 0.5;
+
+        Assert.True(canvas.ScriptEditorSpace(slot, 400, 100, out _, out _, out double width, out _));
+
+        // Half a world unit per pixel, so the block had to grow twice as far in world units to
+        // answer with the same number of pixels.
+        Assert.True(width >= 400, $"asked for 400 screen pixels at 50% and was given {width}");
+    });
+
+    /// <summary>An ordinary node has no source, so there is nothing to make room for.</summary>
+    [Fact]
+    public void AnOrdinaryNodeIsGivenNoRoom() => HeadlessSession.Run(() =>
+    {
+        CanvasGraph graph = new();
+        int slot = graph.Add(TestGraphs.Library.ByName("Number.Value"), 0, 0);
+
+        GraphCanvas canvas = new() { Graph = graph };
+        double before = graph.Nodes[slot].Width;
+
+        Assert.False(canvas.ScriptEditorSpace(slot, 400, 200, out _, out _, out _, out _));
+        Assert.Equal(before, graph.Nodes[slot].Width);
+    });
 }

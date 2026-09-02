@@ -31,13 +31,35 @@ public sealed partial class CanvasPane : UserControl
     /// source it replaced rather than scrolling it.
     /// </summary>
     /// <remarks>
-    /// <b>Not <see cref="CanvasNode.ScriptLineHeight"/>, and the difference is the point.</b>
+    /// <b>Not <see cref="Spark.UI.Graph.CanvasNode.ScriptLineHeight"/>, and the difference is the point.</b>
     /// The drawing is scaled by the zoom and the editor is not - it is drawn at a legible size
     /// whatever the canvas is at, for the same reason the value field is floored at 22 px. So a
-    /// block zoomed out to 50% opens an editor twice the height of the box it came out of, and
-    /// that is right: the alternative is 5 px text nobody can edit.
+    /// block zoomed out to 50% needs an editor twice the height of the box it came out of, and
+    /// the block grows to hold it (<c>E8-T40</c>) rather than the editor spilling over the tabs.
     /// </remarks>
     private const double EditorLineHeight = 17;
+
+    /// <summary>Roughly one character's width at the editor's 12 px monospaced face.</summary>
+    private const double EditorCharWidth = 7.3;
+
+    /// <summary>The line-number gutter and the editor's own insets, in screen pixels.</summary>
+    private const double EditorChrome = 52;
+
+    /// <summary>The narrowest an editor is opened, so a one-word block still gets a usable one.</summary>
+    private const double EditorMinimumWidth = 260;
+
+    /// <summary>
+    /// The widest a block is grown to hold its own longest line.
+    /// </summary>
+    /// <remarks>
+    /// A block with one 300-character line would otherwise become a node wider than the canvas.
+    /// Past this the editor scrolls sideways, which is what every editor does and what the person
+    /// who wrote that line already expects.
+    /// </remarks>
+    private const double EditorMaximumWidth = 760;
+
+    /// <summary>The editor's own vertical insets, so the last line is not against the frame.</summary>
+    private const double EditorChromeHeight = 14;
 
     /// <summary>Creates the pane.</summary>
     public CanvasPane()
@@ -367,25 +389,34 @@ public sealed partial class CanvasPane : UserControl
 
         _editingScript = e.Slot;
 
-        // Big enough for the drawing it replaces, and never too small to work in. The floor is
-        // modest on purpose: the editor is opaque, so every pixel it takes beyond the source area
-        // is a port tab it covers up - and a one-line block zoomed out is the only case that needs
-        // one at all.
-        int lines = 1;
+        // `E8-T40`: the block is grown to hold the editor rather than the editor being allowed to
+        // spill over the port tabs either side of it. The pane says what the editor needs, in
+        // screen pixels, because the editor's metrics are the pane's; the canvas decides where
+        // that goes, because the node's geometry is the canvas's.
+        Measure(e.Text, out int lines, out int columns);
 
-        foreach (char c in e.Text)
+        double wanted = Math.Clamp(
+            (columns * EditorCharWidth) + EditorChrome, EditorMinimumWidth, EditorMaximumWidth);
+
+        if (!CanvasControl.ScriptEditorSpace(
+            e.Slot,
+            wanted,
+            (lines * EditorLineHeight) + EditorChromeHeight,
+            out double x,
+            out double y,
+            out double width,
+            out double height))
         {
-            if (c == '\n')
-            {
-                lines++;
-            }
+            return;
         }
 
-        ScriptEditor.Width = Math.Max(e.ScreenWidth, 240);
-        ScriptEditor.Height = Math.Max(e.ScreenHeight, Math.Max(120, (lines * EditorLineHeight) + 16));
+        // Placed in the rectangle the canvas answered with and not one pixel outside it. Every
+        // floor that used to be applied here was a port tab covered up.
+        ScriptEditor.Width = width;
+        ScriptEditor.Height = height;
 
-        Avalonia.Controls.Canvas.SetLeft(ScriptEditor, e.ScreenX);
-        Avalonia.Controls.Canvas.SetTop(ScriptEditor, e.ScreenY);
+        Avalonia.Controls.Canvas.SetLeft(ScriptEditor, x);
+        Avalonia.Controls.Canvas.SetTop(ScriptEditor, y);
 
         ScriptEditor.Text = e.Text;
         ScriptEditor.IsVisible = true;
@@ -435,7 +466,12 @@ public sealed partial class CanvasPane : UserControl
             return;
         }
 
+        int slot = _editingScript;
         _editingScript = -1;
+
+        // `E8-T40`: the room the editor reserved goes back *before* the commit. Committing
+        // replaces the node, so a release afterwards is aimed at something that is not there.
+        CanvasControl.EndScriptEdit(slot);
 
         // The editor owns the text while it is being typed, so the view model is told what it says
         // before being asked to commit it - the same order the properties pane uses.
@@ -452,6 +488,40 @@ public sealed partial class CanvasPane : UserControl
             CanvasControl.RefreshStructure();
             CanvasControl.InvalidateVisual();
             model.RequestRun();
+        }
+    }
+
+    /// <summary>The line count and the longest line of a block's source.</summary>
+    /// <param name="source">The source, as the editor holds it.</param>
+    /// <param name="lines">How many lines it has.</param>
+    /// <param name="columns">How many characters its longest line has.</param>
+    private static void Measure(string source, out int lines, out int columns)
+    {
+        lines = 1;
+        columns = 0;
+
+        int run = 0;
+
+        foreach (char c in source)
+        {
+            if (c == '\n')
+            {
+                lines++;
+                run = 0;
+                continue;
+            }
+
+            if (c != '\r')
+            {
+                run++;
+                columns = Math.Max(columns, run);
+            }
+        }
+
+        // A trailing newline is not a line anybody typed on, and every starter script ends in one.
+        if (lines > 1 && run == 0)
+        {
+            lines--;
         }
     }
 

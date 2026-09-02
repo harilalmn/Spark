@@ -255,7 +255,9 @@ public sealed class CanvasNode
         Script is null
             ? 0
             : TabAllowance(Inputs) + TabAllowance(Outputs) + (2 * ScriptGap)
-                + System.Math.Max(ScriptMinimumWidth, _longestScriptLine * ScriptCharWidth);
+                + System.Math.Max(
+                    System.Math.Max(ScriptMinimumWidth, _longestScriptLine * ScriptCharWidth),
+                    _reservedScriptWidth);
 
     /// <summary>The widest tab a side needs, before <see cref="PortTab"/>'s clamp.</summary>
     private static double TabAllowance(IReadOnlyList<CanvasPortInfo> ports)
@@ -276,6 +278,8 @@ public sealed class CanvasNode
 
     private string? _customTitle;
     private readonly int _longestScriptLine;
+    private double _reservedScriptWidth;
+    private double _reservedScriptHeight;
 
     /// <summary>The engine identity of the node instance this draws.</summary>
     public NodeId Id { get; }
@@ -447,7 +451,11 @@ public sealed class CanvasNode
     /// </remarks>
     private double ContentHeight => System.Math.Max(
         System.Math.Max(Inputs.Count, Outputs.Count) * PortPitch,
-        Script is null ? 0 : (System.Math.Max(1, ScriptLineCount) * ScriptLineHeight) + (2 * ScriptPadding));
+        Script is null
+            ? 0
+            : System.Math.Max(
+                (System.Math.Max(1, ScriptLineCount) * ScriptLineHeight) + (2 * ScriptPadding),
+                _reservedScriptHeight));
 
     /// <summary>
     /// Whether this node is driven by a slider drawn on it (<c>E8-T25</c>), and is shaped for one.
@@ -649,6 +657,42 @@ public sealed class CanvasNode
             PortTab(row, isOutput: true, out double tabLeft, out _, out _, out _);
             rightStart = System.Math.Min(rightStart, tabLeft - PortInset);
         }
+    }
+
+    /// <summary>
+    /// Makes the source area at least this big while the editor is open (`E8-T40`).
+    /// </summary>
+    /// <param name="width">The width the source area must have, in world units.</param>
+    /// <param name="height">The height it must have. Zero for both releases the reservation.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>The node grows rather than the editor overflowing it, and there is no third option.</b>
+    /// The editor is drawn at a fixed legible size and the node is scaled by the zoom, so the
+    /// screen size a usable editor needs and the screen size the source rectangle has are two
+    /// independent numbers — and on a short block, or at any zoom much below 100%, the first is
+    /// the larger. An editor sized to the rectangle would be unreadable; one sized to itself and
+    /// left where it was covered the port tabs either side, which is what this fixes.
+    /// </para>
+    /// <para>
+    /// <b>It is a reservation and not a resize.</b> Nothing here is stored: a node's width is
+    /// derived from its content every time it is measured, and only a <see cref="CanvasNote"/>
+    /// persists a size — so a reservation cannot reach <c>.spark</c> however it ends. Releasing
+    /// it puts the node back to the size its own source asks for.
+    /// </para>
+    /// </remarks>
+    public void ReserveScriptSpace(double width, double height)
+    {
+        if (Script is null)
+        {
+            return;
+        }
+
+        _reservedScriptWidth = System.Math.Max(0, width);
+        _reservedScriptHeight = System.Math.Max(0, height);
+
+        // The width is a measured field rather than a property, so a reservation that did not
+        // re-measure would be a number nothing ever read.
+        Remeasure();
     }
 
     /// <summary>

@@ -1865,6 +1865,87 @@ public sealed class GraphCanvas : Control
     }
 
     /// <summary>
+    /// Makes room on a code block for an editor of a given screen size, and says where it goes
+    /// (<c>E8-T40</c>).
+    /// </summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <param name="screenWidth">The width the editor needs, in screen pixels.</param>
+    /// <param name="screenHeight">The height it needs.</param>
+    /// <param name="x">The left edge of the rectangle to place it at, in control coordinates.</param>
+    /// <param name="y">Its top edge.</param>
+    /// <param name="width">Its width, which is at least <paramref name="screenWidth"/>.</param>
+    /// <param name="height">Its height, which is at least <paramref name="screenHeight"/>.</param>
+    /// <returns>False when the slot is not a code block, in which case nothing was reserved.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The caller says what the editor needs and this decides where it goes</b>, which is the
+    /// only division of labour that works here: the editor's metrics belong to the pane that
+    /// hosts it, and the node's geometry belongs to the canvas that draws it. The pane asking for
+    /// a rectangle and then quietly making it bigger is what covered the port tabs.
+    /// </para>
+    /// <para>
+    /// <b>Screen pixels go in and the reservation is in world units</b>, divided by the zoom —
+    /// which is what makes the request mean <i>this many pixels once it is drawn</i> rather than
+    /// this many world units, and is why zooming out grows the block rather than shrinking the
+    /// editor into it.
+    /// </para>
+    /// </remarks>
+    public bool ScriptEditorSpace(
+        int slot,
+        double screenWidth,
+        double screenHeight,
+        out double x,
+        out double y,
+        out double width,
+        out double height)
+    {
+        x = 0;
+        y = 0;
+        width = 0;
+        height = 0;
+
+        if (slot < 0 || slot >= _graph.Nodes.Count || _graph.Nodes[slot].Script is null)
+        {
+            return false;
+        }
+
+        CanvasNode node = _graph.Nodes[slot];
+
+        node.ReserveScriptSpace(screenWidth / _transform.Zoom, screenHeight / _transform.Zoom);
+
+        // The node's bounds changed, so the spatial index was built from a shape that no longer
+        // exists - and hit-testing reads the index, not the nodes.
+        RefreshStructure();
+
+        node.ScriptBox(out double worldX, out double worldY, out double worldWidth, out double worldHeight);
+
+        x = _transform.ToScreenX(worldX);
+        y = _transform.ToScreenY(worldY);
+        width = _transform.ToScreenX(worldX + worldWidth) - x;
+        height = _transform.ToScreenY(worldY + worldHeight) - y;
+
+        return true;
+    }
+
+    /// <summary>Gives back the room an editor reserved on a code block (<c>E8-T40</c>).</summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <remarks>
+    /// <b>Call this before committing, not after.</b> Committing an edit replaces the node's
+    /// definition, which removes the node and puts a new one back — so a release aimed at it
+    /// afterwards either does nothing or, if the slots have moved, shrinks somebody else.
+    /// </remarks>
+    public void EndScriptEdit(int slot)
+    {
+        if (slot < 0 || slot >= _graph.Nodes.Count)
+        {
+            return;
+        }
+
+        _graph.Nodes[slot].ReserveScriptSpace(0, 0);
+        RefreshStructure();
+    }
+
+    /// <summary>
     /// Commits text typed into an in-place field, and reports it if it changed (<c>E8-T5</c>).
     /// </summary>
     /// <param name="slot">The node's slot.</param>
