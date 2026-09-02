@@ -255,4 +255,48 @@ public sealed class NodeAppearanceTests
         Assert.Null(NodeColourChoices.Parse(NodeColourChoices.Default));
         Assert.Equal(NodeCategory.Solid, NodeColourChoices.Parse(nameof(NodeCategory.Solid)));
     }
+
+    /// <summary>
+    /// <b>A port row leaves its type labels clear of both port tabs.</b> On <c>Math.Divide</c> the
+    /// output type <c>number</c> was drawn 4 px inside the <c>result</c> tab, because the row's
+    /// right-hand edge was taken from the width of the output's NAME while the tab holding that
+    /// name reaches a further 8 px of padding to the left of it.
+    /// </summary>
+    /// <remarks>
+    /// Two separate faults produced that one pixel result, and this asserts against both. The
+    /// edges must come from <see cref="CanvasNode.PortTab"/>, and the node must be wide enough for
+    /// two type labels to sit between the tabs at all - a node measured without the tabs' padding
+    /// is 26 px too narrow here, which is the difference between both labels fitting and the
+    /// second being silently dropped.
+    /// </remarks>
+    [Fact]
+    public void APortRowLeavesItsTypeLabelsClearOfBothTabs()
+    {
+        CanvasGraph graph = new();
+        graph.Add(TestGraphs.Library.ByName("Math.Divide"), 0, 0);
+
+        CanvasNode node = graph.Nodes[0];
+
+        Assert.NotEmpty(node.Inputs);
+        Assert.NotEmpty(node.Outputs);
+
+        node.PortLabelRow(0, out double leftEnd, out double rightStart);
+
+        node.PortTab(0, isOutput: false, out _, out _, out double inputTabRight, out _);
+        node.PortTab(0, isOutput: true, out double outputTabLeft, out _, out _, out _);
+
+        Assert.True(
+            leftEnd >= inputTabRight,
+            $"the row starts inside the input tab: {leftEnd} < {inputTabRight}");
+
+        Assert.True(
+            rightStart <= outputTabLeft,
+            $"the row ends inside the output tab: {rightStart} > {outputTabLeft}");
+
+        // Both type labels have to fit in what is left. Two "number" runs at 10 px are about 34 px
+        // each, and the renderer keeps a 6 px gap before each and 8 px between them.
+        Assert.True(
+            rightStart - leftEnd >= 88,
+            $"no room for both type labels between the tabs: {rightStart - leftEnd:F1}");
+    }
 }

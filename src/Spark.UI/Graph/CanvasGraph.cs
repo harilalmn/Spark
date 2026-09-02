@@ -446,8 +446,18 @@ public sealed class CanvasNode
         return widest + (2 * PortInset) + RowGutter;
     }
 
+    /// <remarks>
+    /// <b>The name's side is the width of its TAB, not the width of its word</b>, and this used to
+    /// measure the word. A port name is drawn inside a lozenge with <see cref="PortTabPadding"/>
+    /// either side of it, so every side was under-measured by 16 px and every row by 32 — enough on
+    /// a node like <c>Math.Divide</c> for the two type labels to have nowhere to go. This mirrors
+    /// <see cref="PortTab"/> deliberately: if the two ever disagree again, the node is the wrong
+    /// width for what is drawn in it.
+    /// </remarks>
     private static double SideWidth(in CanvasPortInfo port) =>
-        (port.Name.Length * PortCharWidth)
+        System.Math.Max(
+            PortTabMinimumWidth,
+            (port.Name.Length * PortCharWidth) + (2 * PortTabPadding))
         + (port.TypeName is { } type ? PortGap + (type.Length * TypeCharWidth) : 0);
 
     /// <summary>The world position of an input port's centre.</summary>
@@ -501,6 +511,38 @@ public sealed class CanvasNode
         bottom = centre + (PortTabHeight / 2);
         left = isOutput ? X + Width - width : X;
         right = left + width;
+    }
+
+    /// <summary>
+    /// The span across a port row that is free for type labels: clear of both port tabs.
+    /// </summary>
+    /// <param name="row">The zero-based row index.</param>
+    /// <param name="leftEnd">Where the left tab stops and the row's free space begins.</param>
+    /// <param name="rightStart">Where the row's free space ends and the right tab begins.</param>
+    /// <remarks>
+    /// <b>Both edges come from <see cref="PortTab"/> rather than from measured text</b>, which is
+    /// the whole point of having this here. The renderer used to derive the right-hand edge from
+    /// the width of the output's NAME — and the tab holding that name reaches
+    /// <see cref="PortTabPadding"/> further left again, so the type label was placed clear of the
+    /// word and drawn on top of the lozenge. Deriving both edges from the same geometry the tabs
+    /// are drawn with makes that class of overlap unrepresentable.
+    /// </remarks>
+    public void PortLabelRow(int row, out double leftEnd, out double rightStart)
+    {
+        leftEnd = X + PortInset;
+        rightStart = X + Width - PortInset;
+
+        if (row < Inputs.Count)
+        {
+            PortTab(row, isOutput: false, out _, out _, out double tabRight, out _);
+            leftEnd = System.Math.Max(leftEnd, tabRight + PortInset);
+        }
+
+        if (row < Outputs.Count)
+        {
+            PortTab(row, isOutput: true, out double tabLeft, out _, out _, out _);
+            rightStart = System.Math.Min(rightStart, tabLeft - PortInset);
+        }
     }
 
     /// <summary>The world position of an output port's centre.</summary>

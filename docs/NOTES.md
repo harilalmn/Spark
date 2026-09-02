@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-02 (N95-N103 added)
+**Last updated:** 2026-09-02 (N95-N104 added)
 
 ---
 
@@ -2922,3 +2922,41 @@ OpenCascade`, so a compiler fault that takes seconds to detect was discovered th
 every one of the eight runs. All three workflows now run `build-native.ps1 -CheckToolchain` before
 the dependency install. **Put the cheap check that can fail before the expensive step that cannot
 fix it.**
+
+---
+
+## N104 — A node measured from its port *names* is too narrow for its port *tabs*
+
+`Math.Divide` drew its output type label `number` four pixels inside the `result` tab it sits
+beside. Two independent faults produced that, and the first one hid behind the second.
+
+**The row's right-hand edge came from the wrong geometry.** `DrawPortLabels` derived it from the
+width of the output's *name text*:
+
+```csharp
+FormattedText name = LabelRun(node.Outputs[row].Name);
+rightStart -= name.Width;
+```
+
+But a name is drawn inside a lozenge with `PortTabPadding` either side of it, so the tab reaches
+8 px further left than the word does. The type was then placed clear of the word and painted over
+the tab. The **input** branch three lines above had always been right — it asks `PortTab` where the
+lozenge ends. The two sides of the same row disagreed about what a port is.
+
+**And that block drew the output name a second time.** `DrawPortTab` already draws it, for inputs
+and outputs alike. Every output name in the graph was painted twice, at two slightly different
+x — the tab right-aligns on `PortTabTextInset`, this right-aligned on `PortLabelInset`. Both are
+9 and 8, so it read as a faint bold rather than as double vision.
+
+**The width estimate had the same blind spot.** `SideWidth` measured `name.Length * PortCharWidth`
+where `PortTab` computes `name.Length * PortCharWidth + 2 * PortTabPadding`. Every side was
+16 px short and every row 32, so `Math.Divide` was measured at 168 and wanted 194. Under the old
+renderer that surfaced as an overlap; under a correct one it would surface as the second type
+label being silently dropped, which is the failure mode that never gets reported.
+
+**The shape of the lesson.** *Anything that measures a thing must be written against the same
+geometry that draws it.* `PortLabelRow` now exists on `CanvasNode` and asks `PortTab` for both
+edges, so the renderer cannot reach a different answer than the tabs do; `SideWidth` mirrors
+`PortTab`'s formula and says so. Estimating is still fine — [N24](#) explains why the canvas
+cannot measure text off the render thread — but estimating a *different quantity* than the one
+drawn is not estimating, it is guessing.

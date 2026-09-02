@@ -215,7 +215,6 @@ public sealed class GraphCanvas : Control
     private const double PortFontSize = 11;
     private const double TypeFontSize = 10;
     private const double TypeGap = 6;
-    private const double PortLabelInset = 9;
     private const double MinimumRowGap = 8;
     private const int MaximumCachedTextRuns = 4096;
 
@@ -1977,23 +1976,16 @@ public sealed class GraphCanvas : Control
         for (int row = 0; row < rows; row++)
         {
             double y = node.Y + CanvasNode.HeaderHeight + (CanvasNode.PortPitch * (row + 0.5));
-            double leftEnd = node.X + PortLabelInset;
-            double rightStart = node.X + node.Width - PortLabelInset;
 
-            if (row < node.Inputs.Count)
-            {
-                // The name itself is drawn inside the port's tab (`E8-T36`); what is left here is
-                // the room it takes, so the type beside it still starts clear of the lozenge.
-                node.PortTab(row, isOutput: false, out _, out _, out double tabRight, out _);
-                leftEnd = Math.Max(leftEnd, tabRight + PortLabelInset);
-            }
-
-            if (row < node.Outputs.Count)
-            {
-                FormattedText name = LabelRun(node.Outputs[row].Name);
-                rightStart -= name.Width;
-                context.DrawText(name, new Point(rightStart, y - (name.Height / 2)));
-            }
+            // BOTH NAMES ARE DRAWN INSIDE THEIR TABS (`E8-T36`), so nothing here draws a name —
+            // this method places the types in what the tabs leave behind.
+            //
+            // The output branch used to draw the name a SECOND time and take its right-hand edge
+            // from that text's width. The tab holding the name reaches `PortTabPadding` further
+            // left again, so the type was placed clear of the word and painted over the lozenge:
+            // on `Math.Divide` the type ended 4 px inside the `result` tab. Asking the node for the
+            // row's free span puts both edges on the same geometry the tabs are drawn with.
+            node.PortLabelRow(row, out double leftEnd, out double rightStart);
 
             if (!types)
             {
