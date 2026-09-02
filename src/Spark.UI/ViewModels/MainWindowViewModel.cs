@@ -207,6 +207,16 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private int _styleSlot = -1;
 
+    /// <summary>
+    /// The single selected node's slot, or -1. What <see cref="RefreshInspector"/> re-reads.
+    /// </summary>
+    /// <remarks>
+    /// Beside <see cref="_styleSlot"/> rather than sharing it, because the two answer different
+    /// questions. That one guards a property being pushed at the dropdowns; this one says which
+    /// node the panel is currently describing, and is read after every run.
+    /// </remarks>
+    private int _selectedSlot = -1;
+
     private string _committedTitle = string.Empty;
 
     [ObservableProperty]
@@ -1610,6 +1620,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         CanStyleNode = false;
         _styleSlot = -1;
+        _selectedSlot = -1;
 
         if (selection.Count != 1)
         {
@@ -1625,6 +1636,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             return;
         }
+
+        _selectedSlot = slot;
 
         CanvasNode node = _graph.Nodes[slot];
         NodeInstance instance = _graph.Engine.Node(node.Id);
@@ -2269,6 +2282,23 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         RequestRun();
     }
 
+    /// <summary>
+    /// Brings the properties panel level with the graph after a run.
+    /// </summary>
+    /// <remarks>
+    /// <b>This used to prune and nothing else</b>, which is why dragging a slider left the panel
+    /// showing the value the node had when it was selected. The canvas repainted, the watch bubble
+    /// repainted, the graph re-evaluated on every pointer move — and the panel beside it kept
+    /// insisting the input was 16.83 while the node read 31.79. Anything that can change a literal
+    /// without going through this panel has the same problem: an undo, a redo, a field edited on
+    /// the node itself.
+    /// <para>
+    /// It reads the literals back out of the engine rather than being told what changed, because
+    /// the panel's job is to show what is there. A notification protocol between every editing
+    /// gesture and this panel is a longer way to arrive at the same answer with more ways to miss
+    /// a case.
+    /// </para>
+    /// </remarks>
     private void RefreshInspector()
     {
         foreach (PortLiteralViewModel editor in Inspector)
@@ -2282,6 +2312,27 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(HasInputs));
             return;
         }
+
+        if (_selectedSlot < 0 || _selectedSlot >= _graph.Nodes.Count)
+        {
+            return;
+        }
+
+        CanvasNode node = _graph.Nodes[_selectedSlot];
+        NodeInstance instance = _graph.Engine.Node(node.Id);
+
+        foreach (PortLiteralViewModel editor in Inspector)
+        {
+            if (editor.Slot == _selectedSlot && editor.PortIndex < instance.Definition.Inputs.Count)
+            {
+                _ = editor.Show(instance.Literal(editor.PortIndex));
+            }
+        }
+
+        // The output half of the same staleness. The canvas bubble and this panel read the same
+        // node, and were showing different numbers.
+        WatchRank = node.ResultSummary is null ? string.Empty : CanvasGraph.RankLine(node);
+        WatchText = _lastResult is null ? string.Empty : CanvasGraph.Expand(_lastResult.Value(node.Id));
     }
 
     private void PublishGeometry(EvaluationResult result)

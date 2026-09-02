@@ -208,10 +208,24 @@ public sealed partial class InspectorPane : UserControl
         e.Handled = true;
     }
 
+    /// <summary>
+    /// Marks the box as the user's while the caret is in it, so a run cannot overwrite typing.
+    /// </summary>
+    /// <param name="sender">The text box.</param>
+    /// <param name="e">Ignored.</param>
+    private void OnLiteralFocused(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: PortLiteralViewModel literal })
+        {
+            literal.IsEditing = true;
+        }
+    }
+
     private void OnLiteralCommitted(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: PortLiteralViewModel literal })
         {
+            literal.IsEditing = false;
             literal.Commit();
         }
     }

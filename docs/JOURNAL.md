@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 16:10 +0530
+**Last updated:** 2026-09-02 17:05 +0530
 **Protocol version:** 2
 
 ---
@@ -19,7 +19,7 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.1.0` shipped on 2026-09-02** — the first tag in the repository's history, and the first time the release pipeline has run end to end rather than been argued about. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | **Nothing. The tree is committed and the gates are green.** `v0.1.1` never shipped — the tag exists and its run failed. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A node's output type label sat on top of its own port tab.** `DrawPortLabels` took the row's right-hand edge from the output name's *text* width when the tab holding that name reaches 8 px further left — and drew that name a second time on top of the one the tab already draws. `SideWidth` had the same blind spot, measuring words where `PortTab` measures words plus padding. `CanvasNode.PortLabelRow` now gives both edges from `PortTab`. **An inherited red is in the tree and is not from this work**: `ScriptOutputTypeTests.AnEntryWithNoTypesFallsBackToObject`, 1 of 797, failing identically with these changes stashed. **Before that: the OpenCascade cache banked nothing, because `actions/cache` is `post-if: success()`.** Every run since `#110` failed downstream of the install, so every run discarded the hour it had just spent and the next started cold — which is how the account reached its spending limit and why `#118` never started a job. Restore and save are now separate steps, and the save runs the moment the install succeeds. `C:\vcpkg\packages` left the cached path with it: staging nothing reads, roughly doubling an entry with a 10 GB cap. **Before that: the shim was being built by the wrong compiler.** `v0.1.1` and every CI run since `#110` — eight of them — died linking MSVC-built OpenCascade with MinGW's `ld`, because `build-native.ps1` checked for `cmake` and `ninja` and merely *asked* the caller to be in a developer prompt. It now enters the MSVC environment itself via `vswhere` and `vcvars64.bat`, and pins `cl` on the CMake command line. **Reproduced and verified on this machine**, which has no `cl` on `PATH` and is therefore the runner's condition exactly. |
+| **Last completed step** | **The properties panel was showing the value the node had when it was selected.** `RefreshInspector` ran after every evaluation and only pruned deleted nodes — it never re-read a literal, so a slider drag, an undo or the node's own field all left the panel stale, input box and *Output* line alike. It now re-reads the selected node from the engine, without committing and without overwriting a box that has the caret. **Before that: a node's output type label sat on top of its own port tab.** `DrawPortLabels` took the row's right-hand edge from the output name's *text* width when the tab holding that name reaches 8 px further left — and drew that name a second time on top of the one the tab already draws. `SideWidth` had the same blind spot, measuring words where `PortTab` measures words plus padding. `CanvasNode.PortLabelRow` now gives both edges from `PortTab`. **An inherited red is in the tree and is not from this work**: `ScriptOutputTypeTests.AnEntryWithNoTypesFallsBackToObject`, 1 of 797, failing identically with these changes stashed. **Before that: the OpenCascade cache banked nothing, because `actions/cache` is `post-if: success()`.** Every run since `#110` failed downstream of the install, so every run discarded the hour it had just spent and the next started cold — which is how the account reached its spending limit and why `#118` never started a job. Restore and save are now separate steps, and the save runs the moment the install succeeds. `C:\vcpkg\packages` left the cached path with it: staging nothing reads, roughly doubling an entry with a 10 GB cap. **Before that: the shim was being built by the wrong compiler.** `v0.1.1` and every CI run since `#110` — eight of them — died linking MSVC-built OpenCascade with MinGW's `ld`, because `build-native.ps1` checked for `cmake` and `ninja` and merely *asked* the caller to be in a developer prompt. It now enters the MSVC environment itself via `vswhere` and `vcvars64.bat`, and pins `cl` on the CMake command line. **Reproduced and verified on this machine**, which has no `cl` on `PATH` and is therefore the runner's condition exactly. |
 | **Working tree** | Clean at the moment this was written. `v0.1.2` is **not** tagged yet. |
 | **Next action** | **MAKE THE REPOSITORY PUBLIC — only the owner can, and nothing runs until they do.** `#118` failed in 3s with *the job was not started because recent account payments have failed or your spending limit needs to be increased*, on all four jobs: GitHub Free includes 2 000 Actions minutes a month for **private** repositories and bills Windows at **2×**, and the eight three-hour runs spent roughly 3 300 of them. The client chose public over a self-hosted runner and over waiting for the reset; Actions is free and unlimited there, and no workflow change is needed. **Settings → General → Danger Zone → Change visibility.** *Pre-publication scan is done and clean*: `LICENSE` present, nothing secret-shaped in the history, no token strings tracked, no `secrets.*` in any workflow, no `pull_request_target`, no self-hosted runners, `artifacts/` ignored, no blob over 5 MB. **Then watch CI reach *Build the native provider*** — the first run that can — **then tag `v0.1.2`**, a new tag and never a moved one ([N102](NOTES.md)). It is the first run that can get past it, and the `Check the C++ toolchain` step now reports the compiler in seconds near the top of the log. **Then tag `v0.1.2`** — a new tag, never a moved one, for the reason [N102](NOTES.md) gives. **Then the cache**, which is owed and is not cosmetic: `Install OpenCascade` has run on all eight runs, so three hours per run is a dependency rebuild that should have been a restore. Read the `Post Cache OpenCascade` step for a size warning; `C:\vcpkg\packages` is a staging tree in the cached path and GitHub's cap is 10 GB. **Then the Help pass**: `E10-T3`, `E11-T2`'s `<example>` half, E10-T9/T10/T12/T14, plus two topics for the code editor. **And a dirty flag is owed**: New and Open both discard unsaved work without asking. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2343**: Geometry.Tests 763, UI.Tests 765, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets. **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
@@ -5867,3 +5867,45 @@ green gates while this sat in the tree. **Named here so the next session does no
 spent proving it was pre-existing.**
 
 **What it cost.** Thirty-five minutes, and 797 tests to find one failure that was already there.
+
+---
+
+### 2026-09-02 — The properties panel was showing the value the node had when you selected it
+
+**What.** The client photographed a `Number.Slider` reading `31.79` on the canvas beside a
+properties panel insisting its `value` input was `16.83`, and an *Output* line saying `14.16`
+against a watch bubble on the same node saying `31.79`.
+
+**The slider was innocent.** It writes its literal straight into the engine and asks for a run on
+every pointer move, and all of that worked — the node repainted, the bubble repainted, the graph
+re-evaluated. `RefreshInspector`, which runs after every evaluation, pruned rows whose node had
+been deleted and **read nothing back**. The panel had been filled once, by `ShowSelection`, at the
+moment the node was selected.
+
+So the bug is not "the slider does not update the panel". It is "**nothing** updates the panel" —
+an undo, a redo, the in-place field on the node itself, all the same. The slider is only the one
+that does it sixty times a second while you watch.
+
+**The fix.** `RefreshInspector` re-reads the selected node's literals out of the engine and
+re-derives `WatchRank`/`WatchText`. Reading rather than being notified, deliberately: a protocol
+between every editing gesture and this panel is a longer road to the same answer with one more way
+to miss a case each time a gesture is added.
+
+Two constraints made it more than two lines. `PortLiteralViewModel.Show` assigns `Text` and never
+commits — committing on refresh would make every evaluation an edit and fill the undo stack with
+one entry per pixel of slider travel. And it must not overwrite typing, so `IsEditing` is set by
+the pane on focus and `Show` declines to touch a box that has the caret. **A view model cannot see
+focus; the view has to tell it.**
+
+**Verified by disabling the refresh and watching it fail**, per AGENTS step 7:
+`ARunBringsThePropertiesPanelLevelWithTheGraph` reports *Assert.NotEqual() Failure: Strings are
+equal* — the panel still showing what it showed before the slider moved.
+
+**What surprised me.** *The stale output line was the more useful half of the screenshot.* An input
+box lagging can be explained away as a binding not firing; an *Output* summary disagreeing with the
+bubble drawn from the same node in the same frame cannot. It said immediately that the panel was
+not being refreshed at all, rather than that one binding was wrong — and it is why the fix covers
+both halves rather than the one that was pointed at.
+
+**What it cost.** Forty minutes. Still 1 of 798 red on the inherited
+`ScriptOutputTypeTests.AnEntryWithNoTypesFallsBackToObject`, which is not this.

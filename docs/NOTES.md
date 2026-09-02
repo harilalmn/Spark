@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-02 (N95-N104 added)
+**Last updated:** 2026-09-02 (N95-N105 added)
 
 ---
 
@@ -2960,3 +2960,46 @@ edges, so the renderer cannot reach a different answer than the tabs do; `SideWi
 `PortTab`'s formula and says so. Estimating is still fine — [N24](#) explains why the canvas
 cannot measure text off the render thread — but estimating a *different quantity* than the one
 drawn is not estimating, it is guessing.
+
+---
+
+## N105 — A panel filled on selection and never refreshed is a panel that lies
+
+The properties panel showed `16.83` in the `value` box while the node beside it read `31.79`, and
+its *Output* line said `14.16` while the canvas bubble on the same node said `31.79`. Nothing had
+gone wrong with the slider: the panel had simply never been told.
+
+`ShowSelection` builds a `PortLiteralViewModel` per input from `instance.Literal(index)` and sets
+`WatchRank`/`WatchText` from the node — **once**, when the selection changes. `RefreshInspector`
+runs after every evaluation and did this and only this:
+
+```csharp
+foreach (PortLiteralViewModel editor in Inspector)
+{
+    if (editor.Slot >= 0 && editor.Slot < _graph.Nodes.Count) { continue; }
+    Inspector.Clear();
+    ...
+}
+```
+
+It pruned rows whose node had been deleted. It read nothing back. So every path that changes a
+literal *without going through the panel* left it stale — a slider drag, an undo, a redo, the
+in-place field on the node itself. The slider is merely the one that does it sixty times a second
+in front of you.
+
+**Refresh by reading, not by being told.** `RefreshInspector` now re-reads the literals out of the
+engine for the selected slot and re-derives the watch lines. The alternative — having every editing
+gesture notify the panel — is a longer road to the same place with one more way to miss a case
+each time somebody adds a gesture.
+
+**Two things it must not do, and both are why this is not a two-line change.**
+
+*It must not commit.* `PortLiteralViewModel.Show` assigns `Text` and returns; it never calls
+`_commit`. Committing on refresh would turn every evaluation into an edit and put one undo entry
+per pixel of slider travel on the stack — precisely what `GraphEditedEventArgs.RecordsUndo` exists
+upstream to prevent.
+
+*It must not overwrite typing.* A run landing between two keystrokes would otherwise take the
+half-typed number away. `IsEditing` is set by the pane on `GotFocus` and cleared on `LostFocus`,
+and `Show` returns false without touching a box that has the caret. **A view model cannot see
+focus, so the view has to say so** — there is no way to infer it from the model alone.

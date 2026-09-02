@@ -292,4 +292,45 @@ public sealed class MainWindowViewModelTests
         Assert.Fail($"No node titled '{title}' in the demo graph.");
         return -1;
     }
+
+    /// <summary>
+    /// <b>A run brings the properties panel level with the graph.</b> Dragging a slider writes the
+    /// literal straight into the engine and asks for a run; the panel beside it went on showing
+    /// whatever the node held when it was selected.
+    /// </summary>
+    /// <remarks>
+    /// Reported against a slider, but the slider is only the fastest way to see it. Anything that
+    /// changes a literal without going through this panel had the same problem — an undo, a redo,
+    /// a field edited on the node itself — because <c>RefreshInspector</c> pruned dead slots and
+    /// read nothing back. The output half went stale with it: the canvas bubble and the panel read
+    /// the same node and showed different numbers.
+    /// </remarks>
+    [Fact]
+    public async Task ARunBringsThePropertiesPanelLevelWithTheGraph()
+    {
+        using MainWindowViewModel model = new();
+
+        int slot = model.Graph.Add(TestGraphs.Library.ByName("Number.Slider"), 0, 0);
+        model.ShowSelection([slot]);
+
+        PortLiteralViewModel value = model.Inspector[0];
+        string before = value.Text;
+
+        // Exactly what a slider drag does before it asks for a run.
+        Assert.True(model.Graph.SetSliderValue(slot, 31.79));
+
+        await model.EvaluateAsync();
+
+        Assert.NotEqual(before, value.Text);
+
+        double shown = double.Parse(value.Text, System.Globalization.CultureInfo.InvariantCulture);
+        double held = Convert.ToDouble(
+            model.Graph.Engine.Node(model.Graph.Nodes[slot].Id).Literal(0),
+            System.Globalization.CultureInfo.InvariantCulture);
+
+        Assert.Equal(held, shown, 6);
+
+        // And the output half, which was stale in the same screenshot.
+        Assert.NotEqual(string.Empty, model.WatchText);
+    }
 }

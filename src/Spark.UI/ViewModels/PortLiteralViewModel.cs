@@ -68,6 +68,49 @@ public sealed partial class PortLiteralViewModel : ObservableObject
         _declaredTypeName = declaredType is null ? NotDeclared : NameOf(declaredType);
     }
 
+    /// <summary>
+    /// Whether the box currently has the caret, and must not be overwritten from underneath.
+    /// </summary>
+    /// <remarks>
+    /// Set by the pane on focus, because a view model cannot see focus and <see cref="Show"/> has
+    /// to know. Half-typed text is the user's, and a graph run landing mid-keystroke is not a
+    /// reason to take it away.
+    /// </remarks>
+    internal bool IsEditing { get; set; }
+
+    /// <summary>
+    /// Shows a value that came from somewhere other than this box — a slider drag, an undo, a run.
+    /// </summary>
+    /// <param name="value">The literal now on the port.</param>
+    /// <returns>True when the box was updated, false when it was left alone mid-edit.</returns>
+    /// <remarks>
+    /// <b>This does not commit and must not.</b> It is the opposite direction: the graph telling
+    /// the panel what it now holds. Committing here would turn every evaluation into an edit, and
+    /// dragging a slider would fill the undo stack with one entry per pixel — which is exactly what
+    /// <c>GraphEditedEventArgs.RecordsUndo</c> exists to prevent one layer up.
+    /// </remarks>
+    internal bool Show(object? value)
+    {
+        if (IsEditing)
+        {
+            return false;
+        }
+
+        string text = Format(value);
+
+        if (!string.Equals(text, Text, StringComparison.Ordinal))
+        {
+            Text = text;
+
+            // A value arriving from the graph supersedes whatever the last rejected keystroke
+            // said. Leaving the old parse error beside a good number reads as the number being
+            // wrong.
+            Error = null;
+        }
+
+        return true;
+    }
+
     /// <summary>The node's slot on the canvas.</summary>
     public int Slot { get; }
 

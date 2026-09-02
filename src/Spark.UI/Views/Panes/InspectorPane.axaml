@@ -153,6 +153,7 @@
               <TextBox Grid.Column="1" VerticalAlignment="Top"
                        IsEnabled="{Binding IsEditable}"
                        Text="{Binding Text, Mode=TwoWay}"
+                       GotFocus="OnLiteralFocused"
                        LostFocus="OnLiteralCommitted"
                        KeyDown="OnLiteralKeyDown" />
             </Grid>
