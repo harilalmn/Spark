@@ -1198,6 +1198,11 @@ public sealed partial class MainWindow : Window
 
         _posedAgainst = view;
         Canvas.RequestScriptEdit(model.Graph.SlotOf(posed.Id));
+
+        // The editor is open by the time that returns - the canvas raises the request and the
+        // pane serves it synchronously - so the popups can be asked for straight away. Not
+        // awaited here, because a layout handler cannot be; the capture path awaits it.
+        _ = _canvasPane.PoseScriptPopupsAsync();
     }
 
     private async Task CaptureWhenReadyAsync(string prefix)
@@ -1215,6 +1220,11 @@ public sealed partial class MainWindow : Window
         // coordinates, so it has to be opened once the view it sits over has stopped moving -
         // and `ZoomToFit` two lines up is the last thing that moves it.
         PoseScriptEditor();
+
+        // **Awaited**, so the shutter is not racing Roslyn. The first completion request pays
+        // for MEF composition, and a capture taken before it lands photographs a closed list -
+        // which a screenshot check would then report as a pass (`E8-T41`).
+        await _canvasPane.PoseScriptPopupsAsync().ConfigureAwait(true);
 
         StartCapture(prefix);
     }

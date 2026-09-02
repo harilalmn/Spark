@@ -418,6 +418,13 @@ public sealed partial class CanvasPane : UserControl
         Avalonia.Controls.Canvas.SetLeft(ScriptEditor, x);
         Avalonia.Controls.Canvas.SetTop(ScriptEditor, y);
 
+        // `E8-T41`: the completion list and the signature are drawn on an overlay inside the
+        // editor, so on a block two lines tall they came out as a sliver inside the block. They
+        // are allowed the whole pane instead - given relative to the editor, which is why the
+        // origin is negative.
+        ScriptEditor.PopupArea = new Avalonia.Rect(
+            -x, -y, OverlayLayer.Bounds.Width, OverlayLayer.Bounds.Height);
+
         ScriptEditor.Text = e.Text;
         ScriptEditor.IsVisible = true;
         ScriptEditor.FocusEditor();
@@ -489,6 +496,36 @@ public sealed partial class CanvasPane : UserControl
             CanvasControl.InvalidateVisual();
             model.RequestRun();
         }
+    }
+
+    /// <summary>
+    /// Opens the in-node editor's popups over the block being edited, for a screenshot
+    /// (<c>E8-T41</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>A pose, in the sense <c>InspectorPane.PoseCodeEditor</c> is one.</b> A completion list
+    /// exists only while somebody is typing, so no screenshot can contain one unless the
+    /// application is asked to put it there — and this is the popup whose placement the pane, not
+    /// the editor, is now responsible for.
+    /// <para>
+    /// <b>It is awaitable, and that is the difference between a verification step and a picture
+    /// of nothing.</b> The first call into Roslyn composes MEF and is slow; a caller that fired
+    /// the request and photographed the window a moment later photographed a closed list every
+    /// time, and reported it as a pass.
+    /// </para>
+    /// </remarks>
+    /// <returns>A task that completes once both popups have been asked for and answered.</returns>
+    public async Task PoseScriptPopupsAsync()
+    {
+        if (!ScriptEditor.IsVisible)
+        {
+            return;
+        }
+
+        ScriptEditor.FocusEditor();
+
+        await ScriptEditor.RequestSignatureAsync().ConfigureAwait(true);
+        await ScriptEditor.RequestCompletionAsync().ConfigureAwait(true);
     }
 
     /// <summary>The line count and the longest line of a block's source.</summary>

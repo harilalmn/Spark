@@ -244,14 +244,15 @@ public sealed partial class CodeBlockEditor
         Point top = view.GetVisualPosition(_editor.TextArea.Caret.Position, VisualYPosition.LineTop) - view.ScrollOffset;
         Point bottom = view.GetVisualPosition(_editor.TextArea.Caret.Position, VisualYPosition.LineBottom) - view.ScrollOffset;
 
-        // Never wider than the pane it is drawn on, because the overlay is clipped to that pane
-        // and a signature running off the right edge is a signature nobody can read.
-        _signatureFrame.MaxWidth = Math.Max(160.0, Bounds.Width);
+        // Never wider than the area it is drawn in, because the overlay is clipped to that area
+        // and a signature running off the right edge is a signature nobody can read. That area is
+        // the pane when the editor is on a node (`E8-T41`) and the editor itself otherwise.
+        _signatureFrame.MaxWidth = Math.Max(160.0, PopupBounds.Width);
         _signatureFrame.Measure(Size.Infinity);
 
         double height = _signatureFrame.DesiredSize.Height;
 
-        _signatureBelow = top.Y - height < 0.0;
+        _signatureBelow = top.Y - height < PopupBounds.Y;
 
         SignatureOrigin = Fit(
             _signatureFrame,

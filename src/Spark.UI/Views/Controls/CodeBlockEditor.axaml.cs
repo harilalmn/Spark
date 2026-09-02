@@ -207,6 +207,41 @@ public sealed partial class CodeBlockEditor : UserControl
         }
     }
 
+    private Rect? _popupArea;
+
+    /// <summary>
+    /// Where the popups may be drawn, in this control's own coordinates, or
+    /// <see langword="null"/> to keep them inside the control (`E8-T41`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>An editor filling a properties pane and an editor sitting on a node are two different
+    /// problems, and this is the difference.</b> The list is a <c>Canvas</c> overlay rather than a
+    /// <c>Popup</c> (`E6-T12`), so it is clipped to whatever the control is clipped to — which is
+    /// exactly right in a pane the editor fills, and useless on a node two lines tall, where the
+    /// list came out as a sliver inside the block.
+    /// </para>
+    /// <para>
+    /// <b>Setting an area turns the control's own clipping off</b>, because a control that lets
+    /// its popups leave its bounds cannot also clip to them. The area is normally the host pane,
+    /// expressed relative to this control — so it has a negative origin whenever the editor is
+    /// somewhere other than the pane's top-left corner.
+    /// </para>
+    /// </remarks>
+    public Rect? PopupArea
+    {
+        get => _popupArea;
+
+        set
+        {
+            _popupArea = value;
+            ClipToBounds = value is null;
+        }
+    }
+
+    /// <summary>The area a popup has to fit in: the one given, or this control.</summary>
+    private Rect PopupBounds => _popupArea ?? new Rect(Bounds.Size);
+
     /// <summary>Raised when the text has been changed and committed — on losing focus.</summary>
     public event EventHandler? Committed;
 
@@ -544,32 +579,61 @@ public sealed partial class CodeBlockEditor : UserControl
 
         TextView view = _editor.TextArea.TextView;
         Point visual = view.GetVisualPosition(_editor.TextArea.Caret.Position, VisualYPosition.LineBottom);
+        Point top = view.GetVisualPosition(_editor.TextArea.Caret.Position, VisualYPosition.LineTop);
 
-        CompletionOrigin = Fit(_frame, (visual - view.ScrollOffset) + new Point(0, SignatureClearance));
+        CompletionOrigin = Fit(
+            _frame,
+            (visual - view.ScrollOffset) + new Point(0, SignatureClearance),
+            top.Y - view.ScrollOffset.Y);
 
         Avalonia.Controls.Canvas.SetLeft(_frame, CompletionOrigin.X);
         Avalonia.Controls.Canvas.SetTop(_frame, CompletionOrigin.Y);
     }
 
-    /// <summary>Keeps a popup inside the pane it is drawn on.</summary>
+    /// <summary>Keeps a popup inside the area it is allowed to be drawn in.</summary>
     /// <remarks>
-    /// <b>The overlay is clipped to the pane, so a popup that starts past the right edge is not
-    /// merely awkward — it is invisible.</b> That is the trade this control made deliberately when
-    /// it chose a canvas over a <c>Popup</c> (`E6-T12`), and the first screenshot of the signature
-    /// popup is what showed the other half of the bargain being owed: the caret was at the end of a
-    /// long line, so both popups were a sliver at the edge of the properties pane. They are pulled
-    /// back inside instead, which is what an editor with a narrow gutter has to do.
+    /// <para>
+    /// <b>The overlay is clipped, so a popup that starts past an edge is not merely awkward — it
+    /// is invisible.</b> That is the trade this control made deliberately when it chose a canvas
+    /// over a <c>Popup</c> (`E6-T12`), and the first screenshot of the signature popup is what
+    /// showed the other half of the bargain being owed: the caret was at the end of a long line,
+    /// so both popups were a sliver at the edge of the properties pane.
+    /// </para>
+    /// <para>
+    /// <b>The bottom edge is checked as well as the others, and a list with no room below the
+    /// caret goes above it</b> rather than being slid up over the line being typed — which is
+    /// what every editor does, and what this did not do while the only host was a pane tall
+    /// enough that the case never arose.
+    /// </para>
     /// </remarks>
-    private Point Fit(Avalonia.Layout.Layoutable frame, Point origin)
+    /// <param name="frame">The popup.</param>
+    /// <param name="origin">Where it would go if there were room everywhere.</param>
+    /// <param name="above">
+    /// The y of the caret's line top, for a popup that can go above the line instead, or null for
+    /// one that cannot.
+    /// </param>
+    private Point Fit(Avalonia.Layout.Layoutable frame, Point origin, double? above = null)
     {
         frame.Measure(Size.Infinity);
 
+        Rect area = PopupBounds;
         double width = frame.DesiredSize.Width;
-        double right = Math.Max(0.0, Bounds.Width - width);
+        double height = frame.DesiredSize.Height;
 
-        return new Point(
-            Bounds.Width > width ? Math.Clamp(origin.X, 0.0, right) : 0.0,
-            Math.Max(0.0, origin.Y));
+        double x = area.Width > width
+            ? Math.Clamp(origin.X, area.X, area.Right - width)
+            : area.X;
+
+        double y = Math.Max(area.Y, origin.Y);
+
+        if (y + height > area.Bottom)
+        {
+            y = above is { } lineTop && lineTop - height >= area.Y
+                ? lineTop - height
+                : Math.Max(area.Y, area.Bottom - height);
+        }
+
+        return new Point(x, y);
     }
 
     /// <summary>Narrows the list to what has been typed since it opened.</summary>

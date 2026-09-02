@@ -571,4 +571,101 @@ public sealed class CodeBlockEditorTests
     }
 
     private static void OnUiThread(Action body) => HeadlessSession.Run(body);
+
+    /// <summary>
+    /// <b>`E8-T41`: an editor that lets its popups leave it cannot also clip to itself.</b> The
+    /// completion list is an overlay inside the control rather than a <c>Popup</c> (`E6-T12`), so
+    /// on a code block two lines tall it was clipped to the block — which is what the client saw:
+    /// a sliver of a list inside the node.
+    /// </summary>
+    [Fact]
+    public void AnAreaTurnsOffTheEditorsOwnClipping() => OnUiThread(() =>
+    {
+        (Window _, CodeBlockEditor editor) = OpenSmall(Stub(Members), area: null);
+
+        Assert.True(editor.ClipToBounds, "an editor with no area given clips to itself");
+
+        editor.PopupArea = new Rect(-100, -200, 600, 400);
+        Assert.False(editor.ClipToBounds, "an editor whose popups may leave it cannot clip to itself");
+
+        editor.PopupArea = null;
+        Assert.True(editor.ClipToBounds, "taking the area away puts the clipping back");
+    });
+
+    /// <summary>
+    /// <b>And the area, not the control, is what a popup is held inside.</b> An area too narrow for
+    /// the list pins it to the area's own left edge — which is outside the editor whenever the
+    /// editor is not in the corner of its host, and was pinned to the editor's edge before.
+    /// </summary>
+    /// <remarks>
+    /// <b>Asserted on the horizontal, deliberately.</b> The headless session has no font metrics —
+    /// every glyph measures zero wide (<c>E11-T21</c>) — so a popup's height there is not the height
+    /// it has in the application, and an assertion about vertical room would be measuring the
+    /// harness. The pinning rule holds whatever the text measures.
+    /// </remarks>
+    [Fact]
+    public void ThePopupsAreHeldInsideTheAreaRatherThanTheEditor() => OnUiThread(() =>
+    {
+        (Window window, CodeBlockEditor editor) = OpenSmall(
+            Stub(Members), area: new Rect(-100, -200, 1, 1));
+
+        editor.Text = "a.";
+        Layout(window);
+
+        Inner(editor).CaretOffset = 2;
+
+        Pump(editor.RequestCompletionAsync());
+        Layout(window);
+
+        // Left of the editor's own left edge, which the old clamp - into [0, this control's
+        // width] - could not produce however small the area was.
+        Assert.True(
+            editor.CompletionOrigin.X < 0.0,
+            $"the list should be pinned to the area's left edge, not to the editor's: {editor.CompletionOrigin.X}");
+
+        Assert.InRange(editor.CompletionOrigin.X, -100.0, -99.0);
+    });
+
+    /// <summary>
+    /// And an area big enough keeps the list inside it rather than anywhere it pleases.
+    /// </summary>
+    [Fact]
+    public void TheAreaIsWhatThePopupsAreKeptInside() => OnUiThread(() =>
+    {
+        (Window window, CodeBlockEditor editor) = OpenSmall(
+            Stub(Members), area: new Rect(-100, -200, 600, 400));
+
+        editor.Text = "a.";
+        Layout(window);
+
+        Inner(editor).CaretOffset = 2;
+
+        Pump(editor.RequestCompletionAsync());
+        Layout(window);
+
+        Assert.InRange(editor.CompletionOrigin.X, -100.0, 500.0);
+        Assert.InRange(editor.CompletionOrigin.Y, -200.0, 200.0);
+    });
+
+    /// <summary>An editor hosted small on a surface, the way a code block hosts one.</summary>
+    private static (Window Window, CodeBlockEditor Editor) OpenSmall(
+        Func<string, int, CancellationToken, Task<IReadOnlyList<CodeCompletionCandidate>>>? source,
+        Rect? area)
+    {
+        CodeBlockEditor editor = new() { CompletionSource = source, Width = 300, Height = 40 };
+
+        Avalonia.Controls.Canvas host = new();
+        Avalonia.Controls.Canvas.SetLeft(editor, 100);
+        Avalonia.Controls.Canvas.SetTop(editor, 200);
+        host.Children.Add(editor);
+
+        Window window = new() { Width = 600, Height = 400, Content = host };
+
+        window.Show();
+        Layout(window);
+
+        editor.PopupArea = area;
+
+        return (window, editor);
+    }
 }

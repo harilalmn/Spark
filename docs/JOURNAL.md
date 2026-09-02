@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-03 02:05 +0530
+**Last updated:** 2026-09-03 03:15 +0530
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.1.0` shipped on 2026-09-02** — the first tag in the repository's history, and the first time the release pipeline has run end to end rather than been argued about. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | Nothing. The client's two asks are in — one output port per line (`E6-T26`) and the editor on the node (`E8-T39`) — and the defect they reported against the second is fixed (`E8-T40`). |
+| **Working on** | Nothing. The client's two asks are in — one output port per line (`E6-T26`) and the editor on the node (`E8-T39`) — and both defects they reported against the second are fixed (`E8-T40`, `E8-T41`). |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E8-T40` — the in-node editor makes room for itself instead of covering the port tabs.** Reported by the client against `E8-T39` the moment it landed. **The editor cannot be sized to the source rectangle**: it is drawn at a fixed legible size and the rectangle is scaled by the zoom, so on a short block the rectangle is the smaller of the two and the floors that made up the difference landed on the lozenges. The block grows instead — the pane says what the editor needs in *screen* pixels, the canvas divides by the zoom, reserves that much source area, re-measures the node and answers with a rectangle the editor is placed in exactly. **A reservation, not a resize**: a node's width is derived from its content on every measure, so nothing reaches `.spark`, and the room goes back *before* the commit because committing replaces the node. **Before that: `E8-T39`**, the editor inside the node, which confirmed [ADR-0013](adr/0013-immediate-mode-node-canvas.md) rather than bending it — the overlay layer exists for exactly this, and every other block on the canvas stays a drawing. **Before that: `E6-T26`**, one output port per declared variable, which exposed two silent defects neither reachable before it ([N110](NOTES.md)). |
+| **Last completed step** | **`E8-T41` — the in-node editor's completion list is no longer trapped inside the node.** Reported from the running application: `Circle circle = new ` on a one-line block gave a two-pixel sliver of a list. The list is a `Canvas` overlay inside the control rather than a `Popup` (`E6-T12`, a deliberate trade for testability), so it is clipped to the control and `Fit` clamped it into the control's own bounds — right in a pane the editor fills, useless on a node two lines tall. `CodeBlockEditor.PopupArea` now names the area the popups may occupy, in the control's coordinates; setting it turns the control's own clipping off, and `Fit` clamps into it and **checks the bottom edge as well**, so a list with no room below the caret goes above it. **Before that: `E8-T40`**, the block grows to hold its editor rather than the editor covering the port tabs. **Before that: `E8-T39`**, the editor inside the node. **Before that: `E6-T26`**, one output port per declared variable. |
 | **Working tree** | Clean at the commit carrying this journal. **`Release #3` is still unread**: `gh` is not authenticated on this machine and no token is set, so whether `v0.1.2` published is unknown rather than reported. |
-| **Next action** | **Read `Release #3`** and finish cutting `v0.1.2`, which is the item this session interrupted and has not resumed. Then: **`N108`** (the fingerprint that moves with load order, which quietly defeats the on-disk compile cache), **`N107`** (completion parses as a script while the compiler wraps a method body), **the screenshot harness** (it races Roslyn and photographs an empty popup), and **the installer install/over-install/uninstall cycle**, which is this journal's own stated bar and has never been run. **One thing `E8-T39` still leaves open, and it is smaller than it was**: the in-node editor does not *follow* a pan or a zoom — pressing the canvas focuses it, which commits, and the wheel closes it, so it never drifts, but it closes rather than tracking. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2461**: Geometry.Tests 763, UI.Tests 883, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets, and **`--code-block "..." --code-block-in-node --screenshot PREFIX` for the editor on the node** (`E8-T39`). **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
+| **Next action** | **Read `Release #3`** and finish cutting `v0.1.2`, which is the item this session interrupted and has not resumed. Then: **the screenshot harness**, which is no longer a background annoyance — `E8-T41` could not be photographed at all. The pose now *awaits* Roslyn rather than racing it and the capture still comes back with the popup absent, so the race is not the whole of it and `--code-block --screenshot` proves less than it claims. Then **`N108`** (the fingerprint that moves with load order), **`N107`** (completion parses as a script while the compiler wraps a method body), and **the installer install/over-install/uninstall cycle**, which is this journal's own stated bar and has never been run. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2464**: Geometry.Tests 763, UI.Tests 886, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets, and **`--code-block "..." --code-block-in-node --screenshot PREFIX` for the editor on the node** (`E8-T39`). **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -6317,3 +6317,46 @@ again.
 
 **Cost.** Under an hour. The fix is about forty lines; deciding that the node grows rather than the
 editor shrinking was the whole of the work.
+
+### 2026-09-03 — `E8-T41`: the completion list gets out of the node
+
+**Protocol note first, because it is the kind of thing that is tempting to leave out.** This step
+was started without the write-ahead. The client reported the defect from the running application,
+the journal said `CLEAN`, and code was changed before *Current state* named the step. Nothing was
+lost, because the step was short and the session did not die — but that is luck, not process, and
+the whole argument for step 3 is that it costs a minute and makes the unlucky case cheap.
+
+**What.** `CodeBlockEditor.PopupArea` — the area the completion list and the signature may occupy,
+given in the control's own coordinates. `CanvasPane` sets it to the pane's rectangle, which is a
+negative origin because the editor is not in the pane's corner. Setting it turns the control's own
+`ClipToBounds` off; `Fit` clamps into it rather than into `Bounds`, and now checks the bottom edge
+as well as the other three, so a list with no room below the caret goes above it.
+
+**The cause was a trade made correctly and then outlived.** `E6-T12` chose a `Canvas` overlay over
+a `Popup` because a `Popup` needs a window overlay layer that the headless session does not
+provide, which would have made every assertion about placement, filtering and key handling a
+manual check against a running application. That is the right call for an editor filling a
+properties pane. It stopped being right the moment the same control was hosted on a node two lines
+tall — the list was clipped to the control and clamped into it, so the whole list was a sliver
+inside the block. The fix keeps the trade and parameterises the one thing that was hard-coded.
+
+**What could not be verified the way this journal says to verify it.** `--code-block
+--code-block-in-node --screenshot` cannot photograph the list. The pose now *awaits* the completion
+request instead of firing it and shooting — which was worth doing on its own, and is not enough:
+the capture still comes back with `IsCompletionOpen` true, an origin inside the pane, and no list
+in the image. So the screenshot harness's problem is not only that it races Roslyn, and the queue
+item that says it is needs rewriting. The three new tests cover the placement rule
+(`ClipToBounds` flips with the area; a popup is pinned to the *area's* left edge and not the
+control's; the origin stays inside the area) and the rest is by eye in the application.
+
+**Two things the harness cannot see, recorded so nobody re-derives them.** The headless session has
+no font metrics — every glyph measures zero wide — so a popup's measured height there is not its
+height in the application, and the first version of these tests asserted a vertical clamp that the
+harness could never exercise. The assertions that survived are horizontal and structural.
+
+**Verified.** Clean `--no-incremental` build `-warnaserror`, `dotnet format --verify-no-changes`
+clean, all nine executables green at **2464**, and 886 in `Spark.UI.Tests` with no regression in
+the twenty-six popup tests `E6-T12`, `E6-T22` and `E6-T23` left behind.
+
+**Cost.** About an hour, most of it establishing that the screenshot could not be made to work
+rather than fixing the defect, which was small.
