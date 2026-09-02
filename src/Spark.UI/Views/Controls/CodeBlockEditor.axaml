@@ -112,14 +112,30 @@
                  SelectionMode="Single"
                  Background="Transparent"
                  BorderThickness="0">
+          <!--
+            A COLOURED LETTER BADGE, WHICH IS RCS'S AND IS BETTER THAN THE WORD IT REPLACES.
+
+            This column used to hold the kind spelled out - `Class`, `Delegate`, `ExtensionMethod`
+            - at 56 px minimum width, so more than a third of a narrow list was a word repeated
+            down every row and the names it was there to qualify started a third of the way in.
+            A 16 px badge says the same thing in the space of one character, and colour makes the
+            grouping readable without being read: methods are purple, types orange, values blue.
+          -->
           <ListBox.ItemTemplate>
             <DataTemplate>
               <StackPanel Orientation="Horizontal" Spacing="6">
-                <TextBlock Text="{Binding Kind}"
-                           Opacity="0.55"
-                           FontSize="10"
-                           MinWidth="56"
-                           VerticalAlignment="Center" />
+                <Border Width="16"
+                        Height="16"
+                        CornerRadius="3"
+                        Background="{Binding GlyphBrush}"
+                        VerticalAlignment="Center">
+                  <TextBlock Text="{Binding Glyph}"
+                             Foreground="White"
+                             FontSize="10"
+                             FontWeight="SemiBold"
+                             HorizontalAlignment="Center"
+                             VerticalAlignment="Center" />
+                </Border>
                 <TextBlock Text="{Binding DisplayText}" VerticalAlignment="Center" />
               </StackPanel>
             </DataTemplate>

@@ -26,7 +26,19 @@ namespace Spark.UI.Views.Controls;
 /// drawing a list is this assembly's; keeping the compiler's vocabulary out of the control is what
 /// stops the language service leaking into the shell (ADR-0005).
 /// </remarks>
-public readonly record struct CodeCompletionCandidate(string DisplayText, string Kind);
+public readonly record struct CodeCompletionCandidate(string DisplayText, string Kind)
+{
+    /// <summary>The single letter drawn in the candidate's badge.</summary>
+    /// <remarks>
+    /// <b>Computed here rather than carried</b>, so that the record stays two strings and
+    /// <c>C5</c>'s boundary argument still holds one layer up: what a kind looks like is this
+    /// assembly's business, and it can be derived from the kind whenever the list is drawn.
+    /// </remarks>
+    public string Glyph => CompletionGlyph.LetterFor(Kind);
+
+    /// <summary>The badge's fill, from RCS's palette.</summary>
+    public IBrush GlyphBrush => CompletionGlyph.BrushFor(Kind);
+}
 
 /// <summary>
 /// The code block's editing surface: an AvaloniaEdit text editor with a completion popup
@@ -96,6 +108,28 @@ public sealed partial class CodeBlockEditor : UserControl
         // the .xshd files as embedded resources, and a trimmed build can lose them. Plain text is a
         // perfectly usable editor; a null reference in a constructor is not.
         _editor.SyntaxHighlighting = HighlightingManager.Instance.GetDefinition("C#");
+
+        // THE EDITOR'S OWN SETTINGS, TAKEN FROM RCS'S `CodeEditor` (`C:\Zyeta\Projects\RCS`).
+        //
+        // Defaults, in AvaloniaEdit as in AvalonEdit, are a plain-text editor's: real tabs, no
+        // indentation strategy, no current-line highlight. That is defensible for a text box and
+        // wrong for a C# editor, and the difference shows up the first time somebody presses Enter
+        // inside a block and the caret lands in column one.
+        //
+        // `CSharpIndentationStrategy` is the one that matters most. It indents after `{`, outdents
+        // on `}`, and keeps the level across a continuation line — which is the whole reason typing
+        // more than two lines here is bearable.
+        _editor.Options.ConvertTabsToSpaces = true;
+        _editor.Options.IndentationSize = 4;
+        _editor.Options.HighlightCurrentLine = true;
+
+        // A code block is not a document with links in it, and a Ctrl+click that navigates away is
+        // a Ctrl+click that did not add a caret.
+        _editor.Options.EnableHyperlinks = false;
+        _editor.Options.EnableEmailHyperlinks = false;
+
+        _editor.TextArea.IndentationStrategy =
+            new AvaloniaEdit.Indentation.CSharp.CSharpIndentationStrategy(_editor.Options);
 
         Recolour(_editor);
 
