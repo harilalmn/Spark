@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-03 14:40 +0530
+**Last updated:** 2026-09-03 15:20 +0530
 **Protocol version:** 2
 
 ---
@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.1.0` shipped on 2026-09-02** — the first tag in the repository's history, and the first time the release pipeline has run end to end rather than been argued about. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | Nothing. The client's two asks are in, and the four defects they reported against them are fixed (`E8-T40` to `E8-T43`). |
-| **Step status** | `CLEAN` |
+| **Working on** | **Cutting `v0.2.0`.** The client said the one word `release.yml` was built around. **The number is a minor bump and the reason is one sentence**: six commits since `v0.1.2` add user-visible capability — a code block's declared variables become its output ports (`E6-T26`) and its editor is hosted on the node (`E8-T39` to `E8-T43`) — and nothing in `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io` or `Spark.Nodes.Core` changed, with no `PublicAPI.Shipped.txt` touched in the range. |
+| **Step status** | `IN PROGRESS` |
 | **Last completed step** | **`E8-T43` — the in-node editor follows a pan and a zoom instead of closing.** `GraphCanvas.ViewChanged`, raised by one `ViewMoved` helper that replaces the `InvalidateVisual` at every site that moves the transform; `CanvasPane` re-runs `ScriptEditorSpace` with the same *screen* size it first asked for, which is what keeps the editor constant and legible while the block grows and shrinks around it. The overlay clips to the pane, so an editor followed off the edge leaves rather than drawing over the viewport. **Before that: `E8-T42`** (bracket completion was cancelling signature help, everywhere, since `E6-T11`), **`E8-T41`** (the completion list escaping the node), **`E8-T40`** (the block growing to hold its editor), **`E8-T39`** (the editor on the node) and **`E6-T26`** (one output port per declared variable). |
-| **Working tree** | Clean at the commit carrying this journal. **`Release #3` is still unread**: `gh` is not authenticated on this machine and no token is set. |
-| **Next action** | **Read `Release #3`** and finish cutting `v0.1.2` — interrupted five steps ago and still not resumed. Then **the screenshot harness**, which three steps running have now caught out: `E8-T41` could not be photographed at all, `E8-T42` was a defect the screenshot path was structurally incapable of showing because it *is* the pose, and `E8-T43`'s framing pushes the block being edited off screen. The queue item's wording — that it races Roslyn — is too narrow. Then **`N108`**, **`N107`**, and **the installer install/over-install/uninstall cycle**, which is this journal's own stated bar and has never been run. |
+| **Working tree** | Clean, and `main` is pushed. The tag goes on the commit that carries this journal, which is the same shape `v0.1.2` was cut in. |
+| **Next action** | **Read `Release #4` and confirm `v0.2.0` published with an installer attached.** It needs `gh` credentials this machine does not have, so it may again end *unread rather than reported* — that is the second thing a session with credentials should do, after nothing. **If it goes red, read the annotation on the summary page before touching the YAML**: the last three times the answer was written there and was checked second. **The gates were run before the tag** and a tag is permanent ([N102](NOTES.md)): clean `--no-incremental` build `-warnaserror`, nine executables at **2467**, `dotnet format --verify-no-changes`, `scripts/publish.ps1` staging 225.6 MB, and the staged `spark.exe` actually started — it reported `0.1.3-alpha.0.6`, which is MinVer reading six commits past `v0.1.2` and is exactly what `scripts/check-version.ps1` will compare against the new tag, and it exported `docs/examples/solids.spark` to STEP through OpenCascade 8.0.1. **What was not run is the installer install/over-install/uninstall cycle**, which this journal has called its own bar since M7 and which has still never been done by anybody. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2467**: Geometry.Tests 763, UI.Tests 889, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets, and **`--code-block "..." --code-block-in-node --screenshot PREFIX` for the editor on the node** (`E8-T39`). **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
@@ -6442,3 +6442,35 @@ frame *a node* rather than the graph before it can photograph any of this.
 
 **Cost.** Under an hour. The event was ten minutes; deciding that re-asking beats remembering an
 offset was most of the rest.
+
+### 2026-09-03 — Cutting `v0.2.0`
+
+**What.** A tag, on the commit carrying this journal, for the six commits since `v0.1.2`.
+
+**Why minor rather than patch.** The rule in [AGENTS.md](../AGENTS.md#cutting-a-release) is SemVer
+read against Spark's own public surface, and this range adds user-visible capability without
+touching it: a code block's declared variables become its output ports (`E6-T26`), and its editor
+is hosted on the node (`E8-T39` through `E8-T43`). `git diff v0.1.2..HEAD` over the four
+`PublicAPI.Shipped.txt` files is empty, no node key moved, and a `.spark` file written by this
+build is read by the last one — the format did not change, because a block's size is derived from
+source that was already saved.
+
+**One thing a user of `v0.1.2` should know, which is not a break but is a behaviour change.** A
+code block that writes no `return` used to fail to compile and now produces one output port per
+variable it declares. A graph saved from this build and opened in `v0.1.2` will therefore find
+those ports missing and drop the wires into them. That is forward compatibility rather than
+backward, which SemVer does not govern and which the release notes should not pretend it does.
+
+**The gates were run before the tag, and that ordering is the point.** A tag is permanent in a way
+a commit is not: moving one is worse than the mistake it fixes, because a machine that has already
+fetched it keeps the old commit for ever ([N102](NOTES.md)). Clean `--no-incremental` build
+`-warnaserror`, nine executables green at **2467**, `dotnet format --verify-no-changes` clean,
+`scripts/publish.ps1` staging 225.6 MB with the kernel's 58 native DLLs, and — the part the test
+suites cannot see — the staged `spark.exe` **started**, reported `0.1.3-alpha.0.6`, and exported
+`docs/examples/solids.spark` to STEP through OpenCascade 8.0.1. That version string is MinVer
+reading six commits past `v0.1.2`, which is the same derivation `scripts/check-version.ps1` will
+hold the built assembly to against the new tag.
+
+**Still not done, and still said rather than hidden: nothing is signed**, so the first run of the
+installer shows SmartScreen. And **the installer install/over-install/uninstall cycle has never
+been run by anybody**, which this journal has called its own bar since M7.
