@@ -62,7 +62,24 @@
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
           <Image Source="/Assets/spark-logo.png" Width="22" Height="22"
                  RenderOptions.BitmapInterpolationMode="HighQuality" />
-          <TextBlock Text="SPARK" Classes="caption" VerticalAlignment="Center" />
+
+          <!--
+            E8-T44: the running version, under the mark. It was in the About window and nowhere
+            a user glances, which made "what am I running?" - the first question any bug report
+            has to answer - a menu, two clicks and a dialog.
+
+            Set at 11 px like the name above it. The design language puts the floor at 11 and
+            says nothing is smaller at any scale in any state, so a version made quieter by
+            being tinier is not available; it is quieter by being second.
+          -->
+          <StackPanel Orientation="Vertical" VerticalAlignment="Center">
+            <TextBlock Text="SPARK" Classes="caption" />
+            <TextBlock Text="{Binding VersionLabel}"
+                       IsVisible="{Binding HasVersion}"
+                       Classes="caption"
+                       AutomationProperties.Name="The version of Spark you are running"
+                       ToolTip.Tip="The version of Spark you are running" />
+          </StackPanel>
         </StackPanel>
 
         <TextBlock Grid.Column="1" Classes="muted" VerticalAlignment="Center"

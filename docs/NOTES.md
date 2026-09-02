@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-03 (N112 added)
+**Last updated:** 2026-09-03 (N113 added)
 
 ---
 
@@ -3244,3 +3244,32 @@ the parentheses** — before the test could fail.
 
 **The rule:** a feature verified only by asking for it directly has been verified as a mechanism
 and not as a behaviour, and a test double that never says no cannot test the code that handles no.
+
+---
+
+## N113 — CI results never needed `gh`, and this file said they did four times
+
+The journal has recorded *needs `gh` or a paste* as a blocker four times: the first nightly, then
+`Release #2`, then `Release #3`, then `Release #4`. `gh` is not authenticated on this machine and
+there is no token, so every one of those ended unread rather than reported, and the release step
+was left half-finished each time on that basis.
+
+**It was never true.** Spark's repository is public, and GitHub's REST API answers a public
+repository's workflow runs and releases with no credentials at all:
+
+- `https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=6` — every run's `name`,
+  `display_title`, `status`, `conclusion` and `html_url`.
+- `https://api.github.com/repos/<owner>/<repo>/releases/latest` — the published release, its
+  `draft` and `prerelease` flags, and every asset with its size.
+
+That is enough to answer all three questions the journal kept deferring: did the run finish, did
+it pass, and is there an installer attached to the tag. `gh` is a convenience over the same
+endpoints; what it adds is authentication, which is exactly what these calls do not need.
+
+**Why it went unexamined for so long is the part worth keeping.** The first session tried `gh`,
+got `gh auth login`, and wrote down *needs credentials* — which is true of `gh` and was then
+copied forward as though it were true of the goal. Three later sessions inherited the sentence and
+none re-derived it. **A blocker recorded as a tool failure rather than as a question is one nobody
+re-tests**, because the note answers "have we tried?" instead of "what do we actually need?"
+
+The rule: write a blocker as the thing that is unavailable, not as the command that failed.

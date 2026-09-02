@@ -126,6 +126,32 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _isUpdateAvailable;
 
+    /// <summary>
+    /// The version the application is running, as the ribbon shows it — <c>v0.2.0</c> (`E8-T44`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Asked for because the answer was two clicks and a dialog away.</b> The version was in
+    /// the About window and nowhere a user glances, and it is the first thing every bug report
+    /// has to establish. It is in the corner of the ribbon now, under the mark.
+    /// </para>
+    /// <para>
+    /// <b>Read once, and never notified.</b> An application cannot change the version it is
+    /// running while it runs, so this is a get-only property rather than an observable one —
+    /// making it observable would be advertising a change that cannot happen.
+    /// </para>
+    /// <para>
+    /// <b>Empty when the assembly carries no version</b>, which is what a build with no tags in
+    /// reach looks like. <see cref="HasVersion"/> hides the line rather than showing a
+    /// <c>v</c> with nothing after it.
+    /// </para>
+    /// </remarks>
+    public string VersionLabel { get; } =
+        SparkVersion.Of(typeof(MainWindowViewModel).Assembly) is { } version ? "v" + version : string.Empty;
+
+    /// <summary>Whether there is a version to show.</summary>
+    public bool HasVersion => VersionLabel.Length > 0;
+
     /// <summary>The note the properties pane is editing, or null when it is not editing one.</summary>
     /// <remarks>
     /// Also the flag the pane's note editor is shown by. A separate <c>IsNoteSelected</c> boolean
