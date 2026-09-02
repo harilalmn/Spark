@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 21:05 +0530
+**Last updated:** 2026-09-02 21:35 +0530
 **Protocol version:** 2
 
 ---
@@ -17,8 +17,8 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.1.0` shipped on 2026-09-02** — the first tag in the repository's history, and the first time the release pipeline has run end to end rather than been argued about. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Porting `C:\Zyeta\Projects\RCS`'s editor onto Spark's code block**, at the client's request and against their reference implementation. RCS is **WPF/AvalonEdit**; Spark is **Avalonia/AvaloniaEdit**, so every `DrawingGroup`, `FormattedText`, `ControlTemplate.Triggers` and `DispatcherTimer` needs an Avalonia equivalent — a port, never a copy. Verified first that AvaloniaEdit 12.0.0 carries what RCS leans on: `AvaloniaEdit.Snippets`, `CSharpIndentationStrategy`, `SearchPanel`. **Six slices, each its own commit**: (1) editor options and the C# indentation strategy, (2) IntelliSense glyphs and list styling, (3) the 36-snippet catalogue with tab stops, (4) bracket completion, (5) diagnostics squiggles and hover quick-info, (6) find/replace and zoom. |
-| **Step status** | `IN PROGRESS` |
+| **Working on** | **Nothing. The RCS editor port is complete — all six slices — and the tree is committed.** *(Was: porting `C:\Zyeta\Projects\RCS`'s editor onto Spark's code block*, at the client's request and against their reference implementation. RCS is **WPF/AvalonEdit**; Spark is **Avalonia/AvaloniaEdit**, so every `DrawingGroup`, `FormattedText`, `ControlTemplate.Triggers` and `DispatcherTimer` needs an Avalonia equivalent — a port, never a copy. Verified first that AvaloniaEdit 12.0.0 carries what RCS leans on: `AvaloniaEdit.Snippets`, `CSharpIndentationStrategy`, `SearchPanel`. **Six slices, each its own commit**: (1) editor options and the C# indentation strategy, (2) IntelliSense glyphs and list styling, (3) the 36-snippet catalogue with tab stops, (4) bracket completion, (5) diagnostics squiggles and hover quick-info, (6) find/replace and zoom.)* **All six landed**: `039e1da`, `d73aa11`, `311275a`, `010bf4b` and this one. |
+| **Step status** | `CLEAN` |
 | **Last completed step** | **`new` offered an alphabet instead of the type being constructed.** `ScriptCompletion` read `DisplayText`, `Kind` and `SortText` off every Roslyn candidate and never read `Rules.MatchPriority`, which is where a target-typed `new` is marked `Preselect` — so `Point2d p2d = new ` opened on `AccessViolationException`. Sorted before the projection, which keeps `C5`'s boundary intact. **Before that: the properties panel was showing the value the node had when it was selected.** `RefreshInspector` ran after every evaluation and only pruned deleted nodes — it never re-read a literal, so a slider drag, an undo or the node's own field all left the panel stale, input box and *Output* line alike. It now re-reads the selected node from the engine, without committing and without overwriting a box that has the caret. **Before that: a node's output type label sat on top of its own port tab.** `DrawPortLabels` took the row's right-hand edge from the output name's *text* width when the tab holding that name reaches 8 px further left — and drew that name a second time on top of the one the tab already draws. `SideWidth` had the same blind spot, measuring words where `PortTab` measures words plus padding. `CanvasNode.PortLabelRow` now gives both edges from `PortTab`. **An inherited red is in the tree and is not from this work**: `ScriptOutputTypeTests.AnEntryWithNoTypesFallsBackToObject`, 1 of 797, failing identically with these changes stashed. **Before that: the OpenCascade cache banked nothing, because `actions/cache` is `post-if: success()`.** Every run since `#110` failed downstream of the install, so every run discarded the hour it had just spent and the next started cold — which is how the account reached its spending limit and why `#118` never started a job. Restore and save are now separate steps, and the save runs the moment the install succeeds. `C:\vcpkg\packages` left the cached path with it: staging nothing reads, roughly doubling an entry with a 10 GB cap. **Before that: the shim was being built by the wrong compiler.** `v0.1.1` and every CI run since `#110` — eight of them — died linking MSVC-built OpenCascade with MinGW's `ld`, because `build-native.ps1` checked for `cmake` and `ninja` and merely *asked* the caller to be in a developer prompt. It now enters the MSVC environment itself via `vswhere` and `vcvars64.bat`, and pins `cl` on the CMake command line. **Reproduced and verified on this machine**, which has no `cl` on `PATH` and is therefore the runner's condition exactly. |
 | **Working tree** | Clean at the moment this was written. `v0.1.2` is **not** tagged yet. |
 | **Next action** | **MAKE THE REPOSITORY PUBLIC — only the owner can, and nothing runs until they do.** `#118` failed in 3s with *the job was not started because recent account payments have failed or your spending limit needs to be increased*, on all four jobs: GitHub Free includes 2 000 Actions minutes a month for **private** repositories and bills Windows at **2×**, and the eight three-hour runs spent roughly 3 300 of them. The client chose public over a self-hosted runner and over waiting for the reset; Actions is free and unlimited there, and no workflow change is needed. **Settings → General → Danger Zone → Change visibility.** *Pre-publication scan is done and clean*: `LICENSE` present, nothing secret-shaped in the history, no token strings tracked, no `secrets.*` in any workflow, no `pull_request_target`, no self-hosted runners, `artifacts/` ignored, no blob over 5 MB. **Then watch CI reach *Build the native provider*** — the first run that can — **then tag `v0.1.2`**, a new tag and never a moved one ([N102](NOTES.md)). It is the first run that can get past it, and the `Check the C++ toolchain` step now reports the compiler in seconds near the top of the log. **Then tag `v0.1.2`** — a new tag, never a moved one, for the reason [N102](NOTES.md) gives. **Then the cache**, which is owed and is not cosmetic: `Install OpenCascade` has run on all eight runs, so three hours per run is a dependency rebuild that should have been a restore. Read the `Post Cache OpenCascade` step for a size warning; `C:\vcpkg\packages` is a staging tree in the cached path and GitHub's cap is 10 GB. **Then the Help pass**: `E10-T3`, `E11-T2`'s `<example>` half, E10-T9/T10/T12/T14, plus two topics for the code editor. **And a dirty flag is owed**: New and Open both discard unsaved work without asking. |
@@ -6129,3 +6129,35 @@ a literal doing nothing, which reads as the feature being broken rather than the
 it falls back to `GetDeclaredSymbol` and then to `GetTypeInfo`.
 
 **What it cost.** Fifty minutes. 853 tests, none failing.
+
+---
+
+### 2026-09-02 — RCS's editor, slice 6: find, replace and zoom — and the port is done
+
+**What.** Ctrl+F, Ctrl+H, Ctrl+0 and Ctrl+wheel. The find bar is **AvaloniaEdit's `SearchPanel`**,
+not a port of RCS's, and that is the one deliberate substitution in the whole exercise.
+
+**Why it is right.** RCS's `FindReplacePanel` is 593 lines — a `Border` subclass, a toolbar, a
+highlight renderer, an `AdornerHost` — and it exists because AvalonEdit's own `SearchPanel` finds
+but cannot replace. AvaloniaEdit's *can*, and Avalonia has no adorner layer to float a hand-built
+one over. Porting it faithfully would have meant reimplementing a control that ships in the box, on
+top of a hosting mechanism that does not exist, to reach a feature the box already has.
+
+**What was worth taking was everything around it**: the gestures, and seeding the search box from
+the selection — the whole of "select a word, press Ctrl+F". A multi-line selection deliberately
+does not seed it, because a find box is one line. Same judgement on the zoom: RCS holds the size in
+a static with a `Changed` event because several tabs share one preference; a Spark code block is
+one editor with no second to keep in step, so the state is on the control. The step-rather-than-
+factor choice was kept, and that one is not incidental — a multiplier moves one point at the small
+end and four at the large.
+
+**Six slices, done.** Settings and indentation strategy; IntelliSense badges; 16 snippets with tab
+stops; bracket completion; diagnostics squiggles and hover; find, replace and zoom. 859 tests.
+
+**What surprised me.** *The most valuable thing in this port was deciding what not to bring.*
+Nineteen snippets could not come because a code block is a method body; the find panel should not
+come because the framework already had one; RCS's static zoom should not come because there is
+only ever one editor. **What travels between two applications is the decision somebody made, not
+the code they wrote to carry it out** — `N109`.
+
+**What it cost.** Twenty-five minutes for this slice; about three hours for all six.

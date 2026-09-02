@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-02 (N95-N108 added)
+**Last updated:** 2026-09-02 (N95-N109 added)
 
 ---
 
@@ -3110,3 +3110,33 @@ which is the reopen `E6-T10` exists to make fast.
 **The shape.** *A value documented as stable, derived from something that is not.* The doc comment
 was checked by review and the derivation by nobody, and the two drifted in the only direction that
 is invisible: the cache still returns correct answers, just far less often than anybody believes.
+
+---
+
+## N109 — Port the policy, not the control: RCS's find bar against AvaloniaEdit's
+
+RCS's `FindReplacePanel` is 593 lines — a `Border` subclass, a hand-built toolbar, a highlight
+renderer and an `AdornerHost` — and it exists because **AvalonEdit's own `SearchPanel` finds but
+cannot replace**. That is a good reason to write one in WPF.
+
+It is not a reason to write one in Avalonia. AvaloniaEdit's `SearchPanel` has `IsReplaceMode`,
+`SearchPattern`, `MatchCase` and `UseRegex`, and Avalonia has **no adorner layer** to float a
+hand-built panel over — so a faithful port would have meant reimplementing a control that ships in
+the box, on top of a hosting mechanism that does not exist, to reach a feature the box already has.
+
+What was worth porting was everything around it: **Ctrl+F, Ctrl+H, and seeding the box from the
+selection.** That last one is the whole of "select a word, press Ctrl+F"; without it the bar opens
+empty and the word is typed twice, which is the difference between a shortcut and a dialog. A
+multi-line selection deliberately does not seed it, because a find box is one line.
+
+The same judgement applied to `EditorZoom`. RCS holds the text size in a static with a `Changed`
+event, because several editor tabs share one preference and Ctrl+wheel over any of them resizes
+all. **A Spark code block is one editor in a properties panel and there is never a second to keep
+in step**, so the state is on the control and the event does not exist. The step-rather-than-factor
+choice was kept, and that one is not incidental: a multiplier moves one point at the small end and
+four at the large, so the same gesture feels different depending on where you started.
+
+**The rule this file is really about.** Three things were ported here — the gestures, the seeding,
+the step — and two were dropped: the panel and the static. **What travels between two applications
+is the decision somebody made, not the code they wrote to carry it out**, and a port that cannot
+tell the difference reimplements the second framework's built-ins in the first framework's idiom.

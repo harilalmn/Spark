@@ -157,6 +157,10 @@ public sealed partial class CodeBlockEditor : UserControl
 
         _editor.AddHandler(PointerMovedEvent, OnPointerMovedForHover, RoutingStrategies.Bubble);
 
+        // Ctrl+wheel zooms (`CodeBlockEditor.Search.cs`). Tunnelled, because AvaloniaEdit's own
+        // handler scrolls on a Ctrl+wheel like any other and would consume it first.
+        _editor.AddHandler(PointerWheelChangedEvent, OnEditorPointerWheel, RoutingStrategies.Tunnel);
+
         _editor.TextArea.TextView.BackgroundRenderers.Add(
             new ExtraCaretRenderer(this, AvaloniaEdit.Rendering.KnownLayer.Selection));
         _editor.TextArea.TextView.BackgroundRenderers.Add(
@@ -380,6 +384,24 @@ public sealed partial class CodeBlockEditor : UserControl
 
     private void OnEditorKeyDown(object? sender, KeyEventArgs e)
     {
+        // Ctrl+F and Ctrl+H, RCS's gestures over AvaloniaEdit's own panel. Ctrl+0 puts the text
+        // size back, which is the only way out of a zoom made by accident.
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.Key is Key.F or Key.H or Key.D0)
+        {
+            if (e.Key == Key.D0)
+            {
+                ResetZoom();
+            }
+            else
+            {
+                OpenSearch(e.Key == Key.H);
+            }
+
+            e.Handled = true;
+
+            return;
+        }
+
         if (e.Key == Key.Space && e.KeyModifiers.HasFlag(KeyModifiers.Control))
         {
             e.Handled = true;
