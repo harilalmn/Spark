@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 19:45 +0530
+**Last updated:** 2026-09-02 20:10 +0530
 **Protocol version:** 2
 
 ---
@@ -6064,3 +6064,38 @@ before and after your change has not been shown to be independent of it; it has 
 independent of nothing at all.**
 
 **What it cost.** Twenty-five minutes, and three red CI runs before anybody read the pattern.
+
+---
+
+### 2026-09-02 — RCS's editor, slice 4: brackets that know when to keep quiet
+
+**What.** RCS's `BracketCompletion` ported into `CodeBlockEditor.Brackets.cs`. Four behaviours: a
+pair closes as the opener is typed, typing the closer where one already sits steps over it, an
+opener typed over a selection wraps it, and Enter between braces opens an indented block.
+Backspace between an empty pair takes both halves.
+
+**The interesting half is the refusals**, and it is most of the file. Auto-closing is a small
+convenience and a large annoyance when it guesses wrong, so: an opener typed directly before a
+word does not close, because the closer would land inside it; `<` closes only after an identifier,
+because in C# it is a comparison far more often than a generic and `a <> b` is not what anybody
+typing `a < b` wanted; and a quote counts the unescaped quotes before it on the line, so the
+second one closes the string rather than opening another.
+
+**And it stands down entirely when something else owns the keystroke** — the completion list, a
+snippet's fields, or extra carets. That last one is Spark's own and RCS has no equivalent: a
+multi-caret edit applies one text input at every caret as a single document update (`E6-T24`), and
+a bracket completion firing in the middle would close at one caret and not the others. There is a
+test for it, because it is the kind of interaction nobody discovers except by hitting it.
+
+**Tab now has three owners and Enter has two**, which is the part of this that will rot if
+somebody adds a fourth without reading. The order is written where the handler is: completion
+list, then snippet session, then brackets, then the Selection commands, then the editor.
+
+**What surprised me.** *Nothing, which is itself worth recording.* Twelve tests, all green on the
+first run — the first slice today where that happened. The reason is that the logic came across
+unchanged and only the event plumbing had to be rethought: `TextEntering` to cancel a keystroke,
+`TextEntered` to add the closer after the character has landed. **A port goes well exactly to the
+extent that the thing being ported was written as a policy rather than as a pile of event
+handlers**, and RCS's was.
+
+**What it cost.** Twenty minutes. 847 tests, none failing.

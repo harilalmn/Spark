@@ -145,6 +145,12 @@ public sealed partial class CodeBlockEditor : UserControl
         _editor.AddHandler(PointerMovedEvent, OnEditorPointerMoved, RoutingStrategies.Tunnel);
         _editor.AddHandler(PointerReleasedEvent, OnEditorPointerReleased, RoutingStrategies.Tunnel);
 
+        // Bracket completion (`CodeBlockEditor.Brackets.cs`). TextEntering can cancel the keystroke
+        // — stepping over a closer, wrapping a selection — and TextEntered runs after the character
+        // has landed, which is when a closer can be put after it without the caret moving.
+        _editor.TextArea.TextEntering += OnTextEntering;
+        _editor.TextArea.TextEntered += OnTextEntered;
+
         _editor.TextArea.TextView.BackgroundRenderers.Add(
             new ExtraCaretRenderer(this, AvaloniaEdit.Rendering.KnownLayer.Selection));
         _editor.TextArea.TextView.BackgroundRenderers.Add(
@@ -413,6 +419,17 @@ public sealed partial class CodeBlockEditor : UserControl
             // everything else falls through to the editor's indent, which is where Tab belongs
             // almost all of the time.
             if (e.Key == Key.Tab && e.KeyModifiers == KeyModifiers.None && TryExpandSnippetAtCaret())
+            {
+                e.Handled = true;
+
+                return;
+            }
+
+            // Enter between `{` and `}` opens the block; Backspace between an empty pair takes both
+            // halves. Both come before the Selection commands because both are no-ops unless the
+            // caret is between a specific pair of characters, so neither can shadow anything.
+            if (e.KeyModifiers == KeyModifiers.None
+                && (e.Key == Key.Enter && OpenBlock() || e.Key == Key.Back && DeleteEmptyPair()))
             {
                 e.Handled = true;
 
