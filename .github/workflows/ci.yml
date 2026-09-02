@@ -137,13 +137,25 @@ jobs:
 
       # The OpenCascade install is cached on its own key, without the shim hash: editing the
       # shim must not throw away an hour of dependency build.
-      - name: Cache OpenCascade
+      #
+      # RESTORE AND SAVE ARE SPLIT, AND EIGHT CONSECUTIVE RUNS PAID FOR LEARNING WHY.
+      #
+      # `actions/cache` saves in a post step declared `post-if: success()`, so a job that fails
+      # AFTER the install saves nothing. Every run from #110 to #118 failed at *Build the native
+      # provider*, which is downstream of this - so each one spent an hour building OpenCascade,
+      # threw it away, and the next one started from nothing. Eight times, on Windows minutes a
+      # private repository bills at twice the rate, which is how the account reached its spending
+      # limit. `cache/save` as its own step banks the hour the moment it has been paid for,
+      # whatever the rest of the job then does.
+      #
+      # `C:\vcpkg\packages` is gone from the path with it. That is vcpkg's per-port staging tree;
+      # only `installed` is read - by `find_package` here and by `Test-Occt` in build-native.ps1 -
+      # and carrying both roughly doubled an entry that has a 10 GB cap to fit inside.
+      - name: Restore OpenCascade
         id: occt
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
-          path: |
-            C:\vcpkg\installed
-            C:\vcpkg\packages
+          path: C:\vcpkg\installed
           key: occt-${{ steps.key.outputs.occt }}-${{ steps.key.outputs.baseline }}-win-x64
 
       - name: Install OpenCascade
@@ -152,6 +164,13 @@ jobs:
         run: |
           Write-Host 'Building OpenCascade from the pinned port. This takes about an hour.'
           & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install opencascade:x64-windows
+
+      - name: Save OpenCascade
+        if: steps.occt.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: C:\vcpkg\installed
+          key: occt-${{ steps.key.outputs.occt }}-${{ steps.key.outputs.baseline }}-win-x64
 
       - name: Build the shim
         shell: pwsh

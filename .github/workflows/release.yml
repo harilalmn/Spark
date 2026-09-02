@@ -124,13 +124,15 @@ jobs:
           "occt=$occt"                                >> $env:GITHUB_OUTPUT
           "baseline=$($manifest.'builtin-baseline')"  >> $env:GITHUB_OUTPUT
 
-      - name: Cache OpenCascade
+      # Split restore/save, and only `installed` in the path, for the reasons ci.yml sets out at
+      # the same step: `actions/cache` is `post-if: success()`, so a release that fails downstream
+      # of this used to discard the hour it had just spent, and `C:\vcpkg\packages` is staging
+      # nothing reads.
+      - name: Restore OpenCascade
         id: occt
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
-          path: |
-            C:\vcpkg\installed
-            C:\vcpkg\packages
+          path: C:\vcpkg\installed
           key: occt-${{ steps.occtkey.outputs.occt }}-${{ steps.occtkey.outputs.baseline }}-win-x64
 
       - name: Install OpenCascade
@@ -139,6 +141,13 @@ jobs:
         run: |
           Write-Host 'Building OpenCascade from the pinned port. This takes about an hour.'
           & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install opencascade:x64-windows
+
+      - name: Save OpenCascade
+        if: steps.occt.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: C:\vcpkg\installed
+          key: occt-${{ steps.occtkey.outputs.occt }}-${{ steps.occtkey.outputs.baseline }}-win-x64
 
       - name: Build the native provider
         shell: pwsh

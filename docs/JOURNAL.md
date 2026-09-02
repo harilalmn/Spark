@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 13:40 +0530
+**Last updated:** 2026-09-02 14:25 +0530
 **Protocol version:** 2
 
 ---
@@ -19,9 +19,9 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.1.0` shipped on 2026-09-02** — the first tag in the repository's history, and the first time the release pipeline has run end to end rather than been argued about. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | **Nothing. The tree is committed and the gates are green.** `v0.1.1` never shipped — the tag exists and its run failed. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The shim was being built by the wrong compiler.** `v0.1.1` and every CI run since `#110` — eight of them — died linking MSVC-built OpenCascade with MinGW's `ld`, because `build-native.ps1` checked for `cmake` and `ninja` and merely *asked* the caller to be in a developer prompt. It now enters the MSVC environment itself via `vswhere` and `vcvars64.bat`, and pins `cl` on the CMake command line. **Reproduced and verified on this machine**, which has no `cl` on `PATH` and is therefore the runner's condition exactly. |
+| **Last completed step** | **The OpenCascade cache banked nothing, because `actions/cache` is `post-if: success()`.** Every run since `#110` failed downstream of the install, so every run discarded the hour it had just spent and the next started cold — which is how the account reached its spending limit and why `#118` never started a job. Restore and save are now separate steps, and the save runs the moment the install succeeds. `C:\vcpkg\packages` left the cached path with it: staging nothing reads, roughly doubling an entry with a 10 GB cap. **Before that: the shim was being built by the wrong compiler.** `v0.1.1` and every CI run since `#110` — eight of them — died linking MSVC-built OpenCascade with MinGW's `ld`, because `build-native.ps1` checked for `cmake` and `ninja` and merely *asked* the caller to be in a developer prompt. It now enters the MSVC environment itself via `vswhere` and `vcvars64.bat`, and pins `cl` on the CMake command line. **Reproduced and verified on this machine**, which has no `cl` on `PATH` and is therefore the runner's condition exactly. |
 | **Working tree** | Clean at the moment this was written. `v0.1.2` is **not** tagged yet. |
-| **Next action** | **Push, and watch CI `#118` reach *Build the native provider*.** It is the first run that can get past it, and the `Check the C++ toolchain` step now reports the compiler in seconds near the top of the log. **Then tag `v0.1.2`** — a new tag, never a moved one, for the reason [N102](NOTES.md) gives. **Then the cache**, which is owed and is not cosmetic: `Install OpenCascade` has run on all eight runs, so three hours per run is a dependency rebuild that should have been a restore. Read the `Post Cache OpenCascade` step for a size warning; `C:\vcpkg\packages` is a staging tree in the cached path and GitHub's cap is 10 GB. **Then the Help pass**: `E10-T3`, `E11-T2`'s `<example>` half, E10-T9/T10/T12/T14, plus two topics for the code editor. **And a dirty flag is owed**: New and Open both discard unsaved work without asking. |
+| **Next action** | **NOTHING WILL RUN UNTIL BILLING IS CLEARED, AND THAT NEEDS THE ACCOUNT OWNER.** `#118` failed in 3s with *the job was not started because recent account payments have failed or your spending limit needs to be increased* on all four jobs. GitHub Free includes 2 000 Actions minutes a month for **private** repositories and bills Windows at **2×**, so the eight three-hour runs spent roughly 3 300 of them. **The options, and only the owner can pick**: make the repository public (Actions is free and unlimited there), run a self-hosted runner on this machine (free, and it already has the toolchain), or wait for the monthly reset now that a cached run should cost minutes rather than hours. **Then watch CI reach *Build the native provider*.** It is the first run that can get past it, and the `Check the C++ toolchain` step now reports the compiler in seconds near the top of the log. **Then tag `v0.1.2`** — a new tag, never a moved one, for the reason [N102](NOTES.md) gives. **Then the cache**, which is owed and is not cosmetic: `Install OpenCascade` has run on all eight runs, so three hours per run is a dependency rebuild that should have been a restore. Read the `Post Cache OpenCascade` step for a size warning; `C:\vcpkg\packages` is a staging tree in the cached path and GitHub's cap is 10 GB. **Then the Help pass**: `E10-T3`, `E11-T2`'s `<example>` half, E10-T9/T10/T12/T14, plus two topics for the code editor. **And a dirty flag is owed**: New and Open both discard unsaved work without asking. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2343**: Geometry.Tests 763, UI.Tests 765, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets. **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
@@ -5770,3 +5770,54 @@ and wrongly — Copilot read the same log and reported a missing `target_link_li
 been in `native/spark_occt/CMakeLists.txt` since the shim was written. **`undefined reference`
 against a library that is on the link line is a toolchain question, not a linking one**, and the
 three tells that separate the two are in `N103`.
+
+---
+
+### 2026-09-02 — The cache banked nothing, and the bill arrived instead
+
+**What.** CI `#118` — the first run of the compiler fix — failed in **three seconds**, with the
+same annotation on all four jobs:
+
+```
+The job was not started because recent account payments have failed or your
+spending limit needs to be increased.
+```
+
+Not a workflow fault. `actionlint` passes all three files. The account has run out of Actions
+minutes.
+
+**Why it ran out, and it is the previous entry's second finding coming due.** GitHub Free includes
+2 000 Actions minutes a month for private repositories and bills `windows-latest` at **2×**. Eight
+runs at roughly three and a half hours each is about 1 650 wall-clock minutes, so about 3 300
+billable — and several of those runs had two Windows jobs in them. The allowance was gone before
+anybody looked at a log.
+
+**And the three hours should never have been paid twice, let alone eight times.** `actions/cache`
+saves in a post step declared `post-if: success()`. Every one of those runs failed at *Build the
+native provider*, which is downstream of `Install OpenCascade` — so each run built OpenCascade,
+failed, saved nothing, and left the next run to start cold. The cache was not misconfigured and
+was not over the size cap. **It was never reached.**
+
+**The fix.** `actions/cache@v4` becomes `cache/restore@v4` plus a separate `cache/save@v4` that
+runs as soon as the install succeeds, in all three workflows. The hour is banked when it is paid
+for, whatever the rest of the job then does — which matters most for `nightly.yml`, whose entire
+purpose is to go red on a budget.
+
+`C:\vcpkg\packages` left the cached path at the same time. It is vcpkg's per-port staging tree;
+only `installed` is read, by `find_package` in CI and by `Test-Occt` in `build-native.ps1`.
+Carrying both roughly doubled an entry that has a 10 GB cap to fit inside.
+
+**What surprised me.** *The failing job is what breaks the cache, so a broken build is
+self-perpetuating.* A green run would have saved the cache and the next failure would have cost
+minutes. Because the first run to fail did so downstream of the install, every subsequent run paid
+the full hour to reach the same failure — the bug and the cost amplifier were the same event.
+**A cache that only saves on success is a cache that is absent exactly when you are iterating.**
+
+*And a three-second run is worth reading before it is worth debugging.* The first thing I did was
+check the YAML I had just written, on the reasonable theory that three seconds means a startup
+failure. It does — but the annotation named billing, not syntax, and it was on screen the whole
+time.
+
+**What it cost.** Twenty minutes, and it is not finished: **CI cannot run until the account owner
+clears billing.** That is the first human-blocked item on this list that is genuinely blocking
+rather than deferred.
