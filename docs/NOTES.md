@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-02 (N95-N107 added)
+**Last updated:** 2026-09-02 (N95-N108 added)
 
 ---
 
@@ -3071,3 +3071,42 @@ classes, the negative test fails and the catalogue can grow.
 things the compiler rejects, which is the exact failure `E6-T13` says is worse than no list —
 "a completion list which disagrees with the compiler". Nobody has hit it because the offer has to
 be something only legal at script top level. Worth closing before somebody does.
+
+---
+
+## N108 — `ReferenceCatalog.Fingerprint` says "stable across runs" and moves with the process's load order
+
+The on-disk compile key carries it:
+
+```csharp
+_references.Fingerprint,   // ScriptNodeFactory.DiskKey
+```
+
+and its own summary promises *"A hash of the references themselves, stable across runs"*, with
+`ScriptAssemblyCache` explaining that this is precisely why the disk key cannot use `Version` —
+a per-process counter "would let two different sets of references share a cache entry across
+runs". The reasoning is right. The value does not deliver it.
+
+**A catalogue is built from what the process has loaded**, and `Add`'s own summary says so in
+passing: *"rebuilding the snapshot also picks up assemblies the process has loaded since the last
+one."* So the fingerprint is not a property of the references a caller asked for — it is a
+property of **when** the catalogue happened to be built.
+
+**How it surfaced.** `ScriptOutputTypeTests.AnEntryWithNoTypesFallsBackToObject` passed when run
+with its class and failed when run alone, and CI went red on three pushes out of six with nothing
+relevant between them. The test builds a factory, compiles — which loads Roslyn and the geometry
+kernel — then builds a second factory. The second catalogue lists more references than the first,
+fingerprints differently, and misses the cache entry the first one wrote. It recompiles, re-infers,
+and answers `double` where the test asks whether a missing `.outputs` falls back to `object`. Run
+after a sibling the process is already warm, both catalogues agree, and it passes.
+
+**The test is fixed by sharing one catalogue**, which is also what the application does — a
+session builds it once. **The contract is not fixed by that**, and the question it leaves is worth
+asking directly: should the fingerprint cover the references a caller *declared*, rather than
+every assembly the runtime happens to have loaded? As written, two runs of the same application
+that load assemblies in a different order have different fingerprints and share no cache entries —
+which is the reopen `E6-T10` exists to make fast.
+
+**The shape.** *A value documented as stable, derived from something that is not.* The doc comment
+was checked by review and the derivation by nobody, and the two drifted in the only direction that
+is invisible: the cache still returns correct answers, just far less often than anybody believes.

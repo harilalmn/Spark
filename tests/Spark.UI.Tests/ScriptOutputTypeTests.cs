@@ -32,6 +32,33 @@ public sealed class ScriptOutputTypeTests : IDisposable
     private readonly string _directory = Path.Combine(
         Path.GetTempPath(), "spark-output-types-" + Guid.NewGuid().ToString("N"));
 
+    /// <summary>
+    /// One catalogue for every factory this test makes, and it has to be one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is what made <see cref="AnEntryWithNoTypesFallsBackToObject"/> pass with its class
+    /// and fail on its own</b>, and CI red on three pushes out of six.
+    /// </para>
+    /// <para>
+    /// The on-disk compile key carries <c>ReferenceCatalog.Fingerprint</c>, and a catalogue picks
+    /// up <b>whatever the process has loaded when it is built</b>. The first
+    /// <c>Create</c> loads Roslyn and the geometry kernel — so a catalogue built after it lists
+    /// more references than one built before, fingerprints differently, and the second lookup
+    /// misses a cache the first one wrote. It then recompiles, re-infers, and answers
+    /// <c>double</c> where the test is asking whether a missing <c>.outputs</c> falls back to
+    /// <c>object</c>. Run after a sibling test the process is already warm, both catalogues agree,
+    /// and it passes — which is a test result decided by what else ran.
+    /// </para>
+    /// <para>
+    /// Sharing one catalogue is also what the application does: a session builds it once.
+    /// <b>The underlying question is not settled by this</b> — <c>Fingerprint</c>'s own summary
+    /// says "stable across runs", and a value that moves with the process's load order is not
+    /// that. See <c>N108</c>.
+    /// </para>
+    /// </remarks>
+    private readonly ReferenceCatalog _references = new();
+
     /// <inheritdoc/>
     public void Dispose()
     {
@@ -222,7 +249,7 @@ public sealed class ScriptOutputTypeTests : IDisposable
         _ = typeof(Point3d).Assembly.Location;
 
         return new ScriptNodeFactory(
-            new ReferenceCatalog(), new GuardWeaver(), new ScriptAssemblyCache(_directory));
+            _references, new GuardWeaver(), new ScriptAssemblyCache(_directory));
     }
 
     private ScriptPort Single(string script) => Assert.Single(Outputs(script));

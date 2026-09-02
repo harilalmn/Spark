@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 19:15 +0530
+**Last updated:** 2026-09-02 19:45 +0530
 **Protocol version:** 2
 
 ---
@@ -6024,3 +6024,43 @@ Recorded in `N107` and owed.
 
 **What it cost.** Fifty minutes. 835 tests, none failing — with `AnEntryWithNoTypesFallsBackTo
 Object` still order-dependent underneath that number.
+
+---
+
+### 2026-09-02 — The flaky test was a real defect wearing a test's clothes
+
+**What.** CI went red on `#122`, `#123` and `#125` and green on `#121` and `#124` — alternating,
+on strictly increasing commits, with nothing between them that touches scripting. **`#120` passed**,
+which is the headline: the compiler fix works and the release pipeline's blocker is gone.
+
+The failing step was *Test* on `ubuntu-latest`, and the cause is the test this journal has twice
+called a pre-existing failure and once called order-dependent.
+`ScriptOutputTypeTests.AnEntryWithNoTypesFallsBackToObject` **passes with its class and fails on
+its own**, so which it does in CI depends on how xUnit schedules 835 tests that day.
+
+**And it is not the test's fault, quite.** The disk compile key carries
+`ReferenceCatalog.Fingerprint`, whose own summary promises *"a hash of the references themselves,
+stable across runs"* — and `ScriptAssemblyCache` explains at length that this is exactly why the
+disk key cannot use the per-process `Version` counter. The reasoning is right and the value does
+not deliver it: a catalogue is built from **what the process has loaded**, which `Add`'s summary
+says in passing. The test built one factory, compiled — loading Roslyn and the geometry kernel —
+then built a second. Second catalogue, more references, different fingerprint, miss on the entry
+the first one wrote; so it recompiled, re-inferred, and answered `double` where the test asks
+whether a missing `.outputs` falls back to `object`.
+
+**The fix here is the test**: one catalogue shared by both factories, which is also what the
+application does — a session builds it once. Passes alone and with its class now, measured both
+ways.
+
+**The fix that is owed is the contract**, and it is in `N108`. A fingerprint that moves with load
+order means two runs of the same application share no cache entries — which is the reopen
+`E6-T10` exists to make fast. Nobody would notice: the cache still returns correct answers, just
+far less often than the design believes.
+
+**What surprised me.** *I called this pre-existing twice before measuring it properly.* It failed
+identically with my changes stashed, which is true and was the wrong question — the right one was
+whether it fails identically *in isolation*, and it does not. **A test that fails the same way
+before and after your change has not been shown to be independent of it; it has been shown to be
+independent of nothing at all.**
+
+**What it cost.** Twenty-five minutes, and three red CI runs before anybody read the pattern.
