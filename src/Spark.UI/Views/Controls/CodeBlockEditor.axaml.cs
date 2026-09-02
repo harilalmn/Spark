@@ -404,6 +404,21 @@ public sealed partial class CodeBlockEditor : UserControl
                 return;
             }
 
+            // TAB HAS THREE OWNERS, AND THIS IS THE MIDDLE ONE.
+            //
+            // The completion list takes it while it is open — which is the branch above, so by
+            // here the list is closed. A snippet session takes it next, because Tab steps between
+            // an expanded template's fields and AvaloniaEdit's own handler does that. Only an idle
+            // Tab, with nothing selected and an exact prefix behind the caret, starts a new one;
+            // everything else falls through to the editor's indent, which is where Tab belongs
+            // almost all of the time.
+            if (e.Key == Key.Tab && e.KeyModifiers == KeyModifiers.None && TryExpandSnippetAtCaret())
+            {
+                e.Handled = true;
+
+                return;
+            }
+
             e.Handled = HandleSelectionKey(e);
 
             return;
@@ -572,6 +587,21 @@ public sealed partial class CodeBlockEditor : UserControl
         }
 
         int caret = _editor.CaretOffset;
+
+        // A SNIPPET IS EXPANDED, NOT INSERTED. Committing `for` as text would put the word `for`
+        // in the document and leave the user to write the loop, which is the opposite of the
+        // point. The list is closed first because the expansion starts a tab-stop session and Tab
+        // must belong to that, not to a popup nobody can see any more.
+        if (string.Equals(chosen.Kind, CompletionGlyph.SnippetKind, StringComparison.Ordinal)
+            && Spark.Scripting.ScriptSnippets.Find(chosen.DisplayText) is { } snippet)
+        {
+            int typed = Math.Max(0, caret - _filterStart);
+            int from = _filterStart;
+
+            Close();
+
+            return Expand(snippet, from, typed);
+        }
 
         _suppressTextChanged = true;
 

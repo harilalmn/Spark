@@ -1080,7 +1080,20 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         IReadOnlyList<ScriptCompletionItem> items =
             await completion.CompleteAsync(code, caret, ports, cancellationToken).ConfigureAwait(true);
 
-        return [.. items.Select(item => new CodeCompletionCandidate(item.DisplayText, item.Kind))];
+        // THE SNIPPETS GO IN WITH THEM, AFTER THEM, AND THAT ORDER IS THE ARGUMENT.
+        //
+        // Two ways in, and both are wanted (RCS's reasoning, kept): a prefix and Tab expands with
+        // no list at all, which is the reflex a Visual Studio user brings; and the list offers
+        // them, so somebody who does not know `tryf` exists can still find it. Appended rather
+        // than interleaved because Roslyn has already ranked its own answers and a snippet is
+        // never the likelier thing when a real symbol matches what was typed — `for` the snippet
+        // must not outrank `foreach` the keyword.
+        return
+        [
+            .. items.Select(item => new CodeCompletionCandidate(item.DisplayText, item.Kind)),
+            .. Spark.Scripting.ScriptSnippets.Snippets.Select(
+                snippet => new CodeCompletionCandidate(snippet.Prefix, CompletionGlyph.SnippetKind)),
+        ];
     }
 
     /// <summary>

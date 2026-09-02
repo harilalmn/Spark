@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 18:20 +0530
+**Last updated:** 2026-09-02 19:15 +0530
 **Protocol version:** 2
 
 ---
@@ -5985,3 +5985,42 @@ because it launders itself green. Owed, and not fixed here.
 
 **What it cost.** Thirty minutes for both slices. 817 tests, 0 failing — a number to distrust until
 that test is made hermetic.
+
+---
+
+### 2026-09-02 — RCS's editor, slice 3: the snippets, and the nineteen that could not come
+
+**What.** RCS's `SnippetCatalog` ported: `ScriptSnippets` in `Spark.Scripting` for the catalogue,
+the prefix matching and the parser; `CodeBlockEditor.Snippets.cs` for the expansion. A prefix and
+**Tab** expands, the list offers them, and the fields are tab stops with repeats bound to the
+first — `for` writes `i` three times and renaming one renames all three.
+
+**The set is smaller than RCS's, and the reason is structural.** `ScriptNodeFactory.Wrap` puts a
+code block inside `public static object Run(object[] __in, CancellationToken __token)`. **It is a
+method body, not a script.** C# will not take a type, a namespace, a property, an indexer, a
+constructor or a member method there, so nineteen of the thirty-six — `class` through `sim`,
+plus `unsafe` (`AllowUnsafeBlocks` is off) and `cw` (RCS's console; Spark's output is the return
+value) — would insert code that cannot compile. Sixteen came across unchanged; `ret` and `lf`
+replace what had to go.
+
+**The claim is checked rather than argued.** `ScriptSnippetTests` parses every shipped snippet
+inside the real wrapper and requires no syntax errors, and parses seven of the nineteen and
+requires that there are some. Syntax rather than semantics on purpose: the fields expand to
+placeholders like `condition` that nothing declares, so binding was never the question.
+
+**What surprised me.** *Three tests failed on the first run and the code was right.* The templates
+are written with tabs; what landed was four spaces, because slice 1 had just turned on
+`ConvertTabsToSpaces`. The expectation was wrong, not the expansion — so the assertion now
+compares against the preview with tabs replaced by the editor's own `IndentationString`, which
+also means a project that switched back to real tabs would get them without anybody editing a
+body. **A test that hard-codes what a setting decides is a test that will fail the day the setting
+changes, for no reason anybody wants to hear about.**
+
+*And a thing found on the way that is not fixed.* `ScriptCompletion` parses with
+`SourceCodeKind.Script` while the compiler wraps in a method body, so the list can offer what the
+compiler will reject — `E6-T13`'s stated worst case, "a completion list which disagrees with the
+compiler". Nobody has hit it because the offer has to be something only legal at script top level.
+Recorded in `N107` and owed.
+
+**What it cost.** Fifty minutes. 835 tests, none failing — with `AnEntryWithNoTypesFallsBackTo
+Object` still order-dependent underneath that number.

@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-02 (N95-N106 added)
+**Last updated:** 2026-09-02 (N95-N107 added)
 
 ---
 
@@ -3034,3 +3034,40 @@ candidate is likeliest is a language question**, and language questions stay beh
 **A list that is right but ordered wrong is a list that is wrong.** The candidate was always
 there. Completion is a one-keystroke feature — the value is entirely in what Tab does, so ranking
 is not a refinement on top of membership, it *is* the feature.
+
+---
+
+## N107 — A Spark code block is a method body, so most of a Visual Studio snippet set cannot go in it
+
+Porting RCS's 36 C# snippets across, 19 of them insert code that cannot compile here, and the
+reason is one line in `ScriptNodeFactory.Wrap`:
+
+```csharp
+source.AppendLine("public static class Block {");
+source.AppendLine("public static object Run(object[] __in, CancellationToken __token) {");
+```
+
+**The user's text is a method body, not a script.** C# does not allow a type, a namespace, a
+property, an indexer, a constructor, a finalizer or a member method to be declared inside one — so
+`class`, `struct`, `interface`, `enum`, `namespace`, `ctor`, `~`, `attribute`, `exception`,
+`prop`, `propfull`, `propg`, `propi`, `indexer`, `equals`, `iterator`, `svm` and `sim` are all
+out. `unsafe` goes with them because `AllowUnsafeBlocks` is off, and `cw` reached RCS's console,
+which Spark has no equivalent of: a block's output is what it returns.
+
+**A snippet that inserts an error is worse than no snippet**, because the user has to work out
+that the tool was wrong rather than their code. Sixteen survive — the control-flow and resource
+ones — plus `ret` and `lf`, which are what `cw` and `iterator` would have been if they had been
+written for a method body.
+
+**The claim is checked, not asserted.** `ScriptSnippetTests` parses every shipped snippet inside
+the wrapper and requires no syntax errors, and parses seven of the nineteen and requires that
+there *are* some. Syntax rather than semantics, deliberately: the fields expand to placeholders
+like `condition` that nothing declares, so binding was never the question — whether the construct
+is *allowed* in a method body is, and the parser answers exactly that. If C# ever gains local
+classes, the negative test fails and the catalogue can grow.
+
+**A related thing this turned up and did not fix.** `ScriptCompletion` parses with
+`SourceCodeKind.Script` while the compiler wraps in a method body. Completion will therefore offer
+things the compiler rejects, which is the exact failure `E6-T13` says is worse than no list —
+"a completion list which disagrees with the compiler". Nobody has hit it because the offer has to
+be something only legal at script top level. Worth closing before somebody does.
