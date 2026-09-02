@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-02 (N110 and N111 added)
+**Last updated:** 2026-09-03 (N112 added)
 
 ---
 
@@ -3205,3 +3205,42 @@ coordinates to screen coordinates has a precondition that the view exists, and a
 transform satisfies the *types* while satisfying nothing else. A transform that has never been
 told the size of its viewport should be treated as unusable rather than as a transform that
 happens to be 1:1.
+
+---
+
+## N112 — One keystroke, two text changes, and three verifications that all missed it
+
+Typing `(` in a code block produced no signature help, in the properties pane as much as on a
+node, from the day bracket completion landed. The mechanism is worth stating exactly, because
+every part of it is behaving correctly on its own.
+
+**The user types one character and the document changes twice.** The `(` goes in, and
+`TextChanged` fires with the caret between the parentheses — the trigger rule sees `(` and starts a
+signature request, which is right. Then `OnTextEntered` inserts the matching `)`, and *that* raises
+`TextChanged` again while the caret is still after the closer it just added. The trigger rule sees
+`)`, which is also a signature trigger, and starts a second request. The second request cancels the
+first — deliberately, because a stale popup is worse than none — and asks from a caret that is
+outside the argument list. Roslyn answers nothing, correctly. The popup closes.
+
+The caret is then put back between the pair, which is not a text change, so nothing asks again.
+The fix is to ask again there.
+
+**Now the part that matters more.** This feature had three verifications and none of them could
+have caught it:
+
+- **`E6-T22`'s acceptance was a pose.** `PoseCodeEditor` calls `RequestSignatureAsync` directly, so
+  it proves the popup can be filled and placed. It says nothing about what opens it.
+- **The screenshot switch is the same pose**, so it inherits the same blind spot and looks like
+  independent evidence.
+- **Every editor test types through a helper that writes into the document.** A document write
+  raises `TextChanged` and never `TextEntered`, so no test in the file had ever run bracket
+  completion — the feature and the defect were both invisible to the suite.
+
+**And a fourth thing, which nearly made the regression test useless too.** The obvious signature
+stub answers with a signature whatever it is asked. A test built on it passes whether or not the
+request was made from the right caret, because the wrong request gets an answer too. The stub had
+to be taught the one thing the real service does that matters here — **no help for a caret outside
+the parentheses** — before the test could fail.
+
+**The rule:** a feature verified only by asking for it directly has been verified as a mechanism
+and not as a behaviour, and a test double that never says no cannot test the code that handles no.

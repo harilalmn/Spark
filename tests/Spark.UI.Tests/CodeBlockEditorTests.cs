@@ -5,9 +5,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 using AvaloniaEdit;
+using AvaloniaEdit.Editing;
 using Spark.UI.Views.Controls;
 
 namespace Spark.UI.Tests;
@@ -668,4 +670,77 @@ public sealed class CodeBlockEditorTests
 
         return (window, editor);
     }
+
+    /// <summary>
+    /// <b>`E8-T42`: typing an opening bracket opens the signature, with bracket completion on.</b>
+    /// Reported from the running application, and it was never about the node: the request the
+    /// <c>(</c> starts was cancelled by the one the auto-inserted <c>)</c> starts, which asks from a
+    /// caret outside the call, gets nothing, and closes the popup.
+    /// </summary>
+    /// <remarks>
+    /// <b>The text is entered rather than inserted, and that is the whole point of the test.</b>
+    /// <see cref="Type"/> writes straight into the document, which raises <c>TextChanged</c> and
+    /// never <c>TextEntered</c> — so no test in this file had ever run bracket completion, and the
+    /// defect lived behind that gap for as long as the feature existed.
+    /// </remarks>
+    [Fact]
+    public void TypingAnOpeningBracketOpensTheSignature() => OnUiThread(() =>
+    {
+        (Window window, CodeBlockEditor editor) = Open(Stub(Members), SignaturesInsideParentheses());
+
+        editor.Text = "var p = new Point3d";
+        Layout(window);
+
+        editor.FocusEditor();
+        Inner(editor).CaretOffset = editor.Text.Length;
+
+        Enter(editor, "(");
+        Pump();
+        Pump();
+
+        Assert.Equal("var p = new Point3d()", editor.Text);
+        Assert.True(editor.IsSignatureOpen, "typing '(' left no signature open");
+    });
+
+    /// <summary>
+    /// Enters text the way a keystroke does, so <c>TextEntered</c> - and therefore bracket
+    /// completion - actually runs.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Type"/> writes into the document directly, which is right for the tests that only
+    /// care what the text became. It is not enough here: bracket completion hangs off text
+    /// <i>input</i>, and a document write raises nothing.
+    /// </remarks>
+    private static void Enter(CodeBlockEditor editor, string text)
+    {
+        TextArea area = Inner(editor).TextArea;
+
+        area.RaiseEvent(new TextInputEventArgs
+        {
+            RoutedEvent = InputElement.TextInputEvent,
+            Text = text,
+            Source = area,
+        });
+    }
+
+    /// <summary>
+    /// A signature source that answers the way the real one does: nothing when the caret is not
+    /// between the parentheses.
+    /// </summary>
+    /// <remarks>
+    /// <b>A stub that answers whatever it is asked cannot fail this test</b>, and the one above it
+    /// used to be exactly that — which is the second half of why the defect survived. Roslyn returns
+    /// no help for a caret sitting after the closing parenthesis; this says so too.
+    /// </remarks>
+    private static Func<string, int, CancellationToken, Task<CodeSignatureInfo?>> SignaturesInsideParentheses() =>
+        (text, caret, _) =>
+        {
+            int open = text.IndexOf('(', StringComparison.Ordinal);
+            int close = text.IndexOf(')', StringComparison.Ordinal);
+
+            bool inside = open >= 0 && caret > open && (close < 0 || caret <= close);
+
+            return Task.FromResult<CodeSignatureInfo?>(
+                inside ? new CodeSignatureInfo(Overloads, 0, 0) : null);
+        };
 }

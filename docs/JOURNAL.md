@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-03 03:15 +0530
+**Last updated:** 2026-09-03 04:10 +0530
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.1.0` shipped on 2026-09-02** — the first tag in the repository's history, and the first time the release pipeline has run end to end rather than been argued about. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | Nothing. The client's two asks are in — one output port per line (`E6-T26`) and the editor on the node (`E8-T39`) — and both defects they reported against the second are fixed (`E8-T40`, `E8-T41`). |
+| **Working on** | Nothing. The client's two asks are in, and the three defects they reported against them are fixed (`E8-T40`, `E8-T41`, `E8-T42`). |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E8-T41` — the in-node editor's completion list is no longer trapped inside the node.** Reported from the running application: `Circle circle = new ` on a one-line block gave a two-pixel sliver of a list. The list is a `Canvas` overlay inside the control rather than a `Popup` (`E6-T12`, a deliberate trade for testability), so it is clipped to the control and `Fit` clamped it into the control's own bounds — right in a pane the editor fills, useless on a node two lines tall. `CodeBlockEditor.PopupArea` now names the area the popups may occupy, in the control's coordinates; setting it turns the control's own clipping off, and `Fit` clamps into it and **checks the bottom edge as well**, so a list with no room below the caret goes above it. **Before that: `E8-T40`**, the block grows to hold its editor rather than the editor covering the port tabs. **Before that: `E8-T39`**, the editor inside the node. **Before that: `E6-T26`**, one output port per declared variable. |
+| **Last completed step** | **`E8-T42` — bracket completion was cancelling signature help.** Reported from the running application, and **not a code-block-on-a-node defect at all**: typing `(` has produced no signature help anywhere since `E6-T11`. One keystroke makes two text changes — the `(`, then the `)` that bracket completion inserts — and the second fires while the caret is momentarily *after* the closer, so its request cancels the first and asks from outside the call, gets nothing, and closes the popup. One re-request after the caret is put back fixes it. **Three verifications missed it and none was lazy** ([N112](NOTES.md)): `E6-T22`'s acceptance and the screenshot switch are both *poses* that call `RequestSignatureAsync` directly, and every editor test writes into the document rather than entering text, so `TextEntered` — and bracket completion with it — had never run under test. **Before that: `E8-T41`** (the completion list escaping the node), **`E8-T40`** (the block growing to hold its editor), **`E8-T39`** (the editor on the node) and **`E6-T26`** (one output port per declared variable). |
 | **Working tree** | Clean at the commit carrying this journal. **`Release #3` is still unread**: `gh` is not authenticated on this machine and no token is set, so whether `v0.1.2` published is unknown rather than reported. |
-| **Next action** | **Read `Release #3`** and finish cutting `v0.1.2`, which is the item this session interrupted and has not resumed. Then: **the screenshot harness**, which is no longer a background annoyance — `E8-T41` could not be photographed at all. The pose now *awaits* Roslyn rather than racing it and the capture still comes back with the popup absent, so the race is not the whole of it and `--code-block --screenshot` proves less than it claims. Then **`N108`** (the fingerprint that moves with load order), **`N107`** (completion parses as a script while the compiler wraps a method body), and **the installer install/over-install/uninstall cycle**, which is this journal's own stated bar and has never been run. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2464**: Geometry.Tests 763, UI.Tests 886, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets, and **`--code-block "..." --code-block-in-node --screenshot PREFIX` for the editor on the node** (`E8-T39`). **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
+| **Next action** | **Read `Release #3`** and finish cutting `v0.1.2` — the item this session interrupted and has still not resumed. Then **the screenshot harness**, which two steps in a row have now caught out: `E8-T41` could not be photographed at all, and `E8-T42` was a defect the screenshot path was structurally incapable of showing, because it *is* the pose. The queue item's wording — that it races Roslyn — is too narrow. Then **`N108`**, **`N107`**, and **the installer install/over-install/uninstall cycle**, which is this journal's own stated bar and has never been run. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2465**: Geometry.Tests 763, UI.Tests 887, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets, and **`--code-block "..." --code-block-in-node --screenshot PREFIX` for the editor on the node** (`E8-T39`). **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -6360,3 +6360,41 @@ the twenty-six popup tests `E6-T12`, `E6-T22` and `E6-T23` left behind.
 
 **Cost.** About an hour, most of it establishing that the screenshot could not be made to work
 rather than fixing the defect, which was small.
+
+### 2026-09-03 — `E8-T42`: bracket completion was cancelling signature help
+
+**What.** Typing `(` produced no signature help — anywhere, since `E6-T11`. `OnTextEntered` now
+asks for the signature again after putting the caret back between the pair it just closed.
+
+**The mechanism, because every part of it is correct on its own.** One keystroke changes the
+document twice. The `(` goes in and `TextChanged` fires with the caret inside the call, which
+starts a request — right. Bracket completion then inserts the `)`, raising `TextChanged` again
+while the caret is still *after* that closer; the trigger rule sees `)`, which is also a trigger,
+and starts a second request. The second cancels the first — deliberately, because a popup showing
+the answer to a question the caret has moved past is worse than none — and asks from a position
+outside the argument list, which Roslyn correctly answers with nothing, which closes the popup.
+Putting the caret back is not a text change, so nothing asks again. Four correct behaviours, one
+broken feature.
+
+**The part worth more than the fix** ([N112](NOTES.md)). This feature had three verifications and
+not one of them could have caught this. `E6-T22`'s acceptance was `PoseCodeEditor`, which calls
+`RequestSignatureAsync` directly. The `--code-block` screenshot switch is the same pose, so it
+looks like independent evidence and is not. And every test in `CodeBlockEditorTests` types through
+a helper that *writes into the document*, which raises `TextChanged` and never `TextEntered` — so
+bracket completion had never run in a test at all, and neither the feature nor the defect was
+visible to the suite. A feature verified only by asking for it directly has been verified as a
+mechanism and not as a behaviour.
+
+**And the regression test nearly failed to be one.** The signature stub these tests use answers
+with a signature whatever it is asked, so a test built on it passes whether or not the request came
+from the right caret — the wrong request gets an answer too. It had to be taught the one thing the
+real service does that matters here, which is to answer **nothing** for a caret outside the
+parentheses. That was established first with four throwaway probes against the real
+`ScriptCompletion`, including the one that matters: caret after the closer, no help.
+
+**Verified.** The new test raises real text input, and it was **watched red** with the re-request
+removed. Clean `--no-incremental` build `-warnaserror`, `dotnet format --verify-no-changes` clean,
+all nine executables green at **2465**.
+
+**Cost.** About an hour, nearly all of it diagnosis. The fix is five lines and the note is longer
+than the change.

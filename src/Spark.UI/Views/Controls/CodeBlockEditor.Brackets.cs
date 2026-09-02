@@ -85,6 +85,23 @@ public sealed partial class CodeBlockEditor
 
         document.Insert(caret, closer.ToString());
         _editor.CaretOffset = caret;
+
+        // `E8-T42`: ask again, now that the caret is back between the pair.
+        //
+        // The insert above raises `TextChanged` while the caret is still *after* the closer it
+        // just added, so the handler there starts a signature request from a position outside the
+        // call - and that request cancels the one the opening bracket started and answers null,
+        // which closes the popup. Typing `(` therefore produced no signature help at all from the
+        // day bracket completion landed, in the properties pane as much as on a node.
+        //
+        // **Nothing caught it because nothing typed a bracket.** `E6-T22` was verified through
+        // `PoseCodeEditor`, which calls `RequestSignatureAsync` directly, and the editor tests
+        // insert into the document rather than raising text input - so neither path ran
+        // `OnTextEntered` at all.
+        if (text[0] == '(')
+        {
+            _ = RequestSignatureAsync();
+        }
     }
 
     private void Wrap(char opener, char closer)
