@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-02 (N95-N109 added)
+**Last updated:** 2026-09-02 (N110 added)
 
 ---
 
@@ -3140,3 +3140,36 @@ four at the large, so the same gesture feels different depending on where you st
 the step — and two were dropped: the panel and the static. **What travels between two applications
 is the decision somebody made, not the code they wrote to carry it out**, and a port that cannot
 tell the difference reimplements the second framework's built-ins in the first framework's idiom.
+
+---
+
+## N110 — Two bugs that could not be seen until a code block had eight output ports
+
+`E6-T26` made every variable a code block declares into an output port, which is Dynamo's rule.
+It is a small change — a naming rule and a generated `return` — and it exposed two defects that
+had been in the tree since `E6-T8`, neither of which anything could have hit before.
+
+**A `ValueTuple` holds seven fields and nests the rest.** `Unpack` split the returned tuple by
+reflecting for `Item1`, `Item2`, … `ItemN`. That is right up to seven and wrong immediately after:
+an eleven-element tuple is `ValueTuple<T1…T7, ValueTuple<T8…T11>>`, there is no `Item8` on the
+outer one, and `GetField` returns null rather than throwing — so ports 8 to 11 came out null and
+**nothing said anything**. The named-tuple syntax `E6-T8` gave users made eight ports possible in
+principle; writing eight of them by hand is unusual enough that nobody had. Reading eleven lines
+as eleven ports makes it the *first* thing a user does. The fix walks `Rest`.
+
+**A method that returns `object` and contains no `return` is `CS0161`.** Every code block was
+wrapped in `public static object Run(...)` and nothing appended a return — so a script that did
+not write one did not compile. That had been true since the first code block; what hid it is
+where Roslyn puts the diagnostic. `CS0161` is reported against the **method declaration**, which
+is in the generated frame, and `ScriptSourceMap.UserLine` deliberately maps a frame position to 0
+and drops it rather than blaming the user's first line — the reasoning is written out on
+`UserLine` itself, and it is right. So `Diagnose` reported nothing, the editor drew no squiggle, and the
+failure surfaced only as *The script did not compile* when something asked the node for a value.
+`E6-T18` had recorded the opposite in `TASKS.md` — "an empty script is legal: zero inputs, one
+`result` output" — and the ports really were right; it was the assembly that was never emitted.
+
+**What the two have in common is worth more than either.** Both are silent, and both are silent
+for a defensible local reason: `GetField` returning null is how reflection says *not present*, and
+dropping an unmappable diagnostic is the rule that stops a user being sent to a correct line. A
+defensible silence is still a silence, and it survives exactly as long as nothing exercises the
+path. The thing that found both was not a review — it was one screenshot with eleven ports in it.

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 21:35 +0530
+**Last updated:** 2026-09-02 23:10 +0530
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.1.0` shipped on 2026-09-02** — the first tag in the repository's history, and the first time the release pipeline has run end to end rather than been argued about. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Cutting `v0.1.2`.** The client said the one word `release.yml` was built around. `main` is at `1ec1886`, CI `#128` is green on it, the nightly passed for the first time, and the tree is clean. **`v0.1.1` stays where it is** — a new tag, never a moved one ([N102](NOTES.md)). |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **The RCS editor port, all six slices.** Settings and `CSharpIndentationStrategy`; IntelliSense badges; 16 snippets with tab stops; bracket completion; diagnostics squiggles and hover quick-info; find, replace and zoom. 859 tests. **Before that: `new` offered an alphabet instead of the type being constructed.** `ScriptCompletion` read `DisplayText`, `Kind` and `SortText` off every Roslyn candidate and never read `Rules.MatchPriority`, which is where a target-typed `new` is marked `Preselect` — so `Point2d p2d = new ` opened on `AccessViolationException`. Sorted before the projection, which keeps `C5`'s boundary intact. **Before that: the properties panel was showing the value the node had when it was selected.** `RefreshInspector` ran after every evaluation and only pruned deleted nodes — it never re-read a literal, so a slider drag, an undo or the node's own field all left the panel stale, input box and *Output* line alike. It now re-reads the selected node from the engine, without committing and without overwriting a box that has the caret. **Before that: a node's output type label sat on top of its own port tab.** `DrawPortLabels` took the row's right-hand edge from the output name's *text* width when the tab holding that name reaches 8 px further left — and drew that name a second time on top of the one the tab already draws. `SideWidth` had the same blind spot, measuring words where `PortTab` measures words plus padding. `CanvasNode.PortLabelRow` now gives both edges from `PortTab`. **An inherited red is in the tree and is not from this work**: `ScriptOutputTypeTests.AnEntryWithNoTypesFallsBackToObject`, 1 of 797, failing identically with these changes stashed. **Before that: the OpenCascade cache banked nothing, because `actions/cache` is `post-if: success()`.** Every run since `#110` failed downstream of the install, so every run discarded the hour it had just spent and the next started cold — which is how the account reached its spending limit and why `#118` never started a job. Restore and save are now separate steps, and the save runs the moment the install succeeds. `C:\vcpkg\packages` left the cached path with it: staging nothing reads, roughly doubling an entry with a 10 GB cap. **Before that: the shim was being built by the wrong compiler.** `v0.1.1` and every CI run since `#110` — eight of them — died linking MSVC-built OpenCascade with MinGW's `ld`, because `build-native.ps1` checked for `cmake` and `ninja` and merely *asked* the caller to be in a developer prompt. It now enters the MSVC environment itself via `vswhere` and `vcvars64.bat`, and pins `cl` on the CMake command line. **Reproduced and verified on this machine**, which has no `cl` on `PATH` and is therefore the runner's condition exactly. |
-| **Working tree** | Clean, and `main` is pushed at `1ec1886`. The tag goes on the commit that carries this journal. |
-| **Next action** | **Watch `Release #3` publish `v0.1.2`.** It is the first release run that can get past *Build the native provider* — `#120` proved the MSVC fix on a hosted runner, and the OpenCascade cache now banks the hour as soon as it is paid for rather than discarding it on a downstream failure. **If it goes red, read the step before guessing**: the last three times, the annotation on the summary page said exactly what was wrong and I checked my own YAML first anyway. Then: **`N108`** (the fingerprint that moves with load order, which quietly defeats the on-disk compile cache), **`N107`** (completion parses as a script while the compiler wraps a method body), **the screenshot harness** (it races Roslyn and photographs an empty popup, so a command this file lists as a verification step proves nothing), and **the installer install/over-install/uninstall cycle**, which is this journal's own stated bar and has never been run. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2343**: Geometry.Tests 763, UI.Tests 765, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets. **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
+| **Working on** | **`E8-T39` — the code editor inside the code block node**, which is the other half of what the client asked for and the reason `E6-T26` was worth doing first: eleven ports are only useful if the eleven lines are on the canvas beside them. **ADR-0013 already describes the mechanism** — the canvas is immediate-mode and hosts nothing, and the one node being interacted with gets a real Avalonia control positioned over the drawing. That overlay exists and already carries two tenants, the creation box and `E8-T5`'s value editor. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`E6-T26` — a code block with no `return` gives one output port per variable it declares.** Dynamo's Code Block rule, asked for with a screenshot of eleven lines and eleven ports, and it is a naming rule plus a generated `return` rather than new plumbing: `E6-T8`'s tuple, `E6-T25`'s per-port types and `Unpack` were already there. **Gated on the absence of a top-level `return`**, so `E6-T8`'s rejection of *infer from locals* is kept rather than reversed. **It exposed two silent defects, neither reachable before it** ([N110](NOTES.md)): `Unpack` read `Item1..ItemN` off the returned tuple and a `ValueTuple` nests everything past the seventh in `Rest`, so ports 8 to 11 came back null and said nothing; and **the starter script had never compiled** — a generated method returning `object` with no `return` is `CS0161`, reported against the frame and therefore dropped by the source map, so every fresh code block was a compile failure that only surfaced when something asked it for a value. `E6-T18` had recorded the opposite. **Before that: the RCS editor port, all six slices.** Settings and `CSharpIndentationStrategy`; IntelliSense badges; 16 snippets with tab stops; bracket completion; diagnostics squiggles and hover quick-info; find, replace and zoom. |
+| **Working tree** | Clean at the commit carrying this journal. **`Release #3` was not watched**: `gh` is not authenticated on this machine and no token is set, so whether `v0.1.2` published is unread rather than reported — it is the first thing a session with credentials should look at. |
+| **Next action** | **`E8-T39`, first slice: give a code block node a body.** `CanvasNode.Height` is derived from the port rows alone and `Width` from the title, so there is nowhere for source to go — add a script body to the code-block case, sized from the text and stored, drawn as plain text, and hidden below ADR-0013's 40% level-of-detail threshold. `CanvasNote` is the precedent for a stored width and height, and ADR-0016's byte-identical re-save means the fields are only written when they differ from the default. **Then the overlay**: a `CodeBlockEditor` in `CanvasPane`'s overlay `Canvas`, positioned from an event shaped like `CanvasFieldEditEventArgs`. **The commit rule differs from the field editor's** — Enter has to insert a newline, so committing is on click-away, and Escape cannot mean *abandon* the way it does at `CanvasPane.axaml.cs:255`. Recompile on commit, never per keystroke; `Diagnose` is already safe to run while typing because it touches neither cache. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2450**: Geometry.Tests 763, UI.Tests 872, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets. **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -6161,3 +6161,58 @@ only ever one editor. **What travels between two applications is the decision so
 the code they wrote to carry it out** — `N109`.
 
 **What it cost.** Twenty-five minutes for this slice; about three hours for all six.
+
+### 2026-09-02 — `E6-T26`: eleven lines, eleven output ports
+
+**What.** A code block with no `return` of its own now has one output port per variable it
+declares, named after the variable, in source order — Dynamo's Code Block rule, asked for by the
+client with a screenshot of exactly that. `OutputsOf` reads the top-level declarations when there
+is no top-level return; `Wrap` appends the matching `return (p1: p1, …);` after the user's last
+line; `Unpack` was fixed; `GeneratorVersion` went to 3 because the generated frame changed.
+
+**Why it is small.** Everything a multi-output block needs was already built and had been since
+`E6-T8` and `E6-T25` — the ports, the per-port types read off the semantic model, the split of a
+returned tuple into one value per port. What was missing was only the *naming rule*, so the change
+is a rule and a generated return rather than new machinery. The generated return also means each
+port keeps its real type for free: the trailer is a tuple, and `ScriptOutputTypes.Infer` already
+reads a tuple element's type per port.
+
+**The gate is the interesting decision.** `E6-T8` explicitly rejected inferring ports from locals,
+on the grounds that adding a debug line would silently change the port set. That objection is
+right, and it is answered rather than overruled: the per-variable reading applies **only when the
+script writes no return of its own**. A block that returns a tuple still says exactly what its
+ports are, so the author who wants three of eleven locals on the canvas writes them and gets
+three. Declarations rather than assignments, because `x = 5;` on an undeclared name is the
+`CS0103` that makes `x` an *input* — so inputs and outputs cannot collide. Top level only, or
+wrapping two lines in an `if` would silently delete two ports.
+
+**Two defects fell out, and both were silent** ([N110](NOTES.md)). `Unpack` read `Item1..ItemN`
+straight off the returned tuple; a `ValueTuple` holds seven fields and nests the rest in `Rest`,
+so ports 8 to 11 were filled with null and nothing complained — `GetField` returning null is how
+reflection says *not present*. Nothing had ever made eight ports. And **the starter script had
+never compiled**: `public static object Run(...)` with no `return` in it is `CS0161`, which Roslyn
+reports against the method declaration — inside the generated frame, where `ScriptSourceMap`
+deliberately maps to 0 and drops it rather than blaming the user's first line. So `Diagnose` said
+nothing, no squiggle was drawn, and a fresh code block failed only when something asked it for a
+value. `TASKS.md` had claimed the opposite since `E6-T18`. A block that declares nothing now gets
+`return null;`, and the claim is true.
+
+**Verified.** Twelve new tests in `ScriptDeclaredOutputTests` and one in
+`CodeBlockReachabilityTests` — the canvas-level one, which goes through `ReplaceDefinition` and so
+also proves a block growing ports keeps its identity and its wires. **Nine of the twelve go red
+with the change reverted**, watched rather than assumed, `EveryDeclaredVariableBecomesAnOutputPort`
+and `ElevenDeclarationsGiveElevenPortsThatEachCarryTheirValue` among them. The whole solution
+builds `-warnaserror`, `dotnet format --verify-no-changes` is clean, and all nine test executables
+are green: **2450**, none failing — the inherited red the last entry recorded is gone.
+**And it was photographed rather than asserted**: `--code-block` with eleven declarations and
+three free identifiers puts a node on the canvas with `x`, `y`, `z` down the left and `p1`, `p2`,
+`p3`, `centre`, `d12`, `d13`, `d23`, `perimeter`, `half`, `toCentre`, `total` down the right,
+which is the screenshot the client sent, in Spark.
+
+**What surprised me.** That the comment-only starter had never compiled, in a row (`E6-T18`) whose
+whole subject was what a fresh code block does. It was invisible because two correct decisions
+lined up: a diagnostic on the generated frame is dropped rather than misplaced, and a code block
+that nothing consumes is never asked for a value.
+
+**Cost.** One session. The rule and the generated return were about thirty lines; the doc comments,
+the help topic and this entry were most of it.

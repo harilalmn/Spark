@@ -43,6 +43,13 @@ namespace Spark.Scripting;
 /// <c>result</c>. Named tuples are idiomatic C#, statically analysable, and require no invented
 /// syntax — which was the whole reason for choosing them over inferring from *locals never read*.
 /// </para>
+/// <para>
+/// <b>A script with no <c>return</c> at all gets one output port per variable it declares</b>
+/// (`E6-T26`), which is how Dynamo's Code Block reads eleven lines as eleven ports, and the
+/// generated frame supplies the <c>return</c> that produces them. The two rules do not compete:
+/// writing a return is how a script says exactly what its ports are, and the per-variable rule is
+/// what it gets when it says nothing.
+/// </para>
 /// </remarks>
 public sealed class ScriptNodeFactory : IScriptNodeFactory
 {
@@ -564,7 +571,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         && (char.IsLower(identifier[0]) || identifier[0] == '_')
         && identifier.All(c => char.IsLetterOrDigit(c) || c == '_');
 
-    /// <summary>The output ports a script's return statement implies.</summary>
+    /// <summary>The output ports a script implies (`E6-T8`, `E6-T26`).</summary>
     /// <remarks>
     /// <para>
     /// <b>Read from the syntax, not from the compiled method, and that is forced.</b> Tuple element
@@ -578,12 +585,28 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// <c>return (area: a, perimeter: p);</c> says what the ports are called in the only place that
     /// information ever exists.
     /// </para>
+    /// <para>
+    /// <b>A script with no <c>return</c> of its own is read the way Dynamo reads a Code Block
+    /// instead</b> (`E6-T26`): every variable it declares at the top level becomes an output port,
+    /// named after the variable and in source order, and <see cref="Trailer(string)"/> generates the
+    /// <c>return</c> that produces them. The rule is <i>gated on the absence of a return</i>, which
+    /// is what keeps `E6-T8`'s reasoning intact — a tuple return still says exactly what the ports
+    /// are, so a user who wants three of eleven locals on the canvas writes it and gets three.
+    /// </para>
     /// </remarks>
-    private static ScriptPort[] OutputsOf(string script)
+    private static ScriptPort[] OutputsOf(string script) =>
+        OutputsOf(CSharpSyntaxTree.ParseText(script).GetCompilationUnitRoot());
+
+    /// <summary>The output ports, from a script that has already been parsed.</summary>
+    private static ScriptPort[] OutputsOf(CompilationUnitSyntax root)
     {
-        foreach (SyntaxNode node in CSharpSyntaxTree.ParseText(script).GetRoot().DescendantNodes())
+        bool returns = false;
+
+        foreach (ReturnStatementSyntax statement in TopLevelReturns(root))
         {
-            if (node is not ReturnStatementSyntax { Expression: TupleExpressionSyntax tuple })
+            returns = true;
+
+            if (statement.Expression is not TupleExpressionSyntax tuple)
             {
                 continue;
             }
@@ -610,10 +633,136 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             }
         }
 
-        return [new ScriptPort("result", typeof(object))];
+        if (returns)
+        {
+            return [new ScriptPort("result", typeof(object))];
+        }
+
+        ScriptPort[] declared =
+        [
+            .. DeclaredNames(root).Select(name => new ScriptPort(name, typeof(object))),
+        ];
+
+        // A block that declares nothing - the comment a fresh block starts as, or a script that
+        // calls something only for its effect - still has one port, and `Trailer` gives it
+        // `return null;` so that it compiles. `E6-T18` has claimed that since the starter became a
+        // comment and it was not true: a method returning `object` with no `return` in it is
+        // `CS0161`, so every fresh code block was quietly failing to compile until `E6-T26`.
+        return declared.Length > 0 ? declared : [new ScriptPort("result", typeof(object))];
+    }
+
+    /// <summary>
+    /// The <c>return</c> the generated frame appends, or null when the script has its own
+    /// (`E6-T26`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It goes after the user's last line rather than being woven in</b>, so the source map stays
+    /// the subtraction `E6-T1` made it: every line the frame adds is either before the user's first
+    /// or after their last, and neither shifts a line of theirs.
+    /// </para>
+    /// <para>
+    /// <b>A single declared variable is returned bare rather than as a one-element tuple</b>, which
+    /// is not a nicety — C# has no one-element tuple syntax, and <c>(p1: p1)</c> is a parenthesised
+    /// expression whose element name goes nowhere.
+    /// </para>
+    /// </remarks>
+    private static string? Trailer(string script) =>
+        Trailer(CSharpSyntaxTree.ParseText(script).GetCompilationUnitRoot());
+
+    /// <summary>The generated <c>return</c>, from a script that has already been parsed.</summary>
+    private static string? Trailer(CompilationUnitSyntax root)
+    {
+        foreach (ReturnStatementSyntax _ in TopLevelReturns(root))
+        {
+            return null;
+        }
+
+        string[] names = [.. DeclaredNames(root)];
+
+        return names.Length switch
+        {
+            0 => "return null;",
+            1 => "return " + names[0] + ";",
+            _ => "return (" + string.Join(", ", names.Select(name => name + ": " + name)) + ");",
+        };
+    }
+
+    /// <summary>
+    /// The variables a script declares at its top level, in source order (`E6-T26`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Top level only.</b> A local inside a <c>for</c>, an <c>if</c> or a lambda is out of scope
+    /// by the time the generated <c>return</c> runs, so it could not be a port even if it should be
+    /// one; and a rule that reached into blocks would make wrapping two lines in an <c>if</c>
+    /// silently delete two ports.
+    /// </para>
+    /// <para>
+    /// <b>Declarations, never bare assignments.</b> Assigning to a name that was never declared is
+    /// <c>CS0103</c>, which is precisely how <see cref="InferInputs"/> finds an input port — so
+    /// <c>x = 5;</c> would otherwise be an input and an output at once. A declaration cannot collide
+    /// with an input by construction, because the compiler resolves it.
+    /// </para>
+    /// <para>
+    /// <b>Initialised, and not <c>const</c>.</b> An uninitialised local read by the generated return
+    /// is <c>CS0165</c> reported on a line the user cannot see, and a constant is a value the script
+    /// was given rather than one it computed.
+    /// </para>
+    /// </remarks>
+    private static IEnumerable<string> DeclaredNames(CompilationUnitSyntax root)
+    {
+        foreach (MemberDeclarationSyntax member in root.Members)
+        {
+            if (member is not GlobalStatementSyntax { Statement: LocalDeclarationStatementSyntax declaration }
+                || declaration.IsConst)
+            {
+                continue;
+            }
+
+            foreach (VariableDeclaratorSyntax variable in declaration.Declaration.Variables)
+            {
+                if (variable.Initializer is not null && variable.Identifier.ValueText is { Length: > 0 } name)
+                {
+                    yield return name;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// The script's own <c>return</c> statements — not the ones inside a function it declares.
+    /// </summary>
+    /// <remarks>
+    /// A <c>return</c> in a local function or a lambda returns from <i>that</i>, so it says nothing
+    /// about the block's outputs. <c>ScriptOutputTypes.Returns</c> draws the same line on the
+    /// wrapped tree, and the two have to agree or a block would be given ports whose types were read
+    /// from somewhere else.
+    /// </remarks>
+    private static IEnumerable<ReturnStatementSyntax> TopLevelReturns(CompilationUnitSyntax root)
+    {
+        foreach (SyntaxNode node in root.DescendantNodes(
+            descendIntoChildren: child => child is not (LocalFunctionStatementSyntax
+                or ParenthesizedLambdaExpressionSyntax
+                or SimpleLambdaExpressionSyntax
+                or AnonymousMethodExpressionSyntax)))
+        {
+            if (node is ReturnStatementSyntax statement)
+            {
+                yield return statement;
+            }
+        }
     }
 
     /// <summary>Splits a returned tuple into one value per output port.</summary>
+    /// <remarks>
+    /// <b>A <c>ValueTuple</c> holds seven fields and puts everything past them in <c>Rest</c></b>,
+    /// which is another tuple of the same shape — so an eleven-port block is
+    /// <c>ValueTuple&lt;…7…, ValueTuple&lt;…4…&gt;&gt;</c> and <c>Item8</c> does not exist. Reading
+    /// <c>Item1..ItemN</c> straight off the outer tuple therefore filled every port past the seventh
+    /// with null, and said nothing. Nothing produced eight ports until `E6-T26` made one out of
+    /// every declared variable, and eleven of them is the first thing the client asked for.
+    /// </remarks>
     private static object?[] Unpack(object? returned, int outputs)
     {
         if (outputs <= 1)
@@ -621,16 +770,20 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             return [returned];
         }
 
-        // A ValueTuple's fields are Item1..Item7, and Rest beyond that. Seven ports is already an
-        // unusual node; beyond it the remaining values land in the last port rather than being
-        // silently dropped.
         object?[] values = new object?[outputs];
-        Type type = returned?.GetType() ?? typeof(object);
+        object? current = returned;
 
-        for (int i = 0; i < outputs; i++)
+        for (int filled = 0; filled < outputs && current is not null;)
         {
-            values[i] = type.GetField("Item" + (i + 1).ToString(CultureInfo.InvariantCulture))
-                ?.GetValue(returned);
+            Type type = current.GetType();
+
+            for (int i = 0; i < 7 && filled < outputs; i++, filled++)
+            {
+                values[filled] = type.GetField("Item" + (i + 1).ToString(CultureInfo.InvariantCulture))
+                    ?.GetValue(current);
+            }
+
+            current = filled < outputs ? type.GetField("Rest")?.GetValue(current) : null;
         }
 
         return values;
@@ -704,6 +857,14 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         ScriptSourceMap map = new(Lines(source));
 
         source.AppendLine(script);
+
+        // `E6-T26`: the block's own `return`, when it has none of its own. After the user's last
+        // line, so it shifts nothing above it and the map stays a subtraction.
+        if (Trailer(script) is { } trailer)
+        {
+            source.AppendLine(trailer);
+        }
+
         source.AppendLine("}");
         source.AppendLine("}");
 

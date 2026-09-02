@@ -75,7 +75,7 @@ public sealed class ScriptAssemblyCache
     /// frame is loaded by a new build and behaves like the code that build no longer writes, which
     /// is the hardest class of bug this cache could produce.
     /// </remarks>
-    public const int GeneratorVersion = 2;
+    public const int GeneratorVersion = 3;
 
     private readonly string? _directory;
 

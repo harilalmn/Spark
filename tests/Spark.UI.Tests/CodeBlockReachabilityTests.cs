@@ -104,4 +104,30 @@ public sealed class CodeBlockReachabilityTests
 
         Assert.Equal("radius", Assert.Single(model.Graph.Nodes[rebuilt].Inputs).Name);
     }
+
+    /// <summary>
+    /// <b>`E6-T26` on the canvas, not just in the factory.</b> Two lines, two output ports on
+    /// the node the user is looking at — which is the path through <c>ReplaceDefinition</c>, so it
+    /// is also the proof that a block growing ports keeps its identity and its place.
+    /// </summary>
+    [Fact]
+    public void EachLineOfACommittedScriptBecomesAnOutputPortOnTheNode()
+    {
+        MainWindowViewModel model = new();
+
+        int slot = model.PlaceCodeBlock(0, 0);
+        Spark.UI.Graph.CanvasNode node = model.Graph.Nodes[slot];
+
+        model.ShowCodeBlock(node);
+        model.ScriptText = "var doubled = radius * 2;\nvar tripled = radius * 3;\n";
+
+        Assert.True(model.CommitScriptText(), "the edit was not committed");
+
+        int rebuilt = model.Graph.SlotOf(node.Id);
+
+        Assert.Equal("radius", Assert.Single(model.Graph.Nodes[rebuilt].Inputs).Name);
+        Assert.Equal(
+            ["doubled", "tripled"],
+            model.Graph.Nodes[rebuilt].Outputs.Select(port => port.Name));
+    }
 }

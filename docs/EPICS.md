@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-01 (E6 gains signature help, the completion triggers, the Selection menu and typed code-block outputs; E9 gains the docking crash)
+**Last updated:** 2026-09-02 (E6: per-variable output ports, E6-T26)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -571,8 +571,13 @@ diverge most; rework is budgeted there specifically.
       Wire a point into a port called `centre`, type `centre.`, and the list is `Point3d`'s
       members. An unwired port lists nothing, because the compiler will declare it `dynamic`
       and a list that disagrees with the compiler is worse than no list.
-- [ ] Output ports come from a named tuple return; a plain final expression gives one
-      `result` port (**E6-T8**).
+- [x] Output ports come from a named tuple return; a plain final expression gives one
+      `result` port (**E6-T8**) — done 2026-08-31. **And a script with no `return` at all gives
+      one port per variable it declares** (**E6-T26**, done 2026-09-02), which is Dynamo's Code
+      Block rule and was asked for by name. The two do not compete: a `return` is how a block
+      says exactly what its ports are, and the per-variable reading is what it gets when it says
+      nothing — so `E6-T8`'s objection, that inferring from locals lets a debug line change the
+      port set, applies only where the author has declined to say.
 - [x] Compilation is cached on `Hash(normalizedText, inputPortTypes, referenceCatalogVersion,
       langVersion)`, **resident** so a slider feeding a code block feels live, and
       **persistent on disk** so reopening a file does not pay Roslyn cold start. Identical

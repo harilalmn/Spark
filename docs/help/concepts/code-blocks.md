@@ -11,7 +11,8 @@ since: "0.1"
 **Last updated:** 2026-09-02
 
 > **Scope.** A code block is a node whose body is C# you type. Its input ports come from the
-> identifiers your code uses but does not declare; its output ports come from what it returns.
+> identifiers your code uses but does not declare; its output ports are the variables it
+> declares, or whatever it returns when it returns something.
 > This topic covers writing one, and it covers **what stops one that never finishes** — because
 > a code block is the only node in a Spark graph whose author can hang the application by
 > accident.
@@ -55,7 +56,33 @@ That block still has exactly one input, `radius`.
 
 ## Several outputs
 
-Return a named tuple and each element becomes a port:
+**A block that returns nothing has one output port per variable it declares**, named after the
+variable, in the order the lines appear:
+
+```csharp
+var area = Math.PI * radius * radius;
+var circumference = 2 * Math.PI * radius;
+```
+
+Two output ports, `area` and `circumference`. This is how Dynamo's code block behaves, and it is
+the quickest way to get a value out of every line: write the lines, wire the ports.
+
+Only variables declared at the **top level** of the block count. One declared inside a `for`, an
+`if` or a lambda does not, because it no longer exists when the block finishes:
+
+```csharp
+var total = 0.0;
+
+for (var i = 0; i < count; i++)
+{
+    var step = i * 2.0;
+    total += step;
+}
+```
+
+One port, `total`.
+
+**Write a `return` and you decide the ports instead.** A named tuple gives one port per element:
 
 ```csharp
 var area = Math.PI * radius * radius;
@@ -64,8 +91,13 @@ var circumference = 2 * Math.PI * radius;
 return (area: area, circumference: circumference);
 ```
 
-The node now has two output ports, `area` and `circumference`. Any other return shape gives one
-port called `result`.
+Two ports again — but now they are the two you named, so a block with eleven working variables can
+put three of them on the canvas. Any other return shape gives one port called `result`.
+
+**The two rules do not compete.** Returning is how a block says exactly what its ports are, and the
+per-variable reading is what it gets when it says nothing. A scratch variable added to a block that
+returns nothing does add a port — visible, named, and connected to nothing; the same variable added
+to a block that returns a tuple changes nothing at all.
 
 Names matter more than positions here. **Editing a script re-makes the wires by port name**, so
 adding an identifier in the middle of your code does not silently rewire the graph — a port
@@ -231,6 +263,10 @@ return (points: points, made: points.Count);
 
 Two inputs, `radius` and `count`; two outputs, `points` and `made`. Wire a number into each,
 and wire `points` into a watch node to see them.
+
+Delete that last line and the same block has **three** outputs instead — `circle`, `points` and
+`step`, one for each line that made something. Which of the two you want is the whole of the
+choice: the `return` is there to say *these* and not the rest.
 
 ## Trust
 
