@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 02:55 +0530
+**Last updated:** 2026-09-02 13:40 +0530
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.1.0` shipped on 2026-09-02** — the first tag in the repository's history, and the first time the release pipeline has run end to end rather than been argued about. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing. The tree is clean, the gates are green, and `v0.1.1` is tagged and pushed.** |
+| **Working on** | **Nothing. The tree is committed and the gates are green.** `v0.1.1` never shipped — the tag exists and its run failed. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The nightly measures tessellation instead of failing to.** The first hosted nightly run went red on both legs with *tessellation: budgeted, and no `--tessellation` log was given* — the budget was committed and the measurement was never wired in, which this journal had been carrying as owed since `E12-T19`. The Windows leg now builds the shim the way CI does and runs the `tessellate` verb; the Linux leg says `--no-tessellation`. **`v0.1.1` is building meanwhile.** |
-| **Working tree** | Clean at the moment this was written; `main` and `v0.1.0` are pushed. |
-| **Next action** | **Watch `v0.1.1` publish** — it was 23 minutes in at the last look, and the OpenCascade build is the long pole on a cold cache. Then **watch the next nightly**, which is the first one that can pass. **Then the Help pass**: `E10-T3`, `E11-T2`'s `<example>` half, E10-T9/T10/T12/T14, plus two topics for the code editor. **And a dirty flag is owed**: New and Open both discard unsaved work without asking. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2343**: Geometry.Tests 763, UI.Tests 765, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets. **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1` from a Visual Studio developer prompt. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
+| **Last completed step** | **The shim was being built by the wrong compiler.** `v0.1.1` and every CI run since `#110` — eight of them — died linking MSVC-built OpenCascade with MinGW's `ld`, because `build-native.ps1` checked for `cmake` and `ninja` and merely *asked* the caller to be in a developer prompt. It now enters the MSVC environment itself via `vswhere` and `vcvars64.bat`, and pins `cl` on the CMake command line. **Reproduced and verified on this machine**, which has no `cl` on `PATH` and is therefore the runner's condition exactly. |
+| **Working tree** | Clean at the moment this was written. `v0.1.2` is **not** tagged yet. |
+| **Next action** | **Push, and watch CI `#118` reach *Build the native provider*.** It is the first run that can get past it, and the `Check the C++ toolchain` step now reports the compiler in seconds near the top of the log. **Then tag `v0.1.2`** — a new tag, never a moved one, for the reason [N102](NOTES.md) gives. **Then the cache**, which is owed and is not cosmetic: `Install OpenCascade` has run on all eight runs, so three hours per run is a dependency rebuild that should have been a restore. Read the `Post Cache OpenCascade` step for a size warning; `C:\vcpkg\packages` is a staging tree in the cached path and GitHub's cap is 10 GB. **Then the Help pass**: `E10-T3`, `E11-T2`'s `<example>` half, E10-T9/T10/T12/T14, plus two topics for the code editor. **And a dirty flag is owed**: New and Open both discard unsaved work without asking. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2343**: Geometry.Tests 763, UI.Tests 765, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets. **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -107,13 +107,15 @@ Discovered the hard way, and each one costs an hour if rediscovered.
   installing `opencascade[core,freetype]` — 57 DLLs in `installed/x64-windows/bin`. **It is
   already done; do not run it again** unless the baseline moves. It saturates every core for the
   duration and the GPU read-back in `--screenshot` fails while it runs.
-- **Building the shim needs a developer prompt, and `VCPKG_ROOT` will lie to you inside one.**
+- **Building the shim no longer needs a developer prompt, and `VCPKG_ROOT` still lies inside one.**
   `vcvars64.bat` sets `VCPKG_ROOT` to the vcpkg **bundled with Visual Studio**, which is a real
   vcpkg with nothing installed in it. `scripts/build-native.ps1` therefore prefers the root that
-  *has* OpenCascade over the first one that exists. Build it with:
+  *has* OpenCascade over the first one that exists — and that matters more now, because the script
+  runs `vcvars64.bat` itself when `cl` is absent. Build it from any shell with:
   ```
-  cmd /c "\"C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat\" >nul && powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-native.ps1"
+  pwsh scripts/build-native.ps1
   ```
+  `-CheckToolchain` reports the compiler and exits without building or needing OpenCascade.
   It stages `artifacts/native/win-x64/` (gitignored, 58 DLLs, 52.0 MB) and runs the C smoke test.
   **`Spark.Geometry.Occt.Tests` skips itself when that directory is missing**, so a green managed
   run proves nothing about the provider unless the skip count is zero.
@@ -5705,3 +5707,66 @@ that existed in one workflow and were assumed in another. The three of them stay
 a shared composite action for the reason `N102` gives — they are allowed to diverge — but the next
 workflow that needs the kernel should be written by reading `ci.yml`'s job, not by remembering it.
 
+
+---
+
+### 2026-09-02 — The shim was being built by the wrong compiler, and had been all along
+
+**What.** `v0.1.1` failed after 3h 02m, and so had every CI run since `#110` — eight red runs,
+none of them read. The step was *Build the native provider* and the message was a wall of
+undefined references, one per OpenCascade symbol the shim touches:
+
+```
+undefined reference to `OSD::SetSignal(OSD_SignalMode, bool)'
+undefined reference to `Message::DefaultMessenger()'
+```
+
+`TKernel.lib` was on the link line and contains both. **The compiler was wrong, not the linking.**
+CMake had chosen `C:/mingw64/bin/c++.exe` — GNU 15.2.0, which a `windows-latest` image carries —
+and vcpkg's `x64-windows` triplet builds OpenCascade with MSVC. Different name mangling, so GNU
+`ld` looked in the right library for a symbol spelled the wrong way.
+
+**Why it was never caught.** `build-native.ps1` required `cmake` and `ninja` on `PATH` and said
+"Open a Visual Studio developer prompt" if either was missing. That is two of the three tools it
+needs, with the third assumed — and the assumption holds on every machine where a person runs it,
+because a person does open the prompt. A runner has `cmake` and `ninja`, no MSVC environment, and
+MinGW to fall into. The guard passed and the build went wrong underneath it.
+
+**The fix.** The script enters the MSVC environment itself: `vswhere` for the install,
+`vcvars64.bat` imported through `cmd /c "call ... && set"`, `cl` added to the required tools, and
+`-DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl` on the configure so a MinGW earlier on `PATH`
+cannot win even where `cl` exists. It now behaves identically from a developer prompt, a plain
+shell and a hosted runner, which is the only version of this that cannot drift apart again.
+
+**Verified here rather than on CI, which is the part worth keeping.** This machine has `cmake` and
+`ninja` on `PATH` and no `cl` — the runner's condition exactly. Deleting
+`artifacts/native/build-release` and running the script from a plain shell reproduced the fault:
+*The CXX compiler identification is unknown*. With the fix it selects MSVC 19.51, configures,
+links, stages 58 DLLs and the C smoke test passes with `0 failure(s)`. Two minutes, against three
+hours per attempt on CI.
+
+**What surprised me.** *A stale `CMakeCache.txt` hid it completely.* The first thing I did was run
+the script here, and it passed — because the build directory still recorded `cl.exe` from an
+earlier developer-prompt run, and CMake does not re-detect a compiler it has cached. The bug is
+only visible from an empty build directory, which is the one thing a runner has and a developer
+never does. It nearly cost the diagnosis.
+
+*And the ordering cost far more than the bug.* `Build the native provider` ran **after** `Install
+OpenCascade`, so a fault detectable in seconds was found three hours in, eight times, on Windows
+minutes a private repository bills at twice the rate. All three workflows now run
+`build-native.ps1 -CheckToolchain` before the dependency install — it needs no OpenCascade, which
+is what lets it go first. **Put the cheap check that can fail ahead of the expensive step that
+cannot fix it.**
+
+*A second thing is visible in that run and is not fixed here.* `Install OpenCascade` **ran**, so
+the cache missed again — as it has on all eight runs. The three hours are a full dependency
+rebuild every time, and the cache path includes `C:\vcpkg\packages`, a staging tree that roughly
+doubles what is stored against GitHub's 10 GB cap. The `Post Cache OpenCascade` step will say
+whether the save is being dropped. Left for the next step deliberately: this one is verified and
+should ship, and that one is a separate change with its own evidence to gather.
+
+**What it cost.** Fifty minutes, most of it in a diagnosis that had already been made confidently
+and wrongly — Copilot read the same log and reported a missing `target_link_libraries`, which has
+been in `native/spark_occt/CMakeLists.txt` since the shim was written. **`undefined reference`
+against a library that is on the link line is a toolchain question, not a linking one**, and the
+three tells that separate the two are in `N103`.

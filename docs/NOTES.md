@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-02 (N95-N102 added)
+**Last updated:** 2026-09-02 (N95-N103 added)
 
 ---
 
@@ -2868,3 +2868,57 @@ keeps whatever it fetched.
 diverge — CI measures the payload against `E13-T17`'s budget, the release job ships it — and a
 shared action that silently changed both is a worse failure than two files somebody has to keep in
 agreement by reading them.
+
+---
+
+## N103 — A build script that asks for `cmake` and `ninja` has not asked whether the compiler is the right one
+
+`v0.1.1` failed, and so did every CI run behind it, on a link that named every OpenCascade symbol
+the shim uses:
+
+```
+undefined reference to `OSD::SetSignal(OSD_SignalMode, bool)'
+undefined reference to `Message::DefaultMessenger()'
+```
+
+`TKernel.lib` contains both, and it was on the link line. **The compiler was wrong, not the
+linking.** CMake had selected MinGW — `C:/mingw64/bin/c++.exe`, GNU 15.2.0 — and vcpkg's
+`x64-windows` triplet builds OpenCascade with MSVC. The two mangle C++ names differently, so GNU
+`ld` searched a library that holds `OSD::SetSignal` for a symbol spelled another way and did not
+find it.
+
+**This failure impersonates a missing `target_link_libraries`,** which is what makes it worth a
+note. `find_package(OpenCASCADE CONFIG REQUIRED)` and the `target_link_libraries` call had both
+been in `native/spark_occt/CMakeLists.txt` since the shim was written. Three tells separate the two
+diagnoses, and all three are in the log:
+
+| | Wrong compiler | Genuinely unlinked |
+|---|---|---|
+| Message | `undefined reference` (GNU) | `unresolved external symbol` (MSVC) |
+| Flags | `-shared -Wl,--out-implib` | `/DLL /IMPLIB` |
+| Reporter | `ld.exe` | `link.exe` |
+
+**Why `scripts/build-native.ps1` did not catch it.** It required `cmake` and `ninja` on `PATH` and
+said *"Open a Visual Studio developer prompt"* when either was missing. A developer does open one,
+so `cl` is there and CMake picks MSVC. A `windows-latest` runner ships `cmake`, `ninja` **and**
+MinGW at `C:\mingw64`, and no MSVC environment — so the check passed on two of the three tools it
+actually needed and the third was assumed. **A guard that is satisfied by the wrong thing is not a
+guard.**
+
+The fix is that the script enters the MSVC environment itself — `vswhere` to find the install,
+`vcvars64.bat` imported through `cmd /c "call ... && set"`, which is the only supported way to read
+what a vcvars script did — rather than requiring the caller to have done it. It then behaves the
+same from a developer prompt, a plain shell and a runner, and `-DCMAKE_CXX_COMPILER=cl` makes a
+MinGW earlier on `PATH` unable to win even when `cl` is present.
+
+**And a stale `CMakeCache.txt` will hide all of this from you.** Re-running the script on a
+developer machine kept passing, because the build directory already recorded `cl.exe` from an
+earlier developer-prompt run and CMake does not re-detect a compiler it has cached. The fault only
+reproduces after `Remove-Item -Recurse artifacts/native/build-release` — which is what a runner
+does every time by starting empty.
+
+**The cost was in the ordering, not the bug.** `Build the native provider` ran *after* `Install
+OpenCascade`, so a compiler fault that takes seconds to detect was discovered three hours in, on
+every one of the eight runs. All three workflows now run `build-native.ps1 -CheckToolchain` before
+the dependency install. **Put the cheap check that can fail before the expensive step that cannot
+fix it.**

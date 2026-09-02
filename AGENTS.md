@@ -125,12 +125,16 @@ XML doc = what this member does.*
    ```
 
    **The native shim is built separately and is not part of `dotnet build`.** If you have touched
-   anything under `native/spark_occt/`, build and smoke-test it from a Visual Studio developer
-   prompt before you commit:
+   anything under `native/spark_occt/`, build and smoke-test it before you commit — from any
+   shell, because the script enters the MSVC environment itself:
 
    ```
    pwsh scripts/build-native.ps1
    ```
+
+   **Delete `artifacts/native/build-release` first if you are testing the build itself**, rather
+   than the shim's sources. CMake caches which compiler it chose, so a stale build directory keeps
+   using the one it found last time and will not reproduce a toolchain fault — [N103](docs/NOTES.md).
 
    It configures with CMake + Ninja against the vcpkg OpenCascade install, stages
    `artifacts/native/win-x64/`, and runs `spark_occt_smoke.exe`, which is a **C** program on

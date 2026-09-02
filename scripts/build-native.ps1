@@ -26,13 +26,19 @@
 
 .PARAMETER SkipTest
     Build but do not run the smoke test.
+
+.PARAMETER CheckToolchain
+    Find and report the C++ toolchain, then exit without building. Does not need OpenCascade, and
+    that is the point: CI runs it BEFORE the hour-long dependency install, so a machine with no
+    MSVC on it says so at second zero rather than after the install has been paid for.
 #>
 [CmdletBinding()]
 param(
     [ValidateSet('Release', 'Debug')]
     [string] $Configuration = 'Release',
     [string] $VcpkgRoot,
-    [switch] $SkipTest
+    [switch] $SkipTest,
+    [switch] $CheckToolchain
 )
 
 $ErrorActionPreference = 'Stop'
@@ -41,6 +47,86 @@ $repo = Split-Path -Parent $PSScriptRoot
 $source = Join-Path $repo 'native\spark_occt'
 $build = Join-Path $repo "artifacts\native\build-$($Configuration.ToLowerInvariant())"
 $stage = Join-Path $repo 'artifacts\native\win-x64'
+
+# ------------------------------------------------------------------------------------------------
+# Find the C++ toolchain, and make sure it is the RIGHT one
+#
+# THIS SECTION EXISTS BECAUSE v0.1.1 FAILED, AND SEVEN CI RUNS FAILED BEHIND IT.
+#
+# vcpkg's x64-windows triplet is MSVC. Every .lib under installed/x64-windows carries MSVC's C++
+# name mangling, so only MSVC can link them. The check that used to live further down asked for
+# `cmake` and `ninja`, and then told you to "open a Visual Studio developer prompt" if either was
+# missing - it checked two of the three tools it needed and trusted the caller for the third.
+#
+# A hosted GitHub runner has cmake and ninja on PATH, no developer environment, and MinGW sitting
+# at C:\mingw64. So the check passed, CMake chose GNU g++, and the link died on every OpenCascade
+# symbol at once:
+#
+#     undefined reference to `OSD::SetSignal(OSD_SignalMode, bool)'
+#
+# against a TKernel.lib that contains it, under a name GNU ld does not spell the same way. The
+# libraries were on the link line throughout, which is exactly why this reads like a missing
+# target_link_libraries and is nothing of the kind.
+#
+# So the script enters the MSVC environment itself rather than requiring that the caller did. It
+# then behaves identically from a developer prompt, a plain PowerShell window and a hosted runner,
+# which is the only version of this that cannot drift apart again.
+#
+# It runs BEFORE the vcpkg block on purpose: -CheckToolchain has to work on a machine that has no
+# OpenCascade yet, because that is the machine CI is when it runs the preflight.
+# ------------------------------------------------------------------------------------------------
+
+function Import-MsvcEnvironment {
+    $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+    if (-not (Test-Path $vswhere)) { return $false }
+
+    $install = & $vswhere -latest -products * `
+        -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+        -property installationPath
+
+    if (-not $install) { return $false }
+
+    $vcvars = Join-Path $install 'VC\Auxiliary\Build\vcvars64.bat'
+    if (-not (Test-Path $vcvars)) { return $false }
+
+    # `cmd /c "call <bat> && set"` is the only supported way to find out what a vcvars script did:
+    # it edits its own process environment, and there is nothing to import from PowerShell. Split
+    # on the FIRST `=` only - PATH is full of them.
+    & cmd.exe /c "call `"$vcvars`" >nul 2>&1 && set" | ForEach-Object {
+        $name, $value = $_ -split '=', 2
+        if ($name -and $null -ne $value) { Set-Item -Path "Env:$name" -Value $value }
+    }
+
+    return [bool](Get-Command cl -ErrorAction SilentlyContinue)
+}
+
+if (-not (Get-Command cl -ErrorAction SilentlyContinue)) {
+    Write-Host '==> No cl.exe on PATH. Entering the MSVC environment.'
+
+    if (-not (Import-MsvcEnvironment)) {
+        throw @'
+No MSVC C++ toolchain was found, and vcpkg's x64-windows libraries can only be linked by MSVC.
+
+Install "Desktop development with C++" from the Visual Studio Installer, or run this from a
+Visual Studio developer prompt. MinGW will not do: it configures and compiles happily, then
+fails to resolve every OpenCascade symbol, because the two compilers mangle C++ names
+differently.
+'@
+    }
+}
+
+foreach ($tool in 'cmake', 'ninja', 'cl') {
+    if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
+        throw "$tool is not on PATH. Open a Visual Studio developer prompt, or install $tool."
+    }
+}
+
+Write-Host "==> C++ toolchain: $((Get-Command cl).Source)"
+
+if ($CheckToolchain) {
+    Write-Host 'Toolchain only. Nothing was built.'
+    return
+}
 
 # ------------------------------------------------------------------------------------------------
 # Find vcpkg, and be specific about what is missing rather than failing inside CMake.
@@ -85,12 +171,6 @@ Then run this script again. Roots searched: $($candidates -join ', ').
 
 $toolchain = Join-Path $VcpkgRoot 'scripts\buildsystems\vcpkg.cmake'
 
-foreach ($tool in 'cmake', 'ninja') {
-    if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
-        throw "$tool is not on PATH. Open a Visual Studio developer prompt, or install $tool."
-    }
-}
-
 # ------------------------------------------------------------------------------------------------
 # Configure and build
 #
@@ -106,6 +186,11 @@ $arguments = @(
     '-S', $source,
     '-B', $build,
     '-G', 'Ninja',
+    # Named rather than left to CMake's search order. Entering the MSVC environment above is what
+    # makes cl available; saying so here is what stops a MinGW earlier on PATH from being chosen
+    # anyway. Belt and braces, and the braces cost three hours the day they were missing.
+    '-DCMAKE_C_COMPILER=cl',
+    '-DCMAKE_CXX_COMPILER=cl',
     "-DCMAKE_BUILD_TYPE=$Configuration",
     "-DCMAKE_TOOLCHAIN_FILE=$toolchain",
     '-DVCPKG_MANIFEST_MODE=OFF',

@@ -69,6 +69,17 @@ jobs:
         with:
           global-json-file: global.json
 
+      # FIRST, BECAUSE `v0.1.1` FOUND OUT LAST.
+      #
+      # The runner has cmake and ninja on PATH, no MSVC environment, and MinGW at C:\mingw64, so
+      # the shim was built by GNU g++ against MSVC-built .lib files and failed to link. That was
+      # discovered three hours in — after the gates, after an hour of OpenCascade — when it could
+      # have been discovered in seconds. A release that cannot build its own kernel should say so
+      # before it does anything else.
+      - name: Check the C++ toolchain
+        shell: pwsh
+        run: ./scripts/build-native.ps1 -CheckToolchain
+
       # The gates, in full. A release is not the moment to trust that CI ran on this commit:
       # a tag can be moved, and a workflow_dispatch can name any tag at all.
       - name: Build

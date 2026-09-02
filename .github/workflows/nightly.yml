@@ -105,6 +105,14 @@ jobs:
       # win-x64 and `build-native.ps1` is a vcpkg script. A budgeted-but-unmeasured number is a
       # failure unless a run states the omission, which is what stopped this from being wired with
       # a shrug in the first place — and what turned the first nightly red on both legs.
+      # Before the install rather than after it, for the reason `ci.yml` gives at the same step:
+      # the runner's default C++ compiler is MinGW, it cannot link MSVC-built OpenCascade, and
+      # finding that out costs an hour of dependency build if nobody asks first.
+      - name: Check the C++ toolchain
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/build-native.ps1 -CheckToolchain
+
       - name: Compute the OpenCascade key
         if: runner.os == 'Windows'
         id: occtkey

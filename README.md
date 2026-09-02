@@ -219,13 +219,18 @@ except exact solid modelling works from that build — points, curves, surfaces,
 viewport and every file format.
 
 **Exact solid modelling needs one more thing, once.** `native/spark_occt` is a C ABI over
-OpenCascade, and building it needs a C++ toolchain, CMake, Ninja and vcpkg. From a Visual Studio
-developer prompt:
+OpenCascade, and building it needs MSVC, CMake, Ninja and vcpkg. Any shell will do — the script
+finds Visual Studio with `vswhere` and enters the MSVC environment itself:
 
 ```powershell
 vcpkg install opencascade:x64-windows   # once, and it takes about an hour
 pwsh scripts/build-native.ps1
 ```
+
+**MSVC is not a preference here.** vcpkg's `x64-windows` triplet builds OpenCascade with MSVC, and
+only MSVC can link what it produces; a MinGW on `PATH` compiles the shim and then fails to resolve
+every OpenCascade symbol. `pwsh scripts/build-native.ps1 -CheckToolchain` reports which compiler
+would be used, without building anything.
 
 The script refuses to start the vcpkg install itself, on purpose: a build that silently begins an
 hour-long dependency compile is a build that looks hung. It stages `artifacts/native/win-x64/`,

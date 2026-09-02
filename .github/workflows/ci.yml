@@ -100,6 +100,17 @@ jobs:
         with:
           global-json-file: global.json
 
+      # THE COMPILER IS CHECKED BEFORE THE DEPENDENCY INSTALL, AND `v0.1.1` IS WHY.
+      #
+      # A hosted runner has cmake and ninja on PATH, no MSVC environment, and MinGW at C:\mingw64.
+      # The shim was therefore built by GNU g++ against MSVC-built .lib files, and died on every
+      # OpenCascade symbol at the link — three hours after the run started, because the wrong
+      # compiler was only discovered on the far side of building OpenCascade. This step costs
+      # seconds and fails on exactly the same line the build would have.
+      - name: Check the C++ toolchain
+        shell: pwsh
+        run: ./scripts/build-native.ps1 -CheckToolchain
+
       # The three parts of the key, computed before anything is built so the cache can be
       # consulted first. `vcpkg.json` carries the OpenCascade version and the vcpkg baseline;
       # the shim hash is over its own sources, because an edit that is not committed still
