@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 20:10 +0530
+**Last updated:** 2026-09-02 21:05 +0530
 **Protocol version:** 2
 
 ---
@@ -6099,3 +6099,33 @@ extent that the thing being ported was written as a policy rather than as a pile
 handlers**, and RCS's was.
 
 **What it cost.** Twenty minutes. 847 tests, none failing.
+
+---
+
+### 2026-09-02 — RCS's editor, slice 5: squiggles that agree with the compiler, and a hover
+
+**What.** RCS's `DiagnosticsRenderer` and the hover half of its `CodeEditor`, ported.
+`ScriptNodeFactory.Diagnose` compiles a block for its messages alone and places them on the
+user's own lines; `CodeBlockEditor.Diagnostics.cs` draws the sawtooth and shows a tooltip.
+`ScriptCompletion.DescribeAsync` answers what a symbol is, for a hover that is not over an error.
+
+**The one decision worth defending: `Diagnose` goes through the same `Wrap` as the real compile.**
+A second Roslyn workspace would have been an hour's less work and would eventually underline
+something that compiles — and `E6-T13` is explicit that a language service which disagrees with
+the compiler is worse than not having one. So it reuses the wrapper, the guard weaving and the
+references, and differs from `Create` in one respect: it does not emit. It touches neither cache,
+because analysis runs on every idle moment and a compile cache full of half-written scripts would
+evict the entries worth keeping.
+
+**What surprised me.** *The most common diagnostic in any other C# editor cannot happen here.*
+The first version of the test asserted `CS0103` — *the name does not exist* — on a script using an
+undefined identifier. It found nothing, and the reason is `E6-T5`: **an identifier that resolves to
+nothing is how Spark infers an input port.** `nonexistent` is not an error, it is a port. The test
+now uses a missing member on a `double` instead, and says why in its own remarks, because the next
+person to write a diagnostics test will reach for the same example I did.
+
+*And the tooltip needed three questions, not one.* `GetSymbolInfo` alone leaves hovering a `var` or
+a literal doing nothing, which reads as the feature being broken rather than the token being dull;
+it falls back to `GetDeclaredSymbol` and then to `GetTypeInfo`.
+
+**What it cost.** Fifty minutes. 853 tests, none failing.

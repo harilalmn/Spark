@@ -151,6 +151,12 @@ public sealed partial class CodeBlockEditor : UserControl
         _editor.TextArea.TextEntering += OnTextEntering;
         _editor.TextArea.TextEntered += OnTextEntered;
 
+        // The squiggles go on before the carets, so a caret drawn over an underlined word is still
+        // the thing you can see.
+        _editor.TextArea.TextView.BackgroundRenderers.Add(new SquiggleRenderer(this));
+
+        _editor.AddHandler(PointerMovedEvent, OnPointerMovedForHover, RoutingStrategies.Bubble);
+
         _editor.TextArea.TextView.BackgroundRenderers.Add(
             new ExtraCaretRenderer(this, AvaloniaEdit.Rendering.KnownLayer.Selection));
         _editor.TextArea.TextView.BackgroundRenderers.Add(
@@ -333,6 +339,10 @@ public sealed partial class CodeBlockEditor : UserControl
         {
             return;
         }
+
+        // Diagnostics run behind the typing, not in front of it: the idle delay restarts here on
+        // every keystroke, so a burst of typing costs one compile at the end rather than one each.
+        StartAnalysisTimer();
 
         int caret = _editor.CaretOffset;
         string text = document.Text;

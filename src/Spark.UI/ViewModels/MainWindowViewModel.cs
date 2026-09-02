@@ -1097,6 +1097,88 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
+    /// Compiles the selected block for its diagnostics, so the editor can underline them.
+    /// </summary>
+    /// <param name="code">The source as the editor holds it.</param>
+    /// <param name="cancellationToken">Cancels a request a later keystroke has superseded.</param>
+    /// <returns>The messages, on the user's own lines. Empty when there is no block.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Through the factory rather than through a second Roslyn workspace</b>, and that is the
+    /// whole point: <c>ScriptNodeFactory.Diagnose</c> wraps the script exactly as the compile does,
+    /// so an underline and the DIAGNOSTICS panel cannot contradict each other. `E6-T13` is explicit
+    /// that a language service disagreeing with the compiler is worse than not having one.
+    /// </para>
+    /// <para>
+    /// It runs on a worker, because compiling is not instant and this is called from a keystroke.
+    /// </para>
+    /// </remarks>
+    public async Task<IReadOnlyList<CodeDiagnostic>> DiagnoseScriptAsync(
+        string code, CancellationToken cancellationToken)
+    {
+        // The concrete factory, because `Diagnose` returns Spark.Scripting's own type and
+        // `IScriptNodeFactory` lives in Spark.Api, which does not reference it.
+        if (SelectedCodeBlock is not { } node || _session.Scripts is not ScriptNodeFactory scripts)
+        {
+            return [];
+        }
+
+        Dictionary<string, Type> ports = new(StringComparer.Ordinal);
+
+        foreach (PortDefinition port in _graph.Engine.Node(node.Id).Definition.Inputs)
+        {
+            if (port.ValueType != typeof(object))
+            {
+                ports[port.Name] = port.ValueType;
+            }
+        }
+
+        IReadOnlyList<ScriptDiagnostic> found = await Task
+            .Run(() => scripts.Diagnose(code, ports), cancellationToken)
+            .ConfigureAwait(true);
+
+        return
+        [
+            .. found.Select(diagnostic => new CodeDiagnostic(
+                diagnostic.Line,
+                diagnostic.Column,
+                diagnostic.Length,
+                diagnostic.Id,
+                diagnostic.Message,
+                diagnostic.IsError)),
+        ];
+    }
+
+    /// <summary>
+    /// Describes the symbol under an offset, for the editor's hover tooltip.
+    /// </summary>
+    /// <param name="code">The source as the editor holds it.</param>
+    /// <param name="offset">Where the pointer is.</param>
+    /// <param name="cancellationToken">Cancels a request the pointer has moved off.</param>
+    /// <returns>What is there, or null when it is not over a symbol.</returns>
+    public async Task<CodeQuickInfo?> DescribeScriptAsync(
+        string code, int offset, CancellationToken cancellationToken)
+    {
+        if (SelectedCodeBlock is not { } node || _session.Completion() is not { } completion)
+        {
+            return null;
+        }
+
+        Dictionary<string, Type?> ports = new(StringComparer.Ordinal);
+
+        foreach (PortDefinition port in _graph.Engine.Node(node.Id).Definition.Inputs)
+        {
+            ports[port.Name] = port.ValueType == typeof(object) ? null : port.ValueType;
+        }
+
+        ScriptQuickInfo? info = await completion
+            .DescribeAsync(code, offset, ports, cancellationToken)
+            .ConfigureAwait(true);
+
+        return info is { } described ? new CodeQuickInfo(described.Signature, described.Summary) : null;
+    }
+
+    /// <summary>
     /// Asks what the call the caret is inside wants, for the selected code block (`E6-T22`).
     /// </summary>
     /// <param name="code">The source as the editor holds it.</param>

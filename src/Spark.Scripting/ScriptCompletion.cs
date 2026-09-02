@@ -216,6 +216,91 @@ public sealed class ScriptCompletion : IDisposable
     }
 
     /// <summary>
+    /// Describes the symbol under an offset, for a hover tooltip.
+    /// </summary>
+    /// <param name="code">The snippet, as the editor currently holds it.</param>
+    /// <param name="offset">Where the pointer is, in characters from the start.</param>
+    /// <param name="inputs">The block's ports, exactly as for <see cref="CompleteAsync"/>.</param>
+    /// <param name="cancellationToken">Cancels a request the pointer has already moved off.</param>
+    /// <returns>What is under the pointer, or null when it is not over a symbol.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="code"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is outside the snippet.</exception>
+    /// <remarks>
+    /// <b>Three questions in order, because a token can be any of them.</b> An expression has a
+    /// symbol it refers to; a declaration has a symbol it declares; and a literal or an implicitly
+    /// typed local has neither but does have a type. Asking only the first — which is the obvious
+    /// version — makes hovering a <c>var</c> or a number do nothing, which reads as the feature
+    /// being broken rather than as the token being uninteresting.
+    /// </remarks>
+    public async Task<ScriptQuickInfo?> DescribeAsync(
+        string code,
+        int offset,
+        IReadOnlyDictionary<string, Type?>? inputs = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(code);
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(offset, code.Length);
+
+        string prefix = Declarations(inputs);
+        Document document = Replace(prefix + code);
+
+        SyntaxNode? root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+        SemanticModel? model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+
+        if (root is null || model is null)
+        {
+            return null;
+        }
+
+        SyntaxToken token = root.FindToken(offset + prefix.Length);
+
+        if (token.Parent is not { } node)
+        {
+            return null;
+        }
+
+        ISymbol? symbol = model.GetSymbolInfo(node, cancellationToken).Symbol
+            ?? model.GetDeclaredSymbol(node, cancellationToken)
+            ?? model.GetTypeInfo(node, cancellationToken).Type;
+
+        return symbol is null
+            ? null
+            : new ScriptQuickInfo(
+                symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+                Summary(symbol));
+    }
+
+    /// <summary>The <c>&lt;summary&gt;</c> of a symbol's documentation, as one line.</summary>
+    private static string? Summary(ISymbol symbol)
+    {
+        try
+        {
+            string? xml = symbol.GetDocumentationCommentXml();
+
+            if (string.IsNullOrWhiteSpace(xml))
+            {
+                return null;
+            }
+
+            if (System.Xml.Linq.XElement.Parse(xml).Element("summary") is not { } summary)
+            {
+                return null;
+            }
+
+            return string.Join(
+                ' ',
+                summary.Value.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        }
+        catch (System.Xml.XmlException)
+        {
+            // Documentation that will not parse is documentation nobody gets to read. It is not a
+            // reason to fail a tooltip.
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Asks which overloads the call around the caret has, and which parameter is being typed.
     /// </summary>
     /// <param name="code">The snippet, as the editor currently holds it.</param>

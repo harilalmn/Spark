@@ -218,6 +218,84 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             _references.Fingerprint,
             ScriptAssemblyCache.GeneratorVersion.ToString(CultureInfo.InvariantCulture));
 
+    /// <summary>
+    /// Compiles a script for its diagnostics alone, placed on the user's own lines.
+    /// </summary>
+    /// <param name="script">The block's source, as the editor holds it.</param>
+    /// <param name="inputTypes">The input port types, exactly as <see cref="Create"/> takes them.</param>
+    /// <returns>The errors and warnings, in the user's coordinates.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="script"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>This exists so that the squiggles and the compiler cannot disagree.</b> A second Roslyn
+    /// workspace configured slightly differently would be quicker to write and would eventually
+    /// underline something that compiles, or stay silent on something that does not — `E6-T13`
+    /// says a list that disagrees with the compiler is worse than no list, and an underline that
+    /// disagrees with it is worse than no underline for the same reason. So this goes through the
+    /// same <c>Wrap</c>, the same guard weaving and the same references as
+    /// <see cref="Create"/> does, and differs from it in one respect: it does not emit.
+    /// </para>
+    /// <para>
+    /// <b>It does not touch the caches either</b>, neither reading nor writing. Diagnostics run on
+    /// every idle moment while somebody types; a compile cache filled with entries for half-written
+    /// scripts would evict the ones worth keeping.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyList<ScriptDiagnostic> Diagnose(
+        string script, IReadOnlyDictionary<string, Type>? inputTypes = null)
+    {
+        ArgumentNullException.ThrowIfNull(script);
+
+        inputTypes ??= EmptyTypes;
+
+        WrappedScript wrapped = Wrap(script, InferInputs(script), inputTypes);
+
+        SyntaxTree tree = CSharpSyntaxTree.Create(
+            (CSharpSyntaxNode)_guards.Weave(CSharpSyntaxTree.ParseText(wrapped.Source).GetRoot()));
+
+        CSharpCompilation compilation = CSharpCompilation.Create(
+            "SparkDiagnostics",
+            [tree],
+            _references.References,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+        List<ScriptDiagnostic> found = [];
+
+        foreach (Diagnostic diagnostic in compilation.GetDiagnostics())
+        {
+            if (diagnostic.Severity is not (Microsoft.CodeAnalysis.DiagnosticSeverity.Error
+                or Microsoft.CodeAnalysis.DiagnosticSeverity.Warning))
+            {
+                continue;
+            }
+
+            FileLinePositionSpan span = diagnostic.Location.GetLineSpan();
+            int line = wrapped.Map.UserLine(span.StartLinePosition.Line + 1);
+
+            // A message on the generated frame rather than on the user's text has no line to be
+            // drawn on. Dropped rather than clamped to line one, which would underline code that is
+            // correct - the same reasoning `ScriptSourceMap.UserLine` is written with.
+            if (line <= 0)
+            {
+                continue;
+            }
+
+            int length = span.EndLinePosition.Line == span.StartLinePosition.Line
+                ? System.Math.Max(1, span.EndLinePosition.Character - span.StartLinePosition.Character)
+                : 1;
+
+            found.Add(new ScriptDiagnostic(
+                diagnostic.Id,
+                diagnostic.GetMessage(CultureInfo.InvariantCulture),
+                diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error,
+                line,
+                span.StartLinePosition.Character + 1,
+                length));
+        }
+
+        return found;
+    }
+
     /// <summary>A short, stable content hash for the node's key.</summary>
     /// <remarks>
     /// <b>The input types are in it as well as the text</b> (`E6-T6`). The evaluation cache keys on
