@@ -125,7 +125,10 @@ public sealed class ScriptCompletion : IDisposable
     /// against <c>dynamic</c>, which is what the compiler will declare it as.
     /// </param>
     /// <param name="cancellationToken">Cancels a slow request — a keystroke supersedes it.</param>
-    /// <returns>The candidates, in Roslyn's own order.</returns>
+    /// <returns>
+    /// The candidates, most likely first: anything Roslyn preselects — the target type of a
+    /// <c>new</c>, for instance — ahead of the rest, and Roslyn's own order within each group.
+    /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="code"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown when <paramref name="caret"/> is outside the snippet.
@@ -187,12 +190,28 @@ public sealed class ScriptCompletion : IDisposable
             .GetCompletionsAsync(document, caret, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
+        // WHAT ROSLYN PRESELECTS COMES FIRST, AND THE LIST USED TO THROW THAT AWAY.
+        //
+        // `Point2d p2d = new ` had `AccessViolationException` at the top and `Point2d` somewhere
+        // down an alphabet the user would have to scroll or retype to reach — which makes the one
+        // keystroke the feature exists for, Tab, do the wrong thing. Roslyn already knows the
+        // answer: for a target-typed expression it marks the type it expects with
+        // `MatchPriority.Preselect`, and `ItemsList` arrives ordered by `SortText` with that
+        // priority carried alongside rather than applied.
+        //
+        // The ordering is done HERE rather than in the editor deliberately. Which candidate is
+        // likeliest is a language question, and ADR-0005 keeps language questions behind this
+        // assembly — `C5` asserts the UI never sees a Roslyn type, so it cannot be given the
+        // priority and asked to sort on it either.
         return
         [
-            .. completions.ItemsList.Select(item => new ScriptCompletionItem(
-                item.DisplayText,
-                item.Tags.Length > 0 ? item.Tags[0] : string.Empty,
-                item.SortText)),
+            .. completions.ItemsList
+                .OrderByDescending(item => item.Rules.MatchPriority)
+                .ThenBy(item => item.SortText, StringComparer.Ordinal)
+                .Select(item => new ScriptCompletionItem(
+                    item.DisplayText,
+                    item.Tags.Length > 0 ? item.Tags[0] : string.Empty,
+                    item.SortText)),
         ];
     }
 

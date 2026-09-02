@@ -55,6 +55,32 @@ public sealed class CompletionEngineTests
         }
     }
 
+
+    /// <summary>
+    /// <b>After <c>new</c>, the type being constructed is offered first.</b> `Point2d p2d = new `
+    /// listed <c>AccessViolationException</c> at the top and left <c>Point2d</c> down an alphabet,
+    /// which makes Tab — the one keystroke the list exists for — insert the wrong thing.
+    /// </summary>
+    /// <remarks>
+    /// Roslyn already knows: a target-typed expression marks the expected type with
+    /// <c>MatchPriority.Preselect</c>, and the list arrives ordered by <c>SortText</c> with that
+    /// priority carried beside it rather than applied to it. This asserts the ordering, not the
+    /// membership — <c>Point2d</c> was always in the list, just not where anybody would find it.
+    /// </remarks>
+    [Fact]
+    public async Task TheTypeBeingConstructedIsOfferedFirst()
+    {
+        using ScriptCompletion completion = new([typeof(Point2d).Assembly]);
+
+        const string Code = "Point2d p2d = new ";
+
+        IReadOnlyList<ScriptCompletionItem> items = await completion.CompleteAsync(
+            Code, Code.Length, null, TestContext.Current.CancellationToken);
+
+        Assert.NotEmpty(items);
+        Assert.Equal("Point2d", items[0].DisplayText);
+    }
+
     /// <summary>
     /// Completion answers inside text the user has not finished — an unclosed block, an unclosed
     /// call, a lambda body still being written. **How** it answers is Roslyn's business; that it

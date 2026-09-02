@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-02 (N95-N105 added)
+**Last updated:** 2026-09-02 (N95-N106 added)
 
 ---
 
@@ -3003,3 +3003,34 @@ upstream to prevent.
 half-typed number away. `IsEditing` is set by the pane on `GotFocus` and cleared on `LostFocus`,
 and `Show` returns false without touching a box that has the caret. **A view model cannot see
 focus, so the view has to say so** — there is no way to infer it from the model alone.
+
+---
+
+## N106 — Roslyn tells you which candidate it expects, in a field next to the one you are sorting by
+
+Typing `Point2d p2d = new ` offered `AccessViolationException`, `Action`, `Action`, `Activator`,
+`AggregateException`, `Angle` — an alphabet. `Point2d` was in the list, a long way down it, and Tab
+inserted an exception type.
+
+`CompletionList.ItemsList` arrives ordered by `SortText`, which is alphabetical for types. **What
+Roslyn knows about relevance is not in that order — it is in `item.Rules.MatchPriority`.** For a
+target-typed expression the expected type is marked `MatchPriority.Preselect` (100) against a
+default of 0, and a real IDE applies it. `ScriptCompletion` projected `DisplayText`, `Kind` and
+`SortText` into its own record and never read `Rules`, so the signal was fetched and discarded
+one line before it was needed.
+
+```csharp
+.OrderByDescending(item => item.Rules.MatchPriority)
+.ThenBy(item => item.SortText, StringComparer.Ordinal)
+```
+
+**Where the ordering had to live is the interesting half.** `ScriptCompletionItem` deliberately
+carries nothing but strings — [C5](../tests/Spark.UI.Tests/CodeEditorSpikeTests.cs) asserts it
+structurally, so that no Roslyn type crosses into `Spark.UI` (ADR-0005). Adding `MatchPriority`
+to the record and sorting in the editor would have broken that test, and rightly: **which
+candidate is likeliest is a language question**, and language questions stay behind
+`Spark.Scripting`. Sorting before the projection keeps the boundary and needs no new field.
+
+**A list that is right but ordered wrong is a list that is wrong.** The candidate was always
+there. Completion is a one-keystroke feature — the value is entirely in what Tab does, so ranking
+is not a refinement on top of membership, it *is* the feature.
