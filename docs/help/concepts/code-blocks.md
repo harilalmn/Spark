@@ -21,9 +21,13 @@ since: "0.1"
 
 ## Writing one
 
-**Double-click empty canvas.** A code block lands where you clicked, and its source is in the
-properties pane. That is Dynamo's gesture and it does the same thing here. **Insert → Code block**
-does the same, at the next free spot.
+**Double-click empty canvas.** A code block lands where you clicked, with its source on it.
+That is Dynamo's gesture and it does the same thing here. **Insert → Code block** does the
+same, at the next free spot.
+
+**Double-click the block to type in it.** The editor opens on the node, over the source it was
+already showing. The same source is also in the **Properties** pane, which is the better place
+for a long script and the only place the input-port type dropdowns are.
 
 **A new block starts with no input ports.** You do not add one with a button; you add one by
 using a name the code has not declared. That is the whole rule, and everything below is it
@@ -121,8 +125,14 @@ return points;
 
 ## The editor
 
-The source is edited in the **Properties** pane. It is a real code editor: C# syntax highlighting,
-line numbers, and a completion list.
+**It is the same editor in both places** — on the node and in the **Properties** pane — and it is
+a real one: C# syntax highlighting, line numbers, a completion list, signature help, squiggles
+under errors as you type, and VS Code's Selection commands on the context menu.
+
+On the canvas it opens over the block's own source and closes when you click away. **Escape
+closes it and keeps what you typed** — Ctrl+Z takes the edit back if you did not want it, which
+is not something that can bring typing back the other way. **Enter is a newline**, so it is
+clicking away, or Escape, that commits.
 
 **Type a dot, or press Ctrl+Space, and the list opens at the caret.** Keep typing to narrow it —
 `centre.Di` selects `DistanceTo` — then **Enter** or **Tab** to accept, **Escape** to dismiss, and
@@ -130,7 +140,10 @@ the arrow keys to move through it. The editor keeps the keyboard the whole time,
 interrupts typing.
 
 Editing is committed when the editor loses focus. That is when the block is recompiled, its ports
-are worked out again, and the graph re-runs.
+are worked out again, and the graph re-runs — never on every keystroke, which would recompile
+the graph while you were still half way through a word. The red squiggles do keep up with your
+typing, because underlining an error costs a compile that is thrown away rather than a rebuild
+of the node.
 
 ## What a wire teaches the block
 

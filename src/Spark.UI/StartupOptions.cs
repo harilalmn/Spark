@@ -44,6 +44,12 @@ namespace Spark.UI;
 /// named as the context menu's tags name them — <c>SelectAllOccurrences</c>, <c>AddCaretBelow</c>.
 /// Multiple carets, like a completion list, exist only after somebody has pressed something.
 /// </param>
+/// <param name="CodeBlockInNode">
+/// Whether the posed code block's editor opens <i>on the node</i> rather than in the properties
+/// pane (`E8-T39`). The in-node editor exists only while somebody is typing into a block, so
+/// like the completion list it cannot appear in a screenshot unless the application is asked to
+/// put it there.
+/// </param>
 /// <param name="UpdateBadge">
 /// A version to show in the update badge at startup (<c>--update-badge 9.9.9</c>), or null.
 /// Aimed at the screenshot path for the reason <c>--about-window</c> and <c>--help-window</c> are:
@@ -151,7 +157,8 @@ public readonly record struct StartupOptions(
     bool NoUpdateCheck = false,
     string? UpdateBadge = null,
     string? CodeBlock = null,
-    string? CodeBlockCommand = null)
+    string? CodeBlockCommand = null,
+    bool CodeBlockInNode = false)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
     public static StartupOptions Default => new(0, 0, 0, null, null, null);
@@ -235,6 +242,7 @@ public readonly record struct StartupOptions(
         string? updateBadge = null;
         string? codeBlock = null;
         string? codeBlockCommand = null;
+        bool codeBlockInNode = false;
         bool software = false;
         string? helpTopic = null;
         bool aboutWindow = false;
@@ -293,6 +301,10 @@ public readonly record struct StartupOptions(
 
                 case "--code-block-command" when i + 1 < args.Length:
                     codeBlockCommand = args[++i];
+                    break;
+
+                case "--code-block-in-node":
+                    codeBlockInNode = true;
                     break;
 
                 case "--update-badge" when i + 1 < args.Length:
@@ -368,7 +380,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode);
     }
 
     private static int ParseCount(string text, int fallback) =>

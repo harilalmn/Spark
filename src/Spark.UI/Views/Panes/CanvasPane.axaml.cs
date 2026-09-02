@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -8,7 +10,8 @@ using Spark.UI.ViewModels;
 namespace Spark.UI.Views.Panes;
 
 /// <summary>
-/// The node canvas and the overlay layer above it, which today holds the creation box.
+/// The node canvas and the overlay layer above it: the creation box, the in-place value field,
+/// and the code block's own editor.
 /// </summary>
 /// <remarks>
 /// The creation gesture lives here rather than on the window because every control it touches is
@@ -21,6 +24,20 @@ public sealed partial class CanvasPane : UserControl
     private double _createWorldX;
     private double _createWorldY;
     private int _editingSlot = -1;
+    private int _editingScript = -1;
+
+    /// <summary>
+    /// Roughly how tall one line is in the editor, so the editor opens tall enough to show the
+    /// source it replaced rather than scrolling it.
+    /// </summary>
+    /// <remarks>
+    /// <b>Not <see cref="CanvasNode.ScriptLineHeight"/>, and the difference is the point.</b>
+    /// The drawing is scaled by the zoom and the editor is not - it is drawn at a legible size
+    /// whatever the canvas is at, for the same reason the value field is floored at 22 px. So a
+    /// block zoomed out to 50% opens an editor twice the height of the box it came out of, and
+    /// that is right: the alternative is 5 px text nobody can edit.
+    /// </remarks>
+    private const double EditorLineHeight = 17;
 
     /// <summary>Creates the pane.</summary>
     public CanvasPane()
@@ -30,6 +47,33 @@ public sealed partial class CanvasPane : UserControl
         CanvasControl.CreateRequested += OnCanvasCreateRequested;
         CanvasControl.CodeBlockRequested += OnCanvasCodeBlockRequested;
         CanvasControl.FieldEditRequested += OnCanvasFieldEditRequested;
+        CanvasControl.ScriptEditRequested += OnCanvasScriptEditRequested;
+        CanvasControl.PointerWheelChanged += OnCanvasWheel;
+
+        // `E8-T39`. The same four sources the properties pane gives its editor, because it is
+        // the same editor over the same block - a list that answered differently depending on
+        // where you were typing would be worse than no list at all (`E6-T13`).
+        ScriptEditor.Committed += OnScriptCommitted;
+
+        ScriptEditor.CompletionSource = (code, caret, token) =>
+            Model is { } model
+                ? model.CompleteScriptAsync(code, caret, token)
+                : Task.FromResult<IReadOnlyList<Controls.CodeCompletionCandidate>>([]);
+
+        ScriptEditor.SignatureSource = (code, caret, token) =>
+            Model is { } model
+                ? model.SignatureScriptAsync(code, caret, token)
+                : Task.FromResult<Controls.CodeSignatureInfo?>(null);
+
+        ScriptEditor.DiagnosticsSource = (code, token) =>
+            Model is { } model
+                ? model.DiagnoseScriptAsync(code, token)
+                : Task.FromResult<IReadOnlyList<Controls.CodeDiagnostic>>([]);
+
+        ScriptEditor.QuickInfoSource = (code, offset, token) =>
+            Model is { } model
+                ? model.DescribeScriptAsync(code, offset, token)
+                : Task.FromResult<Controls.CodeQuickInfo?>(null);
     }
 
     /// <summary>
@@ -289,5 +333,140 @@ public sealed partial class CanvasPane : UserControl
 
         FieldEditor.IsVisible = false;
         CanvasControl.Focus();
+    }
+
+    /// <summary>
+    /// Puts the real code editor over the source the canvas drew (<c>E8-T39</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the hybrid overlay carrying the control it was really for.</b> `E8-T5` proved the
+    /// mechanism on a value field; a code block is the case that justifies it — a caret, a
+    /// selection, an undo stack, a completion list and a clipboard are not things to re-implement
+    /// in a draw loop, and every other block on the canvas stays a picture.
+    /// </para>
+    /// <para>
+    /// <b>Floored at a usable size, like the field is.</b> A one-line block's source rectangle is a
+    /// few hundred pixels by twenty-five, and zoomed out it is smaller still; an editor that size
+    /// is one nobody can work in. It covers more of the node than the drawing did, which is the
+    /// same trade the value field makes and for the same reason.
+    /// </para>
+    /// </remarks>
+    /// <param name="sender">The canvas.</param>
+    /// <param name="e">Which node, its source, and where that source is on screen.</param>
+    private void OnCanvasScriptEditRequested(object? sender, CanvasFieldEditEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel model || e.Slot >= CanvasControl.Graph.Nodes.Count)
+        {
+            return;
+        }
+
+        // The view model is the one that knows how to compile, complete and commit a block, and it
+        // works on the *selected* block - so the block being typed into becomes the selected one.
+        model.ShowCodeBlock(CanvasControl.Graph.Nodes[e.Slot]);
+
+        _editingScript = e.Slot;
+
+        // Big enough for the drawing it replaces, and never too small to work in. The floor is
+        // modest on purpose: the editor is opaque, so every pixel it takes beyond the source area
+        // is a port tab it covers up - and a one-line block zoomed out is the only case that needs
+        // one at all.
+        int lines = 1;
+
+        foreach (char c in e.Text)
+        {
+            if (c == '\n')
+            {
+                lines++;
+            }
+        }
+
+        ScriptEditor.Width = Math.Max(e.ScreenWidth, 240);
+        ScriptEditor.Height = Math.Max(e.ScreenHeight, Math.Max(120, (lines * EditorLineHeight) + 16));
+
+        Avalonia.Controls.Canvas.SetLeft(ScriptEditor, e.ScreenX);
+        Avalonia.Controls.Canvas.SetTop(ScriptEditor, e.ScreenY);
+
+        ScriptEditor.Text = e.Text;
+        ScriptEditor.IsVisible = true;
+        ScriptEditor.FocusEditor();
+    }
+
+    /// <summary>
+    /// Escape closes the editor, and closing it is what commits.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Escape commits here and abandons in the value field, and that asymmetry is deliberate.</b>
+    /// A field holds a number somebody can retype; an editor holds a screenful of code, and
+    /// discarding it on a keystroke that every editor in the world uses to close a popup would be
+    /// the most expensive keypress in the application. Undo takes the edit back
+    /// (<c>E8-T25</c>) — nothing else can bring the typing back.
+    /// </para>
+    /// <para>
+    /// <b>Enter is not a commit</b>, for the reason it is one in the field: in an editor it is a
+    /// newline, and there is nothing else it can be.
+    /// </para>
+    /// <para>
+    /// The editor handles Escape itself while a completion list or a signature is open, and marks
+    /// it handled — so the first Escape closes the popup and the second closes the editor, which is
+    /// what every code editor does.
+    /// </para>
+    /// </remarks>
+    /// <param name="sender">The editor.</param>
+    /// <param name="e">The key.</param>
+    private void OnScriptEditorKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && !e.Handled)
+        {
+            // Focusing the canvas raises LostFocus on the editor, which is the commit path. Doing
+            // it that way rather than committing here means there is one commit, not two that have
+            // to be kept saying the same thing.
+            e.Handled = true;
+            CanvasControl.Focus();
+        }
+    }
+
+    /// <summary>Commits the edit and takes the editor away, on the editor losing focus.</summary>
+    private void OnScriptCommitted(object? sender, EventArgs e)
+    {
+        if (_editingScript < 0 || DataContext is not MainWindowViewModel model)
+        {
+            return;
+        }
+
+        _editingScript = -1;
+
+        // The editor owns the text while it is being typed, so the view model is told what it says
+        // before being asked to commit it - the same order the properties pane uses.
+        model.ScriptText = ScriptEditor.Text;
+
+        bool changed = model.CommitScriptText();
+
+        ScriptEditor.IsVisible = false;
+
+        if (changed)
+        {
+            // Committing replaces the node's definition, so its ports - and its size - are not what
+            // the index was built from.
+            CanvasControl.RefreshStructure();
+            CanvasControl.InvalidateVisual();
+            model.RequestRun();
+        }
+    }
+
+    /// <summary>Takes the editor away when the view moves out from under it.</summary>
+    /// <remarks>
+    /// A control positioned in screen coordinates over a surface that pans and zooms is correct
+    /// until the surface moves. Pressing anywhere on the canvas already focuses it, which commits;
+    /// the wheel does not, so it is handled here. Closing on a zoom is the honest answer — the
+    /// alternative is repositioning the editor mid-gesture while somebody is typing into it.
+    /// </remarks>
+    private void OnCanvasWheel(object? sender, PointerWheelEventArgs e)
+    {
+        if (ScriptEditor.IsVisible)
+        {
+            CanvasControl.Focus();
+        }
     }
 }

@@ -100,6 +100,18 @@ public sealed partial class MainWindow : Window
         Opened += OnOpened;
     }
 
+    /// <summary>The block whose editor <see cref="PoseScriptEditor"/> opens, if any.</summary>
+    /// <remarks>
+    /// <b>The canvas node rather than the engine's identity for it</b>, because a view file that
+    /// named an engine type would fail <c>ViewLayerTests</c> — which is exactly what it did, and
+    /// exactly what that test is there for. The node held here is the one from <i>before</i> the
+    /// commit and is no longer in the graph; only its identity is read back off it.
+    /// </remarks>
+    private Spark.UI.Graph.CanvasNode? _poseScript;
+
+    /// <summary>The view the posed editor was last placed against, so it is placed once per view.</summary>
+    private (double Zoom, double OffsetX, double OffsetY, double Width) _posedAgainst = (0, 0, 0, 0);
+
     private HelpWindow? _help;
     private AboutWindow? _about;
     private PackageWindow? _packages;
@@ -1045,10 +1057,33 @@ public sealed partial class MainWindow : Window
                 Canvas.SelectOnly(slot);
 
                 scriptModel.ScriptText = source.Replace("\\n", "\n", StringComparison.Ordinal);
+
+                // Read before the commit, because committing replaces the definition - which
+                // removes the node and puts it back, so the slot moves and the identity does not.
+                Spark.UI.Graph.CanvasNode posed = scriptModel.Graph.Nodes[slot];
+
                 scriptModel.CommitScriptText();
 
-                _inspectorPane.ShowScript();
-                _inspectorPane.PoseCodeEditor(Options.CodeBlockCommand);
+                // The block was rebuilt, so its ports and its size are not what the index was
+                // built from - and `E8-T39` asks the canvas for a rectangle off the node it is
+                // about to draw.
+                Canvas.RefreshStructure();
+
+                if (Options.CodeBlockInNode)
+                {
+                    // Remembered rather than acted on. The editor is placed in *screen*
+                    // coordinates and the canvas has not framed itself yet, so an editor opened
+                    // here lands where the node is under the identity transform - the top-left
+                    // corner of the pane. Watched rather than reasoned about: the first two
+                    // attempts opened it here and then at Background priority, and photographed
+                    // exactly that. `PoseScriptEditor` runs after the framing instead.
+                    _poseScript = posed;
+                }
+                else
+                {
+                    _inspectorPane.ShowScript();
+                    _inspectorPane.PoseCodeEditor(Options.CodeBlockCommand);
+                }
             }
         }
 
@@ -1065,6 +1100,7 @@ public sealed partial class MainWindow : Window
 
         UpdateStatus();
         UpdateMissingBanner();
+        PoseScriptEditor();
 
         // E12-T21. Started here rather than in the constructor: the window is on screen, so a slow
         // or hanging request costs the user nothing. It is fire-and-forget on purpose - nothing
@@ -1100,6 +1136,70 @@ public sealed partial class MainWindow : Window
         Viewport.ZoomToFit();
     }
 
+    /// <summary>
+    /// Opens the in-node code editor over the posed block, once the canvas has settled
+    /// (<c>E8-T39</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>A pose, in the sense <c>--update-badge</c> and the completion popup are.</b> An editor
+    /// on a node exists only while somebody is typing into that node, so no screenshot of the
+    /// application can contain one unless the application is asked to put it there.
+    /// </remarks>
+    private void PoseScriptEditor()
+    {
+        if (_poseScript is null)
+        {
+            return;
+        }
+
+        Canvas.LayoutUpdated -= OnPoseLayoutUpdated;
+        Canvas.LayoutUpdated += OnPoseLayoutUpdated;
+
+        OnPoseLayoutUpdated(null, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Places the posed editor once the canvas has a size and a framing, and again whenever
+    /// either changes.
+    /// </summary>
+    /// <remarks>
+    /// <b>Three attempts got this wrong before the reason was clear, and it is worth writing
+    /// down.</b> <c>Opened</c> fires before the first layout: the canvas has no size, so its
+    /// <c>ZoomToFit</c> does nothing and its transform is still the identity — and a screen
+    /// rectangle taken from an identity transform is a <i>world</i> rectangle wearing a screen
+    /// rectangle's name. The editor was photographed in the pane's top-left corner twice, once
+    /// from <c>Opened</c> and once from a dispatcher post, before the identity transform was the
+    /// obvious explanation rather than a timing guess.
+    /// <para>
+    /// <b>It re-places only when the view has actually moved</b>, because positioning a control
+    /// inside a layout pass raises the next one: re-placing unconditionally is a loop that never
+    /// settles.
+    /// </para>
+    /// </remarks>
+    /// <param name="sender">The canvas, or null when called directly.</param>
+    /// <param name="e">Unused.</param>
+    private void OnPoseLayoutUpdated(object? sender, EventArgs e)
+    {
+        if (_poseScript is not { } posed || Model is not { } model || Canvas.Bounds.Width <= 0)
+        {
+            return;
+        }
+
+        (double, double, double, double) view = (
+            Canvas.Transform.Zoom,
+            Canvas.Transform.OffsetX,
+            Canvas.Transform.OffsetY,
+            Canvas.Bounds.Width);
+
+        if (view == _posedAgainst)
+        {
+            return;
+        }
+
+        _posedAgainst = view;
+        Canvas.RequestScriptEdit(model.Graph.SlotOf(posed.Id));
+    }
+
     private async Task CaptureWhenReadyAsync(string prefix)
     {
         if (Model is { } model)
@@ -1110,6 +1210,12 @@ public sealed partial class MainWindow : Window
 
         Canvas.ZoomToFit();
         Viewport.ZoomToFit();
+
+        // After the framing and before the shutter (`E8-T39`). The editor is placed in screen
+        // coordinates, so it has to be opened once the view it sits over has stopped moving -
+        // and `ZoomToFit` two lines up is the last thing that moves it.
+        PoseScriptEditor();
+
         StartCapture(prefix);
     }
 

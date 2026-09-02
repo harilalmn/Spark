@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-02 (N110 added)
+**Last updated:** 2026-09-02 (N110 and N111 added)
 
 ---
 
@@ -3173,3 +3173,35 @@ for a defensible local reason: `GetField` returning null is how reflection says 
 dropping an unmappable diagnostic is the rule that stops a user being sent to a correct line. A
 defensible silence is still a silence, and it survives exactly as long as nothing exercises the
 path. The thing that found both was not a review — it was one screenshot with eleven ports in it.
+
+---
+
+## N111 — `Opened` fires before the first layout, so a screen rectangle taken there is a world one
+
+`E8-T39` puts a real code editor over the rectangle the canvas drew a block's source in. The
+canvas is immediate-mode and hosts nothing, so the pane above positions the editor in **screen**
+coordinates, and the canvas supplies them by running the node's world rectangle through its pan
+and zoom.
+
+The screenshot switch that photographs this opened the editor from `Window.Opened`, and
+photographed it in the top-left corner of the pane. The second attempt posted the call to the
+dispatcher and photographed the same thing. The third used a 500 ms timer and photographed no
+editor at all, because the shutter is not on a clock either.
+
+**`Opened` fires before the first layout pass.** The canvas's `Bounds` are `0, 0, 0, 0`, so the
+`ZoomToFit` beside it computes a fit into no space and leaves the transform alone — and the
+transform starts as the identity. `ToScreenX` on an identity transform is `x`. Every number was
+therefore correct, arithmetically: the editor was placed at the node's **world** position, which
+for a graph seeded near the origin is the top-left corner. A world rectangle wearing a screen
+rectangle's name looks exactly like a placement bug and is not one.
+
+**The fix is to wait for a view rather than for a moment.** The pose subscribes to
+`LayoutUpdated`, does nothing until `Bounds.Width > 0`, and re-places only when the zoom, the
+offsets or the width have actually changed since last time — because positioning a control inside
+a layout pass raises the next one, so re-placing unconditionally is a loop that never settles.
+
+**The general rule, which is the reason this is written down:** any code that converts world
+coordinates to screen coordinates has a precondition that the view exists, and an identity
+transform satisfies the *types* while satisfying nothing else. A transform that has never been
+told the size of its viewport should be treated as unusable rather than as a transform that
+happens to be 1:1.

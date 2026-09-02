@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:Spark.UI.Controls"
+             xmlns:editing="clr-namespace:Spark.UI.Views.Controls"
              xmlns:vm="clr-namespace:Spark.UI.ViewModels"
              x:Class="Spark.UI.Views.Panes.CanvasPane"
              x:DataType="vm:MainWindowViewModel"
@@ -53,6 +54,13 @@
                  VerticalContentAlignment="Center"
                  KeyDown="OnFieldEditorKeyDown"
                  LostFocus="OnFieldEditorLostFocus" />
+
+        <!-- E8-T39: the code block's own editor, over the source the canvas drew. The same
+             control the properties pane hosts, in the layer ADR-0013 set aside for the one
+             node being interacted with - so a graph of a hundred code blocks still costs a
+             hundred drawings and one control. -->
+        <editing:CodeBlockEditor x:Name="ScriptEditor" IsVisible="False"
+                                 KeyDown="OnScriptEditorKeyDown" />
       </Canvas>
     </Panel>
   </Border>

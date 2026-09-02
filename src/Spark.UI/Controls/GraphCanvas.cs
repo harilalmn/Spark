@@ -224,12 +224,24 @@ public sealed class GraphCanvas : Control
     private static readonly Typeface LabelTypeface =
         new("Inter", FontStyle.Normal, FontWeight.Normal, FontStretch.Normal);
 
+    /// <summary>
+    /// The face a code block's source is drawn in on the canvas (<c>E8-T39</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>The same family the editor uses</b>, because the drawn text and the editor that opens
+    /// over it are the same lines in the same place, and a node whose text reflowed the instant
+    /// it was clicked into would read as the node moving.
+    /// </remarks>
+    private static readonly Typeface ScriptTypeface =
+        new("Cascadia Mono, Consolas, Menlo, monospace", FontStyle.Normal, FontWeight.Normal, FontStretch.Normal);
+
     private readonly SceneIndex _index = new();
     private readonly CanvasTransform _transform = new();
     private readonly Dictionary<string, FormattedText> _headerText = [];
     private readonly Dictionary<string, FormattedText> _labelText = [];
     private readonly Dictionary<string, FormattedText> _glyphText = [];
     private readonly Dictionary<string, FormattedText> _typeText = [];
+    private readonly Dictionary<string, FormattedText> _scriptText = [];
     private readonly List<WireVisual> _wireVisuals = [];
     private readonly HashSet<int> _selection = [];
 
@@ -323,6 +335,15 @@ public sealed class GraphCanvas : Control
 
     /// <summary>Raised when a node's in-place value field is clicked (<c>E8-T5</c>).</summary>
     public event EventHandler<CanvasFieldEditEventArgs>? FieldEditRequested;
+
+    /// <summary>
+    /// Asks the pane above to put a real code editor over a code block's source (<c>E8-T39</c>).
+    /// </summary>
+    /// <remarks>
+    /// Shaped exactly like <see cref="FieldEditRequested"/> and for exactly the same reason: the
+    /// canvas says <i>which node, what it holds, and where on screen</i>, and hosts nothing.
+    /// </remarks>
+    public event EventHandler<CanvasFieldEditEventArgs>? ScriptEditRequested;
 
     private enum InteractionMode
     {
@@ -1075,10 +1096,9 @@ public sealed class GraphCanvas : Control
 
     /// <inheritdoc/>
     /// <remarks>
-    /// Double-clicking empty canvas asks the shell for a code block there (`E8-T27`). On a node, a
-    /// port or a wire it does nothing yet — those are the in-place editors the hybrid overlay will
-    /// carry (`E8-T5`), and doing something arbitrary in the meantime would teach a gesture that
-    /// has to be untaught.
+    /// Double-clicking empty canvas asks the shell for a code block there (`E8-T27`), and
+    /// double-clicking a code block's source opens the editor over it (`E8-T39`) — the same
+    /// gesture, in and out. On any other node, a port or a wire it still does nothing.
     /// </remarks>
     protected override void OnDoubleTapped(Avalonia.Input.TappedEventArgs e)
     {
@@ -1087,7 +1107,26 @@ public sealed class GraphCanvas : Control
         Point screen = e.GetPosition(this);
         Point world = ToWorld(screen);
 
-        if (HitTestPort(world) is not null || HitTestNode(world) >= 0 || HitTestWire(world) is not null)
+        if (HitTestPort(world) is not null)
+        {
+            return;
+        }
+
+        if (HitTestNode(world) is int node && node >= 0)
+        {
+            // `E8-T39`. Anywhere on a code block, not only inside the source rectangle: the
+            // node is almost entirely source, and a double-click that lands two pixels into the
+            // padding and does nothing reads as the gesture not working.
+            if (_graph.Nodes[node].Script is not null)
+            {
+                e.Handled = true;
+                RequestScriptEdit(node);
+            }
+
+            return;
+        }
+
+        if (HitTestWire(world) is not null)
         {
             return;
         }
@@ -1523,11 +1562,89 @@ public sealed class GraphCanvas : Control
                 DrawField(context, pens, node, slot, drawsPortLabels);
             }
 
+            if (node.Script is not null)
+            {
+                DrawScript(context, pens, node, drawsPortLabels);
+            }
+
             DrawStateRings(context, pens, node, nodeRect, selected);
 
             if (slot == _focusNode && IsFocused)
             {
                 DrawFocusSandwich(context, pens, nodeRect);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Draws a code block's source on the node itself (<c>E8-T39</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Drawn, not hosted.</b> The canvas is immediate-mode and holds no children
+    /// ([ADR-0013](../../docs/adr/0013-immediate-mode-node-canvas.md)) — so what is on screen for
+    /// every block but one is a picture of the source, and the block being typed into gets a real
+    /// editor put over this exact rectangle by the pane above. That is what keeps a graph of a
+    /// hundred code blocks the same cost as a graph of a hundred anything else.
+    /// </para>
+    /// <para>
+    /// <b>No syntax colouring here, deliberately.</b> Highlighting is a lexer's answer and the
+    /// editor already has one; running a second one in the draw loop would be a second opinion
+    /// about what a token is, on the surface where a hundred nodes are competing for the frame.
+    /// The text is drawn in one colour, and the editor supplies the colours the moment anyone
+    /// looks closely enough to type.
+    /// </para>
+    /// <para>
+    /// <b>It goes below the same threshold as every other 10-to-11 px label</b> (§7.3). Source at
+    /// 30% zoom is a grey smear that costs a text layout per line, and a block zoomed that far out
+    /// is a shape in a graph rather than something being read.
+    /// </para>
+    /// </remarks>
+    /// <param name="context">The drawing context.</param>
+    /// <param name="pens">The frame's pens, for the source area's own outline.</param>
+    /// <param name="node">The node.</param>
+    /// <param name="drawsLabels">Whether the zoom is high enough to draw text at all.</param>
+    private void DrawScript(DrawingContext context, in FramePens pens, CanvasNode node, bool drawsLabels)
+    {
+        node.ScriptBox(out double x, out double y, out double width, out double height);
+
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
+        Rect box = new(x, y, width, height);
+
+        // The sunken ground is drawn at every zoom, labels or not: it is what says *this node is
+        // written in* at the size where the words themselves are gone.
+        context.DrawRectangle(
+            SparkPalette.Frozen(SparkPalette.SurfaceSunken), pens.NodeOutline, box, 3, 3);
+
+        if (!drawsLabels || node.Script is not { Length: > 0 } source)
+        {
+            return;
+        }
+
+        using (context.PushClip(box))
+        {
+            double line = y + CanvasNode.ScriptPadding;
+            int drawn = 0;
+
+            foreach (string text in source.ReplaceLineEndings("\n").Split('\n'))
+            {
+                if (drawn == node.ScriptLineCount)
+                {
+                    break;
+                }
+
+                drawn++;
+
+                if (text.Length > 0)
+                {
+                    context.DrawText(ScriptRun(text), new Point(x + CanvasNode.ScriptGap, line));
+                }
+
+                line += CanvasNode.ScriptLineHeight;
             }
         }
     }
@@ -1711,6 +1828,36 @@ public sealed class GraphCanvas : Control
         FieldEditRequested?.Invoke(this, new CanvasFieldEditEventArgs(
             slot,
             text,
+            topLeft.X,
+            topLeft.Y,
+            bottomRight.X - topLeft.X,
+            bottomRight.Y - topLeft.Y));
+    }
+
+    /// <summary>
+    /// Asks the pane to put a real code editor over a code block's source (<c>E8-T39</c>).
+    /// </summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <remarks>
+    /// <b>The rectangle is the one the source was drawn in</b>, through the same
+    /// <see cref="CanvasNode.ScriptBox"/> the renderer used — so the editor opens over the words
+    /// rather than near them, and closing it puts the same words back in the same place.
+    /// </remarks>
+    public void RequestScriptEdit(int slot)
+    {
+        if (slot < 0 || slot >= _graph.Nodes.Count || _graph.Nodes[slot].Script is not { } source)
+        {
+            return;
+        }
+
+        _graph.Nodes[slot].ScriptBox(out double x, out double y, out double width, out double height);
+
+        Point topLeft = new(_transform.ToScreenX(x), _transform.ToScreenY(y));
+        Point bottomRight = new(_transform.ToScreenX(x + width), _transform.ToScreenY(y + height));
+
+        ScriptEditRequested?.Invoke(this, new CanvasFieldEditEventArgs(
+            slot,
+            source,
             topLeft.X,
             topLeft.Y,
             bottomRight.X - topLeft.X,
@@ -3047,6 +3194,9 @@ public sealed class GraphCanvas : Control
 
     private FormattedText TypeRun(string text) =>
         Run(_typeText, text, LabelTypeface, TypeFontSize, SparkPalette.TextMutedBrush);
+
+    private FormattedText ScriptRun(string text) =>
+        Run(_scriptText, text, ScriptTypeface, PortFontSize, SparkPalette.TextPrimaryBrush);
 
     private static FormattedText Run(
         Dictionary<string, FormattedText> cache, string text, Typeface typeface, double size, IBrush brush)

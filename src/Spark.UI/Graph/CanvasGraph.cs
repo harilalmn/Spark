@@ -148,6 +148,21 @@ public sealed class CanvasNode
     /// <summary>Approximate width of one character of a type label at 10 px Inter.</summary>
     private const double TypeCharWidth = 5.6;
 
+    /// <summary>The height of one line of a code block's source, drawn on the node (`E8-T39`).</summary>
+    public const double ScriptLineHeight = 15;
+
+    /// <summary>The padding above the first line of source and below the last.</summary>
+    public const double ScriptPadding = 5;
+
+    /// <summary>The gap between a port tab and the source between the tabs.</summary>
+    public const double ScriptGap = 6;
+
+    /// <summary>Approximate width of one character at 11 px in the editor's monospaced face.</summary>
+    private const double ScriptCharWidth = 6.6;
+
+    /// <summary>The narrowest the source area is allowed to be, so a node is never all tabs.</summary>
+    private const double ScriptMinimumWidth = 120;
+
     internal CanvasNode(
         NodeId id,
         string title,
@@ -159,7 +174,8 @@ public sealed class CanvasNode
         string? description,
         bool showsValue = false,
         bool hasSlider = false,
-        bool hasField = false)
+        bool hasField = false,
+        string? script = null)
     {
         Id = id;
         Title = title;
@@ -180,6 +196,31 @@ public sealed class CanvasNode
         // node claiming a field it has no port for would draw an editor over nothing.
         HasField = hasField && inputs.Count >= 1;
 
+        // `E8-T39`: the source is drawn on the node, so the node has to know its shape before
+        // anything measures it. Counted once here rather than on every frame - the text only
+        // changes by the node being rebuilt, which makes a new `CanvasNode` anyway.
+        Script = script;
+
+        if (script is not null)
+        {
+            string[] lines = script.ReplaceLineEndings("\n").Split('\n');
+
+            // A trailing newline is not a line anybody typed on, and counting it would leave a
+            // blank row at the bottom of every block - every starter script ends in one.
+            int count = lines.Length;
+            while (count > 1 && lines[count - 1].Length == 0)
+            {
+                count--;
+            }
+
+            ScriptLineCount = count;
+
+            for (int i = 0; i < count; i++)
+            {
+                _longestScriptLine = System.Math.Max(_longestScriptLine, lines[i].Length);
+            }
+        }
+
         Remeasure();
     }
 
@@ -195,13 +236,64 @@ public sealed class CanvasNode
     /// </remarks>
     private void Remeasure() =>
         Width = System.Math.Max(
-            System.Math.Max(MinimumWidth, 34 + (DisplayTitle.Length * 6.8)),
-            WidestRow(Inputs, Outputs));
+            System.Math.Max(
+                System.Math.Max(MinimumWidth, 34 + (DisplayTitle.Length * 6.8)),
+                WidestRow(Inputs, Outputs)),
+            ScriptWidth());
+
+    /// <summary>
+    /// How wide the node has to be for its source to sit between the port tabs (`E8-T39`).
+    /// </summary>
+    /// <remarks>
+    /// <b>The tab allowance is the <i>uncapped</i> tab width</b>, and that is what stops this
+    /// being circular: <see cref="PortTab"/> clamps a tab to two fifths of the node, which is a
+    /// width this method is in the middle of deciding. The uncapped estimate is an upper bound on
+    /// the clamped one, so the source can never be drawn under a tab — only further from it than
+    /// it strictly had to be, on a node whose ports have very long names.
+    /// </remarks>
+    private double ScriptWidth() =>
+        Script is null
+            ? 0
+            : TabAllowance(Inputs) + TabAllowance(Outputs) + (2 * ScriptGap)
+                + System.Math.Max(ScriptMinimumWidth, _longestScriptLine * ScriptCharWidth);
+
+    /// <summary>The widest tab a side needs, before <see cref="PortTab"/>'s clamp.</summary>
+    private static double TabAllowance(IReadOnlyList<CanvasPortInfo> ports)
+    {
+        double widest = 0;
+
+        foreach (CanvasPortInfo port in ports)
+        {
+            widest = System.Math.Max(
+                widest,
+                System.Math.Max(
+                    PortTabMinimumWidth,
+                    (port.Name.Length * PortCharWidth) + (PortTabPadding * 2)));
+        }
+
+        return widest;
+    }
 
     private string? _customTitle;
+    private readonly int _longestScriptLine;
 
     /// <summary>The engine identity of the node instance this draws.</summary>
     public NodeId Id { get; }
+
+    /// <summary>
+    /// The source of the code block this node draws, or <see langword="null"/> when it is an
+    /// ordinary node (`E8-T39`).
+    /// </summary>
+    /// <remarks>
+    /// <b>Carried on the canvas node rather than fetched from the engine per frame.</b> The
+    /// renderer's contract is that it reads positions, names and states and never calls an engine
+    /// API — and the text only changes when the definition is replaced, which builds a new
+    /// <see cref="CanvasNode"/> anyway.
+    /// </remarks>
+    public string? Script { get; }
+
+    /// <summary>How many lines of source the node draws, ignoring a trailing newline.</summary>
+    public int ScriptLineCount { get; }
 
     /// <summary>The name the node's definition gives it.</summary>
     public string Title { get; }
@@ -338,10 +430,24 @@ public sealed class CanvasNode
     /// </summary>
     public double Height =>
         HeaderHeight
-        + (System.Math.Max(Inputs.Count, Outputs.Count) * PortPitch)
+        + ContentHeight
         + (HasSlider ? SliderHeight : 0)
         + (HasField ? FieldHeight : 0)
         + BodyPadding;
+
+    /// <summary>
+    /// The band below the header: the port rows, or the source if it needs more room (`E8-T39`).
+    /// </summary>
+    /// <remarks>
+    /// <b>The larger of the two rather than the sum</b>, because the source is drawn <i>between</i>
+    /// the port tabs and not below them — which is what makes a block whose every line is a port
+    /// come out the same height as its ports, with line <i>n</i> beside port <i>n</i>. A block
+    /// that returns one value from ten lines is as tall as its source; one line returning a tuple
+    /// of six is as tall as its ports.
+    /// </remarks>
+    private double ContentHeight => System.Math.Max(
+        System.Math.Max(Inputs.Count, Outputs.Count) * PortPitch,
+        Script is null ? 0 : (System.Math.Max(1, ScriptLineCount) * ScriptLineHeight) + (2 * ScriptPadding));
 
     /// <summary>
     /// Whether this node is driven by a slider drawn on it (<c>E8-T25</c>), and is shaped for one.
@@ -375,7 +481,7 @@ public sealed class CanvasNode
         width = System.Math.Max(Width - (2 * FieldInset), 0);
         height = FieldHeight - 6;
         y = Y + HeaderHeight
-            + (System.Math.Max(Inputs.Count, Outputs.Count) * PortPitch)
+            + ContentHeight
             + (HasSlider ? SliderHeight : 0)
             + 3;
     }
@@ -397,7 +503,7 @@ public sealed class CanvasNode
         left = X + SliderInset;
         right = X + Width - SliderInset;
         y = Y + HeaderHeight
-            + (System.Math.Max(Inputs.Count, Outputs.Count) * PortPitch)
+            + ContentHeight
             + (SliderHeight / 2);
     }
 
@@ -543,6 +649,31 @@ public sealed class CanvasNode
             PortTab(row, isOutput: true, out double tabLeft, out _, out _, out _);
             rightStart = System.Math.Min(rightStart, tabLeft - PortInset);
         }
+    }
+
+    /// <summary>
+    /// The rectangle the code block's source is drawn in, in world coordinates (`E8-T39`).
+    /// </summary>
+    /// <param name="x">Its left edge, clear of the input tabs.</param>
+    /// <param name="y">Its top edge, immediately below the header.</param>
+    /// <param name="width">Its width, clear of the output tabs.</param>
+    /// <param name="height">Its height.</param>
+    /// <remarks>
+    /// <b>This is also where the editor goes.</b> The canvas hosts no controls
+    /// ([ADR-0013](../../docs/adr/0013-immediate-mode-node-canvas.md)), so the pane above it puts
+    /// a real editor over this rectangle for the one block being typed into — which means the
+    /// drawn text and the editing text must occupy the same space, or committing an edit would
+    /// make the node appear to jump.
+    /// </remarks>
+    public void ScriptBox(out double x, out double y, out double width, out double height)
+    {
+        double left = X + TabAllowance(Inputs) + ScriptGap;
+        double right = X + Width - TabAllowance(Outputs) - ScriptGap;
+
+        x = left;
+        width = System.Math.Max(0, right - left);
+        y = Y + HeaderHeight;
+        height = ContentHeight;
     }
 
     /// <summary>The world position of an output port's centre.</summary>
@@ -1013,7 +1144,11 @@ public sealed class CanvasGraph
             instance.Definition.Description,
             instance.Definition.ShowsValue,
             instance.Definition.HasSlider,
-            instance.Definition.HasField);
+            instance.Definition.HasField,
+
+            // `E8-T39`: a code block carries its source onto the canvas, so the node can draw it
+            // and the pane above can put an editor over exactly where it was drawn.
+            instance.Definition.Script);
 
         _nodes.Add(node);
         _slots[instance.Id] = _nodes.Count - 1;

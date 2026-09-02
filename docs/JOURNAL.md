@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-02 23:10 +0530
+**Last updated:** 2026-09-03 01:20 +0530
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.1.0` shipped on 2026-09-02** — the first tag in the repository's history, and the first time the release pipeline has run end to end rather than been argued about. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **`E8-T39` — the code editor inside the code block node**, which is the other half of what the client asked for and the reason `E6-T26` was worth doing first: eleven ports are only useful if the eleven lines are on the canvas beside them. **ADR-0013 already describes the mechanism** — the canvas is immediate-mode and hosts nothing, and the one node being interacted with gets a real Avalonia control positioned over the drawing. That overlay exists and already carries two tenants, the creation box and `E8-T5`'s value editor. |
+| **Working on** | Nothing. Both halves of what the client asked for are in: `E6-T26` gives a code block one output port per line, and `E8-T39` puts the editor on the node. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E6-T26` — a code block with no `return` gives one output port per variable it declares.** Dynamo's Code Block rule, asked for with a screenshot of eleven lines and eleven ports, and it is a naming rule plus a generated `return` rather than new plumbing: `E6-T8`'s tuple, `E6-T25`'s per-port types and `Unpack` were already there. **Gated on the absence of a top-level `return`**, so `E6-T8`'s rejection of *infer from locals* is kept rather than reversed. **It exposed two silent defects, neither reachable before it** ([N110](NOTES.md)): `Unpack` read `Item1..ItemN` off the returned tuple and a `ValueTuple` nests everything past the seventh in `Rest`, so ports 8 to 11 came back null and said nothing; and **the starter script had never compiled** — a generated method returning `object` with no `return` is `CS0161`, reported against the frame and therefore dropped by the source map, so every fresh code block was a compile failure that only surfaced when something asked it for a value. `E6-T18` had recorded the opposite. **Before that: the RCS editor port, all six slices.** Settings and `CSharpIndentationStrategy`; IntelliSense badges; 16 snippets with tab stops; bracket completion; diagnostics squiggles and hover quick-info; find, replace and zoom. |
+| **Last completed step** | **`E8-T39` — the code editor inside the code block node.** Double-click a block and the same `CodeBlockEditor` the properties pane hosts opens over the source the canvas drew, in the overlay layer [ADR-0013](adr/0013-immediate-mode-node-canvas.md) set aside for *the one node being interacted with* — so this confirmed that ADR rather than bending it. Every other block stays a **drawing** of its source. The source sits **between** the port tabs rather than below them, so a block whose every line is a port comes out the height of its ports; nothing new goes in `.spark`, because the size is derived from source that was already saved. **Escape commits rather than abandoning**, which is the opposite of `E8-T5`'s value field and deliberate: a field holds a number somebody can retype. **Before that: `E6-T26`** — a code block with no `return` gives one output port per variable it declares, Dynamo's Code Block rule, which exposed two silent defects that had been in the tree since `E6-T8` ([N110](NOTES.md)): `Unpack` filled every port past the seventh with null because a `ValueTuple` nests past seven, and the starter script had never compiled because a generated method returning `object` with no `return` is `CS0161`, reported against the frame and therefore dropped by the source map. **Before that: the RCS editor port, all six slices.** |
 | **Working tree** | Clean at the commit carrying this journal. **`Release #3` was not watched**: `gh` is not authenticated on this machine and no token is set, so whether `v0.1.2` published is unread rather than reported — it is the first thing a session with credentials should look at. |
-| **Next action** | **`E8-T39`, first slice: give a code block node a body.** `CanvasNode.Height` is derived from the port rows alone and `Width` from the title, so there is nowhere for source to go — add a script body to the code-block case, sized from the text and stored, drawn as plain text, and hidden below ADR-0013's 40% level-of-detail threshold. `CanvasNote` is the precedent for a stored width and height, and ADR-0016's byte-identical re-save means the fields are only written when they differ from the default. **Then the overlay**: a `CodeBlockEditor` in `CanvasPane`'s overlay `Canvas`, positioned from an event shaped like `CanvasFieldEditEventArgs`. **The commit rule differs from the field editor's** — Enter has to insert a newline, so committing is on click-away, and Escape cannot mean *abandon* the way it does at `CanvasPane.axaml.cs:255`. Recompile on commit, never per keystroke; `Diagnose` is already safe to run while typing because it touches neither cache. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2450**: Geometry.Tests 763, UI.Tests 872, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets. **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
+| **Next action** | **Read `Release #3`** and finish cutting `v0.1.2`, which is the item this session interrupted and did not resume. Then the queue as it stood: **`N108`** (the fingerprint that moves with load order, which quietly defeats the on-disk compile cache), **`N107`** (completion parses as a script while the compiler wraps a method body), **the screenshot harness** (it races Roslyn and photographs an empty popup), and **the installer install/over-install/uninstall cycle**, which is this journal's own stated bar and has never been run. **Two things `E8-T39` left on the table, neither of them blocking**: the in-node editor is opaque, so while it is open it covers the port tabs of a narrow block; and it does not follow a pan or a zoom — the canvas takes focus on a press and the wheel closes it, so it commits rather than drifting, which is correct but is a close rather than a follow. |
+| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2457**: Geometry.Tests 763, UI.Tests 879, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets, and **`--code-block "..." --code-block-in-node --screenshot PREFIX` for the editor on the node** (`E8-T39`). **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -6216,3 +6216,57 @@ that nothing consumes is never asked for a value.
 
 **Cost.** One session. The rule and the generated return were about thirty lines; the doc comments,
 the help topic and this entry were most of it.
+
+### 2026-09-02 — `E8-T39`: the editor inside the node
+
+**What.** Double-clicking a code block opens the real editor over the source the canvas drew.
+`CanvasNode` carries the block's text and measures a rectangle for it between the two columns of
+port tabs; `GraphCanvas` draws the lines there and raises `ScriptEditRequested` with that
+rectangle in screen coordinates; `CanvasPane` puts the same `CodeBlockEditor` the properties pane
+hosts over it, with the same four language-service sources. `--code-block-in-node` photographs it.
+
+**This confirmed ADR-0013 rather than bending it.** The ADR says the canvas is one control that
+draws every node, and that *the one node being interacted with gets a real Avalonia control
+positioned over the drawing*. That overlay already carried the creation box and `E8-T5`'s value
+field; a code block is the case that justifies the mechanism, because a caret, a selection, an
+undo stack, a completion list and a clipboard are not things to re-implement in a draw loop. A
+hundred code blocks on a canvas still cost a hundred drawings and one control.
+
+**Three decisions worth keeping.** *The source sits between the port tabs, not below them*, so a
+block whose every line is a port — which after `E6-T26` is the common case — comes out exactly as
+tall as its ports, with the code beside them. The width allowance for the tabs is computed from
+the **uncapped** tab width, which is what stops it being circular: `PortTab` clamps a tab to two
+fifths of the node's width, and the node's width is what this is deciding. *Nothing new is stored
+in `.spark`*: the block's size is derived from source that was already saved, so ADR-0016's
+byte-identical re-save is untouched and there is no stored size to fall out of step with the text.
+*Escape commits*, which is the opposite of the value field two controls away and is the point: a
+field holds a number somebody can retype, an editor holds a screenful of code, and undo can take
+an edit back where nothing can bring typing back.
+
+**What cost the most was the screenshot switch, and the reason is worth reading** ([N111](NOTES.md)).
+The editor was photographed in the top-left corner of the pane twice — once opened from
+`Window.Opened`, once from a dispatcher post — before the explanation stopped being *a timing
+problem* and became the real one: `Opened` fires **before the first layout**, the canvas's bounds
+are zero, its `ZoomToFit` fits into no space, and the transform is still the identity. Every
+number was arithmetically correct; a world rectangle was wearing a screen rectangle's name. The
+pose now waits for a view rather than for a moment, and re-places only when the view has actually
+moved — because positioning a control inside a layout pass raises the next one.
+
+**`ViewLayerTests` earned its place.** The first version held the posed block as a
+`Spark.Engine.NodeId` in `MainWindow.axaml.cs`, and the architecture suite turned red naming the
+file. It holds the `CanvasNode` instead and reads the identity off it.
+
+**Verified.** Seven new tests in `CodeBlockOnCanvasTests` — the geometry the drawing and the
+editor share, and the gesture itself driven through the control with real pointer events, because
+nothing in the framework routes a click to a node on an immediate-mode canvas. Two of them are
+negative: an ordinary node has no source and is offered no editor. The whole solution builds
+`-warnaserror`, `dotnet format --verify-no-changes` is clean, all nine executables are green at
+**2457**, and the editor was photographed on the node with eleven lines and eleven ports.
+
+**Left on the table, and neither blocks anything.** The editor is opaque, so on a narrow block it
+covers the port tabs while it is open. And it does not follow a pan or a zoom: pressing anywhere
+on the canvas focuses it, which commits, and the wheel closes it — correct rather than clever, but
+a close and not a follow.
+
+**Cost.** One session, after `E6-T26` in the same one. The model and the drawing were quick; the
+placement of a control over an immediate-mode surface was three attempts.
