@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-07 (a new code block starts empty)
+**Last updated:** 2026-09-07 (one output port per value statement)
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | **Nothing - between steps.** **What is left of `E12-T21` is a person seeing the update pill in their own installed shell**, still the only unproven link in that chain. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A new code block starts empty** - `E6-T18`'s starter comment removed at the client's request. The constraint that half the row exists for survives (the starter must name no identifier); the sentence it carried is already in `code-blocks.md`. **Before it:** `E6-T27`, Dynamo's count ranges parts 1 and 2, `E8-T8`'s tie-break. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2566** tests green. **One known flaky test**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, about one full run in five, green in isolation - [N120](NOTES.md). |
-| **Next action** | `MainWindowViewModel.PlaceCodeBlock`: `Starter` becomes `string.Empty`, and the comment block above it is rewritten to say what is true now rather than deleted, because *why the starter is not `return a;`* is still the load-bearing part. Then check what an empty source does to the **node's size** - `E8-T39` derives the block's width and height from its text, and nothing has ever measured a block with no text - and to `ScriptDeclaredOutputTests`, which uses the starter string as its example of a script that declares nothing. |
-| **Verify with** | `PlaceCodeBlock` giving a block with zero inputs, one `result` port and no diagnostic, and a screenshot of a placed empty block to show the node is still a sensible size and not a sliver. Then the ten executables and `tests/Spark.Docs.Verify`. **Grep the run output for `[FAIL]` and not only `Total:`.** |
+| **Last completed step** | **One output port per value statement** - `E6-T28`, asked for by the client with a screenshot of `5+3;` then `"Test";`. `E6-T27`'s rule read once per statement rather than once per block, so the ports are `result` and `result2` carrying `8` and `"Test"`; the single-trailing-value case is deliberately left on `E6-T27`'s own code path. **Before it:** `E6-T18`, `E6-T27`, Dynamo's count ranges parts 1 and 2, `E8-T8`'s tie-break. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2578** tests green over ten executables with zero skips. **One known flaky test**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, about one full run in five, green in isolation - [N120](NOTES.md). |
+| **Next action** | **Nothing is queued that does not need a person.** The nearest unblocked engineering row is the *Queue*'s `+` pair: **persist the workspace layout between sessions** (`WorkspaceLayout` already serialises and round-trips under test, and nothing writes it - a dragged arrangement dies with the window, which is the one thing a dock is for), and **a guard that no test project reports zero tests**, which is one line and catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)). Take the layout one; it is the one a user would notice. |
+| **Verify with** | For the layout row: drag the docks into a new arrangement, close the application, reopen it, and find the arrangement still there - then the ten executables and `tests/Spark.Docs.Verify`. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -7331,3 +7331,68 @@ grepped for `[FAIL]` as well as `Total:`.
 **Documents.** `E6-T18`'s row records the removal and, more usefully, which half of its reasoning
 survives it; `code-blocks.md` said a block lands *"with its source on it"*, which was no longer
 true; TODO gained a line.
+
+### 2026-09-07 — One output port per value statement
+
+**What.** `E6-T28`. The client sent a screenshot of a block reading `5+3;` then `"Test";` — one
+`result` port, and a `CS0201` on line 1 — and asked for *"output ports corresponding to each
+statement, in this case 8 and Test"*. `E6-T27` had landed hours earlier and claims only the
+**trailing** expression, so the second line was the block's result and the first was still the error
+it had always been. This reads the same rule once per statement instead of once per block.
+
+**They also thought it might already exist**, committed from the `harilalmnzyeta` identity. It does
+not: `git log --all --format='%an'` over every branch and both remotes is 211 commits from one
+author, and no branch touches `ScriptNodeFactory` past `838f9b7`. Worth recording because the
+question will recur — the *global* git identity here is the Zyeta one and this repository overrides
+it per-repository, which is exactly the setup that makes "did I commit that from the other account"
+a reasonable thing to wonder.
+
+**Nothing about `E6-T27`'s safety argument is weakened, and that is the whole reason this was
+cheap.** The set claimed is still *expressions C# refuses as statements* — every line turned into a
+port was a `CS0201` a moment ago, so no script that compiled can change meaning, and
+`ACallIsStillAStatement` still holds the line. What changed is a count, not a criterion.
+
+**Two decisions inside it are worth more than the code.**
+
+- **The first port is still called `result`.** Wires are re-made by port *name*
+  (`code-blocks.md` says so), so numbering from `result1` would disconnect the wire on every
+  existing one-value block the instant its author typed a second line — which is precisely the
+  edit this row exists to make attractive. `result`, `result2`, `result3` looks asymmetric and is
+  the only numbering that costs nothing.
+- **Values still *replace* the declared-variable ports rather than joining them.**
+  `var n = 10 / 5; var p = 8 / 4; n + p;` is one port carrying 4, not three. That was `E6-T27`'s
+  decision and the client's; generalising the *count* of values is not a licence to reopen it.
+
+**The single-trailing-value case is kept on `E6-T27`'s own code path, and that is not tidiness.**
+Several values are captured into `var __resultN = …;` so a generated tuple can return them
+together — and `var` needs the expression to have a natural type. `null;`, `default;`, a bare
+lambda and a method group have none, so capturing them is `CS0815` where `return null;` compiles.
+Routing one-value-and-last to the old bare `return ` insertion means **no script that worked
+yesterday can stop working**, and it is the same rule `Trailer` already applies to a single declared
+variable: one value is the value, several are a tuple.
+
+**The defect the single-value version could not have had.** With one insertion, the shift applied
+to `E10-T15`'s range markers is a constant. With several of different lengths, a marker on the third
+value has three insertions in front of it, so the shift is a running total — and a marker looked for
+in the wrong place is not an error, it is a range lowered as the *other* form. `0..1..#5;` would
+come back as a step range. `RangesInSeveralValuesAreEachLoweredCorrectly` is the only cover for it.
+The insertions are applied last-first so each statement's `SpanStart`, read from a tree parsed before
+any editing, stays an offset into the text being edited.
+
+**Verified.** Twelve new tests in `ScriptStatementOutputTests`, green first run, including the
+client's exact block, nine values (a `ValueTuple` nests everything past the seventh in `Rest` — the
+defect `E6-T26` found the first time eight ports existed, and this is the second way to make eight),
+free identifiers surviving the captures as input ports, and a diagnostic still landing on the user's
+line. **`ScriptTrailingValueTests` and `ScriptDeclaredOutputTests` are green unedited**, which is
+the claim that matters more than the new file: the single-value case did not move underneath this.
+
+Gates: build clean with zero warnings, format clean, **2578** tests green over ten executables with
+zero skips, and the run output grepped for `[FAIL]` as well as `Total:`.
+
+**And in the application, not only in the tests.** A graph holding the client's two lines with a
+watch on each port: `spark run` prints `8` and `Test`, and `--open … --screenshot` shows the block
+drawing `result` and `result2`, both wired, `3 nodes evaluated … No diagnostics`.
+
+**Documents.** `E6-T28`'s row in TASKS; the `E6-T8`/`E6-T26` criterion in EPICS now names both
+value rows; TODO gained a line; and `concepts/code-blocks.md` gained the several-values paragraph
+and lost the word *trailing* from the sentences that no longer need it.

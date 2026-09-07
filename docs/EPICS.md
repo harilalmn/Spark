@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-07 (E8: the search's tie-break is Create/Action/Query, then alphabetical)
+**Last updated:** 2026-09-07 (E6: one output port per value statement)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -577,7 +577,12 @@ diverge most; rework is budgeted there specifically.
       Block rule and was asked for by name. The two do not compete: a `return` is how a block
       says exactly what its ports are, and the per-variable reading is what it gets when it says
       nothing — so `E6-T8`'s objection, that inferring from locals lets a debug line change the
-      port set, applies only where the author has declined to say.
+      port set, applies only where the author has declined to say. **A block written as bare
+      values gets one port per value** (**E6-T27**, **E6-T28**, done 2026-09-07): `5+3;` then
+      `"Test";` is `result` and `result2` carrying `8` and `"Test"`. Only an expression C# would
+      *refuse* as a statement is claimed, so every line it turns into a port was a `CS0201` before
+      it did and no script that compiled changed meaning — a trailing `points.Add(p);` is still a
+      statement discarding its value on purpose.
 - [x] Compilation is cached on `Hash(normalizedText, inputPortTypes, referenceCatalogVersion,
       langVersion)`, **resident** so a slider feeding a code block feels live, and
       **persistent on disk** so reopening a file does not pay Roslyn cold start. Identical

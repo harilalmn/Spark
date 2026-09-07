@@ -76,7 +76,7 @@ public sealed class ScriptAssemblyCache
     /// is the hardest class of bug this cache could produce.
     /// </remarks>
     /// <remarks>
-    /// <b>4</b> covers two changes to what <c>Wrap</c> emits: <c>E10-T15</c>'s range lowering, and
+    /// <b>4</b> covered two changes to what <c>Wrap</c> emits: <c>E10-T15</c>'s range lowering, and
     /// <c>E6-T27</c> inserting <c>return</c> ahead of a trailing value. <b>Neither could actually
     /// have served a stale entry</b> — every script they change was a compile error before, and a
     /// failed compile is never written to the cache — but the rule above is not "bump it when you
@@ -84,7 +84,12 @@ public sealed class ScriptAssemblyCache
     /// nobody redoes correctly at the third change. The range lowering shipped without this and it
     /// was an oversight, not a judgement.
     /// </remarks>
-    public const int GeneratorVersion = 4;
+    /// <remarks>
+    /// <b>5</b> is <c>E6-T28</c>: a block with several value statements now captures each into
+    /// <c>var __resultN = …;</c> and returns them as a tuple, where 4 emitted the user's lines
+    /// unchanged and failed to compile. Same argument as above, same conclusion, bumped anyway.
+    /// </remarks>
+    public const int GeneratorVersion = 5;
 
     private readonly string? _directory;
 

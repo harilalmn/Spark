@@ -575,7 +575,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         && (char.IsLower(identifier[0]) || identifier[0] == '_')
         && identifier.All(c => char.IsLetterOrDigit(c) || c == '_');
 
-    /// <summary>The output ports a script implies (`E6-T8`, `E6-T26`).</summary>
+    /// <summary>The output ports a script implies (`E6-T8`, `E6-T26`, `E6-T28`).</summary>
     /// <remarks>
     /// <para>
     /// <b>Read from the syntax, not from the compiled method, and that is forced.</b> Tuple element
@@ -596,6 +596,20 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// <c>return</c> that produces them. The rule is <i>gated on the absence of a return</i>, which
     /// is what keeps `E6-T8`'s reasoning intact — a tuple return still says exactly what the ports
     /// are, so a user who wants three of eleven locals on the canvas writes it and gets three.
+    /// </para>
+    /// <para>
+    /// <b>A block written as bare values gets one port per value</b> (`E6-T28`):
+    /// <c>5 + 3;</c> then <c>"Test";</c> is two ports, <c>result</c> and <c>result2</c>, carrying
+    /// <c>8</c> and <c>"Test"</c>. That is `E6-T27`'s rule read once per statement instead of once
+    /// per block, and it inherits `E6-T27`'s safety unchanged: only an expression <c>CS0201</c>
+    /// would have rejected is claimed, so every line this turns into a port was a compile error
+    /// before it did.
+    /// </para>
+    /// <para>
+    /// <b>Values replace the declared-variable ports; they do not join them.</b>
+    /// <c>var n = 10 / 5; var p = 8 / 4; n + p;</c> is one port carrying 4 and not three ports —
+    /// which is `E6-T27`'s decision, made by the client, and generalising the count of values does
+    /// not reopen it. A block that says what it produces has said it.
     /// </para>
     /// </remarks>
     private static ScriptPort[] OutputsOf(string script) =>
@@ -639,11 +653,17 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             }
         }
 
-        if (returns || TrailingValue(root) is not null)
+        if (returns)
         {
-            // A trailing value says what the block produces just as plainly as a `return` does, so
-            // it replaces the declared-variable ports rather than joining them (`E6-T27`).
             return [new ScriptPort("result", typeof(object))];
+        }
+
+        if (ValueStatements(root) is { Count: > 0 } values)
+        {
+            // A value statement says what the block produces just as plainly as a `return` does, so
+            // they replace the declared-variable ports rather than joining them (`E6-T27`) - and
+            // there is one port per statement rather than one for the last (`E6-T28`).
+            return [.. Enumerable.Range(0, values.Count).Select(i => new ScriptPort(ResultName(i), typeof(object)))];
         }
 
         ScriptPort[] declared =
@@ -686,11 +706,24 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             return null;
         }
 
-        if (TrailingValue(root) is not null)
+        List<ExpressionStatementSyntax> values = ValueStatements(root);
+
+        if (IsTrailingValue(root, values))
         {
             // `E6-T27`: `Wrap` has turned that last line into the return itself, so appending one
             // here would make a second, unreachable.
             return null;
+        }
+
+        if (values.Count > 0)
+        {
+            // `E6-T28`: `Wrap` has captured each value into its own temporary, in source order, and
+            // this is what puts them on the ports.
+            return "return ("
+                + string.Join(
+                    ", ",
+                    Enumerable.Range(0, values.Count).Select(i => ResultName(i) + ": " + Captured(i)))
+                + ");";
         }
 
         string[] names = [.. DeclaredNames(root)];
@@ -746,8 +779,8 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     }
 
     /// <summary>
-    /// The script's final statement when it is an expression the block plainly means as its
-    /// <i>result</i> — <c>n + p;</c>, <c>$"test";</c>, <c>q;</c> — or null (`E6-T27`).
+    /// Every top-level statement that is an expression the block plainly means as a <i>value</i> —
+    /// <c>n + p;</c>, <c>$"test";</c>, <c>q;</c> — in source order (`E6-T27`, `E6-T28`).
     /// </summary>
     /// <remarks>
     /// <para>
@@ -771,11 +804,65 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// two possible mistakes is free.
     /// </para>
     /// </remarks>
-    private static ExpressionStatementSyntax? TrailingValue(CompilationUnitSyntax root) =>
-        root.Members.LastOrDefault() is GlobalStatementSyntax { Statement: ExpressionStatementSyntax last }
-            && !IsStatementExpression(last.Expression)
-                ? last
-                : null;
+    private static List<ExpressionStatementSyntax> ValueStatements(CompilationUnitSyntax root)
+    {
+        List<ExpressionStatementSyntax> found = [];
+
+        foreach (MemberDeclarationSyntax member in root.Members)
+        {
+            if (member is GlobalStatementSyntax { Statement: ExpressionStatementSyntax statement }
+                && !IsStatementExpression(statement.Expression))
+            {
+                found.Add(statement);
+            }
+        }
+
+        return found;
+    }
+
+    /// <summary>
+    /// Whether the script's values are the single one `E6-T27` handles: exactly one, and it is the
+    /// last thing in the block.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This case is kept separate on purpose, and it is not tidiness.</b> `E6-T28` captures each
+    /// value into <c>var __result1 = …;</c> so that several can be returned together — and
+    /// <c>var</c> needs the expression to have a natural type. <c>null;</c>, <c>default;</c>, a bare
+    /// lambda and a method group have none, so capturing them is <c>CS0815</c> where
+    /// <c>return null;</c> compiles. Returning the one value directly, exactly as `E6-T27` did,
+    /// costs nothing and means no script that worked the day before this row landed can stop
+    /// working.
+    /// </para>
+    /// <para>
+    /// <b>And it is the same reasoning <see cref="Trailer(CompilationUnitSyntax)"/> already applies
+    /// to a single declared variable</b>, which is returned bare rather than as a one-element tuple.
+    /// One value is the value; several are a tuple.
+    /// </para>
+    /// </remarks>
+    private static bool IsTrailingValue(CompilationUnitSyntax root, List<ExpressionStatementSyntax> values) =>
+        values.Count == 1
+        && root.Members.LastOrDefault() is GlobalStatementSyntax { Statement: ExpressionStatementSyntax last }
+        && last == values[0];
+
+    /// <summary>What the <i>n</i>th value port is called: <c>result</c>, <c>result2</c>, … .</summary>
+    /// <remarks>
+    /// <b>The first port keeps the name it has always had, and that is the point of the
+    /// asymmetry.</b> Editing a script re-makes the wires <i>by port name</i>, so numbering from
+    /// <c>result1</c> would disconnect the wire on every existing one-value block the moment its
+    /// author typed a second line — which is precisely the edit this row exists to make useful.
+    /// </remarks>
+    private static string ResultName(int index) =>
+        index == 0 ? "result" : "result" + (index + 1).ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>The temporary the <i>n</i>th value is captured into (`E6-T28`).</summary>
+    /// <remarks>
+    /// Double-underscored like <c>__in</c> and <c>__token</c>, which is the frame's convention for
+    /// a name the user is not meant to write; a script that declares <c>__result1</c> itself
+    /// collides, and so does one that declares <c>__in</c>.
+    /// </remarks>
+    private static string Captured(int index) =>
+        "__result" + (index + 1).ToString(CultureInfo.InvariantCulture);
 
     /// <summary>Whether C# would accept an expression as a statement on its own.</summary>
     /// <remarks>
@@ -940,7 +1027,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         // marker into the generated source's coordinates - no table, for the same reason the map is
         // a subtraction.
         BlankedScript blanked = ScriptRanges.Blank(script);
-        (string body, ImmutableArray<int> markers) = WithTrailingReturn(blanked);
+        (string body, ImmutableArray<int> markers) = WithGeneratedReturns(blanked);
         int offset = source.Length;
 
         source.AppendLine(body);
@@ -963,46 +1050,79 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
                 : [.. markers.Select(marker => marker + offset)]);
     }
 
-    /// <summary>How many lines a builder holds.</summary>
     /// <summary>
-    /// Turns a script's trailing value expression into its <c>return</c>, in place (`E6-T27`).
+    /// Claims a script's value expressions, in place: the single trailing one becomes the
+    /// <c>return</c> itself (`E6-T27`), and several are each captured into a temporary that
+    /// <see cref="Trailer(CompilationUnitSyntax)"/> then returns together (`E6-T28`).
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Seven characters, and not one newline.</b> <c>return </c> is inserted at the start of the
-    /// last statement rather than appended after it, because the statement has to <i>become</i> the
-    /// return — leaving it where it was and appending a second copy would evaluate it twice, which
-    /// a script that calls something would notice. Adding no line is what keeps
-    /// <see cref="ScriptSourceMap"/> a subtraction; the columns after the insertion on that one
-    /// line move, which is the same trade <see cref="GuardWeaver"/> and
+    /// <b>Inserted at the start of the statement, and not one newline anywhere.</b> The statement
+    /// has to <i>become</i> the return or the declaration — leaving it where it was and appending a
+    /// second copy would evaluate it twice, which a script that calls something would notice.
+    /// Adding no line is what keeps <see cref="ScriptSourceMap"/> a subtraction; the columns after
+    /// an insertion on that one line move, which is the same trade <see cref="GuardWeaver"/> and
     /// <see cref="ScriptRanges"/> already make (<c>N122</c>).
     /// </para>
     /// <para>
-    /// <b>The markers have to move with it.</b> They are offsets into the blanked text, and seven
-    /// characters have just been pushed in front of every one that came after the insertion point —
-    /// so a range on or after the last line would otherwise be looked for in the wrong place, and
-    /// silently lowered as the wrong form.
+    /// <b>The markers move by what was inserted <i>ahead of them</i>, which is a running total
+    /// rather than a constant.</b> They are offsets into the blanked text, and with several
+    /// insertions of different lengths a marker on the third value has three of them in front of
+    /// it. Getting this wrong does not raise anything: a range whose marker is looked for in the
+    /// wrong place is lowered as the <i>other</i> form, so <c>0..1..#5</c> comes back as a step
+    /// range — a wrong answer rather than an error.
+    /// </para>
+    /// <para>
+    /// <b>The insertions are applied last-first</b> so that each statement's <c>SpanStart</c>, read
+    /// from the tree that was parsed before any of this, is still an offset into the text being
+    /// edited.
     /// </para>
     /// </remarks>
-    private static (string Body, ImmutableArray<int> Markers) WithTrailingReturn(BlankedScript blanked)
+    private static (string Body, ImmutableArray<int> Markers) WithGeneratedReturns(BlankedScript blanked)
     {
-        const string Keyword = "return ";
+        CompilationUnitSyntax root = CSharpSyntaxTree.ParseText(blanked.Text).GetCompilationUnitRoot();
+        List<ExpressionStatementSyntax> values = ValueStatements(root);
 
-        if (TrailingValue(CSharpSyntaxTree.ParseText(blanked.Text).GetCompilationUnitRoot())
-            is not { } trailing)
+        if (values.Count == 0)
         {
             return (blanked.Text, blanked.Markers);
         }
 
-        int at = trailing.SpanStart;
+        (int At, string Text)[] insertions = IsTrailingValue(root, values)
+            ? [(values[0].SpanStart, "return ")]
+            : [.. values.Select((statement, i) => (statement.SpanStart, "var " + Captured(i) + " = "))];
+
+        StringBuilder body = new(blanked.Text);
+
+        for (int i = insertions.Length - 1; i >= 0; i--)
+        {
+            body.Insert(insertions[i].At, insertions[i].Text);
+        }
 
         return (
-            string.Concat(blanked.Text.AsSpan(0, at), Keyword, blanked.Text.AsSpan(at)),
+            body.ToString(),
             blanked.HasMarkers
-                ? [.. blanked.Markers.Select(marker => marker >= at ? marker + Keyword.Length : marker)]
+                ? [.. blanked.Markers.Select(marker => marker + Ahead(insertions, marker))]
                 : blanked.Markers);
     }
 
+    /// <summary>How many characters <see cref="WithGeneratedReturns"/> inserted before an offset.</summary>
+    private static int Ahead((int At, string Text)[] insertions, int marker)
+    {
+        int shift = 0;
+
+        foreach ((int at, string text) in insertions)
+        {
+            if (marker >= at)
+            {
+                shift += text.Length;
+            }
+        }
+
+        return shift;
+    }
+
+    /// <summary>How many lines a builder holds.</summary>
     private static int Lines(StringBuilder source)
     {
         int lines = 0;
