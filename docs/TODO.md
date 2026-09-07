@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-07 (E11-T26 closed, E11-T27 opened: the headless session's threading)
+**Last updated:** 2026-09-07 (`v0.4.0` published)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -85,6 +85,12 @@ for anything else.
 ---
 
 ## Where the run stands
+
+**`v0.4.0` shipped on 2026-09-07** — <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>,
+installer and portable zip attached, **unsigned**. A minor bump for *Clean up layout* on `Ctrl+L`.
+Cut so the client can watch the update pill light up in their installed `v0.3.0`, which is
+`E12-T21`'s last unproven link; the check itself now answers correctly against the real release
+from `0.3.0`, `0.4.0`, a local prerelease and `9.9.9`.
 
 **The suite's oldest flake had one cause, closed on 2026-09-07** — `E11-T26`, found by running the
 gates before a tag. One headless session, twenty-six test classes, sixteen xunit threads: two

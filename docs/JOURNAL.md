@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-07 (cutting `v0.4.0`)
+**Last updated:** 2026-09-07 (`v0.4.0` published)
 **Protocol version:** 2
 
 ---
@@ -16,12 +16,12 @@ this file says what is happening.
 
 | | |
 |---|---|
-| **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.2.0` shipped on 2026-09-03** — published by `Release #4`, with `spark-0.2.0-setup.exe` (50.9 MB) and `spark-portable-win-x64.zip` (77.3 MB) attached, not a draft and not a prerelease. `v0.1.0` was the first tag in the repository's history; this is the first release cut end to end without a hand-crank in the middle. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Cutting `v0.4.0`, and the client's reason for asking is itself the test.** They want to watch the update pill light up, which is the half of `E12-T21` that has never been witnessed — so this release is both a release and `E12-T21`'s remaining evidence. A **minor** bump, and the sentence for it: it adds user-visible capability that did not exist before — *Edit → Clean up layout*, on `Ctrl+L` — while nothing in `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io` or `Spark.Nodes.Core` moved and no `.spark` file written by this version is unreadable by the last, because a position is not provenance. `git diff v0.3.0..HEAD` over the `PublicAPI.*.txt` files is **empty**. **Three commits since `v0.3.0`**: `E8-T51`, then two documentation steps (`E10-T15`, `E12-T21`). |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`E12-T21`'s live check, answered at last.** The real `UpdateCheck` against the real endpoint: a pretend `0.2.0` finds `0.3.0` and its release URL; `0.3.0` and `9.9.9` find nothing. **Before it:** `E10-T15`, `E8-T51`, cutting `v0.3.0`, `E8-T50`. |
-| **Working tree** | Clean, and **this commit is the one the tag goes on**. The three gates were run on it: build clean, `dotnet format` clean, **2518** tests green across the nine executables with the OpenCascade payload staged, so `Spark.Geometry.Occt.Tests` ran its 63 rather than skipping. |
-| **Next action** | `git tag -a v0.4.0` **on this commit** and push it; the workflow builds the shim, checks the artefact's version against the tag, packs the installer and the portable zip and **publishes**. Then report the URL, say plainly that nothing is signed, and tell the client to open their installed `v0.3.0` — which now has something newer to find, which is the half of `E12-T21` nobody has ever watched. |
+| **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
+| **Working on** | **Nothing — between steps.** `v0.4.0` is published, and the live check confirms a `0.3.0` build finds it: `0.4.0` at its release URL, while `0.4.0`, a local `0.4.1-alpha.0.2` and `9.9.9` all get nothing. **What is left of `E12-T21` is a person seeing the pill in their own installed shell**, which is now the only unproven link in the chain. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **Cutting `v0.4.0`** — a minor bump for *Clean up layout* on `Ctrl+L`, tagged on `040306f` and published. The gates found `E11-T26` on the way, which is what running them before a tag is for. **Before it:** `E11-T26`, `E12-T21`'s live check, `E10-T15`, `E8-T51`. |
+| **Working tree** | Clean; `main` is at the journal commit that follows the tag. The tag is on `040306f`, whose gates were build clean, format clean and **2518** tests green with nothing skipped. |
+| **Next action** | Take the top of the *Queue*: **persist the workspace layout between sessions**. `WorkspaceLayout` already serialises and round-trips under test and nothing writes it, so a dragged arrangement still dies with the window — which is the one thing a dock is for. **If the client reports the pill did not light**, that is `E12-T21`'s last link and takes priority over the queue. |
 | **Verify with** | `tests/Spark.Docs.Verify` — front matter, a worked example per topic, every relative link, every ADR citation and every `Last updated` line — plus the other eight executables to show the documents-only change moved nothing (**2518**: UI 940, Geometry 763, Engine 507, Viewport 108, Properties 43, Occt 63, Architecture 18, Packages 71, Docs 5). **And the arithmetic in the examples is checked by running it**, not by reading it: eight values, first `3`, last `5`. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
@@ -7000,3 +7000,29 @@ release somebody is waiting on**, and neither is tagging while pretending it is 
 `--no-incremental` build `-warnaserror`, `dotnet format --verify-no-changes` clean, and the nine
 executables at **2518** with **nothing skipped** — the native shim was staged, so the OpenCascade
 suite ran its 63.
+
+### 2026-09-07 — `v0.4.0` published, and the update check answered against it
+
+**Published**: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>, by `Release (win-x64) #9`,
+with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) and a `.sha256`
+beside each, not a draft and not a prerelease. **Nothing is signed**, so SmartScreen warns on first
+run — that sentence is in the release notes and is repeated to the client rather than left for them
+to discover.
+
+**Then the check was asked again, against the release that now exists**:
+
+| Pretending to be | Answer |
+|---|---|
+| `0.3.0` | `0.4.0` at its release URL |
+| `0.4.0` | nothing newer |
+| `0.4.1-alpha.0.2` | nothing newer |
+| `9.9.9` | nothing newer |
+
+The third row is the one worth keeping: a local build one commit past the tag is *ahead of the
+release that exists and behind the one that does not*, and treating its prerelease tail as noise
+would give every Spark developer a permanent badge. It is silent, correctly.
+
+**So `E12-T21` now has exactly one unproven link**, and it is the last one: the binding from that
+result to a visible pill, in a real installed older build, watched by a person. Everything upstream
+— the request, the comparison, the prerelease policy, the URL — is evidence against production
+rather than inference from a stubbed `HttpClient`.
