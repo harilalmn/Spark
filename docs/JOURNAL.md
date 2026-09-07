@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-07 (`E10-T15`: Dynamo's `#count` range, written down where a reader looks)
+**Last updated:** 2026-09-07 (`E12-T21`: the update pill already existed, and the live check now answers)
 **Protocol version:** 2
 
 ---
@@ -17,13 +17,13 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.2.0` shipped on 2026-09-03** — published by `Release #4`, with `spark-0.2.0-setup.exe` (50.9 MB) and `spark-portable-win-x64.zip` (77.3 MB) attached, not a draft and not a prerelease. `v0.1.0` was the first tag in the repository's history; this is the first release cut end to end without a hand-crank in the middle. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing — between steps.** `E10-T15` is closed: Dynamo's `#count` range has an answer in writing. Before it, `E8-T51`. **`v0.3.0` is cut and pushed**, and nothing about it is signed. |
+| **Working on** | **Nothing — between steps.** The release pill the client asked for on 2026-09-07 already existed as `E12-T21`; what this step added was the verification it had been waiting for. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E10-T15` — Dynamo's `start..end..#count`, written down where a reader looks.** `Number.Range` takes a step and not a count, so `3..5..#8` is `Enumerable.Range` in a code block, and the divisor is `count - 1`. **Before it:** `E8-T51`, cutting `v0.3.0`, `E8-T50`, `E8-T49`, `E8-T48`. |
-| **Working tree** | Clean, with `E10-T15` committed. Documents only: no `src/` file changed, and the three gates were run anyway to show it. |
-| **Next action** | The client has asked for a **release pill at the top of the shell, linking to the latest release, shown only when a newer one exists, checked at startup**. Start by reading what `E12-T21` already built — `UpdateBadge`, `IsUpdateAvailable` and `--update-badge` are in the shell already — and establish whether this is a new feature or an existing one that is not doing its job. |
+| **Last completed step** | **`E12-T21`'s live check, answered at last.** The real `UpdateCheck` against the real endpoint: a pretend `0.2.0` finds `0.3.0` and its release URL; `0.3.0` and `9.9.9` find nothing. **Before it:** `E10-T15`, `E8-T51`, cutting `v0.3.0`, `E8-T50`. |
+| **Working tree** | Clean. Documents only — no `src/` file changed, because the feature was already built and the finding was that it works. |
+| **Next action** | Take the top of the *Queue*: **persist the workspace layout between sessions**. `WorkspaceLayout` already serialises and round-trips under test and nothing writes it, so a dragged arrangement still dies with the window. |
 | **Verify with** | `tests/Spark.Docs.Verify` — front matter, a worked example per topic, every relative link, every ADR citation and every `Last updated` line — plus the other eight executables to show the documents-only change moved nothing (**2518**: UI 940, Geometry 763, Engine 507, Viewport 108, Properties 43, Occt 63, Architecture 18, Packages 71, Docs 5). **And the arithmetic in the examples is checked by running it**, not by reading it: eight values, first `3`, last `5`. |
-| **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
+| **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
 
@@ -6922,3 +6922,41 @@ example read as fiction.
 
 **Cost.** Build clean, `dotnet format` clean, docs harness green, `DocumentationSampleTests` green
 over the three new fences, 940 UI tests green. No `src/` file changed.
+
+### 2026-09-07 — The release pill was asked for, and it was already there (`E12-T21`)
+
+**The request was for a pill at the top of the shell, linking to the latest release, shown only
+when a newer one exists, checked at startup.** That is `E12-T21`, built on 2026-09-02, sitting in
+the ribbon beside Run: collapsed unless there is something newer, reading *Update available:
+0.3.0*, tooltip *Open the release page in your browser*, click opens it. The startup check runs
+through `StartUpdateCheck`, honours a persisted Help-menu preference, and is refusable for a
+session with `--no-update-check`. **Nothing needed writing.** Saying so and showing the evidence is
+worth more than building a second one beside it.
+
+**What was genuinely open is the verification, and `v0.3.0` finally makes it answerable.** This
+journal has said since 2026-09-03 that `E12-T21` had never been watched doing its job — the check
+is silent on every failure by design, so offline, blocked, rate-limited and *you are on the newest
+build* are one indistinguishable outcome, and nothing short of a real newer release settles it. The
+`v0.2.1`/`v0.2.2` pair was cut for exactly that test and the answer never came back.
+
+**So I asked the real endpoint with the real code.** `UpdateCheck` against
+`api.github.com/repos/harilalmn/Spark/releases/latest`, with the running version pretended in turn:
+
+| Pretending to be | Answer |
+|---|---|
+| `0.2.0` | `0.3.0` at `https://github.com/harilalmn/Spark/releases/tag/v0.3.0` |
+| `0.3.0` | nothing newer |
+| `9.9.9` | nothing newer |
+
+That is the request, the comparison, the prerelease policy and the URL, all against production
+rather than against a stubbed `HttpClient`. `9.9.9` matters as much as `0.2.0`: it is the
+ahead-of-the-release case that a naive comparison gets wrong, and the one every Spark developer
+lives in.
+
+**What it does not prove, said plainly.** The wiring from that result to a visible pill is still
+only proven by `--update-badge`, which pretends. The half of the claim that needs a person is an
+installed *older* build lighting its own shell — and that half is smaller than it was, because
+everything upstream of the binding is now evidence rather than inference.
+
+**Cost.** No code. One throwaway console against `Spark.Host`, one photograph of the pill, and this
+entry.
