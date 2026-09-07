@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
+using Dock.Avalonia.Controls;
 using Dock.Model.Avalonia;
 using Dock.Model.Avalonia.Controls;
 using Dock.Model.Controls;
@@ -88,6 +89,60 @@ public sealed class SparkDockFactory : Factory
         InitLayout(_root);
         return _root;
     }
+
+    /// <summary>
+    /// Prepares the layout, and tells Dock what a floating window is made of.
+    /// </summary>
+    /// <param name="layout">The layout being initialised.</param>
+    /// <remarks>
+    /// <b>Dock ships no default host window, and a pane dragged out of the shell without one is
+    /// simply deleted.</b> <c>FactoryBase.GetHostWindow</c> reads these two locators and hands
+    /// back null when neither is set; floating carries on regardless — the tool is taken out of
+    /// its dock and given to a <c>DockWindow</c> that has nothing to present it in. What a user
+    /// sees is a pane that vanishes the moment they drag it off the window, with <i>Reset
+    /// layout</i> as the only way back, because a rebuild is the only thing that puts the tool
+    /// into a dock again (<c>N116</c>).
+    /// <para>
+    /// Both are set. The keyed locator is what Dock asks for first; the default is the fallback
+    /// for a window Dock creates under some other key, and leaving that one null would reopen
+    /// the same hole for any path that does not use <c>nameof(IDockWindow)</c>.
+    /// </para>
+    /// </remarks>
+    public override void InitLayout(IDockable layout)
+    {
+        HostWindowLocator ??= new Dictionary<string, Func<IHostWindow?>>
+        {
+            [nameof(IDockWindow)] = FloatingWindow,
+        };
+
+        DefaultHostWindowLocator ??= FloatingWindow;
+
+        base.InitLayout(layout);
+    }
+
+    /// <summary>
+    /// The window a pane dragged off the shell lands in: an ordinary window of this operating
+    /// system, with the decorations every other window has.
+    /// </summary>
+    /// <returns>The host window.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b><c>ToolChromeControlsWholeWindow</c> is the whole of it.</b> Dock's theme binds it to
+    /// <i>this window holds fewer than two dockables</i>, and when it is true the window is given
+    /// <c>WindowDecorations="BorderOnly"</c> and the pane's own title bar is promoted to be the
+    /// window's — which can offer maximise and close and has nowhere to put minimise, no system
+    /// menu, and no double-click-to-maximise. A single floated pane was therefore a window that
+    /// behaved unlike every other window on the desktop (<c>N117</c>).
+    /// </para>
+    /// <para>
+    /// Setting it locally beats the theme's setter for the life of the window, so the floated pane
+    /// keeps the native title bar: minimise, maximise/restore, close, Aero snap and the taskbar,
+    /// all of it for free and none of it drawn by us. The pane's own title bar stays a drag area,
+    /// which is what drags it back into the shell — the title bar moves the window, the pane
+    /// header moves the pane.
+    /// </para>
+    /// </remarks>
+    private static HostWindow FloatingWindow() => new() { ToolChromeControlsWholeWindow = false };
 
     /// <summary>
     /// Brings the built layout into line with a workspace: the pane proportions, and which panes
@@ -210,13 +265,25 @@ public sealed class SparkDockFactory : Factory
     private ToolDock Pane(
         WorkspacePane pane, string title, IReadOnlyDictionary<WorkspacePane, object?> content)
     {
+        // WHAT A PANE'S TITLE BAR IS ALLOWED TO OFFER, AND WHY IT IS ALMOST NOTHING.
+        //
+        // Dock draws a button per capability, so this is the chrome. `CanPin` false takes the pin
+        // off the title bar and the auto-hide entries out of the menu: Dock's pin is auto-hide,
+        // and auto-hide collapses a pane into an edge strip that then shows nothing at all when
+        // clicked (`N117`). `CanDockAsDocument` false because there is no DocumentDock in this
+        // shell to dock into. `CanClose` was already false - these four panes are the shell, and
+        // View > Workspace is how you stop showing one.
+        //
+        // What is left is `CanFloat`, which is the one gesture that behaves the way a Windows
+        // user expects it to: drag the pane off, get a window.
         Tool tool = new()
         {
             Id = pane.ToString(),
             Title = title,
             CanClose = false,
             CanFloat = true,
-            CanPin = true,
+            CanPin = false,
+            CanDockAsDocument = false,
         };
 
         if (content.TryGetValue(pane, out object? body) && body is not null)

@@ -114,7 +114,7 @@ public sealed class ReferenceGraphTests
 
         foreach (string project in Directory.EnumerateFiles(RepositoryRoot(), "*.csproj", SearchOption.AllDirectories))
         {
-            if (project.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            if (IsBuildOutput(project))
             {
                 continue;
             }
@@ -196,7 +196,7 @@ public sealed class ReferenceGraphTests
 
         foreach (string project in Directory.EnumerateFiles(RepositoryRoot(), "*.csproj", SearchOption.AllDirectories))
         {
-            if (project.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            if (IsBuildOutput(project))
             {
                 continue;
             }
@@ -265,6 +265,23 @@ public sealed class ReferenceGraphTests
             .Select(include => include!)
             .ToArray();
     }
+
+    /// <summary>
+    /// Whether a <c>.csproj</c> is something the build wrote rather than something the repository
+    /// keeps.
+    /// </summary>
+    /// <param name="project">The project path.</param>
+    /// <returns>True when it is under an <c>obj</c> or a <c>bin</c> directory.</returns>
+    /// <remarks>
+    /// <b><c>obj</c> was not enough.</b> BenchmarkDotNet generates a project per job under
+    /// <c>bench/**/bin/Release/</c> and puts <c>AllowUnsafeBlocks</c> in it, so
+    /// <see cref="OnlyTheNativeProviderAllowsUnsafeCode"/> went red on every machine that had ever
+    /// run the benchmarks — naming an offender that is not in the repository and cannot be fixed
+    /// by editing anything that is. A generated project is not a decision anybody made.
+    /// </remarks>
+    private static bool IsBuildOutput(string project) =>
+        project.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+        || project.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
 
     private static string LocateSourceDirectory() => Path.Combine(RepositoryRoot(), "src");
 

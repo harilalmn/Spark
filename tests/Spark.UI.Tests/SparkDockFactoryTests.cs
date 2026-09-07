@@ -181,6 +181,42 @@ public sealed class SparkDockFactoryTests
         Assert.Throws<InvalidOperationException>(() => factory.Apply(WorkspaceLayout.Default));
     });
 
+    /// <summary>
+    /// <b>A docked pane's title bar shows its title and nothing else.</b> Dock draws a button per
+    /// capability, so denying the capability is what removes the button: the pin is auto-hide,
+    /// which collapses a shell pane into an edge strip that shows nothing at all when clicked, and
+    /// there is no <c>DocumentDock</c> in this shell for <i>Dock as Document</i> to dock into.
+    /// </summary>
+    [Fact]
+    public void APaneOffersNeitherThePinNorDockAsDocument() => HeadlessSession.Run(() =>
+    {
+        (SparkDockFactory factory, _) = BuildShell();
+
+        foreach (WorkspacePane pane in AllPanes)
+        {
+            IDockable tool = factory.DockFor(pane)!.VisibleDockables![0];
+
+            Assert.False(tool.CanPin, $"{pane} should not offer the pin.");
+            Assert.False(tool.CanDockAsDocument, $"{pane} should not offer Dock as Document.");
+            Assert.False(tool.CanClose, $"{pane} is the shell, not a closable document.");
+        }
+    });
+
+    /// <summary>
+    /// <b>Floating is the one gesture the title bar keeps</b>, because it is the one that behaves
+    /// the way a Windows user expects: drag the pane off the shell, get a window.
+    /// </summary>
+    [Fact]
+    public void APaneCanStillBeFloated() => HeadlessSession.Run(() =>
+    {
+        (SparkDockFactory factory, _) = BuildShell();
+
+        foreach (WorkspacePane pane in AllPanes)
+        {
+            Assert.True(factory.DockFor(pane)!.VisibleDockables![0].CanFloat, $"{pane} should float.");
+        }
+    });
+
     private static double Proportion(SparkDockFactory factory, WorkspacePane pane) =>
         factory.DockFor(pane)!.Proportion;
 

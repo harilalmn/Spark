@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-03 (N114 added)
+**Last updated:** 2026-09-07 (N115, N116 and N117 added; N117 rewritten for the chrome that shipped)
 
 ---
 
@@ -3310,3 +3310,112 @@ nodes, the right graph — with the subject absent. A capture that failed would 
 the first run. A capture that succeeds and omits the thing it was taken for gets pasted into a
 journal entry as evidence. **A verification step that cannot fail is worse than no verification
 step**, and the tell is that it has never once been red.
+
+---
+
+## N115 — `RequestNextFrameRendering` repaints the GPU surface and nothing else, and `InvalidateVisual` is hidden so it cannot say otherwise
+
+A user's screenshot showed `OpenGL ready. Version 'OpenGL ES 3.0 (ANGLE …)'` sitting across the
+middle of a viewport that was drawing a perfectly good scene, like a watermark. The message is the
+viewport's own status plate, and `ViewportControl.Render(DrawingContext)` returns before drawing it
+whenever the GL renderer is initialised — so the condition that would have removed it was already
+right, and had been for the whole life of the message on screen.
+
+**A GL control has two surfaces and they are repainted by two different requests.** The scene is on
+a composition surface the compositor owns; `OpenGlControlBase.RequestNextFrameRendering()` queues a
+composition update, which ends in `OnOpenGlRender` and repaints *that*. Everything the control draws
+itself — the status plate, and on the software path the entire rasterised frame — comes from
+`Render(DrawingContext)`, which runs only when the control's **visual** is invalidated. Nothing in
+`ViewportControl` ever invalidated it. The plate recorded during startup, while the message still
+read *waiting for the OpenGL context*, was therefore the plate for ever: resizing the window cleared
+it, because a resize invalidates the visual, and nothing else did.
+
+**Two things made this hard to see.**
+
+1. **The GL callbacks did call something.** `OnOpenGlInit` ended in `RequestNextFrameRendering()`,
+   which reads exactly like *and now repaint*. It is not; and it is additionally a no-op when called
+   from inside `OnOpenGlInit`, because its own guard is `_initialization == null ||
+   IsInitializedSuccessfully` and initialisation has not finished at that point.
+2. **`InvalidateVisual` is hidden.** `OpenGlControlBase` declares
+   `[Obsolete] public new void InvalidateVisual() => RequestNextFrameRendering();`, so writing the
+   obvious call inside the control compiles, warns about the wrong thing, and asks for a GL frame.
+   Reaching the real one takes a cast: `((Visual)this).InvalidateVisual()`. A hidden member is not a
+   virtual one, so the cast is enough.
+
+**It was never only cosmetic.** The software backend rasterises into `Render(DrawingContext)` as
+well, so on a machine with no usable GL — a virtual machine, a remote desktop, `--software-renderer`
+— an orbit, a zoom, a re-run and a capture request all reached the compositor and none of them
+reached the screen. `ViewportRepaintTests` pins that half, because a capture that never completes and
+a message that never goes away are the same missing invalidation seen from two sides.
+
+**The screenshot harness could not have caught it.** `--screenshot` renders the window into a
+`RenderTargetBitmap`, and that re-runs `Render(DrawingContext)` from scratch: the stale plate is
+re-recorded correctly and does not appear. The bug lives in the compositor's retained recording, so
+the only thing that shows it is the running application ([N114](#n114--three-ways-a-screenshot-lies-and-all-three-said-the-feature-was-fine) again, from a fourth direction).
+
+---
+
+## N116 — Dock ships no default host window, so a pane dragged out of the shell was deleted
+
+Dragging any of the four panes off the main window made it vanish. Nothing floated, nothing
+appeared behind the window or on another screen, and only *Reset layout* brought the pane back.
+
+`FactoryBase.GetHostWindow` looks the host up in two properties the factory owns —
+`HostWindowLocator`, keyed, and `DefaultHostWindowLocator`, the fallback — and **both start null**.
+`Dock.Model.Avalonia.Factory` does not fill them in, and neither does `InitLayout`. So the lookup
+returns null, and floating carries on regardless: the tool is removed from its dock and handed to a
+`DockWindow` with no host to present it in. Every part of that is a successful operation with no
+error anywhere.
+
+The fix is three lines in `SparkDockFactory.InitLayout` — both locators returning
+`new HostWindow()`. Both, not one: the keyed locator is what Dock asks for first, and leaving the
+default null reopens the same hole for any path that creates a window under another key.
+
+**The test that existed asserted the wrong half.** `TheViewportCanBeFloated` called `FloatDockable`
+and then asserted nothing at all, and passed for as long as the defect existed. What has to be
+asserted is that the window the tool was given has a `Host` — the pane's continued existence on
+screen is a property of the window, not of the call returning.
+
+---
+
+## N117 — A pane's title bar had four buttons, three of which were wrong, and the fourth was the window's job
+
+Every pane's title bar carried a chevron and a pin. The pin was the worse of the two: Dock's pin is
+**auto-hide**, so pressing it collapsed the pane into a strip on the edge of the window, and clicking
+that strip then showed nothing at all. The pane was gone until *Reset layout*, from a button whose
+glyph promises the opposite of losing something. Auto-hide is a good gesture for a drawer beside a
+document; these four panes are not drawers, they *are* the shell — which is also why
+`SparkDockFactory` leaves `ToolDock.Alignment` unset, since an aligned `ToolDock` defaults to
+`AutoHide` with `IsExpanded` false and draws its title bar over nothing.
+
+**Dock draws a button per capability, so the capability is the control.** `CanPin` false takes the
+pin off the bar and the auto-hide entries out of the menu; `CanDockAsDocument` false removes an
+entry that could only ever have failed, because there is no `DocumentDock` in this shell to dock
+into; `CanClose` was already false. The chevron is the exception — it has no capability behind it
+and `ToolChromeControl` draws it unconditionally — so it is hidden by a style on `PART_MenuButton`
+in `SparkStyles.axaml`. The right-click menu on the title bar is untouched and still offers *Float*,
+which is what a Windows tool window does; it was only the button that had to go.
+
+**The floating half was a window that did not behave like a window.** Dock's theme binds
+`HostWindow.ToolChromeControlsWholeWindow` to *this window holds fewer than two dockables*, and when
+it is true the window is given `ExtendClientAreaToDecorationsHint="True"` and
+`WindowDecorations="BorderOnly"` and the pane's own header is promoted to be the title bar. That
+header can offer maximise and close, and it has nowhere to put minimise, no system menu and no
+double-click-to-maximise — so a pane dragged onto a second monitor could not be minimised, and the
+one thing a user does with a second-monitor window is minimise it. `SparkDockFactory.FloatingWindow`
+sets the property locally, which outranks a `ControlTheme` setter for the life of the window, and
+the operating system supplies minimise, maximise/restore, close, Aero snap and a taskbar button for
+nothing.
+
+**The two title bars then divide the work the way every docking application divides it**: the
+window's title bar moves the window, and the pane's header stays a drag area and moves the pane back
+into the shell. Dock arranges that itself — `PART_Grip`'s `IsDragArea` is bound to
+`Not(ToolChromeControlsWholeWindow)` — so the same switch that restores the decorations is the one
+that keeps re-docking working.
+
+**Measured rather than asserted**, because neither half is provable in the headless session: it runs
+a bare `Application` with no Dock theme in it, so the setter being overridden is not loaded and the
+property reads false whether or not anything set it. A throwaway probe booted the real `App`, floated
+the viewport and read the window back — `BorderOnly` with the client area extended before the fix,
+`Full` after it, and all four chrome buttons `IsVisible=False` on the docked panes. The test that
+ships asserts only what a headless session honestly can: that the local value **is set**.

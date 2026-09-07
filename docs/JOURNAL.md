@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-03 19:55 +0530
+**Last updated:** 2026-09-07 (E8-T45, E8-T46, E9-T14 and E11-T25 committed)
 **Protocol version:** 2
 
 ---
@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.2.0` shipped on 2026-09-03** — published by `Release #4`, with `spark-0.2.0-setup.exe` (50.9 MB) and `spark-portable-win-x64.zip` (77.3 MB) attached, not a draft and not a prerelease. `v0.1.0` was the first tag in the repository's history; this is the first release cut end to end without a hand-crank in the middle. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Cutting `v0.2.2`, the second of the pair.** The client has installed `v0.2.1`; this one exists so that the update check has something newer to find. **It contains no code change** — the only commit over `v0.2.1` is this journal — and the release notes say so rather than implying a fix nobody made. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`E11-T24` — the screenshot harness photographs what is on screen.** Four steps running were verified with a switch that showed none of them, and the Roslyn race the queue item blamed was the smallest of four faults ([N114](NOTES.md)): the capture path ran against a window with no size, so every fit and every world-to-screen conversion was arithmetic on zero; `RenderTargetBitmap.Render` does not run layout, so a popup opened for the photograph had `Bounds` of `0,0,0,0` and drew nothing while every property said it was open; and the pose was asked for twice, the fire-and-forget one cancelling the awaited one. It now **waits** for a layout rather than asking for one, lays out before it renders, and asks once. **`--frame-node`** centres on the block rather than the graph, and **`--code-block-type`** types through the input path, which is the gap `N112` named. **Before that: `E8-T44`** (the running version in the ribbon) and **`v0.2.0`**, published by `Release #4` with both artefacts. |
-| **Working tree** | Clean, and `main` is pushed. The tag goes on the commit that carries this journal. **`Release #5` and CI `#139` both succeeded** and `v0.2.1` published with both artefacts, read from the API without credentials ([N113](NOTES.md)). |
-| **Next action** | **Wait for the client to open their installed `v0.2.1` and say whether the pill appeared.** That is `E12-T21` verified by a person for the first time, and the answer decides what happens next: if it appears, the check is proven end to end and the queue moves on; if it does not, the fault is in the check rather than in the release, because `releases/latest` will demonstrably be `v0.2.2`. **The check is silent on every failure by design**, so *no pill* and *no network* look identical from the outside — which is why a human opening the application is the only test that settles it. |
+| **Working on** | **Nothing — between steps.** `E8-T45`, `E8-T46`, `E9-T14` and `E11-T25` are committed together: a floated pane no longer disappears, the pane chrome is a normal Windows one, the viewport's status plate stopped being a watermark, and the architecture gate stopped scanning the build's own output. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`E8-T46` — the pane chrome is a normal Windows one.** The pin and the chevron are off every docked title bar (`CanPin` false, plus a style on `PART_MenuButton`, which has no capability behind it), and a floated pane gets the operating system's decorations instead of a chrome-drawn title bar with nowhere to put minimise ([N117](NOTES.md)). **The maximise-on-pin behaviour written earlier in the same uncommitted tree was deleted rather than reverted, because it was never committed.** In the same commit: **`E8-T45`** (a pane dragged off the shell was deleted, because Dock ships no default host window — [N116](NOTES.md)), **`E9-T14`** (the viewport's `OpenGL ready…` plate was a permanent watermark — [N115](NOTES.md)) and **`E11-T25`** (the architecture gate scanned `bin` and failed on BenchmarkDotNet's generated project). |
+| **Working tree** | Clean once the commit lands, and `main` needs pushing. **The journal it inherited said `CLEAN` over a dirty tree** — three finished tasks sat uncommitted — which is what step 1 is for and why the tree wins. |
+| **Next action** | **Still waiting on the client to open their installed `v0.2.1` and say whether the update pill appeared** — that is `E12-T21` verified by a person for the first time, and the check is silent on every failure by design, so *no pill* and *no network* look identical from outside. **Ask them at the same time to drag a pane onto their second monitor**, since the new chrome is the thing they reported and only a person with two screens can confirm the minimise button does what it should. If neither answer has arrived, take the top of the *Queue*. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2472**: Geometry.Tests 763, UI.Tests 894, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets, **`--code-block "..." --code-block-in-node --frame-node --screenshot PREFIX` for the editor on the node**, and the same with **`--code-block-type "
 Circle circle = new "`** for a completion list that was *typed* rather than asked for (`E11-T24`). **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
@@ -6602,3 +6602,51 @@ of a person opening a real installation settles whether it works.
 failures this run — the parallel flake recorded against `v0.2.1` did not reproduce, which is
 consistent with about one run in three and is not evidence that it is gone. `Release #5` and CI
 `#139` both succeeded on `v0.2.1`, and it published with the installer and the portable zip.
+
+### 2026-09-07 — The pane chrome is a normal Windows one (`E8-T45`, `E8-T46`, `E9-T14`, `E11-T25`)
+
+**Reconciled first, and the journal was wrong.** It said `CLEAN` and *wait for the client* while
+the tree carried finished, uncommitted work for three tasks. The tree wins, as the protocol says;
+recording it here because the whole point of step 1 is that this is cheap when it is written down.
+
+**What.** The client asked for the pin and the chevron to come off the panes and for docking to
+behave the way every Windows application does. Dock draws a button per capability, so `CanPin` and
+`CanDockAsDocument` go false on the four panes; the chevron has no capability behind it and is
+hidden by a style on `PART_MenuButton`. A docked pane is now a title and nothing else. Floating was
+the other half: Dock's theme binds `ToolChromeControlsWholeWindow` to *fewer than two dockables*,
+which strips a single floated pane's window to `BorderOnly` and promotes the pane's header to be
+the title bar — a title bar with **nowhere to put minimise**. `SparkDockFactory.FloatingWindow`
+sets the property locally, and the operating system supplies the three buttons, the taskbar entry
+and Aero snap.
+
+**The maximise-on-pin step written earlier in this same uncommitted tree is gone rather than
+reverted.** It was never committed, so there is nothing to revert; `Maximise`, `MaximisedPane`, the
+`PinDockable` override and their four tests are deleted, and `N117`, the `E8-T46` row and the help
+topic are rewritten to describe the chrome that actually shipped. `E8-T45` and `E9-T14` are
+untouched and land in the same commit.
+
+**Verified, and the shape of the verification is the interesting part.** The headless session runs
+a bare `Application` with **no Dock theme in it**, so the setter being overridden is not loaded and
+`ToolChromeControlsWholeWindow` reads false whether or not anything sets it — the obvious assertion
+passes on the defect, and did, on the first draft of the test. So the shipped test asserts that the
+local value **is set** (red without the fix, and its remarks say why it cannot assert more), and a
+throwaway probe under the scratchpad booted the real `App`, floated the viewport and read the window
+back: `BorderOnly` with the client area extended before the fix, `Full` after it, with `CanResize`,
+`ShowInTaskbar` and the title *Viewport*. The same probe reports all four chrome buttons
+`IsVisible=False` on the docked panes. `--graph curves --screenshot` shows four title bars carrying
+nothing but *Library*, *Canvas*, *Viewport* and *Properties*.
+
+**And a gate that had been red on this machine for a week.** Running the gates before starting —
+step 3, the one that exists to tell you whether you inherited a clean tree — failed
+`OnlyTheNativeProviderAllowsUnsafeCode`, naming `BenchmarkDotNet.Autogenerated`. The test skipped
+`obj` and not `bin`, and BenchmarkDotNet writes a generated project with `AllowUnsafeBlocks` under
+`bench/**/bin/Release/`; the artefact here was dated 2026-08-28. CI never sees it because CI builds
+clean. `E11-T25`, one shared `IsBuildOutput`, used by both loops that walk the projects — the other
+had the same hole and had only been luckier.
+
+**Also corrected:** `TASKS.md`'s summary line, which claimed 267 rows over figures that did not add
+up to 267. Recounted from the tables: 315 rows, 231 done.
+
+**Cost.** Build clean, `dotnet format` clean, 2477 tests green across the nine executables
+(UI 899, Geometry 763, Engine 507, Viewport 108, Properties 43, Occt 63 **all skipped**, Architecture
+18, Packages 71, Docs 5).

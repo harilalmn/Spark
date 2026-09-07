@@ -147,7 +147,7 @@ public sealed class ViewportControl : OpenGlControlBase
         {
             ArgumentNullException.ThrowIfNull(value);
             _scene = value;
-            RequestNextFrameRendering();
+            RequestFrame();
         }
     }
 
@@ -162,7 +162,7 @@ public sealed class ViewportControl : OpenGlControlBase
     public void RequestCapture()
     {
         _captureRequested = true;
-        RequestNextFrameRendering();
+        RequestFrame();
     }
 
     /// <summary>Whether a capture has completed and is waiting to be taken.</summary>
@@ -204,13 +204,13 @@ public sealed class ViewportControl : OpenGlControlBase
     /// run's geometry. The renderer reconciles against the scene's version counter, so all this has
     /// to do is ask for a frame.
     /// </remarks>
-    public void InvalidateGeometry() => RequestNextFrameRendering();
+    public void InvalidateGeometry() => RequestFrame();
 
     /// <summary>Frames the whole scene.</summary>
     public void ZoomToFit()
     {
         _camera.ZoomToFit(_scene.ComputeBounds());
-        RequestNextFrameRendering();
+        RequestFrame();
     }
 
     /// <inheritdoc/>
@@ -355,6 +355,66 @@ public sealed class ViewportControl : OpenGlControlBase
         return hash.ToHashCode();
     }
 
+    /// <summary>
+    /// Records what the viewport has to say about itself, and asks for the overlay that says it
+    /// to be drawn again.
+    /// </summary>
+    /// <param name="status">The message, or null.</param>
+    /// <remarks>
+    /// <b>This is the whole of the watermark bug.</b> Every one of these messages is drawn from
+    /// <see cref="Render(DrawingContext)"/>, and the only thing the GL callbacks used to do after
+    /// setting one was call <c>RequestNextFrameRendering</c> — which asks the compositor for
+    /// another <i>GL frame</i> and never invalidates this control's visual, so
+    /// <c>Render(DrawingContext)</c> is not run again and the recorded overlay does not change.
+    /// The plate drawn during startup, while the message was still <i>waiting for the OpenGL
+    /// context</i>, therefore stayed on top of a perfectly good scene reading <c>OpenGL ready.
+    /// Version …</c>, for as long as nothing else invalidated the control — which is why resizing
+    /// the window cleared it and nothing else did (<c>N115</c>).
+    /// <para>
+    /// Posted rather than invalidated inline because the GL callbacks run inside the compositor's
+    /// commit, and an invalidation raised in the middle of one is raised against the pass that is
+    /// already being assembled.
+    /// </para>
+    /// </remarks>
+    private void SetStatus(string? status)
+    {
+        _status = status;
+        RequestFrame();
+    }
+
+    /// <summary>
+    /// Asks for another frame of everything this control shows: the GL surface the compositor
+    /// owns, and the content the control draws itself.
+    /// </summary>
+    /// <remarks>
+    /// <b>Two requests, because they reach two different surfaces, and only one of them was ever
+    /// being made.</b> <c>RequestNextFrameRendering</c> queues a composition update, which ends in
+    /// <see cref="OnOpenGlRender(GlInterface,int)"/> and repaints the GPU surface. It does not
+    /// invalidate this control's visual, so <see cref="Render(DrawingContext)"/> — which draws the
+    /// status plate <i>and</i> the whole software frame — is not run again. On the GL path that
+    /// showed as a message that would not go away; on the software path it means a camera that
+    /// has moved and a scene that has changed do not reach the screen at all.
+    /// </remarks>
+    private void RequestFrame()
+    {
+        RequestNextFrameRendering();
+
+        // Posted rather than invalidated inline: the GL callbacks run inside the compositor's
+        // commit, and an invalidation raised in the middle of one is raised against the pass that
+        // is already being assembled.
+        Dispatcher.UIThread.Post(InvalidateSelfDrawnContent);
+    }
+
+    /// <summary>Marks the control's own drawing — the overlay and the software frame — dirty.</summary>
+    /// <remarks>
+    /// <b>The cast is the point.</b> <see cref="OpenGlControlBase"/> hides
+    /// <see cref="Visual.InvalidateVisual"/> with <c>public new void InvalidateVisual() =>
+    /// RequestNextFrameRendering()</c>, so the obvious call — <c>InvalidateVisual()</c> — compiles
+    /// and asks for a GL frame instead of a repaint. Casting to <see cref="Visual"/> reaches the
+    /// real one, since a hidden member is not a virtual one.
+    /// </remarks>
+    private void InvalidateSelfDrawnContent() => ((Visual)this).InvalidateVisual();
+
     /// <inheritdoc/>
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
@@ -371,8 +431,7 @@ public sealed class ViewportControl : OpenGlControlBase
                 }
 
                 _softwareCommitted = true;
-                _status ??= "No OpenGL context arrived. Drawing with the software renderer.";
-                RequestNextFrameRendering();
+                SetStatus(_status ?? "No OpenGL context arrived. Drawing with the software renderer.");
             },
             GlPatience);
     }
@@ -387,8 +446,7 @@ public sealed class ViewportControl : OpenGlControlBase
         {
             _renderer = null;
             _glApi = null;
-            _status = "Software renderer, forced by --software-renderer.";
-            RequestNextFrameRendering();
+            SetStatus("Software renderer, forced by --software-renderer.");
             return;
         }
 
@@ -399,19 +457,19 @@ public sealed class ViewportControl : OpenGlControlBase
         {
             _renderer = renderer;
             _glApi = api;
-            _status = api.MissingEntryPoints is null
+            SetStatus(api.MissingEntryPoints is null
                 ? renderer.Diagnostic
-                : $"{renderer.Diagnostic} Missing entry points: {api.MissingEntryPoints}.";
+                : $"{renderer.Diagnostic} Missing entry points: {api.MissingEntryPoints}.");
         }
         else
         {
             renderer.Dispose();
             _renderer = null;
             _glApi = null;
-            _status = renderer.Diagnostic;
+            SetStatus(renderer.Diagnostic);
         }
 
-        RequestNextFrameRendering();
+        RequestFrame();
     }
 
     /// <inheritdoc/>
@@ -420,6 +478,10 @@ public sealed class ViewportControl : OpenGlControlBase
         _renderer?.Dispose();
         _renderer = null;
         _glApi = null;
+
+        // The overlay and the software frame draw when there is no GL renderer, and there is no
+        // longer one.
+        RequestFrame();
         base.OnOpenGlDeinit(gl);
     }
 
@@ -459,7 +521,7 @@ public sealed class ViewportControl : OpenGlControlBase
         _renderer = null;
         _glApi = null;
         _glReported = true;
-        _status = "The OpenGL context was lost. It will be rebuilt on the next frame.";
+        SetStatus("The OpenGL context was lost. It will be rebuilt on the next frame.");
         base.OnOpenGlLost();
     }
 
@@ -562,7 +624,7 @@ public sealed class ViewportControl : OpenGlControlBase
             _camera.Pan(dx, dy);
         }
 
-        RequestNextFrameRendering();
+        RequestFrame();
         e.Handled = true;
     }
 
@@ -579,7 +641,7 @@ public sealed class ViewportControl : OpenGlControlBase
     {
         base.OnPointerWheelChanged(e);
         _camera.Dolly(e.Delta.Y);
-        RequestNextFrameRendering();
+        RequestFrame();
         e.Handled = true;
     }
 

@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-01 (E6-T22 to E6-T25, E9-T13 and E8-T33 to E8-T37 closed: the code editor's IntelliSense and Selection menu, typed code-block outputs, the two docking defects, click-to-connect, node names and colours, Dynamo-style port lozenges, New, Control+drag to copy, and grey node headers)
+**Last updated:** 2026-09-07 (E8-T45, E8-T46, E9-T14 and E11-T25 closed: a floated pane no longer disappears, the pane chrome is a normal Windows one, the viewport's status message stopped being a watermark, and the architecture gate stopped scanning the build's own output)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -85,6 +85,25 @@ for anything else.
 ---
 
 ## Where the run stands
+
+**Three shell defects closed on 2026-09-07** — `E8-T45`, `E8-T46` and `E9-T14`. A pane dragged off
+the main window was **deleted** rather than floated, because Dock ships no default host window and
+floating succeeds anyway ([N116](NOTES.md)). **The pane chrome is now a normal Windows one**: the
+pin and the chevron are gone from every docked title bar — Dock's pin is auto-hide, which collapsed
+a shell pane into an edge strip that showed nothing at all when clicked — and a floated pane gets
+the operating system's own decorations, so it has minimise as well as maximise and close, a taskbar
+button and Aero snap. It had none of those, because Dock promotes the pane's header to be the title
+bar of a single-pane window and that header has nowhere to put minimise ([N117](NOTES.md)). And the
+viewport's `OpenGL ready…` plate had become a permanent watermark, because
+`RequestNextFrameRendering` repaints the GPU surface and never the control's own drawing — which
+also meant that **on the software path nothing a user did reached the screen at all** until
+something else invalidated the control ([N115](NOTES.md)). Panes, workspaces and floating now have
+a help topic (`docs/help/concepts/workspace.md`).
+
+**And one gate that had been red locally for a week** — `E11-T25`. `OnlyTheNativeProviderAllowsUnsafeCode`
+skipped `obj` and not `bin`, so on any machine that had ever run the benchmarks it failed naming
+BenchmarkDotNet's generated project: an offender not in the repository, which CI never sees because
+CI builds clean. Both loops that walk the projects now share one `IsBuildOutput`.
 
 **M5 closed on 2026-08-31.** The software renderer, headless thumbnails and the CI visual
 regression — `E9-T5`, `E9-T11`, `E9-T12` — were the three things it still owed after
