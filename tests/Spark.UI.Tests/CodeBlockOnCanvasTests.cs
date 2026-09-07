@@ -431,4 +431,168 @@ public sealed class CodeBlockOnCanvasTests
 
         window.Close();
     });
+
+    /// <summary>
+    /// <b>`E8-T53`: one click on a code block opens its editor.</b> Asked for by the client, who
+    /// found the double-click a keystroke too many on the node they type into most.
+    /// </summary>
+    [Fact]
+    public void ASingleClickOnACodeBlockOpensTheEditor() => HeadlessSession.Run(() =>
+    {
+        (CanvasGraph graph, int slot) = Block(TwoLines);
+
+        GraphCanvas canvas = new() { Graph = graph };
+        Window window = new() { Width = 900, Height = 700, Content = canvas };
+
+        window.Show();
+        window.CaptureRenderedFrame();
+
+        CanvasFieldEditEventArgs? asked = null;
+        canvas.ScriptEditRequested += (_, e) => asked = e;
+
+        graph.Nodes[slot].ScriptBox(out double x, out double y, out double width, out double height);
+
+        Point centre = new(
+            canvas.Transform.ToScreenX(x + (width / 2)),
+            canvas.Transform.ToScreenY(y + (height / 2)));
+
+        window.MouseDown(centre, MouseButton.Left);
+        window.MouseUp(centre, MouseButton.Left);
+
+        Assert.NotNull(asked);
+        Assert.Equal(slot, asked!.Slot);
+        Assert.Equal(TwoLines, asked.Text);
+
+        window.Close();
+    });
+
+    /// <summary>
+    /// <b>The gesture this could break, and the reason the rule is slop rather than "did it
+    /// move".</b> A block is dragged by pressing on it, so a drag must open nothing — and a
+    /// tremor of a pixel or two must still be a click, or the click-to-edit is a gesture users
+    /// learn not to trust.
+    /// </summary>
+    [Fact]
+    public void DraggingABlockOpensNothingButATremorStillClicks() => HeadlessSession.Run(() =>
+    {
+        (CanvasGraph graph, int slot) = Block(TwoLines);
+
+        GraphCanvas canvas = new() { Graph = graph };
+        Window window = new() { Width = 900, Height = 700, Content = canvas };
+
+        window.Show();
+        window.CaptureRenderedFrame();
+
+        int asked = 0;
+        canvas.ScriptEditRequested += (_, _) => asked++;
+
+        CanvasNode node = graph.Nodes[slot];
+        Point title = new(
+            canvas.Transform.ToScreenX(node.X + (node.Width / 2)),
+            canvas.Transform.ToScreenY(node.Y + (CanvasNode.HeaderHeight / 2)));
+
+        // A SLOW DRAG, IN STEPS SMALLER THAN THE SLOP, AND THAT IS THE WHOLE POINT.
+        //
+        // Sixty steps of two pixels is a hand moving a node carefully, and it is the only shape of
+        // drag that can tell a correct implementation from one measuring the slop against
+        // `_dragStartWorld` — which a node drag advances on every move, so it holds the *previous*
+        // position and each step reads as two pixels for ever. Under that mistake this drag is
+        // sixty consecutive clicks. A drag that jumps 120 pixels in one move passes either way.
+        window.MouseDown(title, MouseButton.Left);
+
+        for (int step = 1; step <= 60; step++)
+        {
+            window.MouseMove(title + new Vector(step * 2, step), RawInputModifiers.LeftMouseButton);
+        }
+
+        window.MouseUp(title + new Vector(120, 60), MouseButton.Left);
+
+        Assert.Equal(0, asked);
+
+        // Two pixels, which is inside the slop: a hand that shakes has still clicked.
+        Point again = new(
+            canvas.Transform.ToScreenX(graph.Nodes[slot].X + (graph.Nodes[slot].Width / 2)),
+            canvas.Transform.ToScreenY(graph.Nodes[slot].Y + (CanvasNode.HeaderHeight / 2)));
+
+        window.MouseDown(again, MouseButton.Left);
+        window.MouseMove(again + new Vector(2, 1), RawInputModifiers.LeftMouseButton);
+        window.MouseUp(again + new Vector(2, 1), MouseButton.Left);
+
+        Assert.Equal(1, asked);
+
+        window.Close();
+    });
+
+    /// <summary>
+    /// A click on an ordinary node opens nothing — the same claim the double-click test makes, and
+    /// it has to be re-made because the gesture is now the one every node receives.
+    /// </summary>
+    [Fact]
+    public void ASingleClickOnAnOrdinaryNodeOpensNothing() => HeadlessSession.Run(() =>
+    {
+        CanvasGraph graph = new();
+        int slot = graph.Add(TestGraphs.Library.ByName("Number.Value"), 0, 0);
+
+        GraphCanvas canvas = new() { Graph = graph };
+        Window window = new() { Width = 900, Height = 700, Content = canvas };
+
+        window.Show();
+        window.CaptureRenderedFrame();
+
+        bool asked = false;
+        canvas.ScriptEditRequested += (_, _) => asked = true;
+
+        CanvasNode node = graph.Nodes[slot];
+        Point centre = new(
+            canvas.Transform.ToScreenX(node.X + (node.Width / 2)),
+            canvas.Transform.ToScreenY(node.Y + CanvasNode.HeaderHeight + 4));
+
+        window.MouseDown(centre, MouseButton.Left);
+        window.MouseUp(centre, MouseButton.Left);
+
+        Assert.False(asked, "an ordinary node was offered a code editor");
+
+        window.Close();
+    });
+
+    /// <summary>
+    /// <b>Control and Shift are about the selection, not about typing.</b> Control+click arms a
+    /// copy (`E8-T37`) and Shift+click extends the selection; neither should put an editor over the
+    /// block, which would take the keyboard away mid-selection.
+    /// </summary>
+    /// <remarks>
+    /// <b>One modified click per test, and that is not fussiness.</b> The first version did both in
+    /// one body, at one point, and failed — two clicks in the same place are a <i>double</i> click,
+    /// which has opened the editor since `E8-T39` and pays no attention to modifiers. The test was
+    /// measuring the double-click path while claiming to measure the single one.
+    /// </remarks>
+    [Theory]
+    [InlineData(RawInputModifiers.Control)]
+    [InlineData(RawInputModifiers.Shift)]
+    public void AModifiedClickOpensNothing(RawInputModifiers held) => HeadlessSession.Run(() =>
+    {
+        (CanvasGraph graph, int slot) = Block(TwoLines);
+
+        GraphCanvas canvas = new() { Graph = graph };
+        Window window = new() { Width = 900, Height = 700, Content = canvas };
+
+        window.Show();
+        window.CaptureRenderedFrame();
+
+        int asked = 0;
+        canvas.ScriptEditRequested += (_, _) => asked++;
+
+        graph.Nodes[slot].ScriptBox(out double x, out double y, out double width, out double height);
+
+        Point centre = new(
+            canvas.Transform.ToScreenX(x + (width / 2)),
+            canvas.Transform.ToScreenY(y + (height / 2)));
+
+        window.MouseDown(centre, MouseButton.Left, held);
+        window.MouseUp(centre, MouseButton.Left, held);
+
+        Assert.Equal(0, asked);
+
+        window.Close();
+    });
 }

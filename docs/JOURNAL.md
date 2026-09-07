@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-07 (the editor follows a dragged block)
+**Last updated:** 2026-09-07 (a single click opens the code block editor)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **`E8-T53` next - a single click opens the code block's editor, where it is a double-click today.** Asked for by the client in the same sitting as `E8-T52`. |
+| **Working on** | **Nothing - between steps.** Both of the client's canvas reports from this sitting are closed. **What is left of `E12-T21` is a person seeing the update pill in their own installed shell**, still the only unproven link in that chain. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The open editor follows a dragged block** - `E8-T52`. `E8-T43`'s funnel existed and the two node drags were never routed into it; the event is renamed `ContentMoved` so its name states the condition a new call site must satisfy. **Before it:** `E6-T28`, `E6-T18`, `E6-T27`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2580** tests green over ten executables with zero skips. **One known flaky test**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, about one full run in five, green in isolation - [N120](NOTES.md). |
-| **Next action** | `E8-T53`. `GraphCanvas.OnPointerReleased`: a release in `DraggingNodes` mode that never travelled past `ClickSlopScreen`, with no modifier held, on a node whose `Script` is not null, calls `RequestScriptEdit`. **Slop and not net displacement** - `_dragTotalX == 0` is what the deferred-deselect uses and it would make a one-pixel hand tremor swallow the gesture - so a `_nodeDragMoved` flag is set in `OnPointerMoved` exactly the way `_wireDragMoved` already is. Guard on no modifier, because Control arms a copy and Shift toggles the selection, and neither should open an editor. |
-| **Verify with** | A headless test that single-clicks a code block and asserts `ScriptEditRequested` fired; the existing `DoubleClickingACodeBlockAsksForAnEditorOverItsSource` must stay green, and `DoubleClickingAnOrdinaryNodeAsksForNothing` covers the node that has no source. **A test that a *drag* opens nothing** is the one that matters: it is the gesture this could break. Then the ten executables, and the app. **Grep the run output for `[FAIL]` and not only `Total:`.** |
+| **Last completed step** | **A single click opens the code block's editor** - `E8-T53`. On the release and gated on the click slop, so dragging still drags; the modifier is recorded at the press. **Before it:** `E8-T52`, `E6-T28`, `E6-T18`, `E6-T27`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2585** tests green over ten executables with zero skips. **One known flaky test**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, about one full run in five, green in isolation - [N120](NOTES.md). |
+| **Next action** | **Nothing is queued that does not need a person.** The nearest unblocked engineering row is the *Queue*'s `+` pair: **persist the workspace layout between sessions** (`WorkspaceLayout` already serialises and round-trips under test, and nothing writes it - a dragged arrangement dies with the window, which is the one thing a dock is for), and **a guard that no test project reports zero tests**, one line that catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)). Take the layout one; it is the one a user would notice. |
+| **Verify with** | For the layout row: drag the docks into a new arrangement, close the application, reopen it, and find the arrangement still there - then the ten executables and `tests/Spark.Docs.Verify`. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -7439,3 +7439,59 @@ executables with zero skips, output grepped for `[FAIL]` as well as `Total:`.
 
 **Documents.** `E8-T52`'s row in TASKS, a line in TODO, and `concepts/code-blocks.md`, which
 promised that *panning and zooming* carry the editor and now promises the drag as well.
+
+### 2026-09-07 — A single click opens the code block's editor
+
+**What.** `E8-T53`. The client asked for it in the same sitting as `E8-T52`: the double-click is a
+keystroke too many on the node they type into most.
+
+**On the release, not the press, because a block has to stay draggable.** A press on a node starts
+a drag; only the release knows whether one happened. A gesture that never travelled past
+`ClickSlopScreen` is a click and opens the editor; one that did is a move and opens nothing.
+
+**Slop rather than net displacement, and the distinction is the whole feature.** `_dragTotalX == 0`
+is what the deferred-deselect uses and it is the right question for *did this edit anything* — a
+node dragged out and back is not a move, and recording it would put an undo step on the stack that
+undoes nothing. It is the wrong question for *was this a click*: a hand that trembles one pixel has
+moved the node one pixel, and a click-to-edit that a tremor swallows is a gesture people stop
+trusting after the second time it does nothing. `_wireDragMoved` had already drawn the line in the
+right place and this is the same line.
+
+**Two things were wrong in the first draft, and both are worth recording because both looked
+right.**
+
+- **The slop needs its own anchor.** I wrote it against `_dragStartWorld`, which a node drag
+  *advances on every pointer move* — the move applies a delta, so it holds the previous event's
+  position. Measuring against it compares one mouse-move's worth of travel, so a slow drag is sixty
+  consecutive clicks. Caught while writing the comment explaining why it was fine.
+  `_nodeDragAnchorWorld` holds where the press landed and is never advanced.
+- **The modifier has to be recorded at the press.** Reading `KeyModifiers` off the release event
+  let a Control+click open an editor. `_duplicateOnDrag` and `_deselectOnRelease` are both recorded
+  at the press for the same reason: the gesture is the one the user *started*, and a key released
+  part way through must not change what it was.
+
+**A test that was measuring the wrong thing while claiming to measure the right one.** The first
+modifier test did Control+click and Shift+click in one body at one point — which is a *double*
+click, and double-click has opened the editor since `E8-T39` and pays no attention to modifiers. It
+failed, and it would have been just as wrong if it had passed. It is now a `[Theory]`, one modified
+click each.
+
+**The load-bearing test drags in sixty two-pixel steps.** A drag that jumps 120 pixels in one move
+passes with either anchor, so the first version of
+`DraggingABlockOpensNothingButATremorStillClicks` could not see the anchor mistake at all — checked
+by making it, twice: at six pixels a step it still passed, at two it goes red. Every step has to be
+*smaller than the slop* for the wrong anchor to be invisible to the implementation and visible to
+the test. It asserts the other half too: a two-pixel tremor still counts as a click.
+
+**Double-click is left in place.** The second click of a double now lands on the editor the first
+one opened, so that path is usually dead — but *usually* is not *always*, and opening an editor
+already open over the same block is idempotent.
+
+**Verified.** Four new tests; the two existing double-click tests green unedited. Gates: build clean
+with zero warnings, format clean, **2585** tests green over ten executables with zero skips, output
+grepped for `[FAIL]` as well as `Total:`.
+
+**Documents.** `E8-T53`'s row in TASKS, a line in TODO, and `concepts/code-blocks.md`, whose
+*"Double-click the block to type in it"* is now *"Click the block to type in it"* — with the reason
+dragging still works, since that is the question the sentence raises. The **empty canvas**
+double-click that creates a block is untouched, in that topic and in `finding-nodes.md`.

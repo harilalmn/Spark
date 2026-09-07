@@ -287,6 +287,39 @@ public sealed class GraphCanvas : Control
     private double _dragTotalX;
     private double _dragTotalY;
 
+    /// <summary>
+    /// Whether the node drag in progress has travelled far enough to be a drag (<c>E8-T53</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Slop, and not <see cref="_dragTotalX"/> being zero.</b> The net displacement is the right
+    /// question for <i>did this edit anything</i> — a node dragged out and back is not a move — and
+    /// the wrong one for <i>was this a click</i>: a hand that trembles one pixel has moved the node
+    /// one pixel, and a click-to-edit gesture that a tremor swallows is a gesture users learn not
+    /// to trust. <c>_wireDragMoved</c> already draws the line in the right place and this is the
+    /// same line.
+    /// </remarks>
+    private bool _nodeDragMoved;
+
+    /// <summary>Where a node drag's press landed, which is not where the drag is measured from.</summary>
+    /// <remarks>
+    /// <b><see cref="_dragStartWorld"/> cannot answer this and it is worth saying why.</b> A node
+    /// drag advances it on every pointer move, because the move applies a <i>delta</i> — so it
+    /// holds the previous event's position, and the distance from it is one mouse-move's worth of
+    /// travel rather than the gesture's. Measuring the slop against it would call every drag a
+    /// click. The wire drag reuses it safely only because it never advances it.
+    /// </remarks>
+    private Point _nodeDragAnchorWorld;
+
+    /// <summary>Whether the node press in progress was made with no modifier held (<c>E8-T53</c>).</summary>
+    /// <remarks>
+    /// <b>Recorded at the press, not read at the release</b>, for the reason
+    /// <see cref="_duplicateOnDrag"/> and <c>_deselectOnRelease</c> are: the gesture is the one the
+    /// user started, and a key let go part way through a drag must not change what the gesture was.
+    /// Reading <c>KeyModifiers</c> off the release event instead is what the first version did, and
+    /// a Control+click opened an editor.
+    /// </remarks>
+    private bool _nodePressPlain;
+
     /// <summary>Creates an empty canvas.</summary>
     public GraphCanvas()
     {
@@ -856,6 +889,9 @@ public sealed class GraphCanvas : Control
             _mode = InteractionMode.DraggingNodes;
             _dragTotalX = 0;
             _dragTotalY = 0;
+            _nodeDragMoved = false;
+            _nodeDragAnchorWorld = world;
+            _nodePressPlain = !additive;
             _dragStartWorld = world;
             e.Pointer.Capture(this);
             e.Handled = true;
@@ -955,6 +991,13 @@ public sealed class GraphCanvas : Control
                 return;
 
             case InteractionMode.DraggingNodes:
+                // Measured against where the press landed, not against the last pointer move -
+                // and in screen pixels, so the slop is the same physical distance at every zoom
+                // (`E8-T53`).
+                _nodeDragMoved = _nodeDragMoved
+                    || (Math.Abs(world.X - _nodeDragAnchorWorld.X) * _transform.Zoom) > ClickSlopScreen
+                    || (Math.Abs(world.Y - _nodeDragAnchorWorld.Y) * _transform.Zoom) > ClickSlopScreen;
+
                 if (_duplicateOnDrag)
                 {
                     DuplicateDraggedSelection();
@@ -1116,6 +1159,22 @@ public sealed class GraphCanvas : Control
                 break;
         }
 
+        // A CLICK ON A CODE BLOCK OPENS ITS EDITOR (`E8-T53`).
+        //
+        // Here rather than in OnDoubleTapped, and on the *release* rather than the press, because
+        // a press is the start of a drag and a block has to stay draggable. A gesture that never
+        // travelled past the slop is a click; one that did is a move, and it opens nothing.
+        //
+        // No modifier, and that is not caution: Control arms a copy (`E8-T37`) and Shift toggles
+        // the selection, so both are gestures about *which nodes*, and neither is a request to
+        // type into one.
+        if (_mode is InteractionMode.DraggingNodes && !_nodeDragMoved && _nodePressPlain
+            && _focusNode >= 0 && _focusNode < _graph.Nodes.Count
+            && _graph.Nodes[_focusNode].Script is not null)
+        {
+            RequestScriptEdit(_focusNode);
+        }
+
         // The deselection a Control+press on a selected node deferred. It happens only if the press
         // never became a drag — a drag was a copy, and a copy that deselected what it copied would
         // leave nothing to copy next time.
@@ -1233,8 +1292,16 @@ public sealed class GraphCanvas : Control
     /// <inheritdoc/>
     /// <remarks>
     /// Double-clicking empty canvas asks the shell for a code block there (`E8-T27`), and
-    /// double-clicking a code block's source opens the editor over it (`E8-T39`) — the same
-    /// gesture, in and out. On any other node, a port or a wire it still does nothing.
+    /// double-clicking a code block opens the editor over it (`E8-T39`) — the same gesture, in and
+    /// out. On any other node, a port or a wire it still does nothing.
+    ///
+    /// <para>
+    /// <b>A single click opens it too (`E8-T53`), and this stays.</b> The second click of a double
+    /// lands on the editor the first one opened, so the double-click path is usually dead — but
+    /// *usually* is not *always*, and a gesture that has worked since `E8-T39` should not stop
+    /// working because a faster one arrived. Opening an editor that is already open over the same
+    /// block is idempotent.
+    /// </para>
     /// </remarks>
     protected override void OnDoubleTapped(Avalonia.Input.TappedEventArgs e)
     {

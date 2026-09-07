@@ -26,9 +26,10 @@ since: "0.1"
 into. That is Dynamo's gesture and it does the same thing here. **Insert → Code block** does
 the same, at the next free spot.
 
-**Double-click the block to type in it.** The editor opens on the node, over the source it was
-already showing. The same source is also in the **Properties** pane, which is the better place
-for a long script and the only place the input-port type dropdowns are.
+**Click the block to type in it.** One click opens the editor on the node, over the source it was
+already showing — dragging the block still drags it, because a drag is a click that moved. The same
+source is also in the **Properties** pane, which is the better place for a long script and the only
+place the input-port type dropdowns are.
 
 **A new block starts with no input ports.** You do not add one with a button; you add one by
 using a name the code has not declared. That is the whole rule, and everything below is it
