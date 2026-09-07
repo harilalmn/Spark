@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-07 (N118 added: pulling a wire off an input port)
+**Last updated:** 2026-09-07 (N118 added, then extended: the click gesture lifts a wire too)
 
 ---
 
@@ -3464,14 +3464,21 @@ input* — and a connection from an input to empty canvas is refused, which is w
 `✕` say ([design language §V1](help/concepts/design-language.md)). Correct feedback about the wrong
 gesture.
 
-**The fix is two-stage, and the second stage is the whole safety of it.** A press on a wired input
-only *remembers* the wire; the detach happens on the first movement past `ClickSlopScreen`. Doing it
-on the press would mean a **click** on a wired input deleted the wire — and a click on a port is not
-a mistake, it is `E8-T34`'s gesture for arming a wire. Worse, Escape abandons a pending wire without
-touching the graph, so the wire would not come back from the gesture that looks like a cancel; only
-Control+Z would bring it back, after the user had already decided nothing happened.
+**The fix is two-stage.** A press on a wired input only *remembers* the wire; it is lifted when the
+gesture commits to being one — on the first movement past `ClickSlopScreen` for a drag, and on the
+release for a click.
 
-**Nothing is committed until the button comes up.** The wire is lifted visually — skipped in
+**The click half was left out at first, and the reason did not survive its own design.** The
+argument was that a click that removed a wire would be an accident Escape could not undo, since
+Escape abandons a pending wire without touching the graph. True of a design where lifting *is*
+removing — and this is not one. Nothing is committed until the gesture ends, so a click that lifts a
+wire commits nothing either, and `StandDownPendingWire` puts it back for free. The asymmetry was
+caution carried over from a version of the code that had already been replaced, and the client found
+it in one sitting: the drag disconnected, the two clicks did not (`E8-T50`). **A reason to be careful
+is not the same as a reason to be inconsistent, and it stops being either when the thing it was
+guarding against is gone.**
+
+**Nothing is committed until the gesture ends.** The wire is lifted visually — skipped in
 `EnsureWireVisuals`, which also drops it from `_connectedPorts`, so the port draws unconnected — and
 the drag continues from the wire's *source* output, which is what makes the gesture read as picking
 a wire up rather than starting a new one. The graph is untouched throughout, so a drag that ends

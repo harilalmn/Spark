@@ -878,14 +878,14 @@ public sealed class GraphCanvasInputTests
     });
 
     /// <summary>
-    /// <b>The regression guard for `E8-T34`.</b> A press on a wired input that never travels is a
-    /// <i>click</i>, and a click on a port arms a wire — it must not take the wire off. Detaching
-    /// on the press rather than on the first movement would make an accidental click delete a
-    /// connection, and Escape would not bring it back because Escape abandons a pending wire
-    /// without touching the graph.
+    /// <b>A click on a wired input lifts the wire but commits nothing</b> — the graph still has it,
+    /// and no edit has been announced. `E8-T49` refused to lift on a click at all, on the grounds
+    /// that an accidental one would delete a connection Escape could not restore; that reasoning
+    /// belonged to a design where lifting <i>was</i> removing, and this asserts the half of it that
+    /// is still true.
     /// </summary>
     [Fact]
-    public void ClickingAWiredInputPortArmsAWireAndKeepsTheOne() => OnUiThread(() =>
+    public void ClickingAWiredInputLiftsTheWireWithoutCommittingAnything() => OnUiThread(() =>
     {
         (Window window, GraphCanvas canvas) = Open(TwoNodes());
         DragWire(window, canvas, 0, 1);
@@ -895,6 +895,81 @@ public sealed class GraphCanvasInputTests
 
         canvas.Graph.Nodes[1].InputPortCentre(0, out double x, out double y);
         Click(window, Screen(canvas, x, y));
+
+        Assert.Single(canvas.Graph.Wires);
+        Assert.Empty(edits);
+    });
+
+    /// <summary>
+    /// <b>And the second click drops it, on blank canvas, which removes it</b> — reported by the
+    /// client: the drag disconnected and the two-click gesture did not. The two gestures are the
+    /// same gesture with the button held or not, and `E8-T34` added the second precisely because
+    /// dragging between small targets is hard work on a trackpad.
+    /// </summary>
+    [Fact]
+    public void ClickingAWiredInputThenBlankCanvasDisconnectsIt() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        DragWire(window, canvas, 0, 1);
+
+        List<string> edits = [];
+        canvas.GraphChanged += (_, e) => edits.Add(e.Label);
+
+        canvas.Graph.Nodes[1].InputPortCentre(0, out double x, out double y);
+        Click(window, Screen(canvas, x, y));
+        Click(window, Screen(canvas, x - 140, y + 140));
+
+        Assert.Empty(canvas.Graph.Wires);
+        Assert.Equal("Disconnect wire", Assert.Single(edits));
+    });
+
+    /// <summary>And onto another input it moves there, the same as the drag does.</summary>
+    [Fact]
+    public void ClickingAWiredInputThenAnotherInputMovesTheWire() => OnUiThread(() =>
+    {
+        CanvasGraph graph = new();
+        graph.Add(TestGraphs.Library.ByName("Number.Value"), 0, 0);
+        int point = graph.Add(TestGraphs.Library.ByName("Point.ByCoordinates"), 300, 0);
+
+        (Window window, GraphCanvas canvas) = Open(graph);
+        DragWire(window, canvas, 0, point);
+
+        List<string> edits = [];
+        canvas.GraphChanged += (_, e) => edits.Add(e.Label);
+
+        canvas.Graph.Nodes[point].InputPortCentre(0, out double fromX, out double fromY);
+        canvas.Graph.Nodes[point].InputPortCentre(1, out double toX, out double toY);
+
+        Click(window, Screen(canvas, fromX, fromY));
+        Click(window, Screen(canvas, toX, toY));
+
+        Assert.Equal(1, Assert.Single(canvas.Graph.Wires).To.PortIndex);
+        Assert.Equal("Move wire", Assert.Single(edits));
+    });
+
+    /// <summary>
+    /// <b>Escape puts a lifted wire back.</b> This is what makes lifting on a click safe, and it is
+    /// free: nothing was committed, so there is nothing to undo and nothing to announce.
+    /// </summary>
+    [Fact]
+    public void EscapePutsALiftedWireBack() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        DragWire(window, canvas, 0, 1);
+
+        List<string> edits = [];
+        canvas.GraphChanged += (_, e) => edits.Add(e.Label);
+
+        canvas.Graph.Nodes[1].InputPortCentre(0, out double x, out double y);
+        Click(window, Screen(canvas, x, y));
+        window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+
+        Assert.Single(canvas.Graph.Wires);
+        Assert.Empty(edits);
+
+        // And the wire is genuinely back rather than merely still in the model: a click on blank
+        // canvas now does nothing to it, because there is no longer anything lifted.
+        Click(window, Screen(canvas, x - 140, y + 140));
 
         Assert.Single(canvas.Graph.Wires);
         Assert.Empty(edits);

@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-07 (E8-T49 closed: dragging a wire off an input port takes the wire with it)
+**Last updated:** 2026-09-07 (E8-T50 closed: the two-click gesture lifts a wire too)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -85,6 +85,12 @@ for anything else.
 ---
 
 ## Where the run stands
+
+**And the two-click gesture lifts one too** — `E8-T50`, reported straight after. `E8-T49` lifted
+only on a drag, guarding against a click that would delete a wire Escape could not restore; nothing
+is committed until the gesture ends, so that guard was protecting against a design that had already
+been replaced. A click on a wired input now lifts it, and the second click lands it — another port
+moves it, blank canvas removes it, Escape puts it back.
 
 **Pulling a wire off a port, closed on 2026-09-07** — `E8-T49`, reported by the client with a
 screenshot. A press on a port started a wire from that port whichever side it was, so dragging off a

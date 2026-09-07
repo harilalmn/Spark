@@ -667,9 +667,28 @@ public sealed class GraphCanvas : Control
         // what everybody who has used a node editor before will try first.
         if (_mode == InteractionMode.PendingWire && _dragSourcePort is { } armed)
         {
+            // Taken before standing down, because standing down is what puts a lifted wire back
+            // and this one is about to be dropped rather than abandoned.
+            CanvasWire? lifted = _detachedWire;
+            _detachedWire = null;
+
             StandDownPendingWire();
 
-            if (port is { } second && !PortEquals(second, armed))
+            if (lifted is { } detached)
+            {
+                // The second click of a LIFT lands the wire exactly where the release of a drag
+                // does: on another port it moves, on the port it came from it goes back, and
+                // anywhere else it goes.
+                DropDetachedWire(detached, port);
+                InvalidateVisual();
+
+                if (port is not null)
+                {
+                    e.Handled = true;
+                    return;
+                }
+            }
+            else if (port is { } second && !PortEquals(second, armed))
             {
                 TryConnect(armed, second);
                 e.Handled = true;
@@ -677,16 +696,18 @@ public sealed class GraphCanvas : Control
 
                 return;
             }
-
-            // A click on the armed port itself cancels and stops there; a click anywhere else
-            // cancels and then does whatever that click would ordinarily have done, because a
-            // pending wire must never swallow a selection.
-            InvalidateVisual();
-
-            if (port is not null)
+            else
             {
-                e.Handled = true;
-                return;
+                // A click on the armed port itself cancels and stops there; a click anywhere else
+                // cancels and then does whatever that click would ordinarily have done, because a
+                // pending wire must never swallow a selection.
+                InvalidateVisual();
+
+                if (port is not null)
+                {
+                    e.Handled = true;
+                    return;
+                }
             }
         }
 
@@ -1097,15 +1118,30 @@ public sealed class GraphCanvas : Control
 
         _mode = armed ? InteractionMode.PendingWire : InteractionMode.None;
 
+        // A CLICK ON A WIRED INPUT LIFTS THE WIRE, EXACTLY AS A DRAG DOES.
+        //
+        // `E8-T49` lifted only on movement, and gave a reason: a click that removed a wire would be
+        // an accident Escape could not undo. That reason belonged to a design where lifting *was*
+        // removing. Nothing is committed until the gesture ends, so this commits nothing either -
+        // the wire is off the port, following the pointer, and `StandDownPendingWire` puts it back
+        // if the user presses Escape. Leaving the two gestures different was caution outliving its
+        // cause, and the client found it immediately (`E8-T50`).
+        if (armed && _detachCandidate is { } lifted && _detachedWire is null)
+        {
+            _detachedWire = lifted;
+            _dragSourcePort = lifted.From;
+            _wireVisuals.Clear();
+        }
+
         if (!armed)
         {
             _dragSourcePort = null;
+            _detachedWire = null;
         }
 
-        // Cleared whatever happened, including the release that never became a drag: a candidate
-        // that outlived its press would detach a wire on the NEXT gesture over a different port.
+        // Cleared whatever happened: a candidate that outlived its press would lift a wire on the
+        // NEXT gesture over a different port.
         _detachCandidate = null;
-        _detachedWire = null;
 
         e.Pointer.Capture(null);
         InvalidateVisual();
@@ -1160,6 +1196,18 @@ public sealed class GraphCanvas : Control
         _dragSourcePort = null;
         _wireDragMoved = false;
         _dragOutcome = WireOutcome.Refused;
+
+        // A WIRE LIFTED OFF A PORT AND THEN ABANDONED GOES BACK ON IT.
+        //
+        // Nothing was committed when it was lifted, so there is nothing to undo and nothing to
+        // announce - the wire simply starts being drawn again. This is what makes Escape a real
+        // cancel, and it is why a *click* is allowed to lift a wire at all: the caution that kept
+        // the click from lifting one was written for a design that removed the wire immediately.
+        if (_detachedWire is not null)
+        {
+            _detachedWire = null;
+            _wireVisuals.Clear();
+        }
     }
 
     /// <inheritdoc/>
