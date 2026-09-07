@@ -2125,7 +2125,59 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         Layout.CopyFrom(preset);
         SelectedWorkspace = name;
+        RaiseLayoutChanged();
+    }
+
+    /// <summary>Whether the library pane is showing. Drives the tick beside <i>View → Library</i>.</summary>
+    public bool IsLibraryVisible => Layout.IsVisible(WorkspacePane.Library);
+
+    /// <summary>Whether the properties pane is showing. Drives the tick beside <i>View → Properties</i>.</summary>
+    public bool IsInspectorVisible => Layout.IsVisible(WorkspacePane.Inspector);
+
+    /// <summary>
+    /// Shows a pane if it is hidden and hides it if it is showing.
+    /// </summary>
+    /// <param name="name">The pane, by <see cref="WorkspacePane"/> name. Anything else is ignored.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>A preset is the wrong tool for this and that is the whole reason it exists.</b> The four
+    /// named workspaces each set all four panes at once, so a user who wants the library out of the
+    /// way has to accept whatever a preset also does to the viewport. This changes one pane and
+    /// leaves the other three, including their proportions, exactly as they are.
+    /// </para>
+    /// <para>
+    /// The pane is named by string because that is what a <c>CommandParameter</c> in the menu can
+    /// carry, and an unrecognised one is ignored rather than thrown: the parameter is written in
+    /// XAML, where a typo cannot be caught by the compiler and should not take the window down.
+    /// </para>
+    /// </remarks>
+    [RelayCommand]
+    public void TogglePane(string? name)
+    {
+        if (!Enum.TryParse(name, out WorkspacePane pane))
+        {
+            return;
+        }
+
+        Layout.SetVisible(pane, !Layout.IsVisible(pane));
+        RaiseLayoutChanged();
+    }
+
+    /// <summary>
+    /// Says the layout has changed, to everything that shows any part of it.
+    /// </summary>
+    /// <remarks>
+    /// <b>The two visibility properties are notified here rather than only where they change</b>,
+    /// because a preset changes them too. A tick beside <i>View → Properties</i> that only followed
+    /// <see cref="TogglePane"/> would go stale the moment somebody applied <i>Modelling</i>, which
+    /// hides the inspector — and a menu that says a hidden pane is showing is worse than a menu
+    /// with no tick at all.
+    /// </remarks>
+    private void RaiseLayoutChanged()
+    {
         OnPropertyChanged(nameof(Layout));
+        OnPropertyChanged(nameof(IsLibraryVisible));
+        OnPropertyChanged(nameof(IsInspectorVisible));
         WorkspaceChanged?.Invoke(this, EventArgs.Empty);
     }
 

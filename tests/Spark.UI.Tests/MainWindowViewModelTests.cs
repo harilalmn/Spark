@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Spark.UI.Graph;
+using Spark.UI.Shell;
 using Spark.UI.ViewModels;
 using Spark.Viewport;
 
@@ -332,5 +334,106 @@ public sealed class MainWindowViewModelTests
 
         // And the output half, which was stale in the same screenshot.
         Assert.NotEqual(string.Empty, model.WatchText);
+    }
+
+    /// <summary>
+    /// <b>The toggle changes one pane and leaves the other three alone</b>, which is the whole
+    /// reason it exists beside the presets: each of those sets all four, so hiding the library
+    /// through one means accepting whatever it also does to the viewport.
+    /// </summary>
+    [Fact]
+    public void TogglingAPaneLeavesTheOthersWhereTheyWere()
+    {
+        using MainWindowViewModel model = new();
+
+        double library = model.Layout.LibraryFraction;
+        double canvas = model.Layout.CanvasFraction;
+
+        Assert.True(model.IsInspectorVisible);
+
+        model.TogglePane("Inspector");
+
+        Assert.False(model.IsInspectorVisible);
+        Assert.True(model.Layout.IsVisible(WorkspacePane.Library));
+        Assert.True(model.Layout.IsVisible(WorkspacePane.Canvas));
+        Assert.True(model.Layout.IsVisible(WorkspacePane.Viewport));
+        Assert.Equal(library, model.Layout.LibraryFraction, 6);
+        Assert.Equal(canvas, model.Layout.CanvasFraction, 6);
+
+        model.TogglePane("Inspector");
+
+        Assert.True(model.IsInspectorVisible);
+    }
+
+    /// <summary>The library half of the same, and it is a separate pane with a separate tick.</summary>
+    [Fact]
+    public void TheLibraryTogglesIndependentlyOfTheProperties()
+    {
+        using MainWindowViewModel model = new();
+
+        model.TogglePane("Library");
+
+        Assert.False(model.IsLibraryVisible);
+        Assert.True(model.IsInspectorVisible);
+    }
+
+    /// <summary>
+    /// <b>The tick has to follow a preset as well as a toggle.</b> <i>Modelling</i> hides the
+    /// inspector, and a menu that goes on saying a hidden pane is showing is worse than a menu
+    /// with no tick at all — so the notification lives where the layout changes, not only in the
+    /// toggle.
+    /// </summary>
+    [Fact]
+    public void APresetMovesTheTicksTheSameWayAToggleDoes()
+    {
+        using MainWindowViewModel model = new();
+        List<string> changed = [];
+        model.PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? string.Empty);
+
+        model.ApplyWorkspace("Modelling");
+
+        Assert.False(model.IsInspectorVisible);
+        Assert.Contains(nameof(MainWindowViewModel.IsInspectorVisible), changed);
+
+        changed.Clear();
+        model.ResetLayout();
+
+        Assert.True(model.IsInspectorVisible);
+        Assert.Contains(nameof(MainWindowViewModel.IsInspectorVisible), changed);
+    }
+
+    /// <summary>
+    /// The shell is told, because the menu changing a model nothing consumes is the failure mode
+    /// this whole layout path already had once (`E8-T33`).
+    /// </summary>
+    [Fact]
+    public void TogglingAPaneAsksTheShellToRearrange()
+    {
+        using MainWindowViewModel model = new();
+        int asked = 0;
+        model.WorkspaceChanged += (_, _) => asked++;
+
+        model.TogglePane("Library");
+
+        Assert.Equal(1, asked);
+    }
+
+    /// <summary>
+    /// The parameter is written in XAML, where a typo cannot be caught by the compiler. It is
+    /// ignored rather than thrown, because a mistyped menu entry should do nothing rather than
+    /// take the window down.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("Propertise")]
+    public void AnUnknownPaneNameIsIgnored(string? name)
+    {
+        using MainWindowViewModel model = new();
+
+        model.TogglePane(name);
+
+        Assert.True(model.IsLibraryVisible);
+        Assert.True(model.IsInspectorVisible);
     }
 }

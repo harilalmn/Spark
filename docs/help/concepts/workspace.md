@@ -8,11 +8,11 @@ since: "0.2"
 
 **Status:** Current. Describes the shell in the running application.
 **Owner:** `shell`
-**Last updated:** 2026-09-07
+**Last updated:** 2026-09-07 (E8-T48: the Library and Properties toggles)
 
 > **Scope.** The four panes — **Library**, **Canvas**, **Viewport** and **Properties** — how to
-> resize, float and re-dock them, the named workspaces, and the one command that puts everything
-> back. Pane sizes are not part of the document, so none of this is undoable
+> show, hide, resize, float and re-dock them, the named workspaces, and the one command that puts
+> everything back. Pane sizes are not part of the document, so none of this is undoable
 > ([Undo and redo](concepts.undo)) and none of it is saved into a graph.
 
 ---
@@ -27,8 +27,26 @@ since: "0.2"
 | **Properties** | The selected node's values, the diagnostics from the last run, and the watch panel |
 
 Drag the bar between two panes to resize them. **A docked pane's title bar carries its title and
-nothing else** — no buttons. Which panes you see is **View → Workspace**, and how big they are is
-the bar between them.
+nothing else** — no buttons; showing and hiding is done from the **View** menu, and sizing with the
+bar between panes.
+
+## Showing and hiding one pane
+
+**View → Library** and **View → Properties** each show and hide that pane on its own. A tick beside
+the entry means the pane is showing.
+
+| | |
+|---|---|
+| **View → Library** | The node library, on the left |
+| **View → Properties** | The properties pane, on the right — **`F4`** |
+
+**`F4` is the quick one**, because the properties pane is the one you hide and show most: it earns
+its width while you are setting a node up and wastes it while you are arranging the graph.
+
+These change **one** pane and leave the other three exactly as they are, sizes included — which is
+what the named workspaces below cannot do, since each of them sets all four at once. The two work
+together: apply **Modelling**, then press `F4` when you do want the properties back, and only that
+pane moves.
 
 ## Floating a pane, and putting it back
 

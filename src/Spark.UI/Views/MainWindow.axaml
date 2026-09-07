@@ -30,6 +30,15 @@
     <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
     <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RedoCommand}" />
+
+    <!--
+      F4 shows and hides the properties pane, which is where every CAD application this one's
+      users come from has put it. It lives here rather than in OnKeyDown because that handler
+      exists for menu entries that are Click handlers with no command to bind - see its comment -
+      and this one is a command. A bare function key is safe where a bare letter would not be:
+      nothing typing into the library search or a code block produces F4.
+    -->
+    <KeyBinding Gesture="F4" Command="{Binding TogglePaneCommand}" CommandParameter="Inspector" />
   </Window.KeyBindings>
 
   <!--
@@ -185,6 +194,24 @@
         <MenuItem Header="_View">
           <MenuItem Header="_Zoom canvas to fit" Click="OnZoomToFit" />
           <MenuItem Header="_Frame viewport" Click="OnFrameViewport" />
+          <Separator />
+
+          <!--
+            E8-T48. One pane at a time, which is what the presets below cannot do: each of them
+            sets all four, so a user who wants the library out of the way has to accept whatever
+            the preset also does to the viewport.
+
+            IsChecked is ONE-WAY on purpose. A checkable MenuItem flips its own IsChecked on click
+            before the command runs, so a two-way binding writes the flipped value into the layout
+            and the command then flips it back - a tick that toggles and a pane that does not. One
+            way, and the property change that follows the command puts the tick right.
+          -->
+          <MenuItem Header="_Library" ToggleType="CheckBox"
+                    IsChecked="{Binding IsLibraryVisible, Mode=OneWay}"
+                    Command="{Binding TogglePaneCommand}" CommandParameter="Library" />
+          <MenuItem Header="_Properties" ToggleType="CheckBox" InputGesture="F4"
+                    IsChecked="{Binding IsInspectorVisible, Mode=OneWay}"
+                    Command="{Binding TogglePaneCommand}" CommandParameter="Inspector" />
           <Separator />
           <MenuItem Header="_Workspace">
             <MenuItem Header="Default" Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Default" />

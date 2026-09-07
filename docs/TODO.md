@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-07 (E8-T47 closed: one title bar on a floated pane, carrying the window buttons, after two client reports)
+**Last updated:** 2026-09-07 (E8-T48 closed: View-menu toggles for the Library and Properties panes, F4 for Properties)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -85,6 +85,12 @@ for anything else.
 ---
 
 ## Where the run stands
+
+**Showing and hiding one pane, closed on 2026-09-07** — `E8-T48`, asked for by the client.
+**View → Library** and **View → Properties** each toggle that pane alone, with a tick showing its
+state, and **`F4`** does the properties pane from the keyboard. The four named workspaces each set
+all four panes at once, which is the thing this is for: apply *Modelling*, then press `F4` when you
+do want the properties back, and only that pane moves.
 
 **The floated pane's title bar, closed on 2026-09-07 after two client reports** — `E8-T47`.
 `HostWindow.ToolChromeControlsWholeWindow` reads like a presentation flag and is the switch on the
