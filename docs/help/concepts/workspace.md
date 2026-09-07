@@ -36,13 +36,22 @@ the bar between them.
 pane becomes an ordinary window of its own, which is what a second monitor is for: the viewport on
 one screen and the graph on the other.
 
-A floating pane is a normal window in every respect. It has the **minimise**, **maximise/restore**
-and **close** buttons this operating system puts on every window, it appears in the taskbar, it
-snaps to the screen edges, and double-clicking its title bar maximises it.
+Its title bar carries three buttons: **minimise**, **maximise/restore**, and one that **docks it
+back** into the main window.
 
-**Two title bars, two jobs.** The window's own title bar at the top moves the *window*. The pane's
-title bar just below it moves the *pane* — drag it back over the main window and the shell shows
-you where it will land. **View → Reset layout** puts everything back if you would rather not aim.
+**Dragging that title bar is how you put it back by hand.** Drag it over the main window and Spark
+shows you where the pane will land — an edge of the window, or into another pane. **View → Reset
+layout** puts everything back if you would rather not aim.
+
+> **The last button docks the pane; it does not close it.** These four panes *are* the shell, so
+> there is nothing sensible for closing one to mean — it would leave you with a window missing a
+> third of itself and no obvious way back. To stop showing a pane, use **View → Workspace**.
+> Closing a floating pane any other way — the keyboard, the taskbar — docks it back too, and
+> closing the main window closes it along with everything else.
+
+A returning pane arrives beside its neighbour in the column it belongs to: the viewport comes back
+next to the canvas. That is not always the exact slot it left from, and **View → Reset layout** is
+the way to the original arrangement.
 
 ## Named workspaces
 
@@ -68,10 +77,11 @@ the document changes: the same graph, the same selection, the same undo history.
 1. Open a graph with geometry in it — **File → Open surfaces example** will do.
 2. The viewport is the lower half of the middle column. **Drag its title bar** out of the main
    window and let go.
-3. It is now a window. Maximise it on your second screen — the button is where it is on every
-   other window — and orbit with the right mouse button, pan with the middle, zoom with the wheel.
+3. It is now a window. Maximise it on your second screen and orbit with the right mouse button, pan
+   with the middle, zoom with the wheel.
 4. Minimise it, and find it again in the taskbar.
-5. Restore it, then drag **the pane's** title bar — the lower of the two — back over the bottom of
-   the main window's middle column. The shell shows you where it will land.
-6. If the aim goes wrong, **View → Reset layout** puts all four panes back where they started.
-7. For a viewport-heavy shell without any of that, there is **View → Workspace → Modelling**.
+5. Restore it, then drag its title bar back over the bottom of the main window's middle column.
+   Spark shows you where it will land.
+6. Or skip the aiming: press the **✕** on its title bar and it docks itself back beside the canvas.
+7. **View → Reset layout** puts all four panes back exactly where they started, and
+   **View → Workspace → Modelling** is the viewport-heavy shell without any of this.

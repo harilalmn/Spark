@@ -15,6 +15,13 @@
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://Spark.UI/Theming/SparkTheme.axaml" />
+
+        <!--
+          The pane title bar, replacing Dock's ToolChromeControl theme wholesale. It goes after
+          SparkTheme so the palette keys it uses are already in scope, and it is a resource rather
+          than a style because a ControlTheme is keyed by type.
+        -->
+        <ResourceInclude Source="avares://Spark.UI/Theming/DockChrome.axaml" />
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Application.Resources>

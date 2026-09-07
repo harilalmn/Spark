@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Avalonia.Controls;
 using Dock.Model.Core;
+using Dock.Settings;
 using Spark.UI.Shell;
 
 namespace Spark.UI.Tests;
@@ -215,6 +216,25 @@ public sealed class SparkDockFactoryTests
         {
             Assert.True(factory.DockFor(pane)!.VisibleDockables![0].CanFloat, $"{pane} should float.");
         }
+    });
+
+    /// <summary>
+    /// <b>A floating pane must not outlive the shell it came from.</b> Dock's default leaves them
+    /// open: closing the main window left a pane on screen showing a graph that had gone, and the
+    /// process alive behind it because a window was still up. Reported from the running
+    /// application.
+    /// </summary>
+    /// <remarks>
+    /// It is a static on <c>DockSettings</c> rather than anything a window carries, so the guard
+    /// is that constructing the factory has set it — which is what makes the setting reachable
+    /// from a test at all.
+    /// </remarks>
+    [Fact]
+    public void FloatingWindowsCloseWithTheMainWindow() => HeadlessSession.Run(() =>
+    {
+        _ = new SparkDockFactory();
+
+        Assert.True(DockSettings.CloseFloatingWindowsOnMainWindowClose);
     });
 
     private static double Proportion(SparkDockFactory factory, WorkspacePane pane) =>

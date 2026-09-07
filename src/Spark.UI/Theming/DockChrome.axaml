@@ -1,0 +1,233 @@
+<!--
+  THE PANE TITLE BAR, AND WHY SPARK OWNS IT RATHER THAN STYLING DOCK'S.
+
+  Dock's own ToolChromeControl template draws four buttons: a chevron that opens a menu, a pin, a
+  maximise/restore and a close. The pin and the close come off by capability - CanPin and CanClose
+  are false on all four panes - but the chevron has no capability behind it, and the button the
+  panes actually needed, MINIMISE, does not exist in that template at all.
+
+  It cannot be added by styling. ToolChromeControl declares template parts for PART_CloseButton and
+  PART_MaximizeRestoreButton and wires their Click handlers in code; there is no third, and a style
+  cannot attach an event handler. So the minimise button is bound to a command instead -
+  Owner.Factory.MinimiseFloatingWindow - which is the same mechanism Dock's own template uses for
+  Owner.Factory.FloatDockable, and the reason SparkDockFactory carries two public methods that look
+  like they have no caller.
+
+  WHY THERE IS NOT SIMPLY A SYSTEM TITLE BAR. Because ToolChromeControlsWholeWindow is not a
+  decorations switch. HostWindow.MoveDrag opens with `if (!ToolChromeControlsWholeWindow) return;`
+  and MoveDrag is what starts the window drag AND the dock tracking that raises the indicators; the
+  drag helper ToolChromeControl attaches to PART_Grip is gated on the same flag. Turning it off to
+  get the system's decorations gives a floating pane that cannot be docked anywhere, and leaving it
+  on while forcing the decorations gives two title bars stacked on each other with only the lower
+  one able to dock. Both were shipped to the client and both came back. See N117.
+
+  So: one title bar, Dock's, carrying the buttons the system's would have carried.
+
+  The template below is Dock 12.1.0.4's, kept structurally identical on purpose. PART_Grip,
+  PART_Title, PART_ContentPresenter, PART_Border, PART_Panel and PART_Grid all keep their names and
+  their bindings, because Dock finds them by name and the drag area, the auto-hide grip modes and
+  the deferred content all hang off them. What changed is the button strip and the colours.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    x:CompileBindings="False">
+
+  <!--
+    Compiled bindings are off for this dictionary, and deliberately. Dock's version sets
+    x:DataType="controls:IToolDock" and compiles, which works for its own buttons because
+    FloatDockable and CloseDockable are declared on IFactory. MinimiseFloatingWindow and
+    ReturnToShell are not - they are SparkDockFactory's - so a compiled binding cannot see them.
+    A title bar is not a hot path; reflection here costs nothing measurable.
+  -->
+
+  <ControlTheme x:Key="SparkChromeButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="Width" Value="38" />
+    <Setter Property="Height" Value="26" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+
+    <!-- Section 5.1: hover moves a surface AWAY from the colour of the text on it. Dark surface, -->
+    <!-- light glyph, so hover darkens and press darkens further. Contrast only ever rises. -->
+    <Style Selector="^:pointerover">
+      <Setter Property="Background" Value="{DynamicResource SparkSurfaceBaseHoverBrush}" />
+    </Style>
+    <Style Selector="^:pressed">
+      <Setter Property="Background" Value="{DynamicResource SparkSurfaceBasePressedBrush}" />
+    </Style>
+  </ControlTheme>
+
+  <ControlTheme x:Key="{x:Type ToolChromeControl}" TargetType="ToolChromeControl">
+
+    <!-- Dock reads these to decide whether the chrome can be dragged and dropped on. They are -->
+    <!-- copied from Dock's theme unchanged: getting them wrong stops a pane being dragged at all. -->
+    <Setter Property="(DockProperties.IsDragEnabled)" Value="{Binding CanDrag}" />
+    <Setter Property="(DockProperties.IsDropEnabled)" Value="{Binding CanDrop}" />
+    <Setter Property="(DockProperties.DockGroup)" Value="{Binding DockGroup}" />
+
+    <Setter Property="MinWidth" Value="{Binding MinWidth}" />
+    <Setter Property="MaxWidth" Value="{Binding MaxWidth}" />
+    <Setter Property="MinHeight" Value="{Binding MinHeight}" />
+    <Setter Property="MaxHeight" Value="{Binding MaxHeight}" />
+
+    <Setter Property="Background" Value="{DynamicResource SparkBackgroundVoidBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SparkBorderHairlineBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+
+    <!-- Reads the window rather than the dockable, so the restore glyph is right after the user -->
+    <!-- has double-clicked the bar or used the system menu instead of the button. -->
+    <Setter Property="IsMaximized"
+            Value="{Binding $parent[Window].WindowState, FallbackValue=False, Converter={x:Static IsMaximizedConverter.Instance}}" />
+    <Setter Property="MaximizeButtonTheme" Value="{StaticResource SparkChromeButton}" />
+    <Setter Property="CloseButtonTheme" Value="{StaticResource SparkChromeButton}" />
+
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Grid RowDefinitions="Auto,*">
+          <DeferredContentPresenter x:Name="PART_ContentPresenter"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    Content="{TemplateBinding Content}"
+                                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                                    Padding="{TemplateBinding Padding}"
+                                    Grid.Row="1" />
+          <Border x:Name="PART_Border"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  VerticalAlignment="Top"
+                  Grid.Row="{Binding GripMode, Converter={x:Static GripModeConverters.GridRowAutoHideConverter}}">
+            <Grid x:Name="PART_Grip">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock x:Name="PART_Title"
+                           Grid.Column="0"
+                           TextTrimming="CharacterEllipsis"
+                           Text="{Binding ActiveDockable.Title, FallbackValue=TITLE}" />
+
+                <!-- Floating only. A docked pane's title bar is a title and nothing else: which -->
+                <!-- panes are showing is View > Workspace, and how big they are is the splitter. -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Stretch">
+                  <Button x:Name="PART_MinimizeButton"
+                          IsVisible="{TemplateBinding IsFloating}"
+                          Theme="{StaticResource SparkChromeButton}"
+                          Command="{Binding Owner.Factory.MinimiseFloatingWindow}"
+                          CommandParameter="{Binding ActiveDockable}"
+                          ToolTip.Tip="Minimise">
+                    <Path x:Name="PART_MinimizePath" />
+                  </Button>
+
+                  <!-- Dock wires this one's Click itself, by name, and toggles the window state. -->
+                  <Button x:Name="PART_MaximizeRestoreButton"
+                          IsVisible="{TemplateBinding IsFloating}"
+                          Theme="{TemplateBinding MaximizeButtonTheme}"
+                          ToolTip.Tip="Maximise">
+                    <Path x:Name="PART_MaximizeRestorePath" />
+                  </Button>
+
+                  <!-- NOT named PART_CloseButton, and that is the point: Dock binds that name to -->
+                  <!-- its own handler, which takes the window away with the pane still in it. -->
+                  <Button x:Name="PART_ReturnButton"
+                          IsVisible="{TemplateBinding IsFloating}"
+                          Theme="{StaticResource SparkChromeButton}"
+                          Command="{Binding Owner.Factory.ReturnToShell}"
+                          CommandParameter="{Binding ActiveDockable}"
+                          ToolTip.Tip="Dock back into the main window">
+                    <Path x:Name="PART_ReturnPath" />
+                  </Button>
+                </StackPanel>
+              </Grid>
+            </Grid>
+          </Border>
+          <Panel x:Name="PART_Panel"
+                 Background="{TemplateBinding BorderBrush}"
+                 Height="1"
+                 VerticalAlignment="Top"
+                 Grid.Row="{Binding GripMode, Converter={x:Static GripModeConverters.GridRowAutoHideConverter}}" />
+        </Grid>
+      </ControlTemplate>
+    </Setter>
+
+    <Style Selector="^/template/ Border#PART_Border">
+      <Setter Property="BorderThickness" Value="0 0 0 1" />
+      <Setter Property="IsVisible"
+              Value="{Binding GripMode, Converter={x:Static GripModeConverters.IsVisibleVisibleConverter}}" />
+    </Style>
+
+    <Style Selector="^:pointerover /template/ Border#PART_Border">
+      <Setter Property="IsVisible"
+              Value="{Binding GripMode, Converter={x:Static GripModeConverters.IsVisibleAutoHideOrVisibleConverter}}" />
+    </Style>
+
+    <Style Selector="^/template/ Panel#PART_Panel">
+      <Setter Property="IsVisible"
+              Value="{Binding GripMode, Converter={x:Static GripModeConverters.IsVisibleAutoHideOrHiddenConverter}}" />
+    </Style>
+
+    <!-- THE DRAG AREA, and the reason a pane can be pulled out of the shell at all. Copied from -->
+    <!-- Dock's theme: True when docked, and when floating it follows whether the chrome owns the -->
+    <!-- window - which it does, so a floating pane's bar drags the window and docks it. -->
+    <Style Selector="^/template/ Grid#PART_Grip">
+      <Setter Property="(DockProperties.IsDragArea)" Value="True" />
+      <Setter Property="Background" Value="{DynamicResource SparkSurfaceSunkenBrush}" />
+      <Setter Property="MinHeight" Value="26" />
+    </Style>
+
+    <Style Selector="^:floating /template/ Grid#PART_Grip">
+      <Setter Property="(DockProperties.IsDragArea)"
+              Value="{Binding $parent[HostWindow].ToolChromeControlsWholeWindow, Mode=OneWay, Converter={x:Static BoolConverters.Not}}" />
+      <Setter Property="Background" Value="{DynamicResource SparkSurfaceBaseBrush}" />
+    </Style>
+
+    <Style Selector="^:active /template/ Grid#PART_Grip">
+      <Setter Property="Background" Value="{DynamicResource SparkSurfaceBaseBrush}" />
+    </Style>
+
+    <!-- 11 px is the floor in this design language, and a pane title sits on it. -->
+    <Style Selector="^/template/ TextBlock#PART_Title">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="10 0 0 0" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="Medium" />
+      <Setter Property="Foreground" Value="{DynamicResource SparkTextMutedBrush}" />
+    </Style>
+
+    <Style Selector="^:active /template/ TextBlock#PART_Title">
+      <Setter Property="Foreground" Value="{DynamicResource SparkTextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="^/template/ Path">
+      <Setter Property="Stretch" Value="Uniform" />
+      <Setter Property="Width" Value="10" />
+      <Setter Property="Height" Value="10" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Fill" Value="{DynamicResource SparkTextSecondaryBrush}" />
+    </Style>
+
+    <Style Selector="^/template/ Path#PART_MinimizePath">
+      <Setter Property="Data" Value="{DynamicResource DockIconMinimizeGeometry}" />
+    </Style>
+
+    <Style Selector="^/template/ Path#PART_MaximizeRestorePath">
+      <Setter Property="Data" Value="{DynamicResource DockIconMaximizeGeometry}" />
+    </Style>
+
+    <Style Selector="^:maximized /template/ Path#PART_MaximizeRestorePath">
+      <Setter Property="Data" Value="{DynamicResource DockIconRestoreGeometry}" />
+    </Style>
+
+    <!-- The dock-back glyph is the close cross: it is the top-right button of a window, and a -->
+    <!-- user reaching for it means "put this away". What it does is put the pane back, so it is -->
+    <!-- deliberately NOT given the red destructive hover a real close button would carry. -->
+    <Style Selector="^/template/ Path#PART_ReturnPath">
+      <Setter Property="Data" Value="{DynamicResource DockToolIconCloseGeometry}" />
+    </Style>
+
+  </ControlTheme>
+
+</ResourceDictionary>

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -116,25 +117,24 @@ public sealed class ViewportDockingTests
     });
 
     /// <summary>
-    /// <b>A floated pane is an ordinary window of this operating system.</b> Dock's theme binds
-    /// <c>ToolChromeControlsWholeWindow</c> to <i>this window holds fewer than two dockables</i>,
-    /// and when it is true the window is stripped to <c>BorderOnly</c> and the pane's own header
-    /// is promoted to be the title bar — a title bar with maximise and close on it, nowhere to put
-    /// minimise, no system menu and no double-click to maximise. A single floated pane was
-    /// therefore the one window on the desktop that did not behave like a window (<c>N117</c>).
+    /// <b>The floating window's chrome is left entirely to Dock, and both ways of taking it over
+    /// have now been tried and reverted.</b> <c>ToolChromeControlsWholeWindow</c> is not a
+    /// decorations switch — <c>HostWindow.MoveDrag</c> opens with
+    /// <c>if (!ToolChromeControlsWholeWindow) return;</c> and it is <c>MoveDrag</c> that starts
+    /// both the window drag and the dock tracking, while the drag helper
+    /// <c>ToolChromeControl</c> attaches to <c>PART_Grip</c> is gated on the same flag. Setting it
+    /// false gave a pane that floated and could not be docked anywhere. Leaving it alone but
+    /// forcing <c>WindowDecorations</c> gave two title bars stacked on each other, only the lower
+    /// of which could dock. The window buttons live on Dock's own bar instead
+    /// (<c>Theming/DockChrome.axaml</c>).
     /// </summary>
     /// <remarks>
-    /// <b>What this can and cannot prove, stated rather than implied.</b> The headless session
-    /// runs a bare <c>Application</c> with no Dock theme in it, so the setter being overridden is
-    /// not loaded and the property would read <c>false</c> here whether or not anything set it —
-    /// asserting the value alone is an assertion that passes on the defect. So it asserts the
-    /// <i>local value is present</i>, which is the fix: a local value outranks a
-    /// <c>ControlTheme</c> setter for the life of the window. That the chrome then keeps the
-    /// native decorations is the theme's own behaviour, and the running application is what shows
-    /// it.
+    /// The headless session loads no Dock theme, so the values these properties report here mean
+    /// nothing — what is asserted is that the factory sets <b>none</b> of them, which is the whole
+    /// of the fix and is what a future tidy-up would undo.
     /// </remarks>
     [Fact]
-    public void AFloatedPaneKeepsTheOperatingSystemsWindowButtons() => HeadlessSession.Run(() =>
+    public void FloatingLeavesTheWindowChromeToDock() => HeadlessSession.Run(() =>
     {
         (SparkDockFactory factory, Window window, IRootDock root) = Shell();
 
@@ -143,11 +143,99 @@ public sealed class ViewportDockingTests
 
         HostWindow host = Assert.IsType<HostWindow>(Assert.Single(root.Windows!).Host);
 
-        Assert.True(
+        Assert.False(
             host.IsSet(HostWindow.ToolChromeControlsWholeWindowProperty),
-            "The factory has to set it locally, or the theme's binding decides.");
-        Assert.False(host.ToolChromeControlsWholeWindow);
+            "Dock decides this one. Setting it turns off dragging a floated pane back.");
+        Assert.False(
+            host.IsSet(Window.WindowDecorationsProperty),
+            "Forcing the system's decorations puts a second title bar above Dock's.");
+        Assert.False(
+            host.IsSet(Window.ExtendClientAreaToDecorationsHintProperty),
+            "Forcing the system's decorations puts a second title bar above Dock's.");
     });
+
+    /// <summary>
+    /// <b>Minimise is the one window button Dock's chrome cannot supply.</b>
+    /// <c>ToolChromeControl</c> declares template parts for a close and a maximise/restore button
+    /// and wires their clicks; there is no third, and a style cannot attach an event handler. So
+    /// the button is bound to this method as a command, which is why it is public.
+    /// </summary>
+    [Fact]
+    public void AFloatedPaneCanBeMinimised() => HeadlessSession.Run(() =>
+    {
+        (SparkDockFactory factory, Window window, IRootDock root) = Shell();
+
+        IDockable viewport = factory.DockFor(WorkspacePane.Viewport)!.VisibleDockables![0];
+
+        factory.FloatDockable(viewport);
+        window.UpdateLayout();
+
+        HostWindow host = Assert.IsType<HostWindow>(Assert.Single(root.Windows!).Host);
+
+        factory.MinimiseFloatingWindow(viewport);
+
+        Assert.Equal(WindowState.Minimized, host.WindowState);
+    });
+
+    /// <summary>A pane that is not floating has no window to minimise, and asking is not an error.</summary>
+    [Fact]
+    public void MinimisingADockedPaneDoesNothing() => HeadlessSession.Run(() =>
+    {
+        (SparkDockFactory factory, _, _) = Shell();
+
+        factory.MinimiseFloatingWindow(factory.DockFor(WorkspacePane.Viewport)!.VisibleDockables![0]);
+        factory.MinimiseFloatingWindow(null);
+    });
+
+    /// <summary>
+    /// <b>Closing a floated pane's window puts the pane back rather than destroying it.</b> The
+    /// close button is a consequence of the native decorations — while Dock drew the window there
+    /// was none, because the chrome's own is bound to <c>CanClose</c> and these four panes cannot
+    /// be closed. Dock's answer to a closing host window is to take everything in it away, which
+    /// is <c>E8-T45</c>'s failure arriving through a door that did not exist before.
+    /// </summary>
+    [Fact]
+    public void ClosingAFloatedPanesWindowReDocksItInsteadOfDeletingIt() => HeadlessSession.Run(() =>
+    {
+        (SparkDockFactory factory, Window window, IRootDock root) = Shell();
+
+        IDockable viewport = factory.DockFor(WorkspacePane.Viewport)!.VisibleDockables![0];
+
+        factory.FloatDockable(viewport);
+        window.UpdateLayout();
+
+        IDockWindow floated = Assert.Single(root.Windows!);
+        Assert.False(Reaches(root, viewport), "It is in the window now, not the shell.");
+
+        factory.OnWindowClosing(floated);
+
+        Assert.True(Reaches(root, viewport), "Closing the window must not take the pane with it.");
+    });
+
+    /// <summary>
+    /// And it lands beside its neighbour in the column it belongs to. <b>The dock a pane came from
+    /// may have gone with it</b> — Dock floats the whole <c>ToolDock</c> when the pane was the only
+    /// thing in it — so the landing place is chosen from what is still in the shell's tree. A
+    /// viewport that came back beside the library would be docked and visibly wrong.
+    /// </summary>
+    [Fact]
+    public void AReturningPaneLandsBesideItsColumnNeighbour() => HeadlessSession.Run(() =>
+    {
+        (SparkDockFactory factory, Window window, IRootDock root) = Shell();
+
+        IDockable viewport = factory.DockFor(WorkspacePane.Viewport)!.VisibleDockables![0];
+
+        factory.FloatDockable(viewport);
+        window.UpdateLayout();
+        factory.OnWindowClosing(Assert.Single(root.Windows!));
+
+        Assert.Same(factory.DockFor(WorkspacePane.Canvas), viewport.Owner);
+    });
+
+    /// <summary>Whether the shell's tree still reaches a dockable.</summary>
+    private static bool Reaches(IDockable node, IDockable target) =>
+        ReferenceEquals(node, target)
+        || ((node as IDock)?.VisibleDockables ?? []).Any(child => Reaches(child, target));
 
     /// <summary>Draws the control the way the compositor does, which is where the crash was.</summary>
     private static void Draw(Control control)

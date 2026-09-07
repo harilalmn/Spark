@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-07 (N115, N116 and N117 added; N117 rewritten for the chrome that shipped)
+**Last updated:** 2026-09-07 (N115, N116 and N117 added; N117 rewritten twice, once per client report)
 
 ---
 
@@ -3378,44 +3378,80 @@ screen is a property of the window, not of the call returning.
 
 ---
 
-## N117 — A pane's title bar had four buttons, three of which were wrong, and the fourth was the window's job
+## N117 — Three goes at a floated pane's title bar, and the flag that is not what it is named
 
 Every pane's title bar carried a chevron and a pin. The pin was the worse of the two: Dock's pin is
 **auto-hide**, so pressing it collapsed the pane into a strip on the edge of the window, and clicking
-that strip then showed nothing at all. The pane was gone until *Reset layout*, from a button whose
-glyph promises the opposite of losing something. Auto-hide is a good gesture for a drawer beside a
-document; these four panes are not drawers, they *are* the shell — which is also why
-`SparkDockFactory` leaves `ToolDock.Alignment` unset, since an aligned `ToolDock` defaults to
-`AutoHide` with `IsExpanded` false and draws its title bar over nothing.
+that strip then showed nothing at all. Auto-hide is a good gesture for a drawer beside a document;
+these four panes are not drawers, they *are* the shell — which is also why `SparkDockFactory` leaves
+`ToolDock.Alignment` unset, since an aligned `ToolDock` defaults to `AutoHide` with `IsExpanded`
+false and draws its title bar over nothing.
 
 **Dock draws a button per capability, so the capability is the control.** `CanPin` false takes the
-pin off the bar and the auto-hide entries out of the menu; `CanDockAsDocument` false removes an
-entry that could only ever have failed, because there is no `DocumentDock` in this shell to dock
-into; `CanClose` was already false. The chevron is the exception — it has no capability behind it
-and `ToolChromeControl` draws it unconditionally — so it is hidden by a style on `PART_MenuButton`
-in `SparkStyles.axaml`. The right-click menu on the title bar is untouched and still offers *Float*,
-which is what a Windows tool window does; it was only the button that had to go.
+pin off the bar and the auto-hide entries out of the menu; `CanDockAsDocument` false removes an entry
+that could only ever have failed, because there is no `DocumentDock` in this shell to dock into;
+`CanClose` was already false. That is the docked half, and it was right first time.
 
-**The floating half was a window that did not behave like a window.** Dock's theme binds
-`HostWindow.ToolChromeControlsWholeWindow` to *this window holds fewer than two dockables*, and when
-it is true the window is given `ExtendClientAreaToDecorationsHint="True"` and
-`WindowDecorations="BorderOnly"` and the pane's own header is promoted to be the title bar. That
-header can offer maximise and close, and it has nowhere to put minimise, no system menu and no
-double-click-to-maximise — so a pane dragged onto a second monitor could not be minimised, and the
-one thing a user does with a second-monitor window is minimise it. `SparkDockFactory.FloatingWindow`
-sets the property locally, which outranks a `ControlTheme` setter for the life of the window, and
-the operating system supplies minimise, maximise/restore, close, Aero snap and a taskbar button for
-nothing.
+**The floating half took three attempts, and the reason is one badly named property.**
 
-**The two title bars then divide the work the way every docking application divides it**: the
-window's title bar moves the window, and the pane's header stays a drag area and moves the pane back
-into the shell. Dock arranges that itself — `PART_Grip`'s `IsDragArea` is bound to
-`Not(ToolChromeControlsWholeWindow)` — so the same switch that restores the decorations is the one
-that keeps re-docking working.
+`HostWindow.ToolChromeControlsWholeWindow` reads like a presentation flag. Dock's theme binds it to
+*this window holds fewer than two dockables* and uses it to choose `WindowDecorations="BorderOnly"`
+and `ExtendClientAreaToDecorationsHint="True"`, so a single floated pane's own header becomes the
+window's title bar — a header that can carry maximise and close and has **nowhere to put minimise**,
+no system menu and no double-click-to-maximise.
 
-**Measured rather than asserted**, because neither half is provable in the headless session: it runs
-a bare `Application` with no Dock theme in it, so the setter being overridden is not loaded and the
-property reads false whether or not anything set it. A throwaway probe booted the real `App`, floated
-the viewport and read the window back — `BorderOnly` with the client area extended before the fix,
-`Full` after it, and all four chrome buttons `IsVisible=False` on the docked panes. The test that
-ships asserts only what a headless session honestly can: that the local value **is set**.
+*First attempt:* set it false, and let the operating system decorate the window. It does — minimise,
+Aero snap, a taskbar button, all for free. It also **silently kills every drag back into the shell**,
+because the flag is not a presentation flag at all:
+
+```csharp
+private void MoveDrag(PointerPressedEventArgs e)
+{
+    if (!ToolChromeControlsWholeWindow) return;
+    ...
+}
+```
+
+`MoveDrag` starts the window drag **and** the dock tracking that raises the indicators, and the drag
+helper `ToolChromeControl.AttachToWindow` hangs on the grip is created with
+`isEnabled: () => hostWindow.ToolChromeControlsWholeWindow`. Both halves of re-docking, behind a name
+that says neither. The window floated, looked correct, and would not dock anywhere.
+
+*Second attempt:* leave the flag alone and override the two properties it happens to set. Docking
+came back, and the window grew **two title bars stacked on each other** — the system's, and the
+pane's underneath it — of which only the lower one docked. Extending the client area under the system
+caption instead gives one bar, but the title draws twice and the caption region is the system's to
+handle.
+
+*What shipped:* leave Dock's chrome alone entirely and **put the window buttons on it**.
+`Theming/DockChrome.axaml` replaces the `ToolChromeControl` control theme with Dock 12.1.0.4's own,
+structurally unchanged — `PART_Grip`, `PART_Title`, `PART_Border`, `PART_Panel` and
+`PART_ContentPresenter` all keep their names and bindings, because Dock finds them by name and the
+drag area, the grip modes and the deferred content hang off them — with the chevron and pin removed
+and a minimise, a maximise/restore and a dock-back button added, all three shown only when floating.
+
+**Minimise could not be styled in.** `ToolChromeControl` declares template parts for
+`PART_CloseButton` and `PART_MaximizeRestoreButton` and wires their `Click` in code; there is no
+third, and a style cannot attach an event handler. So it is bound as a command to
+`SparkDockFactory.MinimiseFloatingWindow` — the same mechanism Dock's own template uses for
+`Owner.Factory.FloatDockable` — which is why the factory carries public methods with no visible
+caller, and why that dictionary sets `x:CompileBindings="False"`: the methods are not on `IFactory`.
+
+**The close button means *dock back*, and is deliberately not named `PART_CloseButton`.** Dock binds
+that name to its own handler, which takes the window away with the pane still inside — `E8-T45`'s
+failure arriving through a door that only opened when the window got a close button at all. These
+panes cannot be closed, so the only sense the gesture can carry is *stop floating*.
+`OnWindowClosing` does the same thing for every other route to a closed window.
+
+**A floating window also outlived the shell.** `DockSettings.CloseFloatingWindowsOnMainWindowClose`
+defaults false; closing the main window left a pane on screen showing a graph that had gone, and the
+process alive behind it because a window was still up. It is a static, set once in the factory's
+static constructor.
+
+**Every one of these three was found by a person dragging a window, and none of them by a gate.**
+The headless session runs a bare `Application` with no Dock theme, so the properties involved read
+their defaults whether or not anything sets them — the first test written for this passed on the
+defect. What the shipped tests assert is that the factory sets **none** of the three chrome
+properties, which is the fix stated as a negative and is what a future tidy-up would undo. The
+behaviour itself was measured with a throwaway probe against the real `App`, and confirmed by the
+client.

@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-07 (E8-T45, E8-T46, E9-T14 and E11-T25 closed: a floated pane no longer disappears, the pane chrome is a normal Windows one, the viewport's status message stopped being a watermark, and the architecture gate stopped scanning the build's own output)
+**Last updated:** 2026-09-07 (E8-T47 closed: one title bar on a floated pane, carrying the window buttons, after two client reports)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -85,6 +85,21 @@ for anything else.
 ---
 
 ## Where the run stands
+
+**The floated pane's title bar, closed on 2026-09-07 after two client reports** — `E8-T47`.
+`HostWindow.ToolChromeControlsWholeWindow` reads like a presentation flag and is the switch on the
+whole drag-and-dock path, so setting it false to get the operating system's decorations gave a pane
+that floated and **could not be docked anywhere**, and overriding the properties it sets instead gave
+**two title bars stacked on each other** with only the lower one able to dock. Dock's chrome is now
+left alone and the window buttons are put on it — `src/Spark.UI/Theming/DockChrome.axaml` owns the
+`ToolChromeControl` theme and adds minimise, maximise/restore and dock-back. Closing a floated pane
+**re-docks it** rather than deleting it, and a floating window no longer outlives the shell
+([N117](NOTES.md)).
+
+**None of the three was catchable by a gate**, which is the part worth keeping: the headless session
+loads no Dock theme, so the properties involved read their defaults whether or not anything sets
+them, and the first test written for this passed on the defect. Docking is mouse work, and mouse work
+is still verified by a person.
 
 **Three shell defects closed on 2026-09-07** — `E8-T45`, `E8-T46` and `E9-T14`. A pane dragged off
 the main window was **deleted** rather than floated, because Dock ships no default host window and

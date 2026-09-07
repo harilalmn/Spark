@@ -8,7 +8,7 @@
 -->
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:dock="using:Dock.Avalonia.Controls">
+>
 
   <Style Selector="Window">
     <Setter Property="Background" Value="{DynamicResource SparkBackgroundVoidBrush}" />
@@ -164,30 +164,6 @@
 
   <Style Selector="GridSplitter:pointerover">
     <Setter Property="Background" Value="{DynamicResource SparkBorderStrongBrush}" />
-  </Style>
-
-  <!--
-    A DOCKED PANE SHOWS ITS TITLE AND NOTHING ELSE.
-
-    Dock's tool chrome draws four buttons: a chevron that opens a menu, a pin, a maximise/restore
-    and a close. The pin and the close are gone by capability - `CanPin` and `CanClose` are both
-    false on the four panes, and Dock hides a button whose capability is denied. The chevron has
-    no capability behind it and is drawn unconditionally, so it goes here.
-
-    The maximise/restore button is hidden for the opposite reason: it appears only on a FLOATING
-    pane, and a floating pane now sits in a window with the operating system's own decorations
-    (`SparkDockFactory.FloatingWindow`). Leaving it would put a second maximise button an inch
-    below the real one, which is the sort of thing that makes an application feel hand-built.
-
-    The right-click menu on the title bar is untouched and still offers Float. That is what a
-    Windows tool window does; it was only the button that had to go.
-  -->
-  <Style Selector="dock|ToolChromeControl /template/ Button#PART_MenuButton">
-    <Setter Property="IsVisible" Value="False" />
-  </Style>
-
-  <Style Selector="dock|ToolChromeControl /template/ Button#PART_MaximizeRestoreButton">
-    <Setter Property="IsVisible" Value="False" />
   </Style>
 
 </Styles>

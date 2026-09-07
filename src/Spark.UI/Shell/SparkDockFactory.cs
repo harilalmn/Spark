@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
+using Avalonia.Controls;
 using Dock.Avalonia.Controls;
 using Dock.Model.Avalonia;
 using Dock.Model.Avalonia.Controls;
 using Dock.Model.Controls;
 using Dock.Model.Core;
+using Dock.Settings;
 
 namespace Spark.UI.Shell;
 
@@ -30,6 +32,18 @@ namespace Spark.UI.Shell;
 /// </remarks>
 public sealed class SparkDockFactory : Factory
 {
+    /// <summary>
+    /// A floating pane must not outlive the shell it came from.
+    /// </summary>
+    /// <remarks>
+    /// Dock's default is to leave floating windows open, which for a document-shaped application is
+    /// arguable and here is not: closing the main window left the pane on screen with the graph it
+    /// was showing already gone, and the process alive behind it because a window was still up.
+    /// It is a static on <c>DockSettings</c> rather than a property of a window, so it is set once,
+    /// here, beside the only code that makes floating windows at all.
+    /// </remarks>
+    static SparkDockFactory() => DockSettings.CloseFloatingWindowsOnMainWindowClose = true;
+
     private readonly Dictionary<WorkspacePane, Tool> _tools = [];
     private readonly Dictionary<WorkspacePane, ToolDock> _docks = [];
     private ProportionalDock? _columns;
@@ -121,28 +135,29 @@ public sealed class SparkDockFactory : Factory
     }
 
     /// <summary>
-    /// The window a pane dragged off the shell lands in: an ordinary window of this operating
-    /// system, with the decorations every other window has.
+    /// The window a pane dragged off the shell lands in.
     /// </summary>
     /// <returns>The host window.</returns>
     /// <remarks>
     /// <para>
-    /// <b><c>ToolChromeControlsWholeWindow</c> is the whole of it.</b> Dock's theme binds it to
-    /// <i>this window holds fewer than two dockables</i>, and when it is true the window is given
-    /// <c>WindowDecorations="BorderOnly"</c> and the pane's own title bar is promoted to be the
-    /// window's — which can offer maximise and close and has nowhere to put minimise, no system
-    /// menu, and no double-click-to-maximise. A single floated pane was therefore a window that
-    /// behaved unlike every other window on the desktop (<c>N117</c>).
+    /// <b>Its chrome is deliberately Dock's and not the operating system's, and that is the second
+    /// thing this was got wrong.</b> Giving the window <c>WindowDecorations="Full"</c> produced two
+    /// title bars stacked on each other — the system's, and the pane's own underneath it — and only
+    /// the lower one could be dragged back into the shell. Handing the whole job to the system
+    /// instead is not available: <c>ToolChromeControlsWholeWindow</c> is not a decorations switch,
+    /// it is the switch on the drag-and-dock path. <c>HostWindow.MoveDrag</c> opens with
+    /// <c>if (!ToolChromeControlsWholeWindow) return;</c> and it is <c>MoveDrag</c> that starts both
+    /// the window drag and the dock tracking, while the drag helper <c>ToolChromeControl</c>
+    /// attaches to <c>PART_Grip</c> is gated on the same flag. A pane whose window wore the system's
+    /// title bar could not be docked anywhere at all (<c>N117</c>).
     /// </para>
     /// <para>
-    /// Setting it locally beats the theme's setter for the life of the window, so the floated pane
-    /// keeps the native title bar: minimise, maximise/restore, close, Aero snap and the taskbar,
-    /// all of it for free and none of it drawn by us. The pane's own title bar stays a drag area,
-    /// which is what drags it back into the shell — the title bar moves the window, the pane
-    /// header moves the pane.
+    /// So there is <b>one</b> title bar, Dock's, and <c>Theming/DockChrome.axaml</c> puts minimise,
+    /// maximise/restore and close on it — the buttons the system's would have carried — leaving the
+    /// gesture that re-docks exactly where Dock expects to find it.
     /// </para>
     /// </remarks>
-    private static HostWindow FloatingWindow() => new() { ToolChromeControlsWholeWindow = false };
+    private static HostWindow FloatingWindow() => new();
 
     /// <summary>
     /// Brings the built layout into line with a workspace: the pane proportions, and which panes
@@ -214,6 +229,178 @@ public sealed class SparkDockFactory : Factory
                 pane.DataContext = context;
             }
         }
+    }
+
+    /// <summary>
+    /// A floating pane's window is being closed: the panes in it go back into the shell rather
+    /// than out of existence.
+    /// </summary>
+    /// <param name="window">The window closing, or null.</param>
+    /// <returns>True — the close always proceeds, on an emptied window.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The close button is new, and it deleted panes.</b> While a floated pane's window was
+    /// drawn by Dock it had no close button at all — the chrome's own is bound to <c>CanClose</c>,
+    /// which is false on all four panes. Giving the window the operating system's decorations gave
+    /// it the operating system's <b>X</b>, and Dock's answer to that is to take the window and
+    /// everything in it away: the pane was gone until <i>Reset layout</i>, which is exactly the
+    /// failure <c>E8-T45</c> had just fixed, arriving through a door that did not exist before.
+    /// </para>
+    /// <para>
+    /// So closing a floated pane <b>re-docks it</b>. That is what the button means here: the pane
+    /// is not a document and cannot be closed, so the only sense the gesture can carry is <i>stop
+    /// floating</i>. It lands in <see cref="LandingDock"/> — its own dock when that is still in the
+    /// shell, and a neighbour's when a drag has taken it out — and Dock closes the emptied window
+    /// itself. To stop <i>showing</i> a pane there is <b>View → Workspace</b>, which is where a
+    /// gesture that hides things belongs.
+    /// </para>
+    /// </remarks>
+    public override bool OnWindowClosing(IDockWindow? window)
+    {
+        if (_root is not null && window?.Layout is { } layout)
+        {
+            // Materialised first. Moving a dockable edits the collections being walked, and the
+            // window's tree is small enough that the copy costs nothing worth measuring.
+            foreach (Tool tool in ToolsIn(layout).ToArray())
+            {
+                ReturnToShell(tool);
+            }
+        }
+
+        return base.OnWindowClosing(window);
+    }
+
+    /// <summary>
+    /// Minimises the floating window a pane is in. Bound from the pane's title bar.
+    /// </summary>
+    /// <param name="dockable">The pane whose window to minimise.</param>
+    /// <remarks>
+    /// <b>Minimise is the one window button Dock's chrome cannot supply on its own.</b>
+    /// <c>ToolChromeControl</c> declares template parts for a close button and a maximise/restore
+    /// button and wires their clicks; there is no third. So the button in
+    /// <c>Theming/DockChrome.axaml</c> is bound to this as a command instead — the same mechanism
+    /// Dock's own template uses for <c>Owner.Factory.FloatDockable</c> — which is why it is public
+    /// and takes an <see cref="IDockable"/> rather than being a private helper.
+    /// </remarks>
+    public void MinimiseFloatingWindow(IDockable? dockable)
+    {
+        if (WindowOf(dockable)?.Host is Window window)
+        {
+            window.WindowState = WindowState.Minimized;
+        }
+    }
+
+    /// <summary>
+    /// Sends a floating pane back into the shell. Bound from the pane's title bar, and the answer
+    /// to closing its window by any other means.
+    /// </summary>
+    /// <param name="dockable">The pane to bring back.</param>
+    /// <remarks>
+    /// <b>Close cannot mean close here.</b> These four panes are the shell and <c>CanClose</c> is
+    /// false on all of them, so the only sense the gesture can carry is <i>stop floating</i> — and
+    /// letting it mean what Dock means by it would take the window away with the pane inside, which
+    /// is the defect <c>E8-T45</c> fixed. The pane lands in <see cref="LandingDock"/>, and Dock
+    /// closes the emptied window itself. To stop <i>showing</i> a pane there is
+    /// <b>View → Workspace</b>, which is where a gesture that hides things belongs.
+    /// </remarks>
+    public void ReturnToShell(IDockable? dockable)
+    {
+        if (dockable is not Tool tool
+            || PaneOf(tool) is not { } pane
+            || tool.Owner is not IDock source
+            || LandingDock(pane) is not { } target
+            || ReferenceEquals(source, target))
+        {
+            return;
+        }
+
+        MoveDockable(source, target, tool, null);
+    }
+
+    /// <summary>The floating window a dockable is in, if it is in one.</summary>
+    /// <param name="dockable">The dockable.</param>
+    /// <returns>The window, or null.</returns>
+    private IDockWindow? WindowOf(IDockable? dockable) =>
+        dockable is null
+            ? null
+            : (_root?.Windows ?? [])
+                .FirstOrDefault(window => window.Layout is { } layout && Reaches(layout, dockable));
+
+    /// <summary>Every one of this shell's panes inside a dockable tree.</summary>
+    /// <param name="dockable">The root to walk.</param>
+    /// <returns>The tools found, depth first.</returns>
+    private IEnumerable<Tool> ToolsIn(IDockable dockable)
+    {
+        if (dockable is Tool tool && _tools.ContainsValue(tool))
+        {
+            yield return tool;
+        }
+
+        foreach (IDockable child in (dockable as IDock)?.VisibleDockables ?? [])
+        {
+            foreach (Tool found in ToolsIn(child))
+            {
+                yield return found;
+            }
+        }
+    }
+
+    /// <summary>Where a pane coming back from a floating window should land.</summary>
+    /// <param name="pane">The pane.</param>
+    /// <returns>A dock that is still in the shell, or null when none is.</returns>
+    /// <remarks>
+    /// Its own dock first, and a neighbour after — because <b>the dock a pane came from may have
+    /// gone with it</b>. Dock floats the whole <c>ToolDock</c> when the pane was the only thing in
+    /// it, so <c>DockFor</c> can hand back an object that is no longer anywhere in the shell's
+    /// tree; a pane docked into that would be re-attached to an orphan and would not appear
+    /// (`E8-T33`, from the other direction). Membership is therefore asked of the tree rather than
+    /// of this factory's bookkeeping, which a drag can leave stale.
+    /// </remarks>
+    private ToolDock? LandingDock(WorkspacePane pane)
+    {
+        // Its own dock first, then its neighbour in the column it belongs to, then the rest. The
+        // neighbour matters: a viewport that came back beside the library rather than under the
+        // canvas is technically docked and visibly wrong, and that is what plain enum order gave.
+        WorkspacePane[] order = pane switch
+        {
+            WorkspacePane.Canvas =>
+                [WorkspacePane.Canvas, WorkspacePane.Viewport, WorkspacePane.Library, WorkspacePane.Inspector],
+            WorkspacePane.Viewport =>
+                [WorkspacePane.Viewport, WorkspacePane.Canvas, WorkspacePane.Library, WorkspacePane.Inspector],
+            WorkspacePane.Library =>
+                [WorkspacePane.Library, WorkspacePane.Canvas, WorkspacePane.Viewport, WorkspacePane.Inspector],
+            _ =>
+                [WorkspacePane.Inspector, WorkspacePane.Canvas, WorkspacePane.Viewport, WorkspacePane.Library],
+        };
+
+        return order
+            .Select(candidate => _docks.TryGetValue(candidate, out ToolDock? dock) ? dock : null)
+            .FirstOrDefault(dock => dock is not null && IsInShell(dock));
+    }
+
+    /// <summary>Whether a dockable is still somewhere in the shell's own tree.</summary>
+    /// <param name="dockable">The dockable to look for.</param>
+    /// <returns>True when the root reaches it.</returns>
+    private bool IsInShell(IDockable dockable) => _root is not null && Reaches(_root, dockable);
+
+    private static bool Reaches(IDockable node, IDockable target) =>
+        ReferenceEquals(node, target)
+        || ((node as IDock)?.VisibleDockables ?? []).Any(child => Reaches(child, target));
+
+    /// <summary>Which pane a dockable is, if it is one of the four.</summary>
+    /// <param name="dockable">The dockable.</param>
+    /// <returns>The pane, or null.</returns>
+    private WorkspacePane? PaneOf(IDockable dockable)
+    {
+        foreach ((WorkspacePane pane, Tool tool) in _tools)
+        {
+            if (ReferenceEquals(tool, dockable))
+            {
+                return pane;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>The dock holding a pane, for a test that wants to read a proportion back.</summary>

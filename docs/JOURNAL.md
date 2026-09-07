@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-07 (E8-T45, E8-T46, E9-T14 and E11-T25 committed)
+**Last updated:** 2026-09-07 (E8-T47 committed: one title bar on a floated pane, and it is Dock's)
 **Protocol version:** 2
 
 ---
@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.2.0` shipped on 2026-09-03** — published by `Release #4`, with `spark-0.2.0-setup.exe` (50.9 MB) and `spark-portable-win-x64.zip` (77.3 MB) attached, not a draft and not a prerelease. `v0.1.0` was the first tag in the repository's history; this is the first release cut end to end without a hand-crank in the middle. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing — between steps.** `E8-T45`, `E8-T46`, `E9-T14` and `E11-T25` are committed together: a floated pane no longer disappears, the pane chrome is a normal Windows one, the viewport's status plate stopped being a watermark, and the architecture gate stopped scanning the build's own output. |
+| **Working on** | **Nothing — between steps.** `E8-T47` is committed: the floated pane has one title bar, Dock's, carrying minimise, maximise/restore and dock-back, and a floating window no longer outlives the shell. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E8-T46` — the pane chrome is a normal Windows one.** The pin and the chevron are off every docked title bar (`CanPin` false, plus a style on `PART_MenuButton`, which has no capability behind it), and a floated pane gets the operating system's decorations instead of a chrome-drawn title bar with nowhere to put minimise ([N117](NOTES.md)). **The maximise-on-pin behaviour written earlier in the same uncommitted tree was deleted rather than reverted, because it was never committed.** In the same commit: **`E8-T45`** (a pane dragged off the shell was deleted, because Dock ships no default host window — [N116](NOTES.md)), **`E9-T14`** (the viewport's `OpenGL ready…` plate was a permanent watermark — [N115](NOTES.md)) and **`E11-T25`** (the architecture gate scanned `bin` and failed on BenchmarkDotNet's generated project). |
-| **Working tree** | Clean once the commit lands, and `main` needs pushing. **The journal it inherited said `CLEAN` over a dirty tree** — three finished tasks sat uncommitted — which is what step 1 is for and why the tree wins. |
-| **Next action** | **Still waiting on the client to open their installed `v0.2.1` and say whether the update pill appeared** — that is `E12-T21` verified by a person for the first time, and the check is silent on every failure by design, so *no pill* and *no network* look identical from outside. **Ask them at the same time to drag a pane onto their second monitor**, since the new chrome is the thing they reported and only a person with two screens can confirm the minimise button does what it should. If neither answer has arrived, take the top of the *Queue*. |
+| **Last completed step** | **`E8-T47` — one title bar on a floated pane, and it is Dock's.** `ToolChromeControlsWholeWindow` is not a decorations flag but the switch on the drag-and-dock path, so both ways of handing the window to the operating system failed — one killed docking outright, the other stacked two title bars. `Theming/DockChrome.axaml` owns the `ToolChromeControl` theme and puts the window buttons on Dock's own bar; minimise is a bound command because Dock wires only two buttons by name ([N117](NOTES.md)). **Before it, in one commit:** `E8-T45`, `E8-T46`, `E9-T14` and `E11-T25`. |
+| **Working tree** | Clean once this commit lands, and `main` is pushed. |
+| **Next action** | **Still waiting on the client's installed `v0.2.1` and whether the update pill appeared** — `E12-T21` verified by a person for the first time, and the check is silent on every failure by design, so *no pill* and *no network* look identical from outside. If that answer has not arrived, take the top of the *Queue*. **And note what the last two steps cost:** three shell defects in a row were found by a person dragging a window and none by a gate, because the headless session loads no Dock theme. Any further docking work should assume the same and budget for a run of the real application. |
 | **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2472**: Geometry.Tests 763, UI.Tests 894, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets, **`--code-block "..." --code-block-in-node --frame-node --screenshot PREFIX` for the editor on the node**, and the same with **`--code-block-type "
 Circle circle = new "`** for a completion list that was *typed* rather than asked for (`E11-T24`). **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
@@ -6650,3 +6650,57 @@ up to 267. Recounted from the tables: 315 rows, 231 done.
 **Cost.** Build clean, `dotnet format` clean, 2477 tests green across the nine executables
 (UI 899, Geometry 763, Engine 507, Viewport 108, Properties 43, Occt 63 **all skipped**, Architecture
 18, Packages 71, Docs 5).
+
+### 2026-09-07 — One title bar on a floated pane, and it is Dock's (`E8-T47`)
+
+**Two client reports on one commit, and one root cause.** `HostWindow.ToolChromeControlsWholeWindow`
+reads like a presentation flag. It is the switch on the whole drag-and-dock path:
+
+```csharp
+private void MoveDrag(PointerPressedEventArgs e)
+{
+    if (!ToolChromeControlsWholeWindow) return;   // the window drag AND the dock tracking
+```
+
+and `ToolChromeControl.AttachToWindow` builds the grip's drag helper with
+`isEnabled: () => hostWindow.ToolChromeControlsWholeWindow`. Both halves of re-docking, behind a name
+that says neither.
+
+**Attempt one** (what `E8-T46` shipped) set it false to get the operating system's decorations. It
+worked, and no drag docked anywhere. **Attempt two** left the flag alone and overrode the two
+properties it sets; docking came back and the window grew **two title bars stacked on each other**,
+only the lower of which docked — reported with a screenshot. Extending the client area under the
+system caption gives one bar but draws the title twice, and the caption is the system's to handle.
+
+**What shipped** leaves Dock's chrome alone and puts the window buttons on it.
+`Theming/DockChrome.axaml` replaces the `ToolChromeControl` control theme with Dock 12.1.0.4's own,
+structurally unchanged — the named parts are how Dock finds the drag area, the grip modes and the
+deferred content — with the chevron and pin gone and minimise, maximise/restore and dock-back added,
+floating only. **Minimise cannot be styled in**: Dock wires `PART_CloseButton` and
+`PART_MaximizeRestoreButton` by name and there is no third, and a style cannot attach a handler. So
+it is a command bound to `SparkDockFactory.MinimiseFloatingWindow`, which is why the factory has
+public methods with no visible caller and why the dictionary turns compiled bindings off — the
+methods are not on `IFactory`.
+
+**The dock-back button is deliberately not named `PART_CloseButton`**, because Dock binds that name
+to a handler that takes the window away with the pane inside. That is `E8-T45`'s failure, and it only
+became reachable when the window acquired a close button at all — found by probing rather than
+reported, and fixed before it shipped. `OnWindowClosing` covers every other route to a closed window.
+
+**Also fixed, second client report:** a floating window outlived the shell.
+`DockSettings.CloseFloatingWindowsOnMainWindowClose` defaults false.
+
+**What this cost, and the lesson worth keeping.** Three attempts, two of them shipped to the client.
+**No gate could have caught any of them**: the headless session runs a bare `Application` with no
+Dock theme, so every property involved reads its default whether or not anything sets it — the first
+test written for this passed on the defect, and I only noticed by reverting the fix and watching it
+stay green. The shipped tests assert the factory sets **none** of the three chrome properties, which
+is the fix stated as a negative and is the thing a future tidy-up would undo. Everything else was
+measured with a throwaway probe that boots the real `App`: the buttons' visibility and command
+bindings, `WindowState.Minimized`, the pane's return to the shell, the emptied window closing itself,
+and the floating window disappearing with the shell. Docking is mouse work, and mouse work is still
+verified by a person.
+
+**Cost.** Build clean, `dotnet format` clean, 2482 tests green across the nine executables (UI 904,
+Geometry 763, Engine 507, Viewport 108, Properties 43, Occt 63 **all skipped**, Architecture 18,
+Packages 71, Docs 5).
