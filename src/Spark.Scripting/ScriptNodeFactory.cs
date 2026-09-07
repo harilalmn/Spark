@@ -639,8 +639,10 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             }
         }
 
-        if (returns)
+        if (returns || TrailingValue(root) is not null)
         {
+            // A trailing value says what the block produces just as plainly as a `return` does, so
+            // it replaces the declared-variable ports rather than joining them (`E6-T27`).
             return [new ScriptPort("result", typeof(object))];
         }
 
@@ -681,6 +683,13 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     {
         foreach (ReturnStatementSyntax _ in TopLevelReturns(root))
         {
+            return null;
+        }
+
+        if (TrailingValue(root) is not null)
+        {
+            // `E6-T27`: `Wrap` has turned that last line into the return itself, so appending one
+            // here would make a second, unreachable.
             return null;
         }
 
@@ -735,6 +744,70 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             }
         }
     }
+
+    /// <summary>
+    /// The script's final statement when it is an expression the block plainly means as its
+    /// <i>result</i> — <c>n + p;</c>, <c>$"test";</c>, <c>q;</c> — or null (`E6-T27`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The rule is "C# would reject this as a statement", and that is what makes it safe.</b>
+    /// A language that quietly returned the last expression would have to decide what
+    /// <c>list.Add(3);</c> means, and it means <i>add three</i> — the value is discarded on purpose
+    /// and blocks are written that way today. So this only claims expressions that are
+    /// <c>CS0201</c>: <i>"Only assignment, call, increment, decrement, await, and new object
+    /// expressions can be used as a statement"</i>. Every one of those was a compile error a moment
+    /// ago, so **no script that compiles today changes meaning**, and the gap is exactly the set of
+    /// lines a user could only have meant as a value.
+    /// </para>
+    /// <para>
+    /// <b>The asymmetry to keep in mind when editing this.</b> Mistaking a value for a statement
+    /// leaves the user with the <c>CS0201</c> they already had — a missed opportunity. Mistaking a
+    /// <i>statement</i> for a value wraps a working line in a <c>return</c> and changes what their
+    /// graph does. The second is the one to be afraid of, which is why
+    /// <see cref="IsStatementExpression"/> is written from the language's own closed list rather
+    /// than from intuition, and why conditional access is over-approximated: <c>a?.M()</c> is a
+    /// legal statement and <c>a?.b</c> is not, they are the same syntax node, and only one of the
+    /// two possible mistakes is free.
+    /// </para>
+    /// </remarks>
+    private static ExpressionStatementSyntax? TrailingValue(CompilationUnitSyntax root) =>
+        root.Members.LastOrDefault() is GlobalStatementSyntax { Statement: ExpressionStatementSyntax last }
+            && !IsStatementExpression(last.Expression)
+                ? last
+                : null;
+
+    /// <summary>Whether C# would accept an expression as a statement on its own.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is a closed list, not a heuristic</b>, and that is what makes the default safe: C#
+    /// permits exactly invocation, object creation, assignment, increment, decrement and
+    /// <c>await</c> as statement-expressions, which is what the <c>CS0201</c> message enumerates.
+    /// Everything else — a binary expression, a literal, an identifier, a <c>switch</c> expression,
+    /// a query — is an error today, so <see langword="false"/> for the unlisted case is the
+    /// language's answer rather than a guess about it.
+    /// </para>
+    /// <para>
+    /// <b>The one deliberate over-approximation is conditional access.</b> <c>a?.M()</c> is a legal
+    /// statement and <c>a?.b</c> is not, and they are the same node kind; calling the whole kind a
+    /// statement costs a trailing <c>a?.b</c> the result it might have been, and calling it a value
+    /// would break every <c>a?.M()</c> anybody has already written. Only one of those is
+    /// recoverable by typing <c>return</c>.
+    /// </para>
+    /// </remarks>
+    private static bool IsStatementExpression(ExpressionSyntax expression) => expression switch
+    {
+        InvocationExpressionSyntax => true,
+        ObjectCreationExpressionSyntax => true,
+        ImplicitObjectCreationExpressionSyntax => true,
+        AssignmentExpressionSyntax => true,
+        AwaitExpressionSyntax => true,
+        ConditionalAccessExpressionSyntax => true,
+        PostfixUnaryExpressionSyntax => true,
+        PrefixUnaryExpressionSyntax prefix => prefix.IsKind(SyntaxKind.PreIncrementExpression)
+            || prefix.IsKind(SyntaxKind.PreDecrementExpression),
+        _ => false,
+    };
 
     /// <summary>
     /// The script's own <c>return</c> statements — not the ones inside a function it declares.
@@ -867,9 +940,10 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         // marker into the generated source's coordinates - no table, for the same reason the map is
         // a subtraction.
         BlankedScript blanked = ScriptRanges.Blank(script);
+        (string body, ImmutableArray<int> markers) = WithTrailingReturn(blanked);
         int offset = source.Length;
 
-        source.AppendLine(blanked.Text);
+        source.AppendLine(body);
 
         // `E6-T26`: the block's own `return`, when it has none of its own. After the user's last
         // line, so it shifts nothing above it and the map stays a subtraction.
@@ -884,12 +958,51 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         return new WrappedScript(
             source.ToString(),
             map,
-            blanked.HasMarkers
-                ? [.. blanked.Markers.Select(marker => marker + offset)]
-                : ImmutableArray<int>.Empty);
+            markers.IsDefaultOrEmpty
+                ? ImmutableArray<int>.Empty
+                : [.. markers.Select(marker => marker + offset)]);
     }
 
     /// <summary>How many lines a builder holds.</summary>
+    /// <summary>
+    /// Turns a script's trailing value expression into its <c>return</c>, in place (`E6-T27`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Seven characters, and not one newline.</b> <c>return </c> is inserted at the start of the
+    /// last statement rather than appended after it, because the statement has to <i>become</i> the
+    /// return — leaving it where it was and appending a second copy would evaluate it twice, which
+    /// a script that calls something would notice. Adding no line is what keeps
+    /// <see cref="ScriptSourceMap"/> a subtraction; the columns after the insertion on that one
+    /// line move, which is the same trade <see cref="GuardWeaver"/> and
+    /// <see cref="ScriptRanges"/> already make (<c>N122</c>).
+    /// </para>
+    /// <para>
+    /// <b>The markers have to move with it.</b> They are offsets into the blanked text, and seven
+    /// characters have just been pushed in front of every one that came after the insertion point —
+    /// so a range on or after the last line would otherwise be looked for in the wrong place, and
+    /// silently lowered as the wrong form.
+    /// </para>
+    /// </remarks>
+    private static (string Body, ImmutableArray<int> Markers) WithTrailingReturn(BlankedScript blanked)
+    {
+        const string Keyword = "return ";
+
+        if (TrailingValue(CSharpSyntaxTree.ParseText(blanked.Text).GetCompilationUnitRoot())
+            is not { } trailing)
+        {
+            return (blanked.Text, blanked.Markers);
+        }
+
+        int at = trailing.SpanStart;
+
+        return (
+            string.Concat(blanked.Text.AsSpan(0, at), Keyword, blanked.Text.AsSpan(at)),
+            blanked.HasMarkers
+                ? [.. blanked.Markers.Select(marker => marker >= at ? marker + Keyword.Length : marker)]
+                : blanked.Markers);
+    }
+
     private static int Lines(StringBuilder source)
     {
         int lines = 0;

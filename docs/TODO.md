@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-07 (Dynamo's count ranges work as typed in a code block)
+**Last updated:** 2026-09-07 (E6-T27: a block's last expression is its result)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -491,6 +491,7 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] Every port shows the type it wants — `E8-T18`. Not in the plan; found by opening the
       application and looking at `Circle.ByCentreRadius`, where a port called `centre` gave no way
       to learn that a `Point3d` belongs in it.
+- [x] A block's last expression is its result — `E6-T27`. `n + p;` returns 4.
 - [x] Dynamo's count ranges — `E10-T15`. `Number.RangeByCount` and
       `Number.RangeByCountAndStep` over one `Spark.Api.NumberRange`, and `0..1..#5`
       works as typed in a code block.

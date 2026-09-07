@@ -75,7 +75,16 @@ public sealed class ScriptAssemblyCache
     /// frame is loaded by a new build and behaves like the code that build no longer writes, which
     /// is the hardest class of bug this cache could produce.
     /// </remarks>
-    public const int GeneratorVersion = 3;
+    /// <remarks>
+    /// <b>4</b> covers two changes to what <c>Wrap</c> emits: <c>E10-T15</c>'s range lowering, and
+    /// <c>E6-T27</c> inserting <c>return</c> ahead of a trailing value. <b>Neither could actually
+    /// have served a stale entry</b> — every script they change was a compile error before, and a
+    /// failed compile is never written to the cache — but the rule above is not "bump it when you
+    /// have proved it matters", because working out that it does not is exactly the reasoning
+    /// nobody redoes correctly at the third change. The range lowering shipped without this and it
+    /// was an oversight, not a judgement.
+    /// </remarks>
+    public const int GeneratorVersion = 4;
 
     private readonly string? _directory;
 

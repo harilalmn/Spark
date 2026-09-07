@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-07 (Dynamo's count ranges work as typed in a code block)
+**Last updated:** 2026-09-07 (E6-T27: a block's last expression is its result)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing - between steps.** Dynamo's count ranges are done, both halves. **What is left of `E12-T21` is a person seeing the update pill in their own installed shell**, still the only unproven link in that chain. |
+| **Working on** | **Nothing - between steps.** **What is left of `E12-T21` is a person seeing the update pill in their own installed shell**, still the only unproven link in that chain. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Dynamo's count ranges, part 2 - `0..1..#5` in a code block.** A length-preserving text stage blanks the `#` and a tree rewrite lowers the three forms onto `Spark.Api.NumberRange`. Two part-1 claims corrected on the way ([N122](NOTES.md), [N123](NOTES.md)). **Before it:** part 1, `E8-T8`'s tie-break, cutting `v0.4.0`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2555** tests green. An unnamed single-test flake in `Spark.UI.Tests` was seen twice today and reproduced in neither case; noted under [N120](NOTES.md). |
-| **Next action** | Take the top of the *Queue*: **persist the workspace layout between sessions**. `WorkspaceLayout` already serialises and round-trips under test and nothing writes it, so a dragged arrangement still dies with the window - which is the one thing a dock is for. |
-| **Verify with** | `tests/Spark.Docs.Verify` - front matter, a worked example per topic, every relative link, every ADR citation and every `Last updated` line - plus the other nine executables (**2555**: UI 956, Geometry 763, Engine 516, Viewport 108, Packages 71, Occt 63, Properties 43, Architecture 18, Geometry.Io 12, Docs 5). **And the help's C# fences are compiled**, the `concepts.code-blocks` ones through the real `ScriptNodeFactory`, so an example that lies is a red build. |
+| **Last completed step** | **`E6-T27` - a block whose last line is an expression returns it.** Claimed only where C# would refuse the expression as a statement, so nothing that compiled changed meaning; a trailing call is still a statement. **Before it:** Dynamo's count ranges parts 1 and 2, `E8-T8`'s tie-break, cutting `v0.4.0`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2566** tests green. **One known flaky test**, now named: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, about one full run in five, green in isolation, unrelated to the current work - [N120](NOTES.md). |
+| **Next action** | Either chase the named flake - `TheRoomIsAskedForInScreenPixelsWhateverTheZoom` measures text under `HeadlessSession` and answers short about one run in five, and a known-flaky test is a gate nobody trusts - or take the top of the *Queue*: **persist the workspace layout between sessions**, since `WorkspaceLayout` already serialises and round-trips under test and nothing writes it. |
+| **Verify with** | `tests/Spark.Docs.Verify` - front matter, a worked example per topic, every relative link, every ADR citation and every `Last updated` line - plus the other nine executables (**2566**: UI 967, Geometry 763, Engine 516, Viewport 108, Packages 71, Occt 63, Properties 43, Architecture 18, Geometry.Io 12, Docs 5). **And the help's C# fences are compiled**, the `concepts.code-blocks` ones through the real `ScriptNodeFactory`, so an example that lies is a red build. **Grep the run output for `[FAIL]` and not only `Total:`** - two flake sightings went unnamed because of that. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -7221,3 +7221,72 @@ writing the fence and watching the harness reject it, which is the harness doing
 compiled examples; `lists.md` and the README updated; `E10-T15`'s row corrected where part 1 had
 overstated the reachability finding; `N122` and `N123` added, and `N120` gained an honest note that
 an unnamed single-test flake was seen twice today and pinned neither time.
+
+### 2026-09-07 - `E6-T27`: a block whose last line is an expression returns it
+
+**What.** The client asked for `var n = 10 / 5; var p = 8 / 4; n + p;` to give 4, and for
+`$"test";` on its own to give `test`. Both do.
+
+**The rule is exactly `CS0201`, and that is the whole of the design.** A trailing expression is
+claimed as the result **only when C# would refuse it as a statement** - `n + p;`, `$"test";`,
+`q;` were each *"Only assignment, call, increment, decrement, await, and new object expressions can
+be used as a statement"* a moment ago. So the set claimed is precisely the set of lines a user could
+only have meant as a value, and **no script that already compiled changed meaning**.
+
+**The line it must not cross is a trailing call.** `points.Add(p);` is a legal statement that
+compiles today and discards its value on purpose; blocks are written that way. A rule that returned
+"the last expression" would break every one of them - `Add` returns void, so the block would stop
+compiling - and would silently change what a non-void call at the end of a block produces.
+`ACallIsStillAStatement` exists to go red if anybody widens it, and it does: flipping one line of
+`IsStatementExpression` reddens exactly that test.
+
+**Written from the language's closed list rather than from intuition.** C# permits invocation,
+object creation, assignment, increment, decrement and `await`; everything else is an error, so
+returning false for the unlisted case is C#'s answer and not a guess about it. **I had the asymmetry
+backwards in my first draft of the comments** and said "unsure counts as a statement" while the code
+did the opposite. Both are now written as what they are: the closed list makes the default correct,
+and the single deliberate over-approximation is conditional access, where `a?.M()` is a legal
+statement, `a?.b` is not, and they are one node kind - so the whole kind is called a statement,
+because that mistake costs a `return` somebody can type and the other one changes their graph.
+
+**Implemented as an insertion, not a trailer.** `return ` goes in at the last statement's start,
+because the statement has to *become* the return - `E6-T26`'s appended trailer would leave the
+original in place and evaluate it twice, which a script that calls something would notice. Seven
+characters and no newline, so `E6-T1`'s source map stays a subtraction.
+
+**And it collides with `E10-T15`, which is the one thing here that had no obvious test.** The range
+markers are offsets into the script, and seven characters have just been pushed in front of every
+one after the insertion point - so `0..1..#5;` as a *trailing* value would have had its marker
+looked for in the wrong place and been lowered as the **step** form rather than the count form:
+a wrong answer, not an error. `ARangeInTheTrailingValueIsStillLoweredCorrectly` covers it, and
+removing the offset bump reddens exactly that test and nothing else.
+
+**`GeneratorVersion` is 4, and it should already have been.** `E6-T26` set the rule - bump it
+whenever the generated source changes - and **`E10-T15`'s range lowering shipped without doing so**,
+which was an oversight rather than a judgement. Neither change could actually have served a stale
+entry, because every script they affect was a compile error before and a failed compile is never
+written to the cache; but working that out is exactly the reasoning nobody redoes correctly at the
+third change, so the constant moves and says why.
+
+**Verified.** Eleven tests in `ScriptTrailingValueTests`, all through the real `ScriptNodeFactory`
+and all evaluating the block: the client's two scripts, a bare identifier, the single `result` port
+replacing the declared ones, the trailing call *not* claimed, assignments and increments not
+claimed, `E6-T26`'s declared ports still intact, an explicit `return` still winning, the range
+interaction, the inferred output type reaching the port (`$"test";` gives a `string` port, not
+`object`), and a diagnostic after the trailing value still landing on the user's line. **Two reverts
+watched go red**, each in exactly one test. `--code-block` in the app shows the three lines and a
+port named `result`; **the value itself came from the tests rather than that screenshot**, because
+the switch focuses the editor and the completion popup covers the watch panel.
+
+Gates: build clean with zero warnings, format clean, **2566** tests green.
+
+**The flake finally has a name.** Adding `[FAIL]` to the grep in the run loop caught it on its third
+appearance: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, *"asked for 400
+screen pixels at 50%"*. Green 5/5 in isolation and 3/3 in full runs straight afterwards, so it is
+about one full run in five. It goes through `HeadlessSession.Run` and measures text, which is
+[N120](NOTES.md)'s territory - **but that is a hypothesis and is recorded as one.** It is not
+related to this change and was failing before it.
+
+**Documents.** `code-blocks.md` gained the rule under *Several outputs* with three compiled
+examples, including the trailing-call counter-example; `E6-T27` is a new register row; TODO gained a
+line; `N120` now names the flaky test instead of counting anonymous failures.

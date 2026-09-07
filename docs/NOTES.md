@@ -3579,13 +3579,24 @@ session test dispatches is the same family of race by construction. The general 
 here to record: **in this assembly, `Avalonia.Threading` is shared state, whether or not a test
 opens a window.**
 
-**Seen twice on 2026-09-07, and not pinned either time.** Two separate full runs of
-`Spark.UI.Tests` reported `Failed: 1` where the immediately preceding and following runs were green
-— seven clean runs in total across the two occasions. **The name was not captured either time**,
-because the loop that runs the ten executables greps only the `Total:` line. It resembles this note,
-but resemblance is not evidence and it is recorded here as unattributed. **If it happens again, keep
-the whole run output**: the failing test's name is in the `[FAIL]` line and one name would settle
-whether this is the compositor race or something else.
+**Seen three times on 2026-09-07, and named on the third.** Two full runs of `Spark.UI.Tests`
+reported `Failed: 1` with the name not captured, because the loop running the ten executables
+grepped only the `Total:` line. Grepping `[FAIL]` as well caught it:
+
+```
+Spark.UI.Tests.CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom
+  asked for 400 screen pixels at 50% and was given <less>
+```
+
+**Green 5/5 in isolation and 3/3 in full runs immediately afterwards**, so it is roughly one full
+run in five and it does not reproduce on demand. It goes through `HeadlessSession.Run` and asks
+`GraphCanvas.ScriptEditorSpace` for a width, which measures text — so a font manager or compositor
+that is not ready yet would answer small, and that is the same shared session this note is about.
+**That is a hypothesis, not a finding**: nobody has caught it with a stack or a measured value.
+
+**What would settle it** is logging the actual `width` in the assertion message (it already is) and
+keeping full run output in CI, then correlating a failure with which other test class was running
+in parallel. Until then it is one known-flaky test, named, rather than an unattributed number.
 
 ## N121 — Python's `open(..., 'w')` writes CRLF on Windows, and the format gate is the thing that tells you
 

@@ -98,10 +98,40 @@ return (area: area, circumference: circumference);
 Two ports again — but now they are the two you named, so a block with eleven working variables can
 put three of them on the canvas. Any other return shape gives one port called `result`.
 
-**The two rules do not compete.** Returning is how a block says exactly what its ports are, and the
-per-variable reading is what it gets when it says nothing. A scratch variable added to a block that
-returns nothing does add a port — visible, named, and connected to nothing; the same variable added
-to a block that returns a tuple changes nothing at all.
+**A last line that is just an expression is the block's result.** It behaves exactly like writing
+`return` in front of it, and gives one port called `result`:
+
+```csharp
+var n = 10 / 5;
+var p = 8 / 4;
+
+n + p;
+```
+
+One port, `result`, carrying `4` — the `n` and `p` ports are gone, because the block has said what
+it produces. A block that is nothing *but* an expression works the same way:
+
+```csharp
+$"{name} has {count} items";
+```
+
+**The rule is narrower than it looks, and deliberately so.** Only an expression C# would refuse to
+accept as a statement counts — `n + p;`, `$"..."`, `total;`. A trailing **call** is still a
+statement, because discarding its value is usually the point:
+
+```csharp
+var points = new List<Point3d>();
+
+points.Add(new Point3d(0, 0, 0));
+```
+
+One port, `points`. If you want a call's value instead, say `return`. Nothing that compiled before
+this rule existed changed meaning, because every line it claims was an error until it did.
+
+**The rules do not compete.** Returning, or ending on a value, is how a block says exactly what its
+ports are; the per-variable reading is what it gets when it says nothing. A scratch variable added
+to a block that returns nothing does add a port — visible, named, and connected to nothing; the same
+variable added to a block that returns a tuple changes nothing at all.
 
 Names matter more than positions here. **Editing a script re-makes the wires by port name**, so
 adding an identifier in the middle of your code does not silently rewire the graph — a port
