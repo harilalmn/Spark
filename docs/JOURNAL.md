@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-07 (one output port per value statement)
+**Last updated:** 2026-09-07 (the editor follows a dragged block)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing - between steps.** **What is left of `E12-T21` is a person seeing the update pill in their own installed shell**, still the only unproven link in that chain. |
+| **Working on** | **`E8-T53` next - a single click opens the code block's editor, where it is a double-click today.** Asked for by the client in the same sitting as `E8-T52`. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **One output port per value statement** - `E6-T28`, asked for by the client with a screenshot of `5+3;` then `"Test";`. `E6-T27`'s rule read once per statement rather than once per block, so the ports are `result` and `result2` carrying `8` and `"Test"`; the single-trailing-value case is deliberately left on `E6-T27`'s own code path. **Before it:** `E6-T18`, `E6-T27`, Dynamo's count ranges parts 1 and 2, `E8-T8`'s tie-break. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2578** tests green over ten executables with zero skips. **One known flaky test**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, about one full run in five, green in isolation - [N120](NOTES.md). |
-| **Next action** | **Nothing is queued that does not need a person.** The nearest unblocked engineering row is the *Queue*'s `+` pair: **persist the workspace layout between sessions** (`WorkspaceLayout` already serialises and round-trips under test, and nothing writes it - a dragged arrangement dies with the window, which is the one thing a dock is for), and **a guard that no test project reports zero tests**, which is one line and catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)). Take the layout one; it is the one a user would notice. |
-| **Verify with** | For the layout row: drag the docks into a new arrangement, close the application, reopen it, and find the arrangement still there - then the ten executables and `tests/Spark.Docs.Verify`. **Grep the run output for `[FAIL]` and not only `Total:`.** |
+| **Last completed step** | **The open editor follows a dragged block** - `E8-T52`. `E8-T43`'s funnel existed and the two node drags were never routed into it; the event is renamed `ContentMoved` so its name states the condition a new call site must satisfy. **Before it:** `E6-T28`, `E6-T18`, `E6-T27`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2580** tests green over ten executables with zero skips. **One known flaky test**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, about one full run in five, green in isolation - [N120](NOTES.md). |
+| **Next action** | `E8-T53`. `GraphCanvas.OnPointerReleased`: a release in `DraggingNodes` mode that never travelled past `ClickSlopScreen`, with no modifier held, on a node whose `Script` is not null, calls `RequestScriptEdit`. **Slop and not net displacement** - `_dragTotalX == 0` is what the deferred-deselect uses and it would make a one-pixel hand tremor swallow the gesture - so a `_nodeDragMoved` flag is set in `OnPointerMoved` exactly the way `_wireDragMoved` already is. Guard on no modifier, because Control arms a copy and Shift toggles the selection, and neither should open an editor. |
+| **Verify with** | A headless test that single-clicks a code block and asserts `ScriptEditRequested` fired; the existing `DoubleClickingACodeBlockAsksForAnEditorOverItsSource` must stay green, and `DoubleClickingAnOrdinaryNodeAsksForNothing` covers the node that has no source. **A test that a *drag* opens nothing** is the one that matters: it is the gesture this could break. Then the ten executables, and the app. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -7396,3 +7396,46 @@ drawing `result` and `result2`, both wired, `3 nodes evaluated … No diagnostic
 **Documents.** `E6-T28`'s row in TASKS; the `E6-T8`/`E6-T26` criterion in EPICS now names both
 value rows; TODO gained a line; and `concepts/code-blocks.md` gained the several-values paragraph
 and lost the word *trailing* from the sentences that no longer need it.
+
+### 2026-09-07 — The open editor follows a dragged block
+
+**What.** `E8-T52`. The client dragged a code block by its title with its editor open and the block
+went without the editor, which stayed exactly where it was. `E8-T43` had solved this for the pan and
+the zoom on 2026-09-05.
+
+**The interesting part is that `E8-T43` solved it in the right place and the defect happened
+anyway.** That row created one funnel — `ViewMoved()`, which redraws *and* announces — precisely so
+that "did anything move?" had one answer, and its own comment says the alternative is *five call
+sites that each have to remember a second thing, which is four opportunities to forget*. The two
+node drags were two of those sites and they never came through it: they called `InvalidateVisual`
+directly. **A funnel only works if everything is routed into it**, and nothing checked.
+
+**So the event was misnamed rather than missing, and that is the fix worth keeping.** Its one
+consumer re-places the editor whenever a *node's screen rectangle* changes; the pan and the zoom
+move every rectangle at once and dragging a node moves one, and the overlay cannot tell them apart.
+`ViewChanged` is now `ContentMoved`, `ViewMoved()` is `AnnounceMove()`, and the name states the
+condition a new call site has to satisfy. Under the old name a reader adding a node drag was right
+not to raise "the view changed".
+
+**`Align` and `Tidy` are routed too, and they are unreachable today.** The editor holds the keyboard
+while it is open and reaching a menu commits it, so neither can currently run with an editor up.
+They are routed anyway: the rule that survives contact with the next change is *moved a node, say
+so*, not *moved a node in a way somebody has checked matters* — which is the rule that produced this
+defect.
+
+**Two tests, red in different ways on purpose.** `DraggingABlockIsAnnounced` goes red without the
+announcement — confirmed by reverting the one call and watching it fail, with the rest of the class
+still green. `TheEditorsRectangleFollowsADraggedBlock` stays green under that revert, and that is
+the point of having it: it asks `ScriptEditorSpace` — the same question the pane asks, whose answer
+becomes `Canvas.Left` — before and after the drag, so a fix that raised the event and answered the
+same rectangle would be caught by the second test where the first would pass it.
+
+**`E8-T51` was already taken** by *Clean up node layout*, and the first draft of this step used it.
+Caught by grepping `docs/` for the ID before writing the row, which is worth doing every time — the
+journal's *Working on* had it wrong for twenty minutes.
+
+**Verified.** Gates: build clean with zero warnings, format clean, **2580** tests green over ten
+executables with zero skips, output grepped for `[FAIL]` as well as `Total:`.
+
+**Documents.** `E8-T52`'s row in TASKS, a line in TODO, and `concepts/code-blocks.md`, which
+promised that *panning and zooming* carry the editor and now promises the drag as well.

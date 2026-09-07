@@ -355,15 +355,26 @@ public sealed class GraphCanvas : Control
     /// </remarks>
     public event EventHandler<CanvasFieldEditEventArgs>? ScriptEditRequested;
 
-    /// <summary>The pan or the zoom moved (<c>E8-T43</c>).</summary>
+    /// <summary>Something moved a node's rectangle on screen (<c>E8-T43</c>, <c>E8-T52</c>).</summary>
     /// <remarks>
+    /// <para>
     /// <b>For the overlay above, which positions real controls in screen coordinates over a
     /// surface that moves.</b> Everything the canvas draws is in world units and follows the view
     /// for free; the one control the hybrid overlay is holding does not, and before this the
     /// collision was resolved by closing it — one notch of the wheel and the editor a user was
     /// typing in snapped shut.
+    /// </para>
+    /// <para>
+    /// <b>It is named for what its consumer needs to know, and that is not "the view moved".</b>
+    /// The pan and the zoom move every node's rectangle at once; dragging a node moves one. Both
+    /// leave a control positioned in screen pixels pointing at where the block used to be, and the
+    /// overlay cannot tell the difference — so the event is <i>a node is somewhere else now</i>.
+    /// It was called <c>ViewChanged</c> and raised only by the pan and the zoom, which is exactly
+    /// the shape of the defect `E8-T52` fixes: the two node drags each remembered to redraw and
+    /// neither remembered to announce.
+    /// </para>
     /// </remarks>
-    public event EventHandler? ViewChanged;
+    public event EventHandler? ContentMoved;
 
     private enum InteractionMode
     {
@@ -441,18 +452,22 @@ public sealed class GraphCanvas : Control
         InvalidateVisual();
     }
 
-    /// <summary>Redraws, and tells the overlay that the view has moved (<c>E8-T43</c>).</summary>
+    /// <summary>
+    /// Redraws, and tells the overlay that a node is somewhere else now (<c>E8-T43</c>,
+    /// <c>E8-T52</c>).
+    /// </summary>
     /// <remarks>
-    /// <b>Every site that moves the pan or the zoom calls this instead of
+    /// <b>Every site that moves the pan, the zoom or a node calls this instead of
     /// <c>InvalidateVisual</c>.</b> They all had to invalidate anyway, so routing them through one
-    /// place costs nothing and makes "did anything move?" answerable — the alternative is five
-    /// call sites that each have to remember a second thing, which is four opportunities to
-    /// forget.
+    /// place costs nothing and makes "did anything move?" answerable — the alternative is a call
+    /// site that has to remember a second thing, which is an opportunity to forget. **It was
+    /// forgotten**: the pan and the wheel came through here and the two node drags did not, so an
+    /// open editor followed a zoom and was left behind by a drag.
     /// </remarks>
-    private void ViewMoved()
+    private void AnnounceMove()
     {
         InvalidateVisual();
-        ViewChanged?.Invoke(this, EventArgs.Empty);
+        ContentMoved?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Adds a slot to the selection, leaving whatever else is selected alone.</summary>
@@ -551,7 +566,7 @@ public sealed class GraphCanvas : Control
         double zoom = _transform.Zoom;
         _transform.OffsetX = ((bounds.MinX + bounds.MaxX) / 2) - (Bounds.Width / (2 * zoom));
         _transform.OffsetY = ((bounds.MinY + bounds.MaxY) / 2) - (Bounds.Height / (2 * zoom));
-        ViewMoved();
+        AnnounceMove();
     }
 
     /// <summary>Frames the whole graph in the control, with a margin.</summary>
@@ -588,7 +603,7 @@ public sealed class GraphCanvas : Control
 
         _fitPending = false;
         _transform.FitTo(_graph.ComputeBounds(), Bounds.Width, Bounds.Height);
-        ViewMoved();
+        AnnounceMove();
     }
 
     /// <inheritdoc/>
@@ -610,7 +625,7 @@ public sealed class GraphCanvas : Control
             if (untouched)
             {
                 _transform.FitTo(_graph.ComputeBounds(), finalSize.Width, finalSize.Height);
-                ViewMoved();
+                AnnounceMove();
             }
         }
 
@@ -936,7 +951,7 @@ public sealed class GraphCanvas : Control
             case InteractionMode.Panning:
                 _transform.PanByScreen(screen.X - _pointerAnchor.X, screen.Y - _pointerAnchor.Y);
                 _pointerAnchor = screen;
-                ViewMoved();
+                AnnounceMove();
                 return;
 
             case InteractionMode.DraggingNodes:
@@ -947,7 +962,10 @@ public sealed class GraphCanvas : Control
 
                 MoveSelection(world.X - _dragStartWorld.X, world.Y - _dragStartWorld.Y);
                 _dragStartWorld = world;
-                InvalidateVisual();
+
+                // `E8-T52`: announced and not merely redrawn. The block being dragged may be the
+                // one an open editor is sitting on, and the editor is positioned in screen pixels.
+                AnnounceMove();
                 return;
 
             case InteractionMode.DraggingSlider when _sliderSlot >= 0:
@@ -972,7 +990,9 @@ public sealed class GraphCanvas : Control
             case InteractionMode.DraggingGroup when _selectedGroup is { } group:
                 MoveGroup(group, world.X - _dragStartWorld.X, world.Y - _dragStartWorld.Y);
                 _dragStartWorld = world;
-                InvalidateVisual();
+
+                // A group carries its member nodes, so this moves blocks too (`E8-T52`).
+                AnnounceMove();
                 return;
 
             case InteractionMode.Marquee:
@@ -1266,7 +1286,7 @@ public sealed class GraphCanvas : Control
         double factor = Math.Pow(1.15, e.Delta.Y);
         _transform.ZoomAbout(factor, screen.X, screen.Y);
         e.Handled = true;
-        ViewMoved();
+        AnnounceMove();
     }
 
     /// <inheritdoc/>
@@ -3137,7 +3157,13 @@ public sealed class GraphCanvas : Control
         }
 
         _wireVisuals.Clear();
-        InvalidateVisual();
+
+        // `E8-T52`: nodes moved, so this announces rather than merely redrawing, for the same
+        // reason the drags do. Unreachable with an editor open today - the editor holds the
+        // keyboard, and reaching a menu commits it - but the funnel is the point: the rule is
+        // "moved a node, say so", not "moved a node in a way somebody has checked matters".
+        AnnounceMove();
+
         // Labelled without a node count, unlike Move and Delete. Those name an amount of work;
         // an alignment names an arrangement, and "Undo Align left" says everything "Undo Align
         // left 3 nodes" would while reading like English.
@@ -3246,7 +3272,7 @@ public sealed class GraphCanvas : Control
         }
 
         _wireVisuals.Clear();
-        InvalidateVisual();
+        AnnounceMove();
         GraphChanged?.Invoke(
             this, new GraphEditedEventArgs(CanvasLayout.Description, affectsEvaluation: false));
 

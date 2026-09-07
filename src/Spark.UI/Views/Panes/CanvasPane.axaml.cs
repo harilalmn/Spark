@@ -74,7 +74,7 @@ public sealed partial class CanvasPane : UserControl
         CanvasControl.CodeBlockRequested += OnCanvasCodeBlockRequested;
         CanvasControl.FieldEditRequested += OnCanvasFieldEditRequested;
         CanvasControl.ScriptEditRequested += OnCanvasScriptEditRequested;
-        CanvasControl.ViewChanged += OnCanvasViewChanged;
+        CanvasControl.ContentMoved += OnCanvasContentMoved;
 
         // `E8-T39`. The same four sources the properties pane gives its editor, because it is
         // the same editor over the same block - a list that answered differently depending on
@@ -457,7 +457,9 @@ public sealed partial class CanvasPane : UserControl
         return true;
     }
 
-    /// <summary>Keeps the open editor over its block when the view moves (<c>E8-T43</c>).</summary>
+    /// <summary>
+    /// Keeps the open editor over its block when anything moves it (<c>E8-T43</c>, <c>E8-T52</c>).
+    /// </summary>
     /// <remarks>
     /// <para>
     /// <b>This replaces closing the editor, which is what the wheel used to do.</b> A control
@@ -471,8 +473,14 @@ public sealed partial class CanvasPane : UserControl
     /// over a node that is not there — which is what a deletion from elsewhere would otherwise
     /// produce.
     /// </para>
+    /// <para>
+    /// <b>The block moving counts, and not only the view moving</b> (<c>E8-T52</c>). Dragging a
+    /// block by its title while its editor was open slid the block out from under the editor and
+    /// left the editor where it was — the canvas redrew and told nobody. The event now means
+    /// <i>a node is somewhere else</i>, which is the question this handler was always asking.
+    /// </para>
     /// </remarks>
-    private void OnCanvasViewChanged(object? sender, EventArgs e)
+    private void OnCanvasContentMoved(object? sender, EventArgs e)
     {
         if (_editingScript < 0)
         {

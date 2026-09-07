@@ -311,7 +311,7 @@ public sealed class CodeBlockOnCanvasTests
         window.CaptureRenderedFrame();
 
         int moves = 0;
-        canvas.ViewChanged += (_, _) => moves++;
+        canvas.ContentMoved += (_, _) => moves++;
 
         window.MouseWheel(new Point(400, 300), new Vector(0, 1));
 
@@ -349,5 +349,86 @@ public sealed class CodeBlockOnCanvasTests
         Assert.True(
             graph.Nodes[slot].Width > worldWidth,
             $"the block should have grown in world units: {worldWidth} to {graph.Nodes[slot].Width}");
+    });
+
+    /// <summary>
+    /// <b>`E8-T52`: dragging the block moves it out from under the editor, so dragging the block
+    /// has to be announced too.</b> Found by the client, who dragged a block by its title with the
+    /// editor open and watched the block leave without it.
+    /// </summary>
+    /// <remarks>
+    /// The canvas redrew and told nobody: the pan and the wheel went through the announcing funnel
+    /// and the two node drags each called <c>InvalidateVisual</c> directly. That is why the event
+    /// is named for <i>a node moved</i> rather than for <i>the view moved</i> — the overlay cannot
+    /// tell the two apart and does not need to.
+    /// </remarks>
+    [Fact]
+    public void DraggingABlockIsAnnounced() => HeadlessSession.Run(() =>
+    {
+        (CanvasGraph graph, int slot) = Block(TwoLines);
+
+        GraphCanvas canvas = new() { Graph = graph };
+        Window window = new() { Width = 900, Height = 700, Content = canvas };
+
+        window.Show();
+        window.CaptureRenderedFrame();
+
+        int moves = 0;
+        canvas.ContentMoved += (_, _) => moves++;
+
+        // The title bar, which is what the client dragged and the one part of a block that is not
+        // its source.
+        CanvasNode node = graph.Nodes[slot];
+        Point title = new(
+            canvas.Transform.ToScreenX(node.X + (node.Width / 2)),
+            canvas.Transform.ToScreenY(node.Y + (CanvasNode.HeaderHeight / 2)));
+
+        window.MouseDown(title, MouseButton.Left);
+        window.MouseMove(title + new Vector(120, 60), RawInputModifiers.LeftMouseButton);
+        window.MouseUp(title + new Vector(120, 60), MouseButton.Left);
+
+        Assert.True(moves > 0, "dragging a code block announced nothing, so an open editor stays put");
+
+        window.Close();
+    });
+
+    /// <summary>
+    /// And the announcement is worth making: the rectangle the editor is placed in really has
+    /// moved with the block, by the distance the pointer travelled.
+    /// </summary>
+    /// <remarks>
+    /// The event alone would be satisfied by raising it and answering the same rectangle, which is
+    /// the version of this fix that looks right and does nothing. This asks the canvas the question
+    /// the pane asks it — <c>ScriptEditorSpace</c>, whose answer becomes <c>Canvas.Left</c> and
+    /// <c>Canvas.Top</c> — before and after.
+    /// </remarks>
+    [Fact]
+    public void TheEditorsRectangleFollowsADraggedBlock() => HeadlessSession.Run(() =>
+    {
+        (CanvasGraph graph, int slot) = Block(TwoLines);
+
+        GraphCanvas canvas = new() { Graph = graph };
+        Window window = new() { Width = 900, Height = 700, Content = canvas };
+
+        window.Show();
+        window.CaptureRenderedFrame();
+
+        Assert.True(canvas.ScriptEditorSpace(slot, 400, 120, out double x, out double y, out _, out _));
+
+        CanvasNode node = graph.Nodes[slot];
+        Point title = new(
+            canvas.Transform.ToScreenX(node.X + (node.Width / 2)),
+            canvas.Transform.ToScreenY(node.Y + (CanvasNode.HeaderHeight / 2)));
+
+        window.MouseDown(title, MouseButton.Left);
+        window.MouseMove(title + new Vector(120, 60), RawInputModifiers.LeftMouseButton);
+        window.MouseUp(title + new Vector(120, 60), MouseButton.Left);
+
+        Assert.True(canvas.ScriptEditorSpace(slot, 400, 120, out double movedX, out double movedY, out _, out _));
+
+        Assert.Equal(x + 120, movedX, 3);
+        Assert.Equal(y + 60, movedY, 3);
+
+        window.Close();
     });
 }
