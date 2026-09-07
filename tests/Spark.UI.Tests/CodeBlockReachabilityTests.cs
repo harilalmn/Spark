@@ -48,9 +48,18 @@ public sealed class CodeBlockReachabilityTests
         Assert.Null(model.SelectedCodeBlock);
     }
 
-    /// <summary>A fresh code block starts with source a user can edit rather than nothing.</summary>
+    /// <summary>
+    /// A fresh code block is <b>empty</b>, and is a node a user can see and type into rather than
+    /// a sliver.
+    /// </summary>
+    /// <remarks>
+    /// <b>The size is the part worth asserting.</b> A block measures itself from its source
+    /// (`E8-T39`), and nothing had ever measured one with no source at all — an empty block that
+    /// came out a few pixels tall would be a node nobody could find to double-click, which is the
+    /// failure this change could plausibly have introduced. It does not: 185 by 57.
+    /// </remarks>
     [Fact]
-    public void AFreshCodeBlockHasSource()
+    public void AFreshCodeBlockIsEmptyAndStillASensibleSize()
     {
         MainWindowViewModel model = new();
 
@@ -58,6 +67,10 @@ public sealed class CodeBlockReachabilityTests
         model.ShowSelection([slot]);
 
         Assert.NotNull(model.SelectedCodeBlock);
+        Assert.Equal(string.Empty, model.Graph.Nodes[slot].Script);
+
+        Assert.True(model.Graph.Nodes[slot].Width > 100, $"{model.Graph.Nodes[slot].Width} is too narrow to click");
+        Assert.True(model.Graph.Nodes[slot].Height > 30, $"{model.Graph.Nodes[slot].Height} is too short to click");
     }
 
     /// <summary>
@@ -66,8 +79,10 @@ public sealed class CodeBlockReachabilityTests
     /// <remarks>
     /// The starter used to be <c>return a;</c>, which compiles to a block with one input called
     /// <c>a</c> that the user never asked for and has no obvious way to remove. Asked for directly:
-    /// "let the default be zero inputs". The starter is now a comment, and a comment has no free
-    /// identifiers.
+    /// "let the default be zero inputs". It was then a comment, which has no free identifiers
+    /// either, and is now empty — the client asked for the block to be blank once they had read the
+    /// sentence a few times. An empty script has nothing to be an input, so all three pass and only
+    /// the first ever failed.
     /// </remarks>
     [Fact]
     public void AFreshCodeBlockHasNoInputs()
@@ -77,6 +92,9 @@ public sealed class CodeBlockReachabilityTests
         int slot = model.PlaceCodeBlock(0, 0);
 
         Assert.Empty(model.Graph.Nodes[slot].Inputs);
+
+        // And exactly one output, so there is something to wire out of before a line is typed.
+        Assert.Equal("result", Assert.Single(model.Graph.Nodes[slot].Outputs).Name);
     }
 
     /// <summary>

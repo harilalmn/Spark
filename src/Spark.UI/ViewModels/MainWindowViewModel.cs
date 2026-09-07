@@ -1003,18 +1003,24 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         IScriptNodeFactory scripts = _session.EnableScripting();
 
-        // A NEW BLOCK HAS NO INPUTS, AND THE STARTER IS A COMMENT RATHER THAN CODE.
+        // A NEW BLOCK IS EMPTY, AND THE THING TO KNOW IS WHY IT IS NOT `return a;`.
         //
         // It used to be `return a;`, which compiles to a block with one input port called `a`
         // that nobody asked for. A user placing their first code block got a port they then had
         // to work out how to get rid of - and the answer, "delete the identifier from the
-        // source", is exactly the thing the starter was failing to teach.
+        // source", is exactly the thing the starter was failing to teach. That half of `E6-T18`
+        // still holds, and it is the reason this is not a free choice: whatever goes here must
+        // not name an identifier.
         //
-        // An empty script is legal here: it compiles to zero inputs and one `result` output. So
-        // the starter is one line that states the rule which is otherwise invisible, because the
-        // question the first user of this asked was "where do I type the code?" and the second
-        // was "how do I get more inputs?". Both are answered by the sentence below.
-        const string Starter = "// Any name you have not declared becomes an input port.\n";
+        // It was then one comment line stating the input rule, because the first two questions
+        // anybody asked were "where do I type the code?" and "how do I get more inputs?". The
+        // client has since used it and asked for the block to be blank - a starter comment is a
+        // sentence you read once and delete every time after - and the rule it stated lives in
+        // `concepts/code-blocks.md`, which is where a second reading of it belongs.
+        //
+        // An empty script is legal and is not a special case: zero inputs, one `result` output,
+        // and `Trailer` gives it `return null;` so that it compiles (`E6-T26`).
+        const string Starter = "";
 
         // Scripting may have been switched on by this very call, so the canvas learns about the
         // factory here rather than only at `AdoptGraph` — otherwise the first code block placed in

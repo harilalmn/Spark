@@ -169,20 +169,27 @@ public sealed class ScriptDeclaredOutputTests
     }
 
     /// <summary>
-    /// <b>The starter script now compiles, and it did not.</b> `E6-T18` made a fresh code block one
-    /// comment line and recorded that an empty script is legal — zero inputs, one <c>result</c>
-    /// output. The ports were right and the block was not: a generated method returning
-    /// <c>object</c> with no <c>return</c> in it is <c>CS0161</c>, so every fresh block failed to
-    /// compile and said so the moment anything asked it for a value.
+    /// <b>A script that declares nothing compiles, and once it did not.</b> `E6-T18` recorded that
+    /// an empty script is legal — zero inputs, one <c>result</c> output. The ports were right and
+    /// the block was not: a generated method returning <c>object</c> with no <c>return</c> in it is
+    /// <c>CS0161</c>, so every fresh block failed to compile and said so the moment anything asked
+    /// it for a value. Both shapes are checked, because the starter has been each of them: a
+    /// comment-only script, and the genuinely empty one a fresh block now carries.
     /// </summary>
     [Fact]
     public void AScriptThatDeclaresNothingCompilesAndReturnsNull()
     {
-        NodeDefinitionSource block = new ScriptNodeFactory().Create(
-            "// Any name you have not declared becomes an input port.\n");
+        NodeDefinitionSource commentOnly = new ScriptNodeFactory().Create(
+            "// a script that is only a comment\n");
 
-        Assert.Equal("result", Assert.Single(block.Outputs).Name);
-        Assert.Null(Assert.Single(block.Invoke([], CancellationToken.None)));
+        Assert.Equal("result", Assert.Single(commentOnly.Outputs).Name);
+        Assert.Null(Assert.Single(commentOnly.Invoke([], CancellationToken.None)));
+
+        NodeDefinitionSource empty = new ScriptNodeFactory().Create(string.Empty);
+
+        Assert.Empty(empty.Inputs);
+        Assert.Equal("result", Assert.Single(empty.Outputs).Name);
+        Assert.Null(Assert.Single(empty.Invoke([], CancellationToken.None)));
     }
 
     /// <summary>

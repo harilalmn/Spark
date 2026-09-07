@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-07 (E6-T27: a block's last expression is its result)
+**Last updated:** 2026-09-07 (a new code block starts empty)
 **Protocol version:** 2
 
 ---
@@ -19,10 +19,10 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | **Nothing - between steps.** **What is left of `E12-T21` is a person seeing the update pill in their own installed shell**, still the only unproven link in that chain. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E6-T27` - a block whose last line is an expression returns it.** Claimed only where C# would refuse the expression as a statement, so nothing that compiled changed meaning; a trailing call is still a statement. **Before it:** Dynamo's count ranges parts 1 and 2, `E8-T8`'s tie-break, cutting `v0.4.0`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2566** tests green. **One known flaky test**, now named: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, about one full run in five, green in isolation, unrelated to the current work - [N120](NOTES.md). |
-| **Next action** | Either chase the named flake - `TheRoomIsAskedForInScreenPixelsWhateverTheZoom` measures text under `HeadlessSession` and answers short about one run in five, and a known-flaky test is a gate nobody trusts - or take the top of the *Queue*: **persist the workspace layout between sessions**, since `WorkspaceLayout` already serialises and round-trips under test and nothing writes it. |
-| **Verify with** | `tests/Spark.Docs.Verify` - front matter, a worked example per topic, every relative link, every ADR citation and every `Last updated` line - plus the other nine executables (**2566**: UI 967, Geometry 763, Engine 516, Viewport 108, Packages 71, Occt 63, Properties 43, Architecture 18, Geometry.Io 12, Docs 5). **And the help's C# fences are compiled**, the `concepts.code-blocks` ones through the real `ScriptNodeFactory`, so an example that lies is a red build. **Grep the run output for `[FAIL]` and not only `Total:`** - two flake sightings went unnamed because of that. |
+| **Last completed step** | **A new code block starts empty** - `E6-T18`'s starter comment removed at the client's request. The constraint that half the row exists for survives (the starter must name no identifier); the sentence it carried is already in `code-blocks.md`. **Before it:** `E6-T27`, Dynamo's count ranges parts 1 and 2, `E8-T8`'s tie-break. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2566** tests green. **One known flaky test**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, about one full run in five, green in isolation - [N120](NOTES.md). |
+| **Next action** | `MainWindowViewModel.PlaceCodeBlock`: `Starter` becomes `string.Empty`, and the comment block above it is rewritten to say what is true now rather than deleted, because *why the starter is not `return a;`* is still the load-bearing part. Then check what an empty source does to the **node's size** - `E8-T39` derives the block's width and height from its text, and nothing has ever measured a block with no text - and to `ScriptDeclaredOutputTests`, which uses the starter string as its example of a script that declares nothing. |
+| **Verify with** | `PlaceCodeBlock` giving a block with zero inputs, one `result` port and no diagnostic, and a screenshot of a placed empty block to show the node is still a sensible size and not a sliver. Then the ten executables and `tests/Spark.Docs.Verify`. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -7290,3 +7290,44 @@ related to this change and was failing before it.
 **Documents.** `code-blocks.md` gained the rule under *Several outputs* with three compiled
 examples, including the trailing-call counter-example; `E6-T27` is a new register row; TODO gained a
 line; `N120` now names the flaky test instead of counting anonymous failures.
+
+### 2026-09-07 - A new code block starts empty
+
+**What.** The client asked for the starter comment - `// Any name you have not declared becomes an
+input port.` - to go. `Starter` is now `string.Empty`.
+
+**`E6-T18` put it there and half of that row still stands.** The starter was once `return a;`, which
+compiled to a block with an input port called `a` that nobody asked for and whose removal required
+already knowing you delete an identifier from the source. **That constraint survives** and is the
+reason this is not a free choice: whatever the starter is, it must name no identifier. The other
+half - a comment stating the input rule, because the first two questions anybody asked were *where
+do I type* and *how do I get more inputs* - is what the client has now read enough times to want
+gone. A starter comment is a sentence you delete every time after the first.
+
+**The rule it stated is not lost, which is the thing I checked before agreeing rather than after.**
+It is the third paragraph of `concepts/code-blocks.md`: *"A new block starts with no input ports.
+You do not add one with a button; you add one by using a name the code has not declared. That is the
+whole rule."* So the sentence moved from a place you must delete to a place you can re-read.
+
+**The one thing that could have gone wrong was the size, and it did not.** A code block measures
+itself from its source (`E8-T39`) and nothing had ever measured one with no source at all - an empty
+block that came out a few pixels tall would be a node too small to find, let alone double-click.
+Measured rather than assumed: **185.2 by 57**, zero inputs, one `result` port.
+`AFreshCodeBlockIsEmptyAndStillASensibleSize` now asserts it, and putting the comment back reddens
+exactly that test.
+
+**Verified.** The whole suite, plus two tests corrected rather than merely kept green:
+`AFreshCodeBlockHasSource` was named for a claim it never made - it asserted only that the inspector
+showed *something* - and is now `AFreshCodeBlockIsEmptyAndStillASensibleSize` with the assertions
+its name promises; `AFreshCodeBlockHasNoInputs` gained the matching output-port assertion, because
+"no inputs" and "one output" are the two halves of what a fresh block is.
+`ScriptDeclaredOutputTests` used the starter string as its example of a script that declares
+nothing, so it now checks **both** shapes the starter has been - comment-only and genuinely empty -
+rather than tracking whichever one is current.
+
+Gates: build clean with zero warnings, format clean, **2566** tests green, and the run output was
+grepped for `[FAIL]` as well as `Total:`.
+
+**Documents.** `E6-T18`'s row records the removal and, more usefully, which half of its reasoning
+survives it; `code-blocks.md` said a block lands *"with its source on it"*, which was no longer
+true; TODO gained a line.
