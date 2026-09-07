@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-07 (N115, N116 and N117 added; N117 rewritten twice, once per client report)
+**Last updated:** 2026-09-07 (N118 added: pulling a wire off an input port)
 
 ---
 
@@ -3455,3 +3455,42 @@ defect. What the shipped tests assert is that the factory sets **none** of the t
 properties, which is the fix stated as a negative and is what a future tidy-up would undo. The
 behaviour itself was measured with a throwaway probe against the real `App`, and confirmed by the
 client.
+## N118 — A press on a port meant one thing, and a wired input needed it to mean two
+
+Dragging the wire off a connected input port drew a **red wire with a `✕`** and then did nothing.
+Nothing was broken: `OnPointerPressed` starts a wire from whatever port is under the pointer without
+branching on which side it is, so pulling on a wired input started a *new connection from that
+input* — and a connection from an input to empty canvas is refused, which is what the red and the
+`✕` say ([design language §V1](help/concepts/design-language.md)). Correct feedback about the wrong
+gesture.
+
+**The fix is two-stage, and the second stage is the whole safety of it.** A press on a wired input
+only *remembers* the wire; the detach happens on the first movement past `ClickSlopScreen`. Doing it
+on the press would mean a **click** on a wired input deleted the wire — and a click on a port is not
+a mistake, it is `E8-T34`'s gesture for arming a wire. Worse, Escape abandons a pending wire without
+touching the graph, so the wire would not come back from the gesture that looks like a cancel; only
+Control+Z would bring it back, after the user had already decided nothing happened.
+
+**Nothing is committed until the button comes up.** The wire is lifted visually — skipped in
+`EnsureWireVisuals`, which also drops it from `_connectedPorts`, so the port draws unconnected — and
+the drag continues from the wire's *source* output, which is what makes the gesture read as picking
+a wire up rather than starting a new one. The graph is untouched throughout, so a drag that ends
+back on the port it started from costs no edit and no undo entry.
+
+**One `GraphChanged` for the whole gesture, because that is what one undo step is.** Undo here is a
+snapshot of the document taken when that event is raised (`MainWindowViewModel.RecordEdit`), so a
+disconnect and a reconnect announced separately would be two entries, and putting one wire back
+would take two presses of Control+Z. `DropDetachedWire` disconnects and reconnects with nothing
+raised in between, and reports *Move wire* or *Disconnect wire* once.
+
+**Where it is filtered matters.** The lifted wire is removed from the list before the loop rather
+than skipped inside it: `_wireVisuals[i]` is matched against `wires[i]`, so a hole in the middle
+would shift every wire after it and rebuild the lot. The filter allocates, and only while a drag is
+in flight — never in the steady state the cache exists to protect.
+
+**What is still not right, and is a design question rather than a defect.** Over empty canvas the
+detached wire is drawn in the *rejected* colour with a `✕`, because `EvaluateDrag` answers `Refused`
+for a null target. That is accurate about connecting and misleading about consequence: releasing
+there **removes the wire**, which is not nothing. Saying so properly means a fourth drag state, and
+§V1 deliberately refused a wire-only colour ramp — so it is left alone and written down here rather
+than invented on the way past.

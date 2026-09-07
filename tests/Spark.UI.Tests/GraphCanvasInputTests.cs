@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
@@ -792,6 +793,132 @@ public sealed class GraphCanvasInputTests
     /// <summary>Runs a test body on the headless UI thread, rethrowing anything it threw.</summary>
     /// <param name="body">The gesture sequence and its assertions.</param>
     private static void OnUiThread(Action body) => HeadlessSession.Run(body);
+
+    /// <summary>
+    /// <b>Dragging a wire off the input port it lands on takes the wire with it</b> — asked for by
+    /// the client with a screenshot of the alternative: a press on a wired input started a *new*
+    /// connection from that input, which can only ever be refused, so the gesture drew a red wire
+    /// and a `✕` and then did nothing.
+    /// </summary>
+    [Fact]
+    public void DraggingAWireOffItsInputPortRemovesIt() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        DragWire(window, canvas, 0, 1);
+        Assert.Single(canvas.Graph.Wires);
+
+        List<string> edits = [];
+        canvas.GraphChanged += (_, e) => edits.Add(e.Label);
+
+        canvas.Graph.Nodes[1].InputPortCentre(0, out double fromX, out double fromY);
+        window.MouseDown(Screen(canvas, fromX, fromY), MouseButton.Left, RawInputModifiers.None);
+        window.MouseMove(Screen(canvas, fromX - 60, fromY + 60), RawInputModifiers.None);
+        window.MouseMove(Screen(canvas, fromX - 120, fromY + 120), RawInputModifiers.None);
+        window.MouseUp(Screen(canvas, fromX - 120, fromY + 120), MouseButton.Left, RawInputModifiers.None);
+
+        Assert.Empty(canvas.Graph.Wires);
+        Assert.Equal("Disconnect wire", Assert.Single(edits));
+    });
+
+    /// <summary>
+    /// And dropped on another input it <b>moves</b> there. One edit, not two: undo is a snapshot
+    /// taken when the change is announced, so announcing the disconnect and the reconnect
+    /// separately would cost two presses of Control+Z to put one wire back.
+    /// </summary>
+    [Fact]
+    public void AWireDraggedOffOneInputAndOntoAnotherMovesThere() => OnUiThread(() =>
+    {
+        CanvasGraph graph = new();
+        graph.Add(TestGraphs.Library.ByName("Number.Value"), 0, 0);
+        int point = graph.Add(TestGraphs.Library.ByName("Point.ByCoordinates"), 300, 0);
+
+        (Window window, GraphCanvas canvas) = Open(graph);
+        DragWire(window, canvas, 0, point);
+
+        Assert.Equal(0, Assert.Single(canvas.Graph.Wires).To.PortIndex);
+
+        List<string> edits = [];
+        canvas.GraphChanged += (_, e) => edits.Add(e.Label);
+
+        canvas.Graph.Nodes[point].InputPortCentre(0, out double fromX, out double fromY);
+        canvas.Graph.Nodes[point].InputPortCentre(1, out double toX, out double toY);
+
+        window.MouseDown(Screen(canvas, fromX, fromY), MouseButton.Left, RawInputModifiers.None);
+        window.MouseMove(Screen(canvas, fromX - 40, (fromY + toY) / 2), RawInputModifiers.None);
+        window.MouseMove(Screen(canvas, toX, toY), RawInputModifiers.None);
+        window.MouseUp(Screen(canvas, toX, toY), MouseButton.Left, RawInputModifiers.None);
+
+        CanvasWire moved = Assert.Single(canvas.Graph.Wires);
+        Assert.Equal(1, moved.To.PortIndex);
+        Assert.Equal(0, moved.From.NodeIndex);
+        Assert.Equal("Move wire", Assert.Single(edits));
+    });
+
+    /// <summary>
+    /// Dropped back where it came from, <b>nothing happened</b> — not a disconnect and an identical
+    /// reconnect, which would put an undo entry on the stack for a gesture that changed nothing.
+    /// </summary>
+    [Fact]
+    public void AWireDroppedBackOnItsOwnPortIsNotAnEdit() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        DragWire(window, canvas, 0, 1);
+
+        List<string> edits = [];
+        canvas.GraphChanged += (_, e) => edits.Add(e.Label);
+
+        canvas.Graph.Nodes[1].InputPortCentre(0, out double x, out double y);
+        window.MouseDown(Screen(canvas, x, y), MouseButton.Left, RawInputModifiers.None);
+        window.MouseMove(Screen(canvas, x - 80, y + 40), RawInputModifiers.None);
+        window.MouseMove(Screen(canvas, x, y), RawInputModifiers.None);
+        window.MouseUp(Screen(canvas, x, y), MouseButton.Left, RawInputModifiers.None);
+
+        Assert.Single(canvas.Graph.Wires);
+        Assert.Empty(edits);
+    });
+
+    /// <summary>
+    /// <b>The regression guard for `E8-T34`.</b> A press on a wired input that never travels is a
+    /// <i>click</i>, and a click on a port arms a wire — it must not take the wire off. Detaching
+    /// on the press rather than on the first movement would make an accidental click delete a
+    /// connection, and Escape would not bring it back because Escape abandons a pending wire
+    /// without touching the graph.
+    /// </summary>
+    [Fact]
+    public void ClickingAWiredInputPortArmsAWireAndKeepsTheOne() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+        DragWire(window, canvas, 0, 1);
+
+        List<string> edits = [];
+        canvas.GraphChanged += (_, e) => edits.Add(e.Label);
+
+        canvas.Graph.Nodes[1].InputPortCentre(0, out double x, out double y);
+        Click(window, Screen(canvas, x, y));
+
+        Assert.Single(canvas.Graph.Wires);
+        Assert.Empty(edits);
+    });
+
+    /// <summary>
+    /// Dragging off an input that has nothing on it is unchanged: it starts a wire from that input,
+    /// which is what it has always done and what the two-click gesture also does.
+    /// </summary>
+    [Fact]
+    public void DraggingFromAnUnwiredInputStillStartsAWire() => OnUiThread(() =>
+    {
+        (Window window, GraphCanvas canvas) = Open(TwoNodes());
+
+        canvas.Graph.Nodes[1].InputPortCentre(0, out double fromX, out double fromY);
+        canvas.Graph.Nodes[0].OutputPortCentre(0, out double toX, out double toY);
+
+        window.MouseDown(Screen(canvas, fromX, fromY), MouseButton.Left, RawInputModifiers.None);
+        window.MouseMove(Screen(canvas, (fromX + toX) / 2, (fromY + toY) / 2), RawInputModifiers.None);
+        window.MouseMove(Screen(canvas, toX, toY), RawInputModifiers.None);
+        window.MouseUp(Screen(canvas, toX, toY), MouseButton.Left, RawInputModifiers.None);
+
+        Assert.Single(canvas.Graph.Wires);
+    });
 
     private static void Click(Window window, double x, double y, RawInputModifiers modifiers = RawInputModifiers.None) =>
         Click(window, new Point(x, y), modifiers);

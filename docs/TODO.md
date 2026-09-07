@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-07 (E8-T48 closed: View-menu toggles for the Library and Properties panes, F4 for Properties)
+**Last updated:** 2026-09-07 (E8-T49 closed: dragging a wire off an input port takes the wire with it)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -85,6 +85,14 @@ for anything else.
 ---
 
 ## Where the run stands
+
+**Pulling a wire off a port, closed on 2026-09-07** — `E8-T49`, reported by the client with a
+screenshot. A press on a port started a wire from that port whichever side it was, so dragging off a
+wired input started a connection that could only be refused — a red wire and a `✕`, and nothing.
+The wire now lifts off the input and trails from its source output: drop it on another input to move
+it, anywhere else to remove it. The detach happens on the first movement rather than on the press,
+so a *click* on a wired input still arms a wire as `E8-T34` intended instead of deleting one, and
+nothing is committed until the button comes up ([N118](NOTES.md)).
 
 **Showing and hiding one pane, closed on 2026-09-07** — `E8-T48`, asked for by the client.
 **View → Library** and **View → Properties** each toggle that pane alone, with a tick showing its

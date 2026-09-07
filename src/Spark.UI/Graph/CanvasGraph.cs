@@ -1760,6 +1760,36 @@ public sealed class CanvasGraph
         }
     }
 
+    /// <summary>The wire feeding an input port, if one does.</summary>
+    /// <param name="input">The input port.</param>
+    /// <returns>The wire, or null when the port is an output or has nothing wired into it.</returns>
+    /// <remarks>
+    /// <b><see cref="IsInputWired"/> already found this wire and threw it away</b>, which was
+    /// enough while the only question about an input port was whether its literal box should be
+    /// editable. Pulling a wire off a port needs the wire itself. It scans
+    /// <see cref="Wires"/> rather than the engine's incoming list because that list is in slot
+    /// space already — the engine's is in <c>NodeId</c> space, and mapping back is what
+    /// <c>RebuildWires</c> exists to do. The scan is linear over a list the renderer builds every
+    /// frame anyway, and it runs once per press.
+    /// </remarks>
+    public CanvasWire? WireInto(CanvasPort input)
+    {
+        if (input.IsOutput)
+        {
+            return null;
+        }
+
+        foreach (CanvasWire wire in Wires)
+        {
+            if (wire.To == input)
+            {
+                return wire;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Whether an input port already has a wire into it.</summary>
     /// <param name="slot">The node's slot.</param>
     /// <param name="portIndex">The input port index.</param>

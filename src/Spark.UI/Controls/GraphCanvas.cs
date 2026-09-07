@@ -264,6 +264,16 @@ public sealed class GraphCanvas : Control
     private CanvasPort? _hoverPort;
     private CanvasPort? _dragSourcePort;
     private bool _wireDragMoved;
+
+    // PULLING A WIRE OFF AN INPUT PORT, IN TWO STAGES, AND THE TWO STAGES ARE THE POINT.
+    //
+    // `_detachCandidate` is the wire found under a press on a wired input. `_detachedWire` is that
+    // wire once the pointer has actually travelled far enough to be a drag. Detaching on the press
+    // instead would make a plain CLICK on a wired input delete the wire - and a click on a port is
+    // not a mistake, it is `E8-T34`'s gesture for arming a wire, which has to keep working exactly
+    // as it did.
+    private CanvasWire? _detachCandidate;
+    private CanvasWire? _detachedWire;
     private bool _duplicateOnDrag;
     private bool _deselectOnRelease;
     private CanvasWire? _selectedWire;
@@ -689,6 +699,11 @@ public sealed class GraphCanvas : Control
             _wireDragMoved = false;
             _dragOutcome = WireOutcome.Refused;
             _selectedWire = null;
+
+            // Only remembered. Whether this press becomes a detach is decided by the pointer
+            // moving, in OnPointerMoved, and nothing has changed in the graph yet.
+            _detachCandidate = _graph.WireInto(port.Value);
+            _detachedWire = null;
             e.Pointer.Capture(this);
             e.Handled = true;
             InvalidateVisual();
@@ -952,6 +967,23 @@ public sealed class GraphCanvas : Control
                     || (Math.Abs(world.X - _dragStartWorld.X) * _transform.Zoom) > ClickSlopScreen
                     || (Math.Abs(world.Y - _dragStartWorld.Y) * _transform.Zoom) > ClickSlopScreen;
 
+                // THE MOMENT A PRESS ON A WIRED INPUT BECOMES A DETACH.
+                //
+                // The wire is lifted off the port and the drag continues from its SOURCE, so the
+                // rubber band trails from the output the wire came from - which is what makes the
+                // gesture read as picking a wire up rather than starting a new one. The graph is
+                // still untouched: nothing is committed until the pointer is released, so a drag
+                // that ends back where it started costs no edit and no undo entry.
+                if (_wireDragMoved && _detachedWire is null && _detachCandidate is { } lifted)
+                {
+                    _detachedWire = lifted;
+                    _dragSourcePort = lifted.From;
+
+                    // The wire has to stop being drawn, or it stays pinned to the port the user
+                    // is pulling it off. Clearing the visuals rebuilds them without it.
+                    _wireVisuals.Clear();
+                }
+
                 _dragWireWorldEnd = world;
                 _hoverPort = HitTestPort(world);
                 _dragOutcome = EvaluateDrag(_dragSourcePort, _hoverPort);
@@ -984,6 +1016,13 @@ public sealed class GraphCanvas : Control
         {
             case InteractionMode.Marquee:
                 CommitMarquee();
+                break;
+
+            // Before the ordinary connect, because a detached wire is being MOVED and the two
+            // halves of that - off the old port, onto the new one - have to land as one edit.
+            case InteractionMode.DraggingWire when _detachedWire is { } detached:
+                DropDetachedWire(detached, _hoverPort);
+                _wireDragMoved = true;
                 break;
 
             case InteractionMode.DraggingWire
@@ -1062,6 +1101,11 @@ public sealed class GraphCanvas : Control
         {
             _dragSourcePort = null;
         }
+
+        // Cleared whatever happened, including the release that never became a drag: a candidate
+        // that outlived its press would detach a wire on the NEXT gesture over a different port.
+        _detachCandidate = null;
+        _detachedWire = null;
 
         e.Pointer.Capture(null);
         InvalidateVisual();
@@ -2627,6 +2671,27 @@ public sealed class GraphCanvas : Control
     {
         IReadOnlyList<CanvasWire> wires = _graph.Wires;
 
+        // A wire being pulled off its port is not drawn where it used to be - the rubber band under
+        // the pointer is standing in for it. Filtering it out here rather than skipping it in the
+        // loop below keeps the positional cache honest: `_wireVisuals[i]` is matched against
+        // `wires[i]`, so a hole in the middle would shift every wire after it and rebuild them all.
+        //
+        // This is the one place that allocates per frame, and only while a drag is in flight -
+        // never in the steady state, which is what the cache below exists to protect.
+        if (_detachedWire is { } detached)
+        {
+            List<CanvasWire> remaining = new(wires.Count);
+            foreach (CanvasWire wire in wires)
+            {
+                if (wire != detached)
+                {
+                    remaining.Add(wire);
+                }
+            }
+
+            wires = remaining;
+        }
+
         // Whether a port is connected decides its fill, and it is asked once per port per frame.
         // Answering it by walking the wire list would be quadratic in graph size, which is
         // invisible on a demo graph and fatal on a real one.
@@ -2739,6 +2804,63 @@ public sealed class GraphCanvas : Control
         }
 
         SelectionChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Finishes a wire that was pulled off its input port: onto the port under the pointer, or off
+    /// the graph entirely.
+    /// </summary>
+    /// <param name="detached">The wire that was lifted.</param>
+    /// <param name="target">The port under the pointer, if any.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>One <see cref="GraphChanged"/> for the whole gesture, and that is what makes it one undo
+    /// step.</b> Undo is a snapshot of the document taken when this event is raised, so a
+    /// disconnect and a reconnect between two raises would be two entries and two presses of
+    /// Control+Z to put a wire back where it started. The disconnect and the connect below happen
+    /// with nothing raised between them.
+    /// </para>
+    /// <para>
+    /// <b>Dropped back on the port it came from, nothing happens at all</b> — not a disconnect
+    /// followed by an identical reconnect, which would be an undo entry for a gesture that changed
+    /// nothing. Anything that is not a port the wire can reach removes it, which is the gesture the
+    /// client asked for: pull it off and let go.
+    /// </para>
+    /// </remarks>
+    private void DropDetachedWire(CanvasWire detached, CanvasPort? target)
+    {
+        if (target is { } port && PortEquals(port, detached.To))
+        {
+            _detachedWire = null;
+            _wireVisuals.Clear();
+            InvalidateVisual();
+            return;
+        }
+
+        // Asked before anything is removed, because the answer decides whether this is a move or a
+        // deletion, and the engine would answer differently once the wire is gone.
+        bool lands = target is { } landing
+            && _graph.Preview(detached.From, landing) is not WireOutcome.Refused;
+
+        if (!_graph.Disconnect(detached))
+        {
+            // It could not be removed, so it is still there and still correct. Nothing to report.
+            _detachedWire = null;
+            _wireVisuals.Clear();
+            InvalidateVisual();
+            return;
+        }
+
+        bool reconnected = lands && _graph.TryConnect(detached.From, target!.Value);
+
+        _detachedWire = null;
+        _wireVisuals.Clear();
+        _selectedWire = null;
+        InvalidateVisual();
+
+        GraphChanged?.Invoke(
+            this,
+            new GraphEditedEventArgs(reconnected ? "Move wire" : "Disconnect wire", affectsEvaluation: true));
     }
 
     private void TryConnect(CanvasPort source, CanvasPort target)
