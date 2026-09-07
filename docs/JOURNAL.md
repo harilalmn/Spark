@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-07 (`E8-T8`'s tie-break: Create/Action/Query, then alphabetically)
+**Last updated:** 2026-09-07 (Dynamo's count ranges: the nodes are in, the sugar is next)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing — between steps.** `v0.4.0` is published and the live update check answers against it. **What is left of `E12-T21` is a person seeing the pill in their own installed shell**, which is still the only unproven link in that chain. |
+| **Working on** | **Dynamo's count ranges, part 2 of 2: the code-block sugar.** Part 1 landed the arithmetic and the nodes. What is left is lowering `0..1..#5`, `0..#5..1` and `0..1..0.25` onto `Spark.Api.NumberRange` inside a code block. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E8-T8`'s tie-break — `Create` → `Action` → `Query`, then alphabetically.** Client-reported against the shipped creation box, taken ahead of the queue. Kind is a **tie-break and not the first key**: relevance still decides, or a description-only match would bury the node the user named. Proven against the real library through the real view model, and photographed. **Before it:** cutting `v0.4.0` — a minor bump for *Clean up layout* on `Ctrl+L`, tagged on `040306f` and published. The gates found `E11-T26` on the way, which is what running them before a tag is for. **Before it:** `E11-T26`, `E12-T21`'s live check, `E10-T15`, `E8-T51`. |
-| **Working tree** | Clean. The gates were build clean with zero warnings, format clean, and **2534** tests green with nothing skipped — Occt ran rather than skipped, so the shim was present. `v0.4.0`'s tag is on `040306f`. |
-| **Next action** | Take the top of the *Queue*: **persist the workspace layout between sessions**. `WorkspaceLayout` already serialises and round-trips under test and nothing writes it, so a dragged arrangement still dies with the window — which is the one thing a dock is for. **If the client reports the pill did not light**, that is `E12-T21`'s last link and takes priority over the queue. |
-| **Verify with** | `tests/Spark.Docs.Verify` — front matter, a worked example per topic, every relative link, every ADR citation and every `Last updated` line — plus the other eight executables to show the documents-only change moved nothing (**2534**: UI 944, Geometry 763, Engine 507, Viewport 108, Properties 43, Occt 63, Architecture 18, Packages 71, Docs 5). **And the arithmetic in the examples is checked by running it**, not by reading it: eight values, first `3`, last `5`. |
+| **Last completed step** | **Dynamo's count ranges, part 1 — `Spark.Api.NumberRange` and the two nodes that did not exist.** The arithmetic is in `Spark.Api` and not beside the nodes **because a code block cannot see `Spark.Nodes.Core` at all**, which a probe found mid-step. **Before it:** `E8-T8`'s tie-break, cutting `v0.4.0`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2542** tests green. One run of `Spark.UI.Tests` reported a single unnamed failure and four later runs were green; not reproduced, not attributed. |
+| **Next action** | Part 2. Blank each `#` that is **not inside a string or a comment** to a space, recording its position — length-preserving, so no completion offset and no diagnostic column moves. Roslyn confirms the classification: a `#` in code lexes `BadToken`/`SkippedTokensTrivia`, one in a string stays a `StringLiteralToken`, one in a comment stays comment trivia, and blanking changes none of those boundaries. Then a `CSharpSyntaxRewriter` over `RangeExpression` whose `LeftOperand` is itself a `RangeExpression` — `0..1.. 5` parses that way with **zero** diagnostics — lowering to `NumberRange.ByStep` / `ByCount` / `ByCountAndStep` by which operand a recorded marker sits before. |
+| **Verify with** | Part 2's own tests: each of the three forms lowered and evaluated through the real `ScriptNodeFactory`; a `#` inside a string and inside a comment left alone; a two-part `arr[1..^1]` slice still compiling untouched; and a caret offset after a rewritten range still resolving, which is what the length-preserving blank buys. Then `tests/Spark.Docs.Verify` and the other nine executables. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -7088,3 +7088,65 @@ nothing.
 `concepts/finding-nodes.md` — which stated the length rule in two places, including a worked example
 promising `Circle.ByPlaneRadius` first. The example now names all five results and says why the
 fifth is where it is. `N121` added.
+
+### 2026-09-07 — Dynamo's count ranges, part 1: the nodes that did not exist
+
+**What.** The client asked whether `0..1..#5` and `0..#5..1` could work in a code block. Answering
+it needed a place for the arithmetic to live, and `E10-T15` had already recorded that
+*"that form has no node here — `Number.Range` takes a step, not a count"* and left users this, in
+the help, to copy:
+
+```csharp
+var numbers = Enumerable.Range(0, 8).Select(i => 3 + (i * (5 - 3) / 7.0)).ToList();
+```
+
+Now `NumberRange.ByCount(3, 5, 8)`. Three forms, one implementation, two new nodes.
+
+**Taken ahead of the queue**, like the step before it, and for the same reason: the client asked.
+
+**The plan changed mid-step, on a finding, and the finding is the useful part.** The write-ahead
+said "add two methods to `Number.cs`". Then a probe showed a code block cannot reach
+`Spark.Nodes.Core` **at all** — not `Number.RangeByCount`, not
+`global::Spark.Nodes.Core.Number.RangeByCount`, but *`The type or namespace name 'Nodes' does not
+exist in the namespace 'Spark'`*. `Spark.Nodes.Core` is a leaf: `Spark.Scripting` references
+`Spark.Engine` and nothing references the node library. So the sugar in part 2 could never have
+lowered onto a `Number.*` node, and had the arithmetic stayed there, part 2 would have had to copy
+it — two answers to `0..1..#5` depending on where it was typed.
+
+So the arithmetic went to **`Spark.Api.NumberRange`**, the nearest common ancestor of the node
+library and the scripting engine, and already in every code block's default imports — so
+`NumberRange.ByCount(0, 1, 5)` compiles in a block today, unqualified, which a probe confirms
+returns `0, 0.25, 0.5, 0.75, 1`. `Number.Range`, `Number.RangeByCount` and
+`Number.RangeByCountAndStep` are one-line facades over it. That is ADR-0004's pattern anyway — the
+node library is a facade of static methods — so this moved `Range` into the shape the rest of the
+library already had, rather than inventing one.
+
+**The bug the tests exist for, and the first version of the test that did not find it.**
+`ByCount` assigns `values[count - 1] = end` instead of computing it, because
+`start + gap * (count - 1)` is arithmetically the bound and in floating point often the double next
+door. `TheEndsAreExact` was written to pin that — with `0.1 → 0.7`, which **passes against the
+naive implementation too**. The revert-and-watch-it-go-red step (AGENTS.md 7) is the only reason
+that was caught: nothing went red. Two hundred thousand candidate triples were then scanned for one
+where the naive form actually misses, and descending `0.7 → 0.1` does it at every count —
+`0.09999999999999998`, which reads as `0.1` in every UI there is. With that pair the test fails on
+the revert, which is the only evidence that it tests anything. **The test was asserting something
+true and proving nothing**, which is the failure mode a green suite cannot show you.
+
+**Verified.** Nine tests in `NumberRangeTests` — the exact ends, the `count - 1` divisor
+(`0..1..#5` is quarters), descending, `count` of one and zero, the step form, a negative step, the
+refusals, the three forms agreeing where they overlap, and the facades delegating rather than
+reimplementing. The help fences are compiled by `DocumentationSampleTests` through the real
+`ScriptNodeFactory` — **checked by breaking one on purpose** (`ByCountZZZ`) and watching
+`EveryCsharpSampleInTheHelpCompiles` name it. `--library range --screenshot` shows all three under
+**Input → Create**, alphabetically, and the status bar count moved 136 → 138.
+
+Gates: build clean with zero warnings, format clean, **2542** tests green. **One caveat, reported
+rather than smoothed over:** one run of `Spark.UI.Tests` reported a single failure and I did not
+capture which test; four subsequent full runs were green. It resembles [N120](NOTES.md)'s headless
+flake but I did not see the name, so I am not claiming it was that one.
+
+**Documents.** `lists.md`'s `#` section is now a table of three forms and two compiled examples
+instead of a LINQ workaround; the README's range bullet likewise; `E10-T15`'s row is left standing
+and marked superseded, because it is the reason the work happened; TODO gained a line.
+
+**Next** is part 2: the code-block sugar that lowers `0..1..#5` onto `NumberRange.ByCount`.

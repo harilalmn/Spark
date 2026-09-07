@@ -1,1 +1,6 @@
 #nullable enable
+Spark.Api.NumberRange
+const Spark.Api.NumberRange.MaximumCount = 1000000 -> int
+static Spark.Api.NumberRange.ByCount(double start, double end, int count) -> System.Collections.Generic.IReadOnlyList<double>!
+static Spark.Api.NumberRange.ByCountAndStep(double start, int count, double step) -> System.Collections.Generic.IReadOnlyList<double>!
+static Spark.Api.NumberRange.ByStep(double start, double end, double step) -> System.Collections.Generic.IReadOnlyList<double>!

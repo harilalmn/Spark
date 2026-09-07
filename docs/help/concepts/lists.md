@@ -35,29 +35,37 @@ and stops, because 1.2 is past the end.
 
 ### Coming from Dynamo: the `#` form
 
-Dynamo's code blocks write a range as `3..5..0.25`, which is `Number.Range`'s three inputs and is
-the table above. They also write `3..5..#8` — **eight numbers evenly spaced from 3 to 5** — and
-**that form has no node here.** `Number.Range` takes a step; it does not take a count.
+Dynamo writes a range three ways, and **all three have a node here now**:
 
-Say it in a [code block](code-blocks.md) instead, with LINQ. `Enumerable.Range` is the direct
-translation of `#`, because it is the one that counts:
+| Dynamo writes | The node | What you get |
+|---|---|---|
+| `3..5..0.25` | `Number.Range` (start, end, step) | from 3 towards 5, stepping 0.25 |
+| `3..5..#8` | `Number.RangeByCount` (start, end, count) | **8 numbers evenly spaced from 3 to 5** |
+| `3..#8..0.25` | `Number.RangeByCountAndStep` (start, count, step) | 8 numbers from 3, stepping 0.25 |
+
+The `#` forms count; the plain form steps. That is the only difference between them, and it is why
+the second and third take a `count` where the first takes a `step`.
+
+In a [code block](code-blocks.md) the same three are on `NumberRange`, which every block can already
+see:
 
 ```csharp
 // 3..5..#8  →  8 numbers evenly spaced from 3 to 5
-var numbers = Enumerable.Range(0, 8).Select(i => 3 + (i * (5 - 3) / 7.0)).ToList();
+var numbers = NumberRange.ByCount(3, 5, 8);
 ```
 
 ```csharp
 // 3..#8..0.25  →  8 numbers from 3, stepping 0.25
-var numbers = Enumerable.Range(0, 8).Select(i => 3 + (i * 0.25)).ToList();
+var numbers = NumberRange.ByCountAndStep(3, 8, 0.25);
 ```
 
-**The `7` is the whole trick, and getting it wrong is the usual mistake.** `#8` asks for eight
-values *including both ends*, so there are seven gaps between them, not eight — divide the span by
-`count - 1`. Divide by 8 and you get eight values that stop short of 5, which looks right until you
-read the last one. The first line above starts at exactly `3` and ends at exactly `5`.
+**`count - 1` is the trick, and getting it wrong is the usual mistake.** `#8` asks for eight values
+*including both ends*, so there are seven gaps between them, not eight. Divide by 8 and you get
+eight values that stop short of 5, which looks right until you read the last one. `ByCount` divides
+by seven, and it assigns the last value the bound you asked for rather than computing it — so a
+range from 3 to 5 ends at exactly `5`, not at the double next door.
 
-`System.Linq` is already imported into every code block, so neither line needs a `using` — which
+`Spark.Api` is already imported into every code block, so neither line needs a `using` — which
 matters, because a code block cannot contain one.
 
 ## Lists can hold lists

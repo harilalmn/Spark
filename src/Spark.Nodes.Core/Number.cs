@@ -9,12 +9,13 @@ namespace Spark.Nodes.Core;
 [SparkNode(Category = NodeCategories.Input)]
 public static class Number
 {
-    /// <summary>The most a single <see cref="Range(double, double, double)"/> may produce.</summary>
+    /// <summary>The most a single range node may produce.</summary>
     /// <remarks>
-    /// A step of <c>1e-9</c> across a span of one is thirty years of allocation, and a user who
-    /// typed it meant something else. The cap turns a hang into an exception the node reports.
+    /// <b>An alias, not a second opinion.</b> The number lives on <see cref="NumberRange.MaximumCount"/>
+    /// with the arithmetic it guards; this stays because it is shipped public API, and a constant
+    /// that disagreed with the check that enforces it would be worse than either.
     /// </remarks>
-    public const int MaximumRangeCount = 1_000_000;
+    public const int MaximumRangeCount = NumberRange.MaximumCount;
 
     /// <summary>Passes a literal number through, so a graph has somewhere to type one.</summary>
     /// <param name="value">The number.</param>
@@ -129,44 +130,72 @@ public static class Number
     /// </exception>
     [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("numbers")]
-    public static IReadOnlyList<double> Range(double start = 0, double end = 10, double step = 1)
-    {
-        if (!double.IsFinite(start))
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(start), start, "Range needs a finite start.");
-        }
+    public static IReadOnlyList<double> Range(double start = 0, double end = 10, double step = 1) =>
+        NumberRange.ByStep(start, end, step);
 
-        if (!double.IsFinite(end))
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(end), end, "Range needs a finite end.");
-        }
+    /// <summary>
+    /// <paramref name="count"/> numbers evenly spaced from <paramref name="start"/> to
+    /// <paramref name="end"/>, <b>including both ends</b>. Dynamo writes this
+    /// <c>start..end..#count</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The gap is the span over <c>count - 1</c>, and getting that wrong is the usual
+    /// mistake.</b> <c>#5</c> asks for five values including both bounds, so there are <i>four</i>
+    /// gaps between them. Dividing by five gives five values that stop short of the end, which
+    /// looks right until you read the last one. <c>E10-T15</c> wrote this down in
+    /// <c>concepts/lists.md</c> when the only way to say it was LINQ; this is the node that row
+    /// said did not exist.
+    /// </para>
+    /// <para>
+    /// <b>The last value is assigned, not computed.</b> <c>start + (index * span / (count - 1))</c>
+    /// at the final index is <i>arithmetically</i> <paramref name="end"/> and in binary floating
+    /// point is often the next representable double along — so a range asked to stop at 5 ends at
+    /// 4.999999999999999, and a user who compares against their own bound gets `false` for reasons
+    /// invisible on screen. Writing the bound in outright costs one assignment and makes the
+    /// promise in this summary true.
+    /// </para>
+    /// <para>
+    /// <b><c>count</c> of one is <paramref name="start"/>, not a division by zero</b>, and zero is
+    /// the empty list. Both are what a count of that many values means; neither is an error worth
+    /// interrupting a graph for.
+    /// </para>
+    /// </remarks>
+    /// <param name="start">The first value, produced exactly.</param>
+    /// <param name="end">The last value, produced exactly.</param>
+    /// <param name="count">How many values, including both ends.</param>
+    /// <returns>The list, of exactly <paramref name="count"/> values.</returns>
+    /// <exception cref="System.ArgumentOutOfRangeException">
+    /// Either bound is not finite, <paramref name="count"/> is negative, or it exceeds
+    /// <see cref="MaximumRangeCount"/>.
+    /// </exception>
+    [SparkNode(Kind = NodeMemberKind.Create)]
+    [return: NodePort("numbers")]
+    public static IReadOnlyList<double> RangeByCount(double start = 0, double end = 10, int count = 11) =>
+        NumberRange.ByCount(start, end, count);
 
-        double magnitude = System.Math.Abs(step);
-        if (!double.IsFinite(magnitude) || magnitude == 0)
-        {
-            throw new System.ArgumentOutOfRangeException(
-                nameof(step), step, "Range needs a non-zero, finite step; a zero step never reaches its end.");
-        }
-
-        double span = System.Math.Abs(end - start);
-        double exact = (span / magnitude) + 1;
-        if (exact > MaximumRangeCount)
-        {
-            throw new System.ArgumentOutOfRangeException(
-                nameof(step),
-                step,
-                $"That start, end and step describe about {exact:F0} values, and a single range is capped at {MaximumRangeCount}.");
-        }
-
-        int count = (int)System.Math.Floor(exact + 1e-9);
-        double signed = end >= start ? magnitude : -magnitude;
-
-        double[] values = new double[count];
-        for (int index = 0; index < count; index++)
-        {
-            values[index] = start + (signed * index);
-        }
-
-        return values;
-    }
+    /// <summary>
+    /// <paramref name="count"/> numbers from <paramref name="start"/>, each
+    /// <paramref name="step"/> after the one before. Dynamo writes this
+    /// <c>start..#count..step</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The one range form with no end bound</b>, and the reason it is a separate method rather
+    /// than an overload: a count and a step decide where the list stops, so there is nothing to
+    /// pass an end to. A negative <paramref name="step"/> counts downwards, which is the whole use
+    /// of allowing one — unlike <see cref="Range(double, double, double)"/>, where the bounds
+    /// already say which way to walk and a sign could only contradict them.
+    /// </remarks>
+    /// <param name="start">The first value, produced exactly.</param>
+    /// <param name="count">How many values.</param>
+    /// <param name="step">The increment, which may be negative.</param>
+    /// <returns>The list, of exactly <paramref name="count"/> values.</returns>
+    /// <exception cref="System.ArgumentOutOfRangeException">
+    /// <paramref name="start"/> or <paramref name="step"/> is not finite,
+    /// <paramref name="count"/> is negative, or it exceeds <see cref="MaximumRangeCount"/>.
+    /// </exception>
+    [SparkNode(Kind = NodeMemberKind.Create)]
+    [return: NodePort("numbers")]
+    public static IReadOnlyList<double> RangeByCountAndStep(double start = 0, int count = 11, double step = 1) =>
+        NumberRange.ByCountAndStep(start, count, step);
 }
