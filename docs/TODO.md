@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-07 (E10-T15 closed: Dynamo's `#count` range, written down)
+**Last updated:** 2026-09-07 (E11-T26 closed, E11-T27 opened: the headless session's threading)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -85,6 +85,14 @@ for anything else.
 ---
 
 ## Where the run stands
+
+**The suite's oldest flake had one cause, closed on 2026-09-07** — `E11-T26`, found by running the
+gates before a tag. One headless session, twenty-six test classes, sixteen xunit threads: two
+threads racing the compositor's construction, failing one run in eight and blaming a different test
+every time, which is why it had read as unrelated flakes for three weeks ([N120](NOTES.md)).
+`HeadlessSession.Run` now serialises the dispatch and nothing else. **A rarer one survives** and is
+`E11-T27`: `Avalonia.Threading.Dispatcher.UIThread` is process-global, so a pure view-model test can
+race a session test without ever opening a window. Recorded rather than chased mid-release.
 
 **Dynamo's `#count` range has an answer in writing, closed on 2026-09-07** — `E10-T15`, asked for by
 the client. `3..5..0.25` is the `Number.Range` node; `3..5..#8` is not a node at all and never will

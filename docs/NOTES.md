@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-07 (N119 added: a box's width is not stable under moving the box)
+**Last updated:** 2026-09-07 (N120 added: one headless session, sixteen xunit threads)
 
 ---
 
@@ -3533,4 +3533,49 @@ first result back in.** `CanvasLayoutTests.LayingOutTwiceChangesNothingTheSecond
 passed while the canvas was still wrong, because the arithmetic *is* idempotent and the instability
 lives in the round trip through `CanvasNode`. `GraphCanvasLayoutTests.CleaningUpTwiceRecordsOneEdit`
 is the one that went red.
+
+---
+
+## N120 — One headless session, sixteen xunit threads, and a flake that named a different test every time
+
+`Spark.UI.Tests` has **exactly one** `HeadlessUnitTestSession`, and it has to: `StartNew` twice in a
+process leaves both sessions broken with no message that points at the cause, which `E11-T21` paid
+for once already. Twenty-six test classes reach it through `HeadlessSession.Run`.
+
+**What was not thought through is that xunit dispatches into it from sixteen threads at once.** Two
+threads calling `Dispatch` concurrently raced the lazy construction of the compositor, and the loser
+got:
+
+```
+System.InvalidOperationException : The calling thread cannot access this object because a
+different thread owns it.
+   at Avalonia.Rendering.DefaultRenderLoop.Add(IRenderLoopTask i)
+   at Avalonia.Rendering.Composition.Server.ServerCompositor..ctor(...)
+```
+
+**The stack names nothing in this repository, and the victim changes every time** — one run blamed
+`TheWheelDolliesTheCamera`, the next `TheDeferredFitDoesNotRepeatOnEveryLayout` and
+`TheWheelDolliesTheCamera` together. That is what a shared-state race looks like from outside, and
+it is why three sightings over three weeks read as three unrelated flakes instead of one defect. A
+flake that blamed the *same* test every time would have been diagnosed the first day.
+
+**`HeadlessSession.Run` now holds a semaphore for the length of the dispatch.** Only the tests that
+need the one UI thread serialise; the arithmetic majority stays parallel. Assembly-wide
+`DisableTestParallelization` was the alternative — it would serialise 940 tests to fix a race
+between the few dozen that show a window, and cost about 16 seconds a run.
+
+**The measurement, because a flake is only fixed by not recurring.** 2 failures in 16 runs before,
+0 in 26 after. And at `v0.3.0`, 10 runs of 10 green — so the two window-showing classes `E8-T51`
+added did **not** create the race, they made it likelier to fire. *Adding a test that shows a window
+is adding load to a shared, process-global resource*, which is not how a new test file usually
+reads.
+
+**What is left, and it is `E11-T27` rather than this note pretending to be finished.** One run in 26
+still failed, in `MainWindowViewModelTests` — a pure view-model test that shows no window and so
+never passes through the turnstile. `MainWindowViewModel` posts to
+`Avalonia.Threading.Dispatcher.UIThread` and lazily builds a `DispatcherTimer`, and **that
+dispatcher is process-global state the session owns**, so a plain unit test touching it while a
+session test dispatches is the same family of race by construction. The general rule this file is
+here to record: **in this assembly, `Avalonia.Threading` is shared state, whether or not a test
+opens a window.**
 
