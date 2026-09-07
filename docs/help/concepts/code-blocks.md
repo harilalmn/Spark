@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes the code block in the running application.
 **Owner:** `scripting`
-**Last updated:** 2026-09-02
+**Last updated:** 2026-09-07
 
 > **Scope.** A code block is a node whose body is C# you type. Its input ports come from the
 > identifiers your code uses but does not declare; its output ports are the variables it
@@ -122,6 +122,30 @@ for (var i = 0; i < count; i++)
 
 return points;
 ```
+
+**`System.Linq` being there is what replaces Dynamo's range syntax.** `3..5..0.25` is the
+`Number.Range` node, but `3..5..#8` — eight numbers evenly spaced from 3 to 5 — has no node, because
+`Number.Range` takes a step and not a count. `Enumerable.Range` is the translation of `#`:
+
+```csharp
+// 3..5..#8  →  8 numbers evenly spaced from 3 to 5
+var numbers = Enumerable.Range(0, 8).Select(i => 3 + (i * (5 - 3) / 7.0)).ToList();
+```
+
+```csharp
+// 3..#8..0.25  →  8 numbers from 3, stepping 0.25
+var numbers = Enumerable.Range(0, 8).Select(i => 3 + (i * 0.25)).ToList();
+```
+
+Divide by `count - 1`, not by `count`: `#8` includes both ends, so eight values have seven gaps
+between them. The first line starts at exactly `3` and ends at exactly `5`. Each block declares one
+variable and so has one output port, `numbers` — the rule described under
+[Several outputs](#several-outputs).
+
+**One import is deliberately missing.** `Spark.Nodes.Core` is *not* in scope, because it declares a
+`Math` of its own that would shadow `System.Math` in every block you write. Calling a node's member
+from a code block therefore means naming it in full — `Spark.Nodes.Core.Number.Range(3, 5, 1)` —
+which is what the *In a code block* line on each node's reference page already shows you.
 
 ## The editor
 

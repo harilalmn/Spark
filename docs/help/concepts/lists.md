@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes the list nodes in the running application.
 **Owner:** `graph-engine`
-**Last updated:** 2026-08-31
+**Last updated:** 2026-09-07
 
 > **Scope.** Making lists, and changing their shape. What happens when a list arrives at a node
 > that expected a single value is a different subject and has its own topic:
@@ -32,6 +32,33 @@ starts:
 
 The end is included when the step lands on it exactly. `0 to 1 step 0.3` gives `0, 0.3, 0.6, 0.9`
 and stops, because 1.2 is past the end.
+
+### Coming from Dynamo: the `#` form
+
+Dynamo's code blocks write a range as `3..5..0.25`, which is `Number.Range`'s three inputs and is
+the table above. They also write `3..5..#8` — **eight numbers evenly spaced from 3 to 5** — and
+**that form has no node here.** `Number.Range` takes a step; it does not take a count.
+
+Say it in a [code block](code-blocks.md) instead, with LINQ. `Enumerable.Range` is the direct
+translation of `#`, because it is the one that counts:
+
+```csharp
+// 3..5..#8  →  8 numbers evenly spaced from 3 to 5
+var numbers = Enumerable.Range(0, 8).Select(i => 3 + (i * (5 - 3) / 7.0)).ToList();
+```
+
+```csharp
+// 3..#8..0.25  →  8 numbers from 3, stepping 0.25
+var numbers = Enumerable.Range(0, 8).Select(i => 3 + (i * 0.25)).ToList();
+```
+
+**The `7` is the whole trick, and getting it wrong is the usual mistake.** `#8` asks for eight
+values *including both ends*, so there are seven gaps between them, not eight — divide the span by
+`count - 1`. Divide by 8 and you get eight values that stop short of 5, which looks right until you
+read the last one. The first line above starts at exactly `3` and ends at exactly `5`.
+
+`System.Linq` is already imported into every code block, so neither line needs a `using` — which
+matters, because a code block cannot contain one.
 
 ## Lists can hold lists
 

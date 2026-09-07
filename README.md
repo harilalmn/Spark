@@ -176,7 +176,7 @@ learn a bespoke language to write a three-line lambda is a tax paid for nothing.
 
 ## C# instead of DesignScript
 
-Code blocks host **real C#** through Roslyn. Three things follow, and the third is the one
+Code blocks host **real C#** through Roslyn. Four things follow, and the last is the one
 worth caring about:
 
 1. **Everything you already know still applies** — LINQ, tuples, pattern matching, `var`,
@@ -185,12 +185,31 @@ worth caring about:
    management comes nearly free: NuGet *is* the package manager, and any assembly — a
    package somebody else published or a DLL you built this morning — becomes nodes by
    reflection, with no attributes, no plugin and no manifest required.
-3. **IntelliSense inside a code block knows the type on the incoming wire.** Once a port is
+3. **Dynamo's range syntax becomes a line of LINQ.** `3..5..0.25` is the `Number.Range`
+   node — start, end, step. `3..5..#8`, which asks for eight numbers evenly spaced *between*
+   two bounds, has no node, and does not need one:
+
+   ```csharp
+   // 3..5..#8  →  8 numbers evenly spaced from 3 to 5
+   var numbers = Enumerable.Range(0, 8).Select(i => 3 + (i * (5 - 3) / 7.0)).ToList();
+   ```
+
+   ```csharp
+   // 3..#8..0.25  →  8 numbers from 3, stepping 0.25
+   var numbers = Enumerable.Range(0, 8).Select(i => 3 + (i * 0.25)).ToList();
+   ```
+
+   `Enumerable.Range` *is* `#` — it is the counting one — and the divisor is `count - 1`,
+   because eight values inclusive of both ends have seven gaps between them. This is the
+   trade in one example: a syntax you can only use here, against a library you already know
+   and can use anywhere.
+4. **IntelliSense inside a code block knows the type on the incoming wire.** Once a port is
    connected, the compiler knows the upstream type, so typing `center.` offers `Point3d`
    members. This is the single most compelling thing Spark can do that Dynamo cannot, and
    it falls out of using a real language with a real compiler rather than a bespoke one.
 
-Planned, not built. It is milestone M4.
+**Built.** M4 landed, and this paragraph said *planned, not built* for long enough after it
+did to be worth naming: a status line is only load-bearing while somebody changes it.
 
 ## What is deliberately *not* here
 

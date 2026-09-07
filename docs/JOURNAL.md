@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-07 (`E8-T51`: clean up node layout, and `Ctrl+L`)
+**Last updated:** 2026-09-07 (`E10-T15`: Dynamo's `#count` range, written down where a reader looks)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.2.0` shipped on 2026-09-03** — published by `Release #4`, with `spark-0.2.0-setup.exe` (50.9 MB) and `spark-portable-win-x64.zip` (77.3 MB) attached, not a draft and not a prerelease. `v0.1.0` was the first tag in the repository's history; this is the first release cut end to end without a hand-crank in the middle. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing — between steps.** `E8-T51` is closed: *Clean up node layout*, on `Ctrl+L`, which is Dynamo's key on purpose. **`v0.3.0` is cut and pushed**, the tag on `ef22521` at `origin`, and nothing about it is signed. |
+| **Working on** | **Nothing — between steps.** `E10-T15` is closed: Dynamo's `#count` range has an answer in writing. Before it, `E8-T51`. **`v0.3.0` is cut and pushed**, and nothing about it is signed. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E8-T51` — *Clean up node layout*, and `Ctrl+L`.** Columns that follow the wires: longest-path layering, columns ordered by barycentre, anchored where the nodes already were. The undo guard needed [N119](NOTES.md) — a box's width is `MaxX - MinX` and is not stable under moving the box, so an exact comparison recorded a step on every press. **Before it:** cutting `v0.3.0`, then `E8-T50`, `E8-T49`, `E8-T48`, `E8-T47`. |
-| **Working tree** | Clean, with `E8-T51` committed — work, tests and documents together. **The three gates were run on the finished tree**: build clean, format clean, **2518** tests green with the OpenCascade payload staged, so `Spark.Geometry.Occt.Tests` ran its 63 rather than skipping. |
-| **Next action** | Take the top of the *Queue*: **persist the workspace layout between sessions**. `WorkspaceLayout` already serialises and round-trips under test and nothing writes it, so a dragged arrangement still dies with the window — which is the one thing a dock is for. |
-| **Verify with** | The three gates — `dotnet build Spark.slnx --no-incremental -warnaserror`, the nine test executables (**2518**: UI 940, Geometry 763, Engine 507, Viewport 108, Properties 43, Occt 63, Architecture 18, Packages 71, Docs 5), `dotnet format Spark.slnx --verify-no-changes --severity warn` — and then **the running application**, because the gates photograph nothing: `dotnet run --project src/Spark.Desktop -- --graph demo --clean-up-layout --screenshot PREFIX` is what `E8-T51` was checked with, and **the panes are still dragged by hand**, because docking is mouse work no headless test performs. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
+| **Last completed step** | **`E10-T15` — Dynamo's `start..end..#count`, written down where a reader looks.** `Number.Range` takes a step and not a count, so `3..5..#8` is `Enumerable.Range` in a code block, and the divisor is `count - 1`. **Before it:** `E8-T51`, cutting `v0.3.0`, `E8-T50`, `E8-T49`, `E8-T48`. |
+| **Working tree** | Clean, with `E10-T15` committed. Documents only: no `src/` file changed, and the three gates were run anyway to show it. |
+| **Next action** | The client has asked for a **release pill at the top of the shell, linking to the latest release, shown only when a newer one exists, checked at startup**. Start by reading what `E12-T21` already built — `UpdateBadge`, `IsUpdateAvailable` and `--update-badge` are in the shell already — and establish whether this is a new feature or an existing one that is not doing its job. |
+| **Verify with** | `tests/Spark.Docs.Verify` — front matter, a worked example per topic, every relative link, every ADR citation and every `Last updated` line — plus the other eight executables to show the documents-only change moved nothing (**2518**: UI 940, Geometry 763, Engine 507, Viewport 108, Properties 43, Occt 63, Architecture 18, Packages 71, Docs 5). **And the arithmetic in the examples is checked by running it**, not by reading it: eight values, first `3`, last `5`. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -6883,3 +6883,42 @@ key at a real `MainWindow`; that is a gap this step inherits rather than one it 
 **Cost.** Build clean, `dotnet format` clean, 2518 tests green across the nine executables (UI 940,
 Geometry 763, Engine 507, Viewport 108, Properties 43, Occt 63, Architecture 18, Packages 71,
 Docs 5), **nothing skipped** — the shim was staged.
+
+### 2026-09-07 — Dynamo's `#count` range, and the sentence the documents never wrote (`E10-T15`)
+
+**The client asked what `Ctrl+L` does in Dynamo, then asked the range question**, and the second one
+found a real hole: Dynamo writes both `3..5..0.25` and `3..5..#8`, the first is `Number.Range`'s
+three inputs, and **the second has no node here and nothing anywhere said what to write instead.**
+`Number.Range` takes a step; it does not take a count. A user arriving from Dynamo with `#` in their
+fingers had to work that out alone.
+
+**`Enumerable.Range` is the translation, because it is the counting one**, and it is already in
+scope: `System.Linq` is one of the five default imports every code block gets. The two lines went
+into the three places a reader actually looks — `lists.md` beside the `Number.Range` table that
+explains the step form, `code-blocks.md` under the section that promises `System.Linq`, and the
+README's *C# instead of DesignScript*, which is where the whole trade is argued and which had no
+concrete example of it.
+
+**The divisor is the part worth writing down.** `#8` asks for eight values *inclusive of both ends*,
+so there are seven gaps, and the span is divided by `count - 1`. Dividing by `count` gives eight
+values that stop short of the end — wrong in the way that costs the most, because it reads correctly
+until somebody checks the last one.
+
+**Both lines were executed before being written down.** Eight values, first exactly `3`, last
+exactly `5`; the stepped form 3 to 4.75. That is `DocumentationSampleTests`' own lesson applied by
+hand — it compiles every fence in the help, and it deliberately does **not** check that a stated
+result is true, because a comment claiming `// 120` compiles whatever the answer is.
+
+**Two things the check does not cover, and both were handled rather than hoped about.** The sweep
+reads `docs/help` only, so the README's fences are unchecked — which is why its two are separate
+fences rather than one block declaring `numbers` twice, something no reader could have pasted. And
+the `code-blocks.md` fence is compiled through the real `ScriptNodeFactory` rather than as ordinary
+C#, so `var numbers = …;` with no `return` is checked as what it is: a block with one output port,
+which is `E6-T26`'s rule.
+
+**One thing fixed on the way past.** The README's code-block section still ended *Planned, not
+built. It is milestone M4.* M4 shipped. Leaving that under a worked example would have made the
+example read as fiction.
+
+**Cost.** Build clean, `dotnet format` clean, docs harness green, `DocumentationSampleTests` green
+over the three new fences, 940 UI tests green. No `src/` file changed.

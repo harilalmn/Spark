@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-07 (E8-T51 closed: clean up node layout, and `Ctrl+L`)
+**Last updated:** 2026-09-07 (E10-T15 closed: Dynamo's `#count` range, written down)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -85,6 +85,12 @@ for anything else.
 ---
 
 ## Where the run stands
+
+**Dynamo's `#count` range has an answer in writing, closed on 2026-09-07** — `E10-T15`, asked for by
+the client. `3..5..0.25` is the `Number.Range` node; `3..5..#8` is not a node at all and never will
+be, so the documents now say what to write instead — `Enumerable.Range(0, 8).Select(...)`, in
+[lists.md](help/concepts/lists.md), [code-blocks.md](help/concepts/code-blocks.md) and the README —
+and say why the divisor is `count - 1`.
 
 **The canvas tidies itself, closed on 2026-09-07** — `E8-T51`, asked for by the client against
 Dynamo's *Cleanup Node Layout*. **Edit → Clean up layout**, and **`Ctrl+L`**, which is Dynamo's own
