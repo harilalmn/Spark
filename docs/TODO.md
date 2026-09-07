@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-07 (`v0.4.0` published)
+**Last updated:** 2026-09-07 (`E8-T8`'s tie-break: Create/Action/Query, then alphabetically)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -491,7 +491,8 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] Every port shows the type it wants — `E8-T18`. Not in the plan; found by opening the
       application and looking at `Circle.ByCentreRadius`, where a port called `centre` gave no way
       to learn that a `Point3d` belongs in it.
-- [x] Library search with camel-hump ranking — `E8-T8`. `cbcr` finds `Circle.ByCentreRadius`.
+- [x] Library search with camel-hump ranking — `E8-T8`. `cbcr` finds `Circle.ByCentreRadius`,
+      and equally good matches are ordered `Create` → `Action` → `Query`, then alphabetically.
 - [x] Double-click empty canvas to create a node there — `E8-T19`. Asked for as *"let
       double-clicking a blank space add the code block, as in Dynamo"*, and delivered as the half
       that is not blocked: the gesture, and a ranked search box at the pointer. **The code block

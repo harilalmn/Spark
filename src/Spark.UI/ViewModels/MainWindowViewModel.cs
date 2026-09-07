@@ -2262,7 +2262,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        List<(LibraryEntryViewModel Entry, NodeSearchResult Result)> matches = [];
+        List<(LibraryEntryViewModel Entry, NodeSearchCandidate Candidate)> matches = [];
 
         foreach (LibraryEntryViewModel entry in AllLibraryEntries)
         {
@@ -2271,12 +2271,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
             if (result.IsMatch)
             {
-                matches.Add((entry, result));
+                matches.Add((entry, new NodeSearchCandidate(result, entry.DisplayName, entry.Kind)));
             }
         }
 
-        matches.Sort((left, right) =>
-            NodeSearch.Compare(left.Result, left.Entry.DisplayName, right.Result, right.Entry.DisplayName));
+        matches.Sort((left, right) => NodeSearch.Compare(left.Candidate, right.Candidate));
 
         foreach ((LibraryEntryViewModel entry, _) in matches)
         {

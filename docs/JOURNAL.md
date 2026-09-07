@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-07 (`v0.4.0` published)
+**Last updated:** 2026-09-07 (`E8-T8`'s tie-break: Create/Action/Query, then alphabetically)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing — between steps.** `v0.4.0` is published, and the live check confirms a `0.3.0` build finds it: `0.4.0` at its release URL, while `0.4.0`, a local `0.4.1-alpha.0.2` and `9.9.9` all get nothing. **What is left of `E12-T21` is a person seeing the pill in their own installed shell**, which is now the only unproven link in the chain. |
+| **Working on** | **Nothing — between steps.** `v0.4.0` is published and the live update check answers against it. **What is left of `E12-T21` is a person seeing the pill in their own installed shell**, which is still the only unproven link in that chain. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Cutting `v0.4.0`** — a minor bump for *Clean up layout* on `Ctrl+L`, tagged on `040306f` and published. The gates found `E11-T26` on the way, which is what running them before a tag is for. **Before it:** `E11-T26`, `E12-T21`'s live check, `E10-T15`, `E8-T51`. |
-| **Working tree** | Clean; `main` is at the journal commit that follows the tag. The tag is on `040306f`, whose gates were build clean, format clean and **2518** tests green with nothing skipped. |
+| **Last completed step** | **`E8-T8`'s tie-break — `Create` → `Action` → `Query`, then alphabetically.** Client-reported against the shipped creation box, taken ahead of the queue. Kind is a **tie-break and not the first key**: relevance still decides, or a description-only match would bury the node the user named. Proven against the real library through the real view model, and photographed. **Before it:** cutting `v0.4.0` — a minor bump for *Clean up layout* on `Ctrl+L`, tagged on `040306f` and published. The gates found `E11-T26` on the way, which is what running them before a tag is for. **Before it:** `E11-T26`, `E12-T21`'s live check, `E10-T15`, `E8-T51`. |
+| **Working tree** | Clean. The gates were build clean with zero warnings, format clean, and **2534** tests green with nothing skipped — Occt ran rather than skipped, so the shim was present. `v0.4.0`'s tag is on `040306f`. |
 | **Next action** | Take the top of the *Queue*: **persist the workspace layout between sessions**. `WorkspaceLayout` already serialises and round-trips under test and nothing writes it, so a dragged arrangement still dies with the window — which is the one thing a dock is for. **If the client reports the pill did not light**, that is `E12-T21`'s last link and takes priority over the queue. |
-| **Verify with** | `tests/Spark.Docs.Verify` — front matter, a worked example per topic, every relative link, every ADR citation and every `Last updated` line — plus the other eight executables to show the documents-only change moved nothing (**2518**: UI 940, Geometry 763, Engine 507, Viewport 108, Properties 43, Occt 63, Architecture 18, Packages 71, Docs 5). **And the arithmetic in the examples is checked by running it**, not by reading it: eight values, first `3`, last `5`. |
+| **Verify with** | `tests/Spark.Docs.Verify` — front matter, a worked example per topic, every relative link, every ADR citation and every `Last updated` line — plus the other eight executables to show the documents-only change moved nothing (**2534**: UI 944, Geometry 763, Engine 507, Viewport 108, Properties 43, Occt 63, Architecture 18, Packages 71, Docs 5). **And the arithmetic in the examples is checked by running it**, not by reading it: eight values, first `3`, last `5`. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -7026,3 +7026,65 @@ would give every Spark developer a permanent badge. It is silent, correctly.
 result to a visible pill, in a real installed older build, watched by a person. Everything upstream
 — the request, the comparison, the prerelease policy, the URL — is evidence against production
 rather than inference from a stubbed `HttpClient`.
+
+### 2026-09-07 — `E8-T8`'s tie-break: Create, Action, Query, then alphabetically
+
+**What.** The client photographed the canvas creation box with `circ` typed into it and asked for
+the results to be sorted "first by Create/Action/Query order then alphabetically". They came out
+`Circle.ByPlaneRadius`, `ByThreePoints`, `ByCentreRadius`, `ByCentreNormalRadius` — which is
+`NodeSearch.Compare` breaking a tie by **name length**, a rule that is real, is documented, and that
+nobody looking at the list can see. Replaced with kind, then alphabetical, then ordinal.
+
+**Taken ahead of the queue** — the top item is still persisting the workspace layout. It is a
+client-reported defect in shipped behaviour and it is an afternoon's work; the queue keeps.
+
+**The one decision worth recording, because both readings were defensible.** "First by
+Create/Action/Query" can mean *above* the relevance ranking or *within* it. Asked, because the two
+produce materially different search boxes. Kind above relevance would put a node that merely
+mentions the query in its description over one whose name *is* the query — the exact ranking
+`NodeSearch` was written to stop being. **Kind is a tie-break**: it enters only where the match
+strength and distance have already declared a draw. The client chose that.
+
+**Two keys out, two in, and the shape changed.** Ordering two results now needs the match, the name
+*and* the kind, and a six-argument `Compare` is a call nobody makes correctly. `NodeSearchCandidate`
+carries the three. It takes a `NodeMemberKind` enum rather than a view model, so the class keeps
+what its remarks promise: rankable without a library, testable without a window. `KindRank` maps
+`Auto` **last** rather than to its enum value of 0, which would have put an unresolved kind above
+every `Create`; the importer resolves `Auto` and it should never arrive, so if one does it should be
+visible at the bottom rather than silently at the top. The alphabetical key is
+`OrdinalIgnoreCase` first so that case cannot decide a comparison between two words, with
+`CompareOrdinal` under it to keep the order **total** — a list that reshuffles between keystrokes
+cannot be clicked, and that has not changed.
+
+**Verified**, four ways, and the third is the one that matters:
+
+1. Three named tests in `NodeSearchTests` — the four-Circle order, kind ordering across all three
+   values, and `AnUnresolvedKindSortsLastRatherThanFirst`. **Reverted the rule to the old length
+   tie-break and watched all three go red** (AGENTS.md step 7), which is also how N121's second
+   trap was found.
+2. `KindNeverOutranksTheStrengthOfTheMatch` pins the decision above: an `Exact`-matching `Query`
+   beats a `Description`-matching `Create`. This is the test that fails if somebody later "tidies"
+   kind up to the first key.
+3. `TheCreationBoxOrdersEqualMatchesByKindThenAlphabetically` in `MainWindowViewModelTests` runs
+   the **real library** through the **real view model** and asserts the five names the box shows for
+   `circ`. The fifth, `PolyLine.ByRegularPolygon`, is also a `Create` and still sorts last, which is
+   what makes it evidence that relevance is still on top rather than a restatement of rule 1.
+4. `--library circ --screenshot` — the panel, in the running app, showing the four Circles
+   alphabetical inside the green `Create` block.
+
+Gates: build clean with zero warnings, format clean, **2534** tests green with nothing skipped
+(UI 944, Geometry 763, Engine 507, Viewport 108, Properties 43, Occt 63, Packages 71,
+Architecture 18, Geometry.Io 12, Docs 5). Occt ran rather than skipped, so the shim was present.
+
+**What surprised me** was not in the ranking at all, and is written up as [N121](NOTES.md): making
+these edits through `python` heredocs rewrote four files to CRLF, because Python's text mode
+defaults to `os.linesep` on write. The build and the tests do not care, `git diff --stat` shows the
+right numbers, and gate 3 fails with one `ENDOFLINE` error per line of each file. Then, testing the
+step-7 revert, `git checkout --` on the file threw away the *whole step's* work on it rather than
+the temporary edit — recovered from a copy made a minute earlier, which is the only reason it cost
+nothing.
+
+**Documents.** `E8-T8`'s register row, the `FR-27` row, the `E8` criterion, the TODO line, and
+`concepts/finding-nodes.md` — which stated the length rule in two places, including a worked example
+promising `Circle.ByPlaneRadius` first. The example now names all five results and says why the
+fifth is where it is. `N121` added.

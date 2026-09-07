@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes the library panel and the canvas creation box, both of which exist.
 **Owner:** `spark-ui`
-**Last updated:** 2026-09-02
+**Last updated:** 2026-09-07
 
 > **Scope.** How to get a node onto the canvas: the library panel, how it is grouped, how its search
 > ranks, and the two canvas gestures — **right-click** for the search box, **double-click** for a
@@ -60,9 +60,16 @@ Typing in either box ranks the whole library rather than narrowing it, in this o
 | Category | It appears in the node's category | every geometry node, for `geometry` |
 | Description | It appears in the node's description | nodes that merely mention a circle |
 
-Ties are broken by how close the match was, then by the shorter name, then alphabetically. That
-last part is not fussiness: it makes the order **total**, so the list does not reshuffle under your
-cursor between one keystroke and the next.
+Ties are broken by how close the match was, then by **Create, then Action, then Query** — the same
+order the panel files them in — and then alphabetically. That last part is not fussiness: it makes
+the order **total**, so the list does not reshuffle under your cursor between one keystroke and the
+next.
+
+**Kind breaks a tie; it does not win one.** Two nodes that answer your query equally well are sorted
+Create before Action before Query, so if you typed three letters in order to *make* something, the
+nodes that make it are the ones you read first. But a node whose name *is* what you typed always
+beats a node that merely mentions it in its description, whatever either of them does — otherwise
+searching would bury the node you named.
 
 **Camel-hump is the one worth learning.** With fifty-seven nodes you can skim; with a few thousand,
 which is what installing packages does, you cannot. `pbc` gets you `Point.ByCoordinates`, `cbcr`
@@ -88,9 +95,12 @@ Open Spark on the demo graph.
 5. **Press `Ctrl+Z`.** The node goes away, and the Undo tooltip had read *Undo Add
    Circle.ByCentreRadius* before you pressed it.
 
-Try `circle` instead of `cbcr` and the list is longer, with `Circle.ByPlaneRadius` first because it
-is the shortest of the equally good matches. Use the arrow keys to move the highlight without
-leaving the text field.
+Try `circle` instead of `cbcr` and the list is longer: `Circle.ByCentreNormalRadius`,
+`Circle.ByCentreRadius`, `Circle.ByPlaneRadius`, `Circle.ByThreePoints`, and then
+`PolyLine.ByRegularPolygon`. The four `Circle` nodes match equally well and are all **Create**, so
+they come out alphabetically; `PolyLine.ByRegularPolygon` is a Create too and still sorts last,
+because it matches the word less well. Use the arrow keys to move the highlight without leaving the
+text field.
 
 ## Why the search box moved to right-click
 

@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-07 (E8: clean up node layout, E8-T51)
+**Last updated:** 2026-09-07 (E8: the search's tie-break is Create/Action/Query, then alphabetical)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -814,7 +814,8 @@ another.
       ported; only the idea is (**E8-T2**). *The shell is a `DockControl` as of 2026-08-30:
       panes drag, float and dock, and the four presets rearrange them. The layout
       round-trips through JSON under test but is not yet persisted between sessions.*
-- [x] Library search ranks exact → prefix → **camel-hump** → substring → tag → description.
+- [x] Library search ranks exact → prefix → **camel-hump** → substring → tag → description,
+      and orders equal matches `Create` → `Action` → `Query`, then alphabetically.
       Camel-hump is the highest-value search feature across thousands of nodes and is cheap
       (**E8-T8**).
 - [x] Undo and redo across every graph edit, made instant by the provenance cache

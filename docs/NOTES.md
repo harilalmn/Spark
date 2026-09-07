@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-07 (N120 added: one headless session, sixteen xunit threads)
+**Last updated:** 2026-09-07 (N121 added: Python's text mode writes CRLF, and what that costs)
 
 ---
 
@@ -3578,4 +3578,42 @@ dispatcher is process-global state the session owns**, so a plain unit test touc
 session test dispatches is the same family of race by construction. The general rule this file is
 here to record: **in this assembly, `Avalonia.Threading` is shared state, whether or not a test
 opens a window.**
+
+## N121 — Python's `open(..., 'w')` writes CRLF on Windows, and the format gate is the thing that tells you
+
+Editing a source file through a `python -c` heredoc is the fastest way to make a mechanical,
+exactly-anchored change to a file this repository's documents are full of. It also silently
+rewrites the **whole file** to CRLF: Python's text mode defaults to `newline=None`, which translates
+every `
+` on write to `os.linesep`. The repository is LF.
+
+Nothing catches it until gate 3:
+
+```
+error ENDOFLINE: Fix end of line marker. Replace 2 characters with '
+'.
+```
+
+— once per line of the file, for four files, which is a wall of output that says nothing about the
+cause. The build is clean, the tests are green, and `git diff --stat` shows the *right* line counts,
+because Git's `core.autocrlf` normalises on read and hides it. The only other tell is a
+`warning: in the working copy of '<file>', CRLF will be replaced by LF` from `git diff`, which is
+easy to read as noise.
+
+**Pass `newline=''`** — on both the read and the write — and the file keeps whatever endings it had:
+
+```python
+s = io.open(p, encoding='utf-8', newline='').read()
+io.open(p, 'w', encoding='utf-8', newline='').write(s)
+```
+
+The repair, if it has already happened, is `.replace(b'
+', b'
+')` over the file in binary.
+
+**And one adjacent trap, which cost more than the CRLF did.** Testing AGENTS.md step 7 means
+reverting the change to watch a named test go red — and the revert has to be *only* the temporary
+edit. `git checkout -- <file>` reverts to `HEAD`, which is the whole uncommitted step, not the
+experiment. Copy the file aside first and restore from the copy; the working tree is the only place
+an in-progress step exists.
 

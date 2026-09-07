@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Spark.Api;
 using Spark.UI.Graph;
 
 namespace Spark.UI.Tests;
@@ -107,30 +108,125 @@ public sealed class NodeSearchTests
     }
 
     /// <summary>
-    /// The shorter of two equally good matches wins, and the order is total.
+    /// Two equally good matches of the same kind are alphabetical, and the order is total.
     /// </summary>
     /// <remarks>
-    /// The length rule is what puts <c>Circle.ByCentreRadius</c> above
-    /// <c>Circle.ByCentreNormalRadius</c> for <c>circle</c>. Totality matters just as much: a
+    /// <b>This is the screenful the client photographed.</b> Typing <c>circ</c> matched four
+    /// <c>Create</c> nodes equally well and they came out ordered by <i>name length</i> —
+    /// <c>ByPlaneRadius</c>, <c>ByThreePoints</c>, <c>ByCentreRadius</c>,
+    /// <c>ByCentreNormalRadius</c> — which is a rule nobody reading the list can see. Alphabetical
+    /// is the one order a user can predict without being told it. Totality matters just as much: a
     /// result list that reshuffles between keystrokes cannot be clicked.
     /// </remarks>
     [Fact]
-    public void TheShorterOfTwoEqualMatchesComesFirst()
+    public void EquallyGoodMatchesOfOneKindAreAlphabetical()
     {
-        string[] names = ["Circle.ByCentreNormalRadius", "Circle.ByCentreRadius", "Circle.ByPlaneRadius"];
+        string[] names =
+        [
+            "Circle.ByPlaneRadius",
+            "Circle.ByThreePoints",
+            "Circle.ByCentreRadius",
+            "Circle.ByCentreNormalRadius",
+        ];
 
-        List<string> ordered = names
-            .OrderBy(name => name, Comparer<string>.Create((left, right) => NodeSearch.Compare(
-                NodeSearch.Score(left, "Geometry", null, "circle"),
-                left,
-                NodeSearch.Score(right, "Geometry", null, "circle"),
-                right)))
+        List<string> ordered = Order(names, "circ", NodeMemberKind.Create);
+
+        Assert.Equal(
+            [
+                "Circle.ByCentreNormalRadius",
+                "Circle.ByCentreRadius",
+                "Circle.ByPlaneRadius",
+                "Circle.ByThreePoints",
+            ],
+            ordered);
+    }
+
+    /// <summary>
+    /// Between equal matches, <b>Create</b> comes before <b>Action</b> before <b>Query</b> — and
+    /// alphabetical order does not get to cross that boundary.
+    /// </summary>
+    /// <remarks>
+    /// Every name here is a prefix match on <c>circle</c> at the same distance, so relevance has
+    /// declared a draw and the kind is the only thing left to decide it. <c>Circle.Area</c> sorts
+    /// first alphabetically and last by kind, which is what makes this test able to fail.
+    /// </remarks>
+    [Fact]
+    public void CreateComesBeforeActionComesBeforeQuery()
+    {
+        NodeSearchCandidate[] candidates =
+        [
+            Candidate("Circle.Area", "circle", NodeMemberKind.Query),
+            Candidate("Circle.Offset", "circle", NodeMemberKind.Action),
+            Candidate("Circle.ByThreePoints", "circle", NodeMemberKind.Create),
+            Candidate("Circle.Length", "circle", NodeMemberKind.Query),
+            Candidate("Circle.ByCentreRadius", "circle", NodeMemberKind.Create),
+        ];
+
+        List<string> ordered = candidates
+            .OrderBy(candidate => candidate, Comparer<NodeSearchCandidate>.Create(NodeSearch.Compare))
+            .Select(candidate => candidate.DisplayName)
             .ToList();
 
-        Assert.Equal("Circle.ByPlaneRadius", ordered[0]);
-        Assert.Equal("Circle.ByCentreRadius", ordered[1]);
-        Assert.Equal("Circle.ByCentreNormalRadius", ordered[2]);
+        Assert.Equal(
+            [
+                "Circle.ByCentreRadius",
+                "Circle.ByThreePoints",
+                "Circle.Offset",
+                "Circle.Area",
+                "Circle.Length",
+            ],
+            ordered);
     }
+
+    /// <summary>
+    /// The kind is a tie-break and never outranks relevance: a <c>Query</c> whose name <i>is</i>
+    /// the query beats a <c>Create</c> that only mentions it in its description.
+    /// </summary>
+    /// <remarks>
+    /// This is the whole of the design decision, and it is the one a test has to hold. Sorting by
+    /// Create/Action/Query <i>above</i> the match strength would read tidily and would bury the
+    /// node the user actually named, which is the failure this class exists to prevent.
+    /// </remarks>
+    [Fact]
+    public void KindNeverOutranksTheStrengthOfTheMatch()
+    {
+        NodeSearchCandidate named = new(
+            NodeSearch.Score("Circle.Radius", "Curve", null, "radius"),
+            "Circle.Radius",
+            NodeMemberKind.Query);
+
+        NodeSearchCandidate mentioned = new(
+            NodeSearch.Score("Cone.ByHeight", "Solid", "Swept about an axis at a radius.", "radius"),
+            "Cone.ByHeight",
+            NodeMemberKind.Create);
+
+        Assert.Equal(NodeMatch.Exact, named.Result.Kind);
+        Assert.Equal(NodeMatch.Description, mentioned.Result.Kind);
+        Assert.True(NodeSearch.Compare(named, mentioned) < 0);
+        Assert.True(NodeSearch.Compare(mentioned, named) > 0);
+    }
+
+    /// <summary>
+    /// An <see cref="NodeMemberKind.Auto"/> that escapes the importer sorts last rather than
+    /// ahead of <c>Create</c>, which its enum value would otherwise give it.
+    /// </summary>
+    [Fact]
+    public void AnUnresolvedKindSortsLastRatherThanFirst()
+    {
+        NodeSearchCandidate unresolved = Candidate("Circle.Aaa", "circle", NodeMemberKind.Auto);
+        NodeSearchCandidate query = Candidate("Circle.Zzz", "circle", NodeMemberKind.Query);
+
+        Assert.True(NodeSearch.Compare(unresolved, query) > 0);
+    }
+
+    private static NodeSearchCandidate Candidate(string name, string query, NodeMemberKind kind) =>
+        new(NodeSearch.Score(name, "Geometry", null, query), name, kind);
+
+    private static List<string> Order(IEnumerable<string> names, string query, NodeMemberKind kind) =>
+        [.. names
+            .Select(name => Candidate(name, query, kind))
+            .OrderBy(candidate => candidate, Comparer<NodeSearchCandidate>.Create(NodeSearch.Compare))
+            .Select(candidate => candidate.DisplayName)];
 
     [Fact]
     public void NullArgumentsAreRefused()

@@ -258,6 +258,36 @@ public sealed class MainWindowViewModelTests
     }
 
     /// <summary>
+    /// The creation box orders equally good matches <b>Create</b>, <b>Action</b>, <b>Query</b> and
+    /// then alphabetically — against the real library, not a fixture.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the screenful the client photographed.</b> <c>circ</c> matches four <c>Circle</c>
+    /// constructors equally well, and they used to come out ordered by name length — a rule that is
+    /// real and that nobody looking at the list can see. The fifth result is the one that proves
+    /// relevance still sits above the new keys: <c>PolyLine.ByRegularPolygon</c> is also a
+    /// <c>Create</c>, and it stays below all four because it matches the query less well, not
+    /// because of what it does. <see cref="NodeSearchTests"/> pins the rule; this pins the screen.
+    /// </remarks>
+    [Fact]
+    public void TheCreationBoxOrdersEqualMatchesByKindThenAlphabetically()
+    {
+        using MainWindowViewModel model = new();
+
+        model.CreateSearch = "circ";
+
+        Assert.Equal(
+            [
+                "Circle.ByCentreNormalRadius",
+                "Circle.ByCentreRadius",
+                "Circle.ByPlaneRadius",
+                "Circle.ByThreePoints",
+                "PolyLine.ByRegularPolygon",
+            ],
+            model.CreateResults.Select(result => result.DisplayName));
+    }
+
+    /// <summary>
     /// A node created from the box lands where it was asked for, and is one undo step.
     /// </summary>
     [Fact]

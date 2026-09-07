@@ -1,4 +1,5 @@
 using System;
+using Spark.Api;
 
 namespace Spark.UI.Graph;
 
@@ -54,6 +55,21 @@ public readonly record struct NodeSearchResult(NodeMatch Kind, int Distance)
 }
 
 /// <summary>
+/// One node in a result list: how well it matched, what it is called, and what it <i>does</i>.
+/// </summary>
+/// <remarks>
+/// <b>Three arguments per side is what pushed this into a type.</b> Ordering two results needs the
+/// match, the name and the kind, and a six-parameter <c>Compare</c> is a thing nobody can call
+/// correctly without counting. The kind is an enum rather than a view model, so
+/// <see cref="NodeSearch"/> stays what its remarks promise: pure data, testable without a library.
+/// </remarks>
+/// <param name="Result">How well the query matched.</param>
+/// <param name="DisplayName">The node's name, such as <c>Circle.ByCentreRadius</c>.</param>
+/// <param name="Kind">Whether the node makes, changes or measures the thing.</param>
+public readonly record struct NodeSearchCandidate(
+    NodeSearchResult Result, string DisplayName, NodeMemberKind Kind);
+
+/// <summary>
 /// Ranks nodes against what somebody typed.
 /// </summary>
 /// <remarks>
@@ -66,13 +82,15 @@ public readonly record struct NodeSearchResult(NodeMatch Kind, int Distance)
 /// <para>
 /// The order — exact, prefix, camel-hump, substring, category, description — is from the plan and
 /// is not a matter of taste. What it buys is that <c>cbcr</c> finds <c>Circle.ByCentreRadius</c>,
-/// <c>circle</c> finds every circle node with the shortest name first, and <c>radius</c> still
-/// finds the nodes that only mention one in their description, ranked below both.
+/// <c>circle</c> finds every circle node, and <c>radius</c> still finds the nodes that only mention
+/// one in their description, ranked below both. Nodes that answer the query <i>equally</i> well are
+/// then ordered <b>Create</b>, <b>Action</b>, <b>Query</b> and alphabetically within each — the
+/// same two axes the library panel files the whole library on, so the two views agree.
 /// </para>
 /// <para>
-/// This is pure text, deliberately: it takes names and strings rather than view models or node
-/// definitions, so it is testable on its own and both the library panel and the canvas creation
-/// box rank with the same rules rather than each growing their own.
+/// This is pure data, deliberately: it takes names, strings and an enum rather than view models or
+/// node definitions, so it is testable on its own and both the library panel and the canvas
+/// creation box rank with the same rules rather than each growing their own.
 /// </para>
 /// </remarks>
 public static class NodeSearch
@@ -146,43 +164,82 @@ public static class NodeSearch
     }
 
     /// <summary>
-    /// Orders two matched nodes: stronger match first, then closer, then shorter, then by name.
+    /// Orders two matched nodes: stronger match first, then closer, then <b>Create</b> before
+    /// <b>Action</b> before <b>Query</b>, then alphabetically.
     /// </summary>
     /// <remarks>
-    /// The length tie-break is what puts <c>Circle.ByCentreRadius</c> above
-    /// <c>Circle.ByCentreNormalRadius</c> for <c>circle</c>. Falling through to an ordinal
-    /// comparison keeps the order total, which matters more than it sounds: a result list that
-    /// reshuffles between keystrokes cannot be clicked.
+    /// <para>
+    /// <b>Relevance stays on top, and the two keys under it are the ones a user can predict.</b>
+    /// The tie-break used to be name length, which put <c>Circle.ByCentreRadius</c> above
+    /// <c>Circle.ByCentreNormalRadius</c> — a rule that is defensible and that nobody reading the
+    /// list can see. Between results that answer the query <i>equally well</i>, the useful question
+    /// is the one the library panel already asks: does this node make the thing, change it, or
+    /// measure it. Somebody who typed <c>circ</c> to <i>draw</i> a circle reads the Creates first
+    /// and stops.
+    /// </para>
+    /// <para>
+    /// <b>Kind is a tie-break rather than the first key, and that is the whole of the decision.</b>
+    /// Sorting by kind above relevance would put a node that merely mentions the query in its
+    /// description over one whose name <i>is</i> the query, which is the ranking this class exists
+    /// to avoid. So it enters only where relevance has already declared a draw.
+    /// </para>
+    /// <para>
+    /// Falling through to an ordinal comparison keeps the order total, which matters more than it
+    /// sounds: a result list that reshuffles between keystrokes cannot be clicked.
+    /// </para>
     /// </remarks>
-    /// <param name="first">The first node's match.</param>
-    /// <param name="firstName">The first node's name.</param>
-    /// <param name="second">The second node's match.</param>
-    /// <param name="secondName">The second node's name.</param>
+    /// <param name="first">The first node.</param>
+    /// <param name="second">The second node.</param>
     /// <returns>Less than zero when the first should be shown above the second.</returns>
-    /// <exception cref="ArgumentNullException">Either name is <see langword="null"/>.</exception>
-    public static int Compare(
-        NodeSearchResult first, string firstName, NodeSearchResult second, string secondName)
+    /// <exception cref="ArgumentNullException">Either candidate's name is <see langword="null"/>.</exception>
+    public static int Compare(NodeSearchCandidate first, NodeSearchCandidate second)
     {
-        ArgumentNullException.ThrowIfNull(firstName);
-        ArgumentNullException.ThrowIfNull(secondName);
+        ArgumentNullException.ThrowIfNull(first.DisplayName);
+        ArgumentNullException.ThrowIfNull(second.DisplayName);
 
-        if (first.Kind != second.Kind)
+        if (first.Result.Kind != second.Result.Kind)
         {
-            return second.Kind.CompareTo(first.Kind);
+            return second.Result.Kind.CompareTo(first.Result.Kind);
         }
 
-        if (first.Distance != second.Distance)
+        if (first.Result.Distance != second.Result.Distance)
         {
-            return first.Distance.CompareTo(second.Distance);
+            return first.Result.Distance.CompareTo(second.Result.Distance);
         }
 
-        if (firstName.Length != secondName.Length)
+        int kinds = KindRank(first.Kind).CompareTo(KindRank(second.Kind));
+        if (kinds != 0)
         {
-            return firstName.Length.CompareTo(secondName.Length);
+            return kinds;
         }
 
-        return string.CompareOrdinal(firstName, secondName);
+        // Alphabetical means alphabetical: case must not decide, or Math.Sin and Math.sin would
+        // sort by their ASCII rather than as the same word. Ordinal then closes the order.
+        int alphabetical = string.Compare(
+            first.DisplayName, second.DisplayName, StringComparison.OrdinalIgnoreCase);
+
+        return alphabetical != 0
+            ? alphabetical
+            : string.CompareOrdinal(first.DisplayName, second.DisplayName);
     }
+
+    /// <summary>
+    /// Where a kind sits in the <b>Create</b>, <b>Action</b>, <b>Query</b> order the library panel
+    /// already files nodes in.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="NodeMemberKind.Auto"/> is the "I have not said" sentinel and the importer resolves
+    /// it, so it should never reach a result list. It is ranked <i>last</i> rather than treated as
+    /// an Action anyway: if one ever does arrive, it should be visible at the bottom rather than
+    /// silently claiming a place among nodes whose kind is known.
+    /// </remarks>
+    private static int KindRank(NodeMemberKind kind) => kind switch
+    {
+        NodeMemberKind.Create => 0,
+        NodeMemberKind.Action => 1,
+        NodeMemberKind.Query => 2,
+        _ => 3,
+    };
 
     /// <summary>
     /// The capitals of a name, which is what a camel-hump query is matched against.
