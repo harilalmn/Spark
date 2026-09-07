@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-07 (N121 added: Python's text mode writes CRLF, and what that costs)
+**Last updated:** 2026-09-07 (N122 and N123: rewriters move columns; a block's surface is per-host)
 
 ---
 
@@ -3579,6 +3579,14 @@ session test dispatches is the same family of race by construction. The general 
 here to record: **in this assembly, `Avalonia.Threading` is shared state, whether or not a test
 opens a window.**
 
+**Seen twice on 2026-09-07, and not pinned either time.** Two separate full runs of
+`Spark.UI.Tests` reported `Failed: 1` where the immediately preceding and following runs were green
+— seven clean runs in total across the two occasions. **The name was not captured either time**,
+because the loop that runs the ten executables greps only the `Total:` line. It resembles this note,
+but resemblance is not evidence and it is recorded here as unattributed. **If it happens again, keep
+the whole run output**: the failing test's name is in the `[FAIL]` line and one name would settle
+whether this is the compositor race or something else.
+
 ## N121 — Python's `open(..., 'w')` writes CRLF on Windows, and the format gate is the thing that tells you
 
 Editing a source file through a `python -c` heredoc is the fastest way to make a mechanical,
@@ -3616,4 +3624,61 @@ reverting the change to watch a named test go red — and the revert has to be *
 edit. `git checkout -- <file>` reverts to `HEAD`, which is the whole uncommitted step, not the
 experiment. Copy the file aside first and restore from the copy; the working tree is the only place
 an in-progress step exists.
+
+## N122 — A tree rewrite keeps the line and moves the column, and two of them do it now
+
+`ScriptSourceMap` says columns are not mapped, and gives a reason: *"Nothing the wrapper adds is on
+a user line, so a column is already the user's column."* That is true of the **wrapper**. It is not
+true of the **rewriters** that run between the parse and the compile, and it has not been true since
+`E6-T4`.
+
+Measured, not assumed:
+
+| Script | `;` typed at | Reported at |
+|---|---|---|
+| `while (true) { var q = 1; } var b = ;` | column 37 | **87** |
+| `var a = 0..1..#5; var b = ;` | column 27 | **63** |
+
+The first is `GuardWeaver` putting a `ScriptGuard.Tick()` inside the loop body; the second is
+`ScriptRanges` lowering the range to `global::Spark.Api.NumberRange.ByCount(0, 1, 5)`. Both keep the
+**line**, which is the thing `ScriptSourceMap` actually maps and the thing the diagnostics panel
+navigates by, and both move every column after them on that one line.
+
+**Why this is written down rather than fixed.** A fix is a per-line list of `(column, delta)` built
+by whichever rewriter moved something, and it would have to be threaded through both rewriters and
+into `ScriptDiagnostic`. That is worth doing when somebody reports it; it is not worth doing on
+suspicion, and it is *definitely* not worth doing in only one of the two rewriters, which is what a
+reader who noticed it in `ScriptRanges` alone would be tempted to do. The two are one problem.
+
+**What it does not affect:** `ScriptCompletion`, which resolves a caret by flat character offset and
+never runs either rewriter. `ScriptRanges` blanks `#` to a space precisely so that the text
+completion sees is the same length as what the user typed.
+
+## N123 — What compiles in a code block depends on what the host process has loaded
+
+`ReferenceCatalog` builds its reference set from *the assemblies this process already has loaded*,
+not from project references. That is deliberate and it is what makes a freshly loaded DLL become
+usable without a restart. It also means **a code block's language surface differs between hosts**,
+which is not obvious and cost a wrong conclusion:
+
+```csharp
+var n = Spark.Nodes.Core.Number.Range(3, 5, 1);
+```
+
+- In the **desktop app**: compiles, and evaluates to `[3, 4, 5]`. Verified with
+  `--code-block "..." --screenshot`.
+- In **`Spark.UI.Tests`**: `The type or namespace name 'Nodes' does not exist in the namespace
+  'Spark'` — the test host has no reason to have loaded the node library, and the test helpers touch
+  `typeof(Point3d).Assembly` to pull in `Spark.Geometry`, nothing more.
+
+So a probe run from a test proves what compiles **in that host**, and a claim about what a user can
+write has to be checked in the app. The first draft of `NumberRange`'s remarks said a code block
+"cannot name `Spark.Nodes.Core` even fully qualified", which was a test-host observation stated as a
+language fact, and `code-blocks.md` nearly lost a true sentence to it.
+
+**The design conclusion survives the correction, and is worth separating from it.** Code the
+*compiler generates on the user's behalf* — the range lowering — must name a project every host
+references by construction, because "it happened to be loaded" is not a property a lowering can
+depend on. That is why `NumberRange` is in `Spark.Api` and not beside the nodes. What changed is the
+reason: not *impossible*, but *not guaranteed*.
 

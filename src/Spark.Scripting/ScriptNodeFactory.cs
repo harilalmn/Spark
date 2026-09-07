@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -258,7 +259,9 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         WrappedScript wrapped = Wrap(script, InferInputs(script), inputTypes);
 
         SyntaxTree tree = CSharpSyntaxTree.Create(
-            (CSharpSyntaxNode)_guards.Weave(CSharpSyntaxTree.ParseText(wrapped.Source).GetRoot()));
+            (CSharpSyntaxNode)_guards.Weave(
+                ScriptRanges.Lower(
+                    CSharpSyntaxTree.ParseText(wrapped.Source).GetRoot(), wrapped.RangeMarkers)));
 
         CSharpCompilation compilation = CSharpCompilation.Create(
             "SparkDiagnostics",
@@ -369,7 +372,8 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         // count the text did and a diagnostic still lands on the user's line.
         SyntaxTree tree = CSharpSyntaxTree.Create(
             (CSharpSyntaxNode)_guards.Weave(
-                CSharpSyntaxTree.ParseText(wrapped.Source).GetRoot()));
+                ScriptRanges.Lower(
+                    CSharpSyntaxTree.ParseText(wrapped.Source).GetRoot(), wrapped.RangeMarkers)));
 
         CSharpCompilation compilation = CSharpCompilation.Create(
             "SparkScript_" + ContentHash(script, inputTypes),
@@ -595,7 +599,9 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// </para>
     /// </remarks>
     private static ScriptPort[] OutputsOf(string script) =>
-        OutputsOf(CSharpSyntaxTree.ParseText(script).GetCompilationUnitRoot());
+        // Blanked first: `var parameters = 0..1..#5;` does not parse with the marker in it, and a
+        // script whose ports could not be read would silently lose them (`E10-T15`).
+        OutputsOf(CSharpSyntaxTree.ParseText(ScriptRanges.Blank(script).Text).GetCompilationUnitRoot());
 
     /// <summary>The output ports, from a script that has already been parsed.</summary>
     private static ScriptPort[] OutputsOf(CompilationUnitSyntax root)
@@ -668,7 +674,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// </para>
     /// </remarks>
     private static string? Trailer(string script) =>
-        Trailer(CSharpSyntaxTree.ParseText(script).GetCompilationUnitRoot());
+        Trailer(CSharpSyntaxTree.ParseText(ScriptRanges.Blank(script).Text).GetCompilationUnitRoot());
 
     /// <summary>The generated <c>return</c>, from a script that has already been parsed.</summary>
     private static string? Trailer(CompilationUnitSyntax root)
@@ -856,11 +862,18 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         // lines at all, which is what keeps it one.
         ScriptSourceMap map = new(Lines(source));
 
-        source.AppendLine(script);
+        // `E10-T15`: Dynamo's `#` breaks the lexer, so it is blanked before the parse rather than
+        // rewritten after it. Blanking is length-preserving, so `offset` is all it takes to move a
+        // marker into the generated source's coordinates - no table, for the same reason the map is
+        // a subtraction.
+        BlankedScript blanked = ScriptRanges.Blank(script);
+        int offset = source.Length;
+
+        source.AppendLine(blanked.Text);
 
         // `E6-T26`: the block's own `return`, when it has none of its own. After the user's last
         // line, so it shifts nothing above it and the map stays a subtraction.
-        if (Trailer(script) is { } trailer)
+        if (Trailer(blanked.Text) is { } trailer)
         {
             source.AppendLine(trailer);
         }
@@ -868,7 +881,12 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         source.AppendLine("}");
         source.AppendLine("}");
 
-        return new WrappedScript(source.ToString(), map);
+        return new WrappedScript(
+            source.ToString(),
+            map,
+            blanked.HasMarkers
+                ? [.. blanked.Markers.Select(marker => marker + offset)]
+                : ImmutableArray<int>.Empty);
     }
 
     /// <summary>How many lines a builder holds.</summary>
@@ -890,7 +908,13 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// <summary>The generated source, and the map back to what the user typed.</summary>
     /// <param name="Source">What the compiler is given.</param>
     /// <param name="Map">How to turn a diagnostic's line into the user's line.</param>
-    private readonly record struct WrappedScript(string Source, ScriptSourceMap Map);
+    /// <param name="RangeMarkers">
+    /// Where `E10-T15`'s range markers ended up <b>in <paramref name="Source"/>'s coordinates</b>,
+    /// ready for <see cref="ScriptRanges.Lower"/>. Empty for a script that used none, which is nearly
+    /// all of them.
+    /// </param>
+    private readonly record struct WrappedScript(
+        string Source, ScriptSourceMap Map, ImmutableArray<int> RangeMarkers);
 
     /// <summary>
     /// The type a port should be declared with, or null when there is nothing better than

@@ -185,19 +185,17 @@ worth caring about:
    management comes nearly free: NuGet *is* the package manager, and any assembly — a
    package somebody else published or a DLL you built this morning — becomes nodes by
    reflection, with no attributes, no plugin and no manifest required.
-3. **Dynamo's three range forms are all here.** `3..5..0.25` is `Number.Range` — start,
-   end, step. `3..5..#8`, which asks for eight numbers evenly spaced *between* two bounds, is
-   `Number.RangeByCount`; `3..#8..0.25` is `Number.RangeByCountAndStep`. In a code block they
-   are one call each:
+3. **Dynamo's range syntax works as typed, and has nodes too.** A code block takes all
+   three forms directly:
 
    ```csharp
-   // 3..5..#8  →  8 numbers evenly spaced from 3 to 5
-   var numbers = NumberRange.ByCount(3, 5, 8);
+   var numbers = 3..5..#8;      // 8 numbers evenly spaced from 3 to 5
    ```
 
-   The divisor is `count - 1`, because eight values inclusive of both ends have seven gaps
-   between them — and `ByCount` writes the far bound in rather than computing it, so the last
-   value is exactly the `5` you asked for.
+   `#` counts, no `#` steps, and each lowers to a call on `NumberRange` — the same code the
+   `Number.Range`, `Number.RangeByCount` and `Number.RangeByCountAndStep` nodes run, so a
+   range cannot mean one thing on the canvas and another in a block. Ordinary two-part C#
+   ranges are untouched: `arr[1..^1]` still slices.
 4. **IntelliSense inside a code block knows the type on the incoming wire.** Once a port is
    connected, the compiler knows the upstream type, so typing `center.` offers `Point3d`
    members. This is the single most compelling thing Spark can do that Dynamo cannot, and

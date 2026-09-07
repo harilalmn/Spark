@@ -46,8 +46,10 @@ Dynamo writes a range three ways, and **all three have a node here now**:
 The `#` forms count; the plain form steps. That is the only difference between them, and it is why
 the second and third take a `count` where the first takes a `step`.
 
-In a [code block](code-blocks.md) the same three are on `NumberRange`, which every block can already
-see:
+**In a [code block](code-blocks.md) you can write Dynamo's syntax itself** — `var numbers =
+3..5..#8;` — and it is lowered to a call on `NumberRange`, the same code these three nodes run, so
+the canvas and the block cannot disagree. That syntax is a code-block feature rather than C#; the
+call underneath is ordinary C# and works anywhere:
 
 ```csharp
 // 3..5..#8  →  8 numbers evenly spaced from 3 to 5
@@ -65,7 +67,7 @@ eight values that stop short of 5, which looks right until you read the last one
 by seven, and it assigns the last value the bound you asked for rather than computing it — so a
 range from 3 to 5 ends at exactly `5`, not at the double next door.
 
-`Spark.Api` is already imported into every code block, so neither line needs a `using` — which
+`Spark.Api` is already imported into every code block, so nothing here needs a `using` — which
 matters, because a code block cannot contain one.
 
 ## Lists can hold lists

@@ -9,12 +9,15 @@ namespace Spark.Api;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Why this is here and not beside the nodes.</b> Two callers need it and they cannot see each
-/// other: <c>Number.Range</c> and its two siblings in <c>Spark.Nodes.Core</c>, and the code block's
-/// range sugar, which <c>Spark.Scripting</c> lowers. <c>Spark.Nodes.Core</c> is a leaf — nothing in
-/// the scripting chain references it, and a code block cannot name it even fully qualified.
-/// <c>Spark.Api</c> is the nearest thing both can see, and it is in every code block's default
-/// imports, so a lowered call needs no import of its own.
+/// <b>Why this is here and not beside the nodes.</b> Two callers need it: <c>Number.Range</c> and
+/// its two siblings in <c>Spark.Nodes.Core</c>, and the code block's range sugar, which
+/// <c>Spark.Scripting</c> lowers. <c>Spark.Scripting</c> has no project reference to
+/// <c>Spark.Nodes.Core</c> — a code block's reference set is built from <i>whatever assemblies the
+/// host process happens to have loaded</i>, so <c>Spark.Nodes.Core.Number.Range(3, 5, 1)</c>
+/// compiles in the desktop app and does not in a host that never loaded the node library. A
+/// lowering the compiler performs on the user's behalf cannot rest on that: it has to name
+/// something every host references by construction. <c>Spark.Api</c> is that, for both callers, and
+/// it is in every code block's default imports, so a lowered call needs no import of its own.
 /// </para>
 /// <para>
 /// <b>One implementation, on purpose.</b> The divisor is <c>count - 1</c> and the last value is

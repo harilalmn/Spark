@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-07 (Dynamo's count ranges: the nodes are in, the sugar is next)
+**Last updated:** 2026-09-07 (Dynamo's count ranges work as typed in a code block)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Dynamo's count ranges, part 2 of 2: the code-block sugar.** Part 1 landed the arithmetic and the nodes. What is left is lowering `0..1..#5`, `0..#5..1` and `0..1..0.25` onto `Spark.Api.NumberRange` inside a code block. |
+| **Working on** | **Nothing - between steps.** Dynamo's count ranges are done, both halves. **What is left of `E12-T21` is a person seeing the update pill in their own installed shell**, still the only unproven link in that chain. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Dynamo's count ranges, part 1 — `Spark.Api.NumberRange` and the two nodes that did not exist.** The arithmetic is in `Spark.Api` and not beside the nodes **because a code block cannot see `Spark.Nodes.Core` at all**, which a probe found mid-step. **Before it:** `E8-T8`'s tie-break, cutting `v0.4.0`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2542** tests green. One run of `Spark.UI.Tests` reported a single unnamed failure and four later runs were green; not reproduced, not attributed. |
-| **Next action** | Part 2. Blank each `#` that is **not inside a string or a comment** to a space, recording its position — length-preserving, so no completion offset and no diagnostic column moves. Roslyn confirms the classification: a `#` in code lexes `BadToken`/`SkippedTokensTrivia`, one in a string stays a `StringLiteralToken`, one in a comment stays comment trivia, and blanking changes none of those boundaries. Then a `CSharpSyntaxRewriter` over `RangeExpression` whose `LeftOperand` is itself a `RangeExpression` — `0..1.. 5` parses that way with **zero** diagnostics — lowering to `NumberRange.ByStep` / `ByCount` / `ByCountAndStep` by which operand a recorded marker sits before. |
-| **Verify with** | Part 2's own tests: each of the three forms lowered and evaluated through the real `ScriptNodeFactory`; a `#` inside a string and inside a comment left alone; a two-part `arr[1..^1]` slice still compiling untouched; and a caret offset after a rewritten range still resolving, which is what the length-preserving blank buys. Then `tests/Spark.Docs.Verify` and the other nine executables. |
+| **Last completed step** | **Dynamo's count ranges, part 2 - `0..1..#5` in a code block.** A length-preserving text stage blanks the `#` and a tree rewrite lowers the three forms onto `Spark.Api.NumberRange`. Two part-1 claims corrected on the way ([N122](NOTES.md), [N123](NOTES.md)). **Before it:** part 1, `E8-T8`'s tie-break, cutting `v0.4.0`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2555** tests green. An unnamed single-test flake in `Spark.UI.Tests` was seen twice today and reproduced in neither case; noted under [N120](NOTES.md). |
+| **Next action** | Take the top of the *Queue*: **persist the workspace layout between sessions**. `WorkspaceLayout` already serialises and round-trips under test and nothing writes it, so a dragged arrangement still dies with the window - which is the one thing a dock is for. |
+| **Verify with** | `tests/Spark.Docs.Verify` - front matter, a worked example per topic, every relative link, every ADR citation and every `Last updated` line - plus the other nine executables (**2555**: UI 956, Geometry 763, Engine 516, Viewport 108, Packages 71, Occt 63, Properties 43, Architecture 18, Geometry.Io 12, Docs 5). **And the help's C# fences are compiled**, the `concepts.code-blocks` ones through the real `ScriptNodeFactory`, so an example that lies is a red build. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -7150,3 +7150,74 @@ instead of a LINQ workaround; the README's range bullet likewise; `E10-T15`'s ro
 and marked superseded, because it is the reason the work happened; TODO gained a line.
 
 **Next** is part 2: the code-block sugar that lowers `0..1..#5` onto `NumberRange.ByCount`.
+
+### 2026-09-07 - Dynamo's count ranges, part 2: `0..1..#5` in a code block
+
+**What.** The client's actual request. `var parameters = 0..1..#5;` and `return 0..#5..1;` now work
+as typed, and so does the step form `0..1..0.25`. Each lowers to one call on part 1's
+`Spark.Api.NumberRange`, so a range means the same thing on the canvas and in a block.
+
+**Two stages, and each is the only one that can do its half.** `#` does not break a rule about
+expressions, it breaks the **lexer** - a block containing `0..1..#5` reports *"Preprocessor
+directives must appear as the first non-whitespace character on a line"* and there is no tree to
+rewrite. So the marker goes before the parse, in text. The *lowering* is a tree rewrite, because
+that is the only place the operands are real expressions rather than a regular expression's guess -
+which is what makes `(1 + 1)..(2 * 2)..#3` work.
+
+**The text stage is length-preserving, and that is the design.** A `#` becomes a *space*, and its
+offset is written down. Nothing downstream shifts - which matters most for `ScriptCompletion`, which
+resolves the caret by flat character offset and does not run the lowering at all. The alternative I
+first considered, rewriting `0..1..#5` to a call in text, is eighteen characters longer and would
+have moved every completion offset after it on that line.
+
+**Roslyn decides what is a string and what is a comment**, rather than a scanner I would have had to
+write. Blanking a `#` cannot move where a literal or comment begins - `#` is not a delimiter of
+either - so all the markers are blanked, the result is parsed once, and each position is asked what
+it landed in. Verbatim, interpolated and raw literals come free. Measured first: in code a `#` lexes
+`BadToken`/`SkippedTokensTrivia`, in a string it stays a `StringLiteralToken`, in a comment it stays
+comment trivia, and blanking changes none of those.
+
+**Three-part ranges are safe to claim because C# cannot use them.** `0..1` is legal and untouched -
+`arr[1..^1]` still slices - but a `System.Range` has no `..` operator, which is why `0..1..0.25`
+reaches the binder today and fails there rather than at the parser.
+
+**Two corrections to my own part-1 reasoning, and the second is the more useful.**
+
+1. I claimed the length-preserving blank meant no columns move. **Wrong**: the blank moves nothing,
+   but the *lowering* moves columns on the line it rewrites, because the call is longer than the
+   range. Caught by asserting an exact column and getting 63 where 27 was typed. `GuardWeaver` has
+   done the same since `E6-T4` - a `;` at column 37 after a `while` loop is reported at 87, which I
+   measured rather than assumed. Lines are the contract and are preserved; columns on a rewritten
+   line are not, for both rewriters. [N122](NOTES.md), and the test now pins both facts.
+2. I claimed a code block "cannot see `Spark.Nodes.Core` at all, even fully qualified". **That was a
+   test-host observation stated as a language fact.** `ReferenceCatalog` builds from *whatever the
+   process has loaded*, so `Spark.Nodes.Core.Number.Range(3, 5, 1)` compiles in the desktop app -
+   confirmed with `--code-block`, evaluating to `[3, 4, 5]` - and fails only in a host that never
+   loaded the node library. I had already deleted a **true** sentence from `code-blocks.md` on the
+   strength of it; it is restored. [N123](NOTES.md). **The design conclusion survives**: a lowering
+   the compiler performs on the user's behalf must name a project every host references by
+   construction, so `Spark.Api` is still right - not because the alternative is impossible, but
+   because it is not guaranteed.
+
+**Verified.** Twelve tests in `ScriptRangeTests`, all through the real `ScriptNodeFactory` and all
+evaluating the result rather than inspecting a tree: the three forms, assignment to a local,
+expression operands, two-part ranges left alone, markers inside strings and comments left alone
+(including one in a string *earlier on the same line* as a real marker), blanking preserving length
+and line count, the diagnostic line, the port inference, and two markers in one range left for the
+compiler. **Both halves reverted and watched go red** - dropping the string/comment check reddens
+two, ignoring the markers in the lowering reddens four. The three new `code-blocks.md` fences are
+compiled through the real factory by `DocumentationSampleTests`, so the help examples *are* the
+proof. And `--code-block "var parameters = 0..1..#5;" --screenshot` shows it in the shipped UI: one
+output port named `parameters`, watch reading `rank 1 - 5 items`, `[0, 0.25, 0.5, 0.75, 1]`.
+
+Gates: build clean with zero warnings, format clean, **2555** tests green.
+
+**What surprised me** was that `lists.md` fences are *not* compiled as code blocks - only
+`concepts.code-blocks` is, by topic id, deliberately. So the sugar cannot appear in a `lists.md`
+fence; that topic shows the `NumberRange` call and points at the block for the syntax. Found by
+writing the fence and watching the harness reject it, which is the harness doing its job.
+
+**Documents.** `code-blocks.md` gained a *Dynamo's range syntax works as typed* section with three
+compiled examples; `lists.md` and the README updated; `E10-T15`'s row corrected where part 1 had
+overstated the reachability finding; `N122` and `N123` added, and `N120` gained an honest note that
+an unnamed single-test flake was seen twice today and pinned neither time.

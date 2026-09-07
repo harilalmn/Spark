@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-07 (Dynamo's count ranges have nodes)
+**Last updated:** 2026-09-07 (Dynamo's count ranges work as typed in a code block)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -491,8 +491,9 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] Every port shows the type it wants — `E8-T18`. Not in the plan; found by opening the
       application and looking at `Circle.ByCentreRadius`, where a port called `centre` gave no way
       to learn that a `Point3d` belongs in it.
-- [x] Dynamo's count ranges have nodes — `E10-T15`. `Number.RangeByCount` and
-      `Number.RangeByCountAndStep`, over one `Spark.Api.NumberRange`.
+- [x] Dynamo's count ranges — `E10-T15`. `Number.RangeByCount` and
+      `Number.RangeByCountAndStep` over one `Spark.Api.NumberRange`, and `0..1..#5`
+      works as typed in a code block.
 - [x] Library search with camel-hump ranking — `E8-T8`. `cbcr` finds `Circle.ByCentreRadius`,
       and equally good matches are ordered `Create` → `Action` → `Query`, then alphabetically.
 - [x] Double-click empty canvas to create a node there — `E8-T19`. Asked for as *"let

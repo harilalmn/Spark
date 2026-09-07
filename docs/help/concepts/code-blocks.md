@@ -123,24 +123,41 @@ for (var i = 0; i < count; i++)
 return points;
 ```
 
-**`System.Linq` being there is what replaces Dynamo's range syntax.** `3..5..0.25` is the
-`Number.Range` node, but `3..5..#8` — eight numbers evenly spaced from 3 to 5 — has no node, because
-`Number.Range` takes a step and not a count. `Enumerable.Range` is the translation of `#`:
+## Dynamo's range syntax works as typed
+
+All three of Dynamo's range forms can be written straight into a code block:
 
 ```csharp
-// 3..5..#8  →  8 numbers evenly spaced from 3 to 5
-var numbers = Enumerable.Range(0, 8).Select(i => 3 + (i * (5 - 3) / 7.0)).ToList();
+// 8 numbers evenly spaced from 3 to 5 — the ends included
+var numbers = 3..5..#8;
 ```
 
 ```csharp
-// 3..#8..0.25  →  8 numbers from 3, stepping 0.25
-var numbers = Enumerable.Range(0, 8).Select(i => 3 + (i * 0.25)).ToList();
+// 8 numbers from 3, stepping 0.25
+var numbers = 3..#8..0.25;
 ```
 
-Divide by `count - 1`, not by `count`: `#8` includes both ends, so eight values have seven gaps
-between them. The first line starts at exactly `3` and ends at exactly `5`. Each block declares one
-variable and so has one output port, `numbers` — the rule described under
-[Several outputs](#several-outputs).
+```csharp
+// from 3 towards 5, stepping 0.25
+var numbers = 3..5..0.25;
+```
+
+Each is one call on [`NumberRange`](lists.md) underneath — `ByCount`, `ByCountAndStep` and `ByStep`
+respectively — which is the same code the `Number.Range*` nodes run, so a range cannot mean one
+thing on the canvas and another in a block. You can write the call yourself if you prefer it:
+`NumberRange.ByCount(3, 5, 8)`.
+
+`#` counts; no `#` steps. Eight values including both ends have **seven** gaps between them, so
+`#8` divides the span by seven — and the last value is the bound you asked for rather than the
+double next door, which is not true of the arithmetic written by hand.
+
+**Two-part ranges are untouched.** `arr[1..^1]` is ordinary C# and still slices; `var r = 0..1;` is
+still a `System.Range`. Only the three-part forms are rewritten, and they are safe to claim because
+a `System.Range` has no `..` operator — `a..b..c` cannot mean anything else in C#.
+
+A `#` inside a string or a comment is left alone, so `var label = "#3";` is a string and nothing
+else. Each block above declares one variable and so has one output port, `numbers` — the rule
+described under [Several outputs](#several-outputs).
 
 **One import is deliberately missing.** `Spark.Nodes.Core` is *not* in scope, because it declares a
 `Math` of its own that would shadow `System.Math` in every block you write. Calling a node's member
