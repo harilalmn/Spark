@@ -20,8 +20,8 @@ this file says what is happening.
 | **Working on** | **Cutting `v0.4.0`, and the client's reason for asking is itself the test.** They want to watch the update pill light up, which is the half of `E12-T21` that has never been witnessed — so this release is both a release and `E12-T21`'s remaining evidence. A **minor** bump, and the sentence for it: it adds user-visible capability that did not exist before — *Edit → Clean up layout*, on `Ctrl+L` — while nothing in `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io` or `Spark.Nodes.Core` moved and no `.spark` file written by this version is unreadable by the last, because a position is not provenance. `git diff v0.3.0..HEAD` over the `PublicAPI.*.txt` files is **empty**. **Three commits since `v0.3.0`**: `E8-T51`, then two documentation steps (`E10-T15`, `E12-T21`). |
 | **Step status** | `IN PROGRESS` |
 | **Last completed step** | **`E12-T21`'s live check, answered at last.** The real `UpdateCheck` against the real endpoint: a pretend `0.2.0` finds `0.3.0` and its release URL; `0.3.0` and `9.9.9` find nothing. **Before it:** `E10-T15`, `E8-T51`, cutting `v0.3.0`, `E8-T50`. |
-| **Working tree** | Clean. Documents only — no `src/` file changed, because the feature was already built and the finding was that it works. |
-| **Next action** | Run the three gates on the finished tree — a tag is permanent in a way a commit is not — then `git tag -a v0.4.0` and push it. The workflow builds the shim, checks the artefact's version against the tag, packs the installer and the portable zip and **publishes**. Then report the URL, **say plainly that nothing is signed**, and tell the client what to do to see the pill: run their installed `v0.3.0`, which will now find something newer. |
+| **Working tree** | Clean, and **this commit is the one the tag goes on**. The three gates were run on it: build clean, `dotnet format` clean, **2518** tests green across the nine executables with the OpenCascade payload staged, so `Spark.Geometry.Occt.Tests` ran its 63 rather than skipping. |
+| **Next action** | `git tag -a v0.4.0` **on this commit** and push it; the workflow builds the shim, checks the artefact's version against the tag, packs the installer and the portable zip and **publishes**. Then report the URL, say plainly that nothing is signed, and tell the client to open their installed `v0.3.0` — which now has something newer to find, which is the half of `E12-T21` nobody has ever watched. |
 | **Verify with** | `tests/Spark.Docs.Verify` — front matter, a worked example per topic, every relative link, every ADR citation and every `Last updated` line — plus the other eight executables to show the documents-only change moved nothing (**2518**: UI 940, Geometry 763, Engine 507, Viewport 108, Properties 43, Occt 63, Architecture 18, Packages 71, Docs 5). **And the arithmetic in the examples is checked by running it**, not by reading it: eight values, first `3`, last `5`. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
@@ -6960,3 +6960,43 @@ everything upstream of the binding is now evidence rather than inference.
 
 **Cost.** No code. One throwaway console against `Spark.Host`, one photograph of the pill, and this
 entry.
+
+### 2026-09-07 — Cutting `v0.4.0`, and the gates earned their keep on the way
+
+**What.** A **minor** bump over three commits, and the sentence for it: this release adds
+user-visible capability that did not exist before — *Edit → Clean up layout*, on `Ctrl+L` — while
+nothing in `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io` or `Spark.Nodes.Core` moved and no
+`.spark` file written by this version is unreadable by the last, because a position is not
+provenance. `git diff v0.3.0..HEAD` over the `PublicAPI.*.txt` files is empty.
+
+**Why it was asked for is the interesting part.** The client wants to watch the update pill light
+up. That is the one half of `E12-T21` that has never been witnessed — the check is silent on every
+failure by design, so *offline*, *blocked* and *you are on the newest build* are one
+indistinguishable outcome, and only a real newer release settles it. So this release is both a
+release and an experiment, and the `v0.2.1`/`v0.2.2` pair was cut for the same experiment and never
+reported back.
+
+**Running the gates before the tag found a real defect, which is exactly what that rule is for.**
+`Spark.UI.Tests` came back red — one test, then a different one, then none for five runs. Chasing
+it rather than re-running until green produced `E11-T26`: one headless session, twenty-six test
+classes, sixteen xunit threads, and two of them racing the compositor's lazy construction. It had
+been failing about one run in eight and **blaming a different test every time**, which is why three
+sightings across three weeks had been recorded as three unrelated flakes. `HeadlessSession.Run`
+now serialises the dispatch and nothing else.
+
+**The measurement matters more than the fix.** 2 failures in 16 runs before; 0 in 26 after; and a
+worktree at `v0.3.0` built and run 10 times, green 10 times. So `E8-T51`'s two new window-showing
+classes did not create the race — they made it likelier to fire, because *adding a test that opens
+a window adds load to a process-global resource*, which is not how a new test file usually reads.
+
+**And what was left alone, deliberately.** One run in 26 still failed, in a pure view-model test
+that never opens a window and so never passes through the new turnstile.
+`Dispatcher.UIThread` is process-global state the session owns, so that is the same family of race
+by construction rather than the same instance. It is `E11-T27` with what is and is not established
+written on it. **Chasing a one-in-twenty-six unknown to ground is not a thing to do inside a
+release somebody is waiting on**, and neither is tagging while pretending it is not there.
+
+**Verified before the tag**, because a tag is permanent in a way a commit is not: clean
+`--no-incremental` build `-warnaserror`, `dotnet format --verify-no-changes` clean, and the nine
+executables at **2518** with **nothing skipped** — the native shim was staged, so the OpenCascade
+suite ran its 63.
