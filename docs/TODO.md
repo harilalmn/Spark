@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-07 (E8-T50 closed: the two-click gesture lifts a wire too)
+**Last updated:** 2026-09-07 (E8-T51 closed: clean up node layout, and `Ctrl+L`)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -85,6 +85,17 @@ for anything else.
 ---
 
 ## Where the run stands
+
+**The canvas tidies itself, closed on 2026-09-07** — `E8-T51`, asked for by the client against
+Dynamo's *Cleanup Node Layout*. **Edit → Clean up layout**, and **`Ctrl+L`**, which is Dynamo's own
+key because that is the one a user arriving from there will press before reading any menu. Every
+node lands in a column one past the furthest column anything feeding it sits in, so no wire runs
+backwards; each column is ordered by the average height of what feeds it, so two chains that never
+meet do not interleave; and the whole arrangement stays anchored at the corner it started from. Two
+or more selected nodes are the scope — anything less tidies the whole graph, because clicking a node
+and pressing the key means *tidy this*, not *move this one node nowhere*. The undo guard is the part
+that needed a note ([N119](NOTES.md)): a box's width is `MaxX - MinX`, which is not stable under
+moving the box, so an exact comparison recorded an undo step on every press.
 
 **And the two-click gesture lifts one too** — `E8-T50`, reported straight after. `E8-T49` lifted
 only on a drag, guarding against a click that would delete a wire Escape could not restore; nothing

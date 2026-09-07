@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-02 (E6: per-variable output ports, E6-T26)
+**Last updated:** 2026-09-07 (E8: clean up node layout, E8-T51)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -796,6 +796,13 @@ another.
       in the properties pane, because the canvas hosts no controls. A group stores which nodes
       it contains and derives its frame, so membership never changes because something was
       dragged past.*
+- [x] The canvas tidies itself: *Clean up layout* arranges nodes into columns that follow the
+      wires, on `Ctrl+L` (**E8-T51**). *Dynamo's key, deliberately, because a user arriving from
+      there presses it before reading a menu. A node's column is one past the furthest column any
+      of its inputs sits in — the longest path, not the shortest, or a wire runs backwards past the
+      node it feeds — and each column is ordered by the average height of what feeds it, which is
+      what stops two independent chains interleaving. The selection is the scope only when it holds
+      more than one node.*
 - [x] LOD below 40% zoom (**E8-T7**).
 - [ ] A 2000-node synthetic graph pans and zooms at 60 fps, benchmarked nightly from M2
       (**E8-T15**). *The nightly exists and the budget is this criterion stated as a number —

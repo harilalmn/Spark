@@ -141,6 +141,12 @@ namespace Spark.UI;
 /// closed, so a capture of the running application shows ten headings and none of the structure
 /// underneath them.
 /// </param>
+/// <param name="CleanUpLayout">
+/// Whether to arrange the graph into columns at startup (<c>--clean-up-layout</c>). Aimed at the
+/// screenshot path for the reason <c>--freeze</c>, <c>--collapse</c> and <c>--select</c> are: an
+/// arrangement is a thing you look at, headless drawing produces no pixels, and pressing
+/// <c>Ctrl+L</c> is a keystroke a headless run cannot make.
+/// </param>
 /// <param name="BenchmarkZoom">
 /// A zoom to pin the benchmark at, or zero to sweep. Pinning is what separates "how much does the
 /// graph cost" from "how much does what is on screen cost", which is the claim ADR-0013 actually
@@ -171,7 +177,8 @@ public readonly record struct StartupOptions(
     string? CodeBlockCommand = null,
     bool CodeBlockInNode = false,
     bool FrameNode = false,
-    string? CodeBlockTyped = null)
+    string? CodeBlockTyped = null,
+    bool CleanUpLayout = false)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
     public static StartupOptions Default => new(0, 0, 0, null, null, null);
@@ -258,6 +265,7 @@ public readonly record struct StartupOptions(
         bool codeBlockInNode = false;
         bool frameNode = false;
         string? codeBlockTyped = null;
+        bool cleanUpLayout = false;
         bool software = false;
         string? helpTopic = null;
         bool aboutWindow = false;
@@ -324,6 +332,10 @@ public readonly record struct StartupOptions(
 
                 case "--frame-node":
                     frameNode = true;
+                    break;
+
+                case "--clean-up-layout":
+                    cleanUpLayout = true;
                     break;
 
                 case "--code-block-type" when i + 1 < args.Length:
@@ -403,7 +415,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped, cleanUpLayout);
     }
 
     private static int ParseCount(string text, int fallback) =>

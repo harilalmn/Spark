@@ -180,6 +180,15 @@
             <MenuItem Header="Distribute vertically" Click="OnAlign"
                       Tag="DistributeVertically" x:Name="DistributeVertically" />
           </MenuItem>
+
+          <!--
+            Outside the Align submenu, because it is not one of that family: aligning tidies a
+            selection the user chose, and this one reads the wires and rearranges whatever it is
+            given. It also has a key, which nothing in the submenu does.
+          -->
+          <MenuItem Header="C_lean up layout" InputGesture="Ctrl+L" Click="OnCleanUpLayout"
+                    x:Name="CleanUpButton"
+                    ToolTip.Tip="Arrange nodes into columns that follow the wires" />
         </MenuItem>
 
         <MenuItem Header="_Insert">

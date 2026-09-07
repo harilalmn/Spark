@@ -606,6 +606,16 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        // E8-T51. Ctrl+L is what Dynamo binds Cleanup Node Layout to, and a user arriving from
+        // there will press it before reading any menu. Here rather than in Window.KeyBindings for
+        // the reason the three above are: it drives a Click handler, not a command.
+        if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.L)
+        {
+            OnCleanUpLayout(this, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.F5)
         {
             OnRun(this, new RoutedEventArgs());
@@ -775,6 +785,11 @@ public sealed partial class MainWindow : Window
         UpdateFreezeButton();
         DistributeHorizontally.IsEnabled = selected >= CanvasAlignment.MinimumToDistribute;
         DistributeVertically.IsEnabled = selected >= CanvasAlignment.MinimumToDistribute;
+
+        // Not `selected`: a clean-up with nothing selected lays out the whole graph, so what
+        // decides this is how many nodes it would actually arrange rather than how many are
+        // picked. Offering it over a one-node graph and doing nothing is the case this excludes.
+        CleanUpButton.IsEnabled = Canvas.CanCleanUpLayout();
     }
 
     /// <summary>
@@ -793,6 +808,20 @@ public sealed partial class MainWindow : Window
         }
 
         Canvas.AlignSelection(Enum.Parse<CanvasAlign>(name));
+        UpdateStatus();
+    }
+
+    /// <summary>
+    /// Arranges the nodes into columns that follow the wires — <c>Ctrl+L</c>, and Edit → Clean up
+    /// layout.
+    /// </summary>
+    /// <remarks>
+    /// The scope rule lives on the canvas rather than here, because the selection does:
+    /// two or more selected nodes are tidied on their own, anything less tidies the graph.
+    /// </remarks>
+    private void OnCleanUpLayout(object? sender, RoutedEventArgs e)
+    {
+        Canvas.CleanUpLayout();
         UpdateStatus();
     }
 
@@ -979,6 +1008,13 @@ public sealed partial class MainWindow : Window
             }
 
             OnCollapseSelection(this, new RoutedEventArgs());
+        }
+
+        // After the collapse, before the selection: a clean-up with a selection standing would
+        // arrange only that selection, and the switch is there to photograph the whole graph.
+        if (Options.CleanUpLayout)
+        {
+            OnCleanUpLayout(this, new RoutedEventArgs());
         }
 
         if (Options.LibrarySearch is { } query && Model is { } libraryModel)

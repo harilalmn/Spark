@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-07 (N118 added, then extended: the click gesture lifts a wire too)
+**Last updated:** 2026-09-07 (N119 added: a box's width is not stable under moving the box)
 
 ---
 
@@ -3501,3 +3501,36 @@ for a null target. That is accurate about connecting and misleading about conseq
 there **removes the wire**, which is not nothing. Saying so properly means a fourth drag state, and
 §V1 deliberately refused a wire-only colour ramp — so it is left alone and written down here rather
 than invented on the way past.
+
+---
+
+## N119 — A box's width is not stable under moving the box, and it cost the clean-up its undo guard
+
+`CanvasBounds` stores **corners**, not a corner and a size, so `Width` is `MaxX - MinX`. That is
+exact arithmetic on paper and is not exact in binary: `(520 + 209.2) - 520` and `(40 + 209.2) - 40`
+are both "209.2" and they are **different doubles**. A node's width therefore changes in its last
+bits when the node moves, and nothing else about the node changed at all.
+
+**Why that mattered here.** `CanvasLayout` accumulates a column's x from the widest box in the
+column before it. Lay a graph out, and the boxes handed back on the *second* pass are at their new
+corners — so the widths come back a few ulps different, the accumulated columns land about `1e-13`
+units from where they were, and `GraphCanvas.CleanUpLayout` compared `node.X == x` and concluded
+that every node had moved. Pressing `Ctrl+L` twice recorded two undo steps, the second of which
+undoes nothing a user can see. That is N19's failure reached by a route N19 does not describe: the
+first three cases were *an operation that genuinely moves nothing*, and this one is an operation
+that moves everything by a distance no screen can show.
+
+**The fix is `CanvasLayout.Moves`**, a comparison with a `1e-6` floor, used instead of `==`. A world
+unit is a pixel at 100 % zoom, so a millionth of one is seven orders of magnitude below anything
+visible and seven above the noise; there is no honest threshold in between to argue about.
+
+**The general shape, which is the reason this is a note.** Any geometry stored as corners and read
+as a size is unstable under translation. `CanvasAlignment` is not bitten because it computes every
+result from the extents it was given rather than from a value it recovered and re-derived — but it
+would be, the moment something fed its output back into it. **Ask of any tidy operation whether
+running it twice is the same as running it once, and check it with a test that actually feeds the
+first result back in.** `CanvasLayoutTests.LayingOutTwiceChangesNothingTheSecondTime` does; it
+passed while the canvas was still wrong, because the arithmetic *is* idempotent and the instability
+lives in the round trip through `CanvasNode`. `GraphCanvasLayoutTests.CleaningUpTwiceRecordsOneEdit`
+is the one that went red.
+

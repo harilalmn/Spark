@@ -9,7 +9,7 @@ Autodesk software required.
 MIT licensed. `net10.0`. Solid modelling by [OpenCascade](https://dev.opencascade.org/),
 which ships with Spark.
 
-**Last updated:** 2026-08-31
+**Last updated:** 2026-09-07
 
 > ## Status: it runs, and it does exact solid modelling
 >
@@ -55,6 +55,12 @@ which ships with Spark.
 > `radius  number`, `sweepAngle  degrees` — in the words you type it in rather than in CLR type
 > names, on the node and in the properties panel. A port name alone is a word; a port name and a
 > type is an instruction.
+>
+> **The canvas tidies itself.** `Ctrl+L` — Dynamo's key, and Dynamo's operation — arranges the
+> graph into columns that follow the wires: every node to the right of everything that feeds it, so
+> no wire runs backwards, and each column ordered by the average height of its inputs, so two chains
+> that never meet do not interleave. It stays where it was rather than jumping to the origin, and
+> selecting two or more nodes tidies only those.
 >
 > **Edits are undoable.** Ctrl+Z steps back through the last sixty-four edits and Ctrl+Y forward
 > again — nodes, wires, values and positions alike, because a step is a snapshot of the same

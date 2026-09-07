@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-07 (cutting v0.3.0)
+**Last updated:** 2026-09-07 (`E8-T51`: clean up node layout, and `Ctrl+L`)
 **Protocol version:** 2
 
 ---
@@ -17,13 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.2.0` shipped on 2026-09-03** — published by `Release #4`, with `spark-0.2.0-setup.exe` (50.9 MB) and `spark-portable-win-x64.zip` (77.3 MB) attached, not a draft and not a prerelease. `v0.1.0` was the first tag in the repository's history; this is the first release cut end to end without a hand-crank in the middle. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Cutting `v0.3.0`.** A **minor** bump, and the sentence for it: this release adds user-visible capability that did not exist before — *View → Library* and *View → Properties* with `F4`, and lifting a wire off an input port to move or remove it — while nothing in `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io` or `Spark.Nodes.Core` moved and no `.spark` file written by this version is unreadable by the last. `git diff v0.2.2..HEAD` over the `PublicAPI.*.txt` files is empty. **Five commits since `v0.2.2`**, all of them the shell and the canvas: the pane chrome (`E8-T45`, `E8-T46`, `E8-T47`), the pane toggles (`E8-T48`), the wire gestures (`E8-T49`, `E8-T50`), the viewport's watermark (`E9-T14`) and the architecture gate (`E11-T25`). |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`E8-T50` — the two-click gesture lifts a wire too.** `E8-T49` had guarded against a click deleting a wire Escape could not restore; nothing is committed until the gesture ends, so that guard was protecting against a design the same step had already replaced ([N118](NOTES.md)). **Before it:** `E8-T49`, `E8-T48`, `E8-T47`, and `E8-T45`/`E8-T46`/`E9-T14`/`E11-T25`. |
-| **Working tree** | Clean; `main` is at `567bf94` plus this journal, and the tag goes on the commit that carries it. **The three gates were run immediately before tagging** — build clean, format clean, 2497 tests green with the OpenCascade payload staged, so `Spark.Geometry.Occt.Tests` ran its 63 rather than skipping. |
-| **Next action** | `git tag -a v0.3.0` and push it; the workflow builds the shim, checks the artefact's version against the tag, packs the installer and the portable zip and **publishes**. Then report the URL and say plainly that nothing is signed. **Note what this release does to the open question**: `releases/latest` becomes `v0.3.0`, so any machine still on `v0.2.1` or `v0.2.2` will have something newer to find — which is `E12-T21`'s verification, finally answerable by whoever is running an older build. |
-| **Verify with** | `dotnet build Spark.slnx --no-incremental -warnaserror`, then the nine test executables (**2472**: Geometry.Tests 763, UI.Tests 894, Engine.Tests 507, Viewport.Tests 108, Geometry.Properties 43, Geometry.Occt.Tests 63, Architecture.Tests 18, Packages.Tests 71, Docs.Verify 5), `dotnet format Spark.slnx --verify-no-changes --severity warn`, `--graph curves --screenshot`, `spark export --open docs/examples/solids.spark --out OUT.step`, and `pwsh scripts/publish.ps1` followed by running the staged `spark.exe`. **The installer is exercised, not read**: `scripts/pack-installer.ps1`, then install it silently, install a second version over it, and uninstall — one Add/Remove entry throughout and nothing left behind. **The badge, the help window and the code editor are photographed**: `--update-badge 0.9.0 --screenshot PREFIX`, `--help-window <topic> --screenshot PREFIX`, `--code-block "var c = Circle.ByCentreNormalRadius(" --screenshot PREFIX` for the two popups, and `--code-block "radius * 2;\nradius * 3;" --code-block-command SelectAllOccurrences --screenshot PREFIX` for the extra carets, **`--code-block "..." --code-block-in-node --frame-node --screenshot PREFIX` for the editor on the node**, and the same with **`--code-block-type "
-Circle circle = new "`** for a completion list that was *typed* rather than asked for (`E11-T24`). **And the panes are dragged by hand**: docking is mouse work that no headless test performs, and `E9-T13` is what that costs when nobody does it. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`, from any shell. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
+| **Working on** | **Nothing — between steps.** `E8-T51` is closed: *Clean up node layout*, on `Ctrl+L`, which is Dynamo's key on purpose. **`v0.3.0` is cut and pushed**, the tag on `ef22521` at `origin`, and nothing about it is signed. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`E8-T51` — *Clean up node layout*, and `Ctrl+L`.** Columns that follow the wires: longest-path layering, columns ordered by barycentre, anchored where the nodes already were. The undo guard needed [N119](NOTES.md) — a box's width is `MaxX - MinX` and is not stable under moving the box, so an exact comparison recorded a step on every press. **Before it:** cutting `v0.3.0`, then `E8-T50`, `E8-T49`, `E8-T48`, `E8-T47`. |
+| **Working tree** | Clean, with `E8-T51` committed — work, tests and documents together. **The three gates were run on the finished tree**: build clean, format clean, **2518** tests green with the OpenCascade payload staged, so `Spark.Geometry.Occt.Tests` ran its 63 rather than skipping. |
+| **Next action** | Take the top of the *Queue*: **persist the workspace layout between sessions**. `WorkspaceLayout` already serialises and round-trips under test and nothing writes it, so a dragged arrangement still dies with the window — which is the one thing a dock is for. |
+| **Verify with** | The three gates — `dotnet build Spark.slnx --no-incremental -warnaserror`, the nine test executables (**2518**: UI 940, Geometry 763, Engine 507, Viewport 108, Properties 43, Occt 63, Architecture 18, Packages 71, Docs 5), `dotnet format Spark.slnx --verify-no-changes --severity warn` — and then **the running application**, because the gates photograph nothing: `dotnet run --project src/Spark.Desktop -- --graph demo --clean-up-layout --screenshot PREFIX` is what `E8-T51` was checked with, and **the panes are still dragged by hand**, because docking is mouse work no headless test performs. **Check the counts** — [N30](NOTES.md) — **and the SKIP count**: build the shim first with `pwsh scripts/build-native.ps1`. `dotnet test Spark.slnx` still reports `Zero tests ran` on this machine. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -6823,3 +6822,64 @@ button held.
 **Cost.** Build clean, `dotnet format` clean, 2497 tests green across the nine executables (UI 919,
 Geometry 763, Engine 507, Viewport 108, Properties 43, Occt 63, Architecture 18, Packages 71,
 Docs 5).
+
+### 2026-09-07 — Clean up node layout, and it takes Dynamo's key (`E8-T51`)
+
+**Asked for by the client, in a question before a request**: *what does `Ctrl+L` do in Dynamo* — it
+is *Edit → Cleanup Node Layout* — *can you implement it.* So the binding is not a choice: `Ctrl+L`
+is the key a user arriving from Dynamo presses before reading any menu, and any other key makes them
+learn something they already know.
+
+**The split is `CanvasAlignment`'s, because the reasons for it are the same.** `CanvasLayout` is
+pure arithmetic over rectangles and index-space links with no Avalonia type in the signature, so
+every case is a unit test rather than a window and a gesture; `GraphCanvas.CleanUpLayout` adds the
+three things arithmetic cannot know — the scope, the spatial index and the undo label. The one thing
+this reads that an alignment does not is the **wires**, which is what makes the result mean something
+about the graph rather than only about the picture.
+
+**Three decisions inside it, each of which could have gone the other way.**
+
+- **Longest path, not shortest.** A node's column is one past the *furthest* column any of its
+  inputs sits in. Taking the nearest input lets a node sit level with something it consumes whenever
+  a second, longer path also reaches it, and a wire running backwards past the node it feeds is the
+  one thing the operation exists to remove.
+- **Columns ordered by barycentre.** Each column is sorted by the average placed height of what
+  feeds it, tie-broken by where the node already was. Without it the second column comes out in list
+  order, two independent chains interleave, and every wire crosses its neighbour. Every column still
+  starts at the same top edge: centring a column on its inputs reads better and needs overlap
+  resolution to be correct, and an arrangement that is *nearly* right about overlap is worse than
+  one that is plainly regular.
+- **The selection is the scope only when it holds more than one node.** Clicking a node to look at
+  it and then pressing the key means *tidy this graph*, never *move this one node nowhere*.
+
+**A cycle cannot hang it.** `TryConnect` refuses a wire that would close one, so it is tempting to
+assume acyclic — but a `.spark` file can be loaded with a cycle already in it, which is what
+`SPK1014` is for. The relaxation is bounded by the node count, which is the most an acyclic graph
+can need.
+
+**What went wrong, and it is [N119](NOTES.md).** `CleaningUpTwiceRecordsOneEdit` went red on a
+change that looked finished. `CanvasBounds` stores corners, so `Width` is `MaxX - MinX` — and
+`(520 + 209.2) - 520` is not the same double as `(40 + 209.2) - 40`. Lay a graph out, and the second
+pass accumulates its columns from widths that differ in their last bits and lands every node about
+`1e-13` units from where the first pass put it. Comparing `node.X == x` therefore called that a move
+and recorded an undo step on every press. `CanvasLayout.Moves` compares with a millionth of a world
+unit as the floor: seven orders of magnitude below anything visible, seven above the noise, with
+nothing honest in between to argue about. **The pure test did not catch it and could not have** — the
+arithmetic *is* idempotent, and the instability lives in the round trip through `CanvasNode`.
+
+**Verified.** 12 arithmetic tests, 8 canvas tests, and the shortcut-coverage theory gains `Key.L`;
+`CleaningUpTwiceRecordsOneEdit` is the named test that was red before `Moves` and green after. Then
+the running application, twice, because an arrangement is a thing you look at: the demo graph
+photographed before and after, nine nodes going from a hand-placed scatter to three columns with
+every wire running left to right. **`--clean-up-layout` exists for that photograph**, for the reason
+`--freeze`, `--collapse` and `--select` do: the gesture is a keystroke and a keystroke is the one
+thing a headless run cannot make.
+
+**What is not proven, said plainly.** The `Ctrl+L` branch in `OnKeyDown` is covered the way
+`Ctrl+O`, `Ctrl+S` and `F5` are — by a test that greps the handler for the key — and the screenshot
+went through the menu handler rather than through the keystroke. No test in this repository presses a
+key at a real `MainWindow`; that is a gap this step inherits rather than one it creates.
+
+**Cost.** Build clean, `dotnet format` clean, 2518 tests green across the nine executables (UI 940,
+Geometry 763, Engine 507, Viewport 108, Properties 43, Occt 63, Architecture 18, Packages 71,
+Docs 5), **nothing skipped** — the shim was staged.

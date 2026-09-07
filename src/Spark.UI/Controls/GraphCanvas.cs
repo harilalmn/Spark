@@ -3148,6 +3148,149 @@ public sealed class GraphCanvas : Control
     }
 
     /// <summary>
+    /// Whether a clean-up would be meaningful over what it would act on.
+    /// </summary>
+    /// <returns>True when there are at least two nodes to arrange.</returns>
+    public bool CanCleanUpLayout() => CanvasLayout.IsApplicable(LayoutSlots().Count);
+
+    /// <summary>
+    /// Arranges nodes into columns that follow the wires: every node to the right of everything
+    /// that feeds it.
+    /// </summary>
+    /// <returns>True when at least one node actually moved.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The selection decides the scope, and one node is not a scope.</b> Two or more selected
+    /// nodes are tidied on their own and everything else is left alone; anything less — nothing
+    /// selected, or a single node — tidies the whole graph. That is the rule the user already knows
+    /// from every other editor's clean-up, and the single-node case matters: clicking a node to
+    /// look at it and then pressing the key means <i>tidy this graph</i>, never <i>move this one
+    /// node nowhere</i>.
+    /// </para>
+    /// <para>
+    /// Reported as an edit that does <b>not</b> require a run, for the same reason an alignment is:
+    /// a position is not in a node's provenance, so nothing downstream of it can evaluate
+    /// differently afterwards.
+    /// </para>
+    /// <para>
+    /// <b>A clean-up that moves nothing records nothing.</b> Pressing the key on an already-tidy
+    /// graph is how a user checks it is tidy, and an undo step whose undo moves nothing reads as
+    /// undo being broken — N19, in the shape the drag gesture and then the alignments already had
+    /// to learn.
+    /// </para>
+    /// </remarks>
+    public bool CleanUpLayout()
+    {
+        List<int> slots = LayoutSlots();
+        if (!CanvasLayout.IsApplicable(slots.Count))
+        {
+            return false;
+        }
+
+        // The spatial index is rebuilt inside Render, so a canvas that has never painted has a
+        // stale one - and a clean-up can be invoked from a menu before any frame is drawn.
+        EnsureIndex();
+
+        List<CanvasBounds> boxes = new(slots.Count);
+        foreach (int slot in slots)
+        {
+            boxes.Add(_graph.Nodes[slot].Bounds);
+        }
+
+        // The wires arrive in slot terms and the layout works in positions within the set being
+        // laid out, so they are mapped through the same ordering the boxes were built from. A wire
+        // with one end outside the selection maps to nothing and is dropped: it is not a link
+        // between two nodes that are moving.
+        Dictionary<int, int> position = [];
+        for (int i = 0; i < slots.Count; i++)
+        {
+            position[slots[i]] = i;
+        }
+
+        List<(int From, int To)> links = [];
+        foreach (CanvasWire wire in _graph.Wires)
+        {
+            if (position.TryGetValue(wire.From.NodeIndex, out int from) &&
+                position.TryGetValue(wire.To.NodeIndex, out int to))
+            {
+                links.Add((from, to));
+            }
+        }
+
+        IReadOnlyList<(double X, double Y)> placed = CanvasLayout.Apply(boxes, links);
+        bool moved = false;
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            CanvasNode node = _graph.Nodes[slots[i]];
+            (double x, double y) = placed[i];
+
+            // Not an exact comparison, and CanvasLayout.Negligible says why: a width recovered from
+            // two corners is not bit-stable under moving the box, so a second pass over an
+            // already-tidy graph lands every node a fraction of a millionth of a unit from where
+            // the first one put it.
+            if (!CanvasLayout.Moves((node.X, node.Y), (x, y)))
+            {
+                continue;
+            }
+
+            node.X = x;
+            node.Y = y;
+            _index.Update(slots[i], node.Bounds);
+            moved = true;
+        }
+
+        if (!moved)
+        {
+            return false;
+        }
+
+        _wireVisuals.Clear();
+        InvalidateVisual();
+        GraphChanged?.Invoke(
+            this, new GraphEditedEventArgs(CanvasLayout.Description, affectsEvaluation: false));
+
+        return true;
+    }
+
+    /// <summary>
+    /// Which slots a clean-up would arrange: the selection when it holds more than one node, and
+    /// the whole graph otherwise.
+    /// </summary>
+    /// <returns>The slots, ascending, and every one of them a node that exists.</returns>
+    /// <remarks>
+    /// Sorted so that the arrangement is a function of the graph and not of the order the user
+    /// happened to click in — the same reason <see cref="AlignSelection"/> sorts, and it matters
+    /// more here because a column's ordering falls back to the list order when two nodes want the
+    /// same height.
+    /// </remarks>
+    private List<int> LayoutSlots()
+    {
+        List<int> slots = [];
+
+        if (_selection.Count > 1)
+        {
+            foreach (int slot in _selection)
+            {
+                if (slot >= 0 && slot < _graph.Nodes.Count)
+                {
+                    slots.Add(slot);
+                }
+            }
+
+            slots.Sort();
+            return slots;
+        }
+
+        for (int slot = 0; slot < _graph.Nodes.Count; slot++)
+        {
+            slots.Add(slot);
+        }
+
+        return slots;
+    }
+
+    /// <summary>
     /// Deletes the selected wire if there is one, otherwise every selected node.
     /// </summary>
     /// <remarks>

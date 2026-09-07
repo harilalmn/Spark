@@ -188,10 +188,16 @@ public sealed class AccessibilityTests
     /// <b>Opening, saving and running have a keyboard path.</b> They are the three things a user
     /// does most and before this pass they were reachable by mouse alone.
     /// </summary>
+    /// <remarks>
+    /// Cleaning up the layout joined them (<c>E8-T51</c>) for a different reason: it is the key a
+    /// user arriving from Dynamo presses without reading a menu first, so the binding has to be the
+    /// one they already know rather than the one that happened to be free.
+    /// </remarks>
     [Theory]
     [InlineData("Key.O")]
     [InlineData("Key.S")]
     [InlineData("Key.F5")]
+    [InlineData("Key.L")]
     public void TheCommonGesturesHaveAKey(string key)
     {
         string handler = File.ReadAllText(Path.Combine(Root(), "src", "Spark.UI", "Views", "MainWindow.axaml.cs"));
