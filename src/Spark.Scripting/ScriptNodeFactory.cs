@@ -708,6 +708,16 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
                 continue;
             }
 
+            // `E6-T31`: BEFORE THE DECLARATION BRANCH, BECAUSE THIS *IS* A DECLARATION TO THE
+            // PARSER. `a * b;` arrives as a local declaration of a pointer, and reading it as one
+            // would give the block a port called `b` that carries nothing.
+            if (ValueOf(global.Statement) is { } value)
+            {
+                yield return new Producer(KindOf(value), Captured(captured));
+                captured++;
+                continue;
+            }
+
             if (global.Statement is LocalDeclarationStatementSyntax { IsConst: false } declaration)
             {
                 foreach (VariableDeclaratorSyntax variable in declaration.Declaration.Variables)
@@ -722,12 +732,6 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
                 continue;
             }
 
-            if (global.Statement is ExpressionStatementSyntax statement
-                && !IsStatementExpression(statement.Expression))
-            {
-                yield return new Producer(KindOf(statement.Expression), Captured(captured));
-                captured++;
-            }
         }
     }
 
@@ -878,7 +882,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// </remarks>
     private static bool IsBareReturn(CompilationUnitSyntax root)
     {
-        List<ExpressionStatementSyntax> values = ValueStatements(root);
+        List<StatementSyntax> values = ValueStatements(root);
 
         return Producers(root).Take(2).Count() == 1 && IsTrailingValue(root, values);
     }
@@ -951,21 +955,97 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// two possible mistakes is free.
     /// </para>
     /// </remarks>
-    private static List<ExpressionStatementSyntax> ValueStatements(CompilationUnitSyntax root)
+    private static List<StatementSyntax> ValueStatements(CompilationUnitSyntax root)
     {
-        List<ExpressionStatementSyntax> found = [];
+        List<StatementSyntax> found = [];
 
         foreach (MemberDeclarationSyntax member in root.Members)
         {
-            if (member is GlobalStatementSyntax { Statement: ExpressionStatementSyntax statement }
-                && !IsStatementExpression(statement.Expression))
+            if (member is GlobalStatementSyntax global && ValueOf(global.Statement) is not null)
             {
-                found.Add(statement);
+                found.Add(global.Statement);
             }
         }
 
         return found;
     }
+
+    /// <summary>
+    /// The value a statement produces, or null when it is a statement in the ordinary way.
+    /// </summary>
+    /// <remarks>
+    /// <b>Two shapes reach here and the second is not obvious</b> — an expression statement C#
+    /// would refuse (`E6-T27`), and a line C# read as a <i>pointer declaration</i> (`E6-T31`).
+    /// </remarks>
+    private static ExpressionSyntax? ValueOf(StatementSyntax statement) => statement switch
+    {
+        ExpressionStatementSyntax expression when !IsStatementExpression(expression.Expression) =>
+            expression.Expression,
+        LocalDeclarationStatementSyntax declaration => Multiplication(declaration),
+        _ => null,
+    };
+
+    /// <summary>
+    /// A line C# parsed as a pointer declaration, read back as the multiplication it must be
+    /// (`E6-T31`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>width * height;</c> does not compile, and the message is about a feature the user did
+    /// not use</b>: <i>"Pointers and fixed size buffers may only be used in an unsafe context"</i>.
+    /// In statement position <c>a * b;</c> is genuinely ambiguous — C# can read it as <i>declare a
+    /// pointer-to-<c>a</c> called <c>b</c></i> — and the language resolves that in favour of the
+    /// declaration. Found by running the samples in `E10-T16`'s guide, on the most natural line a
+    /// user could type.
+    /// </para>
+    /// <para>
+    /// <b>This is `E6-T27`'s own rule reaching a case it could not see, not a widening of it.</b>
+    /// That row claims expressions <i>C# refuses as statements</i>; C# refuses this one too, just
+    /// down a different path in the parser, so it never arrived as an
+    /// <see cref="ExpressionStatementSyntax"/> to be considered.
+    /// </para>
+    /// <para>
+    /// <b>Claiming it is safe because the alternative reading cannot exist here.</b> A real pointer
+    /// declaration needs <c>unsafe</c>, which a code block never has — so a line of this shape has
+    /// exactly one meaning it could have had, and it is the one being restored. Nothing that
+    /// compiles today changes, because nothing of this shape compiles today.
+    /// </para>
+    /// <para>
+    /// <b>Re-parsed rather than rebuilt from the pieces.</b> Pulling <c>a</c> off the pointer type
+    /// and <c>b</c> off the declarator would handle <c>a * b;</c> and miss <c>a * b * c;</c>, which
+    /// the parser mangles further — a declaration with a missing <c>=</c>. Asking the parser for
+    /// the same text as an <i>expression</i> gets every shape for one line of code, and it answers
+    /// with diagnostics when the text really was not an expression.
+    /// </para>
+    /// </remarks>
+    private static ExpressionSyntax? Multiplication(LocalDeclarationStatementSyntax declaration)
+    {
+        if (declaration.IsConst || !HasPointerType(declaration))
+        {
+            return null;
+        }
+
+        string text = declaration.ToString().TrimEnd();
+
+        if (text.EndsWith(';'))
+        {
+            text = text[..^1];
+        }
+
+        ExpressionSyntax parsed = SyntaxFactory.ParseExpression(text);
+
+        // A statement-expression is left alone even here, so the closed list stays the one rule
+        // deciding what is a value - and a re-parse that itself failed is not a value at all.
+        return parsed.ContainsDiagnostics || IsStatementExpression(parsed) ? null : parsed;
+    }
+
+    /// <summary>Whether a declaration's type is a pointer, however malformed the rest is.</summary>
+    /// <remarks>
+    /// <c>a * b * c;</c> parses as a pointer declaration with a missing <c>=</c>, so the type is
+    /// where the shape is recognisable and the declarators are not.
+    /// </remarks>
+    private static bool HasPointerType(LocalDeclarationStatementSyntax declaration) =>
+        declaration.Declaration.Type is PointerTypeSyntax;
 
     /// <summary>
     /// Whether the script's values are the single one `E6-T27` handles: exactly one, and it is the
@@ -987,10 +1067,10 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// One value is the value; several are a tuple.
     /// </para>
     /// </remarks>
-    private static bool IsTrailingValue(CompilationUnitSyntax root, List<ExpressionStatementSyntax> values) =>
+    private static bool IsTrailingValue(CompilationUnitSyntax root, List<StatementSyntax> values) =>
         values.Count == 1
-        && root.Members.LastOrDefault() is GlobalStatementSyntax { Statement: ExpressionStatementSyntax last }
-        && last == values[0];
+        && root.Members.LastOrDefault() is GlobalStatementSyntax last
+        && last.Statement == values[0];
 
     /// <summary>The temporary the <i>n</i>th value is captured into (`E6-T28`).</summary>
     /// <remarks>
@@ -1218,7 +1298,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     private static (string Body, ImmutableArray<int> Markers) WithGeneratedReturns(BlankedScript blanked)
     {
         CompilationUnitSyntax root = CSharpSyntaxTree.ParseText(blanked.Text).GetCompilationUnitRoot();
-        List<ExpressionStatementSyntax> values = ValueStatements(root);
+        List<StatementSyntax> values = ValueStatements(root);
 
         if (values.Count == 0)
         {

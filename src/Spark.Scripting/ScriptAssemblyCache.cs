@@ -89,7 +89,28 @@ public sealed class ScriptAssemblyCache
     /// <c>var __resultN = …;</c> and returns them as a tuple, where 4 emitted the user's lines
     /// unchanged and failed to compile. Same argument as above, same conclusion, bumped anyway.
     /// </remarks>
-    public const int GeneratorVersion = 5;
+    /// <remarks>
+    /// <para>
+    /// <b>6</b> covers two changes and <b>the first of them should have bumped this on its own
+    /// day.</b> <c>E6-T30</c> added <c>using Spark.Nodes.Core;</c> and ten aliases to the prelude,
+    /// which is a change to the generated frame by any reading, and it shipped without a bump —
+    /// exactly the oversight the remarks above record <c>E10-T15</c> making, one row later.
+    /// </para>
+    /// <para>
+    /// <b>And it is the first bump where a stale entry could genuinely have been served.</b> The
+    /// disk key carries the reference *files*' fingerprint, not the imports — so a script whose
+    /// text and references were unchanged could have been answered from an assembly compiled
+    /// without the new imports. It would not have produced a wrong answer, because every script
+    /// the new imports enable was a compile error before and failed compiles are never cached; but
+    /// "could not have mattered" is a thing to conclude after bumping, not instead of it.
+    /// </para>
+    /// <para>
+    /// The second change is <c>E6-T31</c>: a line C# read as a pointer declaration is now captured
+    /// as the multiplication it must be, so <c>a * b;</c> emits source where 5 emitted the user's
+    /// line unchanged.
+    /// </para>
+    /// </remarks>
+    public const int GeneratorVersion = 6;
 
     private readonly string? _directory;
 

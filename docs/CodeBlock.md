@@ -56,10 +56,10 @@ treats it as something the graph supplies. Wire a number in, and the block runs.
 Several free names give several ports, in the order they first appear:
 
 ```csharp
-var area = width * height;
+width * height;
 ```
 
-`width`, then `height`, and one output called `area`.
+`width`, then `height`. That one line is a whole node: two inputs, one output.
 
 **A variable you declare is not an input**, because you declared it:
 
@@ -181,43 +181,6 @@ total = total + 4;
 ```
 
 One port, `total`, carrying `5`.
-
-### One line that will surprise you: `a * b;`
-
-A line that is exactly **one name times another name** does not compile:
-
-```text
-width * height;
-```
-
-> The script did not compile: Pointers and fixed size buffers may only be used in an unsafe
-> context.
-
-That message is C#'s, not Spark's, and it is not about anything you did wrong. In statement
-position `a * b;` is genuinely ambiguous — the language can read it as *declare a pointer-to-`a`
-called `b`* — and C# resolves the ambiguity in favour of the declaration. It happens whether or
-not the names are declared, so `var x = 3.0; var y = 4.0; x * y;` is refused too.
-
-**It is that exact shape and nothing else.** All of these are fine:
-
-```csharp
-var x = 3.0;
-var y = 4.0;
-
-var area = x * y;
-```
-
-```csharp
-var x = 3.0;
-
-x * 2;
-```
-
-So is `x * (y);`, so is `2 * x * y;`, and so is every other operator — `x + y;`, `x - y;`,
-`y / x;` all work bare. Only `name * name;` on its own trips it.
-
-**Name the line and it is fine**, which is what you want on a port anyway — `var area = x * y;`
-gives you a port called `area` instead of one called `function`. Or write `return x * y;`.
 
 ---
 

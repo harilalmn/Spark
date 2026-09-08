@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-08 (a getting-started guide for the code block)
+**Last updated:** 2026-09-08 (`a * b;` is a value, not a pointer declaration)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing - between steps.** **One defect is open and was found by writing the guide**: `E6-T31`, `a * b;` on its own does not compile. |
+| **Working on** | **Nothing - between steps.** Every request the client has made in this sitting is delivered, and the one defect writing the guide turned up is fixed. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A getting-started guide for the code block** - `E10-T16`, `docs/CodeBlock.md`, twelve sections and all 23 samples run against the build. **Before it:** `E6-T30`, `E2-T58`, `E3-T23`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2637** tests green over ten executables with zero skips. **Two known flaky tests**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)) and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` (`E11-T27`, open). |
-| **Next action** | **`E6-T31`: make `a * b;` compile.** Found by running the guide's samples. `ValueStatements` sees the line as a `LocalDeclarationStatement` whose declared type is a `PointerType` and whose single declarator has no initialiser - a shape that **cannot** be legitimate in a code block, because `unsafe` is off and a pointer declaration would not compile either. Recognise exactly that shape, rebuild it as the multiplication `left * right`, and claim it as a value statement. **The test that must stay green is `ACallIsStillAStatement`**, and a new one should assert that a genuine pointer line is still refused rather than silently reinterpreted - though there is no way to write one without `unsafe`, which is itself the argument that the rewrite is safe. |
-| **Verify with** | `width * height;` giving two inputs and one port; `var x = 3.0; var y = 4.0; x * y;` giving three ports with the last carrying 12; and the guide's *One line that will surprise you* subsection deleted, with its samples re-run. Then the ten executables. **Grep the run output for `[FAIL]` and not only `Total:`.** |
+| **Last completed step** | **`a * b;` is a value, not a pointer declaration** - `E6-T31`, found by running `E10-T16`'s samples. **Before it:** `E10-T16`, `E6-T30`, `E2-T58`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2647** tests green over ten executables with zero skips. **Two known flaky tests**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)) and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` (`E11-T27`, open). |
+| **Next action** | **Nothing is queued that does not need a person.** The nearest unblocked engineering row is the *Queue*'s `+` pair: **persist the workspace layout between sessions** (`WorkspaceLayout` already serialises and round-trips under test, and nothing writes it - a dragged arrangement dies with the window, which is the one thing a dock is for), and **a guard that no test project reports zero tests** ([N30](NOTES.md)). Take the layout one; it is the one a user would notice. **Worth raising with the client**: `E11-T27` is open and this assembly has two known flakes; and `E10-T16` proved that running documentation samples finds product defects, so the deferred *compile every fenced sample* check in `DocumentationChecks` now has evidence behind it rather than only a precedent. |
+| **Verify with** | For the layout row: drag the docks into a new arrangement, close the application, reopen it, and find the arrangement still there - then the ten executables and `tests/Spark.Docs.Verify`. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -7946,3 +7946,54 @@ the guide quotes verbatim. `tests/Spark.Docs.Verify` green, so every relative li
 
 **Documents.** `docs/CodeBlock.md` itself, `E10-T16` and `E6-T31` rows, two TODO lines, a pointer
 from the help topic to the guide and from the README, and the guide's own pointers back.
+
+### 2026-09-08 — `a * b;` is a value, not a pointer declaration
+
+**What.** `E6-T31`. Found yesterday's-step-ago by running the samples in `E10-T16`'s guide, on the
+most natural line a user could type. `width * height;` did not compile, and the message was
+*"Pointers and fixed size buffers may only be used in an unsafe context"* — about a language
+feature the user did not use, on a line that has nothing to do with pointers.
+
+**In statement position `a * b;` is genuinely ambiguous.** C# can read it as *declare a
+pointer-to-`a` called `b`*, and the language resolves the ambiguity in favour of the declaration.
+So the line never arrived at `E6-T27`'s rule as an expression statement at all — it was a
+declaration by the time anything looked.
+
+**This is `E6-T27`'s rule reaching a case it could not see, not a widening of it.** That row claims
+expressions *C# refuses as statements*, and C# refuses this one too — just down a different path in
+the parser. Framing it that way is what makes the change small and the argument the same one:
+**nothing that compiles today changes, because nothing of this shape compiles today.**
+
+**Claiming it is safe because the other reading cannot exist here.** A pointer declaration needs
+`unsafe`, which a code block never has, so a line of this shape has exactly one meaning it could
+ever have had, and it is the one being restored.
+
+**Re-parsed rather than rebuilt from the pieces, and the probes are why.** Pulling `a` off the
+pointer type and `b` off the declarator handles `a * b;` and misses two shapes I only found by
+trying them: `a * b * c;`, which the parser mangles into a declaration with a *missing `=`*, and
+`p.X * b;`, which is a pointer to a qualified name. Asking the parser for the same text as an
+*expression* gets every shape for one line of code, and answers with diagnostics when the text
+really was not an expression. `a * 2;`, `a * (b);`, `-a * b;` and `xs[0] * b;` were already fine and
+still are.
+
+**A miss from two steps ago, found while doing this one.** `GeneratorVersion` is 6, and it carries
+two changes rather than one: this row, and **`E6-T30`'s prelude change, which should have bumped it
+and did not**. Adding `using Spark.Nodes.Core;` and ten aliases is a change to the generated frame
+by any reading. It is also the first bump where a stale entry could genuinely have been served —
+the disk key carries the reference *files*' fingerprint, not the imports, so an unchanged script
+with unchanged references could have been answered from an assembly compiled without them. It
+would not have produced a wrong answer, because every script the new imports enable was a compile
+error before and failed compiles are never cached. But *"could not have mattered"* is a thing to
+conclude after bumping, not instead of it — which is exactly what the remarks on that constant
+already said about `E10-T15`, one row before I repeated it.
+
+**Verified.** Ten tests, and **seven go red when the branch is disabled** — confirmed by disabling
+it rather than assumed. `ACallIsStillAStatement` is restated here as well as in
+`ScriptTrailingValueTests`, because this is the row most likely to have widened that line and it
+did not. Gates: build clean with zero warnings, format clean, **2647** tests green over ten
+executables with zero skips.
+
+**Documents.** `E6-T31`'s row goes from Open to Done, the TODO line with it, and
+`docs/CodeBlock.md` loses the subsection that existed only to warn about this — its inputs example
+is back to the one-line `width * height;`, which is a whole node in six characters and was the
+right example all along.
