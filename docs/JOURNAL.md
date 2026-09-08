@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-08 (a code block opens ready to type in)
+**Last updated:** 2026-09-08 (the editor never actually took keyboard focus)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing - between steps.** |
+| **Working on** | **Nothing - between steps.** `E8-T61`'s acceptance is the client seeing a blinking caret, which no test here can stand in for. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A code block opens ready to type in** - `E8-T60`. Inserting one opens the editor; opening an existing one puts the caret after the last character. **Before it:** `E6-T31`, `E10-T16`, `E6-T30`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2652** tests green over ten executables with zero skips. **Two known flaky tests**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)) and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` (`E11-T27`, open). |
-| **Next action** | **Nothing is queued that does not need a person.** The nearest unblocked engineering row is the *Queue*'s `+` pair: **persist the workspace layout between sessions**, and **a guard that no test project reports zero tests** ([N30](NOTES.md)). **Two things are worth raising with the client rather than just doing**: `E11-T27` is open and this assembly has two known flakes; and `E10-T16` and `E8-T60` between them make the case for the deferred *compile every fenced sample* check in `DocumentationChecks` - the first found a product defect by running samples, the second found two documents claiming behaviour that did not exist. |
-| **Verify with** | For the layout row: drag the docks into a new arrangement, close the application, reopen it, and find the arrangement still there - then the ten executables and `tests/Spark.Docs.Verify`. **Grep the run output for `[FAIL]` and not only `Total:`.** |
+| **Last completed step** | **The editor never actually took keyboard focus** - `E8-T61`. `TextEditor.Focusable` is false and it delegates to `TextArea`; broken since `E8-T39` and hidden by the second click `E8-T60` removed. **Before it:** `E8-T60`, `E6-T31`, `E10-T16`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2653** tests green over ten executables with zero skips. **Two known flaky tests**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)) and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` (`E11-T27`, open). |
+| **Next action** | **Wait for the client to confirm the caret blinks**, which is `E8-T61`'s only real acceptance. After that, the nearest unblocked engineering row is the *Queue*'s `+` pair: **persist the workspace layout between sessions**, and **a guard that no test project reports zero tests** ([N30](NOTES.md)). **Worth raising**: three rows this week - `E10-T16`, `E8-T60`, `E8-T61` - were found or exposed by documentation and by a person looking, not by the suite, and two of them were behaviours the documents claimed and the code did not do. That is the argument for the deferred *compile and exercise every fenced sample* check in `DocumentationChecks`, and it now has three examples behind it. |
+| **Verify with** | The client typing into a freshly double-clicked block without clicking a second time. Then, for the layout row: drag the docks into a new arrangement, close the application, reopen it, and find the arrangement still there - then the ten executables and `tests/Spark.Docs.Verify`. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -8038,3 +8038,46 @@ ten executables with zero skips.
 **Documents.** `E8-T60`'s row, a TODO line, and the two documents that were ahead of the code are
 now level with it — plus the second half of the claim, which neither of them had made: where the
 caret lands when you open an existing block.
+
+### 2026-09-08 — The editor never actually took keyboard focus
+
+**What.** `E8-T61`. The client double-clicked to add a block, the editor opened, and **the caret was
+not blinking** — they had to click line 1 before they could type. Reported within minutes of
+`E8-T60` shipping.
+
+**`FocusEditor` called `TextEditor.Focus()`, and AvaloniaEdit's `TextEditor` declares
+`Focusable = false`.** It delegates to the `TextArea` inside it. So the call returned false, focused
+nothing, and reported nothing — a silent no-op with a name that says it worked.
+
+**It had been broken since `E8-T39`, and there is a good reason nobody saw it.** Until yesterday,
+opening the editor was always followed by a second click to start typing, and *that* click focused
+the text the ordinary way. `E8-T60` removed the reason for the second click, and a latent no-op
+became the entire experience. **The feature that exposed the bug is the feature the bug made
+useless**, which is worth remembering the next time something "has always worked".
+
+**Diagnosed by probing, not by reading.** A throwaway test printed
+`editorFocusable=False areaFocusable=True` and that is the whole finding. I would not have got there
+by re-reading the method — it looks correct, and the framework's answer is the part that is
+surprising.
+
+**The retry is for a control that has just been made visible.** The pane sets `IsVisible` and
+focuses in the same breath, and a control can refuse focus until the layout pass that realises it
+has run. Posting only when the direct call fails keeps the common case synchronous, which matters
+because the caret is placed immediately afterwards.
+
+**The test asserts the half that can be asserted, and says so.** Headless Avalonia grants focus to
+nothing at all — `Focus()` returns false for every control, activated window or not, which I
+established by probing rather than assuming, including trying `window.Activate()` first. So
+`IsFocused` is not a usable oracle here. *The control we focus is able to take focus* is, and it is
+precisely the half that was wrong: a `Focusable = false` target can never work and never complains.
+`Spark.UI` opens `InternalsVisibleTo` to its test project for it, the same seam `Spark.Geometry`
+already has.
+
+**Verified.** Six caret and focus tests. **The blinking caret itself is the client's to confirm** —
+headless cannot show it and a screenshot cannot catch a blink, so this is one where the acceptance
+is a person looking. Gates: build clean with zero warnings, format clean, **2653** tests green over
+ten executables with zero skips.
+
+**Documents.** `E8-T61`'s row and a TODO line. Nothing user-facing changed: the documents already
+described the behaviour this restores, which is the second time this week they were ahead of the
+code.

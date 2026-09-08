@@ -411,10 +411,48 @@ public sealed partial class CodeBlockEditor : UserControl
 
     /// <summary>Puts the keyboard focus in the text, rather than on this control.</summary>
     /// <remarks>
+    /// <para>
     /// The inner editor is what handles keys, so focusing the <see cref="UserControl"/> would put
     /// the caret nowhere. Public because the screenshot pose has to do exactly what a user does.
+    /// </para>
+    /// <para>
+    /// <b>It focuses the <c>TextArea</c>, and focusing the <c>TextEditor</c> was a silent no-op</b>
+    /// (<c>E8-T61</c>). AvaloniaEdit's <c>TextEditor</c> declares <c>Focusable = false</c> and
+    /// delegates to the <c>TextArea</c> inside it, so <c>_editor.Focus()</c> returned false and put
+    /// the caret nowhere — for every block, since `E8-T39`. Nobody noticed because the click that
+    /// opened the editor was followed by a second click to start typing, which focused it the
+    /// ordinary way; `E8-T60` removed the reason for that second click and the missing caret became
+    /// the whole experience.
+    /// </para>
+    /// <para>
+    /// <b>The retry is for a control that has just been made visible.</b> The pane sets
+    /// <c>IsVisible</c> and focuses in the same breath, and a control can refuse focus until the
+    /// layout pass that realises it has run. Posting only when the direct call fails keeps the
+    /// common case synchronous, which matters because the caret is placed straight afterwards.
+    /// </para>
     /// </remarks>
-    public void FocusEditor() => _editor?.Focus();
+    public void FocusEditor()
+    {
+        if (_editor is null || _editor.TextArea.Focus())
+        {
+            return;
+        }
+
+        AvaloniaEdit.Editing.TextArea area = _editor.TextArea;
+
+        Dispatcher.UIThread.Post(() => area.Focus(), DispatcherPriority.Input);
+    }
+
+    /// <summary>
+    /// What <see cref="FocusEditor"/> puts the keyboard focus on (<c>E8-T61</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Exposed so a test can assert it is focusable at all</b>, which is exactly the defect this
+    /// had: focusing a control whose <c>Focusable</c> is false can never work and never says so.
+    /// Headless Avalonia does not grant focus, so <c>IsFocused</c> cannot be asserted — but *the
+    /// thing we focus is able to take focus* can be, and it is the half that was wrong.
+    /// </remarks>
+    internal Control? FocusTarget => _editor?.TextArea;
 
     /// <summary>
     /// Puts the caret after the last character, ready to type (<c>E8-T60</c>).

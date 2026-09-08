@@ -20,6 +20,13 @@
     <AvaloniaResource Include="Assets/*.png" />
 
     <!--
+      `E8-T61`. The tests assert that the control the editor focuses is one that *can* take focus,
+      which is the defect that row fixed and cannot be asserted from outside. Same seam
+      Spark.Geometry already opens to its own test projects.
+    -->
+    <InternalsVisibleTo Include="Spark.UI.Tests" />
+
+    <!--
       Source Code Pro (`E8-T57`), the face Dynamo draws its Code Block in. Embedded for the same
       reason the mark is: a loose font beside the executable is one more thing a publish or a
       single-file bundle can lose, and the failure is silent - Avalonia falls back to whatever it

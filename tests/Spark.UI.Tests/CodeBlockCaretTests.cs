@@ -106,6 +106,40 @@ public sealed class CodeBlockCaretTests
         Assert.Equal(0, editor.CaretOffset);
     });
 
+    /// <summary>
+    /// <b>The control the editor focuses can actually take focus</b> - which is the whole of
+    /// `E8-T61`.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>FocusEditor</c> called <c>TextEditor.Focus()</c>, and AvaloniaEdit's <c>TextEditor</c>
+    /// declares <c>Focusable = false</c> - so it returned false, put the caret nowhere, and said
+    /// nothing. It had been that way since `E8-T39`; nobody saw it because the click that opened
+    /// the editor was followed by a second click to start typing, and that second click focused it
+    /// the ordinary way. `E8-T60` removed the reason for the second click, and the missing caret
+    /// became the whole experience.
+    /// </para>
+    /// <para>
+    /// <b>This asserts the half that can be asserted.</b> Headless Avalonia does not grant focus at
+    /// all - <c>Focus()</c> returns false for every control, activated window or not, which was
+    /// established by probing rather than assumed - so <c>IsFocused</c> is not a usable oracle
+    /// here. <i>The thing we focus is able to take focus</i> is, and it is precisely the half that
+    /// was wrong.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void TheEditorFocusesSomethingThatCanTakeFocus() => HeadlessSession.Run(() =>
+    {
+        (Window window, CodeBlockEditor editor) = Open("var a = 1;");
+
+        Assert.NotNull(editor.FocusTarget);
+        Assert.True(
+            editor.FocusTarget!.Focusable,
+            "the editor focuses a control whose Focusable is false, which can never work");
+
+        window.Close();
+    });
+
     private static (Window Window, CodeBlockEditor Editor) Open(string text)
     {
         CodeBlockEditor editor = new();

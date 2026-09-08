@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (a code block opens ready to type in)
+**Last updated:** 2026-09-08 (the editor never actually took keyboard focus)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -509,6 +509,7 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] A getting-started guide for the code block — `E10-T16`. `docs/CodeBlock.md`, twelve sections, all 23 samples run against the build.
 - [x] `a * b;` on its own is a value — `E6-T31`. C# read it as a pointer declaration; a code block has no `unsafe`, so there was only ever one meaning it could have had.
 - [x] A code block opens ready to type in — `E8-T60`. Inserting one opens the editor with the caret in it; opening an existing one puts the caret after the last character.
+- [x] The editor never actually took keyboard focus — `E8-T61`. `TextEditor.Focusable` is false; it delegates to `TextArea`. Broken since `E8-T39`, invisible until `E8-T60` removed the second click that used to hide it.
 - [x] Dynamo's count ranges — `E10-T15`. `Number.RangeByCount` and
       `Number.RangeByCountAndStep` over one `Spark.Api.NumberRange`, and `0..1..#5`
       works as typed in a code block.
