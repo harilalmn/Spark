@@ -41,6 +41,22 @@ public sealed class StartupOptionsTests
         Assert.False(StartupOptions.Parse([switchName, value]).OpensMaximised);
 
     /// <summary>
+    /// <b>The code-font list is a switch, and off unless asked for</b> (`E8-T64`).
+    /// </summary>
+    /// <remarks>
+    /// It exists because no test can see what a real machine offers - the headless font manager
+    /// reports two faces - so the list is printed by the application and read by a person. What is
+    /// testable is that the switch is parsed and that nothing else turns it on.
+    /// </remarks>
+    [Fact]
+    public void TheCodeFontListIsOffUnlessAskedFor()
+    {
+        Assert.False(StartupOptions.Parse([]).ListCodeFonts);
+        Assert.False(StartupOptions.Parse(["--graph", "curves"]).ListCodeFonts);
+        Assert.True(StartupOptions.Parse(["--code-fonts"]).ListCodeFonts);
+    }
+
+    /// <summary>
     /// The two are independent of everything else on the command line, so opening a graph or the
     /// help window still maximises.
     /// </summary>

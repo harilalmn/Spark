@@ -190,7 +190,7 @@ public static class CodeFont
         {
             foreach (FontFamily family in FontManager.Current.SystemFonts)
             {
-                if (family.Name != Name && IsMonospaced(family))
+                if (family.Name != Name && IsMonospaced(family) && !CarriesIdeographs(family))
                 {
                     monospaced.Add(family.Name);
                 }
@@ -205,6 +205,76 @@ public static class CodeFont
         monospaced.Sort(StringComparer.CurrentCultureIgnoreCase);
 
         return [Name, .. monospaced];
+    }
+
+    /// <summary>
+    /// Whether a family ships CJK ideographs, which makes it a CJK face rather than a code face
+    /// (<c>E8-T64</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The client was offered <c>MingLiU_HKSCS-ExtB</c>, and the measurement that offered it was
+    /// not wrong.</b> Its Latin glyphs really are equal width, so
+    /// <see cref="IsMonospaced(FontFamily)"/> answered honestly — the <i>question</i> was too
+    /// narrow. A code font is a Latin face whose letters are equal width; a CJK face with
+    /// half-width Latin satisfies the second half and fails the first.
+    /// </para>
+    /// <para>
+    /// <b>Asked of the font's own glyph map, not of its name.</b> A list of families to exclude, or
+    /// a rule about what a name contains, is a list that rots the moment somebody installs a font
+    /// nobody thought of. Whether the file has a glyph for <c>一</c> is a fact about the file.
+    /// </para>
+    /// <para>
+    /// <b>Several blocks rather than one codepoint, and the first attempt got this wrong.</b> It
+    /// probed U+4E00 and U+4E2D — the base CJK Unified Ideographs — and the very families the
+    /// client saw went on being offered: <c>MingLiU-ExtB</c>, <c>SimSun-ExtB</c> and their
+    /// siblings are <i>Extension B</i> fonts, which cover the supplementary plane and carry none
+    /// of the common characters. So the probe spans the base block, Extension A, Extension B and
+    /// Extension C, plus Kana and Hangul, and a face carrying any of them is not one anybody wants
+    /// their C# in.
+    /// </para>
+    /// </remarks>
+    /// <summary>One codepoint from each block a CJK family would carry and a code face would not.</summary>
+    private static readonly int[] Ideographs =
+    [
+        0x4E00,   // CJK Unified Ideographs, the base block.
+        0x3400,   // Extension A.
+        0x20000,  // Extension B - what the -ExtB families the client saw actually carry.
+        0x2A700,  // Extension C.
+        0x2B740,  // Extension D.
+        0x2B820,  // Extension E.
+        0x2CEB0,  // Extension F.
+        0x30000,  // Extension G - and SimSun-ExtG survived a probe that stopped at C.
+        0x31350,  // Extension H.
+        0x3042,   // Hiragana.
+        0xAC00,   // Hangul syllables.
+    ];
+
+    private static bool CarriesIdeographs(FontFamily family)
+    {
+        try
+        {
+            if (!FontManager.Current.TryGetGlyphTypeface(new Typeface(family), out GlyphTypeface? face))
+            {
+                return false;
+            }
+
+            foreach (int codepoint in Ideographs)
+            {
+                if (face.CharacterToGlyphMap.TryGetGlyph(codepoint, out _))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        catch (Exception failure) when (failure is InvalidOperationException or NotSupportedException)
+        {
+            // A face that cannot be opened is not one to offer, but it is also not a reason to
+            // lose the rest of the list.
+            return true;
+        }
     }
 
     /// <summary>Whether every character in a family comes out the same width.</summary>

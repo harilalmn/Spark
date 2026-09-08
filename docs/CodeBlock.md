@@ -408,6 +408,9 @@ and VS Code's Selection commands on the context menu.
 - **Panning, zooming and dragging the block** all leave the editor open and carry it along.
 - **Code is set in Source Code Pro**, the face Dynamo uses. The **Font** dropdown under the editor
   in the Properties pane changes it for every block, and the choice is remembered between sessions.
+  The list is Source Code Pro plus the monospaced Latin faces on your machine — CJK families are
+  left out even where their Latin happens to be equal width, because a block set in one is not
+  what anybody means by a code font.
 
 ---
 

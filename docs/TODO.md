@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (the arrow keys cycle signature overloads)
+**Last updated:** 2026-09-08 (the code-font list offered CJK faces)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -512,6 +512,7 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] The editor never actually took keyboard focus — `E8-T61`. `TextEditor.Focusable` is false; it delegates to `TextArea`. Broken since `E8-T39`, invisible until `E8-T60` removed the second click that used to hide it.
 - [x] Changing the code font did not redraw the open editor — `E8-T62`. AvaloniaEdit caches its visual lines; the family changed and the glyphs did not.
 - [x] The arrow keys cycle signature overloads — `E8-T63`. Alt+Up/Down was the only binding and nothing said so; the label now reads `↑↓ 2/2`.
+- [x] The code-font list offered CJK faces — `E8-T64`. Monospaced Latin is not the same as a code font; the filter now asks the glyph map for ideographs. `--code-fonts` prints the list.
 - [x] Dynamo's count ranges — `E10-T15`. `Number.RangeByCount` and
       `Number.RangeByCountAndStep` over one `Spark.Api.NumberRange`, and `0..1..#5`
       works as typed in a code block.

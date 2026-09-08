@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-08 (the arrow keys cycle signature overloads)
+**Last updated:** 2026-09-08 (the code-font list offered CJK faces)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing - between steps.** Three client-answered rows are queued: `E8-T64` tighten the font list, `E2-T59` a constructor for every library factory, `E2-T60` `Centre` becomes `Center`. |
+| **Working on** | **Nothing - between steps.** Two client-answered rows remain: `E2-T59` a constructor for every library factory, and `E2-T60` `Centre` becomes `Center`. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The arrow keys cycle signature overloads** - `E8-T63`. The binding existed as Alt+Up/Down and nothing on screen said so. **Before it:** `E8-T62`, `E8-T61`, `E8-T60`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2659** tests green over ten executables with zero skips. **Two known flaky tests**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)) and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` (`E11-T27`, open). |
-| **Next action** | **`E8-T64`, the smallest of the three: tighten the font list.** `MingLiU_HKSCS-ExtB` is offered because its Latin glyphs really are monospaced, so the measurement is right and the *question* is wrong - a code font is not merely a face whose letters are equal width. Then `E2-T59` (a constructor for every library factory, which `ADR-0004`'s dedup rule already makes safe - it suppresses a constructor when a matching factory exists, so no node appears twice) and `E2-T60` (`Centre` becomes `Center`, a rename the size of `E2-T58` with the same alias requirement). |
-| **Verify with** | For `E8-T64`: the list containing Consolas and Cascadia and not containing a CJK face, on this machine, asserted by name rather than by count. Then the ten executables. **Grep the run output for `[FAIL]` and not only `Total:`.** |
+| **Last completed step** | **The code-font list offered CJK faces** - `E8-T64`. Monospaced Latin is not the same as a code font. **Before it:** `E8-T63`, `E8-T62`, `E8-T61`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2661** tests green over ten executables with zero skips. **Three known flaky tests, all one defect**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)), `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` and `ViewportNavigationTests.TheMiddleButtonPans` (`E11-T27`, open). |
+| **Next action** | **`E2-T59`: a constructor for every library factory.** The client asked for `new Circle(centre, radius)` and then for the general case - *whatever constructors are available in the Library, all those should be available in a code block too*. **`ADR-0004` already makes this safe**: the importer suppresses a constructor when a public static `From*`/`By*`/`Create*` on the same type returns that type and its **parameter type sequence** matches - so adding the constructors adds no nodes and duplicates nothing. **The risk is collisions between factories**: two `From*` methods on one type with the same parameter types cannot both become constructors, and that has to be surveyed before writing any. Then `E2-T60`, `Centre` -> `Center`, a rename the size of `E2-T58` with the same alias requirement. |
+| **Verify with** | `new Circle(Point3d.Origin, 5.0)` compiling in a code block; the library still reporting **138** nodes, which is what says no constructor became a second node; and `NodeMemberKindTests` green, which is the guard on the suppression rule. Then the ten executables. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -8166,3 +8166,48 @@ executables with zero skips.
 
 **Documents.** `E8-T63`'s row, a TODO line, and a line in `CodeBlock.md`'s editor section naming
 the keys — which is the half of this that would have prevented the report.
+
+### 2026-09-08 — The code-font list offered CJK faces
+
+**What.** `E8-T64`. The client was offered `MingLiU_HKSCS-ExtB` in the Font dropdown.
+
+**The measurement was not wrong; the question was.** That family's Latin glyphs really are equal
+width, so `E8-T59`'s monospace test answered honestly. But a code font is a **Latin** face whose
+letters are equal width, and a CJK face with half-width Latin satisfies only the second half. The
+filter was asking a true thing that did not mean what it was being used to mean.
+
+**Asked of the font's glyph map rather than its name.** A list of families to exclude, or a rule
+about what a name contains, rots the moment somebody installs a font nobody thought of. Whether the
+file has a glyph for a given ideograph is a fact about the file.
+
+**The first probe was wrong, and the only reason I know is that I looked.** It tested U+4E00 and
+U+4E2D — the base CJK block — and *every family the client saw went on being offered*.
+`MingLiU-ExtB`, `SimSun-ExtB` and their siblings are **Extension B** fonts: they carry supplementary
+ideographs and none of the common ones. Widened to one codepoint per block, and `SimSun-ExtG`
+survived *that* too, which is why the list now runs through Extension H rather than stopping where
+the second guess looked right.
+
+**Which is the point of `--code-fonts`.** No test can see what a real machine offers — the headless
+font manager reports two faces, so a test can assert the *rule* and never the *answer*. The switch
+prints the list and exits. On this machine it went from twenty faces including five CJK families to
+**fifteen Latin monospaced ones**. Without it I would have shipped the U+4E00 version and been
+wrong in exactly the way the client had already reported.
+
+**A small trap on the way**: closing the window inside `Opened` ends the process in a
+`NullReferenceException` from `ClassicDesktopStyleApplicationLifetime.StartCore`, after printing
+correctly. The screenshot path avoids it by closing from an async continuation; this posts for the
+same reason.
+
+**A third victim for `E11-T27`.** `ViewportNavigationTests.TheMiddleButtonPans` failed once in a
+full run here, then passed in isolation and in three consecutive full runs. Same family and same
+shape as the two already recorded: a pure test that shows a window, failing in company and never
+alone. Recorded on that row rather than chased, and it is now three named tests rather than two —
+which is the strongest argument yet for taking it.
+
+**Verified.** Two new tests, and both assert the rule rather than the answer, which is stated in
+their own remarks: the shipped face is monospaced and carries no ideographs, and the switch is off
+unless asked for. The answer itself is the printed list above. Gates: build clean with zero
+warnings, format clean, **2661** tests green over ten executables with zero skips.
+
+**Documents.** `E8-T64`'s row, a TODO line, `E11-T27` gaining its third victim, and a clause in
+`CodeBlock.md` saying CJK families are left out and why.

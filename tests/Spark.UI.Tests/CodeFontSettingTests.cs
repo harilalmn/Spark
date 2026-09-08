@@ -75,6 +75,35 @@ public sealed class CodeFontSettingTests : IDisposable
     });
 
     /// <summary>
+    /// <b>The shipped face is a code face by the same rule the list applies</b> - it is monospaced
+    /// and it carries no ideographs (`E8-T64`).
+    /// </summary>
+    /// <remarks>
+    /// <b>This asserts the rule, and the answer is checked another way.</b> The headless font
+    /// manager reports two faces, so no test here can see what a real machine offers; the switch
+    /// `--code-fonts` prints that list, and it is how the client's `MingLiU_HKSCS-ExtB` was
+    /// confirmed gone. Which also caught the first probe being wrong: it looked at U+4E00 and the
+    /// offenders were *Extension B* families that carry none of the common characters.
+    /// </remarks>
+    [Fact]
+    public void TheShippedFaceCarriesNoIdeographs() => HeadlessSession.Run(() =>
+    {
+        Typeface shipped = new(new FontFamily(CodeFont.DefaultFamily));
+
+        Assert.True(FontManager.Current.TryGetGlyphTypeface(shipped, out GlyphTypeface? face));
+
+        // The Latin letters are there, and every CJK block the filter probes is not.
+        Assert.True(face!.CharacterToGlyphMap.TryGetGlyph('A', out _));
+
+        foreach (int ideograph in new[] { 0x4E00, 0x3400, 0x20000, 0x30000, 0x3042, 0xAC00 })
+        {
+            Assert.False(
+                face.CharacterToGlyphMap.TryGetGlyph(ideograph, out _),
+                $"the shipped face carries U+{ideograph:X}, so the filter would exclude it");
+        }
+    });
+
+    /// <summary>
     /// <b>A remembered name that no longer resolves falls back to the shipped face.</b> A machine
     /// can lose a font between sessions, and the alternative is every code block drawn in
     /// Avalonia's fallback with nothing saying why.

@@ -1166,6 +1166,30 @@ public sealed partial class MainWindow : Window
             StartUpdateCheck();
         }
 
+        // `E8-T64`: the code-font list, printed and gone. A diagnostic, and the only way to see
+        // what a real machine offers - the headless font manager this project tests against
+        // reports two faces, so a test can assert the rule and never the answer.
+        if (Options.ListCodeFonts)
+        {
+            // POSTED, BECAUSE CLOSING INSIDE `Opened` TEARS THE LIFETIME DOWN MID-START.
+            //
+            // The first version closed synchronously here and the process ended in a
+            // NullReferenceException inside `ClassicDesktopStyleApplicationLifetime.StartCore`,
+            // after printing the list correctly. The screenshot path avoids it by closing from an
+            // async continuation; this does the same thing deliberately.
+            Dispatcher.UIThread.Post(() =>
+            {
+                foreach (string face in Spark.UI.Theming.CodeFont.Available())
+                {
+                    Console.WriteLine(face);
+                }
+
+                Close();
+            });
+
+            return;
+        }
+
         if (Options.IsBenchmark)
         {
             StartBenchmark(Options.BenchmarkFrames);

@@ -210,6 +210,16 @@ public readonly record struct StartupOptions(
     /// <summary>True when the window should capture images and then exit.</summary>
     public bool IsScreenshot => !string.IsNullOrWhiteSpace(ScreenshotPrefix);
 
+    /// <summary>True when the code-font list should be printed and the window closed (`E8-T64`).</summary>
+    /// <remarks>
+    /// <b>A diagnostic switch, because the list cannot be seen any other way.</b> The faces on
+    /// offer come from the platform font manager, and the headless one this project tests against
+    /// reports two fonts — so a test can assert the *rule* and never the *answer*. This prints what
+    /// a real machine would show, which is how `E8-T64`'s claim that a CJK face is no longer
+    /// offered was checked rather than asserted.
+    /// </remarks>
+    public bool ListCodeFonts { get; private init; }
+
     /// <summary>True when the window should open maximised (`E8-T55`).</summary>
     /// <remarks>
     /// <b>A person's window is maximised and the two automated ones are not.</b> Asked for by the
@@ -278,6 +288,7 @@ public readonly record struct StartupOptions(
         string? codeBlockTyped = null;
         bool cleanUpLayout = false;
         bool software = false;
+        bool listCodeFonts = false;
         string? helpTopic = null;
         bool aboutWindow = false;
         string? packageQuery = null;
@@ -323,6 +334,10 @@ public readonly record struct StartupOptions(
 
                 case "--no-script":
                     noScript = true;
+                    break;
+
+                case "--code-fonts":
+                    listCodeFonts = true;
                     break;
 
                 case "--no-update-check":
@@ -426,7 +441,10 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped, cleanUpLayout);
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped, cleanUpLayout)
+        {
+            ListCodeFonts = listCodeFonts,
+        };
     }
 
     private static int ParseCount(string text, int fallback) =>
