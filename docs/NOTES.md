@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-07 (N122 and N123: rewriters move columns; a block's surface is per-host)
+**Last updated:** 2026-09-08 (N124: the headless platform draws nothing)
 
 ---
 
@@ -3692,4 +3692,28 @@ language fact, and `code-blocks.md` nearly lost a true sentence to it.
 references by construction, because "it happened to be loaded" is not a property a lowering can
 depend on. That is why `NumberRange` is in `Spark.Api` and not beside the nodes. What changed is the
 reason: not *impossible*, but *not guaranteed*.
+
+## N124 — The headless test platform draws nothing, so no test can assert a pixel
+
+`Spark.UI.Tests` builds its Avalonia application with
+`UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = true })`. That backend
+routes layout, input and the visual tree faithfully — which is why every gesture test in the
+assembly is worth having — and **implements drawing as a no-op**. `window.CaptureRenderedFrame()`
+returns a frame, and `RenderTargetBitmap.Save` writes a **zero-byte file**.
+
+The first draft of `E8-T69`'s tests asserted the exported PNG's dimensions out of its own IHDR
+chunk and that the file was large enough not to be a flat rectangle. Both are the right assertions
+and both failed with *the export is 0 bytes*, which reads as a defect in the export and is a
+property of the platform.
+
+**So a claim about what an image contains has to be checked against the real application**, which
+is why `--export-graph` and `--export-size` exist alongside `--screenshot`: the same reasoning
+[N112](#n112--one-keystroke-two-text-changes-and-three-verifications-that-all-missed-it) records for input, applied to output. What a headless test can
+still assert about a render is everything around it — that the call completes, that it writes a
+file, that the view it moved is put back — and those are worth asserting, because they are the
+parts this repository wrote.
+
+**The alternative was `Avalonia.Headless.Skia`**, which draws for real, and it was not taken here:
+it would make one assembly's rendering depend on a second headless backend whose output is not the
+one users see either, in exchange for pixels that the application itself already produces on demand.
 

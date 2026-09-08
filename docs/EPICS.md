@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (E8: double-clicking a title edits it in place)
+**Last updated:** 2026-09-08 (E8: the graph exports to PNG at a chosen resolution)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -868,6 +868,14 @@ another.
       on a block's header no longer opens its source, because otherwise the first half of the
       double-click would put an editor over the block before the second half could ask for a
       rename.
+- [x] **The graph exports to a PNG at a resolution the user chooses** (**E8-T69**) — done
+      2026-09-08, asked for by the client. Width, height and an aspect lock, both boxes defaulting
+      to the canvas's own size, so somebody who does not care presses Enter and gets a picture of
+      what they were looking at. The whole graph is fitted into the image rather than the scroll
+      position being photographed, and the view is restored to the bit afterwards: an export is
+      not an edit. The frame-rate overlay is excluded, because it belongs on a screen and not in a
+      file. Past 4× the image grows and the graph does not, which is `CanvasTransform`'s own
+      ceiling and is stated rather than worked around.
 - [ ] Aggressive autosave and crash recovery, because
       [R11](PRD.md#12-risks) means the process can die without warning (**E8-T13**).
 - [ ] Banners for a missing package and for a graph containing script nodes (**E8-T16**).

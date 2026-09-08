@@ -971,6 +971,94 @@ public sealed partial class MainWindow : Window
         UpdateStatus();
     }
 
+    /// <summary>
+    /// The file type the image exports offer (<c>E8-T69</c>).
+    /// </summary>
+    private static FilePickerFileType ImageFileType => new("PNG image")
+    {
+        Patterns = ["*.png"],
+    };
+
+    /// <summary>
+    /// Exports the whole graph to a PNG at a chosen resolution (<c>E8-T69</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>The dialog first and the file picker second</b>, which is the order the two questions
+    /// have: a user who abandons at the size has not been asked where to put a file they have
+    /// decided not to make.
+    /// </remarks>
+    /// <param name="sender">The menu item.</param>
+    /// <param name="e">Unused.</param>
+    private async void OnExportGraphImage(object? sender, RoutedEventArgs e) =>
+        await ExportImageAsync(
+            "graph",
+            (int)Canvas.Bounds.Width,
+            (int)Canvas.Bounds.Height,
+            "graph.png",
+            (path, width, height) => Canvas.ExportImage(path, width, height)).ConfigureAwait(true);
+
+    /// <summary>
+    /// Asks for a size, asks for a path, and writes the image (<c>E8-T69</c>).
+    /// </summary>
+    /// <param name="what">What is being exported, for the dialog's title and its wording.</param>
+    /// <param name="defaultWidth">The surface's own width, which is the default size.</param>
+    /// <param name="defaultHeight">Its own height.</param>
+    /// <param name="suggested">The file name to suggest.</param>
+    /// <param name="write">What actually writes the file, given a path and a size.</param>
+    /// <returns>A task that completes when the export has been written or abandoned.</returns>
+    /// <remarks>
+    /// <b>The surface is a parameter</b>, because everything except the last line is the same
+    /// question asked about whatever is being exported — and a second copy of it would be a second
+    /// place for the clamp, the cancel and the failure message to drift.
+    /// </remarks>
+    private async Task ExportImageAsync(
+        string what,
+        int defaultWidth,
+        int defaultHeight,
+        string suggested,
+        Action<string, int, int> write)
+    {
+        ExportImageWindow dialog = new(what, Math.Max(1, defaultWidth), Math.Max(1, defaultHeight));
+
+        await dialog.ShowDialog(this).ConfigureAwait(true);
+
+        if (!dialog.Confirmed)
+        {
+            return;
+        }
+
+        IStorageFile? target = await StorageProvider.SaveFilePickerAsync(
+            new FilePickerSaveOptions
+            {
+                Title = "Export " + what + " as PNG",
+                DefaultExtension = "png",
+                SuggestedFileName = suggested,
+                FileTypeChoices = [ImageFileType],
+            }).ConfigureAwait(true);
+
+        if (target?.TryGetLocalPath() is not { } path)
+        {
+            return;
+        }
+
+        try
+        {
+            write(path, dialog.PixelWidth, dialog.PixelHeight);
+        }
+        catch (IOException error)
+        {
+            Model?.ReportFailure($"That image could not be written: {error.Message}");
+            return;
+        }
+        catch (UnauthorizedAccessException error)
+        {
+            Model?.ReportFailure($"That image could not be written: {error.Message}");
+            return;
+        }
+
+        UpdateStatus();
+    }
+
     private void PlaceSelectedLibraryEntry()
     {
         if (Model is not { } model)
@@ -1196,6 +1284,12 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        if (Options.IsGraphExport)
+        {
+            _ = ExportWhenReadyAsync(Options.ExportGraph!);
+            return;
+        }
+
         if (Options.IsScreenshot)
         {
             // The demo graph is evaluated on construction; the capture waits for that run to have
@@ -1343,6 +1437,38 @@ public sealed partial class MainWindow : Window
         await _canvasPane.PoseScriptPopupsAsync().ConfigureAwait(true);
 
         StartCapture(prefix);
+    }
+
+    /// <summary>
+    /// Writes the graph to a PNG and closes the window (<c>E8-T69</c>).
+    /// </summary>
+    /// <param name="path">Where to write it.</param>
+    /// <returns>A task that completes once the file is written.</returns>
+    /// <remarks>
+    /// <b>The same order the capture path uses, and for the same reason</b>
+    /// ([N111](../../../docs/NOTES.md)): the graph is evaluated first so the picture is of a graph
+    /// that has run, and the layout is waited for so the default size is the window's real size
+    /// rather than zero.
+    /// </remarks>
+    private async Task ExportWhenReadyAsync(string path)
+    {
+        if (Model is { } model)
+        {
+            await model.EvaluateAsync().ConfigureAwait(true);
+        }
+
+        await WaitForLayoutAsync().ConfigureAwait(true);
+
+        int width = Options.ExportWidth > 0 ? Options.ExportWidth : (int)Canvas.Bounds.Width;
+        int height = Options.ExportHeight > 0 ? Options.ExportHeight : (int)Canvas.Bounds.Height;
+
+        Canvas.ExportImage(path, width, height);
+
+        Console.WriteLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"wrote {path} ({CanvasExport.Clamp(width)}x{CanvasExport.Clamp(height)})"));
+
+        Close();
     }
 
     /// <summary>

@@ -6,6 +6,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Media.Immutable;
 using Spark.UI.Canvas;
 using Spark.UI.Graph;
@@ -736,6 +737,76 @@ public sealed class GraphCanvas : Control
         _fitPending = false;
         _transform.FitTo(_graph.ComputeBounds(), Bounds.Width, Bounds.Height);
         AnnounceMove();
+    }
+
+    /// <summary>
+    /// Writes the whole graph to a PNG at a chosen resolution (<c>E8-T69</c>).
+    /// </summary>
+    /// <param name="path">Where to write the file.</param>
+    /// <param name="pixelWidth">The image width, clamped by <see cref="CanvasExport"/>.</param>
+    /// <param name="pixelHeight">The image height, clamped the same way.</param>
+    /// <exception cref="ArgumentException"><paramref name="path"/> is null or blank.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Asked for by the client</b>, and the resolution is the point of it: a canvas-sized
+    /// picture is a screenshot anybody could have taken, and a graph put in a document or printed
+    /// needs more pixels than a window has.
+    /// </para>
+    /// <para>
+    /// <b>The whole graph, not the visible part.</b> The view is fitted to
+    /// <c>ComputeBounds()</c> for the duration of the render, so what comes out is the graph and
+    /// not the scroll position it happened to be at. That is also why the view is put back
+    /// afterwards, exactly: an export is not an edit, and a user who exports and finds their
+    /// canvas somewhere else has been charged for a file.
+    /// </para>
+    /// <para>
+    /// <b>No frame counter in the file.</b> That overlay belongs on a screen and not in a picture
+    /// somebody is going to hand to a client, which is why <see cref="RenderScene"/> takes it as a
+    /// parameter rather than reading the field.
+    /// </para>
+    /// <para>
+    /// <b>Past four times magnification the image gets larger and the graph does not</b>, because
+    /// the fit runs through <see cref="CanvasTransform"/> and that is its ceiling. A small graph
+    /// asked for at 8,000 pixels comes out centred with margin around it rather than at eight
+    /// times — which is the honest answer, and the alternative was a second zoom rule that only
+    /// files obey.
+    /// </para>
+    /// </remarks>
+    public void ExportImage(string path, int pixelWidth, int pixelHeight)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        int width = CanvasExport.Clamp(pixelWidth);
+        int height = CanvasExport.Clamp(pixelHeight);
+
+        // Kept by value, not by reference: `_transform` is mutated below and a saved reference
+        // would be a saved view of the change rather than of what came before it.
+        (double Zoom, double OffsetX, double OffsetY) view =
+            (_transform.Zoom, _transform.OffsetX, _transform.OffsetY);
+
+        try
+        {
+            _transform.FitTo(_graph.ComputeBounds(), width, height);
+
+            using RenderTargetBitmap bitmap = new(new PixelSize(width, height), new Vector(96, 96));
+
+            using (DrawingContext context = bitmap.CreateDrawingContext())
+            {
+                RenderScene(context, new Rect(0, 0, width, height), statistics: false);
+            }
+
+            bitmap.Save(path, PngBitmapEncoderOptions.Default);
+        }
+        finally
+        {
+            _transform.Zoom = view.Zoom;
+            _transform.OffsetX = view.OffsetX;
+            _transform.OffsetY = view.OffsetY;
+        }
+
+        // The index was queried against the export's viewport, so the next frame on screen would
+        // otherwise cull against a rectangle nobody is looking through.
+        InvalidateVisual();
     }
 
     /// <inheritdoc/>
@@ -1531,7 +1602,27 @@ public sealed class GraphCanvas : Control
     {
         long started = Stopwatch.GetTimestamp();
 
-        Rect bounds = new(Bounds.Size);
+        RenderScene(context, new Rect(Bounds.Size), ShowFrameStatistics);
+
+        Frames.Record(Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+    }
+
+    /// <summary>
+    /// Draws the graph into a rectangle of a given size (<c>E8-T69</c>).
+    /// </summary>
+    /// <param name="context">Where to draw.</param>
+    /// <param name="bounds">The rectangle to draw into, at its origin.</param>
+    /// <param name="statistics">Whether to draw the frame-rate overlay.</param>
+    /// <remarks>
+    /// <b>Extracted from <see cref="Render"/> so an export can ask for a size the control does not
+    /// have.</b> Everything here used to read <c>Bounds</c> directly, which made the on-screen size
+    /// the only size the graph could be drawn at — and the whole of an image export is drawing the
+    /// same scene into a different rectangle. The overlay is a parameter rather than a field read
+    /// for the same reason: a frame counter belongs on a screen and not in a file somebody is
+    /// going to put in a document.
+    /// </remarks>
+    private void RenderScene(DrawingContext context, Rect bounds, bool statistics)
+    {
         if (Background is not null)
         {
             context.FillRectangle(Background, bounds);
@@ -1570,12 +1661,10 @@ public sealed class GraphCanvas : Control
             DrawMarquee(context, pens);
         }
 
-        if (ShowFrameStatistics)
+        if (statistics)
         {
             DrawFrameStatistics(context, bounds);
         }
-
-        Frames.Record(Stopwatch.GetElapsedTime(started).TotalMilliseconds);
     }
 
     private void EnsureIndex()

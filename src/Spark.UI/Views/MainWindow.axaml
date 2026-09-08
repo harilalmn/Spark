@@ -140,6 +140,9 @@
           <MenuItem Header="_Open…" InputGesture="Ctrl+O" Click="OnOpenGraph" />
           <MenuItem Header="_Save as…" InputGesture="Ctrl+S" Click="OnSaveGraph" />
           <Separator />
+          <!-- E8-T69: a picture of the graph, at a resolution the user chooses. -->
+          <MenuItem Header="Export _graph as PNG…" Click="OnExportGraphImage" />
+          <Separator />
           <MenuItem Header="Open _demo graph" Click="OnLoadDemo" />
           <MenuItem Header="Open _curves example" Click="OnLoadCurves" />
           <MenuItem Header="Open s_urfaces example" Click="OnLoadSurfaces" />

@@ -153,6 +153,14 @@ namespace Spark.UI;
 /// that opens on a double-click exists only while somebody is double-clicking, so no capture can
 /// contain one unless the application is asked to put it there (<c>E8-T68</c>).
 /// </param>
+/// <param name="ExportGraph">
+/// A path to write the graph to as a PNG and exit (<c>--export-graph</c>), or null. Aimed at the
+/// verification path for the reason <c>--screenshot</c> is: an export happens behind two dialogs,
+/// so nothing automated can look at one unless the application can be asked for it (<c>E8-T69</c>).
+/// The size comes from <c>--export-size</c>.
+/// </param>
+/// <param name="ExportWidth">The width <c>--export-size</c> asked for, or 0 for the window's.</param>
+/// <param name="ExportHeight">The height it asked for, or 0.</param>
 /// <param name="BenchmarkZoom">
 /// A zoom to pin the benchmark at, or zero to sweep. Pinning is what separates "how much does the
 /// graph cost" from "how much does what is on screen cost", which is the claim ADR-0013 actually
@@ -185,7 +193,10 @@ public readonly record struct StartupOptions(
     bool FrameNode = false,
     string? CodeBlockTyped = null,
     bool CleanUpLayout = false,
-    int RenameNode = -1)
+    int RenameNode = -1,
+    string? ExportGraph = null,
+    int ExportWidth = 0,
+    int ExportHeight = 0)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
     public static StartupOptions Default => new(0, 0, 0, null, null, null);
@@ -227,6 +238,9 @@ public readonly record struct StartupOptions(
     /// </remarks>
     public bool ListCodeFonts { get; private init; }
 
+    /// <summary>True when the graph should be exported to a file and the window closed (`E8-T69`).</summary>
+    public bool IsGraphExport => !string.IsNullOrWhiteSpace(ExportGraph);
+
     /// <summary>True when the window should open maximised (`E8-T55`).</summary>
     /// <remarks>
     /// <b>A person's window is maximised and the two automated ones are not.</b> Asked for by the
@@ -236,7 +250,26 @@ public readonly record struct StartupOptions(
     /// to be *compared across runs*: the documentation images have a fixed size on purpose, and the
     /// canvas benchmark reports per frame drawn. So those two keep the declared size.
     /// </remarks>
-    public bool OpensMaximised => !IsScreenshot && !IsBenchmark;
+    public bool OpensMaximised => !IsScreenshot && !IsBenchmark && !IsGraphExport;
+
+    /// <summary>A <c>&lt;width&gt;x&lt;height&gt;</c> pair, as given to <c>--export-size</c>.</summary>
+    /// <param name="text">The argument.</param>
+    /// <param name="width">The width, when it parsed.</param>
+    /// <param name="height">The height.</param>
+    /// <returns>True when both halves are positive integers.</returns>
+    private static bool TrySize(string text, out int width, out int height)
+    {
+        width = 0;
+        height = 0;
+
+        string[] parts = text.Split('x', 'X');
+
+        return parts.Length == 2
+            && int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out width)
+            && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out height)
+            && width > 0
+            && height > 0;
+    }
 
     /// <summary>
     /// Parses the command line.
@@ -295,6 +328,9 @@ public readonly record struct StartupOptions(
         string? codeBlockTyped = null;
         bool cleanUpLayout = false;
         int renameNode = -1;
+        string? exportGraph = null;
+        int exportWidth = 0;
+        int exportHeight = 0;
         bool software = false;
         bool listCodeFonts = false;
         string? helpTopic = null;
@@ -371,6 +407,18 @@ public readonly record struct StartupOptions(
                 case "--rename-node" when i + 1 < args.Length
                     && int.TryParse(args[i + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int rename):
                     renameNode = rename;
+                    i++;
+                    break;
+
+                case "--export-graph" when i + 1 < args.Length:
+                    exportGraph = args[++i];
+                    break;
+
+                // `<width>x<height>`, one argument, because two numbers that can be given
+                // separately are two numbers that can be given inconsistently.
+                case "--export-size" when i + 1 < args.Length && TrySize(args[i + 1], out int ew, out int eh):
+                    exportWidth = ew;
+                    exportHeight = eh;
                     i++;
                     break;
 
@@ -455,7 +503,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped, cleanUpLayout, renameNode)
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped, cleanUpLayout, renameNode, exportGraph, exportWidth, exportHeight)
         {
             ListCodeFonts = listCodeFonts,
         };
