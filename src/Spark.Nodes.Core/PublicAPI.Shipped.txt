@@ -23,13 +23,13 @@ Spark.Nodes.Core.Text
 Spark.Nodes.Core.Vector
 Spark.Nodes.Core.Watch
 const Spark.Nodes.Core.Number.MaximumRangeCount = 1000000 -> int
-static Spark.Nodes.Core.Arc.FromCentreStartPointSweepAngle(Spark.Geometry.Point3d centre, Spark.Geometry.Point3d startPoint, Spark.Geometry.Vector3d normal, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Arc!
+static Spark.Nodes.Core.Arc.FromCenterStartPointSweepAngle(Spark.Geometry.Point3d center, Spark.Geometry.Point3d startPoint, Spark.Geometry.Vector3d normal, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Arc!
 static Spark.Nodes.Core.Arc.FromPlaneRadiusAngles(Spark.Geometry.Plane plane, double radius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Arc!
 static Spark.Nodes.Core.Arc.FromThreePoints(Spark.Geometry.Point3d first, Spark.Geometry.Point3d second, Spark.Geometry.Point3d third) -> Spark.Geometry.Arc!
 static Spark.Nodes.Core.BoundingBox.FromCorners(Spark.Geometry.Point3d corner, Spark.Geometry.Point3d oppositeCorner) -> Spark.Geometry.BoundingBox
-static Spark.Nodes.Core.BoundingBox.Centre(Spark.Geometry.BoundingBox box) -> Spark.Geometry.Point3d
-static Spark.Nodes.Core.Circle.FromCentreNormalRadius(Spark.Geometry.Point3d centre, Spark.Geometry.Vector3d normal, double radius = 1) -> Spark.Geometry.Circle!
-static Spark.Nodes.Core.Circle.FromCentreRadius(Spark.Geometry.Point3d centre, double radius = 1) -> Spark.Geometry.Circle!
+static Spark.Nodes.Core.BoundingBox.Center(Spark.Geometry.BoundingBox box) -> Spark.Geometry.Point3d
+static Spark.Nodes.Core.Circle.FromCenterNormalRadius(Spark.Geometry.Point3d center, Spark.Geometry.Vector3d normal, double radius = 1) -> Spark.Geometry.Circle!
+static Spark.Nodes.Core.Circle.FromCenterRadius(Spark.Geometry.Point3d center, double radius = 1) -> Spark.Geometry.Circle!
 static Spark.Nodes.Core.Circle.FromPlaneRadius(Spark.Geometry.Plane plane, double radius = 1) -> Spark.Geometry.Circle!
 static Spark.Nodes.Core.Circle.FromThreePoints(Spark.Geometry.Point3d first, Spark.Geometry.Point3d second, Spark.Geometry.Point3d third) -> Spark.Geometry.Circle!
 static Spark.Nodes.Core.Colour.FromRgb(double red = 255, double green = 255, double blue = 255) -> Spark.Api.Rgba
@@ -141,7 +141,7 @@ static Spark.Nodes.Core.Surface.Loft(Spark.Geometry.Curve! first, Spark.Geometry
 static Spark.Nodes.Core.Surface.NormalAtParameter(Spark.Geometry.Surface! surface, double u = 0.5, double v = 0.5) -> Spark.Geometry.Vector3d
 static Spark.Nodes.Core.Surface.PointAtParameter(Spark.Geometry.Surface! surface, double u = 0.5, double v = 0.5) -> Spark.Geometry.Point3d
 static Spark.Nodes.Core.Surface.Revolve(Spark.Geometry.Curve! curve, Spark.Geometry.Point3d axisOrigin, Spark.Geometry.Vector3d axisDirection, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.RevolutionSurface!
-static Spark.Nodes.Core.Surface.Sphere(Spark.Geometry.Point3d centre, double radius = 1) -> Spark.Geometry.SphericalSurface!
+static Spark.Nodes.Core.Surface.Sphere(Spark.Geometry.Point3d center, double radius = 1) -> Spark.Geometry.SphericalSurface!
 static Spark.Nodes.Core.Surface.ToMesh(Spark.Geometry.Surface! surface, double tolerance = 0.01) -> Spark.Geometry.Mesh!
 static Spark.Nodes.Core.Surface.ToNurbs(Spark.Geometry.SphericalSurface! surface) -> Spark.Geometry.NurbsSurface!
 static Spark.Nodes.Core.Surface.Torus(Spark.Geometry.Plane plane, double majorRadius = 2, double minorRadius = 0.5) -> Spark.Geometry.ToroidalSurface!

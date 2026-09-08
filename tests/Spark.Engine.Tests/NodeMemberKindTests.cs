@@ -23,7 +23,7 @@ public sealed class NodeMemberKindTests
     [Fact]
     public void AFactoryNameIsCreate()
     {
-        Assert.Equal(NodeMemberKind.Create, KindOf("Circle.FromCentreRadius"));
+        Assert.Equal(NodeMemberKind.Create, KindOf("Circle.FromCenterRadius"));
         Assert.Equal(NodeMemberKind.Create, KindOf("Line.FromStartPointEndPoint"));
         Assert.Equal(NodeMemberKind.Create, KindOf("Point.FromCoordinates"));
     }

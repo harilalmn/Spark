@@ -54,25 +54,6 @@
       ]
     },
     {
-      "id": "25d895f0-4217-768a-0897-16fc764cb24e",
-      "key": "Spark.Nodes.Core/Point.FromCoordinates",
-      "lacing": "Auto",
-      "x": 30,
-      "y": 30,
-      "literals": [
-        {
-          "port": 0,
-          "kind": "number",
-          "value": -9
-        },
-        {
-          "port": 2,
-          "kind": "number",
-          "value": 3
-        }
-      ]
-    },
-    {
       "id": "2a8ff748-1c77-457c-9b8f-66e39458ec45",
       "key": "Spark.Nodes.Core/Solid.Box",
       "lacing": "Auto",
@@ -135,6 +116,25 @@
       ]
     },
     {
+      "id": "3e4f08f0-1791-e462-742e-c07a36e7f20d",
+      "key": "Spark.Nodes.Core/Point.FromCoordinates",
+      "lacing": "Auto",
+      "x": 30,
+      "y": 30,
+      "literals": [
+        {
+          "port": 0,
+          "kind": "number",
+          "value": -9
+        },
+        {
+          "port": 2,
+          "kind": "number",
+          "value": 3
+        }
+      ]
+    },
+    {
       "id": "4f3f9932-e043-06ad-1e65-da6595bf73cc",
       "key": "Spark.Nodes.Core/Display.FromGeometryColour",
       "lacing": "Auto",
@@ -192,6 +192,25 @@
           "port": 2,
           "kind": "number",
           "value": 120
+        }
+      ]
+    },
+    {
+      "id": "87cdb33a-4f83-4c39-6248-7c4b6c6633fc",
+      "key": "Spark.Nodes.Core/Point.FromCoordinates",
+      "lacing": "Auto",
+      "x": 30,
+      "y": 900,
+      "literals": [
+        {
+          "port": 0,
+          "kind": "number",
+          "value": 9.5
+        },
+        {
+          "port": 2,
+          "kind": "number",
+          "value": 2
         }
       ]
     },
@@ -307,25 +326,6 @@
       "y": 320
     },
     {
-      "id": "de29c01a-637f-d093-6737-5a39bb7501a9",
-      "key": "Spark.Nodes.Core/Point.FromCoordinates",
-      "lacing": "Auto",
-      "x": 30,
-      "y": 900,
-      "literals": [
-        {
-          "port": 0,
-          "kind": "number",
-          "value": 9.5
-        },
-        {
-          "port": 2,
-          "kind": "number",
-          "value": 2
-        }
-      ]
-    },
-    {
       "id": "e6e688fd-f9b8-ea5b-bd30-787f47fc24b8",
       "key": "Spark.Nodes.Core/Point.FromCoordinates",
       "lacing": "Auto",
@@ -361,12 +361,6 @@
       "targetPort": 0
     },
     {
-      "source": "25d895f0-4217-768a-0897-16fc764cb24e",
-      "sourcePort": 0,
-      "target": "7e0efcdf-863a-2d99-85f8-a2bdf7c2219f",
-      "targetPort": 0
-    },
-    {
       "source": "2a8ff748-1c77-457c-9b8f-66e39458ec45",
       "sourcePort": 0,
       "target": "4f3f9932-e043-06ad-1e65-da6595bf73cc",
@@ -383,6 +377,12 @@
       "sourcePort": 0,
       "target": "6de3f41f-875f-d120-c32e-9ff0a7379a06",
       "targetPort": 1
+    },
+    {
+      "source": "3e4f08f0-1791-e462-742e-c07a36e7f20d",
+      "sourcePort": 0,
+      "target": "7e0efcdf-863a-2d99-85f8-a2bdf7c2219f",
+      "targetPort": 0
     },
     {
       "source": "67236161-b502-5c7f-7df7-cc6ab834d890",
@@ -427,6 +427,12 @@
       "targetPort": 1
     },
     {
+      "source": "87cdb33a-4f83-4c39-6248-7c4b6c6633fc",
+      "sourcePort": 0,
+      "target": "81a3f4e2-f631-dc16-0413-659e3b1faba0",
+      "targetPort": 0
+    },
+    {
       "source": "95fae42a-4b0e-ba5d-7243-79d9ce178c3d",
       "sourcePort": 0,
       "target": "1eb58b3e-bd50-fde2-bc76-4232d2e01751",
@@ -466,12 +472,6 @@
       "source": "cc094801-2bbb-5843-22ed-4c130085ab4f",
       "sourcePort": 0,
       "target": "a76a60cf-8657-37b4-fa80-de573fd7c5b5",
-      "targetPort": 0
-    },
-    {
-      "source": "de29c01a-637f-d093-6737-5a39bb7501a9",
-      "sourcePort": 0,
-      "target": "81a3f4e2-f631-dc16-0413-659e3b1faba0",
       "targetPort": 0
     },
     {

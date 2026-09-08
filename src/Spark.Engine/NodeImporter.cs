@@ -38,7 +38,7 @@ namespace Spark.Engine;
 /// <para>
 /// <b>ADR-0004 dedup.</b> A public constructor is suppressed when a public static
 /// <c>By*</c>/<c>From*</c>/<c>Create*</c> method on the same type returns that type and has the
-/// same <i>parameter type sequence</i>. Types, not names: <c>centre</c> against <c>center</c> would
+/// same <i>parameter type sequence</i>. Types, not names: <c>center</c> against <c>center</c> would
 /// fail a name match and emit both nodes, which is the exact outcome the rule exists to prevent.
 /// </para>
 /// </remarks>

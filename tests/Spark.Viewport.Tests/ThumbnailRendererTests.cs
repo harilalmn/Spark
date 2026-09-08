@@ -33,7 +33,7 @@ public sealed class ThumbnailRendererTests
         // A box a thousand units across: nothing about the default camera would frame this.
         byte[] pixels = ThumbnailRenderer.Render(SceneWithABox(halfSize: 500f), 80, 80);
 
-        Assert.True(IsLit(pixels, 80, 40, 40), "the centre of an auto-framed render should be geometry");
+        Assert.True(IsLit(pixels, 80, 40, 40), "the center of an auto-framed render should be geometry");
     }
 
     /// <summary>An empty scene still renders — the background, not a crash and not a black square.</summary>

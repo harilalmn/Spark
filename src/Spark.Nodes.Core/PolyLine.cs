@@ -34,7 +34,7 @@ public static class PolyLine
     public static Spark.Geometry.PolyLine FromClosedPoints(IReadOnlyList<Point3d> points) =>
         Spark.Geometry.PolyLine.FromClosedPoints(points);
 
-    /// <summary>Makes a closed rectangle centred on a plane's origin.</summary>
+    /// <summary>Makes a closed rectangle centerd on a plane's origin.</summary>
     /// <param name="plane">The plane the rectangle lies in.</param>
     /// <param name="width">The size along the plane's x axis.</param>
     /// <param name="length">The size along the plane's y axis.</param>
@@ -46,8 +46,8 @@ public static class PolyLine
         Spark.Geometry.PolyLine.FromRectangle(plane, width, length);
 
     /// <summary>Makes a closed regular polygon inscribed in a circle.</summary>
-    /// <param name="plane">The plane the polygon lies in, centred on its origin.</param>
-    /// <param name="radius">The distance from the centre to each corner.</param>
+    /// <param name="plane">The plane the polygon lies in, centerd on its origin.</param>
+    /// <param name="radius">The distance from the center to each corner.</param>
     /// <param name="sides">How many sides. At least three.</param>
     /// <returns>A closed polyline.</returns>
     [return: NodePort("polygon")]

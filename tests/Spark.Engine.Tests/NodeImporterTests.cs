@@ -20,14 +20,14 @@ public sealed class NodeImporterTests
     {
         ImportReport report = Import(typeof(ImportedCircle));
 
-        Assert.Contains(report.Nodes, node => node.Definition.DisplayName == "ImportedCircle.FromCentreRadius");
+        Assert.Contains(report.Nodes, node => node.Definition.DisplayName == "ImportedCircle.FromCenterRadius");
         Assert.DoesNotContain(report.Nodes, node => node.Member is ConstructorInfo);
 
         ExcludedMember suppressed = Assert.Single(
             report.Exclusions, exclusion => exclusion.Member is ConstructorInfo);
 
         Assert.Contains("ADR-0004", suppressed.Reason, StringComparison.Ordinal);
-        Assert.Contains("FromCentreRadius", suppressed.Reason, StringComparison.Ordinal);
+        Assert.Contains("FromCenterRadius", suppressed.Reason, StringComparison.Ordinal);
     }
 
     /// <summary>

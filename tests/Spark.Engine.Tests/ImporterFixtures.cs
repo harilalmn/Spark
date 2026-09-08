@@ -12,25 +12,25 @@ namespace Spark.Engine.Tests;
 public sealed class ImportedCircle
 {
     /// <summary>Creates a circle.</summary>
-    /// <param name="centre">The centre.</param>
+    /// <param name="center">The center.</param>
     /// <param name="radius">The radius.</param>
-    public ImportedCircle(double centre, double radius)
+    public ImportedCircle(double center, double radius)
     {
-        Centre = centre;
+        Center = center;
         Radius = radius;
     }
 
-    /// <summary>The centre.</summary>
-    public double Centre { get; }
+    /// <summary>The center.</summary>
+    public double Center { get; }
 
     /// <summary>The radius.</summary>
     public double Radius { get; }
 
     /// <summary>The By* facade that shadows the constructor.</summary>
-    /// <param name="centre">The centre.</param>
+    /// <param name="center">The center.</param>
     /// <param name="radius">The radius.</param>
     /// <returns>The circle.</returns>
-    public static ImportedCircle FromCentreRadius(double centre, double radius) => new(centre, radius);
+    public static ImportedCircle FromCenterRadius(double center, double radius) => new(center, radius);
 }
 
 /// <summary>

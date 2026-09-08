@@ -487,7 +487,7 @@ public sealed class EditorSelectionTests
 
     /// <summary>
     /// <b>`E11-T22`: the two switches that make a screenshot show a behaviour rather than a
-    /// mechanism.</b> <c>--frame-node</c> centres on the block being photographed instead of the
+    /// mechanism.</b> <c>--frame-node</c> centers on the block being photographed instead of the
     /// graph, which is how `E8-T43` came to be captured with its own subject off screen; and
     /// <c>--code-block-type</c> enters text through the input path, which is the only way a
     /// screenshot can exercise bracket completion or a completion trigger at all ([N112]).
@@ -522,14 +522,14 @@ public sealed class EditorSelectionTests
 
         window.Show();
 
-        editor.Text = "var c = Circle.FromCentreNormalRadius";
+        editor.Text = "var c = Circle.FromCenterNormalRadius";
         editor.FocusEditor();
         editor.CaretOffset = editor.Text.Length;
 
         editor.TypeText("(");
 
         // The closing bracket is the editor's, not the caller's: typing one character produced two.
-        Assert.Equal("var c = Circle.FromCentreNormalRadius()", Text(editor));
+        Assert.Equal("var c = Circle.FromCenterNormalRadius()", Text(editor));
 
         window.Close();
     });

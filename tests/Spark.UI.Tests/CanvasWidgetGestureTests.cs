@@ -134,10 +134,10 @@ public sealed class CanvasWidgetGestureTests
 
         graph.Nodes[slot].FieldBox(out double x, out double y, out double width, out double height);
 
-        Point centre = Screen(canvas, x + (width / 2), y + (height / 2));
+        Point center = Screen(canvas, x + (width / 2), y + (height / 2));
 
-        window.MouseDown(centre, MouseButton.Left);
-        window.MouseUp(centre, MouseButton.Left);
+        window.MouseDown(center, MouseButton.Left);
+        window.MouseUp(center, MouseButton.Left);
 
         Assert.NotNull(asked);
         Assert.Equal(slot, asked!.Slot);

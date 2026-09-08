@@ -1377,7 +1377,7 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Centres the view on the node the screenshot is about, when one was named (<c>E11-T22</c>).
+    /// Centers the view on the node the screenshot is about, when one was named (<c>E11-T22</c>).
     /// </summary>
     /// <remarks>
     /// <b>A block being edited is bigger than it will be a moment later</b>, because the editor
@@ -1396,7 +1396,7 @@ public sealed partial class MainWindow : Window
 
         if (slot >= 0)
         {
-            Canvas.CentreOn(model.Graph.Nodes[slot].Bounds);
+            Canvas.CenterOn(model.Graph.Nodes[slot].Bounds);
         }
     }
 
@@ -1417,11 +1417,11 @@ public sealed partial class MainWindow : Window
     {
         if (Options.BenchmarkZoom > 0)
         {
-            // Centre on the graph after zooming. Setting the zoom alone scales about the world
+            // Center on the graph after zooming. Setting the zoom alone scales about the world
             // origin, which at any zoom above the fit takes every node off screen — and a
             // screenshot switch that reliably photographs empty canvas is worse than none.
             Canvas.Transform.Zoom = Options.BenchmarkZoom;
-            Canvas.CentreOn(Canvas.Graph.ComputeBounds());
+            Canvas.CenterOn(Canvas.Graph.ComputeBounds());
         }
 
         Viewport.RequestCapture();
@@ -1655,7 +1655,7 @@ public sealed partial class MainWindow : Window
         _framesRun = 0;
         _peakVisibleNodes = 0;
 
-        // Give the canvas the whole window. Measuring it inside a third of the centre column
+        // Give the canvas the whole window. Measuring it inside a third of the center column
         // would produce a flattering number for the wrong reason: a smaller viewport culls more,
         // and the claim being tested is about how many nodes can be ON SCREEN at 60 fps.
         WorkspaceLayout canvasOnly = WorkspaceLayout.Default;
@@ -1673,7 +1673,7 @@ public sealed partial class MainWindow : Window
     {
         _framesRun++;
 
-        // A deterministic sweep: three zoom cycles between 30% and 90%, and a centre that travels
+        // A deterministic sweep: three zoom cycles between 30% and 90%, and a center that travels
         // twice around the graph, so every frame has the canvas full of nodes and the run covers
         // both sides of every level-of-detail threshold. Two runs are therefore comparable and a
         // regression is a number rather than an impression.
@@ -1681,12 +1681,12 @@ public sealed partial class MainWindow : Window
         double zoom = Options.BenchmarkZoom > 0
             ? Options.BenchmarkZoom
             : 0.30 + (0.60 * (0.5 - (0.5 * Math.Cos(phase * Math.Tau * 3))));
-        double centreX = _benchmarkBounds.MinX + (_benchmarkBounds.Width * (0.5 + (0.35 * Math.Sin(phase * Math.Tau * 2))));
-        double centreY = _benchmarkBounds.MinY + (_benchmarkBounds.Height * (0.5 + (0.35 * Math.Cos(phase * Math.Tau * 2))));
+        double centerX = _benchmarkBounds.MinX + (_benchmarkBounds.Width * (0.5 + (0.35 * Math.Sin(phase * Math.Tau * 2))));
+        double centerY = _benchmarkBounds.MinY + (_benchmarkBounds.Height * (0.5 + (0.35 * Math.Cos(phase * Math.Tau * 2))));
 
         Canvas.Transform.Zoom = zoom;
-        Canvas.Transform.OffsetX = centreX - (Canvas.Bounds.Width / (2 * zoom));
-        Canvas.Transform.OffsetY = centreY - (Canvas.Bounds.Height / (2 * zoom));
+        Canvas.Transform.OffsetX = centerX - (Canvas.Bounds.Width / (2 * zoom));
+        Canvas.Transform.OffsetY = centerY - (Canvas.Bounds.Height / (2 * zoom));
         Canvas.InvalidateVisual();
 
         int warmUp = _benchmarkFrames / 6;

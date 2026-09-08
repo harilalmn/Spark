@@ -158,14 +158,14 @@ public static class BrepPrimitives
 
         BrepBuilder builder = new();
 
-        Point3d bottomCentre = plane.Origin;
-        Point3d topCentre = plane.Origin + (plane.Normal * height);
+        Point3d bottomCenter = plane.Origin;
+        Point3d topCenter = plane.Origin + (plane.Normal * height);
 
-        Plane bottomPlane = Plane.FromOriginXAxisYAxis(bottomCentre, plane.XAxis, plane.YAxis);
-        Plane topPlane = Plane.FromOriginXAxisYAxis(topCentre, plane.XAxis, plane.YAxis);
+        Plane bottomPlane = Plane.FromOriginXAxisYAxis(bottomCenter, plane.XAxis, plane.YAxis);
+        Plane topPlane = Plane.FromOriginXAxisYAxis(topCenter, plane.XAxis, plane.YAxis);
 
-        int bottomSeam = builder.AddVertex(bottomCentre + (plane.XAxis * radius));
-        int topSeam = builder.AddVertex(topCentre + (plane.XAxis * radius));
+        int bottomSeam = builder.AddVertex(bottomCenter + (plane.XAxis * radius));
+        int topSeam = builder.AddVertex(topCenter + (plane.XAxis * radius));
 
         int bottomCircle = builder.AddEdge(bottomSeam, bottomSeam, Circle.FromPlaneRadius(bottomPlane, radius));
         int topCircle = builder.AddEdge(topSeam, topSeam, Circle.FromPlaneRadius(topPlane, radius));

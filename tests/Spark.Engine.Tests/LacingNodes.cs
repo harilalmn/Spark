@@ -12,7 +12,7 @@ namespace Spark.Engine.Tests;
 /// table only ever compares them for equality, so a record struct is enough and keeps the corpus
 /// independent of when Curve lands.
 /// </summary>
-public readonly record struct TestCircle(Point3d Centre, double Radius);
+public readonly record struct TestCircle(Point3d Center, double Radius);
 
 /// <summary>
 /// The member bodies behind the case table's nodes. These are ordinary static methods, compiled

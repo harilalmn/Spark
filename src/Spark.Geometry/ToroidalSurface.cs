@@ -28,8 +28,8 @@ public sealed class ToroidalSurface : Surface
     private readonly Interval _domainV;
 
     /// <summary>Creates a whole torus.</summary>
-    /// <param name="frame">The centre and the plane the tube's centreline lies in.</param>
-    /// <param name="majorRadius">From the axis to the centre of the tube.</param>
+    /// <param name="frame">The center and the plane the tube's centerline lies in.</param>
+    /// <param name="majorRadius">From the axis to the center of the tube.</param>
     /// <param name="minorRadius">The radius of the tube itself.</param>
     /// <exception cref="ArgumentOutOfRangeException">A radius is not finite and positive.</exception>
     public ToroidalSurface(in Plane frame, double majorRadius, double minorRadius)
@@ -38,8 +38,8 @@ public sealed class ToroidalSurface : Surface
     }
 
     /// <summary>Creates a patch of a torus.</summary>
-    /// <param name="frame">The centre and the plane the tube's centreline lies in.</param>
-    /// <param name="majorRadius">From the axis to the centre of the tube.</param>
+    /// <param name="frame">The center and the plane the tube's centerline lies in.</param>
+    /// <param name="majorRadius">From the axis to the center of the tube.</param>
     /// <param name="minorRadius">The radius of the tube itself.</param>
     /// <param name="domainU">The range of angle around the axis, in radians.</param>
     /// <param name="domainV">The range of angle around the tube, in radians.</param>
@@ -63,10 +63,10 @@ public sealed class ToroidalSurface : Surface
         _domainV = SurfaceDomain.Nonempty(domainV, nameof(domainV));
     }
 
-    /// <summary>The centre, and the plane the tube's centreline lies in.</summary>
+    /// <summary>The center, and the plane the tube's centerline lies in.</summary>
     public Plane Frame => _frame;
 
-    /// <summary>From the axis to the centre of the tube.</summary>
+    /// <summary>From the axis to the center of the tube.</summary>
     public double MajorRadius => _major;
 
     /// <summary>The radius of the tube.</summary>

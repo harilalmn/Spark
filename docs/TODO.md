@@ -78,7 +78,7 @@ because `ShapeFix` is now on the *import* path rather than only behind `Heal`
 **One row on this page came from using the product rather than from planning it**, and it is worth
 saying so where the plan lives: `E8-T18`, port type labels. Nothing in the PRD asked for them and
 nothing in EPICS was short without them. Somebody opened the application, put down a
-`Circle.FromCentreRadius`, and could not tell what `centre` wanted. The requirement was written
+`Circle.FromCenterRadius`, and could not tell what `center` wanted. The requirement was written
 afterwards (**FR-82**), which is the right order for a defect nobody predicted and the wrong order
 for anything else.
 
@@ -489,7 +489,7 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] Undo and redo — `E8-T9`. Over the same file format, which is what makes it cover a node
       position as readily as a wire.
 - [x] Every port shows the type it wants — `E8-T18`. Not in the plan; found by opening the
-      application and looking at `Circle.FromCentreRadius`, where a port called `centre` gave no way
+      application and looking at `Circle.FromCenterRadius`, where a port called `center` gave no way
       to learn that a `Point3d` belongs in it.
 - [x] A new code block starts empty — `E6-T18`. The starter comment is gone.
 - [x] A block's last expression is its result — `E6-T27`. `n + p;` returns 4.
@@ -505,7 +505,8 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] The code font is a setting — `E8-T59`. One for the application, in the properties pane, remembered between sessions; the list is the shipped face plus the machine's monospaced fonts.
 - [x] A renamed node still opens the files that name it — `E3-T23`. `[SparkNodeAlias]` on the member, resolved in `NodeLibrary.TryGet`, and the file heals itself on the next save.
 - [x] `By` becomes `From` on every factory — `E2-T58`. Both layers, so the canvas and the code block agree; infix `By` (`DivideByLength`, `RangeByCount`) is untouched; old keys still open.
-- [x] A constructor beside every kernel factory - `E2-T59`. `new Circle(centre, radius)` works in a code block; parity held by reflection in both directions, with the two real ambiguities written down.
+- [x] A constructor beside every kernel factory - `E2-T59`. `new Circle(center, radius)` works in a code block; parity held by reflection in both directions, with the two real ambiguities written down.
+- [x] `Centre` becomes `Center` everywhere - `E2-T60`. One spelling, four node keys aliased, and `ShippedAliasTests` now guards every alias the library declares.
 - [x] The node library is callable from a code block — `E6-T30`. `Solid`, `Logic`, `Colour` and the rest; the ten colliding names are pinned to what they always meant, so no existing block changed.
 - [x] A getting-started guide for the code block — `E10-T16`. `docs/CodeBlock.md`, twelve sections, all 23 samples run against the build.
 - [x] `a * b;` on its own is a value — `E6-T31`. C# read it as a pointer declaration; a code block has no `unsafe`, so there was only ever one meaning it could have had.
@@ -517,7 +518,7 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] Dynamo's count ranges — `E10-T15`. `Number.RangeByCount` and
       `Number.RangeByCountAndStep` over one `Spark.Api.NumberRange`, and `0..1..#5`
       works as typed in a code block.
-- [x] Library search with camel-hump ranking — `E8-T8`. `cfcr` finds `Circle.FromCentreRadius`,
+- [x] Library search with camel-hump ranking — `E8-T8`. `cfcr` finds `Circle.FromCenterRadius`,
       and equally good matches are ordered `Create` → `Action` → `Query`, then alphabetically.
 - [x] Double-click empty canvas to create a node there — `E8-T19`. Asked for as *"let
       double-clicking a blank space add the code block, as in Dynamo"*, and delivered as the half

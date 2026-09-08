@@ -218,7 +218,7 @@ public sealed class MainWindowViewModelTests
     /// The library panel ranks rather than filters: typing the capitals finds the node.
     /// </summary>
     /// <remarks>
-    /// `cfcr` finding `Circle.FromCentreRadius` is the specified behaviour (`E8-T8`) and the reason
+    /// `cfcr` finding `Circle.FromCenterRadius` is the specified behaviour (`E8-T8`) and the reason
     /// the search is a ranking rather than a `Contains`. The old filter returned nothing for this
     /// query, which is the failure a library of thousands makes unbearable.
     /// </remarks>
@@ -230,7 +230,7 @@ public sealed class MainWindowViewModelTests
         model.LibrarySearch = "cfcr";
 
         Assert.NotEmpty(model.LibraryEntries);
-        Assert.Equal("Circle.FromCentreRadius", model.LibraryEntries[0].DisplayName);
+        Assert.Equal("Circle.FromCenterRadius", model.LibraryEntries[0].DisplayName);
     }
 
     /// <summary>
@@ -278,8 +278,8 @@ public sealed class MainWindowViewModelTests
 
         Assert.Equal(
             [
-                "Circle.FromCentreNormalRadius",
-                "Circle.FromCentreRadius",
+                "Circle.FromCenterNormalRadius",
+                "Circle.FromCenterRadius",
                 "Circle.FromPlaneRadius",
                 "Circle.FromThreePoints",
                 "PolyLine.FromRegularPolygon",
@@ -300,13 +300,13 @@ public sealed class MainWindowViewModelTests
 
         int slot = model.PlaceEntryAt(entry, 420, 240);
 
-        Assert.Equal("Circle.FromCentreRadius", model.Graph.Nodes[slot].Title);
+        Assert.Equal("Circle.FromCenterRadius", model.Graph.Nodes[slot].Title);
         Assert.Equal(420, model.Graph.Nodes[slot].X, 6);
         Assert.Equal(240, model.Graph.Nodes[slot].Y, 6);
-        Assert.Equal("Undo Add Circle.FromCentreRadius", model.UndoDescription);
+        Assert.Equal("Undo Add Circle.FromCenterRadius", model.UndoDescription);
 
         model.Undo();
-        Assert.DoesNotContain(model.Graph.Nodes, node => node.Title == "Circle.FromCentreRadius");
+        Assert.DoesNotContain(model.Graph.Nodes, node => node.Title == "Circle.FromCenterRadius");
 
         await model.EvaluateAsync();
     }

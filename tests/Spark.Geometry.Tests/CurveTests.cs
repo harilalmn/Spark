@@ -53,7 +53,7 @@ public sealed class CurveTests
     [Fact]
     public void APointBeyondAClosedCurvesDomainWrapsInstead()
     {
-        Circle circle = Circle.FromCentreRadius(Point3d.Origin, 2.0);
+        Circle circle = Circle.FromCenterRadius(Point3d.Origin, 2.0);
 
         Point3d wrapped = circle.PointAt((Math.PI * 2.0) + (Math.PI / 2.0));
         Point3d direct = circle.PointAt(Math.PI / 2.0);
@@ -164,7 +164,7 @@ public sealed class CurveTests
     [Fact]
     public void TrimmingACircleProducesAnArcOverTheRequestedAngles()
     {
-        Circle circle = Circle.FromCentreRadius(Point3d.Origin, 1.0);
+        Circle circle = Circle.FromCenterRadius(Point3d.Origin, 1.0);
 
         Curve trimmed = circle.Trimmed(new Interval(0.0, Math.PI / 2.0));
 
@@ -178,7 +178,7 @@ public sealed class CurveTests
     [Fact]
     public void DividingACircleEquallyPlacesPointsOnTheQuadrantsAndClosesTheLoop()
     {
-        Circle circle = Circle.FromCentreRadius(Point3d.Origin, 1.0);
+        Circle circle = Circle.FromCenterRadius(Point3d.Origin, 1.0);
 
         Point3d[] points = circle.DivideEqually(4);
 
@@ -402,7 +402,7 @@ public sealed class CurveTests
     public void APolyCurveTangentIsUnitLengthAcrossItsJoints()
     {
         Line line = new(Point3d.Origin, new Point3d(4.0, 0.0, 0.0));
-        Circle circle = Circle.FromCentreRadius(new Point3d(5.0, 0.0, 0.0), 1.0);
+        Circle circle = Circle.FromCenterRadius(new Point3d(5.0, 0.0, 0.0), 1.0);
         Curve half = circle.Trimmed(new Interval(Math.PI, Math.PI * 2.0));
         PolyCurve chain = PolyCurve.FromJoinedCurves([line, half]);
 
@@ -450,7 +450,7 @@ public sealed class CurveTests
     [Fact]
     public void TessellationStaysWithinTheToleranceItWasGiven()
     {
-        Circle circle = Circle.FromCentreRadius(Point3d.Origin, 10.0);
+        Circle circle = Circle.FromCenterRadius(Point3d.Origin, 10.0);
         Tolerance tolerance = new(0.01, Angle.FromDegrees(0.001), 1e-12);
 
         Point3d[] points = circle.Tessellate(tolerance);
@@ -471,7 +471,7 @@ public sealed class CurveTests
     [Fact]
     public void ACoarserToleranceProducesFewerPoints()
     {
-        Circle circle = Circle.FromCentreRadius(Point3d.Origin, 10.0);
+        Circle circle = Circle.FromCenterRadius(Point3d.Origin, 10.0);
 
         int fine = circle.Tessellate(new Tolerance(0.001, Angle.FromDegrees(0.001), 1e-12)).Length;
         int coarse = circle.Tessellate(new Tolerance(0.1, Angle.FromDegrees(0.001), 1e-12)).Length;
@@ -505,14 +505,14 @@ public sealed class CurveTests
         Assert.Equal(0.0, frame.XAxis.Dot(frame.YAxis), Tight);
         AssertClose(frame.XAxis.Cross(frame.YAxis), frame.ZAxis);
 
-        // The principal normal of a circular arc points at the centre.
-        AssertClose((arc.Centre - point).Normalised(), frame.YAxis);
+        // The principal normal of a circular arc points at the center.
+        AssertClose((arc.Center - point).Normalised(), frame.YAxis);
     }
 
     [Fact]
     public void APlaneOnACurveHasTheTangentForItsNormal()
     {
-        Circle circle = Circle.FromCentreRadius(Point3d.Origin, 1.0);
+        Circle circle = Circle.FromCenterRadius(Point3d.Origin, 1.0);
 
         Plane plane = circle.PlaneAt(0.0);
 
@@ -543,7 +543,7 @@ public sealed class CurveTests
     [Fact]
     public void ANonUniformScaleIsRefusedRatherThanQuietlyDeformingACircle()
     {
-        Circle circle = Circle.FromCentreRadius(Point3d.Origin, 1.0);
+        Circle circle = Circle.FromCenterRadius(Point3d.Origin, 1.0);
 
         ArgumentException error = Assert.Throws<ArgumentException>(
             () => circle.TransformedBy(Transform.Scale(2.0, 1.0, 1.0)));
@@ -609,7 +609,7 @@ public sealed class CurveTests
         List<Curve> curves =
         [
             new Line(Point3d.Origin, new Point3d(1.0, 2.0, 3.0)),
-            Circle.FromCentreRadius(Point3d.Origin, 2.5),
+            Circle.FromCenterRadius(Point3d.Origin, 2.5),
             Arc.FromPlaneRadiusAngles(Plane.WorldXY, 3.0, Angle.FromDegrees(15.0), Angle.FromDegrees(200.0)),
             EllipseCurve.FromPlaneRadii(Plane.WorldXY, 4.0, 1.5),
             PolyLine.FromRegularPolygon(Plane.WorldXY, 2.0, 7),

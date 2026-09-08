@@ -166,7 +166,7 @@ public sealed class Camera
     }
 
     /// <summary>
-    /// Frames a bounding box: centres the target on it and backs off far enough that the box's
+    /// Frames a bounding box: centers the target on it and backs off far enough that the box's
     /// bounding sphere fits inside the vertical field of view, with a small margin.
     /// </summary>
     /// <param name="bounds">The box to frame. An empty box leaves the camera unchanged.</param>
@@ -177,7 +177,7 @@ public sealed class Camera
             return;
         }
 
-        Target = bounds.Centre;
+        Target = bounds.Center;
 
         float radius = Math.Max(bounds.Radius, 1e-3f);
         float verticalFit = radius / MathF.Sin(_fieldOfView * 0.5f);

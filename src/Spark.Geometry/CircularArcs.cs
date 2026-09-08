@@ -35,7 +35,7 @@ internal static class CircularArcs
         in Plane plane, double xRadius, double yRadius, double angle) =>
         (plane.XAxis * (-xRadius * Math.Sin(angle))) + (plane.YAxis * (yRadius * Math.Cos(angle)));
 
-    /// <summary>The second derivative with respect to the angle, which points at the centre.</summary>
+    /// <summary>The second derivative with respect to the angle, which points at the center.</summary>
     /// <param name="plane">The frame.</param>
     /// <param name="xRadius">The radius along the frame's x axis.</param>
     /// <param name="yRadius">The radius along the frame's y axis.</param>

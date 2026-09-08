@@ -110,7 +110,7 @@ public sealed class CanvasTransform
     /// Fits a world rectangle into a control of the given size with a margin, which is what
     /// <i>zoom to fit</i> does.
     /// </summary>
-    /// <param name="world">The world rectangle to frame. A degenerate rectangle centres instead.</param>
+    /// <param name="world">The world rectangle to frame. A degenerate rectangle centers instead.</param>
     /// <param name="widthPixels">The control's width in device-independent pixels.</param>
     /// <param name="heightPixels">The control's height.</param>
     /// <param name="marginPixels">Padding to leave on every side.</param>
@@ -124,9 +124,9 @@ public sealed class CanvasTransform
 
         Zoom = Math.Min(usableWidth / worldWidth, usableHeight / worldHeight);
 
-        double centreX = (world.MinX + world.MaxX) * 0.5;
-        double centreY = (world.MinY + world.MaxY) * 0.5;
-        OffsetX = centreX - (widthPixels / _zoom * 0.5);
-        OffsetY = centreY - (heightPixels / _zoom * 0.5);
+        double centerX = (world.MinX + world.MaxX) * 0.5;
+        double centerY = (world.MinY + world.MaxY) * 0.5;
+        OffsetX = centerX - (widthPixels / _zoom * 0.5);
+        OffsetY = centerY - (heightPixels / _zoom * 0.5);
     }
 }

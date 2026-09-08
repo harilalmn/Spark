@@ -25,7 +25,7 @@ public sealed class Circle : Curve
     private readonly double _radius;
 
     /// <summary>Creates a circle in a plane.</summary>
-    /// <param name="plane">The plane. Its origin is the circle's centre.</param>
+    /// <param name="plane">The plane. Its origin is the circle's center.</param>
     /// <param name="radius">The radius. Must be positive and finite.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="plane"/> is not valid.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -61,25 +61,25 @@ public sealed class Circle : Curve
     {
     }
 
-    /// <summary>Creates a circle in the plane through its centre parallel to the world xy plane.</summary>
-    /// <param name="centre">The centre.</param>
+    /// <summary>Creates a circle in the plane through its center parallel to the world xy plane.</summary>
+    /// <param name="center">The center.</param>
     /// <param name="radius">The radius. Must be positive and finite.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not positive.</exception>
-    /// <remarks>Forwards to <see cref="FromCentreRadius"/>, so the two cannot drift apart (`E2-T59`).</remarks>
-    public Circle(in Point3d centre, double radius)
-        : this(FromCentreRadius(centre, radius))
+    /// <remarks>Forwards to <see cref="FromCenterRadius"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public Circle(in Point3d center, double radius)
+        : this(FromCenterRadius(center, radius))
     {
     }
 
     /// <summary>Creates a circle about an axis.</summary>
-    /// <param name="centre">The centre.</param>
+    /// <param name="center">The center.</param>
     /// <param name="normal">The axis the circle turns about. Need not be unit length.</param>
     /// <param name="radius">The radius. Must be positive and finite.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not positive.</exception>
     /// <exception cref="ArgumentException">Thrown when the normal has no length.</exception>
-    /// <remarks>Forwards to <see cref="FromCentreNormalRadius"/>, so the two cannot drift apart (`E2-T59`).</remarks>
-    public Circle(in Point3d centre, in Vector3d normal, double radius)
-        : this(FromCentreNormalRadius(centre, normal, radius))
+    /// <remarks>Forwards to <see cref="FromCenterNormalRadius"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public Circle(in Point3d center, in Vector3d normal, double radius)
+        : this(FromCenterNormalRadius(center, normal, radius))
     {
     }
 
@@ -100,17 +100,17 @@ public sealed class Circle : Curve
     /// <inheritdoc/>
     public override bool IsClosed => true;
 
-    /// <summary>The plane the circle lies in. Its origin is the centre.</summary>
+    /// <summary>The plane the circle lies in. Its origin is the center.</summary>
     public Plane Plane => _plane;
 
-    /// <summary>The centre.</summary>
-    public Point3d Centre => _plane.Origin;
+    /// <summary>The center.</summary>
+    public Point3d Center => _plane.Origin;
 
     /// <summary>The radius.</summary>
     public double Radius => _radius;
 
     /// <summary>Creates a circle in a plane.</summary>
-    /// <param name="plane">The plane. Its origin is the circle's centre.</param>
+    /// <param name="plane">The plane. Its origin is the circle's center.</param>
     /// <param name="radius">The radius. Must be positive and finite.</param>
     /// <returns>The circle.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="plane"/> is not valid.</exception>
@@ -120,31 +120,31 @@ public sealed class Circle : Curve
     public static Circle FromPlaneRadius(in Plane plane, double radius) => new(plane, radius);
 
     /// <summary>Creates a circle in the world xy plane.</summary>
-    /// <param name="centre">The centre.</param>
+    /// <param name="center">The center.</param>
     /// <param name="radius">The radius. Must be positive and finite.</param>
     /// <returns>The circle.</returns>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="centre"/> is not finite.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="center"/> is not finite.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown when <paramref name="radius"/> is not positive and finite.
     /// </exception>
-    public static Circle FromCentreRadius(in Point3d centre, double radius) =>
-        new(Plane.FromOriginNormal(centre, Vector3d.ZAxis), radius);
+    public static Circle FromCenterRadius(in Point3d center, double radius) =>
+        new(Plane.FromOriginNormal(center, Vector3d.ZAxis), radius);
 
-    /// <summary>Creates a circle in the plane defined by a centre and a normal.</summary>
-    /// <param name="centre">The centre.</param>
+    /// <summary>Creates a circle in the plane defined by a center and a normal.</summary>
+    /// <param name="center">The center.</param>
     /// <param name="normal">The circle's normal. Need not be normalised.</param>
     /// <param name="radius">The radius. Must be positive and finite.</param>
     /// <returns>The circle.</returns>
     /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="centre"/> is not finite, or <paramref name="normal"/> is
+    /// Thrown when <paramref name="center"/> is not finite, or <paramref name="normal"/> is
     /// zero-length or not finite.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown when <paramref name="radius"/> is not positive and finite.
     /// </exception>
-    public static Circle FromCentreNormalRadius(
-        in Point3d centre, in Vector3d normal, double radius) =>
-        new(Plane.FromOriginNormal(centre, normal), radius);
+    public static Circle FromCenterNormalRadius(
+        in Point3d center, in Vector3d normal, double radius) =>
+        new(Plane.FromOriginNormal(center, normal), radius);
 
     /// <summary>Creates the circle through three points.</summary>
     /// <param name="first">The first point.</param>
@@ -211,8 +211,8 @@ public sealed class Circle : Curve
     }
 
     /// <summary>A readable description of the circle, for diagnostics.</summary>
-    /// <returns>The centre and radius.</returns>
-    public override string ToString() => $"Circle(centre {Centre}, radius {_radius})";
+    /// <returns>The center and radius.</returns>
+    public override string ToString() => $"Circle(center {Center}, radius {_radius})";
 
     /// <inheritdoc/>
     protected override int TessellationSeedSpans => 4;

@@ -59,7 +59,7 @@ public sealed class ReferenceCatalog
     /// <para>
     /// <b>Asked for by the client: every node in the library callable from a block.</b> Most
     /// already were — the geometry-shaped nodes are thin façades over <c>Spark.Geometry</c>, which
-    /// a block has always imported, so <c>Circle.FromCentreRadius(pt, 5)</c> has worked all along.
+    /// a block has always imported, so <c>Circle.FromCenterRadius(pt, 5)</c> has worked all along.
     /// What was out of reach is the façades with no geometry equivalent, and there are a lot of
     /// them: <c>Solid</c>'s 38 booleans and fillets, <c>List</c>, <c>Logic</c>, <c>String</c>,
     /// <c>Number</c>, <c>Colour</c>, <c>Display</c>, <c>DateTime</c>, <c>TimeSpan</c>.
@@ -76,7 +76,7 @@ public sealed class ReferenceCatalog
     /// <b>An explicit alias beats a namespace import, and that is the whole mechanism.</b> Each
     /// colliding name is pinned to what it has always meant, so nothing that compiles today changes
     /// meaning and the other fourteen façades become reachable unqualified. The library's own
-    /// versions stay available in full — <c>Spark.Nodes.Core.Circle.FromCentreRadius</c> — which is
+    /// versions stay available in full — <c>Spark.Nodes.Core.Circle.FromCenterRadius</c> — which is
     /// what the reference pages have always printed.
     /// </para>
     /// <para>

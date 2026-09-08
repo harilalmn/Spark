@@ -1186,7 +1186,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// </para>
     /// <para>
     /// <b>A wired input is declared with the type the wire carries</b> (`E6-T6`):
-    /// <c>Point3d centre = ScriptInput.As&lt;Point3d&gt;(__in[0], "centre");</c>. Statically typed,
+    /// <c>Point3d center = ScriptInput.As&lt;Point3d&gt;(__in[0], "center");</c>. Statically typed,
     /// bound at compile time rather than by the runtime binder, and — the reason the row exists —
     /// the thing that makes `E6-T7`'s wire-typed IntelliSense possible at all, because completion
     /// needs a type to offer members from.

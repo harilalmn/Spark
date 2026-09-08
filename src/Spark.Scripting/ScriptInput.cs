@@ -10,8 +10,8 @@ namespace Spark.Scripting;
 /// <remarks>
 /// <para>
 /// <b>Called only by generated code.</b> When a port's type is known, the weaver-side generator
-/// declares <c>Point3d centre = ScriptInput.As&lt;Point3d&gt;(__in[0], "centre");</c> rather than
-/// <c>dynamic centre = __in[0];</c>.
+/// declares <c>Point3d center = ScriptInput.As&lt;Point3d&gt;(__in[0], "center");</c> rather than
+/// <c>dynamic center = __in[0];</c>.
 /// </para>
 /// <para>
 /// <b>Why not a plain cast.</b> <c>(Point3d)__in[0]</c> is shorter and is what a first version

@@ -24,7 +24,7 @@ public readonly record struct GraphPort(NodeId Node, int Port);
 /// output may have fanned out to several nodes.
 /// </param>
 /// <param name="Absorbed">The nodes that move inside the definition and leave the outer graph.</param>
-/// <param name="X">Where the new node goes: the centre of what it replaced.</param>
+/// <param name="X">Where the new node goes: the center of what it replaced.</param>
 /// <param name="Y">Where the new node goes.</param>
 public sealed record CollapsePlan(
     CustomNodeDocument Definition,
@@ -328,7 +328,7 @@ public static class CanvasCollapse
     /// called.
     /// </summary>
     /// <remarks>
-    /// A user who selected a <c>Circle.FromCentreRadius</c> and wired a number into its
+    /// A user who selected a <c>Circle.FromCenterRadius</c> and wired a number into its
     /// <c>radius</c> expects the resulting node to have a port called <c>radius</c>. Inventing
     /// <c>in0</c> would be correct and unhelpful.
     /// </remarks>

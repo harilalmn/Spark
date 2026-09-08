@@ -96,7 +96,7 @@ public sealed class PortTypeNameTests
     [Fact]
     public void ANameThatSaysNothingAboutTheTypeKeepsIt()
     {
-        Assert.Equal("Point3d", PortTypeName.Beside("centre", typeof(Point3d)));
+        Assert.Equal("Point3d", PortTypeName.Beside("center", typeof(Point3d)));
         Assert.Equal("number", PortTypeName.Beside("radius", typeof(double)));
         Assert.Equal("degrees", PortTypeName.Beside("sweepAngle", typeof(Angle)));
     }

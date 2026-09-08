@@ -65,14 +65,14 @@ public sealed class SoftwareRendererTests
 
         renderer.Render(scene, LookingDown(6f));
 
-        ViewportColor centre = renderer.Framebuffer.GetPixel(100, 100);
+        ViewportColor center = renderer.Framebuffer.GetPixel(100, 100);
         float depth = renderer.Framebuffer.GetDepth(100, 100);
 
-        Assert.True(depth < SoftwareFramebuffer.Far, "the centre pixel should carry a written depth");
+        Assert.True(depth < SoftwareFramebuffer.Far, "the center pixel should carry a written depth");
         Assert.InRange(depth, 0f, 1f);
 
         // geometry.surface is #AEB7C6; lit, it is far above the #1B1F26 background.
-        Assert.True(centre.R > 0.3f, $"centre red was {centre.R}, which is background-dark");
+        Assert.True(center.R > 0.3f, $"center red was {center.R}, which is background-dark");
 
         // A corner is outside the triangle and must still be background.
         Assert.Equal(SoftwareFramebuffer.Far, renderer.Framebuffer.GetDepth(3, 3));
@@ -86,8 +86,8 @@ public sealed class SoftwareRendererTests
     [Fact]
     public void TheNearerTriangleOccludesTheFartherOneInEitherSubmissionOrder()
     {
-        float farDepth = RenderPairAndReadCentreDepth(nearFirst: false);
-        float nearDepth = RenderPairAndReadCentreDepth(nearFirst: true);
+        float farDepth = RenderPairAndReadCenterDepth(nearFirst: false);
+        float nearDepth = RenderPairAndReadCenterDepth(nearFirst: true);
 
         Assert.Equal(nearDepth, farDepth, 6);
     }
@@ -138,7 +138,7 @@ public sealed class SoftwareRendererTests
 
         renderer.Render(scene, LookingDown(6f));
 
-        // The centre of the face is interior to the triangle and away from any edge, so a ghosted
+        // The center of the face is interior to the triangle and away from any edge, so a ghosted
         // package must leave it untouched.
         Assert.Equal(SoftwareFramebuffer.Far, renderer.Framebuffer.GetDepth(100, 100));
     }
@@ -271,15 +271,15 @@ public sealed class SoftwareRendererTests
     [Fact]
     public void TurningAFaceTowardsTheKeyLightBrightensIt()
     {
-        float facingLight = CentreBrightnessWithNormal(new Vector3(-0.6f, -0.6f, 0.53f));
-        float facingAway = CentreBrightnessWithNormal(new Vector3(0.6f, 0.6f, 0.53f));
+        float facingLight = CenterBrightnessWithNormal(new Vector3(-0.6f, -0.6f, 0.53f));
+        float facingAway = CenterBrightnessWithNormal(new Vector3(0.6f, 0.6f, 0.53f));
 
         Assert.True(
             facingLight > facingAway,
             $"towards the key light gave {facingLight}, away gave {facingAway}");
     }
 
-    private static float CentreBrightnessWithNormal(Vector3 normal)
+    private static float CenterBrightnessWithNormal(Vector3 normal)
     {
         using SoftwareViewportRenderer renderer = Ready(200, 200);
         renderer.DrawGroundGrid = false;
@@ -319,7 +319,7 @@ public sealed class SoftwareRendererTests
         return bytes;
     }
 
-    private static float RenderPairAndReadCentreDepth(bool nearFirst)
+    private static float RenderPairAndReadCenterDepth(bool nearFirst)
     {
         using SoftwareViewportRenderer renderer = Ready(200, 200);
         renderer.DrawGroundGrid = false;
@@ -343,7 +343,7 @@ public sealed class SoftwareRendererTests
         return renderer.Framebuffer.GetDepth(100, 100);
     }
 
-    /// <summary>A large upward-facing triangle centred on the origin at a given height.</summary>
+    /// <summary>A large upward-facing triangle centerd on the origin at a given height.</summary>
     private static RenderPackage TriangleFacingUp(GeometryKey key, float z)
     {
         float[] positions = [-2f, -2f, z, 2f, -2f, z, 0f, 2f, z];

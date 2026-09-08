@@ -13,7 +13,7 @@ namespace Spark.Nodes.Core;
 [SparkNode(Category = NodeCategories.Curve)]
 public static class Ellipse
 {
-    /// <summary>Makes a full ellipse in a plane, centred on the plane's origin.</summary>
+    /// <summary>Makes a full ellipse in a plane, centerd on the plane's origin.</summary>
     /// <param name="plane">The plane.</param>
     /// <param name="xRadius">The radius along the plane's x axis.</param>
     /// <param name="yRadius">The radius along the plane's y axis.</param>

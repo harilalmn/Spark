@@ -78,7 +78,7 @@ public sealed class CurveOffsetTests
         Assert.True(exactInward);
         Assert.Equal(7.0, Assert.IsType<Circle>(outward).Radius, 9);
         Assert.Equal(3.0, Assert.IsType<Circle>(inward).Radius, 9);
-        Assert.True(Assert.IsType<Circle>(outward).Centre.EqualsWithin(circle.Centre));
+        Assert.True(Assert.IsType<Circle>(outward).Center.EqualsWithin(circle.Center));
     }
 
     /// <summary>An arc keeps its angles and changes only its radius.</summary>
@@ -173,9 +173,9 @@ public sealed class CurveOffsetTests
             || fillet.EndPoint.EqualsWithin(trimmedSecond.StartPoint),
             "The fillet must meet the second line where it was trimmed to.");
 
-        // Tangency: the arc's centre is exactly `radius` from both original lines.
-        Assert.Equal(radius, first.DistanceTo(fillet.Centre), 9);
-        Assert.Equal(radius, second.DistanceTo(fillet.Centre), 9);
+        // Tangency: the arc's center is exactly `radius` from both original lines.
+        Assert.Equal(radius, first.DistanceTo(fillet.Center), 9);
+        Assert.Equal(radius, second.DistanceTo(fillet.Center), 9);
     }
 
     /// <summary>

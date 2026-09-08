@@ -76,8 +76,8 @@ public sealed class PolyLine : Curve
     {
     }
 
-    /// <summary>Creates a closed rectangle in a plane, centred on its origin.</summary>
-    /// <param name="plane">The plane. Its origin is the centre of the rectangle.</param>
+    /// <summary>Creates a closed rectangle in a plane, centerd on its origin.</summary>
+    /// <param name="plane">The plane. Its origin is the center of the rectangle.</param>
     /// <param name="width">The size along the plane's x axis. Must be positive.</param>
     /// <param name="length">The size along the plane's y axis. Must be positive.</param>
     /// <exception cref="ArgumentException">Thrown when the plane is not valid.</exception>
@@ -89,7 +89,7 @@ public sealed class PolyLine : Curve
     }
 
     /// <summary>Creates a closed regular polygon inscribed in a circle.</summary>
-    /// <param name="plane">The plane. Its origin is the centre.</param>
+    /// <param name="plane">The plane. Its origin is the center.</param>
     /// <param name="radius">The radius of the circle through the corners. Must be positive.</param>
     /// <param name="sides">How many sides. Must be three or more.</param>
     /// <exception cref="ArgumentException">Thrown when the plane is not valid.</exception>
@@ -153,8 +153,8 @@ public sealed class PolyLine : Curve
         return new PolyLine(loop);
     }
 
-    /// <summary>Creates a closed rectangle centred on a plane's origin.</summary>
-    /// <param name="plane">The plane. Its origin is the centre of the rectangle.</param>
+    /// <summary>Creates a closed rectangle centerd on a plane's origin.</summary>
+    /// <param name="plane">The plane. Its origin is the center of the rectangle.</param>
     /// <param name="width">The size along the plane's x axis. Positive and finite.</param>
     /// <param name="length">The size along the plane's y axis. Positive and finite.</param>
     /// <returns>A closed polyline of four segments.</returns>
@@ -194,8 +194,8 @@ public sealed class PolyLine : Curve
     /// Creates a closed regular polygon inscribed in a circle, with its first vertex on the plane's
     /// x axis.
     /// </summary>
-    /// <param name="plane">The plane. Its origin is the centre.</param>
-    /// <param name="radius">The circumradius — the distance from the centre to each vertex.</param>
+    /// <param name="plane">The plane. Its origin is the center.</param>
+    /// <param name="radius">The circumradius — the distance from the center to each vertex.</param>
     /// <param name="sides">How many sides. At least three.</param>
     /// <returns>A closed polyline of <paramref name="sides"/> segments.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="plane"/> is not valid.</exception>

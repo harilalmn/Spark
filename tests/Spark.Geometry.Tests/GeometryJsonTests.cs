@@ -42,7 +42,7 @@ public sealed class GeometryJsonTests
         [typeof(Transform)] = Transform.Translation(new Vector3d(3.0, 4.0, 5.0))
             * Transform.Rotation(Vector3d.ZAxis, Angle.FromDegrees(30.0)),
         [typeof(Line)] = new Line(new Point3d(0.0, 0.0, 0.0), new Point3d(3.0, 4.0, 12.0)),
-        [typeof(Circle)] = Circle.FromCentreRadius(new Point3d(1.0, 2.0, 3.0), 2.5),
+        [typeof(Circle)] = Circle.FromCenterRadius(new Point3d(1.0, 2.0, 3.0), 2.5),
         [typeof(Arc)] = Arc.FromPlaneRadiusAngles(
             Plane.WorldXY, 3.0, Angle.FromDegrees(15.0), Angle.FromDegrees(220.0)),
         [typeof(EllipseCurve)] = EllipseCurve.FromPlaneRadiiAngles(
@@ -245,7 +245,7 @@ public sealed class GeometryJsonTests
     {
         // A Circle holds a Plane which holds three Point3d and Vector3d values. Each one is
         // self-describing, which is what lets a type version on its own timetable.
-        string json = GeometryJson.Serialize(Circle.FromCentreRadius(Point3d.Origin, 1.0));
+        string json = GeometryJson.Serialize(Circle.FromCenterRadius(Point3d.Origin, 1.0));
 
         Assert.Contains("\"type\":\"Circle\"", json);
         Assert.Contains("\"type\":\"Plane\"", json);

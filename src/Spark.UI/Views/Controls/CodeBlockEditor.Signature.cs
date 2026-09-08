@@ -13,7 +13,7 @@ namespace Spark.UI.Views.Controls;
 
 /// <summary>One overload, as the editor draws it.</summary>
 /// <param name="Name">The method's name, or the type's for a constructor.</param>
-/// <param name="Parameters">Each parameter as <c>Point3d centre</c> — type then name.</param>
+/// <param name="Parameters">Each parameter as <c>Point3d center</c> — type then name.</param>
 /// <param name="ReturnType">What the call evaluates to, or empty for a constructor.</param>
 /// <remarks>
 /// <b>Deliberately not Roslyn's type</b>, for the reason

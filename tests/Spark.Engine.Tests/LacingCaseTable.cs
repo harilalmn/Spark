@@ -80,7 +80,7 @@ public static class LacingCaseTable
 
     private static Point3d P(double x, double y, double z) => new(x, y, z);
 
-    private static TestCircle C(Point3d centre, double radius) => new(centre, radius);
+    private static TestCircle C(Point3d center, double radius) => new(center, radius);
 
     private static Dictionary<int, LacingCase> Build()
     {
@@ -236,7 +236,7 @@ public static class LacingCaseTable
                 LacingNodes.Add, LacingMode.CrossProduct,
                 [L(L(1.0, 2.0), L(3.0, 4.0)), L(10.0, 20.0)],
                 [L(L(L(11.0, 12.0), L(21.0, 22.0)), L(L(13.0, 14.0), L(23.0, 24.0)))], [3]),
-            new(54, "The headline geometry case: centres x radii is a grid, not a flat list",
+            new(54, "The headline geometry case: centers x radii is a grid, not a flat list",
                 LacingNodes.CircleByCenterRadius, LacingMode.CrossProduct, [L(A, B), L(1.0, 5.0)],
                 [L(L(C(A, 1), C(A, 5)), L(C(B, 1), C(B, 5)))], [2]),
             new(55, "The same inputs under Longest - 2 circles, rank 1, not 4",

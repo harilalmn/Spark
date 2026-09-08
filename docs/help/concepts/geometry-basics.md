@@ -58,7 +58,7 @@ double span = run.Length;               // 5
 double same = door.DistanceTo(window);  // 5, and cheaper to read
 
 Point3d moved = door + run;             // point + vector = another point: (3, 4, 0)
-Point3d centre = door.Midpoint(window); // (1.5, 2, 0)
+Point3d center = door.Midpoint(window); // (1.5, 2, 0)
 Point3d quarter = Point3d.Lerp(door, window, 0.25); // (0.75, 1, 0)
 ```
 
@@ -547,7 +547,7 @@ is a new index rather than an update.
 `GeometryJson` writes any geometry value as JSON and reads it back:
 
 ```csharp
-string json = GeometryJson.Serialize(Circle.FromCentreRadius(Point3d.Origin, 2.5), indented: true);
+string json = GeometryJson.Serialize(Circle.FromCenterRadius(Point3d.Origin, 2.5), indented: true);
 Circle again = GeometryJson.Deserialize<Circle>(json);
 ```
 

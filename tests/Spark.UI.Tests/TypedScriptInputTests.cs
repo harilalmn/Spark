@@ -44,8 +44,8 @@ public sealed class TypedScriptInputTests
     public void AKnownInputTypeReachesThePort()
     {
         NodeDefinitionSource block = Factory().Create(
-            "return centre;",
-            new Dictionary<string, Type> { ["centre"] = typeof(Point3d) });
+            "return center;",
+            new Dictionary<string, Type> { ["center"] = typeof(Point3d) });
 
         Assert.Equal(typeof(Point3d), Assert.Single(block.Inputs).ValueType);
     }
@@ -54,14 +54,14 @@ public sealed class TypedScriptInputTests
     [Fact]
     public void AnUnknownInputStaysDynamic()
     {
-        NodeDefinitionSource block = Factory().Create("return centre;");
+        NodeDefinitionSource block = Factory().Create("return center;");
 
         Assert.Equal(typeof(object), Assert.Single(block.Inputs).ValueType);
         Assert.Equal(3.0, Assert.Single(block.Invoke([3.0], CancellationToken.None)));
     }
 
     /// <summary>
-    /// <b>The typed declaration is real, not decorative.</b> <c>centre.X</c> resolves at compile
+    /// <b>The typed declaration is real, not decorative.</b> <c>center.X</c> resolves at compile
     /// time against <see cref="Point3d"/>; with the input declared <c>object</c> the same script
     /// would not compile at all.
     /// </summary>
@@ -69,8 +69,8 @@ public sealed class TypedScriptInputTests
     public void ATypedInputResolvesItsMembersAtCompileTime()
     {
         NodeDefinitionSource block = Factory().Create(
-            "return centre.X + centre.Y;",
-            new Dictionary<string, Type> { ["centre"] = typeof(Point3d) });
+            "return center.X + center.Y;",
+            new Dictionary<string, Type> { ["center"] = typeof(Point3d) });
 
         Assert.Equal(7.0, Assert.Single(block.Invoke([new Point3d(3.0, 4.0, 0.0)], CancellationToken.None)));
     }
@@ -99,13 +99,13 @@ public sealed class TypedScriptInputTests
     public void AMismatchedValueNamesThePort()
     {
         NodeDefinitionSource block = Factory().Create(
-            "return centre.X;",
-            new Dictionary<string, Type> { ["centre"] = typeof(Point3d) });
+            "return center.X;",
+            new Dictionary<string, Type> { ["center"] = typeof(Point3d) });
 
         InvalidOperationException failure = Assert.Throws<InvalidOperationException>(
             () => block.Invoke(["not a point"], CancellationToken.None));
 
-        Assert.Contains("centre", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("center", failure.Message, StringComparison.Ordinal);
         Assert.Contains("Point3d", failure.Message, StringComparison.Ordinal);
     }
 
@@ -117,13 +117,13 @@ public sealed class TypedScriptInputTests
     public void NothingOnAStructPortIsExplained()
     {
         NodeDefinitionSource block = Factory().Create(
-            "return centre.X;",
-            new Dictionary<string, Type> { ["centre"] = typeof(Point3d) });
+            "return center.X;",
+            new Dictionary<string, Type> { ["center"] = typeof(Point3d) });
 
         InvalidOperationException failure = Assert.Throws<InvalidOperationException>(
             () => block.Invoke([null], CancellationToken.None));
 
-        Assert.Contains("centre", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("center", failure.Message, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -191,7 +191,7 @@ public sealed class TypedScriptInputTests
         ScriptNodeFactory scripts = Factory();
         CanvasGraph graph = new() { Scripts = scripts };
 
-        NodeId block = AddBlock(graph, scripts, "return centre.X;");
+        NodeId block = AddBlock(graph, scripts, "return center.X;");
         NodeId point = AddPoint(graph);
 
         Assert.Equal(typeof(object), PortType(graph, block));
@@ -210,7 +210,7 @@ public sealed class TypedScriptInputTests
         ScriptNodeFactory scripts = Factory();
         CanvasGraph graph = new() { Scripts = scripts };
 
-        NodeId block = AddBlock(graph, scripts, "return centre.X;");
+        NodeId block = AddBlock(graph, scripts, "return center.X;");
         NodeId point = AddPoint(graph);
 
         Assert.True(Connect(graph, point, 0, block, 0));
@@ -230,7 +230,7 @@ public sealed class TypedScriptInputTests
         ScriptNodeFactory scripts = Factory();
         CanvasGraph graph = new() { Scripts = scripts };
 
-        NodeId block = AddBlock(graph, scripts, "return centre.X;");
+        NodeId block = AddBlock(graph, scripts, "return center.X;");
         NodeId point = AddPoint(graph);
 
         // A second code block downstream, because its input port is `dynamic` and will therefore
@@ -255,7 +255,7 @@ public sealed class TypedScriptInputTests
         ScriptNodeFactory scripts = Factory();
         CanvasGraph graph = new() { Scripts = scripts };
 
-        NodeId block = AddBlock(graph, scripts, "return centre.X;");
+        NodeId block = AddBlock(graph, scripts, "return center.X;");
         int number = graph.Add(TestGraphs.Library.ByName("Number.Value"), 0, 200);
         int sine = graph.Add(TestGraphs.Library.ByName("Math.Sin"), 0, 400);
 

@@ -150,7 +150,7 @@ public sealed class NurbsApproximationTests
         NurbsCurve fitted = NurbsCurve.ApproximatePoints(noisy, 8, 3);
 
         // The noise is +/-0.5 on each of two axes, so a point can sit sqrt(0.5^2 + 0.5^2) = 0.707
-        // from the line it was scattered around. A fit that tracks the centre of the scatter is
+        // from the line it was scattered around. A fit that tracks the center of the scatter is
         // therefore up to that far from any individual point, and no further — beyond it, the fit
         // has drifted off the data rather than through the middle of it. The first version of this
         // asserted 0.5 and was simply arithmetic done carelessly.

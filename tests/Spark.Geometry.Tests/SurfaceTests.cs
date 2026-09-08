@@ -267,9 +267,9 @@ public sealed class SurfaceTests
         Assert.Throws<ArgumentException>(
             () => new PlaneSurface(Plane.WorldXY, new Interval(min, max), Interval.Unit));
 
-    /// <summary>The centred factory puts the rectangle's middle on the plane's origin.</summary>
+    /// <summary>The centerd factory puts the rectangle's middle on the plane's origin.</summary>
     [Fact]
-    public void TheCentredFactoryCentresIt()
+    public void TheCenterdFactoryCentersIt()
     {
         PlaneSurface surface = PlaneSurface.FromPlaneSize(Plane.WorldXY, 4.0, 6.0);
 

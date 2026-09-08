@@ -10,7 +10,7 @@ namespace Spark.UI.Tests;
 /// </summary>
 /// <remarks>
 /// The boxes are deliberately different sizes. Every alignment is correct for equal-sized boxes by
-/// accident, and the two that are easiest to get wrong — right and centres — are exactly the ones
+/// accident, and the two that are easiest to get wrong — right and centers — are exactly the ones
 /// that need a box's own width to be read rather than assumed.
 /// </remarks>
 public sealed class CanvasAlignmentTests
@@ -48,12 +48,12 @@ public sealed class CanvasAlignmentTests
     }
 
     [Fact]
-    public void AligningHorizontalCentresCentresEachBoxOnTheSelectionCentre()
+    public void AligningHorizontalCentersCentersEachBoxOnTheSelectionCenter()
     {
         IReadOnlyList<(double X, double Y)> placed =
-            CanvasAlignment.Apply(CanvasAlign.HorizontalCentres, Scattered);
+            CanvasAlignment.Apply(CanvasAlign.HorizontalCenters, Scattered);
 
-        // The extent runs 10..260, so its centre is 135.
+        // The extent runs 10..260, so its center is 135.
         foreach (((double X, double _) p, CanvasBounds box) in placed.Zip(Scattered))
         {
             Assert.Equal(135, p.X + (box.Width / 2), 9);
@@ -75,10 +75,10 @@ public sealed class CanvasAlignmentTests
     }
 
     /// <summary>
-    /// The whole reason distribution is written against gaps and not centres.
+    /// The whole reason distribution is written against gaps and not centers.
     /// </summary>
     [Fact]
-    public void DistributingHorizontallyMakesTheGapsEqualRatherThanTheCentres()
+    public void DistributingHorizontallyMakesTheGapsEqualRatherThanTheCenters()
     {
         IReadOnlyList<(double X, double Y)> placed =
             CanvasAlignment.Apply(CanvasAlign.DistributeHorizontally, Scattered);

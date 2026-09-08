@@ -45,13 +45,13 @@ which ships with Spark.
 > rather than hoped for. `docs/examples/curves.spark` is one.
 >
 > **Nodes are found by typing.** Double-click empty canvas and a search box opens there; type
-> `cbcr`, press Enter, and `Circle.FromCentreRadius` lands at that point. The same ranking runs the
+> `cbcr`, press Enter, and `Circle.FromCenterRadius` lands at that point. The same ranking runs the
 > library panel — exact, prefix, camel-hump, substring, category, description — because a library
 > of thousands, which is what packages make, cannot be skimmed. **Dynamo's double-click makes a
 > code block and Spark's does not**: the code block is a later milestone, and the gesture will gain
 > it rather than be replaced by it.
 >
-> **A port says what it wants.** Beside each port name is the type it takes — `centre  Point3d`,
+> **A port says what it wants.** Beside each port name is the type it takes — `center  Point3d`,
 > `radius  number`, `sweepAngle  degrees` — in the words you type it in rather than in CLR type
 > names, on the node and in the properties panel. A port name alone is a word; a port name and a
 > type is an instruction.

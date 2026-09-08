@@ -37,7 +37,7 @@ public sealed class CameraTests
     }
 
     [Fact]
-    public void TheTargetProjectsToTheCentreOfTheViewport()
+    public void TheTargetProjectsToTheCenterOfTheViewport()
     {
         Camera camera = new() { Target = new Vector3(3, -4, 2), Distance = 25 };
         camera.SetViewportSize(1000, 500);
@@ -114,7 +114,7 @@ public sealed class CameraTests
         camera.SetViewportSize(1200, 400);
         camera.ZoomToFit(bounds);
 
-        Assert.Equal(bounds.Centre, camera.Target);
+        Assert.Equal(bounds.Center, camera.Target);
 
         foreach (Vector3 corner in Corners(bounds))
         {

@@ -138,7 +138,7 @@ public static class CanvasLayout
     /// </summary>
     /// <remarks>
     /// De-duplicated because two ports of one node can be fed by two outputs of the same upstream
-    /// node, and counting that twice would weight it twice in the barycentre that orders a column.
+    /// node, and counting that twice would weight it twice in the barycenter that orders a column.
     /// A user reading the canvas sees one relationship there, not two.
     /// </remarks>
     private static List<int>[] Upstream(int count, IReadOnlyList<(int From, int To)> links)
@@ -221,7 +221,7 @@ public static class CanvasLayout
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Columns are ordered by barycentre, which is what stops the wires crossing.</b> A node is
+    /// <b>Columns are ordered by barycenter, which is what stops the wires crossing.</b> A node is
     /// placed level with the average of the nodes feeding it, so two chains that never meet stay
     /// two chains rather than being interleaved by whatever order they happen to occupy in the
     /// list. Nodes with nothing feeding them keep their relative vertical order, which is the only
@@ -234,7 +234,7 @@ public static class CanvasLayout
     /// the list — two graphs that differ only in node order lay out identically.
     /// </para>
     /// <para>
-    /// <b>Every column starts at the same top edge</b> rather than being centred on its inputs.
+    /// <b>Every column starts at the same top edge</b> rather than being centerd on its inputs.
     /// Centring reads better on a wide graph and needs overlap resolution to be correct — nodes
     /// pushed apart until they stop colliding — and an arrangement that is *nearly* right about
     /// overlap is worse than one that is plainly regular. Top-aligned columns are what a cleanup
@@ -251,13 +251,13 @@ public static class CanvasLayout
         double top = boxes.Min(box => box.MinY);
         int columns = column.Max() + 1;
 
-        // The starting centre of every node, read once: ordering a column consults the placed
-        // centres of earlier columns and the original centres of everything else, and reading a
-        // centre out of `result` as it is written would mix the two silently.
-        double[] centre = new double[boxes.Count];
+        // The starting center of every node, read once: ordering a column consults the placed
+        // centers of earlier columns and the original centers of everything else, and reading a
+        // center out of `result` as it is written would mix the two silently.
+        double[] center = new double[boxes.Count];
         for (int i = 0; i < boxes.Count; i++)
         {
-            centre[i] = boxes[i].MinY + (boxes[i].Height / 2);
+            center[i] = boxes[i].MinY + (boxes[i].Height / 2);
         }
 
         double x = left;
@@ -271,11 +271,11 @@ public static class CanvasLayout
             }
 
             // OrderBy is a stable sort, so the final tie-break is the list order and the ordering
-            // is total: two nodes with the same barycentre and the same starting height keep the
+            // is total: two nodes with the same barycenter and the same starting height keep the
             // order they arrived in rather than swapping between runs.
             int[] ordered = [.. members
-                .OrderBy(i => Barycentre(i, upstream, column, centre))
-                .ThenBy(i => centre[i])];
+                .OrderBy(i => Barycenter(i, upstream, column, center))
+                .ThenBy(i => center[i])];
 
             double y = top;
             double widest = 0;
@@ -283,7 +283,7 @@ public static class CanvasLayout
             foreach (int i in ordered)
             {
                 result[i] = (x, y);
-                centre[i] = y + (boxes[i].Height / 2);
+                center[i] = y + (boxes[i].Height / 2);
                 y += boxes[i].Height + RowGap;
                 widest = Math.Max(widest, boxes[i].Width);
             }
@@ -299,9 +299,9 @@ public static class CanvasLayout
     /// <param name="node">The node being placed.</param>
     /// <param name="upstream">The feeders of every node.</param>
     /// <param name="column">Every node's column.</param>
-    /// <param name="centre">Every node's centre height — placed, for a column already done.</param>
+    /// <param name="center">Every node's center height — placed, for a column already done.</param>
     /// <returns>
-    /// The average, or the node's own current centre when nothing in an earlier column feeds it.
+    /// The average, or the node's own current center when nothing in an earlier column feeds it.
     /// </returns>
     /// <remarks>
     /// <b>Only feeders in an earlier column count</b>, and on an acyclic graph that is all of them.
@@ -309,8 +309,8 @@ public static class CanvasLayout
     /// position has not been decided yet, so consulting it would order this column against a number
     /// that is about to change.
     /// </remarks>
-    private static double Barycentre(
-        int node, List<int>[] upstream, int[] column, double[] centre)
+    private static double Barycenter(
+        int node, List<int>[] upstream, int[] column, double[] center)
     {
         double total = 0;
         int counted = 0;
@@ -319,11 +319,11 @@ public static class CanvasLayout
         {
             if (column[feeder] < column[node])
             {
-                total += centre[feeder];
+                total += center[feeder];
                 counted++;
             }
         }
 
-        return counted == 0 ? centre[node] : total / counted;
+        return counted == 0 ? center[node] : total / counted;
     }
 }

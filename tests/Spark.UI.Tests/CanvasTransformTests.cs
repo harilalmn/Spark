@@ -87,7 +87,7 @@ public sealed class CanvasTransformTests
     }
 
     [Fact]
-    public void FittingCentresTheContentAndLeavesAMargin()
+    public void FittingCentersTheContentAndLeavesAMargin()
     {
         CanvasTransform transform = new();
         CanvasBounds world = new(0, 0, 1000, 500);

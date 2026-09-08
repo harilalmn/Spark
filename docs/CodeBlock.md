@@ -220,15 +220,15 @@ canvas. Any other `return` shape gives one port called `result`.
 code reads like C#, and what `radius` turns out to be is worked out while the graph runs.
 
 **Wire something in and the block is recompiled with that type.** Wire a `Point.FromCoordinates`
-into a port called `centre` and the block compiles as though you had written
-`Point3d centre = …`, so this works:
+into a port called `center` and the block compiles as though you had written
+`Point3d center = …`, so this works:
 
 ```csharp
-centre.X + centre.Y;
+center.X + center.Y;
 ```
 
-It works because the compiler knows what `centre` is — which is also what makes the completion
-list useful. Type `centre.` with a point wired in and you get `X`, `Y`, `Z`, `DistanceTo` and the
+It works because the compiler knows what `center` is — which is also what makes the completion
+list useful. Type `center.` with a point wired in and you get `X`, `Y`, `Z`, `DistanceTo` and the
 rest. With nothing wired in you get nothing, because the block really will be compiled with that
 input as `dynamic`, and a list promising members the compiler will not find is worse than no list.
 
@@ -299,8 +299,8 @@ types, and **`Math` is `System.Math`** — so `Math.PI` is what you expect. The 
 is still there when you want it, by its full name:
 
 ```csharp
-var one = Spark.Nodes.Core.Circle.FromCentreRadius(Point3d.Origin, 1.0);
-var two = Circle.FromCentreRadius(Point3d.Origin, 2.0);
+var one = Spark.Nodes.Core.Circle.FromCenterRadius(Point3d.Origin, 1.0);
+var two = Circle.FromCenterRadius(Point3d.Origin, 2.0);
 ```
 
 **Geometry can also be built with `new`.** Every construction the library offers as a named
@@ -308,7 +308,7 @@ factory is a constructor as well, so whichever you reach for first is there, and
 same thing:
 
 ```csharp
-var factory = Circle.FromCentreRadius(Point3d.Origin, 2.0);
+var factory = Circle.FromCenterRadius(Point3d.Origin, 2.0);
 var constructed = new Circle(Point3d.Origin, 2.0);
 ```
 
@@ -387,7 +387,7 @@ to rewrite. Both can still end the application. Neither is a normal thing to wri
 Divide a circle into points, and report how many you made:
 
 ```csharp
-var circle = Circle.FromCentreRadius(Point3d.Origin, radius);
+var circle = Circle.FromCenterRadius(Point3d.Origin, radius);
 var points = new List<Point3d>();
 var step = circle.Length / count;
 
@@ -418,7 +418,7 @@ highlighting, line numbers, a completion list, signature help, squiggles under e
 and VS Code's Selection commands on the context menu.
 
 - **Type a dot, or press Ctrl+Space**, and the list opens at the caret. Keep typing to narrow it —
-  `centre.Di` selects `DistanceTo` — then **Enter** or **Tab** to accept, **Escape** to dismiss.
+  `center.Di` selects `DistanceTo` — then **Enter** or **Tab** to accept, **Escape** to dismiss.
 - **Signature help appears when you type `(`.** If the method has overloads it says `↑↓ 2/2`, and
   the arrow keys move between them. Escape dismisses it and gives the arrows back to the caret.
 - **Panning, zooming and dragging the block** all leave the editor open and carry it along.

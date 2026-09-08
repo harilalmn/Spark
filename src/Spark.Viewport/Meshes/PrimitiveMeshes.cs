@@ -96,13 +96,13 @@ public static class PrimitiveMeshes
     /// construction, which is normal for this parameterisation and is why the watertightness
     /// assertion welds by position before counting edges.
     /// </summary>
-    /// <param name="centre">The centre.</param>
+    /// <param name="center">The center.</param>
     /// <param name="radius">The radius. Must be positive.</param>
     /// <param name="segments">Divisions around the equator. Clamped to at least 3.</param>
     /// <param name="rings">Divisions from pole to pole. Clamped to at least 2.</param>
     /// <returns>The tessellated sphere.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="radius"/> is not positive.</exception>
-    public static Mesh Sphere(Vector3 centre, float radius, int segments = 32, int rings = 16)
+    public static Mesh Sphere(Vector3 center, float radius, int segments = 32, int rings = 16)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(radius);
 
@@ -125,7 +125,7 @@ public static class PrimitiveMeshes
             {
                 float theta = MathF.Tau * segment / segments;
                 Vector3 normal = new(sinPhi * MathF.Cos(theta), sinPhi * MathF.Sin(theta), cosPhi);
-                WriteVertex(positions, normals, v++, centre + (normal * radius), normal);
+                WriteVertex(positions, normals, v++, center + (normal * radius), normal);
             }
         }
 

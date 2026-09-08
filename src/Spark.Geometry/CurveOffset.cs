@@ -252,11 +252,11 @@ public static class CurveOffset
         Point3d tangentOnFirst = corner + (awayFromFirst * setback);
         Point3d tangentOnSecond = corner + (towardsSecond * setback);
 
-        // The centre lies along the bisector, at the distance that puts it `radius` from both.
+        // The center lies along the bisector, at the distance that puts it `radius` from both.
         Vector3d bisector = (awayFromFirst + towardsSecond).Normalised();
-        Point3d centre = corner + (bisector * (radius / Math.Sin(half)));
+        Point3d center = corner + (bisector * (radius / Math.Sin(half)));
 
-        Arc fillet = Arc.FromThreePoints(tangentOnFirst, MidArcPoint(centre, tangentOnFirst, tangentOnSecond, radius), tangentOnSecond);
+        Arc fillet = Arc.FromThreePoints(tangentOnFirst, MidArcPoint(center, tangentOnFirst, tangentOnSecond, radius), tangentOnSecond);
 
         return (
             fillet,
@@ -266,11 +266,11 @@ public static class CurveOffset
 
     /// <summary>The point halfway round the fillet, which is what pins the arc's direction.</summary>
     private static Point3d MidArcPoint(
-        in Point3d centre, in Point3d from, in Point3d to, double radius)
+        in Point3d center, in Point3d from, in Point3d to, double radius)
     {
-        Vector3d towardsMiddle = ((from - centre).Normalised() + (to - centre).Normalised()).Normalised();
+        Vector3d towardsMiddle = ((from - center).Normalised() + (to - center).Normalised()).Normalised();
 
-        return centre + (towardsMiddle * radius);
+        return center + (towardsMiddle * radius);
     }
 
     /// <summary>Whichever end of a line is not the corner.</summary>

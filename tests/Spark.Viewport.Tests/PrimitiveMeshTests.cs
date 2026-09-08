@@ -54,13 +54,13 @@ public sealed class PrimitiveMeshTests
     [Fact]
     public void SphereNormalsAreUnitLengthAndRadial()
     {
-        Vector3 centre = new(1, 2, 3);
-        Mesh mesh = PrimitiveMeshes.Sphere(centre, 2.5f, segments: 20, rings: 12);
+        Vector3 center = new(1, 2, 3);
+        Mesh mesh = PrimitiveMeshes.Sphere(center, 2.5f, segments: 20, rings: 12);
 
         for (int vertex = 0; vertex < mesh.VertexCount; vertex++)
         {
             Vector3 normal = NormalAt(mesh, vertex);
-            Vector3 radial = Vector3.Normalize(PositionAt(mesh, vertex) - centre);
+            Vector3 radial = Vector3.Normalize(PositionAt(mesh, vertex) - center);
 
             Assert.Equal(1.0, normal.Length(), 4);
             Assert.Equal(1.0, Vector3.Dot(normal, radial), 4);
@@ -84,11 +84,11 @@ public sealed class PrimitiveMeshTests
         Assert.Throws<ArgumentOutOfRangeException>(() => PrimitiveMeshes.Sphere(Vector3.Zero, 0f));
 
     [Fact]
-    public void TheGroundGridLeavesTheCentreLinesToTheAxes()
+    public void TheGroundGridLeavesTheCenterLinesToTheAxes()
     {
         LineBatch grid = GroundGrid.Build(halfExtent: 4, spacing: 1f, majorEvery: 2);
 
-        // 4 divisions each side, minus the two centre lines the axes replace, in two directions,
+        // 4 divisions each side, minus the two center lines the axes replace, in two directions,
         // plus three axis segments.
         Assert.Equal(((8 * 2) + 3) * 2, grid.VertexCount);
         Assert.Equal(grid.VertexCount * 4, grid.Colours.Length);

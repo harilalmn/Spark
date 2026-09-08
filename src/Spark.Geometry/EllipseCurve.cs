@@ -4,7 +4,7 @@ namespace Spark.Geometry;
 
 /// <summary>
 /// An ellipse, or any part of one, parameterised over [0, sweep] by the angle of its generating
-/// circle rather than by the angle at its own centre.
+/// circle rather than by the angle at its own center.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -23,7 +23,7 @@ namespace Spark.Geometry;
 /// </para>
 /// <para>
 /// The parameter is the eccentric anomaly: the point at angle <c>t</c> is
-/// <c>centre + xRadius·cos t·x + yRadius·sin t·y</c>. It is not the angle subtended at the centre
+/// <c>center + xRadius·cos t·x + yRadius·sin t·y</c>. It is not the angle subtended at the center
 /// unless the two radii are equal.
 /// </para>
 /// </remarks>
@@ -61,7 +61,7 @@ public sealed class EllipseCurve : Curve
     }
 
     /// <summary>Creates a whole ellipse in a plane.</summary>
-    /// <param name="plane">The plane. Its origin is the centre.</param>
+    /// <param name="plane">The plane. Its origin is the center.</param>
     /// <param name="xRadius">The radius along the plane's x axis. Must be positive.</param>
     /// <param name="yRadius">The radius along the plane's y axis. Must be positive.</param>
     /// <exception cref="ArgumentException">Thrown when the plane is not valid.</exception>
@@ -73,7 +73,7 @@ public sealed class EllipseCurve : Curve
     }
 
     /// <summary>Creates an elliptical arc in a plane.</summary>
-    /// <param name="plane">The plane. Its origin is the centre.</param>
+    /// <param name="plane">The plane. Its origin is the center.</param>
     /// <param name="xRadius">The radius along the plane's x axis. Must be positive.</param>
     /// <param name="yRadius">The radius along the plane's y axis. Must be positive.</param>
     /// <param name="startAngle">Where it begins, measured from the plane's x axis.</param>
@@ -93,11 +93,11 @@ public sealed class EllipseCurve : Curve
     /// <inheritdoc/>
     public override bool IsClosed => _sweep >= FullTurn - 1e-12;
 
-    /// <summary>The plane the ellipse lies in. Its origin is the centre.</summary>
+    /// <summary>The plane the ellipse lies in. Its origin is the center.</summary>
     public Plane Plane => _plane;
 
-    /// <summary>The centre.</summary>
-    public Point3d Centre => _plane.Origin;
+    /// <summary>The center.</summary>
+    public Point3d Center => _plane.Origin;
 
     /// <summary>The radius along the plane's x axis.</summary>
     public double XRadius => _xRadius;
@@ -112,7 +112,7 @@ public sealed class EllipseCurve : Curve
     public Angle SweepAngle => Angle.FromRadians(_sweep);
 
     /// <summary>Creates a full ellipse in a plane.</summary>
-    /// <param name="plane">The plane. Its origin is the centre.</param>
+    /// <param name="plane">The plane. Its origin is the center.</param>
     /// <param name="xRadius">The radius along the plane's x axis. Positive and finite.</param>
     /// <param name="yRadius">The radius along the plane's y axis. Positive and finite.</param>
     /// <returns>The ellipse.</returns>
@@ -124,7 +124,7 @@ public sealed class EllipseCurve : Curve
         FromPlaneRadiiAngles(plane, xRadius, yRadius, Angle.Zero, Angle.FullTurn);
 
     /// <summary>Creates part of an ellipse in a plane.</summary>
-    /// <param name="plane">The plane. Its origin is the centre.</param>
+    /// <param name="plane">The plane. Its origin is the center.</param>
     /// <param name="xRadius">The radius along the plane's x axis. Positive and finite.</param>
     /// <param name="yRadius">The radius along the plane's y axis. Positive and finite.</param>
     /// <param name="startAngle">The angle at which the curve starts.</param>
@@ -220,9 +220,9 @@ public sealed class EllipseCurve : Curve
     }
 
     /// <summary>A readable description of the curve, for diagnostics.</summary>
-    /// <returns>The centre, both radii and the sweep.</returns>
+    /// <returns>The center, both radii and the sweep.</returns>
     public override string ToString() =>
-        $"EllipseCurve(centre {Centre}, radii {_xRadius} × {_yRadius}, sweep {SweepAngle})";
+        $"EllipseCurve(center {Center}, radii {_xRadius} × {_yRadius}, sweep {SweepAngle})";
 
     /// <inheritdoc/>
     protected override int TessellationSeedSpans =>

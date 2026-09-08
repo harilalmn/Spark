@@ -68,7 +68,7 @@ wrapping and the degree/radian formatting the UI needs.
 
 ### Negative
 
-Every angular call site is more verbose: `Arc.ByCentrePlaneRadiusAngle(p, r, Angle.FromDegrees(90))`
+Every angular call site is more verbose: `Arc.ByCenterPlaneRadiusAngle(p, r, Angle.FromDegrees(90))`
 rather than a bare number. Third-party libraries that use bare `double`s — which is most of
 them — get radian-valued ports until they adopt `Angle`, so the benefit is asymmetric and Spark
 cannot fix it on their behalf without the table this decision rejects. The struct also has to be

@@ -52,7 +52,7 @@ public sealed class Arc : Curve
     }
 
     /// <summary>Creates an arc in a plane from a radius and two angles.</summary>
-    /// <param name="plane">The plane. Its origin is the centre.</param>
+    /// <param name="plane">The plane. Its origin is the center.</param>
     /// <param name="radius">The radius. Must be positive and finite.</param>
     /// <param name="startAngle">Where the arc begins, measured from the plane's x axis.</param>
     /// <param name="sweepAngle">How far it turns. May be negative.</param>
@@ -75,15 +75,15 @@ public sealed class Arc : Curve
     {
     }
 
-    /// <summary>Creates an arc from a centre, a start point and a sweep.</summary>
-    /// <param name="centre">The centre.</param>
-    /// <param name="startPoint">Where the arc begins. Its distance from the centre is the radius.</param>
+    /// <summary>Creates an arc from a center, a start point and a sweep.</summary>
+    /// <param name="center">The center.</param>
+    /// <param name="startPoint">Where the arc begins. Its distance from the center is the radius.</param>
     /// <param name="normal">The axis the sweep turns about. Need not be unit length.</param>
     /// <param name="sweepAngle">How far it turns. May be negative.</param>
-    /// <exception cref="ArgumentException">Thrown when the start point sits on the centre.</exception>
-    /// <remarks>Forwards to <see cref="FromCentreStartPointSweepAngle"/>, so the two cannot drift apart (`E2-T59`).</remarks>
-    public Arc(in Point3d centre, in Point3d startPoint, in Vector3d normal, Angle sweepAngle)
-        : this(FromCentreStartPointSweepAngle(centre, startPoint, normal, sweepAngle))
+    /// <exception cref="ArgumentException">Thrown when the start point sits on the center.</exception>
+    /// <remarks>Forwards to <see cref="FromCenterStartPointSweepAngle"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public Arc(in Point3d center, in Point3d startPoint, in Vector3d normal, Angle sweepAngle)
+        : this(FromCenterStartPointSweepAngle(center, startPoint, normal, sweepAngle))
     {
     }
 
@@ -93,11 +93,11 @@ public sealed class Arc : Curve
     /// <inheritdoc/>
     public override bool IsClosed => _sweep >= FullTurn - 1e-12;
 
-    /// <summary>The plane the arc lies in. Its origin is the centre of the arc's circle.</summary>
+    /// <summary>The plane the arc lies in. Its origin is the center of the arc's circle.</summary>
     public Plane Plane => _plane;
 
-    /// <summary>The centre of the arc's circle.</summary>
-    public Point3d Centre => _plane.Origin;
+    /// <summary>The center of the arc's circle.</summary>
+    public Point3d Center => _plane.Origin;
 
     /// <summary>The radius.</summary>
     public double Radius => _radius;
@@ -115,7 +115,7 @@ public sealed class Arc : Curve
     public Point3d MidPoint => Evaluate(_sweep * 0.5);
 
     /// <summary>Creates an arc from a plane, a radius and two angles.</summary>
-    /// <param name="plane">The plane. Its origin is the centre of the arc's circle.</param>
+    /// <param name="plane">The plane. Its origin is the center of the arc's circle.</param>
     /// <param name="radius">The radius. Must be positive and finite.</param>
     /// <param name="startAngle">The angle from the plane's x axis at which the arc starts.</param>
     /// <param name="sweepAngle">
@@ -190,31 +190,31 @@ public sealed class Arc : Curve
         return new Arc(plane, radius, 0.0, Wrap(AngleOf(plane, third)));
     }
 
-    /// <summary>Creates an arc from its centre, its start point, a normal and a sweep.</summary>
-    /// <param name="centre">The centre of the arc's circle.</param>
-    /// <param name="startPoint">The arc's start point. Its distance from the centre is the radius.</param>
+    /// <summary>Creates an arc from its center, its start point, a normal and a sweep.</summary>
+    /// <param name="center">The center of the arc's circle.</param>
+    /// <param name="startPoint">The arc's start point. Its distance from the center is the radius.</param>
     /// <param name="normal">
     /// The axis the arc turns about, following the right-hand rule. Need not be normalised, and need
-    /// not be perpendicular to the line from the centre to the start point: its component along that
+    /// not be perpendicular to the line from the center to the start point: its component along that
     /// line is removed.
     /// </param>
     /// <param name="sweepAngle">How far the arc sweeps. Must be non-zero and no more than a full turn.</param>
     /// <returns>The arc.</returns>
     /// <exception cref="ArgumentException">
-    /// Thrown when the start point coincides with the centre, or when the normal is zero-length,
-    /// not finite, or parallel to the line from the centre to the start point.
+    /// Thrown when the start point coincides with the center, or when the normal is zero-length,
+    /// not finite, or parallel to the line from the center to the start point.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown when <paramref name="sweepAngle"/> is zero, not finite, or larger than a full turn.
     /// </exception>
-    public static Arc FromCentreStartPointSweepAngle(
-        in Point3d centre, in Point3d startPoint, in Vector3d normal, Angle sweepAngle)
+    public static Arc FromCenterStartPointSweepAngle(
+        in Point3d center, in Point3d startPoint, in Vector3d normal, Angle sweepAngle)
     {
-        Vector3d radial = startPoint - centre;
+        Vector3d radial = startPoint - center;
         if (!radial.TryNormalise(out Vector3d xAxis))
         {
             throw new ArgumentException(
-                "An arc's start point must not coincide with its centre.", nameof(startPoint));
+                "An arc's start point must not coincide with its center.", nameof(startPoint));
         }
 
         if (!normal.TryNormalise(out Vector3d unitNormal))
@@ -227,11 +227,11 @@ public sealed class Arc : Curve
         if (!yAxis.TryNormalise(out Vector3d unitY))
         {
             throw new ArgumentException(
-                "An arc's normal must not be parallel to the line from its centre to its start point.",
+                "An arc's normal must not be parallel to the line from its center to its start point.",
                 nameof(normal));
         }
 
-        Plane plane = Plane.FromOriginXAxisYAxis(centre, xAxis, unitY);
+        Plane plane = Plane.FromOriginXAxisYAxis(center, xAxis, unitY);
         return FromPlaneRadiusAngles(plane, radial.Length, Angle.Zero, sweepAngle);
     }
 
@@ -277,12 +277,12 @@ public sealed class Arc : Curve
     }
 
     /// <summary>A readable description of the arc, for diagnostics.</summary>
-    /// <returns>The centre, radius and sweep.</returns>
+    /// <returns>The center, radius and sweep.</returns>
     public override string ToString() =>
-        $"Arc(centre {Centre}, radius {_radius}, sweep {SweepAngle})";
+        $"Arc(center {Center}, radius {_radius}, sweep {SweepAngle})";
 
     /// <summary>
-    /// The circle through three points, returned as a frame whose origin is the circumcentre and
+    /// The circle through three points, returned as a frame whose origin is the circumcenter and
     /// whose x axis points at the first point, so that the first point sits at angle zero.
     /// </summary>
     /// <param name="first">The first point.</param>
@@ -303,7 +303,7 @@ public sealed class Arc : Curve
                 "Three collinear or coincident points do not define a circle.", nameof(second));
         }
 
-        // Working in the plane's own 2d coordinates turns the circumcentre into the standard
+        // Working in the plane's own 2d coordinates turns the circumcenter into the standard
         // determinant expression, which is both shorter and better conditioned than solving the
         // three-dimensional system directly.
         Plane frame = Plane.FromOriginNormal(first, normal);
@@ -324,8 +324,8 @@ public sealed class Arc : Curve
         double x = ((aSquared * (b.Y - c.Y)) + (bSquared * (c.Y - a.Y)) + (cSquared * (a.Y - b.Y))) / d;
         double y = ((aSquared * (c.X - b.X)) + (bSquared * (a.X - c.X)) + (cSquared * (b.X - a.X))) / d;
 
-        Point3d centre = frame.To3d(new Point2d(x, y));
-        Vector3d radial = first - centre;
+        Point3d center = frame.To3d(new Point2d(x, y));
+        Vector3d radial = first - center;
         double radius = radial.Length;
         if (!double.IsFinite(radius) || radius <= 0.0)
         {
@@ -334,7 +334,7 @@ public sealed class Arc : Curve
         }
 
         Vector3d xAxis = radial.Normalised();
-        return (Plane.FromOriginXAxisYAxis(centre, xAxis, normal.Cross(xAxis)), radius);
+        return (Plane.FromOriginXAxisYAxis(center, xAxis, normal.Cross(xAxis)), radius);
     }
 
     /// <inheritdoc/>

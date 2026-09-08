@@ -901,10 +901,10 @@ is the smallest thing anybody has to aim at and it is where every wire starts. T
 the target rather than only the target growing: an invisible margin that works is still a control
 that looks wrong.
 
-**Beside the port name, in `text.muted` at 10 px, is the type the port wants.** `centre  Point3d`.
+**Beside the port name, in `text.muted` at 10 px, is the type the port wants.** `center  Point3d`.
 `radius  number`. `sweepAngle  degrees`. Without it a port is a word and not an instruction: a user
-looking at `Circle.FromCentreRadius` for the first time has no way to learn from the node that
-`centre` wants a point, and the two places that would have told them — the library entry's
+looking at `Circle.FromCenterRadius` for the first time has no way to learn from the node that
+`center` wants a point, and the two places that would have told them — the library entry's
 signature and the colour of a wire being dragged at it — are both somewhere other than where the
 question is asked. `text.muted` reads 6.28:1 on `node.body`, and it is the token this design
 language already reserves for units and counts, which is the register a type annotation belongs to.
@@ -1277,7 +1277,7 @@ always tell which.
 
 ### 12.3 A node that errors while it is selected
 
-`Circle.ByCenterRadius` is a `Geometry · curve` node (`cat.curve` `#4CBCD4`). It has been given a
+`Circle.FromCenterRadius` is a `Geometry · curve` node (`cat.curve` `#4CBCD4`). It has been given a
 string where it wanted a number, so the engine raises `SPK1040` ([`concepts.lacing`](lacing.md) §7)
 and the node produces no output. The user has it selected.
 

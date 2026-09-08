@@ -136,7 +136,7 @@ public sealed class ScriptCompletion : IDisposable
     /// <remarks>
     /// <para>
     /// <b>This is the thing Spark can demonstrate that Dynamo cannot</b> (`E6-T7`). Wire a point
-    /// into a port called <c>centre</c>, type <c>centre.</c>, and the list is
+    /// into a port called <c>center</c>, type <c>center.</c>, and the list is
     /// <see cref="object"/>'s members no longer — it is whatever the wire carries. The port names
     /// and types come from the graph, so the list follows the wires rather than the text.
     /// </para>

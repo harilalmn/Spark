@@ -34,8 +34,8 @@ public readonly struct Bounds3 : IEquatable<Bounds3>
     /// <summary>True when no point has been added.</summary>
     public bool IsEmpty => !_hasValue;
 
-    /// <summary>The centre of the box, or the origin when empty.</summary>
-    public Vector3 Centre => _hasValue ? (Min + Max) * 0.5f : Vector3.Zero;
+    /// <summary>The center of the box, or the origin when empty.</summary>
+    public Vector3 Center => _hasValue ? (Min + Max) * 0.5f : Vector3.Zero;
 
     /// <summary>The radius of the sphere enclosing the box, or zero when empty.</summary>
     public float Radius => _hasValue ? (Max - Min).Length() * 0.5f : 0f;

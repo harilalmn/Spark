@@ -63,7 +63,7 @@ public sealed class BrepTests
     public void EveryBoxFacePointsOutwards()
     {
         Brep box = BrepPrimitives.Box(Plane.WorldXY, 2, 3, 4);
-        Point3d centre = new(1, 1.5, 2);
+        Point3d center = new(1, 1.5, 2);
 
         for (int index = 0; index < box.FaceCount; index++)
         {
@@ -72,7 +72,7 @@ public sealed class BrepTests
             double u = face.Surface.DomainU.Mid;
             double v = face.Surface.DomainV.Mid;
 
-            Vector3d outwards = face.Surface.PointAt(u, v) - centre;
+            Vector3d outwards = face.Surface.PointAt(u, v) - center;
 
             Assert.True(
                 face.NormalAt(u, v).Dot(outwards) > 0.0,

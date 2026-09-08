@@ -130,9 +130,9 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
         && Min.Z <= Max.Z;
 
     /// <summary>
-    /// The point at the centre of the box. Meaningless for an invalid box.
+    /// The point at the center of the box. Meaningless for an invalid box.
     /// </summary>
-    public Point3d Centre => Min.Midpoint(Max);
+    public Point3d Center => Min.Midpoint(Max);
 
     /// <summary>
     /// The vector from <see cref="Min"/> to <see cref="Max"/>. Its components are the extents

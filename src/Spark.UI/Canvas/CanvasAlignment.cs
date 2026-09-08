@@ -18,8 +18,8 @@ public enum CanvasAlign
     /// <summary>Every node's left edge moves to the leftmost left edge.</summary>
     Left,
 
-    /// <summary>Every node's horizontal centre moves to the centre of the selection's box.</summary>
-    HorizontalCentres,
+    /// <summary>Every node's horizontal center moves to the center of the selection's box.</summary>
+    HorizontalCenters,
 
     /// <summary>Every node's right edge moves to the rightmost right edge.</summary>
     Right,
@@ -27,8 +27,8 @@ public enum CanvasAlign
     /// <summary>Every node's top edge moves to the topmost top edge.</summary>
     Top,
 
-    /// <summary>Every node's vertical centre moves to the middle of the selection's box.</summary>
-    VerticalCentres,
+    /// <summary>Every node's vertical center moves to the middle of the selection's box.</summary>
+    VerticalCenters,
 
     /// <summary>Every node's bottom edge moves to the bottommost bottom edge.</summary>
     Bottom,
@@ -90,10 +90,10 @@ public static class CanvasAlignment
     public static string Describe(CanvasAlign align) => align switch
     {
         CanvasAlign.Left => "Align left",
-        CanvasAlign.HorizontalCentres => "Align centres",
+        CanvasAlign.HorizontalCenters => "Align centers",
         CanvasAlign.Right => "Align right",
         CanvasAlign.Top => "Align top",
-        CanvasAlign.VerticalCentres => "Align middles",
+        CanvasAlign.VerticalCenters => "Align middles",
         CanvasAlign.Bottom => "Align bottom",
         CanvasAlign.DistributeHorizontally => "Distribute horizontally",
         CanvasAlign.DistributeVertically => "Distribute vertically",
@@ -148,11 +148,11 @@ public static class CanvasAlignment
             {
                 CanvasAlign.Left => (extent.MinX, box.MinY),
                 CanvasAlign.Right => (extent.MaxX - box.Width, box.MinY),
-                CanvasAlign.HorizontalCentres =>
+                CanvasAlign.HorizontalCenters =>
                     (((extent.MinX + extent.MaxX) / 2) - (box.Width / 2), box.MinY),
                 CanvasAlign.Top => (box.MinX, extent.MinY),
                 CanvasAlign.Bottom => (box.MinX, extent.MaxY - box.Height),
-                CanvasAlign.VerticalCentres =>
+                CanvasAlign.VerticalCenters =>
                     (box.MinX, ((extent.MinY + extent.MaxY) / 2) - (box.Height / 2)),
                 _ => throw new ArgumentOutOfRangeException(nameof(align)),
             };
@@ -188,8 +188,8 @@ public static class CanvasAlignment
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Equal gaps, not equal centres.</b> Nodes are not all the same size — a node's height is
-    /// its port count — so spacing their centres evenly leaves a wide node visually crowding its
+    /// <b>Equal gaps, not equal centers.</b> Nodes are not all the same size — a node's height is
+    /// its port count — so spacing their centers evenly leaves a wide node visually crowding its
     /// neighbours while the arithmetic insists everything is even. Gaps are what the eye reads.
     /// </para>
     /// <para>

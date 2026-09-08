@@ -56,8 +56,8 @@ public sealed class PlaneSurface : Surface
     {
     }
 
-    /// <summary>Creates a rectangular patch of a plane, centred on its origin.</summary>
-    /// <param name="plane">The plane. Its origin is the centre of the patch.</param>
+    /// <summary>Creates a rectangular patch of a plane, centerd on its origin.</summary>
+    /// <param name="plane">The plane. Its origin is the center of the patch.</param>
     /// <param name="width">The size along the plane's x axis. Must be positive.</param>
     /// <param name="height">The size along the plane's y axis. Must be positive.</param>
     /// <exception cref="ArgumentException">Thrown when the plane is not valid.</exception>
@@ -68,8 +68,8 @@ public sealed class PlaneSurface : Surface
     {
     }
 
-    /// <summary>Creates a rectangle centred on a plane's origin.</summary>
-    /// <param name="plane">The plane it lies in, and the centre of the rectangle.</param>
+    /// <summary>Creates a rectangle centerd on a plane's origin.</summary>
+    /// <param name="plane">The plane it lies in, and the center of the rectangle.</param>
     /// <param name="width">Its extent along the plane's x-axis.</param>
     /// <param name="height">Its extent along the plane's y-axis.</param>
     /// <returns>The surface.</returns>

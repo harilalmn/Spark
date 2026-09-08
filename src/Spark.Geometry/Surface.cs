@@ -434,10 +434,10 @@ public abstract class Surface
         double stepU = Step(DomainU);
         double stepV = Step(DomainV);
 
-        Point3d centre = Sample(u, v);
+        Point3d center = Sample(u, v);
 
-        secondU = ((Sample(u + stepU, v) - centre) - (centre - Sample(u - stepU, v))) / (stepU * stepU);
-        secondV = ((Sample(u, v + stepV) - centre) - (centre - Sample(u, v - stepV))) / (stepV * stepV);
+        secondU = ((Sample(u + stepU, v) - center) - (center - Sample(u - stepU, v))) / (stepU * stepU);
+        secondV = ((Sample(u, v + stepV) - center) - (center - Sample(u, v - stepV))) / (stepV * stepV);
 
         Vector3d plus = Sample(u + stepU, v + stepV) - Sample(u + stepU, v - stepV);
         Vector3d minus = Sample(u - stepU, v + stepV) - Sample(u - stepU, v - stepV);

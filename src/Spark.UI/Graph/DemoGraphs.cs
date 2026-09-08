@@ -110,7 +110,7 @@ public static class DemoGraphs
 
         CanvasGraph graph = new();
 
-        int sphereCentre = graph.Add(library.ByName("Point.FromCoordinates"), 30, 30, Seeded("surfaces", "sphereCentre"));
+        int sphereCenter = graph.Add(library.ByName("Point.FromCoordinates"), 30, 30, Seeded("surfaces", "sphereCenter"));
         int sphere = graph.Add(library.ByName("Surface.Sphere"), 280, 30, Seeded("surfaces", "sphere"));
         int sphereColour = graph.Add(library.ByName("Colour.FromRgb"), 280, 170, Seeded("surfaces", "sphereColour"));
         int sphereDisplay = graph.Add(library.ByName("Display.FromGeometryColour"), 560, 30, Seeded("surfaces", "sphereDisplay"));
@@ -134,15 +134,15 @@ public static class DemoGraphs
         int boxColour = graph.Add(library.ByName("Colour.FromRgb"), 560, 1320, Seeded("surfaces", "boxColour"));
         int boxDisplay = graph.Add(library.ByName("Display.FromGeometryColour"), 840, 1180, Seeded("surfaces", "boxDisplay"));
 
-        int torusCentre = graph.Add(library.ByName("Point.FromCoordinates"), 30, 900, Seeded("surfaces", "torusCentre"));
+        int torusCenter = graph.Add(library.ByName("Point.FromCoordinates"), 30, 900, Seeded("surfaces", "torusCenter"));
         int torusPlane = graph.Add(library.ByName("Plane.FromOriginNormal"), 280, 900, Seeded("surfaces", "torusPlane"));
         int torus = graph.Add(library.ByName("Surface.Torus"), 560, 900, Seeded("surfaces", "torus"));
         int torusColour = graph.Add(library.ByName("Colour.FromRgb"), 560, 1040, Seeded("surfaces", "torusColour"));
         int torusDisplay = graph.Add(library.ByName("Display.FromGeometryColour"), 840, 900, Seeded("surfaces", "torusDisplay"));
 
-        Literal(graph, sphereCentre, 0, -9.0);
-        Literal(graph, sphereCentre, 1, 0.0);
-        Literal(graph, sphereCentre, 2, 3.0);
+        Literal(graph, sphereCenter, 0, -9.0);
+        Literal(graph, sphereCenter, 1, 0.0);
+        Literal(graph, sphereCenter, 2, 3.0);
         Literal(graph, sphere, 1, 2.5);
         Literal(graph, sphereColour, 0, 255.0);
         Literal(graph, sphereColour, 1, 150.0);
@@ -167,16 +167,16 @@ public static class DemoGraphs
         Literal(graph, coneColour, 1, 255.0);
         Literal(graph, coneColour, 2, 170.0);
 
-        Literal(graph, torusCentre, 0, 9.5);
-        Literal(graph, torusCentre, 1, 0.0);
-        Literal(graph, torusCentre, 2, 2.0);
+        Literal(graph, torusCenter, 0, 9.5);
+        Literal(graph, torusCenter, 1, 0.0);
+        Literal(graph, torusCenter, 2, 2.0);
         Literal(graph, torus, 1, 2.4);
         Literal(graph, torus, 2, 0.8);
         Literal(graph, torusColour, 0, 210.0);
         Literal(graph, torusColour, 1, 160.0);
         Literal(graph, torusColour, 2, 255.0);
 
-        graph.TryConnect(Output(sphereCentre, 0), Input(sphere, 0));
+        graph.TryConnect(Output(sphereCenter, 0), Input(sphere, 0));
         graph.TryConnect(Output(sphere, 0), Input(sphereDisplay, 0));
         graph.TryConnect(Output(sphereColour, 0), Input(sphereDisplay, 1));
 
@@ -208,7 +208,7 @@ public static class DemoGraphs
         graph.TryConnect(Output(box, 0), Input(boxDisplay, 0));
         graph.TryConnect(Output(boxColour, 0), Input(boxDisplay, 1));
 
-        graph.TryConnect(Output(torusCentre, 0), Input(torusPlane, 0));
+        graph.TryConnect(Output(torusCenter, 0), Input(torusPlane, 0));
         graph.TryConnect(Output(axis, 0), Input(torusPlane, 1));
         graph.TryConnect(Output(torusPlane, 0), Input(torus, 0));
         graph.TryConnect(Output(torus, 0), Input(torusDisplay, 0));
@@ -378,7 +378,7 @@ public static class DemoGraphs
     /// circle is the curve the demo divides.
     /// </para>
     /// <para>
-    /// The row of circles is one <c>Circle.FromCentreRadius</c> node fed a list of eight centres — the
+    /// The row of circles is one <c>Circle.FromCenterRadius</c> node fed a list of eight centers — the
     /// same replication the point grid demonstrates, now producing curves rather than points, which
     /// is the thing worth seeing twice.
     /// </para>
@@ -401,8 +401,8 @@ public static class DemoGraphs
         int pointDisplay = graph.Add(library.ByName("Display.FromGeometryColour"), 820, 160, Seeded("curves", "pointDisplay"));
 
         int range = graph.Add(library.ByName("Number.Range"), 30, 440, Seeded("curves", "range"));
-        int centres = graph.Add(library.ByName("Point.FromCoordinates"), 250, 440, Seeded("curves", "centres"));
-        int circles = graph.Add(library.ByName("Circle.FromCentreRadius"), 520, 440, Seeded("curves", "circles"));
+        int centers = graph.Add(library.ByName("Point.FromCoordinates"), 250, 440, Seeded("curves", "centers"));
+        int circles = graph.Add(library.ByName("Circle.FromCenterRadius"), 520, 440, Seeded("curves", "circles"));
         int circleColour = graph.Add(library.ByName("Colour.FromRgb"), 520, 580, Seeded("curves", "circleColour"));
         int circleDisplay = graph.Add(library.ByName("Display.FromGeometryColour"), 820, 440, Seeded("curves", "circleDisplay"));
 
@@ -428,8 +428,8 @@ public static class DemoGraphs
         Literal(graph, range, 0, -7.0);
         Literal(graph, range, 1, 7.0);
         Literal(graph, range, 2, 2.0);
-        Literal(graph, centres, 1, 7.0);
-        Literal(graph, centres, 2, 0.0);
+        Literal(graph, centers, 1, 7.0);
+        Literal(graph, centers, 2, 0.0);
         Literal(graph, circles, 1, 0.9);
 
         Literal(graph, circleColour, 0, 120.0);
@@ -453,8 +453,8 @@ public static class DemoGraphs
         graph.TryConnect(Output(divide, 0), Input(pointDisplay, 0));
         graph.TryConnect(Output(pointColour, 0), Input(pointDisplay, 1));
 
-        graph.TryConnect(Output(range, 0), Input(centres, 0));
-        graph.TryConnect(Output(centres, 0), Input(circles, 0));
+        graph.TryConnect(Output(range, 0), Input(centers, 0));
+        graph.TryConnect(Output(centers, 0), Input(circles, 0));
         graph.TryConnect(Output(circles, 0), Input(circleDisplay, 0));
         graph.TryConnect(Output(circleColour, 0), Input(circleDisplay, 1));
 
@@ -499,7 +499,7 @@ public static class DemoGraphs
             "Number.Range",
             "Point.FromCoordinates",
             "BoundingBox.FromCorners",
-            "BoundingBox.Centre",
+            "BoundingBox.Center",
             "Plane.FromOriginNormal",
             "Point.Translate",
             "Point.Distance",

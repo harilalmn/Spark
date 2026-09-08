@@ -70,13 +70,13 @@ public sealed class TessellationTests
         {
             MeshFace face = mesh.Face(index);
 
-            Point3d centre = Centroid(mesh, face);
+            Point3d center = Centroid(mesh, face);
 
-            surface.ClosestPoint(centre, out double u, out double v);
+            surface.ClosestPoint(center, out double u, out double v);
 
             Assert.True(
-                surface.PointAt(u, v).DistanceTo(centre) <= Coarse.Linear * 2.0,
-                $"a facet's middle is {surface.PointAt(u, v).DistanceTo(centre)} from the surface");
+                surface.PointAt(u, v).DistanceTo(center) <= Coarse.Linear * 2.0,
+                $"a facet's middle is {surface.PointAt(u, v).DistanceTo(center)} from the surface");
         }
     }
 
@@ -248,17 +248,17 @@ public sealed class TessellationTests
         // The widest ring is the last one; its facets must be inside tolerance like the rest.
         foreach (MeshFace face in mesh.Faces())
         {
-            Point3d centre = Centroid(mesh, face);
+            Point3d center = Centroid(mesh, face);
 
-            if (centre.Z < 3.0)
+            if (center.Z < 3.0)
             {
                 continue;
             }
 
-            cone.ClosestPoint(centre, out double u, out double v);
+            cone.ClosestPoint(center, out double u, out double v);
 
             Assert.True(
-                cone.PointAt(u, v).DistanceTo(centre) <= Coarse.Linear * 2.0,
+                cone.PointAt(u, v).DistanceTo(center) <= Coarse.Linear * 2.0,
                 "the wide end of a cone should be refined as much as the narrow end");
         }
     }

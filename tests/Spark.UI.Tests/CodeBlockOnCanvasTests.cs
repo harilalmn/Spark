@@ -135,14 +135,14 @@ public sealed class CodeBlockOnCanvasTests
 
         graph.Nodes[slot].ScriptBox(out double x, out double y, out double width, out double height);
 
-        Point centre = new(
+        Point center = new(
             canvas.Transform.ToScreenX(x + (width / 2)),
             canvas.Transform.ToScreenY(y + (height / 2)));
 
-        window.MouseDown(centre, MouseButton.Left);
-        window.MouseUp(centre, MouseButton.Left);
-        window.MouseDown(centre, MouseButton.Left);
-        window.MouseUp(centre, MouseButton.Left);
+        window.MouseDown(center, MouseButton.Left);
+        window.MouseUp(center, MouseButton.Left);
+        window.MouseDown(center, MouseButton.Left);
+        window.MouseUp(center, MouseButton.Left);
 
         Assert.NotNull(asked);
         Assert.Equal(slot, asked!.Slot);
@@ -177,14 +177,14 @@ public sealed class CodeBlockOnCanvasTests
 
         CanvasNode node = graph.Nodes[slot];
 
-        Point centre = new(
+        Point center = new(
             canvas.Transform.ToScreenX(node.X + (node.Width / 2)),
             canvas.Transform.ToScreenY(node.Y + CanvasNode.HeaderHeight + 4));
 
-        window.MouseDown(centre, MouseButton.Left);
-        window.MouseUp(centre, MouseButton.Left);
-        window.MouseDown(centre, MouseButton.Left);
-        window.MouseUp(centre, MouseButton.Left);
+        window.MouseDown(center, MouseButton.Left);
+        window.MouseUp(center, MouseButton.Left);
+        window.MouseDown(center, MouseButton.Left);
+        window.MouseUp(center, MouseButton.Left);
 
         Assert.False(asked, "an ordinary node was offered a code editor");
 
@@ -452,12 +452,12 @@ public sealed class CodeBlockOnCanvasTests
 
         graph.Nodes[slot].ScriptBox(out double x, out double y, out double width, out double height);
 
-        Point centre = new(
+        Point center = new(
             canvas.Transform.ToScreenX(x + (width / 2)),
             canvas.Transform.ToScreenY(y + (height / 2)));
 
-        window.MouseDown(centre, MouseButton.Left);
-        window.MouseUp(centre, MouseButton.Left);
+        window.MouseDown(center, MouseButton.Left);
+        window.MouseUp(center, MouseButton.Left);
 
         Assert.NotNull(asked);
         Assert.Equal(slot, asked!.Slot);
@@ -543,12 +543,12 @@ public sealed class CodeBlockOnCanvasTests
         canvas.ScriptEditRequested += (_, _) => asked = true;
 
         CanvasNode node = graph.Nodes[slot];
-        Point centre = new(
+        Point center = new(
             canvas.Transform.ToScreenX(node.X + (node.Width / 2)),
             canvas.Transform.ToScreenY(node.Y + CanvasNode.HeaderHeight + 4));
 
-        window.MouseDown(centre, MouseButton.Left);
-        window.MouseUp(centre, MouseButton.Left);
+        window.MouseDown(center, MouseButton.Left);
+        window.MouseUp(center, MouseButton.Left);
 
         Assert.False(asked, "an ordinary node was offered a code editor");
 
@@ -584,12 +584,12 @@ public sealed class CodeBlockOnCanvasTests
 
         graph.Nodes[slot].ScriptBox(out double x, out double y, out double width, out double height);
 
-        Point centre = new(
+        Point center = new(
             canvas.Transform.ToScreenX(x + (width / 2)),
             canvas.Transform.ToScreenY(y + (height / 2)));
 
-        window.MouseDown(centre, MouseButton.Left, held);
-        window.MouseUp(centre, MouseButton.Left, held);
+        window.MouseDown(center, MouseButton.Left, held);
+        window.MouseUp(center, MouseButton.Left, held);
 
         Assert.Equal(0, asked);
 

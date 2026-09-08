@@ -342,7 +342,7 @@ public readonly struct Quaternion : IEquatable<Quaternion>
     /// Thrown when this value is not <see cref="IsValid"/>.
     /// </exception>
     /// <remarks>
-    /// A quaternion carries no centre, so this always rotates about the origin. Rotating about
+    /// A quaternion carries no center, so this always rotates about the origin. Rotating about
     /// some other point is <see cref="Transform.Rotation(in Vector3d, Angle, in Point3d)"/>, or
     /// this composed with a pair of translations — and the fact that you have to say which is
     /// the point of keeping position out of a rotation.

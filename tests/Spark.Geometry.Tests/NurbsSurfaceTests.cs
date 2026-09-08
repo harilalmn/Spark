@@ -17,7 +17,7 @@ namespace Spark.Geometry.Tests;
 /// asserted the latter, and six tests failed for a reason that was not a bug.
 /// </para>
 /// <para>
-/// <b>The implicit checks are the strong ones.</b> *Is every point one radius from the centre* is a
+/// <b>The implicit checks are the strong ones.</b> *Is every point one radius from the center* is a
 /// statement about the whole sheet that a plausible-but-wrong construction cannot satisfy, and it
 /// does not care how the surface is parameterised. Exactness is asserted at 1e-9 rather than at a
 /// modelling tolerance, because the point of a rational quadric is that there is no approximation
@@ -191,14 +191,14 @@ public sealed class NurbsSurfaceTests
         }
     }
 
-    /// <summary>Every point of a converted sphere is exactly one radius from the centre.</summary>
+    /// <summary>Every point of a converted sphere is exactly one radius from the center.</summary>
     [Theory]
     [MemberData(nameof(Spheres))]
     public void AConvertedSphereSatisfiesTheSpheresEquation(SphericalSurface sphere)
     {
         foreach (Point3d point in Grid(sphere.ToNurbsSurface()))
         {
-            Assert.Equal(sphere.Radius, point.DistanceTo(sphere.Centre), Exact);
+            Assert.Equal(sphere.Radius, point.DistanceTo(sphere.Center), Exact);
         }
     }
 

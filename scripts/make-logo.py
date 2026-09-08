@@ -67,7 +67,7 @@ def render(size):
     n = size * SS
     r = RADIUS * n
 
-    # The big spark sits slightly left of centre with a small companion above right, which is
+    # The big spark sits slightly left of center with a small companion above right, which is
     # what stops the mark reading as a plain star and makes it legible at 16 px.
     big = star(n * 0.455, n * 0.545, n * 0.335, n * 0.096)
     small = star(n * 0.735, n * 0.275, n * 0.135, n * 0.040)

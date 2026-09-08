@@ -40,8 +40,8 @@ public sealed class CompletionEngineTests
     {
         using ScriptCompletion completion = new([typeof(Point3d).Assembly]);
 
-        const string Code = "return centre.";
-        Dictionary<string, Type?> ports = new() { ["centre"] = typeof(Point3d) };
+        const string Code = "return center.";
+        Dictionary<string, Type?> ports = new() { ["center"] = typeof(Point3d) };
 
         for (int request = 0; request < 10; request++)
         {
@@ -87,10 +87,10 @@ public sealed class CompletionEngineTests
     /// answers is the guarantee, and it is asserted rather than assumed.
     /// </summary>
     [Theory]
-    [InlineData("foreach (var p in points) { var d = centre.")]
-    [InlineData("if (a) { while (b) { for (;;) { var d = centre.")]
-    [InlineData("var f = new Func<int, int>(x => { var d = centre.")]
-    [InlineData("var q = (1 + (2 * (3 - centre.")]
+    [InlineData("foreach (var p in points) { var d = center.")]
+    [InlineData("if (a) { while (b) { for (;;) { var d = center.")]
+    [InlineData("var f = new Func<int, int>(x => { var d = center.")]
+    [InlineData("var q = (1 + (2 * (3 - center.")]
     public async Task CompletionAnswersInsideUnfinishedText(string code)
     {
         using ScriptCompletion completion = new([typeof(Point3d).Assembly]);
@@ -98,7 +98,7 @@ public sealed class CompletionEngineTests
         IReadOnlyList<ScriptCompletionItem> items = await completion.CompleteAsync(
             code,
             code.Length,
-            new Dictionary<string, Type?> { ["centre"] = typeof(Point3d) },
+            new Dictionary<string, Type?> { ["center"] = typeof(Point3d) },
             TestContext.Current.CancellationToken);
 
         Assert.Contains("DistanceTo", items.Select(item => item.DisplayText), StringComparer.Ordinal);

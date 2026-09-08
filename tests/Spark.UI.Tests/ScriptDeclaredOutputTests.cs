@@ -106,7 +106,7 @@ public sealed class ScriptDeclaredOutputTests
     public void ADeclaredPortCarriesTheTypeItsLineProduced()
     {
         NodeDefinitionSource block = new ScriptNodeFactory().Create(
-            "var count = 3;\nvar name = \"circle\";\nvar centre = new Point3d(1, 2, 3);\n");
+            "var count = 3;\nvar name = \"circle\";\nvar center = new Point3d(1, 2, 3);\n");
 
         Assert.Equal(typeof(int), block.Outputs[0].ValueType);
         Assert.Equal(typeof(string), block.Outputs[1].ValueType);

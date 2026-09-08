@@ -235,7 +235,7 @@ Solid.Difference(box, hole);
 `Line`, `Plane`, `Arc`, `Surface`, `PolyCurve`, `PolyLine` and `BoundingBox` are the geometry
 types, exactly as they always were, and **`Math` is `System.Math`** — so `Math.PI` is what you
 expect. The library's own version is still there in full when you want it:
-`Spark.Nodes.Core.Circle.FromCentreRadius(...)`.
+`Spark.Nodes.Core.Circle.FromCenterRadius(...)`.
 
 **Four have a different name in a block**, because their node name is a type C# already uses:
 
@@ -279,7 +279,7 @@ is not something that can bring typing back the other way. **Enter is a newline*
 clicking away, or Escape, that commits.
 
 **Type a dot, or press Ctrl+Space, and the list opens at the caret.** Keep typing to narrow it —
-`centre.Di` selects `DistanceTo` — then **Enter** or **Tab** to accept, **Escape** to dismiss, and
+`center.Di` selects `DistanceTo` — then **Enter** or **Tab** to accept, **Escape** to dismiss, and
 the arrow keys to move through it. The editor keeps the keyboard the whole time, so the list never
 interrupts typing.
 
@@ -295,19 +295,19 @@ of the node.
 script reads like C#, and what `radius` turns out to be is worked out while the graph runs.
 
 **Once you wire something in, the port has a type, and the block is recompiled with it.** Wire a
-`Point.FromCoordinates` into a port called `centre` and the block is compiled as though you had
-written `Point3d centre = …;` — so this works:
+`Point.FromCoordinates` into a port called `center` and the block is compiled as though you had
+written `Point3d center = …;` — so this works:
 
 ```csharp
-return centre.X + centre.Y;
+return center.X + center.Y;
 ```
 
-and it works because the compiler knows what `centre` is, not because it found out at run time.
+and it works because the compiler knows what `center` is, not because it found out at run time.
 The port label on the canvas changes to match, and pulling the wire out puts the port back to
 `dynamic`, because an unwired port has no type to claim.
 
-**This is what the completion list is built from.** With a point wired into `centre`, typing
-`centre.` lists `X`, `Y`, `Z`, `DistanceTo` and the rest of `Point3d`. With nothing wired in, it
+**This is what the completion list is built from.** With a point wired into `center`, typing
+`center.` lists `X`, `Y`, `Z`, `DistanceTo` and the rest of `Point3d`. With nothing wired in, it
 lists nothing — not because Spark is being unhelpful, but because the block really will be compiled
 with that input as `dynamic`, and a list that promised members the compiler will not find would be
 worse than no list at all. **Wire the port first, and the editor knows what you are working with —
@@ -324,11 +324,11 @@ in — the port label on the canvas changes, and completion starts working strai
 So to write this before there is anything to wire into it:
 
 ```csharp
-return centre.X + centre.Y;
+return center.X + center.Y;
 ```
 
-put a code block down, type the line, and set `centre` to `Point3d` in the dropdown. Typing
-`centre.` now lists the members of a point.
+put a code block down, type the line, and set `center` to `Point3d` in the dropdown. Typing
+`center.` now lists the members of a point.
 
 **A type you choose beats a type a wire brings.** The wire is the better source whenever there is
 one, which is why *from the wire* is the default — but a setting that was quietly overruled would
@@ -349,7 +349,7 @@ Numbers are widened where a graph would expect them to be: an integer arriving o
 script uses as a `double` is converted rather than refused. When something genuinely wrong
 arrives, the message names the port rather than two CLR types:
 
-> The port 'centre' received a String, but the script uses it as a Point3d.
+> The port 'center' received a String, but the script uses it as a Point3d.
 
 ## Loops, and what stops them
 
@@ -406,7 +406,7 @@ a code block.
 Divide a circle into points, and report how many you made:
 
 ```csharp
-var circle = Circle.FromCentreRadius(Point3d.Origin, radius);
+var circle = Circle.FromCenterRadius(Point3d.Origin, radius);
 var points = new List<Point3d>();
 var step = circle.Length / count;
 

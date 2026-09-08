@@ -252,8 +252,8 @@ public sealed class GraphCanvasInputTests
     {
         (Window window, GraphCanvas canvas) = Open(TwoNodes());
 
-        canvas.Graph.Nodes[0].OutputPortCentre(0, out double fromX, out double fromY);
-        canvas.Graph.Nodes[1].InputPortCentre(0, out double toX, out double toY);
+        canvas.Graph.Nodes[0].OutputPortCenter(0, out double fromX, out double fromY);
+        canvas.Graph.Nodes[1].InputPortCenter(0, out double toX, out double toY);
 
         window.MouseDown(Screen(canvas, fromX, fromY), MouseButton.Left, RawInputModifiers.None);
         window.MouseMove(Screen(canvas, (fromX + toX) / 2, (fromY + toY) / 2), RawInputModifiers.None);
@@ -276,8 +276,8 @@ public sealed class GraphCanvasInputTests
     {
         (Window window, GraphCanvas canvas) = Open(TwoNodes());
 
-        canvas.Graph.Nodes[0].OutputPortCentre(0, out double fromX, out double fromY);
-        canvas.Graph.Nodes[1].InputPortCentre(0, out double toX, out double toY);
+        canvas.Graph.Nodes[0].OutputPortCenter(0, out double fromX, out double fromY);
+        canvas.Graph.Nodes[1].InputPortCenter(0, out double toX, out double toY);
 
         Point from = Screen(canvas, fromX, fromY);
         Point to = Screen(canvas, toX, toY);
@@ -318,7 +318,7 @@ public sealed class GraphCanvasInputTests
         Assert.False(canvas.HoveredPort.Value.IsOutput);
 
         // And it connects from there, without ever touching the disc on the node's edge.
-        canvas.Graph.Nodes[0].OutputPortCentre(0, out double fromX, out double fromY);
+        canvas.Graph.Nodes[0].OutputPortCenter(0, out double fromX, out double fromY);
         Point from = Screen(canvas, fromX, fromY);
 
         window.MouseDown(from, MouseButton.Left, RawInputModifiers.None);
@@ -336,7 +336,7 @@ public sealed class GraphCanvasInputTests
     {
         (Window window, GraphCanvas canvas) = Open(TwoNodes());
 
-        canvas.Graph.Nodes[0].OutputPortCentre(0, out double fromX, out double fromY);
+        canvas.Graph.Nodes[0].OutputPortCenter(0, out double fromX, out double fromY);
         Point from = Screen(canvas, fromX, fromY);
 
         window.MouseDown(from, MouseButton.Left, RawInputModifiers.None);
@@ -345,7 +345,7 @@ public sealed class GraphCanvasInputTests
         window.MouseDown(new Point(700, 520), MouseButton.Left, RawInputModifiers.None);
         window.MouseUp(new Point(700, 520), MouseButton.Left, RawInputModifiers.None);
 
-        canvas.Graph.Nodes[1].InputPortCentre(0, out double toX, out double toY);
+        canvas.Graph.Nodes[1].InputPortCenter(0, out double toX, out double toY);
         Point to = Screen(canvas, toX, toY);
 
         window.MouseDown(to, MouseButton.Left, RawInputModifiers.None);
@@ -361,7 +361,7 @@ public sealed class GraphCanvasInputTests
     {
         (Window window, GraphCanvas canvas) = Open(TwoNodes());
 
-        canvas.Graph.Nodes[0].OutputPortCentre(0, out double fromX, out double fromY);
+        canvas.Graph.Nodes[0].OutputPortCenter(0, out double fromX, out double fromY);
         Point from = Screen(canvas, fromX, fromY);
 
         window.MouseDown(from, MouseButton.Left, RawInputModifiers.None);
@@ -370,7 +370,7 @@ public sealed class GraphCanvasInputTests
         window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
         window.KeyReleaseQwerty(PhysicalKey.Escape, RawInputModifiers.None);
 
-        canvas.Graph.Nodes[1].InputPortCentre(0, out double toX, out double toY);
+        canvas.Graph.Nodes[1].InputPortCenter(0, out double toX, out double toY);
         Point to = Screen(canvas, toX, toY);
 
         window.MouseDown(to, MouseButton.Left, RawInputModifiers.None);
@@ -381,7 +381,7 @@ public sealed class GraphCanvasInputTests
 
     /// <summary>
     /// <b>A port is easier to hit than it is to see.</b> The disc is 7 px and the target is 18, so
-    /// a click 8 px off centre still lands on the port — which is what the size complaint was
+    /// a click 8 px off center still lands on the port — which is what the size complaint was
     /// really about.
     /// </summary>
     [Fact]
@@ -389,11 +389,11 @@ public sealed class GraphCanvasInputTests
     {
         (Window window, GraphCanvas canvas) = Open(TwoNodes());
 
-        canvas.Graph.Nodes[0].OutputPortCentre(0, out double x, out double y);
+        canvas.Graph.Nodes[0].OutputPortCenter(0, out double x, out double y);
 
-        Point centre = Screen(canvas, x, y);
+        Point center = Screen(canvas, x, y);
 
-        window.MouseMove(new Point(centre.X + 8, centre.Y), RawInputModifiers.None);
+        window.MouseMove(new Point(center.X + 8, center.Y), RawInputModifiers.None);
 
         Assert.NotNull(canvas.HoveredPort);
         Assert.True(canvas.HoveredPort!.Value.IsOutput);
@@ -403,7 +403,7 @@ public sealed class GraphCanvasInputTests
     public void DraggingFromAPortToEmptyCanvasCreatesNothing() => OnUiThread(() =>
     {
         (Window window, GraphCanvas canvas) = Open(TwoNodes());
-        canvas.Graph.Nodes[0].OutputPortCentre(0, out double fromX, out double fromY);
+        canvas.Graph.Nodes[0].OutputPortCenter(0, out double fromX, out double fromY);
 
         window.MouseDown(Screen(canvas, fromX, fromY), MouseButton.Left, RawInputModifiers.None);
         window.MouseMove(new Point(700, 520), RawInputModifiers.None);
@@ -420,7 +420,7 @@ public sealed class GraphCanvasInputTests
     public void PressingAPortDoesNotAlsoSelectItsNode() => OnUiThread(() =>
     {
         (Window window, GraphCanvas canvas) = Open(TwoNodes());
-        canvas.Graph.Nodes[0].OutputPortCentre(0, out double x, out double y);
+        canvas.Graph.Nodes[0].OutputPortCenter(0, out double x, out double y);
 
         Point port = Screen(canvas, x, y);
         window.MouseDown(port, MouseButton.Left, RawInputModifiers.None);
@@ -433,7 +433,7 @@ public sealed class GraphCanvasInputTests
     public void HoveringAPortReportsIt() => OnUiThread(() =>
     {
         (Window window, GraphCanvas canvas) = Open(TwoNodes());
-        canvas.Graph.Nodes[1].InputPortCentre(0, out double x, out double y);
+        canvas.Graph.Nodes[1].InputPortCenter(0, out double x, out double y);
 
         window.MouseMove(Screen(canvas, x, y), RawInputModifiers.None);
 
@@ -607,8 +607,8 @@ public sealed class GraphCanvasInputTests
         canvas.GraphChanged += (_, _) => changes++;
 
         // The midpoint of the wire, which is empty canvas as far as node hit-testing is concerned.
-        canvas.Graph.Nodes[0].OutputPortCentre(0, out double x0, out double y0);
-        canvas.Graph.Nodes[1].InputPortCentre(0, out double x1, out double y1);
+        canvas.Graph.Nodes[0].OutputPortCenter(0, out double x0, out double y0);
+        canvas.Graph.Nodes[1].InputPortCenter(0, out double x1, out double y1);
         Click(window, Screen(canvas, (x0 + x1) / 2, (y0 + y1) / 2));
 
         Assert.NotNull(canvas.SelectedWire);
@@ -652,8 +652,8 @@ public sealed class GraphCanvasInputTests
         (Window window, GraphCanvas canvas) = Open(TwoNodes());
         DragWire(window, canvas, 0, 1);
 
-        canvas.Graph.Nodes[0].OutputPortCentre(0, out double x0, out double y0);
-        canvas.Graph.Nodes[1].InputPortCentre(0, out double x1, out double y1);
+        canvas.Graph.Nodes[0].OutputPortCenter(0, out double x0, out double y0);
+        canvas.Graph.Nodes[1].InputPortCenter(0, out double x1, out double y1);
         Click(window, Screen(canvas, (x0 + x1) / 2, (y0 + y1) / 2));
 
         window.KeyPress(Key.Delete, RawInputModifiers.None, PhysicalKey.Delete, null);
@@ -810,7 +810,7 @@ public sealed class GraphCanvasInputTests
         List<string> edits = [];
         canvas.GraphChanged += (_, e) => edits.Add(e.Label);
 
-        canvas.Graph.Nodes[1].InputPortCentre(0, out double fromX, out double fromY);
+        canvas.Graph.Nodes[1].InputPortCenter(0, out double fromX, out double fromY);
         window.MouseDown(Screen(canvas, fromX, fromY), MouseButton.Left, RawInputModifiers.None);
         window.MouseMove(Screen(canvas, fromX - 60, fromY + 60), RawInputModifiers.None);
         window.MouseMove(Screen(canvas, fromX - 120, fromY + 120), RawInputModifiers.None);
@@ -840,8 +840,8 @@ public sealed class GraphCanvasInputTests
         List<string> edits = [];
         canvas.GraphChanged += (_, e) => edits.Add(e.Label);
 
-        canvas.Graph.Nodes[point].InputPortCentre(0, out double fromX, out double fromY);
-        canvas.Graph.Nodes[point].InputPortCentre(1, out double toX, out double toY);
+        canvas.Graph.Nodes[point].InputPortCenter(0, out double fromX, out double fromY);
+        canvas.Graph.Nodes[point].InputPortCenter(1, out double toX, out double toY);
 
         window.MouseDown(Screen(canvas, fromX, fromY), MouseButton.Left, RawInputModifiers.None);
         window.MouseMove(Screen(canvas, fromX - 40, (fromY + toY) / 2), RawInputModifiers.None);
@@ -867,7 +867,7 @@ public sealed class GraphCanvasInputTests
         List<string> edits = [];
         canvas.GraphChanged += (_, e) => edits.Add(e.Label);
 
-        canvas.Graph.Nodes[1].InputPortCentre(0, out double x, out double y);
+        canvas.Graph.Nodes[1].InputPortCenter(0, out double x, out double y);
         window.MouseDown(Screen(canvas, x, y), MouseButton.Left, RawInputModifiers.None);
         window.MouseMove(Screen(canvas, x - 80, y + 40), RawInputModifiers.None);
         window.MouseMove(Screen(canvas, x, y), RawInputModifiers.None);
@@ -893,7 +893,7 @@ public sealed class GraphCanvasInputTests
         List<string> edits = [];
         canvas.GraphChanged += (_, e) => edits.Add(e.Label);
 
-        canvas.Graph.Nodes[1].InputPortCentre(0, out double x, out double y);
+        canvas.Graph.Nodes[1].InputPortCenter(0, out double x, out double y);
         Click(window, Screen(canvas, x, y));
 
         Assert.Single(canvas.Graph.Wires);
@@ -915,7 +915,7 @@ public sealed class GraphCanvasInputTests
         List<string> edits = [];
         canvas.GraphChanged += (_, e) => edits.Add(e.Label);
 
-        canvas.Graph.Nodes[1].InputPortCentre(0, out double x, out double y);
+        canvas.Graph.Nodes[1].InputPortCenter(0, out double x, out double y);
         Click(window, Screen(canvas, x, y));
         Click(window, Screen(canvas, x - 140, y + 140));
 
@@ -937,8 +937,8 @@ public sealed class GraphCanvasInputTests
         List<string> edits = [];
         canvas.GraphChanged += (_, e) => edits.Add(e.Label);
 
-        canvas.Graph.Nodes[point].InputPortCentre(0, out double fromX, out double fromY);
-        canvas.Graph.Nodes[point].InputPortCentre(1, out double toX, out double toY);
+        canvas.Graph.Nodes[point].InputPortCenter(0, out double fromX, out double fromY);
+        canvas.Graph.Nodes[point].InputPortCenter(1, out double toX, out double toY);
 
         Click(window, Screen(canvas, fromX, fromY));
         Click(window, Screen(canvas, toX, toY));
@@ -960,7 +960,7 @@ public sealed class GraphCanvasInputTests
         List<string> edits = [];
         canvas.GraphChanged += (_, e) => edits.Add(e.Label);
 
-        canvas.Graph.Nodes[1].InputPortCentre(0, out double x, out double y);
+        canvas.Graph.Nodes[1].InputPortCenter(0, out double x, out double y);
         Click(window, Screen(canvas, x, y));
         window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
 
@@ -984,8 +984,8 @@ public sealed class GraphCanvasInputTests
     {
         (Window window, GraphCanvas canvas) = Open(TwoNodes());
 
-        canvas.Graph.Nodes[1].InputPortCentre(0, out double fromX, out double fromY);
-        canvas.Graph.Nodes[0].OutputPortCentre(0, out double toX, out double toY);
+        canvas.Graph.Nodes[1].InputPortCenter(0, out double fromX, out double fromY);
+        canvas.Graph.Nodes[0].OutputPortCenter(0, out double toX, out double toY);
 
         window.MouseDown(Screen(canvas, fromX, fromY), MouseButton.Left, RawInputModifiers.None);
         window.MouseMove(Screen(canvas, (fromX + toX) / 2, (fromY + toY) / 2), RawInputModifiers.None);
@@ -1007,8 +1007,8 @@ public sealed class GraphCanvasInputTests
     /// <summary>Drags a wire from one node's output port 0 to another node's input port 0.</summary>
     private static void DragWire(Window window, GraphCanvas canvas, int fromSlot, int toSlot)
     {
-        canvas.Graph.Nodes[fromSlot].OutputPortCentre(0, out double fromX, out double fromY);
-        canvas.Graph.Nodes[toSlot].InputPortCentre(0, out double toX, out double toY);
+        canvas.Graph.Nodes[fromSlot].OutputPortCenter(0, out double fromX, out double fromY);
+        canvas.Graph.Nodes[toSlot].InputPortCenter(0, out double toX, out double toY);
 
         window.MouseDown(Screen(canvas, fromX, fromY), MouseButton.Left, RawInputModifiers.None);
         window.MouseMove(Screen(canvas, (fromX + toX) / 2, (fromY + toY) / 2), RawInputModifiers.None);

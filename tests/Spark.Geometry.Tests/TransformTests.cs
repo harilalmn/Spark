@@ -60,10 +60,10 @@ public sealed class TransformTests
     [Fact]
     public void ScalingAboutAPointLeavesThatPointWhereItIs()
     {
-        Point3d centre = new(5.0, 5.0, 5.0);
-        Transform scale = Transform.Scale(centre, 4.0);
+        Point3d center = new(5.0, 5.0, 5.0);
+        Transform scale = Transform.Scale(center, 4.0);
 
-        Assert.True(scale.OfPoint(centre).EqualsWithin(centre));
+        Assert.True(scale.OfPoint(center).EqualsWithin(center));
         Assert.True(scale.OfPoint(new Point3d(6.0, 5.0, 5.0)).EqualsWithin(new Point3d(9.0, 5.0, 5.0)));
     }
 
@@ -97,12 +97,12 @@ public sealed class TransformTests
     }
 
     [Fact]
-    public void RotationAboutACentreLeavesThatCentreWhereItIs()
+    public void RotationAboutACenterLeavesThatCenterWhereItIs()
     {
-        Point3d centre = new(7.0, -3.0, 2.0);
-        Transform rotation = Transform.Rotation(Vector3d.ZAxis, Angle.FromDegrees(90), centre);
+        Point3d center = new(7.0, -3.0, 2.0);
+        Transform rotation = Transform.Rotation(Vector3d.ZAxis, Angle.FromDegrees(90), center);
 
-        Assert.True(rotation.OfPoint(centre).EqualsWithin(centre));
+        Assert.True(rotation.OfPoint(center).EqualsWithin(center));
         Assert.True(rotation.OfPoint(new Point3d(8.0, -3.0, 2.0))
             .EqualsWithin(new Point3d(7.0, -2.0, 2.0)));
     }

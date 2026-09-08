@@ -16,7 +16,7 @@ namespace Spark.UI.Tests;
 /// <b>Asked for by the client: every node in the library available in a block.</b> Most already
 /// were, and saying so precisely matters — the geometry-shaped nodes are thin façades over
 /// <c>Spark.Geometry</c>, which a block has always imported, so
-/// <c>Circle.FromCentreRadius(pt, 5)</c> has worked all along. What was genuinely out of reach is
+/// <c>Circle.FromCenterRadius(pt, 5)</c> has worked all along. What was genuinely out of reach is
 /// the façades with no geometry equivalent, and <c>Solid</c> alone is 38 of them.
 /// </para>
 /// <para>
@@ -50,7 +50,7 @@ public sealed class CodeBlockLibraryReachTests
     /// compiles after it, and means the same thing.
     /// </summary>
     [Theory]
-    [InlineData("Circle.FromCentreRadius(Point3d.Origin, 5.0);")]
+    [InlineData("Circle.FromCenterRadius(Point3d.Origin, 5.0);")]
     [InlineData("Line.FromStartPointEndPoint(Point3d.Origin, new Point3d(1, 0, 0));")]
     [InlineData("Plane.WorldXY;")]
     [InlineData("Arc.FromThreePoints(Point3d.Origin, new Point3d(1, 1, 0), new Point3d(2, 0, 0));")]
@@ -128,11 +128,11 @@ public sealed class CodeBlockLibraryReachTests
     /// </summary>
     [Fact]
     public void TheFullyQualifiedFacadeStillWorks() =>
-        Compiles("Spark.Nodes.Core.Circle.FromCentreRadius(Point3d.Origin, 5.0);");
+        Compiles("Spark.Nodes.Core.Circle.FromCenterRadius(Point3d.Origin, 5.0);");
 
     /// <summary>
     /// <b>Geometry can be built the way C# builds things — `E2-T59`.</b> Asked for by the client
-    /// after typing <c>new Circle(centre, 10)</c> into a block and being told there was no such
+    /// after typing <c>new Circle(center, 10)</c> into a block and being told there was no such
     /// constructor.
     /// </summary>
     /// <remarks>
@@ -152,7 +152,7 @@ public sealed class CodeBlockLibraryReachTests
     [InlineData("new PolyLine(Plane.WorldXY, 4.0, 2.0);")]
     [InlineData("new PolyLine(Plane.WorldXY, 2.0, 6);")]
     [InlineData(
-        "var factory = Circle.FromCentreRadius(Point3d.Origin, 2.0);\n"
+        "var factory = Circle.FromCenterRadius(Point3d.Origin, 2.0);\n"
         + "var constructed = new Circle(Point3d.Origin, 2.0);")]
     public void TheConstructorsAreReachable(string script) => Compiles(script);
 
@@ -168,7 +168,7 @@ public sealed class CodeBlockLibraryReachTests
             true,
             Run("""
                 var made = new Circle(Point3d.Origin, Vector3d.ZAxis, 5.0);
-                var factory = Circle.FromCentreNormalRadius(Point3d.Origin, Vector3d.ZAxis, 5.0);
+                var factory = Circle.FromCenterNormalRadius(Point3d.Origin, Vector3d.ZAxis, 5.0);
                 var agree = made.Radius == factory.Radius
                     && made.Plane.Origin == factory.Plane.Origin
                     && made.Plane.Normal == factory.Plane.Normal;

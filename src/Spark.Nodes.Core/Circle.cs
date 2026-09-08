@@ -10,15 +10,16 @@ namespace Spark.Nodes.Core;
 public static class Circle
 {
     /// <summary>Makes a circle lying flat in the world xy plane.</summary>
-    /// <param name="centre">The centre.</param>
+    /// <param name="center">The center.</param>
     /// <param name="radius">The radius. Must be positive.</param>
     /// <returns>The circle.</returns>
     [return: NodePort("circle")]
     [SparkNodeAlias("Circle.ByCentreRadius")]
-    public static Spark.Geometry.Circle FromCentreRadius(Point3d centre, double radius = 1.0) =>
-        Spark.Geometry.Circle.FromCentreRadius(centre, radius);
+    [SparkNodeAlias("Circle.FromCentreRadius")]
+    public static Spark.Geometry.Circle FromCenterRadius(Point3d center, double radius = 1.0) =>
+        Spark.Geometry.Circle.FromCenterRadius(center, radius);
 
-    /// <summary>Makes a circle in a plane, centred on the plane's origin.</summary>
+    /// <summary>Makes a circle in a plane, centerd on the plane's origin.</summary>
     /// <param name="plane">The plane.</param>
     /// <param name="radius">The radius. Must be positive.</param>
     /// <returns>The circle.</returns>
@@ -29,15 +30,16 @@ public static class Circle
         Spark.Geometry.Circle.FromPlaneRadius(plane, radius);
 
     /// <summary>Makes a circle about an axis.</summary>
-    /// <param name="centre">The centre.</param>
+    /// <param name="center">The center.</param>
     /// <param name="normal">The circle's axis. Need not be a unit vector.</param>
     /// <param name="radius">The radius. Must be positive.</param>
     /// <returns>The circle.</returns>
     [return: NodePort("circle")]
     [SparkNodeAlias("Circle.ByCentreNormalRadius")]
-    public static Spark.Geometry.Circle FromCentreNormalRadius(
-        Point3d centre, Vector3d normal, double radius = 1.0) =>
-        Spark.Geometry.Circle.FromCentreNormalRadius(centre, normal, radius);
+    [SparkNodeAlias("Circle.FromCentreNormalRadius")]
+    public static Spark.Geometry.Circle FromCenterNormalRadius(
+        Point3d center, Vector3d normal, double radius = 1.0) =>
+        Spark.Geometry.Circle.FromCenterNormalRadius(center, normal, radius);
 
     /// <summary>Makes the circle that passes through three points.</summary>
     /// <param name="first">The first point.</param>

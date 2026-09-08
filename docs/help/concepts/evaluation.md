@@ -36,7 +36,7 @@ A worked example. Take this graph:
 
 ```
 Number.Range ──┐
-               ├──> Point.FromCoordinates ──> Circle.FromCentreRadius ──> Watch
+               ├──> Point.FromCoordinates ──> Circle.FromCenterRadius ──> Watch
 Number(5) ─────┘
 ```
 
@@ -44,7 +44,7 @@ Number(5) ─────┘
 |---|---|---|
 | 0 | `Number.Range`, `Number` | Nothing feeds them |
 | 1 | `Point.FromCoordinates` | Both its inputs are level 0 |
-| 2 | `Circle.FromCentreRadius` | Its input is level 1 |
+| 2 | `Circle.FromCenterRadius` | Its input is level 1 |
 | 3 | `Watch` | Its input is level 2 |
 
 Move any node anywhere on the canvas and the table is unchanged.

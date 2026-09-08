@@ -576,7 +576,7 @@ public sealed partial class CodeBlockEditor : UserControl
         // **A word narrows the open list; anything else ends it and is then offered to the trigger
         // rules afresh.** Without the second half, opening on `=` would be pointless: the space
         // after it matches no candidate, so the list would close half a keystroke after it opened
-        // and never come back. Closing and re-asking is also what makes `centre.Position.` list
+        // and never come back. Closing and re-asking is also what makes `center.Position.` list
         // the second type rather than filtering the first one to nothing.
         if (IsCompletionOpen)
         {

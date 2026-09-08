@@ -16,8 +16,8 @@ namespace Spark.Nodes.Core;
 [SparkNode(Category = NodeCategories.Solid)]
 public static class Surface
 {
-    /// <summary>Makes a rectangular piece of a plane, centred on the plane's origin.</summary>
-    /// <param name="plane">The plane it lies in, and its centre.</param>
+    /// <summary>Makes a rectangular piece of a plane, centerd on the plane's origin.</summary>
+    /// <param name="plane">The plane it lies in, and its center.</param>
     /// <param name="width">Its extent along the plane's x-axis.</param>
     /// <param name="height">Its extent along the plane's y-axis.</param>
     /// <returns>The surface.</returns>
@@ -27,13 +27,13 @@ public static class Surface
         PlaneSurface.FromPlaneSize(plane, width, height);
 
     /// <summary>Makes a whole sphere.</summary>
-    /// <param name="centre">The centre.</param>
+    /// <param name="center">The center.</param>
     /// <param name="radius">The radius.</param>
     /// <returns>The surface.</returns>
     [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("surface")]
-    public static SphericalSurface Sphere(Point3d centre, double radius = 1) =>
-        new(Spark.Geometry.Plane.FromOriginNormal(centre, Vector3d.ZAxis), radius);
+    public static SphericalSurface Sphere(Point3d center, double radius = 1) =>
+        new(Spark.Geometry.Plane.FromOriginNormal(center, Vector3d.ZAxis), radius);
 
     /// <summary>Makes a cylinder standing on a plane.</summary>
     /// <param name="plane">The base: its origin is on the axis and its normal is the axis.</param>
@@ -66,8 +66,8 @@ public static class Surface
             new Interval(0.0, height));
 
     /// <summary>Makes a torus lying in a plane.</summary>
-    /// <param name="plane">The centre, and the plane the tube's centreline lies in.</param>
-    /// <param name="majorRadius">From the axis to the centre of the tube.</param>
+    /// <param name="plane">The center, and the plane the tube's centerline lies in.</param>
+    /// <param name="majorRadius">From the axis to the center of the tube.</param>
     /// <param name="minorRadius">The radius of the tube.</param>
     /// <returns>The surface.</returns>
     [SparkNode(Kind = NodeMemberKind.Create)]

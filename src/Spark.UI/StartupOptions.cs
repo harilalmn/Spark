@@ -51,7 +51,7 @@ namespace Spark.UI;
 /// put it there.
 /// </param>
 /// <param name="FrameNode">
-/// Whether the view is centred on the posed code block rather than on the whole graph
+/// Whether the view is centerd on the posed code block rather than on the whole graph
 /// (`E11-T22`). A block being edited is inflated to hold its editor, so framing the graph frames
 /// bounds that include it and pushes the thing under test off the edge.
 /// </param>

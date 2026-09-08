@@ -90,7 +90,7 @@ internal sealed class MeshAccumulator
     }
 
     /// <summary>
-    /// Adds a regular octahedron centred on a point. This is Spark's point marker: eight flat
+    /// Adds a regular octahedron centerd on a point. This is Spark's point marker: eight flat
     /// faces, twenty-four vertices, and a silhouette that reads as a dot from any direction.
     /// </summary>
     /// <remarks>
@@ -99,14 +99,14 @@ internal sealed class MeshAccumulator
     /// renderer's mesh path has no per-vertex orientation to hang that on. A small solid is
     /// view-independent, needs no shader work, and is visible from every angle.
     /// </remarks>
-    internal void AddOctahedron(Vector3 centre, float radius)
+    internal void AddOctahedron(Vector3 center, float radius)
     {
-        Vector3 px = centre + new Vector3(radius, 0, 0);
-        Vector3 nx = centre - new Vector3(radius, 0, 0);
-        Vector3 py = centre + new Vector3(0, radius, 0);
-        Vector3 ny = centre - new Vector3(0, radius, 0);
-        Vector3 pz = centre + new Vector3(0, 0, radius);
-        Vector3 nz = centre - new Vector3(0, 0, radius);
+        Vector3 px = center + new Vector3(radius, 0, 0);
+        Vector3 nx = center - new Vector3(radius, 0, 0);
+        Vector3 py = center + new Vector3(0, radius, 0);
+        Vector3 ny = center - new Vector3(0, radius, 0);
+        Vector3 pz = center + new Vector3(0, 0, radius);
+        Vector3 nz = center - new Vector3(0, 0, radius);
 
         AddTriangle(px, py, pz);
         AddTriangle(py, nx, pz);

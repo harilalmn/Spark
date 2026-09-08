@@ -149,11 +149,11 @@ public sealed class CurveClosestPointTests
     }
 
     /// <summary>
-    /// A circle's centre is equidistant from every point on it, so any answer is correct — and the
+    /// A circle's center is equidistant from every point on it, so any answer is correct — and the
     /// search must return one of them rather than diverging or throwing.
     /// </summary>
     [Fact]
-    public void TheCentreOfACircleIsADegenerateCaseThatStillAnswers()
+    public void TheCenterOfACircleIsADegenerateCaseThatStillAnswers()
     {
         Circle circle = Circle.FromPlaneRadius(Plane.WorldXY, 4.0);
 

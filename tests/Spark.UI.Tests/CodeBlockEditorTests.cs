@@ -34,7 +34,7 @@ public sealed class CodeBlockEditorTests
 {
     private static readonly CodeSignatureCandidate[] Overloads =
     [
-        new("FromCentreNormalRadius", ["Point3d centre", "Vector3d normal", "double radius"], "Circle"),
+        new("FromCenterNormalRadius", ["Point3d center", "Vector3d normal", "double radius"], "Circle"),
         new("FromThreePoints", ["Point3d first", "Point3d second", "Point3d third"], "Circle"),
     ];
 
@@ -66,7 +66,7 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub(Members));
 
-        Type(editor, "return centre.");
+        Type(editor, "return center.");
 
         Assert.True(editor.IsCompletionOpen);
         Assert.Equal(4, editor.Candidates.Count);
@@ -93,7 +93,7 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub(Members));
 
-        Type(editor, "return centre.");
+        Type(editor, "return center.");
         Type(editor, "Di");
 
         Assert.True(editor.IsCompletionOpen);
@@ -106,7 +106,7 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub(Members));
 
-        Type(editor, "return centre.");
+        Type(editor, "return center.");
         Type(editor, "zzz");
 
         Assert.False(editor.IsCompletionOpen);
@@ -114,7 +114,7 @@ public sealed class CodeBlockEditorTests
 
     /// <summary>
     /// <b>Enter replaces what was typed rather than inserting after it.</b> Getting this wrong
-    /// gives <c>centre.DiDistanceTo</c>, which looks like a completion engine that does not
+    /// gives <c>center.DiDistanceTo</c>, which looks like a completion engine that does not
     /// understand its own list.
     /// </summary>
     [Fact]
@@ -122,11 +122,11 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub(Members));
 
-        Type(editor, "return centre.");
+        Type(editor, "return center.");
         Type(editor, "Di");
         Key(editor, Avalonia.Input.Key.Enter);
 
-        Assert.Equal("return centre.DistanceTo", editor.Text);
+        Assert.Equal("return center.DistanceTo", editor.Text);
         Assert.False(editor.IsCompletionOpen);
     });
 
@@ -136,11 +136,11 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub(Members));
 
-        Type(editor, "return centre.");
+        Type(editor, "return center.");
         Key(editor, Avalonia.Input.Key.Escape);
 
         Assert.False(editor.IsCompletionOpen);
-        Assert.Equal("return centre.", editor.Text);
+        Assert.Equal("return center.", editor.Text);
     });
 
     /// <summary>The arrow keys move the selection while the list is open.</summary>
@@ -149,7 +149,7 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub(Members));
 
-        Type(editor, "return centre.");
+        Type(editor, "return center.");
         Key(editor, Avalonia.Input.Key.Down);
 
         Assert.Equal("X", Selected(editor));
@@ -169,7 +169,7 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub([]));
 
-        Type(editor, "return centre.");
+        Type(editor, "return center.");
 
         Assert.False(editor.IsCompletionOpen);
     });
@@ -183,7 +183,7 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open();
 
-        Type(editor, "return centre.");
+        Type(editor, "return center.");
 
         Assert.False(editor.IsCompletionOpen);
     });
@@ -197,7 +197,7 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub(Members));
 
-        editor.Text = "return centre.";
+        editor.Text = "return center.";
 
         Assert.False(editor.IsCompletionOpen);
     });
@@ -333,7 +333,7 @@ public sealed class CodeBlockEditorTests
 
     /// <summary>
     /// <b>An open parenthesis says what the call wants</b> — `E6-T22`, and the defect it fixes is
-    /// that the only way to learn the parameters of <c>Circle.FromCentreNormalRadius</c> was to run
+    /// that the only way to learn the parameters of <c>Circle.FromCenterNormalRadius</c> was to run
     /// the graph and read the compiler error.
     /// </summary>
     [Fact]
@@ -341,10 +341,10 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub([]), Signatures());
 
-        Type(editor, "var c = Circle.FromCentreNormalRadius(");
+        Type(editor, "var c = Circle.FromCenterNormalRadius(");
 
         Assert.True(editor.IsSignatureOpen);
-        Assert.Equal("FromCentreNormalRadius", editor.ActiveSignature?.Name);
+        Assert.Equal("FromCenterNormalRadius", editor.ActiveSignature?.Name);
         Assert.Equal(0, editor.ActiveParameter);
     });
 
@@ -354,7 +354,7 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub([]), Signatures(activeParameter: 2));
 
-        Type(editor, "var c = Circle.FromCentreNormalRadius(a, b,");
+        Type(editor, "var c = Circle.FromCenterNormalRadius(a, b,");
 
         Assert.True(editor.IsSignatureOpen);
         Assert.Equal(2, editor.ActiveParameter);
@@ -369,7 +369,7 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub([]), Signatures());
 
-        Type(editor, "var c = Circle.FromCentreNormalRadius(");
+        Type(editor, "var c = Circle.FromCenterNormalRadius(");
 
         Assert.Equal(2, editor.SignatureCount);
 
@@ -379,7 +379,7 @@ public sealed class CodeBlockEditorTests
 
         Key(editor, Avalonia.Input.Key.Down, KeyModifiers.Alt);
 
-        Assert.Equal("FromCentreNormalRadius", editor.ActiveSignature?.Name);
+        Assert.Equal("FromCenterNormalRadius", editor.ActiveSignature?.Name);
     });
 
     /// <summary>
@@ -396,7 +396,7 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub([]), Signatures());
 
-        Type(editor, "var c = Circle.FromCentreNormalRadius(");
+        Type(editor, "var c = Circle.FromCenterNormalRadius(");
 
         Assert.Equal(2, editor.SignatureCount);
 
@@ -406,7 +406,7 @@ public sealed class CodeBlockEditorTests
 
         Key(editor, Avalonia.Input.Key.Up, KeyModifiers.None);
 
-        Assert.Equal("FromCentreNormalRadius", editor.ActiveSignature?.Name);
+        Assert.Equal("FromCenterNormalRadius", editor.ActiveSignature?.Name);
     });
 
     /// <summary>
@@ -443,7 +443,7 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub([]), Signatures());
 
-        Type(editor, "var c = Circle.FromCentreNormalRadius(");
+        Type(editor, "var c = Circle.FromCenterNormalRadius(");
 
         Assert.Equal(2, editor.SignatureCount);
         Assert.True(Claimed(editor, Avalonia.Input.Key.Down), "the arrow was not claimed");
@@ -455,11 +455,11 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub([]), Signatures());
 
-        Type(editor, "var c = Circle.FromCentreNormalRadius(");
+        Type(editor, "var c = Circle.FromCenterNormalRadius(");
         Key(editor, Avalonia.Input.Key.Escape);
 
         Assert.False(editor.IsSignatureOpen);
-        Assert.Equal("var c = Circle.FromCentreNormalRadius(", editor.Text);
+        Assert.Equal("var c = Circle.FromCenterNormalRadius(", editor.Text);
     });
 
     /// <summary>
@@ -477,7 +477,7 @@ public sealed class CodeBlockEditorTests
             (_, _, _) => Task.FromResult<CodeSignatureInfo?>(
                 inside ? new CodeSignatureInfo(Overloads, 0, 0) : null));
 
-        Type(editor, "var c = Circle.FromCentreNormalRadius(");
+        Type(editor, "var c = Circle.FromCenterNormalRadius(");
 
         Assert.True(editor.IsSignatureOpen);
 
@@ -493,7 +493,7 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub([]));
 
-        Type(editor, "var c = Circle.FromCentreNormalRadius(");
+        Type(editor, "var c = Circle.FromCenterNormalRadius(");
 
         Assert.False(editor.IsSignatureOpen);
     });
@@ -543,7 +543,7 @@ public sealed class CodeBlockEditorTests
     {
         (Window window, CodeBlockEditor editor) = Open(Stub(Members), Signatures());
 
-        editor.Text = "var a = 1;\nvar b = 2;\nvar c = Circle.FromCentreNormalRadius(";
+        editor.Text = "var a = 1;\nvar b = 2;\nvar c = Circle.FromCenterNormalRadius(";
         Layout(window);
 
         Pump(editor.RequestSignatureAsync());

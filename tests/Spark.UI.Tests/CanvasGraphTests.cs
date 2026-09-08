@@ -34,15 +34,15 @@ public sealed class CanvasGraphTests
         int slot = graph.Add(TestGraphs.Library.ByName("Math.Add"), 100, 50);
         CanvasNode node = graph.Nodes[slot];
 
-        node.InputPortCentre(0, out double inputX, out double inputY);
-        node.OutputPortCentre(0, out double outputX, out double outputY);
+        node.InputPortCenter(0, out double inputX, out double inputY);
+        node.OutputPortCenter(0, out double outputX, out double outputY);
 
         Assert.Equal(100, inputX);
         Assert.Equal(100 + node.Width, outputX);
         Assert.Equal(inputY, outputY);
         Assert.Equal(50 + CanvasNode.HeaderHeight + (CanvasNode.PortPitch * 0.5), inputY);
 
-        node.InputPortCentre(1, out _, out double secondY);
+        node.InputPortCenter(1, out _, out double secondY);
         Assert.Equal(inputY + CanvasNode.PortPitch, secondY);
     }
 
@@ -424,7 +424,7 @@ public sealed class CanvasGraphTests
 
         Assert.DoesNotContain(reopened.Nodes, node => node.State.HasFlag(CanvasNodeState.Error));
         SparkList circles = Assert.IsType<SparkList>(
-            result.Value(Node(reopened, "Circle.FromCentreRadius").Id));
+            result.Value(Node(reopened, "Circle.FromCenterRadius").Id));
         Assert.Equal(8, circles.Count);
     }
 
@@ -458,8 +458,8 @@ public sealed class CanvasGraphTests
         Assert.Equal(6.0, ellipse.XRadius);
         Assert.Equal(2.0, ellipse.YRadius);
 
-        // One node, eight circles: replication over the list of centres, producing curves.
-        SparkList circles = Assert.IsType<SparkList>(result.Value(Node(graph, "Circle.FromCentreRadius").Id));
+        // One node, eight circles: replication over the list of centers, producing curves.
+        SparkList circles = Assert.IsType<SparkList>(result.Value(Node(graph, "Circle.FromCenterRadius").Id));
         Assert.Equal(8, circles.Count);
         Assert.IsType<Spark.Geometry.Circle>(circles[0]);
 
@@ -634,8 +634,8 @@ public sealed class CanvasGraphTests
     /// A port carries the type it wants, taken from the real definition and phrased for a reader.
     /// </summary>
     /// <remarks>
-    /// This is the seam the canvas draws from. <c>Circle.FromCentreRadius</c> is the node that
-    /// prompted it: a port called <c>centre</c> gave a user no way to know a <c>Point3d</c> was
+    /// This is the seam the canvas draws from. <c>Circle.FromCenterRadius</c> is the node that
+    /// prompted it: a port called <c>center</c> gave a user no way to know a <c>Point3d</c> was
     /// wanted, and the two places that would have said so — the library signature and the
     /// wire-drag preview — are both somewhere other than the node.
     /// </remarks>
@@ -643,11 +643,11 @@ public sealed class CanvasGraphTests
     public void APortCarriesTheTypeItWants()
     {
         CanvasGraph graph = new();
-        graph.Add(TestGraphs.Library.ByName("Circle.FromCentreRadius"), 0, 0);
+        graph.Add(TestGraphs.Library.ByName("Circle.FromCenterRadius"), 0, 0);
 
-        CanvasNode circle = Node(graph, "Circle.FromCentreRadius");
+        CanvasNode circle = Node(graph, "Circle.FromCenterRadius");
 
-        Assert.Equal("centre", circle.Inputs[0].Name);
+        Assert.Equal("center", circle.Inputs[0].Name);
         Assert.Equal("Point3d", circle.Inputs[0].TypeName);
         Assert.Equal("radius", circle.Inputs[1].Name);
         Assert.Equal("number", circle.Inputs[1].TypeName);

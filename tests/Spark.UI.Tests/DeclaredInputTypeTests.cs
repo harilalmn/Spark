@@ -34,11 +34,11 @@ public sealed class DeclaredInputTypeTests
     [Fact]
     public void ADeclaredTypeReachesAnUnwiredPort()
     {
-        (CanvasGraph graph, NodeId block) = Block("return centre;");
+        (CanvasGraph graph, NodeId block) = Block("return center;");
 
         Assert.Equal(typeof(object), PortType(graph, block));
 
-        Assert.True(graph.SetDeclaredInputType(graph.SlotOf(block), "centre", typeof(Point3d)));
+        Assert.True(graph.SetDeclaredInputType(graph.SlotOf(block), "center", typeof(Point3d)));
 
         Assert.Equal(typeof(Point3d), PortType(graph, block));
     }
@@ -56,9 +56,9 @@ public sealed class DeclaredInputTypeTests
     [Fact]
     public void ADeclaredTypeReachesABlockThatUsesItsMembers()
     {
-        (CanvasGraph graph, NodeId block) = Block("return centre.X;");
+        (CanvasGraph graph, NodeId block) = Block("return center.X;");
 
-        Assert.True(graph.SetDeclaredInputType(graph.SlotOf(block), "centre", typeof(Point3d)));
+        Assert.True(graph.SetDeclaredInputType(graph.SlotOf(block), "center", typeof(Point3d)));
 
         Assert.Equal(typeof(Point3d), PortType(graph, block));
         Assert.Single(graph.Engine.Node(block).Definition.Outputs);
@@ -71,13 +71,13 @@ public sealed class DeclaredInputTypeTests
     [Fact]
     public void ADeclarationBeatsTheWire()
     {
-        (CanvasGraph graph, NodeId block) = Block("return centre;");
+        (CanvasGraph graph, NodeId block) = Block("return center;");
         NodeId point = AddPoint(graph);
 
         Assert.True(Connect(graph, point, 0, block, 0));
         Assert.Equal(typeof(Point3d), PortType(graph, block));
 
-        Assert.True(graph.SetDeclaredInputType(graph.SlotOf(block), "centre", typeof(object)));
+        Assert.True(graph.SetDeclaredInputType(graph.SlotOf(block), "center", typeof(object)));
 
         Assert.Equal(typeof(object), PortType(graph, block));
     }
@@ -86,14 +86,14 @@ public sealed class DeclaredInputTypeTests
     [Fact]
     public void ClearingADeclarationGoesBackToTheWire()
     {
-        (CanvasGraph graph, NodeId block) = Block("return centre;");
+        (CanvasGraph graph, NodeId block) = Block("return center;");
         NodeId point = AddPoint(graph);
 
         Assert.True(Connect(graph, point, 0, block, 0));
-        Assert.True(graph.SetDeclaredInputType(graph.SlotOf(block), "centre", typeof(object)));
+        Assert.True(graph.SetDeclaredInputType(graph.SlotOf(block), "center", typeof(object)));
         Assert.Equal(typeof(object), PortType(graph, block));
 
-        Assert.True(graph.SetDeclaredInputType(graph.SlotOf(block), "centre", type: null));
+        Assert.True(graph.SetDeclaredInputType(graph.SlotOf(block), "center", type: null));
 
         Assert.Equal(typeof(Point3d), PortType(graph, block));
     }
@@ -106,12 +106,12 @@ public sealed class DeclaredInputTypeTests
     [Fact]
     public void ADeclarationSurvivesAnEditToTheScript()
     {
-        (CanvasGraph graph, NodeId block) = Block("return centre;");
+        (CanvasGraph graph, NodeId block) = Block("return center;");
 
-        Assert.True(graph.SetDeclaredInputType(graph.SlotOf(block), "centre", typeof(Point3d)));
+        Assert.True(graph.SetDeclaredInputType(graph.SlotOf(block), "center", typeof(Point3d)));
 
         CanvasNode node = graph.Nodes[graph.SlotOf(block)];
-        const string Edited = "var offset = 1.0; return centre.X + offset;";
+        const string Edited = "var offset = 1.0; return center.X + offset;";
 
         Assert.True(graph.ReplaceDefinition(
             node,
@@ -130,7 +130,7 @@ public sealed class DeclaredInputTypeTests
     [Fact]
     public void ADeclarationForAPortThatIsNotThereIsKeptButNotApplied()
     {
-        (CanvasGraph graph, NodeId block) = Block("return centre;");
+        (CanvasGraph graph, NodeId block) = Block("return center;");
 
         graph.Engine.SetDeclaredInputType(block, "radius", typeof(double));
 
@@ -142,10 +142,10 @@ public sealed class DeclaredInputTypeTests
     [Fact]
     public void DeclaringTheSameTypeTwiceRebuildsNothing()
     {
-        (CanvasGraph graph, NodeId block) = Block("return centre;");
+        (CanvasGraph graph, NodeId block) = Block("return center;");
 
-        Assert.True(graph.SetDeclaredInputType(graph.SlotOf(block), "centre", typeof(Point3d)));
-        Assert.False(graph.SetDeclaredInputType(graph.SlotOf(block), "centre", typeof(Point3d)));
+        Assert.True(graph.SetDeclaredInputType(graph.SlotOf(block), "center", typeof(Point3d)));
+        Assert.False(graph.SetDeclaredInputType(graph.SlotOf(block), "center", typeof(Point3d)));
     }
 
     /// <summary>Every token in the catalogue resolves, and round-trips back to itself.</summary>

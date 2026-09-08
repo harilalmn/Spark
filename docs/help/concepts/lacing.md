@@ -25,7 +25,7 @@ it raises carries a help topic.
 You get ten circles.
 
 This is the single most important thing to know about Spark, and it is the thing that
-makes a node graph worth using at all. A node like `Circle.ByCenterRadius` was written to
+makes a node graph worth using at all. A node like `Circle.FromCenterRadius` was written to
 take **one** point and **one** number. You gave it a list of ten points and one number.
 Rather than complaining, Spark ran the node ten times — once per point, reusing the same
 radius each time — and handed you a list of ten circles.
@@ -499,12 +499,12 @@ left to the implementation, because an undefined case is what ships as a bug.
 
 ## 3. Worked examples
 
-The same two inputs, three modes. Four centre points, two radii.
+The same two inputs, three modes. Four center points, two radii.
 
 ```text
 centers = [ A, B, C, D ]        radii = [ 1, 5 ]
 
-Circle.ByCenterRadius(Point center, double radius)
+Circle.FromCenterRadius(Point center, double radius)
    declared ranks:  center = 0,  radius = 0
    supplied ranks:  center = 1,  radius = 1
    excess:          center = +1, radius = +1     →  both replicate,  depth = 1
@@ -667,7 +667,7 @@ the table, not a claim made about it.
 | `null` | A null value. Rank 0. Not a list, not an empty list. |
 | `A`, `B`, `C`, `D` | Distinct `Point3d` values. |
 | `p(x,y,z)` | The point with those coordinates. |
-| `c(P,r)` | The circle with centre `P` and radius `r`. |
+| `c(P,r)` | The circle with center `P` and radius `r`. |
 | `S`, `S1`, `S2` | Opaque settings values. |
 | `—` | No output. The node errored; the port carries nothing. |
 | `E:CODE` | The node reports an Error with that diagnostic code. No output. |
@@ -694,7 +694,7 @@ Total2d(IReadOnlyList<IReadOnlyList<double>> rows)
 Range(double n) -> IReadOnlyList<double>  // 0 .. n-1     0       -> 1        Longest
 Point.FromCoordinates(double x, double y, double z)
         -> Point                                         0,0,0   -> 0        Longest
-Circle.ByCenterRadius(Point center, double radius)
+Circle.FromCenterRadius(Point center, double radius)
         -> Circle                                        0,0     -> 0        Longest
 Grid.ByXY(double x, double y) -> Point                   0,0     -> 0        CrossProduct
 Bounds(IReadOnlyList<double> xs)
@@ -798,8 +798,8 @@ All use `Add(double a, double b)` with both ports declared rank 0.
 | 51 | `[ReplicationGuide]` reverses the nesting order: b outer, a inner | `Add` | a:0 guide 2, b:0 guide 1 | a=`[1,2]`, b=`[10,20]` | CrossProduct | `[[11,12],[21,22]]` | 2 | — |
 | 52 | Duplicate guides on two replicating ports are refused | `Add` | a:0 guide 1, b:0 guide 1 | a=`[1,2]`, b=`[10,20]` | CrossProduct | `—` | — | `E:SPK1044` |
 | 53 | **Cross Product compounds through recursion**: k=2 outer plus one inner level | `Add` | a:0, b:0 | a=`[[1,2],[3,4]]`, b=`[10,20]` | CrossProduct | `[[[11,12],[21,22]],[[13,14],[23,24]]]` | 3 | — |
-| 54 | The headline geometry case: centres × radii is a grid, not a flat list | `Circle.ByCenterRadius` | center:0, radius:0 | center=`[A,B]`, radius=`[1,5]` | CrossProduct | `[[c(A,1),c(A,5)],[c(B,1),c(B,5)]]` | 2 | — |
-| 55 | The same inputs under Longest — 2 circles, rank 1, not 4 | `Circle.ByCenterRadius` | center:0, radius:0 | center=`[A,B]`, radius=`[1,5]` | Longest | `[c(A,1),c(B,5)]` | 1 | — |
+| 54 | The headline geometry case: centers × radii is a grid, not a flat list | `Circle.FromCenterRadius` | center:0, radius:0 | center=`[A,B]`, radius=`[1,5]` | CrossProduct | `[[c(A,1),c(A,5)],[c(B,1),c(B,5)]]` | 2 | — |
+| 55 | The same inputs under Longest — 2 circles, rank 1, not 4 | `Circle.FromCenterRadius` | center:0, radius:0 | center=`[A,B]`, radius=`[1,5]` | Longest | `[c(A,1),c(B,5)]` | 1 | — |
 | 56 | Cross Product where one input has excess 0 — it is not a dimension | `Add` | a:0, b:0 | a=`[1,2]`, b=`10` | CrossProduct | `[11,12]` | 1 | — |
 
 ### Group F — ragged nesting

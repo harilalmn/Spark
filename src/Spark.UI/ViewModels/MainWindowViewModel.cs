@@ -1164,7 +1164,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <returns>The candidates, or nothing when there is no code block or no scripting.</returns>
     /// <remarks>
     /// <b>The ports come from the graph, which is the whole point.</b> The completion list is built
-    /// against the types the wires carry, so a port called <c>centre</c> with a point wired into it
+    /// against the types the wires carry, so a port called <c>center</c> with a point wired into it
     /// completes as a <c>Point3d</c> — and one with nothing wired into it completes as
     /// <c>dynamic</c>, because that is what the compiler will make of it.
     /// </remarks>
@@ -2045,7 +2045,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// </summary>
     /// <remarks>
     /// <b>The canvas renames live and the undo stack learns about it once.</b> Recording per
-    /// keystroke would put eleven steps on the stack for the word <i>centreline</i>; recording only
+    /// keystroke would put eleven steps on the stack for the word <i>centerline</i>; recording only
     /// on commit would leave the canvas showing the old name while the field showed the new one.
     /// So the model changes here and <see cref="CommitNodeTitle"/> is what the pane calls when the
     /// field is finished with.

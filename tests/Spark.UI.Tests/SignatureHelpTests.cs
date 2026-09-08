@@ -13,8 +13,8 @@ namespace Spark.UI.Tests;
 /// <remarks>
 /// <para>
 /// <b>The complaint this answers came from the running application.</b> Typing
-/// <c>Circle.FromCentreNormalRadius(</c> said nothing at all, so the only way to learn that it wants
-/// a centre, a normal and a radius — in that order — was to finish the line, run the graph and
+/// <c>Circle.FromCenterNormalRadius(</c> said nothing at all, so the only way to learn that it wants
+/// a center, a normal and a radius — in that order — was to finish the line, run the graph and
 /// read <c>SPK1046</c>. A compiler is already in the process; not telling the user what it knows
 /// is the defect.
 /// </para>
@@ -36,7 +36,7 @@ public sealed class SignatureHelpTests
     {
         using ScriptCompletion completion = new([typeof(Point3d).Assembly]);
 
-        const string Snippet = "var c = Circle.FromCentreNormalRadius(";
+        const string Snippet = "var c = Circle.FromCenterNormalRadius(";
 
         ScriptSignatureHelp? help = await completion.SignatureAsync(
             Snippet, Snippet.Length, null, TestContext.Current.CancellationToken);
@@ -45,9 +45,9 @@ public sealed class SignatureHelpTests
 
         ScriptSignatureItem active = help.Value.Signatures[help.Value.ActiveSignature];
 
-        Assert.Equal("FromCentreNormalRadius", active.Name);
+        Assert.Equal("FromCenterNormalRadius", active.Name);
         Assert.Equal(3, active.Parameters.Count);
-        Assert.Contains("centre", active.Parameters[0]);
+        Assert.Contains("center", active.Parameters[0]);
         Assert.Contains("Point3d", active.Parameters[0]);
         Assert.Equal("Circle", active.ReturnType);
         Assert.Equal(0, help.Value.ActiveParameter);
@@ -62,7 +62,7 @@ public sealed class SignatureHelpTests
     {
         using ScriptCompletion completion = new([typeof(Point3d).Assembly]);
 
-        const string Snippet = "var c = Circle.FromCentreNormalRadius(a, b, ";
+        const string Snippet = "var c = Circle.FromCenterNormalRadius(a, b, ";
 
         ScriptSignatureHelp? help = await completion.SignatureAsync(
             Snippet, Snippet.Length, null, TestContext.Current.CancellationToken);
@@ -92,7 +92,7 @@ public sealed class SignatureHelpTests
 
     /// <summary>
     /// <b>Signature help follows the wires too.</b> Nothing in the snippet says what
-    /// <c>centre</c> is; the graph does, and the parameters of <c>centre.DistanceTo(</c> come from
+    /// <c>center</c> is; the graph does, and the parameters of <c>center.DistanceTo(</c> come from
     /// the wire — the same claim `E6-T7` makes for the completion list.
     /// </summary>
     [Fact]
@@ -100,12 +100,12 @@ public sealed class SignatureHelpTests
     {
         using ScriptCompletion completion = new([typeof(Point3d).Assembly]);
 
-        const string Snippet = "return centre.DistanceTo(";
+        const string Snippet = "return center.DistanceTo(";
 
         ScriptSignatureHelp? help = await completion.SignatureAsync(
             Snippet,
             Snippet.Length,
-            new Dictionary<string, Type?> { ["centre"] = typeof(Point3d) },
+            new Dictionary<string, Type?> { ["center"] = typeof(Point3d) },
             TestContext.Current.CancellationToken);
 
         Assert.NotNull(help);
@@ -123,12 +123,12 @@ public sealed class SignatureHelpTests
     {
         using ScriptCompletion completion = new([typeof(Point3d).Assembly]);
 
-        const string Snippet = "return centre.DistanceTo(";
+        const string Snippet = "return center.DistanceTo(";
 
         ScriptSignatureHelp? help = await completion.SignatureAsync(
             Snippet,
             Snippet.Length,
-            new Dictionary<string, Type?> { ["centre"] = null },
+            new Dictionary<string, Type?> { ["center"] = null },
             TestContext.Current.CancellationToken);
 
         Assert.Null(help);

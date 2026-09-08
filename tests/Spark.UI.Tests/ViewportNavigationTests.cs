@@ -36,7 +36,7 @@ public sealed class ViewportNavigationTests
 
         float before = viewport.Camera.Distance;
 
-        window.MouseWheel(Centre, new Avalonia.Vector(0, 1), RawInputModifiers.None);
+        window.MouseWheel(Center, new Avalonia.Vector(0, 1), RawInputModifiers.None);
 
         Assert.True(
             viewport.Camera.Distance < before,
@@ -53,7 +53,7 @@ public sealed class ViewportNavigationTests
 
         float before = viewport.Camera.Distance;
 
-        window.MouseWheel(Centre, new Avalonia.Vector(0, -1), RawInputModifiers.None);
+        window.MouseWheel(Center, new Avalonia.Vector(0, -1), RawInputModifiers.None);
 
         Assert.True(viewport.Camera.Distance > before);
 
@@ -68,9 +68,9 @@ public sealed class ViewportNavigationTests
 
         Vector3 before = viewport.Camera.Target;
 
-        window.MouseDown(Centre, MouseButton.Middle);
-        window.MouseMove(Centre + new Point(60, 25), RawInputModifiers.None);
-        window.MouseUp(Centre + new Point(60, 25), MouseButton.Middle);
+        window.MouseDown(Center, MouseButton.Middle);
+        window.MouseMove(Center + new Point(60, 25), RawInputModifiers.None);
+        window.MouseUp(Center + new Point(60, 25), MouseButton.Middle);
 
         Assert.True(
             viewport.Camera.Target != before,
@@ -87,9 +87,9 @@ public sealed class ViewportNavigationTests
 
         Vector3 before = viewport.Camera.Position;
 
-        window.MouseDown(Centre, MouseButton.Right);
-        window.MouseMove(Centre + new Point(80, 0), RawInputModifiers.None);
-        window.MouseUp(Centre + new Point(80, 0), MouseButton.Right);
+        window.MouseDown(Center, MouseButton.Right);
+        window.MouseMove(Center + new Point(80, 0), RawInputModifiers.None);
+        window.MouseUp(Center + new Point(80, 0), MouseButton.Right);
 
         Assert.True(
             viewport.Camera.Position != before,
@@ -110,9 +110,9 @@ public sealed class ViewportNavigationTests
 
         Vector3 before = viewport.Camera.Position;
 
-        window.MouseDown(Centre, MouseButton.Middle, RawInputModifiers.Shift);
-        window.MouseMove(Centre + new Point(80, 0), RawInputModifiers.Shift);
-        window.MouseUp(Centre + new Point(80, 0), MouseButton.Middle, RawInputModifiers.Shift);
+        window.MouseDown(Center, MouseButton.Middle, RawInputModifiers.Shift);
+        window.MouseMove(Center + new Point(80, 0), RawInputModifiers.Shift);
+        window.MouseUp(Center + new Point(80, 0), MouseButton.Middle, RawInputModifiers.Shift);
 
         Assert.True(
             viewport.Camera.Position != before,
@@ -139,12 +139,12 @@ public sealed class ViewportNavigationTests
         // other side.
         window.CaptureRenderedFrame();
 
-        Assert.Same(viewport, window.InputHitTest(Centre));
+        Assert.Same(viewport, window.InputHitTest(Center));
 
         window.Close();
     });
 
-    private static Point Centre => new(400, 300);
+    private static Point Center => new(400, 300);
 
     private static (Window Window, ViewportControl Viewport) Open()
     {

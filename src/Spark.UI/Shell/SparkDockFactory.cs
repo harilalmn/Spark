@@ -47,7 +47,7 @@ public sealed class SparkDockFactory : Factory
     private readonly Dictionary<WorkspacePane, Tool> _tools = [];
     private readonly Dictionary<WorkspacePane, ToolDock> _docks = [];
     private ProportionalDock? _columns;
-    private ProportionalDock? _centre;
+    private ProportionalDock? _center;
     private RootDock? _root;
 
     /// <summary>
@@ -81,13 +81,13 @@ public sealed class SparkDockFactory : Factory
         _tools.Clear();
         _docks.Clear();
 
-        _centre = Column(
+        _center = Column(
             Pane(WorkspacePane.Canvas, "Canvas", content),
             Pane(WorkspacePane.Viewport, "Viewport", content));
 
         _columns = Row(
             Pane(WorkspacePane.Library, "Library", content),
-            _centre,
+            _center,
             Pane(WorkspacePane.Inspector, "Properties", content));
 
         _root = new RootDock
@@ -174,7 +174,7 @@ public sealed class SparkDockFactory : Factory
     {
         ArgumentNullException.ThrowIfNull(layout);
 
-        if (_root is null || _centre is null)
+        if (_root is null || _center is null)
         {
             throw new InvalidOperationException("Build the layout before applying a workspace to it.");
         }
@@ -184,7 +184,7 @@ public sealed class SparkDockFactory : Factory
             SetPaneVisible(_docks[pane], tool, layout.IsVisible(pane));
         }
 
-        // The centre takes whatever the two side panes are not using. Asking for 0.16 and 0.20 of
+        // The center takes whatever the two side panes are not using. Asking for 0.16 and 0.20 of
         // a window that is only showing the canvas would leave the canvas at 0.64 of it and two
         // thirds of the shell empty.
         double library = layout.IsVisible(WorkspacePane.Library) ? layout.LibraryFraction : 0;
@@ -192,7 +192,7 @@ public sealed class SparkDockFactory : Factory
 
         SetProportion(WorkspacePane.Library, library);
         SetProportion(WorkspacePane.Inspector, inspector);
-        _centre.Proportion = Math.Max(0, 1 - library - inspector);
+        _center.Proportion = Math.Max(0, 1 - library - inspector);
 
         // Same again down the middle: with the viewport hidden, a canvas still asking for 0.55
         // would leave the bottom half of the column empty rather than give the canvas the room.

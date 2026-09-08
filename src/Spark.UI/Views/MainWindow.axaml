@@ -168,11 +168,11 @@
           -->
           <MenuItem Header="_Align" x:Name="AlignButton">
             <MenuItem Header="Align left" Click="OnAlign" Tag="Left" />
-            <MenuItem Header="Align centres" Click="OnAlign" Tag="HorizontalCentres" />
+            <MenuItem Header="Align centers" Click="OnAlign" Tag="HorizontalCenters" />
             <MenuItem Header="Align right" Click="OnAlign" Tag="Right" />
             <Separator />
             <MenuItem Header="Align top" Click="OnAlign" Tag="Top" />
-            <MenuItem Header="Align middles" Click="OnAlign" Tag="VerticalCentres" />
+            <MenuItem Header="Align middles" Click="OnAlign" Tag="VerticalCenters" />
             <MenuItem Header="Align bottom" Click="OnAlign" Tag="Bottom" />
             <Separator />
             <MenuItem Header="Distribute horizontally" Click="OnAlign"

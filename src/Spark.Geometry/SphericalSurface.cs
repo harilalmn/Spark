@@ -34,22 +34,22 @@ public sealed class SphericalSurface : Surface
     private readonly Interval _domainV;
 
     /// <summary>Creates a whole sphere.</summary>
-    /// <param name="centre">The centre, and the frame the parameterisation is measured in.</param>
+    /// <param name="center">The center, and the frame the parameterisation is measured in.</param>
     /// <param name="radius">The radius.</param>
     /// <exception cref="ArgumentOutOfRangeException">The radius is not finite and positive.</exception>
-    public SphericalSurface(in Plane centre, double radius)
-        : this(centre, radius, new Interval(0.0, 2.0 * Math.PI), new Interval(-Math.PI / 2.0, Math.PI / 2.0))
+    public SphericalSurface(in Plane center, double radius)
+        : this(center, radius, new Interval(0.0, 2.0 * Math.PI), new Interval(-Math.PI / 2.0, Math.PI / 2.0))
     {
     }
 
     /// <summary>Creates a patch of a sphere.</summary>
-    /// <param name="centre">The centre, and the frame the parameterisation is measured in.</param>
+    /// <param name="center">The center, and the frame the parameterisation is measured in.</param>
     /// <param name="radius">The radius.</param>
     /// <param name="domainU">The range of longitude, in radians.</param>
     /// <param name="domainV">The range of latitude, in radians, within [−π/2, π/2].</param>
     /// <exception cref="ArgumentOutOfRangeException">The radius is not finite and positive.</exception>
     /// <exception cref="ArgumentException">A domain is empty, or the latitude leaves the poles.</exception>
-    public SphericalSurface(in Plane centre, double radius, in Interval domainU, in Interval domainV)
+    public SphericalSurface(in Plane center, double radius, in Interval domainU, in Interval domainV)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(radius);
 
@@ -58,7 +58,7 @@ public sealed class SphericalSurface : Surface
             throw new ArgumentOutOfRangeException(nameof(radius), radius, "A radius must be finite.");
         }
 
-        _frame = centre;
+        _frame = center;
         _radius = radius;
         _domainU = SurfaceDomain.Nonempty(domainU, nameof(domainU));
         _domainV = SurfaceDomain.Nonempty(domainV, nameof(domainV));
@@ -72,14 +72,14 @@ public sealed class SphericalSurface : Surface
         }
     }
 
-    /// <summary>The centre, and the frame longitude and latitude are measured in.</summary>
+    /// <summary>The center, and the frame longitude and latitude are measured in.</summary>
     public Plane Frame => _frame;
 
     /// <summary>The radius.</summary>
     public double Radius => _radius;
 
-    /// <summary>The centre of the sphere.</summary>
-    public Point3d Centre => _frame.Origin;
+    /// <summary>The center of the sphere.</summary>
+    public Point3d Center => _frame.Origin;
 
     /// <inheritdoc/>
     public override Interval DomainU => _domainU;

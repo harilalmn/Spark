@@ -35,7 +35,7 @@ canvas colours node headers by — and then splits each category three ways:
 
 | | | |
 |---|---|---|
-| **Create** | green `+` | Makes a new thing out of values that are not one. `Circle.FromCentreRadius`, `Vector.ZAxis`, `Number.Value`. |
+| **Create** | green `+` | Makes a new thing out of values that are not one. `Circle.FromCenterRadius`, `Vector.ZAxis`, `Number.Value`. |
 | **Action** | amber bolt | Takes one of these and produces another. `Curve.Reverse`, `Solid.Union`, `Math.Divide`. |
 | **Query** | blue `?` | Reports something about one without producing another. `Curve.Length`, `Solid.IsClosed`, `List.Count`. |
 
@@ -54,8 +54,8 @@ Typing in either box ranks the whole library rather than narrowing it, in this o
 | Rank | Matches when | `circle` finds |
 |---|---|---|
 | Exact | The name, or the part after the dot, *is* what you typed | `Math.Sin` for `sin` |
-| Prefix | The name starts with it — or the part after the dot does, one step behind | `Circle.FromCentreRadius` |
-| Camel-hump | You typed the **capitals** | `cfcr` → `Circle.FromCentreRadius` |
+| Prefix | The name starts with it — or the part after the dot does, one step behind | `Circle.FromCenterRadius` |
+| Camel-hump | You typed the **capitals** | `cfcr` → `Circle.FromCenterRadius` |
 | Substring | It appears anywhere in the name | `Arc.ByCircleAndPoint` |
 | Category | It appears in the node's category | every geometry node, for `geometry` |
 | Description | It appears in the node's description | nodes that merely mention a circle |
@@ -73,7 +73,7 @@ searching would bury the node you named.
 
 **Camel-hump is the one worth learning.** With fifty-seven nodes you can skim; with a few thousand,
 which is what installing packages does, you cannot. `pfc` gets you `Point.FromCoordinates`, `cfcr`
-gets you `Circle.FromCentreRadius`, `bbc` gets you `BoundingBox.FromCorners`.
+gets you `Circle.FromCenterRadius`, `bbc` gets you `BoundingBox.FromCorners`.
 
 ## A worked example
 
@@ -82,21 +82,21 @@ Open Spark on the demo graph.
 1. **Right-click an empty part of the canvas**, somewhere below the existing nodes. A box appears
    under the pointer with a text field and the hint *Enter places it here · Esc cancels*.
 
-2. **Type `cfcr`.** One result: `Circle.FromCentreRadius`, showing its signature
-   `(centre, radius) → circle`. It is already highlighted, so there is nothing to click.
+2. **Type `cfcr`.** One result: `Circle.FromCenterRadius`, showing its signature
+   `(center, radius) → circle`. It is already highlighted, so there is nothing to click.
 
 3. **Press Enter.** The node lands exactly where you double-clicked — not in the middle of the
    view, not offset from the pointer — and is selected, with the keyboard back on the canvas ready
    for the next gesture.
 
-4. **Look at its ports.** `centre  Point3d` and `radius  number`: the node tells you what to plug
+4. **Look at its ports.** `center  Point3d` and `radius  number`: the node tells you what to plug
    in, which is the other half of not having to search for anything.
 
 5. **Press `Ctrl+Z`.** The node goes away, and the Undo tooltip had read *Undo Add
-   Circle.FromCentreRadius* before you pressed it.
+   Circle.FromCenterRadius* before you pressed it.
 
-Try `circle` instead of `cfcr` and the list is longer: `Circle.FromCentreNormalRadius`,
-`Circle.FromCentreRadius`, `Circle.FromPlaneRadius`, `Circle.FromThreePoints`, and then
+Try `circle` instead of `cfcr` and the list is longer: `Circle.FromCenterNormalRadius`,
+`Circle.FromCenterRadius`, `Circle.FromPlaneRadius`, `Circle.FromThreePoints`, and then
 `PolyLine.FromRegularPolygon`. The four `Circle` nodes match equally well and are all **Create**, so
 they come out alphabetically; `PolyLine.FromRegularPolygon` is a Create too and still sorts last,
 because it matches the word less well. Use the arrow keys to move the highlight without leaving the

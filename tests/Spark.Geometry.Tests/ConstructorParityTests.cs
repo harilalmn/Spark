@@ -12,7 +12,7 @@ namespace Spark.Geometry.Tests;
 /// <para>
 /// <b>Asked for by the client, in these words: whatever constructors are available in the library,
 /// all those should be available in a code block too.</b> A code block is C#, and in C# the way
-/// one asks for a circle is <c>new Circle(centre, radius)</c>. The node library reaches its
+/// one asks for a circle is <c>new Circle(center, radius)</c>. The node library reaches its
 /// geometry through named factories, so before this row half the kernel could only be built the
 /// long way round.
 /// </para>

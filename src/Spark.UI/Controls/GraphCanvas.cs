@@ -634,7 +634,7 @@ public sealed class GraphCanvas : Control
     }
 
     /// <summary>
-    /// A world position near the centre of the visible canvas, offset so repeated placements do
+    /// A world position near the center of the visible canvas, offset so repeated placements do
     /// not land on top of each other.
     /// </summary>
     /// <param name="ordinal">How many nodes have already been placed this way.</param>
@@ -680,8 +680,8 @@ public sealed class GraphCanvas : Control
     }
 
     /// <summary>Puts a world region in the middle of the control without changing the zoom.</summary>
-    /// <param name="bounds">The region to centre on.</param>
-    public void CentreOn(CanvasBounds bounds)
+    /// <param name="bounds">The region to center on.</param>
+    public void CenterOn(CanvasBounds bounds)
     {
         double zoom = _transform.Zoom;
         _transform.OffsetX = ((bounds.MinX + bounds.MaxX) / 2) - (Bounds.Width / (2 * zoom));
@@ -2366,7 +2366,7 @@ public sealed class GraphCanvas : Control
 
         for (int i = 0; i < node.Inputs.Count; i++)
         {
-            node.InputPortCentre(i, out double x, out double y);
+            node.InputPortCenter(i, out double x, out double y);
             CanvasPort port = new(slot, i, IsOutput: false);
 
             if (tabs)
@@ -2379,7 +2379,7 @@ public sealed class GraphCanvas : Control
 
         for (int i = 0; i < node.Outputs.Count; i++)
         {
-            node.OutputPortCentre(i, out double x, out double y);
+            node.OutputPortCenter(i, out double x, out double y);
             CanvasPort port = new(slot, i, IsOutput: true);
 
             if (tabs)
@@ -2473,7 +2473,7 @@ public sealed class GraphCanvas : Control
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The type is what turns a port from a word into an instruction: <c>centre</c> says where the
+    /// The type is what turns a port from a word into an instruction: <c>center</c> says where the
     /// value goes and <c>Point</c> says what to go and find. It is drawn in <c>text.muted</c> at
     /// 10 px so the name still wins the row, and it is dropped a level of detail earlier than the
     /// name for the reason every threshold in §7.3 exists — 10 px below 82% zoom is under eight
@@ -2783,7 +2783,7 @@ public sealed class GraphCanvas : Control
             return;
         }
 
-        PortCentre(source, out double x, out double y);
+        PortCenter(source, out double x, out double y);
         StreamGeometry geometry = BuildWireGeometry(x, y, _dragWireWorldEnd.X, _dragWireWorldEnd.Y);
 
         IPen core = _dragOutcome switch
@@ -2948,8 +2948,8 @@ public sealed class GraphCanvas : Control
         for (int i = 0; i < wires.Count; i++)
         {
             CanvasWire wire = wires[i];
-            PortCentre(wire.From, out double x0, out double y0);
-            PortCentre(wire.To, out double x1, out double y1);
+            PortCenter(wire.From, out double x0, out double y0);
+            PortCenter(wire.To, out double x1, out double y1);
 
             if (i < _wireVisuals.Count && _wireVisuals[i].Matches(wire, x0, y0, x1, y1))
             {
@@ -3715,7 +3715,7 @@ public sealed class GraphCanvas : Control
 
             for (int i = 0; i < node.Inputs.Count; i++)
             {
-                node.InputPortCentre(i, out double x, out double y);
+                node.InputPortCenter(i, out double x, out double y);
 
                 if ((Math.Abs(x - world.X) <= reach && Math.Abs(y - world.Y) <= reach)
                     || InPortTab(node, i, isOutput: false, world))
@@ -3726,7 +3726,7 @@ public sealed class GraphCanvas : Control
 
             for (int i = 0; i < node.Outputs.Count; i++)
             {
-                node.OutputPortCentre(i, out double x, out double y);
+                node.OutputPortCenter(i, out double x, out double y);
 
                 if ((Math.Abs(x - world.X) <= reach && Math.Abs(y - world.Y) <= reach)
                     || InPortTab(node, i, isOutput: true, world))
@@ -3753,7 +3753,7 @@ public sealed class GraphCanvas : Control
         return world.X >= left && world.X <= right && world.Y >= top && world.Y <= bottom;
     }
 
-    private void PortCentre(CanvasPort port, out double x, out double y)
+    private void PortCenter(CanvasPort port, out double x, out double y)
     {
         if (port.NodeIndex < 0 || port.NodeIndex >= _graph.Nodes.Count)
         {
@@ -3765,11 +3765,11 @@ public sealed class GraphCanvas : Control
         CanvasNode node = _graph.Nodes[port.NodeIndex];
         if (port.IsOutput)
         {
-            node.OutputPortCentre(port.PortIndex, out x, out y);
+            node.OutputPortCenter(port.PortIndex, out x, out y);
         }
         else
         {
-            node.InputPortCentre(port.PortIndex, out x, out y);
+            node.InputPortCenter(port.PortIndex, out x, out y);
         }
     }
 

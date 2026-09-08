@@ -17,7 +17,7 @@ namespace Spark.Viewport.Meshes;
 public static class GroundGrid
 {
     /// <summary>
-    /// Builds a square grid centred on the origin.
+    /// Builds a square grid centerd on the origin.
     /// </summary>
     /// <param name="halfExtent">
     /// How many minor divisions the grid runs in each direction from the origin. Clamped to at
@@ -43,7 +43,7 @@ public static class GroundGrid
 
         for (int i = -halfExtent; i <= halfExtent; i++)
         {
-            // The axis lines replace the two centre lines, so skip them here rather than
+            // The axis lines replace the two center lines, so skip them here rather than
             // drawing a grey line underneath a coloured one and hoping the depth test picks
             // the right one.
             if (i == 0)

@@ -241,23 +241,23 @@ public readonly struct Transform : IEquatable<Transform>
     /// <summary>
     /// Creates a uniform scale about a fixed point.
     /// </summary>
-    /// <param name="centre">The point that stays where it is.</param>
+    /// <param name="center">The point that stays where it is.</param>
     /// <param name="factor">The scale factor.</param>
     /// <returns>The scale transform.</returns>
-    public static Transform Scale(in Point3d centre, double factor) =>
-        Scale(centre, factor, factor, factor);
+    public static Transform Scale(in Point3d center, double factor) =>
+        Scale(center, factor, factor, factor);
 
     /// <summary>
     /// Creates a non-uniform scale about a fixed point.
     /// </summary>
-    /// <param name="centre">The point that stays where it is.</param>
+    /// <param name="center">The point that stays where it is.</param>
     /// <param name="x">The scale factor along the world X axis.</param>
     /// <param name="y">The scale factor along the world Y axis.</param>
     /// <param name="z">The scale factor along the world Z axis.</param>
     /// <returns>The scale transform.</returns>
-    public static Transform Scale(in Point3d centre, double x, double y, double z)
+    public static Transform Scale(in Point3d center, double x, double y, double z)
     {
-        Vector3d offset = (Vector3d)centre;
+        Vector3d offset = (Vector3d)center;
 
         return Translation(offset) * Scale(x, y, z) * Translation(-offset);
     }
@@ -301,14 +301,14 @@ public readonly struct Transform : IEquatable<Transform>
     /// <param name="angle">
     /// The rotation angle, counter-clockwise when viewed from the positive end of the axis.
     /// </param>
-    /// <param name="centre">A point the axis passes through, which stays where it is.</param>
+    /// <param name="center">A point the axis passes through, which stays where it is.</param>
     /// <returns>The rotation transform.</returns>
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="axis"/> is zero-length or non-finite.
     /// </exception>
-    public static Transform Rotation(in Vector3d axis, Angle angle, in Point3d centre)
+    public static Transform Rotation(in Vector3d axis, Angle angle, in Point3d center)
     {
-        Vector3d offset = (Vector3d)centre;
+        Vector3d offset = (Vector3d)center;
 
         return Translation(offset) * Rotation(axis, angle) * Translation(-offset);
     }

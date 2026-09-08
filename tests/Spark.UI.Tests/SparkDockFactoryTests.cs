@@ -90,7 +90,7 @@ public sealed class SparkDockFactoryTests
     /// A hidden pane surrenders its share of the window rather than holding an empty column open.
     /// </summary>
     [Fact]
-    public void AHiddenPaneKeepsNoWidthAndTheCentreTakesItAll() => HeadlessSession.Run(() =>
+    public void AHiddenPaneKeepsNoWidthAndTheCenterTakesItAll() => HeadlessSession.Run(() =>
     {
         (SparkDockFactory factory, _) = BuildShell();
 
@@ -99,11 +99,11 @@ public sealed class SparkDockFactoryTests
         Assert.Equal(0, Proportion(factory, WorkspacePane.Library));
         Assert.Equal(0, Proportion(factory, WorkspacePane.Inspector));
 
-        // The centre is the parent of the canvas and the viewport, so it is read off either
+        // The center is the parent of the canvas and the viewport, so it is read off either
         // child's owner rather than off a dock of its own.
-        IDock? centre = factory.DockFor(WorkspacePane.Canvas)?.Owner as IDock;
-        Assert.NotNull(centre);
-        Assert.Equal(1, centre!.Proportion);
+        IDock? center = factory.DockFor(WorkspacePane.Canvas)?.Owner as IDock;
+        Assert.NotNull(center);
+        Assert.Equal(1, center!.Proportion);
     });
 
     /// <summary>
@@ -149,11 +149,11 @@ public sealed class SparkDockFactoryTests
     });
 
     /// <summary>
-    /// The centre column splits by <see cref="WorkspaceLayout.CanvasFraction"/>, and gives the
+    /// The center column splits by <see cref="WorkspaceLayout.CanvasFraction"/>, and gives the
     /// canvas the whole column when the viewport is hidden rather than leaving a gap where it was.
     /// </summary>
     [Fact]
-    public void TheCentreColumnFollowsTheCanvasFraction() => HeadlessSession.Run(() =>
+    public void TheCenterColumnFollowsTheCanvasFraction() => HeadlessSession.Run(() =>
     {
         (SparkDockFactory factory, _) = BuildShell();
 

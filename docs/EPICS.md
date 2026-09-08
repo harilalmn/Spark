@@ -568,7 +568,7 @@ diverge most; rework is budgeted there specifically.
       source over a `double` is not the same node as the same source over a `Point3d`.
 - [x] **IntelliSense inside the code block resolves members of the upstream wire's type**
       (**E6-T7**) — done 2026-08-31, with the editor that shows it (**E6-T11**, **E6-T12**).
-      Wire a point into a port called `centre`, type `centre.`, and the list is `Point3d`'s
+      Wire a point into a port called `center`, type `center.`, and the list is `Point3d`'s
       members. An unwired port lists nothing, because the compiler will declare it `dynamic`
       and a list that disagrees with the compiler is worse than no list.
 - [x] Output ports come from a named tuple return; a plain final expression gives one
@@ -796,7 +796,7 @@ another.
 - [x] Pan, zoom, box select, drag, wire, unwire, delete, group, note and align all work
       (**E8-T6**). *All of it, as of 2026-08-30. Align is six alignments and two
       distributions behind one toolbar flyout; the distributions equalise gaps rather than
-      centres, because a node's height is its port count and no two are alike. A note is a
+      centers, because a node's height is its port count and no two are alike. A note is a
       canvas annotation rather than a document object, drawn behind everything and typed into
       in the properties pane, because the canvas hosts no controls. A group stores which nodes
       it contains and derives its frame, so membership never changes because something was
@@ -830,7 +830,7 @@ another.
       which an inverse-command stack over the engine would therefore have missed.
 - [x] Every port shows the type it wants, on the node and in the properties panel, in the words a
       user types it in rather than in CLR type names (**E8-T18**). Found by using the application:
-      a port called `centre` is a word, not an instruction.
+      a port called `center` is a word, not an instruction.
 - [x] Double-clicking empty canvas opens a ranked search box there, and Enter places the node at
       that point (**E8-T19**). Dynamo's gesture, with the difference stated where a user will meet
       it: Dynamo makes a code block, and Spark's code block is [E6](#e6--c-code-block), M4.

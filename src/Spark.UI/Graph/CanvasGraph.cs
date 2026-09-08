@@ -531,7 +531,7 @@ public sealed class CanvasNode
     /// </summary>
     /// <param name="left">The left end of the track.</param>
     /// <param name="right">The right end.</param>
-    /// <param name="y">The track's centre line.</param>
+    /// <param name="y">The track's center line.</param>
     /// <remarks>
     /// Below the last port row rather than beside it. A slider needs the node's full width to be
     /// worth dragging, and a row already has two port labels competing for that width - the
@@ -606,11 +606,11 @@ public sealed class CanvasNode
             (port.Name.Length * PortCharWidth) + (2 * PortTabPadding))
         + (port.TypeName is { } type ? PortGap + (type.Length * TypeCharWidth) : 0);
 
-    /// <summary>The world position of an input port's centre.</summary>
+    /// <summary>The world position of an input port's center.</summary>
     /// <param name="index">The zero-based port index.</param>
     /// <param name="x">The x coordinate: the node's left edge.</param>
     /// <param name="y">The y coordinate.</param>
-    public void InputPortCentre(int index, out double x, out double y)
+    public void InputPortCenter(int index, out double x, out double y)
     {
         x = X;
         y = Y + HeaderHeight + (PortPitch * (index + 0.5));
@@ -651,10 +651,10 @@ public sealed class CanvasNode
             PortTabMinimumWidth,
             System.Math.Max(PortTabMinimumWidth, Width * 0.4));
 
-        double centre = Y + HeaderHeight + (PortPitch * (index + 0.5));
+        double center = Y + HeaderHeight + (PortPitch * (index + 0.5));
 
-        top = centre - (PortTabHeight / 2);
-        bottom = centre + (PortTabHeight / 2);
+        top = center - (PortTabHeight / 2);
+        bottom = center + (PortTabHeight / 2);
         left = isOutput ? X + Width - width : X;
         right = left + width;
     }
@@ -755,11 +755,11 @@ public sealed class CanvasNode
         height = ContentHeight;
     }
 
-    /// <summary>The world position of an output port's centre.</summary>
+    /// <summary>The world position of an output port's center.</summary>
     /// <param name="index">The zero-based port index.</param>
     /// <param name="x">The x coordinate: the node's right edge.</param>
     /// <param name="y">The y coordinate.</param>
-    public void OutputPortCentre(int index, out double x, out double y)
+    public void OutputPortCenter(int index, out double x, out double y)
     {
         x = X + Width;
         y = Y + HeaderHeight + (PortPitch * (index + 0.5));
@@ -1471,7 +1471,7 @@ public sealed class CanvasGraph
     /// <b>This is what makes a code block's inputs statically typed.</b> Until a wire lands there
     /// is no type to declare, so the block is compiled with <c>dynamic</c> inputs; once one does,
     /// the upstream port's type is known and the block is recompiled with a real declaration —
-    /// which is what a code editor needs before it can complete <c>centre.</c> into the members of
+    /// which is what a code editor needs before it can complete <c>center.</c> into the members of
     /// <c>Point3d</c> (`E6-T7`).
     /// </para>
     /// <para>

@@ -7,8 +7,8 @@
 ## Context
 
 Spark has two audiences for the same API. A .NET developer writing C# inside a code block
-expects `new Circle(centre, radius)`. An AEC user coming from Dynamo or Grasshopper reads
-`Circle.ByCenterRadius(centre, radius)` and knows immediately what it does; D9 makes AEC
+expects `new Circle(center, radius)`. An AEC user coming from Dynamo or Grasshopper reads
+`Circle.ByCenterRadius(center, radius)` and knows immediately what it does; D9 makes AEC
 the tie-breaker in any direct UX conflict. `C2VGeometry`'s `VCoordinateSystem` already
 carries the `By*` naming template, so the style is not foreign to the harvested code.
 
@@ -46,7 +46,7 @@ semantic contract with ProtoGeometry. They are for human recognition only.
 ## Amendment, 2026-09-08 — the façade is spelled `From*`
 
 **The prefix is `From`, not `By`** (`E2-T58`), across both `Spark.Geometry` and
-`Spark.Nodes.Core`: `Circle.FromCentreRadius`, `Point.FromCoordinates`,
+`Spark.Nodes.Core`: `Circle.FromCenterRadius`, `Point.FromCoordinates`,
 `Plane.FromOriginNormal`. Asked for by the client, who chose to change both layers rather
 than one when shown that a code block calls the *geometry* type — `Circle` in a block is
 `Spark.Geometry.Circle`, and the node of the same name is a thin façade over it, so renaming
@@ -96,7 +96,7 @@ without cooperation from the library author.
 ### Deduplicate by parameter *names* rather than types
 
 Slightly more precise where two constructions share a shape but mean different things.
-It lost because innocuous naming differences — `center` against `centre`, `c` against
+It lost because innocuous naming differences — `center` against `center`, `c` against
 `origin` — would fail to match and emit both nodes, which is the exact outcome the rule
 exists to prevent.
 

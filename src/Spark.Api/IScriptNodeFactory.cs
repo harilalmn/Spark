@@ -54,7 +54,7 @@ public interface IScriptNodeFactory
     /// <b>What knowing a type buys.</b> An input declared <c>dynamic</c> is bound at run time, is
     /// slower, and — the part that matters — offers a code editor nothing to complete against. A
     /// wired port's type is known, so the declaration becomes
-    /// <c>Point3d centre = …;</c> and typing <c>centre.</c> can list the members of
+    /// <c>Point3d center = …;</c> and typing <c>center.</c> can list the members of
     /// <c>Point3d</c>. An unwired port has no type to use, so <c>dynamic</c> remains the honest
     /// answer for it.
     /// </para>

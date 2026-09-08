@@ -22,9 +22,10 @@ public static class BoundingBox
     public static Spark.Geometry.BoundingBox FromCorners(Point3d corner, Point3d oppositeCorner) =>
         new(corner, oppositeCorner);
 
-    /// <summary>The centre of a box.</summary>
+    /// <summary>The center of a box.</summary>
     /// <param name="box">The box.</param>
-    /// <returns>The centre point.</returns>
+    /// <returns>The center point.</returns>
     [return: NodePort("point")]
-    public static Point3d Centre(Spark.Geometry.BoundingBox box) => box.Centre;
+    [SparkNodeAlias("BoundingBox.Centre")]
+    public static Point3d Center(Spark.Geometry.BoundingBox box) => box.Center;
 }

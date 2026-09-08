@@ -400,7 +400,7 @@ public sealed class BoundingVolumeHierarchy
             items,
             start,
             count,
-            Comparer<int>.Create((a, b) => Centre(boxes[a], axis).CompareTo(Centre(boxes[b], axis))));
+            Comparer<int>.Create((a, b) => Center(boxes[a], axis).CompareTo(Center(boxes[b], axis))));
 
         int half = count / 2;
         int left = BuildRange(nodes, boxes, items, start, half);
@@ -428,22 +428,22 @@ public sealed class BoundingVolumeHierarchy
         return diagonal.Y >= diagonal.Z ? 1 : 2;
     }
 
-    private static double Centre(in BoundingBox box, int axis)
+    private static double Center(in BoundingBox box, int axis)
     {
         if (!box.IsValid)
         {
-            // An invalid box has no centre. Sorting it to one end keeps the comparison a total
+            // An invalid box has no center. Sorting it to one end keeps the comparison a total
             // order, which Array.Sort requires and which NaN would violate.
             return double.PositiveInfinity;
         }
 
-        Point3d centre = box.Centre;
+        Point3d center = box.Center;
 
         return axis switch
         {
-            0 => centre.X,
-            1 => centre.Y,
-            _ => centre.Z,
+            0 => center.X,
+            1 => center.Y,
+            _ => center.Z,
         };
     }
 

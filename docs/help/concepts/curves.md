@@ -1,7 +1,7 @@
 ---
 id: concepts.curves
 title: Curves, parameters and arc length
-nodes: [Line.FromStartPointEndPoint, Circle.FromCentreRadius, Arc.FromThreePoints, Ellipse.FromPlaneRadii, PolyLine.FromRegularPolygon, PolyCurve.FromJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength]
+nodes: [Line.FromStartPointEndPoint, Circle.FromCenterRadius, Arc.FromThreePoints, Ellipse.FromPlaneRadii, PolyLine.FromRegularPolygon, PolyCurve.FromJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength]
 related: [concepts.geometry-basics, concepts.lacing]
 since: "0.1"
 ---
@@ -70,7 +70,7 @@ maths — matching a point to a tangent you already computed, for instance.
 ```csharp
 using Spark.Geometry;
 
-Circle circle = Circle.FromCentreRadius(Point3d.Origin, 10.0);
+Circle circle = Circle.FromCenterRadius(Point3d.Origin, 10.0);
 Point3d[] posts = circle.DivideEqually(8);   // 9 points: eight gaps, and the loop closes
 
 // The last point repeats the first, because the circle is closed. That is deliberate: it
@@ -96,7 +96,7 @@ Ask, do not assume:
 | `Line` | 0 → 1 | fraction of the way along |
 | `Circle` | 0 → 2π | radians from the plane's x axis |
 | `Arc` | 0 → sweep | radians from the arc's **own** start |
-| `EllipseCurve` | 0 → sweep | the eccentric angle, not the angle at the centre |
+| `EllipseCurve` | 0 → sweep | the eccentric angle, not the angle at the center |
 | `PolyLine` | 0 → n | one unit per segment, so whole numbers are the vertices |
 | `PolyCurve` | 0 → n | one unit per segment, so whole numbers are the joints |
 
@@ -165,7 +165,7 @@ Spark's kernel answers or fails loudly; it does not return a plausible-looking d
 ```csharp
 using Spark.Geometry;
 
-Circle circle = Circle.FromCentreRadius(Point3d.Origin, 1.0);
+Circle circle = Circle.FromCenterRadius(Point3d.Origin, 1.0);
 
 Curve moved = circle.TransformedBy(Transform.Scale(1.0, 1.0, 3.0));   // fine: still a circle
 // circle.TransformedBy(Transform.Scale(2.0, 1.0, 1.0));              // throws: that is an ellipse
@@ -181,7 +181,7 @@ Every operation returns a new curve and leaves yours alone. The names say so —
 ```csharp
 using Spark.Geometry;
 
-Circle circle = Circle.FromCentreRadius(Point3d.Origin, 5.0);
+Circle circle = Circle.FromCenterRadius(Point3d.Origin, 5.0);
 Curve half = circle.Trimmed(new Interval(0.0, System.Math.PI));   // an Arc, not a Circle
 
 double untouched = circle.Length;   // still the full circumference
@@ -195,4 +195,4 @@ thing it was given, and it is right: a circle that is not closed is not a circle
 ## Related
 
 - [Points, vectors, planes and tolerance](geometry-basics.md) — the value layer underneath
-- [Lacing](lacing.md) — what happens when you feed a list of centres to one circle node
+- [Lacing](lacing.md) — what happens when you feed a list of centers to one circle node

@@ -12,8 +12,8 @@ namespace Spark.UI.Tests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>This is the demo.</b> A code block's port is called <c>centre</c>; nothing in the text says
-/// what a <c>centre</c> is. Wire a point into it and typing <c>centre.</c> lists the members of
+/// <b>This is the demo.</b> A code block's port is called <c>center</c>; nothing in the text says
+/// what a <c>center</c> is. Wire a point into it and typing <c>center.</c> lists the members of
 /// <see cref="Point3d"/> — completion following the wires rather than the text is the one thing
 /// Spark can show that a graph tool without a compiler cannot.
 /// </para>
@@ -26,11 +26,11 @@ namespace Spark.UI.Tests;
 /// </remarks>
 public sealed class WireTypedCompletionTests
 {
-    private const string Snippet = "return centre.";
+    private const string Snippet = "return center.";
 
     /// <summary>
     /// <b>A wired port completes against the type the wire carries.</b> Nothing in the snippet
-    /// declares <c>centre</c>; the graph does.
+    /// declares <c>center</c>; the graph does.
     /// </summary>
     [Fact]
     public async Task AWiredPortCompletesAgainstItsType()
@@ -40,7 +40,7 @@ public sealed class WireTypedCompletionTests
         IReadOnlyList<ScriptCompletionItem> items = await completion.CompleteAsync(
             Snippet,
             Snippet.Length,
-            new Dictionary<string, Type?> { ["centre"] = typeof(Point3d) },
+            new Dictionary<string, Type?> { ["center"] = typeof(Point3d) },
             TestContext.Current.CancellationToken);
 
         string[] names = [.. items.Select(item => item.DisplayText)];
@@ -51,7 +51,7 @@ public sealed class WireTypedCompletionTests
 
     /// <summary>
     /// The port itself is offered by name too, which is what makes the ports discoverable at all —
-    /// a user who cannot remember whether they called it <c>centre</c> or <c>center</c> types
+    /// a user who cannot remember whether they called it <c>center</c> or <c>center</c> types
     /// <c>ce</c> and finds out.
     /// </summary>
     [Fact]
@@ -64,10 +64,10 @@ public sealed class WireTypedCompletionTests
         IReadOnlyList<ScriptCompletionItem> items = await completion.CompleteAsync(
             Start,
             Start.Length,
-            new Dictionary<string, Type?> { ["centre"] = typeof(Point3d) },
+            new Dictionary<string, Type?> { ["center"] = typeof(Point3d) },
             TestContext.Current.CancellationToken);
 
-        Assert.Contains("centre", items.Select(item => item.DisplayText));
+        Assert.Contains("center", items.Select(item => item.DisplayText));
     }
 
     /// <summary>
@@ -83,7 +83,7 @@ public sealed class WireTypedCompletionTests
         IReadOnlyList<ScriptCompletionItem> items = await completion.CompleteAsync(
             Snippet,
             Snippet.Length,
-            new Dictionary<string, Type?> { ["centre"] = null },
+            new Dictionary<string, Type?> { ["center"] = null },
             TestContext.Current.CancellationToken);
 
         // Roslyn offers nothing after a `dynamic` receiver's dot, because there is nothing it can
@@ -105,7 +105,7 @@ public sealed class WireTypedCompletionTests
         // Two ports, so the prefix is long enough that an unshifted caret would land inside it.
         Dictionary<string, Type?> ports = new()
         {
-            ["centre"] = typeof(Point3d),
+            ["center"] = typeof(Point3d),
             ["direction"] = typeof(Vector3d),
         };
 
@@ -131,7 +131,7 @@ public sealed class WireTypedCompletionTests
 
         Dictionary<string, Type?> ports = new()
         {
-            ["centre"] = typeof(Point3d),
+            ["center"] = typeof(Point3d),
             ["not a name"] = typeof(Point3d),
         };
 

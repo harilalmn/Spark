@@ -25,7 +25,7 @@ public sealed class BoundingBoxTests
         Assert.Equal(24.0, box.Volume, 12);
         Assert.Equal(52.0, box.Area, 12);
         Assert.Equal(new Vector3d(2.0, 3.0, 4.0), box.Diagonal);
-        Assert.Equal(new Point3d(1.0, 1.5, 2.0), box.Centre);
+        Assert.Equal(new Point3d(1.0, 1.5, 2.0), box.Center);
     }
 
     [Fact]

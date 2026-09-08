@@ -10,7 +10,7 @@ namespace Spark.UI.Graph;
 /// </summary>
 /// <remarks>
 /// <para>
-/// A port name alone does not tell a user what to plug into it. `centre` is a `Point3d` and
+/// A port name alone does not tell a user what to plug into it. `center` is a `Point3d` and
 /// `radius` is a number, and nothing on the node said so; the two mechanisms that would have
 /// answered it — the library entry's signature and the wire-drag preview — are both somewhere
 /// other than where the question is asked.
