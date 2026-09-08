@@ -17,9 +17,9 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing.** |
+| **Working on** | **Cutting `v2026.8.1`.** The client asked for `2026.8.01` and it cannot be that string: MinVer ignores a tag whose numbers carry a leading zero, so `v2026.8.01` leaves every assembly stamped `0.4.1-alpha.0.36` and the release ships mislabelled. Checked rather than assumed - tagged locally, built, read the version back out of `Spark.Api.dll` - and the client chose `v2026.8.1`. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The preview bubble vanished on the way to its own pin** - `E8-T73`. **Before it:** `E8-T72`, `E8-T70` and `E8-T71`, `E9-T15`. |
+| **Last completed step** | **The ribbon's selection label is gone** - `E8-T74`, and the release cut from it. **Before it:** `E8-T73`, `E8-T72`, `E8-T70` and `E8-T71`. |
 | **Working tree** | Clean. Build clean with zero warnings, format clean, **2776** tests green over **nine** executables with zero skips. **The previous two figures here were wrong and are corrected**: the suite measured **2690** on a stashed tree immediately before this step, not 2702, and `tests/` holds nine projects and not ten — `tests/Spark.Geometry.Io.Tests/` is a stale `bin`/`obj` with no `.csproj` in it, which is what the tenth was. **Six known flaky tests, all one defect** (`E11-T27`, open), across five classes; each passes alone and a different one fails each full run. **A ninth victim appeared on 2026-09-08** - `ViewportExportTests.ExportingSolidsFromAnEmptySceneRefusesWithAReason`, which failed one full run and passed both alone and on the next. **A seventh and an eighth appeared before it** — `GraphCanvasZoomToFitTests.AFitAskedForBeforeLayoutHappensOnceThereIsALayout` on `E8-T69` and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` on `E8-T70`; both failed one full run, passed alone, and passed the next. Same shape, same class family, same one defect. |
 | **Next action** | **Take `E11-T27`.** Eight victims across seven classes, two of them gained during this run; a suite that fails a different test every full run is one people stop reading. `test-engineer` owns the choice between one xunit collection over every Avalonia-touching class and `DisableTestParallelization` for the assembly, which costs about 16 seconds. **Also open and cheap where the toolchain allows it**: `E13-T18`, promoting a closed shell to a solid in `spark_occt_import`. |
 | **Verify with** | Whatever the next row needs. Nothing is half-done. |
@@ -8882,3 +8882,36 @@ client's sentence in a test.
 **And a ninth flake**, `ViewportExportTests.ExportingSolidsFromAnEmptySceneRefusesWithAReason`:
 failed one full run, passed alone and on the next. A different class again, which is `E11-T27`
 behaving exactly as it has eight times before.
+
+### 2026-09-08 - The ribbon's selection label is gone (`E8-T74`), and `v2026.8.1`
+
+**What.** One `TextBlock` deleted from `MainWindow.axaml`, and the release cut from the commit that
+deletes it.
+
+**Asked for by the client**, pointing at *Nothing selected* beside the mark. It said what the
+properties pane says, two inches away and at the same moment - and what it said most of the time
+was a sentence describing the absence of a thing nobody had asked about. A label whose commonest
+value is *there is nothing here* is a label earning nothing.
+
+**`SelectionTitle` stays**, because the pane still shows it under a heading, where somebody looking
+for it is already looking. **Column 1 stays too, empty**: it is the `*` that pushes Run and the
+run-mode dropdown to the right edge, and collapsing it would move the two controls the ribbon
+exists for.
+
+**No test, and saying so beats skipping it.** This is a deleted label with no behaviour behind it;
+what would have gone red is a screenshot, and there is one. AGENTS.md step 7 asks for a test that
+fails when the change is reverted, and there is no honest one to write here.
+
+**The version could not be the string that was asked for, and that was checked rather than
+guessed.** The client asked for `2026.8.01`. MinVer derives the version from the nearest git tag
+(ADR-0007) and **ignores a tag that is not valid SemVer** - `01` is a numeric identifier with a
+leading zero, which SemVer forbids. Tagged locally, built `Spark.Api`, and read the version back
+out of the assembly: `v2026.8.01` produced `0.4.1-alpha.0.36+a42e6b1`, silently, and `v2026.8.1`
+produced `2026.8.1+a42e6b1`. **That is exactly the failure `release.yml`'s own header warns about**
+- a tag and its assemblies disagreeing - and `scripts/check-version.ps1` would have caught it at
+release time rather than at review time. The alternative was to replace MinVer with an explicitly
+set `Version`, which undoes ADR-0007 and removes the guard the workflow exists to enforce; the
+client was asked and chose `v2026.8.1`.
+
+**Verified.** Build clean, format clean, **2,776 tests, 0 failures, 0 skips**. And the ribbon,
+photographed: the mark, the version, and nothing between them and Run.

@@ -91,9 +91,14 @@
           </StackPanel>
         </StackPanel>
 
-        <TextBlock Grid.Column="1" Classes="muted" VerticalAlignment="Center"
-                   Margin="16,0" TextTrimming="CharacterEllipsis"
-                   Text="{Binding SelectionTitle}" />
+        <!--
+          E8-T74: THE SELECTION LABEL IS GONE FROM HERE, AND `SelectionTitle` IS NOT.
+          It said the same thing the properties pane says, two inches away and at the same
+          moment - and what it said most of the time was "Nothing selected", which is a
+          sentence describing the absence of a thing nobody asked about. The pane still shows
+          it, under a heading, where somebody looking for it is already looking. Column 1 is
+          left empty on purpose: it is the `*` that pushes Run to the right edge.
+        -->
 
         <!--
           E3-T13: Manual, Automatic and Periodic, as Dynamo has them. Automatic is what the shell
