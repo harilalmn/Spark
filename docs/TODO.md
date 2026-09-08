@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-07 (a single click opens the code block editor)
+**Last updated:** 2026-09-08 (a deleted block takes its editor with it; the window opens maximised)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -496,6 +496,8 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] One output port per value statement — `E6-T28`. `5+3;` then `"Test";` is two ports, `result` and `result2`, carrying `8` and `"Test"`.
 - [x] The in-node editor follows a dragged block — `E8-T52`. `E8-T43` did it for the pan and the zoom; dragging the block left the editor behind.
 - [x] A single click opens a code block's editor — `E8-T53`. Dragging still drags: the line is the click slop, not whether the node ended where it started.
+- [x] A deleted block takes its editor with it — `E8-T54`. It used to stay until the next zoom, and the slot it held could renumber onto a different block.
+- [x] The application opens maximised — `E8-T55`. Screenshots and the canvas benchmark keep the declared 1480x900, because both are compared across runs.
 - [x] Dynamo's count ranges — `E10-T15`. `Number.RangeByCount` and
       `Number.RangeByCountAndStep` over one `Spark.Api.NumberRange`, and `0..1..#5`
       works as typed in a code block.

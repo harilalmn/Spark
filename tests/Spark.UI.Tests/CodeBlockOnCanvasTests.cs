@@ -595,4 +595,74 @@ public sealed class CodeBlockOnCanvasTests
 
         window.Close();
     });
+
+    /// <summary>
+    /// <b>`E8-T54`: deleting a block is a move, and it is the move that matters most.</b> Reported
+    /// by the client, whose editor stayed on the canvas after the block under it was deleted — and
+    /// cleared itself on the next zoom, which is the tell.
+    /// </summary>
+    /// <remarks>
+    /// The pane already hides an editor whose block has gone; that check lives in the handler for
+    /// this event, and the delete was the one node-moving site `E8-T52` did not route into the
+    /// funnel. So the zoom worked and nothing else did.
+    /// </remarks>
+    [Fact]
+    public void DeletingABlockIsAnnounced() => HeadlessSession.Run(() =>
+    {
+        (CanvasGraph graph, int slot) = Block(TwoLines);
+
+        GraphCanvas canvas = new() { Graph = graph };
+        Window window = new() { Width = 900, Height = 700, Content = canvas };
+
+        window.Show();
+        window.CaptureRenderedFrame();
+
+        canvas.SelectOnly(slot);
+
+        int moves = 0;
+        canvas.ContentMoved += (_, _) => moves++;
+
+        Assert.True(canvas.DeleteSelection());
+        Assert.True(moves > 0, "deleting a block announced nothing, so its editor stays on the canvas");
+
+        // And the pane's question now answers no, which is what hides it.
+        Assert.False(canvas.ScriptEditorSpace(slot, 400, 120, out _, out _, out _, out _));
+
+        window.Close();
+    });
+
+    /// <summary>
+    /// <b>Why the open editor is held by identity and not by slot.</b> A slot is an index into an
+    /// array that renumbers: delete a node and every node after it moves down one.
+    /// </summary>
+    /// <remarks>
+    /// This is the hazard the second half of `E8-T54` exists for, and it is worse than the ghost
+    /// editor because it is silent. An editor open on the second block while the first is deleted
+    /// would have been left pointing at a slot that is now a *different* block — and if that block
+    /// is also a code block, the placement succeeds, the editor keeps its text, and the commit
+    /// lands on the wrong node. <c>CanvasGraph.SlotOf</c> is what the pane asks instead.
+    /// </remarks>
+    [Fact]
+    public void DeletingALowerBlockRenumbersTheOnesAfterIt()
+    {
+        ScriptNodeFactory scripts = new();
+        CanvasGraph graph = new() { Scripts = scripts };
+
+        int first = graph.Add(NodeDefinition.FromScript(scripts.Create("1;"), "1;"), 0, 0);
+        int second = graph.Add(NodeDefinition.FromScript(scripts.Create(TwoLines), TwoLines), 300, 0);
+
+        CanvasNodeHandle edited = graph.HandleOf(second);
+
+        Assert.Equal(second, graph.SlotOf(edited));
+
+        graph.Remove(first);
+
+        // The slot the editor opened on now names a different node - or none. The handle still
+        // names the block, which is the whole reason the pane holds one.
+        Assert.NotEqual(second, graph.SlotOf(edited));
+        Assert.Equal(edited, graph.HandleOf(graph.SlotOf(edited)));
+
+        // And a handle to a node that has gone answers -1 rather than a wrong slot.
+        Assert.Equal(-1, graph.SlotOf(graph.HandleOf(99)));
+    }
 }

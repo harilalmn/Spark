@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Spark.UI.Controls;
+using Spark.UI.Graph;
 using Spark.UI.ViewModels;
 
 namespace Spark.UI.Views.Panes;
@@ -26,6 +27,20 @@ public sealed partial class CanvasPane : UserControl
     private double _createWorldY;
     private int _editingSlot = -1;
     private int _editingScript = -1;
+
+    /// <summary>
+    /// <i>Which</i> block the open editor belongs to, as an identity rather than a slot
+    /// (<c>E8-T54</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="_editingScript"/> is an index into an array that renumbers.</b> Deleting a node
+    /// shifts every slot after it down one, so an editor open on slot 5 while slot 2 is deleted ends
+    /// up pointing at what used to be slot 6 — and if that is also a code block, nothing notices:
+    /// the editor keeps its text, the placement succeeds, and the commit lands on the wrong block.
+    /// The slot is still what the canvas is asked in terms of, because everything else on it is;
+    /// this is what says the slot still means what it meant when the editor opened.
+    /// </remarks>
+    private CanvasNodeHandle _editingNode;
 
     /// <summary>What the open editor asked for, in screen pixels, so a moved view can ask again.</summary>
     private Size _editorWanted;
@@ -392,6 +407,7 @@ public sealed partial class CanvasPane : UserControl
         model.ShowCodeBlock(CanvasControl.Graph.Nodes[e.Slot]);
 
         _editingScript = e.Slot;
+        _editingNode = CanvasControl.Graph.HandleOf(e.Slot);
 
         // `E8-T40`: the block is grown to hold the editor rather than the editor being allowed to
         // spill over the port tabs either side of it. The pane says what the editor needs, in
@@ -487,11 +503,22 @@ public sealed partial class CanvasPane : UserControl
             return;
         }
 
-        if (!Place(_editingScript))
+        // `E8-T54`: THE SLOT IS RE-DERIVED FROM THE IDENTITY, EVERY TIME.
+        //
+        // Deleting a node renumbers every slot after it, so the index the editor opened on is only
+        // valid until the next deletion. Asking the graph where *this block* is now costs a
+        // dictionary lookup and is the only version of this that cannot quietly retarget.
+        int slot = CanvasControl.Graph.SlotOf(_editingNode);
+
+        if (slot < 0 || !Place(slot))
         {
             _editingScript = -1;
+            _editingNode = default;
             ScriptEditor.IsVisible = false;
+            return;
         }
+
+        _editingScript = slot;
     }
 
     /// <summary>
@@ -539,6 +566,7 @@ public sealed partial class CanvasPane : UserControl
 
         int slot = _editingScript;
         _editingScript = -1;
+        _editingNode = default;
 
         // `E8-T40`: the room the editor reserved goes back *before* the commit. Committing
         // replaces the node, so a release afterwards is aimed at something that is not there.

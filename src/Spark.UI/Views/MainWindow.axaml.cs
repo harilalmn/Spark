@@ -1000,6 +1000,15 @@ public sealed partial class MainWindow : Window
         // callback, or a context is created and then abandoned.
         Viewport.ForceSoftwareRenderer = Options.ForceSoftwareRenderer;
 
+        // `E8-T55`. The *decision* is on StartupOptions, where it can be tested without building a
+        // window: which of the automated paths must keep a fixed size is a fact about the switches,
+        // and asserting it through a source scan of this file - the only way a MainWindow claim is
+        // testable today - would be a weaker test of a stronger claim.
+        if (Options.OpensMaximised)
+        {
+            WindowState = WindowState.Maximized;
+        }
+
         if (Options.CollapseFirst > 0)
         {
             for (int slot = 0; slot < Options.CollapseFirst && slot < Canvas.Graph.Nodes.Count; slot++)

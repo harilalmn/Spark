@@ -210,6 +210,17 @@ public readonly record struct StartupOptions(
     /// <summary>True when the window should capture images and then exit.</summary>
     public bool IsScreenshot => !string.IsNullOrWhiteSpace(ScreenshotPrefix);
 
+    /// <summary>True when the window should open maximised (`E8-T55`).</summary>
+    /// <remarks>
+    /// <b>A person's window is maximised and the two automated ones are not.</b> Asked for by the
+    /// client, and a graph editor is a whole-screen application — the declared 1480×900 is a window
+    /// somebody resizes before they do anything else on a large display. But a screenshot or a
+    /// benchmark that opened maximised would be a different size on every machine, and both exist
+    /// to be *compared across runs*: the documentation images have a fixed size on purpose, and the
+    /// canvas benchmark reports per frame drawn. So those two keep the declared size.
+    /// </remarks>
+    public bool OpensMaximised => !IsScreenshot && !IsBenchmark;
+
     /// <summary>
     /// Parses the command line.
     /// </summary>

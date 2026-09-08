@@ -1864,6 +1864,21 @@ public sealed class CanvasGraph
     /// <returns>The slot.</returns>
     public int SlotOf(NodeId id) => _slots.TryGetValue(id, out int slot) ? slot : -1;
 
+    /// <summary>A handle that keeps naming one node across edits that renumber slots (`E8-T54`).</summary>
+    /// <param name="slot">The slot the node is in now.</param>
+    /// <returns>The handle, or a default one when the slot names nothing.</returns>
+    public CanvasNodeHandle HandleOf(int slot) =>
+        slot >= 0 && slot < _nodes.Count ? new CanvasNodeHandle(_nodes[slot].Id) : default;
+
+    /// <summary>Where a handle's node is now, or −1 when it is no longer in the graph.</summary>
+    /// <param name="handle">A handle from <see cref="HandleOf"/>.</param>
+    /// <returns>The slot.</returns>
+    /// <remarks>
+    /// A default handle carries a default identity, which is in no graph, so it answers −1 without
+    /// needing a case of its own.
+    /// </remarks>
+    public int SlotOf(CanvasNodeHandle handle) => SlotOf(handle.Id);
+
     /// <summary>
     /// Applies a run's states and diagnostics to the nodes, preserving selection flags.
     /// </summary>

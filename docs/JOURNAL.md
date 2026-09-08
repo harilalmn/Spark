@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-07 (a single click opens the code block editor)
+**Last updated:** 2026-09-08 (a deleted block takes its editor with it; the window opens maximised)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing - between steps.** Both of the client's canvas reports from this sitting are closed. **What is left of `E12-T21` is a person seeing the update pill in their own installed shell**, still the only unproven link in that chain. |
+| **Working on** | **Nothing - between steps.** **Queued, both from the client and both specified:** `E6-T29`, Dynamo's port naming, settled by a Dynamo screenshot; and `E8-T56`, matching Dynamo's code block font and look. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A single click opens the code block's editor** - `E8-T53`. On the release and gated on the click slop, so dragging still drags; the modifier is recorded at the press. **Before it:** `E8-T52`, `E6-T28`, `E6-T18`, `E6-T27`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2585** tests green over ten executables with zero skips. **One known flaky test**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, about one full run in five, green in isolation - [N120](NOTES.md). |
-| **Next action** | **Nothing is queued that does not need a person.** The nearest unblocked engineering row is the *Queue*'s `+` pair: **persist the workspace layout between sessions** (`WorkspaceLayout` already serialises and round-trips under test, and nothing writes it - a dragged arrangement dies with the window, which is the one thing a dock is for), and **a guard that no test project reports zero tests**, one line that catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)). Take the layout one; it is the one a user would notice. |
-| **Verify with** | For the layout row: drag the docks into a new arrangement, close the application, reopen it, and find the arrangement still there - then the ten executables and `tests/Spark.Docs.Verify`. **Grep the run output for `[FAIL]` and not only `Total:`.** |
+| **Last completed step** | **A deleted block takes its editor with it, and the window opens maximised** - `E8-T54` and `E8-T55`. The delete was the node-moving site `E8-T52` did not look for, and the pane was holding a slot across an edit that renumbers slots. **Before it:** `E8-T53`, `E8-T52`, `E6-T28`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2591** tests green over ten executables with zero skips. **One known flaky test**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, about one full run in five, green in isolation - [N120](NOTES.md). |
+| **Next action** | **`E6-T29`: Dynamo's code block port naming, exactly.** The client sent a Dynamo screenshot of six lines and six ports - `5;`->`integer`, `5.0 + 6;`->`function`, `"hello";`->`string`, `n = 100;`->`n`, `t = [0..1..#10];`->`t`, `[0..#6..10];`->`list` - and said *follow the Dynamo code block exactly*. Two consequences, both deliberate: **one port per statement**, which reverses `E6-T27`'s *a trailing value replaces the declared ports* (the client's own earlier decision, now superseded by their own instruction), and **`result`/`result2` disappear** in favour of the variable name when there is one and the expression's *syntax kind* otherwise. Naming by syntax and not by value is forced anyway - ports exist before the graph runs, and wires are re-made by name. Duplicates take a numeric suffix. `return` stays the Spark-only escape hatch that says exactly what the ports are; Dynamo has none, so *exactly* does not speak to it. |
+| **Verify with** | The client's six Dynamo lines, in Spark's syntax, giving six ports with those six names. `ScriptTrailingValueTests` and `ScriptStatementOutputTests` **will both need rewriting** - they assert the rule being reversed, so this is one of the rare steps where a red existing test is the intended outcome rather than a regression, and the journal has to say so before it happens. Then the ten executables, and the app. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -7495,3 +7495,58 @@ grepped for `[FAIL]` as well as `Total:`.
 *"Double-click the block to type in it"* is now *"Click the block to type in it"* — with the reason
 dragging still works, since that is the question the sentence raises. The **empty canvas**
 double-click that creates a block is untouched, in that topic and in `finding-nodes.md`.
+
+### 2026-09-08 — A deleted block takes its editor with it, and the window opens maximised
+
+**What.** `E8-T54` and `E8-T55`, both from the client, taken together because the second is four
+lines and the first is the interesting one.
+
+**`E8-T54`, and the client's second screenshot is the diagnosis.** The editor stayed on the canvas
+after the block under it was deleted, and *cleared itself on the next zoom*. That is the tell: the
+pane already hides an editor whose block has gone, and that check lives in the handler for
+`ContentMoved` — so the zoom reached it and the deletion did not. `DeleteSelection` called
+`InvalidateVisual` and never `AnnounceMove`.
+
+**Which is the same omission `E8-T52` fixed yesterday, in the one site `E8-T52` did not look for.**
+That entry says a funnel only works if everything is routed into it. I routed the two drags and
+`Align` and `Tidy`, reasoned about which of them could be reached with an editor open, and never
+asked *what else moves a node*. Deleting does: every slot after a deleted one shifts down. The
+lesson `E8-T52` recorded was right and I applied it to the list I already had rather than to the
+question.
+
+**The second half is worse than the ghost, because it is silent.** The pane held the editor's block
+as a *slot* — an index into an array that renumbers. An editor open on slot 5 while slot 2 is
+deleted ends up pointing at what used to be slot 6, and if that is also a code block, the placement
+succeeds, the editor keeps its text, and the commit lands on the wrong node. Nothing about that
+looks wrong on screen. The pane now holds a `CanvasNodeHandle` and re-derives the slot on every
+announcement.
+
+**The handle is opaque because a layering rule caught the first draft.** I put a `NodeId` field on
+`CanvasPane` and `ViewLayerTests.NoViewFileReferencesTheEngine` went red — no file under `Controls`
+or `Views` may name `Spark.Engine`, enforced by reading the source, because a control that does
+engine work does it on the thread it draws on. The rule is right and `GraphCanvas` had never broken
+it: zero mentions of `NodeId` in 3,500 lines. `CanvasGraph` is the seam allowed to know both, so it
+mints and redeems the handle and the view holds something it cannot take apart. **This is the second
+time in two days a gate caught a real design error rather than a typo**, and both times the fix was
+better than what I had written.
+
+**`E8-T55` in four lines, and one of them is a guard.** The window opens maximised, except on the
+screenshot and canvas-benchmark paths — both exist to be *compared across runs*, so a maximised
+screenshot would make every documentation image the size of whatever display took it, and the
+benchmark's per-frame numbers would stop being about the same frame.
+
+**The decision lives on `StartupOptions`, not in the window**, and that is worth the extra property:
+a `MainWindow` claim is testable today only by reading its source as text, and a source scan proves
+a line was written rather than that it decides the right thing. Three real assertions instead — and
+the test earned itself immediately by catching `--benchmark`, which is not a switch. It is
+`--canvas-benchmark`, and the wrong name parses silently to the default, so the assertion I meant to
+make would have passed for the wrong reason.
+
+**Verified.** Four new tests: `DeletingABlockIsAnnounced` (red when the one call is reverted,
+confirmed), `DeletingALowerBlockRenumbersTheOnesAfterIt` for the renumbering hazard, and
+`StartupOptionsTests`. **The pane's half is covered by reasoning and by that premise test rather
+than end to end**, because there is no `CanvasPane` test harness and building one needs the whole
+view model — said plainly here rather than implied by a green run. Gates: build clean with zero
+warnings, format clean, **2591** tests green over ten executables with zero skips.
+
+**Documents.** `E8-T54` and `E8-T55` rows in TASKS, two lines in TODO.

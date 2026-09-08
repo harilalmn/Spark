@@ -3462,7 +3462,15 @@ public sealed class GraphCanvas : Control
         _wireVisuals.Clear();
         _indexDirty = true;
 
-        InvalidateVisual();
+        // `E8-T54`: DELETING IS A MOVE, AND IT IS THE MOVE THAT MATTERS MOST.
+        //
+        // Every slot after a deleted one shifts down, so this changes where nodes are on screen
+        // just as surely as a drag does - and it is the one case where the open editor's block may
+        // not be there at all. Without the announcement the editor stayed on the canvas over
+        // nothing, and cleared itself only on the next pan or zoom, because that was the only
+        // thing that reached the handler that hides it. `E8-T52` routed the two drags into the
+        // funnel and did not look for the other sites; this is one.
+        AnnounceMove();
         SelectionChanged?.Invoke(this, EventArgs.Empty);
         GraphChanged?.Invoke(this, new GraphEditedEventArgs(Plural("Delete", doomed.Count), affectsEvaluation: true));
         return true;
