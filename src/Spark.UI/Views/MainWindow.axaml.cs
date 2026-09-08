@@ -720,7 +720,10 @@ public sealed partial class MainWindow : Window
 
         Canvas.RefreshStructure();
         Canvas.SelectOnly(slot);
-        Canvas.Focus();
+
+        // `E8-T60`: opened ready to type, the same as the double-click gesture. The menu item and
+        // the gesture make the same node and should leave the user in the same place.
+        Canvas.RequestScriptEdit(slot);
         model.RequestRun();
     }
 

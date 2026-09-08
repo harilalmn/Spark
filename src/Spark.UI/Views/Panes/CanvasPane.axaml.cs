@@ -185,7 +185,15 @@ public sealed partial class CanvasPane : UserControl
 
         CanvasControl.RefreshStructure();
         CanvasControl.SelectOnly(slot);
-        CanvasControl.Focus();
+
+        // `E8-T60`: THE EDITOR OPENS, AND THE CANVAS IS NOT FOCUSED AFTERWARDS.
+        //
+        // A block placed by this gesture is one the user is about to type into - that is the whole
+        // reason they double-clicked - so it opens in edit mode. The `CanvasControl.Focus()` that
+        // was here does not move below this line, it goes: focusing the canvas takes focus off the
+        // editor, and losing focus is what commits and closes it, so the block would open and shut
+        // in the same frame.
+        CanvasControl.RequestScriptEdit(slot);
         model.RequestRun();
     }
 
@@ -427,6 +435,10 @@ public sealed partial class CanvasPane : UserControl
         ScriptEditor.Text = e.Text;
         ScriptEditor.IsVisible = true;
         ScriptEditor.FocusEditor();
+
+        // `E8-T60`: after the last character, so a block opens ready to type into rather than
+        // ready to be clicked into a second time. Empty block, empty text, caret at 1:1.
+        ScriptEditor.PlaceCaretAtEnd();
     }
 
     /// <summary>

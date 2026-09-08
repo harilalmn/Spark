@@ -416,6 +416,34 @@ public sealed partial class CodeBlockEditor : UserControl
     /// </remarks>
     public void FocusEditor() => _editor?.Focus();
 
+    /// <summary>
+    /// Puts the caret after the last character, ready to type (<c>E8-T60</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Asked for by the client, and it is one rule rather than two.</b> They asked for a new
+    /// block to open at line 1 column 1 and an existing one at the end of the last line — and a new
+    /// block's text is empty since `E6-T18`, so *the end* and *line 1 column 1* are the same place.
+    /// Written once and said here, so the next reader does not go looking for the branch that
+    /// distinguishes them.
+    /// </para>
+    /// <para>
+    /// <b>The caret is brought into view as well as moved.</b> A long script opens scrolled to the
+    /// top, and a caret placed at the end of it would otherwise be somewhere the user cannot see —
+    /// which reads as the editor having no caret at all rather than as one off screen.
+    /// </para>
+    /// </remarks>
+    public void PlaceCaretAtEnd()
+    {
+        if (_editor is null)
+        {
+            return;
+        }
+
+        CaretOffset = _editor.Document?.TextLength ?? 0;
+        _editor.TextArea.Caret.BringCaretToView();
+    }
+
     /// <summary>Whether the completion list is on screen.</summary>
     public bool IsCompletionOpen => _frame?.IsVisible == true;
 

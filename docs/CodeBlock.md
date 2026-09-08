@@ -17,8 +17,8 @@ it says the same things in less order and more detail.
 
 ## 1. Your first block
 
-**Double-click empty canvas.** A block lands where you clicked, empty, with the cursor in it.
-*Insert → Code block* does the same at the next free spot.
+**Double-click empty canvas.** A block lands where you clicked, empty, already in edit mode with
+the caret in it — start typing. *Insert → Code block* does the same at the next free spot.
 
 Type this:
 
@@ -33,8 +33,8 @@ Three things just happened, and each is a rule you will use constantly:
 1. **A line ending in `;` that is just a value becomes an output port.** No `return` needed.
 2. **Clicking away is what commits.** The block recompiles, its ports are worked out again, and
    the graph re-runs. It does not recompile on every keystroke — but the red squiggles do keep up.
-3. **One click gets you back in.** Click the block to edit it; drag it to move it. A drag is a
-   click that moved.
+3. **One click gets you back in**, with the caret after the last character. Click the block to
+   edit it; drag it to move it. A drag is a click that moved.
 
 **Escape also commits and closes.** Ctrl+Z takes the edit back if you did not mean it — nothing can
 bring typing back the other way, which is why Escape does not discard.

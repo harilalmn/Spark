@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-08 (`a * b;` is a value, not a pointer declaration)
+**Last updated:** 2026-09-08 (a code block opens ready to type in)
 **Protocol version:** 2
 
 ---
@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing - between steps.** Every request the client has made in this sitting is delivered, and the one defect writing the guide turned up is fixed. |
+| **Working on** | **Nothing - between steps.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`a * b;` is a value, not a pointer declaration** - `E6-T31`, found by running `E10-T16`'s samples. **Before it:** `E10-T16`, `E6-T30`, `E2-T58`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2647** tests green over ten executables with zero skips. **Two known flaky tests**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)) and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` (`E11-T27`, open). |
-| **Next action** | **Nothing is queued that does not need a person.** The nearest unblocked engineering row is the *Queue*'s `+` pair: **persist the workspace layout between sessions** (`WorkspaceLayout` already serialises and round-trips under test, and nothing writes it - a dragged arrangement dies with the window, which is the one thing a dock is for), and **a guard that no test project reports zero tests** ([N30](NOTES.md)). Take the layout one; it is the one a user would notice. **Worth raising with the client**: `E11-T27` is open and this assembly has two known flakes; and `E10-T16` proved that running documentation samples finds product defects, so the deferred *compile every fenced sample* check in `DocumentationChecks` now has evidence behind it rather than only a precedent. |
+| **Last completed step** | **A code block opens ready to type in** - `E8-T60`. Inserting one opens the editor; opening an existing one puts the caret after the last character. **Before it:** `E6-T31`, `E10-T16`, `E6-T30`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2652** tests green over ten executables with zero skips. **Two known flaky tests**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)) and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` (`E11-T27`, open). |
+| **Next action** | **Nothing is queued that does not need a person.** The nearest unblocked engineering row is the *Queue*'s `+` pair: **persist the workspace layout between sessions**, and **a guard that no test project reports zero tests** ([N30](NOTES.md)). **Two things are worth raising with the client rather than just doing**: `E11-T27` is open and this assembly has two known flakes; and `E10-T16` and `E8-T60` between them make the case for the deferred *compile every fenced sample* check in `DocumentationChecks` - the first found a product defect by running samples, the second found two documents claiming behaviour that did not exist. |
 | **Verify with** | For the layout row: drag the docks into a new arrangement, close the application, reopen it, and find the arrangement still there - then the ten executables and `tests/Spark.Docs.Verify`. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
@@ -7997,3 +7997,44 @@ executables with zero skips.
 `docs/CodeBlock.md` loses the subsection that existed only to warn about this — its inputs example
 is back to the one-line `width * height;`, which is a whole node in six characters and was the
 right example all along.
+
+### 2026-09-08 — A code block opens ready to type in
+
+**What.** `E8-T60`. The client asked for a new block to be left in edit mode with the caret at line
+1 column 1, and an existing one to open with the caret at the end of the last line.
+
+**Inserting a block did not open the editor at all.** Both call sites — the double-click gesture in
+`CanvasPane` and *Insert → Code block* in `MainWindow` — placed the node, selected it, and focused
+the *canvas*. So the change is one call each, `RequestScriptEdit(slot)`, which is the same path a
+click has taken since `E8-T53`.
+
+**The `Canvas.Focus()` had to go rather than move, and that is the whole trap in this row.** Focus
+is what commits and closes the editor, so focusing the canvas *after* opening it would have made
+the block open and shut in the same frame — a change that looks right in the diff and does nothing
+on screen.
+
+**The caret is one rule rather than two.** It goes to the end of the text; a new block's text has
+been empty since `E6-T18`, so *the end* and *line 1 column 1* are the same position. Written once,
+and said in the code and the tests, so the next reader does not go looking for the branch that
+distinguishes the two cases the client described. It is also brought *into view* rather than only
+moved — a long script opens scrolled to the top, and a caret placed past the bottom of it reads as
+no caret at all.
+
+**Two documents had been claiming this for days and neither was true.** `docs/CodeBlock.md` said a
+block lands *"with the cursor in it"*, and `concepts/code-blocks.md` had said *"empty and ready to
+type into"* since long before that. I wrote the first of those two steps ago, describing behaviour
+I had not checked. The client asking for the feature is what exposed the claim — which is the
+failure mode the docs harness exists to catch and cannot yet, because it verifies links and dates
+rather than behaviour.
+
+**Verified.** Five caret tests. The end-to-end half — that *inserting* now opens the editor — is
+covered by reasoning and by a screenshot rather than by a test, because there is still no
+`CanvasPane` harness and building one needs the whole view model; said plainly here rather than
+implied by a green run. The screenshot is real evidence for the caret at least: `--code-block`
+poses the editor through `RequestScriptEdit`, the same path, and the completion list comes up at
+the end of line 2. Gates: build clean with zero warnings, format clean, **2652** tests green over
+ten executables with zero skips.
+
+**Documents.** `E8-T60`'s row, a TODO line, and the two documents that were ahead of the code are
+now level with it — plus the second half of the claim, which neither of them had made: where the
+caret lands when you open an existing block.
