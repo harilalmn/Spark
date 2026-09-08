@@ -157,6 +157,35 @@ public sealed class CanvasNode
     /// <summary>The gap between a port tab and the source between the tabs.</summary>
     public const double ScriptGap = 6;
 
+    /// <summary>The gap between a node's bottom edge and its preview bubble (`E8-T72`).</summary>
+    public const double PreviewGap = 6;
+
+    /// <summary>The height of a preview bubble's first row: the label, the toggle and the pin.</summary>
+    /// <remarks>
+    /// <b>Tall enough to be a target, and it is three targets.</b> A 20 px row at 100% zoom carries
+    /// two 16 px glyphs with two pixels either side, which is the smallest a thing anybody has to
+    /// click should be - the same reasoning the port disc's 18 px target came from.
+    /// </remarks>
+    public const double PreviewRowHeight = 20;
+
+    /// <summary>The inset between a preview bubble's edge and what is in it.</summary>
+    public const double PreviewPadding = 8;
+
+    /// <summary>The height of one wrapped line of the value, when the bubble is open.</summary>
+    public const double PreviewLineHeight = 15;
+
+    /// <summary>The most lines of value an open bubble shows before it clips.</summary>
+    /// <remarks>
+    /// <b>A cap, because a bubble is a glance.</b> A list of a thousand points wraps to hundreds of
+    /// lines, and a bubble that tall covers the graph it is annotating. The properties pane holds
+    /// the whole value - that is what it is for - and the cut is announced there rather than
+    /// trailing off here.
+    /// </remarks>
+    public const int PreviewMaximumLines = 8;
+
+    /// <summary>The width and height of the toggle and the pin, and of what a click on one hits.</summary>
+    public const double PreviewGlyphSize = 16;
+
     /// <summary>The height of the note drawn above a code block's source (`E8-T65`).</summary>
     /// <remarks>
     /// <b>It comes out of the node rather than off the source.</b> The band sits between the
@@ -865,6 +894,162 @@ public sealed class CanvasNode
         width = System.Math.Max(0, right - left);
         y = Y + HeaderHeight;
         height = Script is null ? 0 : ScriptHintHeight;
+    }
+
+    /// <summary>
+    /// Whether this node's preview bubble is open, showing the rank and the value (`E8-T72`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Collapsed by default, which is Dynamo's shape and was asked for by name.</b> A bubble
+    /// that opens to two lines the moment a pointer crosses a node is a graph that flickers while
+    /// you move across it; a one-line strip saying <i>Circle</i> is a glance, and the value is one
+    /// click away.
+    /// </para>
+    /// <para>
+    /// <b>Session state, not document state.</b> Nothing here reaches <c>.spark</c>: a bubble left
+    /// open is the same kind of fact as which node is selected. <see cref="ShowsValue"/> is the
+    /// one that persists, because a <c>Watch</c> node is a thing somebody put in the graph on
+    /// purpose.
+    /// </para>
+    /// </remarks>
+    public bool PreviewExpanded { get; set; }
+
+    /// <summary>
+    /// Whether this node's preview bubble stays after the node stops being selected (`E8-T72`).
+    /// </summary>
+    /// <remarks>
+    /// <b>The whole point of the pin, and the gap it fills.</b> Before it there were two states and
+    /// nothing between them: a bubble that vanished the moment you looked away, or a
+    /// <c>Watch</c> node wired into the graph. Pinning is <i>keep showing me this one</i>, which is
+    /// a question about looking rather than about the graph - so it changes no wire, records no
+    /// undo step, and is not saved.
+    /// </remarks>
+    public bool PreviewPinned { get; set; }
+
+    /// <summary>Whether there is anything to preview: the node has run and produced a value.</summary>
+    public bool HasPreview => ResultSummary is { Length: > 0 };
+
+    /// <summary>
+    /// What the collapsed strip says: the type the node produces, or its shape when it has no
+    /// declared type.
+    /// </summary>
+    /// <remarks>
+    /// <b>The type rather than the value, which is the difference between a strip and a bubble.</b>
+    /// A collapsed strip answers <i>what came out of here</i> in one word - <c>Circle</c>,
+    /// <c>Brep</c> - and the value is what opening it is for. A node whose output declares no type
+    /// falls back to the rank line, because <i>rank 1, 12 items</i> is still one word's worth of
+    /// answer and an empty strip is not.
+    /// </remarks>
+    public string PreviewLabel =>
+        Outputs.Count > 0 && Outputs[0].TypeName is { Length: > 0 } type
+            ? type
+            : ValueText.Shape(ResultRank, ResultCount);
+
+    /// <summary>
+    /// How many lines the value wraps to inside an open bubble, capped by
+    /// <see cref="PreviewMaximumLines"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Estimated from the character count rather than measured</b>, for the reason the node's
+    /// own width is: this is asked before there is a drawing context or a typeface. It errs
+    /// generous - a bubble one line taller than it needed has an empty line in it, and one line
+    /// shorter cuts a word off the value.
+    /// </remarks>
+    public int PreviewValueLines
+    {
+        get
+        {
+            if (ResultSummary is not { Length: > 0 } summary)
+            {
+                return 0;
+            }
+
+            double usable = System.Math.Max(1, Width - (2 * PreviewPadding));
+            int lines = (int)System.Math.Ceiling(summary.Length * PortCharWidth / usable);
+
+            return System.Math.Clamp(lines, 1, PreviewMaximumLines);
+        }
+    }
+
+    /// <summary>
+    /// The preview bubble under the node, in world coordinates (`E8-T72`).
+    /// </summary>
+    /// <param name="x">Its left edge, aligned with the node's.</param>
+    /// <param name="y">Its top edge, one <see cref="PreviewGap"/> below the node.</param>
+    /// <param name="width">Its width, which is the node's.</param>
+    /// <param name="height">One row when collapsed; the row, the rank and the value when open.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>The node's own width, and that is what makes every target here arithmetic.</b> The bubble
+    /// used to be as wide as its widest measured line, so the toggle and the pin would have sat at
+    /// an edge only the renderer knew about - and a hit test that has to ask the last frame where
+    /// something was drawn is the defect this canvas already fixed once, when the spatial index was
+    /// only rebuilt inside <c>Render</c>. A width that is the node's is a width a test can assert
+    /// with no window at all.
+    /// </para>
+    /// <para>
+    /// <b>Left-aligned with the node</b>, so a column of nodes produces a column of bubbles rather
+    /// than a staircase.
+    /// </para>
+    /// </remarks>
+    public void PreviewBox(out double x, out double y, out double width, out double height)
+    {
+        x = X;
+        y = Y + Height + PreviewGap;
+        width = Width;
+        height = PreviewRowHeight;
+
+        if (PreviewExpanded)
+        {
+            height += PreviewPadding + PreviewLineHeight + (PreviewValueLines * PreviewLineHeight);
+        }
+    }
+
+    /// <summary>The toggle that opens and closes the bubble, at the right of its first row.</summary>
+    /// <param name="x">Its left edge.</param>
+    /// <param name="y">Its top edge.</param>
+    /// <param name="width">Its width, <see cref="PreviewGlyphSize"/>.</param>
+    /// <param name="height">Its height, the same.</param>
+    public void PreviewToggleBox(out double x, out double y, out double width, out double height)
+    {
+        PreviewBox(out double boxX, out double boxY, out double boxWidth, out _);
+
+        width = PreviewGlyphSize;
+        height = PreviewGlyphSize;
+        x = boxX + boxWidth - PreviewGlyphSize - (PreviewPadding / 2);
+        y = boxY + ((PreviewRowHeight - PreviewGlyphSize) / 2);
+    }
+
+    /// <summary>
+    /// The pin, immediately left of the toggle. Only drawn and only hit while the bubble is open.
+    /// </summary>
+    /// <param name="x">Its left edge.</param>
+    /// <param name="y">Its top edge.</param>
+    /// <param name="width">Its width, <see cref="PreviewGlyphSize"/>.</param>
+    /// <param name="height">Its height, the same.</param>
+    /// <remarks>
+    /// <b>It appears only when the bubble is open, which is Dynamo's rule and is the right one.</b>
+    /// Pinning a strip that says <c>Circle</c> keeps a word on screen; the thing worth keeping is
+    /// the value, and asking to keep it is a thing you do once you are reading it.
+    /// </remarks>
+    public void PreviewPinBox(out double x, out double y, out double width, out double height)
+    {
+        PreviewToggleBox(out double toggleX, out double toggleY, out width, out height);
+
+        x = toggleX - PreviewGlyphSize - (PreviewPadding / 2);
+        y = toggleY;
+    }
+
+    /// <summary>Whether a world point is inside this node's preview bubble.</summary>
+    /// <param name="worldX">The point's x coordinate.</param>
+    /// <param name="worldY">Its y coordinate.</param>
+    /// <returns>True when the point is in the rectangle <see cref="PreviewBox"/> describes.</returns>
+    public bool IsInPreview(double worldX, double worldY)
+    {
+        PreviewBox(out double x, out double y, out double width, out double height);
+
+        return worldX >= x && worldX <= x + width && worldY >= y && worldY <= y + height;
     }
 
     /// <summary>

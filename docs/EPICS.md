@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (E8: two overlaps the client found by using it)
+**Last updated:** 2026-09-08 (E8: Dynamo's collapsible, pinnable preview bubble)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -894,6 +894,15 @@ another.
       both on row 7 and both can be visible at once. The test is the general one: the only shared
       row left is the note box, the code editor and the group title, which are three views of one
       selection.
+- [x] **A preview bubble collapses, expands and pins** (**E8-T72**) — done 2026-09-08, asked for
+      by the client with two screenshots of Dynamo. **E8-T10** gave the bubble the rank as well as
+      the value and left it all-or-nothing: it appeared when a node was selected or hovered and
+      vanished when it was not, so keeping one value on screen meant wiring a `Watch` node into the
+      graph — a change to the document to answer a question about looking. There are now three
+      states: a strip naming the type, an open bubble carrying **E8-T10**'s rank and value
+      unchanged, and a pin that keeps it after deselection. Every rectangle in it comes from
+      `CanvasNode` rather than from measured text, so the toggle and the pin are targets a test can
+      find with no window.
 - [ ] Aggressive autosave and crash recovery, because
       [R11](PRD.md#12-risks) means the process can die without warning (**E8-T13**).
 - [ ] Banners for a missing package and for a graph containing script nodes (**E8-T16**).

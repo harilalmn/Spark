@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing.** The second client pass is finished — six requests, plus the two defects the client found while testing them. |
+| **Working on** | **Nothing.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Two overlaps the client found by using the application** - `E8-T70` (a port's type label crossed the body divide) and `E8-T71` (the watch panel and the trust banner drew on top of each other). **Before it:** `E9-T15`, `E8-T69`, `E8-T68`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2761** tests green over **nine** executables with zero skips. **The previous two figures here were wrong and are corrected**: the suite measured **2690** on a stashed tree immediately before this step, not 2702, and `tests/` holds nine projects and not ten — `tests/Spark.Geometry.Io.Tests/` is a stale `bin`/`obj` with no `.csproj` in it, which is what the tenth was. **Six known flaky tests, all one defect** (`E11-T27`, open), across five classes; each passes alone and a different one fails each full run. **A seventh and an eighth victim appeared during this run** — `GraphCanvasZoomToFitTests.AFitAskedForBeforeLayoutHappensOnceThereIsALayout` on `E8-T69` and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` on `E8-T70`; both failed one full run, passed alone, and passed the next. Same shape, same class family, same one defect. |
-| **Next action** | **Take `E11-T27`.** It has eight victims now across seven classes and it gained two of them during this run alone; a suite that fails a different test every full run is one people stop reading. `test-engineer` owns the choice between one xunit collection over every Avalonia-touching class and `DisableTestParallelization` for the assembly, which costs about 16 seconds. **Also newly open**: `E13-T18`, promoting a closed shell to a solid in `spark_occt_import` — five lines that already exist inside `spark_occt_sew`, needing the C++ toolchain and a rebuild of the shim. |
+| **Last completed step** | **Dynamo's preview bubble: a collapsed strip, a toggle and a pin** - `E8-T72`. **Before it:** `E8-T70` and `E8-T71`, `E9-T15`, `E8-T69`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2774** tests green over **nine** executables with zero skips. **The previous two figures here were wrong and are corrected**: the suite measured **2690** on a stashed tree immediately before this step, not 2702, and `tests/` holds nine projects and not ten — `tests/Spark.Geometry.Io.Tests/` is a stale `bin`/`obj` with no `.csproj` in it, which is what the tenth was. **Six known flaky tests, all one defect** (`E11-T27`, open), across five classes; each passes alone and a different one fails each full run. **A seventh and an eighth victim appeared during this run** — `GraphCanvasZoomToFitTests.AFitAskedForBeforeLayoutHappensOnceThereIsALayout` on `E8-T69` and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` on `E8-T70`; both failed one full run, passed alone, and passed the next. Same shape, same class family, same one defect. |
+| **Next action** | **Take `E11-T27`.** Eight victims across seven classes, two of them gained during this run; a suite that fails a different test every full run is one people stop reading. `test-engineer` owns the choice between one xunit collection over every Avalonia-touching class and `DisableTestParallelization` for the assembly, which costs about 16 seconds. **Also open and cheap where the toolchain allows it**: `E13-T18`, promoting a closed shell to a solid in `spark_occt_import`. |
 | **Verify with** | Whatever the next row needs. Nothing is half-done. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -8786,3 +8786,63 @@ possible at all: [N90](NOTES.md) says a wrapping `TextBlock` in a `Grid` hangs h
 next run. And looked at: `--graph solids --export-size 2000x1250` shows every type label inside its
 own half on `Solid.Union`, `Solid.Difference`, `Solid.Cylinder`, `Colour.FromRgb` and
 `Display.FromGeometryColour`.
+
+### 2026-09-08 - Dynamo's preview bubble: a strip, a toggle and a pin (`E8-T72`)
+
+**What.** Two session flags and six pieces of geometry on `CanvasNode`, a rewritten `DrawPreview`,
+`HitTestPreview`/`TogglePreview`/`PinPreview` on the canvas, a `PreviewGlyphs` path pair, and
+`--pin-preview` to photograph it. Thirteen tests. Asked for by the client with two screenshots of
+Dynamo.
+
+**The bubble had two states and nothing between them.** It appeared whole when a node was selected
+or hovered and vanished whole when it was not - so the only way to keep one value on screen while
+working somewhere else was to wire a `Watch` node into the graph. That is **a change to the
+document to answer a question about looking**, and it is the gap the pin fills. Pinning records no
+undo step, changes no wire, and is not saved.
+
+**Three states now.** A collapsed 20 px strip naming the type the node produced - `Circle`,
+`Rgba` - falling back to the rank line when the output declares no type, because an empty strip
+answers nothing. A triangle that opens it onto the rank line and the value, which is exactly what
+`E8-T10` put there. And a pin, beside the triangle, only while it is open.
+
+**Every rectangle comes from `CanvasNode` rather than from measured text, and that is the whole
+reason the two controls are findable.** The bubble used to be as wide as its widest measured line,
+so a toggle at its right edge would have sat somewhere only the renderer knew - and a hit test that
+asks the last frame where something was drawn is the defect this canvas already fixed once, when
+the spatial index was rebuilt only inside `Render`. Making the bubble **the node's own width** turns
+`PreviewBox`, `PreviewToggleBox` and `PreviewPinBox` into arithmetic a test asserts with no window
+at all. The four geometry constants moved off `GraphCanvas` onto `CanvasNode` for the same reason,
+beside `PortTab` and `FieldBox`.
+
+**Two rules the gesture does not work without, and neither is visible in a screenshot of it
+working.** The hover has to **survive the pointer leaving the node for its own bubble**: a bubble
+hangs below the node and is not part of it, so moving down onto the strip dropped the hover and
+took the bubble away a frame before the click arrived - the toggle was unreachable on any node that
+was not also selected. And a press has to hit **bubbles before nodes**, because a bubble is drawn
+over whatever is behind it; a press on the body is swallowed rather than ignored, so it cannot
+start a marquee across the graph or clear the selection the bubble belongs to.
+
+**Closing unpins and pinning opens.** A pin keeps an *open* bubble, so a pinned closed one would be
+invisible state making a node behave differently from its neighbours for no visible reason, and a
+pin on a strip would keep a word when the thing worth keeping is the value.
+
+**Session state rather than document state, decided rather than skipped.** A bubble left open is
+the same kind of fact as which node is selected. `ShowsValue` stays the one that persists, because a
+`Watch` node is a thing somebody put in the graph on purpose. **If the client wants a pin to
+survive reopening a file, that is a `.spark` extension and a separate row** - the format's own rule
+([N38](NOTES.md)) makes it cheap, since a graph with no pins would still be version 1 to the byte.
+
+**One trade, stated rather than hidden.** Selecting a node used to show the rank and the value
+immediately; it now shows a strip, and the value is one click away. That is Dynamo's shape and was
+asked for by name, and the properties pane still shows both for the selected node with nothing to
+click.
+
+**The glyphs are paths, not characters.** A pushpin is an emoji on most systems and a missing box
+on the rest, and a disclosure triangle is a geometric-shapes character Inter does not carry.
+`PreviewGlyphs` follows `NodeKindGlyphs` exactly, lazily, for the render-interface reason that class
+records.
+
+**Verified.** Build clean, format clean, **2,774 tests, 0 failures, 0 skips**. And photographed:
+`--select 2 --pin-preview 4` shows two collapsed strips reading `rank 1, 10 items` under the
+selected nodes, and an open, pinned bubble on `Colour.FromRgb` - `Rgba`, `rank 0 - one value`,
+`#5AC8FFFF`, with the pin in `accent` - on a node that is **not** selected, which is the claim.

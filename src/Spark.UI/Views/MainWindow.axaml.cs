@@ -1502,6 +1502,12 @@ public sealed partial class MainWindow : Window
             Canvas.RequestTitleEdit(Options.RenameNode);
         }
 
+        // `E8-T72`. A pinned bubble is the state that proves the pin, and it is two clicks away.
+        if (Options.PinPreview >= 0)
+        {
+            Canvas.PinPreview(Options.PinPreview);
+        }
+
         // `E11-T22`: typed through the input path rather than pushed into the document, so the
         // triggers a user's keystroke would fire actually fire. A pose that asks the language
         // service directly photographs a mechanism; this photographs a behaviour ([N112]).

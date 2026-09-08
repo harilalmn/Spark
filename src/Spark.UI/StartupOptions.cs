@@ -159,6 +159,11 @@ namespace Spark.UI;
 /// so nothing automated can look at one unless the application can be asked for it (<c>E8-T69</c>).
 /// The size comes from <c>--export-size</c>.
 /// </param>
+/// <param name="PinPreview">
+/// Which node to open and pin the preview bubble of at startup (<c>--pin-preview</c>), or -1 for
+/// none. Aimed at the screenshot path for the reason <c>--rename-node</c> is: a pinned bubble is
+/// the state that proves the pin, and it takes two clicks to reach (<c>E8-T72</c>).
+/// </param>
 /// <param name="ExportViewport">
 /// A path to write the viewport to as a PNG and exit (<c>--export-viewport</c>), or null
 /// (<c>E9-T15</c>).
@@ -202,6 +207,7 @@ public readonly record struct StartupOptions(
     string? CodeBlockTyped = null,
     bool CleanUpLayout = false,
     int RenameNode = -1,
+    int PinPreview = -1,
     string? ExportGraph = null,
     string? ExportViewport = null,
     string? ExportSolids = null,
@@ -341,6 +347,7 @@ public readonly record struct StartupOptions(
         string? codeBlockTyped = null;
         bool cleanUpLayout = false;
         int renameNode = -1;
+        int pinPreview = -1;
         string? exportGraph = null;
         string? exportViewport = null;
         string? exportSolids = null;
@@ -422,6 +429,12 @@ public readonly record struct StartupOptions(
                 case "--rename-node" when i + 1 < args.Length
                     && int.TryParse(args[i + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int rename):
                     renameNode = rename;
+                    i++;
+                    break;
+
+                case "--pin-preview" when i + 1 < args.Length
+                    && int.TryParse(args[i + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int pinned):
+                    pinPreview = pinned;
                     i++;
                     break;
 
@@ -526,7 +539,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped, cleanUpLayout, renameNode, exportGraph, exportViewport, exportSolids, exportWidth, exportHeight)
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped, cleanUpLayout, renameNode, pinPreview, exportGraph, exportViewport, exportSolids, exportWidth, exportHeight)
         {
             ListCodeFonts = listCodeFonts,
         };

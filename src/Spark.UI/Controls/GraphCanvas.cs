@@ -15,6 +15,29 @@ using Spark.UI.Theming;
 namespace Spark.UI.Controls;
 
 /// <summary>
+/// Which part of a preview bubble a pointer landed on (<c>E8-T72</c>).
+/// </summary>
+/// <remarks>
+/// <b>Three targets in one strip, so a press has to say which.</b> The toggle and the pin do
+/// something; the body does nothing and still has to be reported, because a press inside a bubble
+/// must not fall through and start a marquee across the graph behind it.
+/// </remarks>
+public enum CanvasPreviewPart
+{
+    /// <summary>The point is not in any bubble.</summary>
+    None,
+
+    /// <summary>Inside a bubble, but on neither of its two controls.</summary>
+    Body,
+
+    /// <summary>On the triangle that opens and closes it.</summary>
+    Toggle,
+
+    /// <summary>On the pin that keeps it open after the node stops being selected.</summary>
+    Pin,
+}
+
+/// <summary>
 /// What one gesture did to the graph: a phrase for the undo menu, and whether the change is one
 /// the evaluator has to see.
 /// </summary>
@@ -202,17 +225,13 @@ public sealed class GraphCanvas : Control
     /// <summary>The inset between a note's edge and its text.</summary>
     private const double NotePadding = 10;
 
-    /// <summary>The gap between a node's bottom edge and its preview bubble.</summary>
-    private const double PreviewGap = 6;
-
-    /// <summary>The inset between a preview bubble's edge and its text.</summary>
-    private const double PreviewPadding = 8;
-
-    /// <summary>The gap between the rank line and the value line inside a bubble.</summary>
-    private const double PreviewLineGap = 3;
-
-    /// <summary>How wide a preview bubble's value line may grow before it wraps.</summary>
-    private const double PreviewMaximumWidth = 320;
+    // `E8-T72`: THE BUBBLE'S FOUR NUMBERS MOVED TO `CanvasNode`, AND THAT IS THE POINT.
+    //
+    // They were private constants here, so the bubble's geometry existed only inside the draw
+    // loop - which is fine for a rectangle nobody clicks and useless for one carrying a toggle and
+    // a pin. `CanvasNode.PreviewGap`, `PreviewPadding`, `PreviewRowHeight` and `PreviewLineHeight`
+    // are the same numbers where `PortTab` and `FieldBox` already live, and a test can ask for
+    // them with no window.
     private const double PortFontSize = 11;
     private const double TypeFontSize = 10;
     private const double TypeGap = 6;
@@ -874,6 +893,32 @@ public sealed class GraphCanvas : Control
             return;
         }
 
+        // `E8-T72`: THE BUBBLES ARE HIT FIRST, BECAUSE THEY ARE DRAWN LAST.
+        //
+        // A bubble hangs below its node and over whatever is behind it, so a press inside one must
+        // belong to it rather than to the node it happens to overlap. A press on the body is
+        // swallowed rather than ignored: it must not start a marquee across the graph, and it must
+        // not clear the selection the bubble is attached to.
+        if (HitTestPreview(world, out int previewSlot) is var part && part is not CanvasPreviewPart.None)
+        {
+            switch (part)
+            {
+                case CanvasPreviewPart.Toggle:
+                    TogglePreview(previewSlot);
+                    break;
+
+                case CanvasPreviewPart.Pin:
+                    PinPreview(previewSlot);
+                    break;
+
+                default:
+                    break;
+            }
+
+            e.Handled = true;
+            return;
+        }
+
         CanvasPort? port = HitTestPort(world);
 
         // THE SECOND CLICK OF A TWO-CLICK CONNECTION (`E8-T34`).
@@ -1249,6 +1294,21 @@ public sealed class GraphCanvas : Control
         }
 
         int node = HitTestNode(world);
+
+        // `E8-T72`: THE HOVER SURVIVES THE POINTER LEAVING THE NODE FOR ITS OWN BUBBLE.
+        //
+        // A bubble is drawn *below* the node and is not part of it, so moving down onto the strip
+        // to click its toggle used to drop the hover - which took the bubble away a frame before
+        // the click arrived, and the gesture was unreachable on any node that was not also
+        // selected. Only the node the pointer already left is considered, so this costs one
+        // rectangle test rather than a sweep.
+        if (node < 0 && _hoverNode >= 0 && _hoverNode < _graph.Nodes.Count
+            && _graph.Nodes[_hoverNode].HasPreview
+            && _graph.Nodes[_hoverNode].IsInPreview(world.X, world.Y))
+        {
+            node = _hoverNode;
+        }
+
         CanvasPort? port = HitTestPort(world);
         CanvasNote? note = node >= 0 ? null : HitTestNote(world);
 
@@ -2924,41 +2984,152 @@ public sealed class GraphCanvas : Control
             return false;
         }
 
-        return _graph.Nodes[slot].ShowsValue || _selection.Contains(slot) || slot == _hoverNode;
+        CanvasNode node = _graph.Nodes[slot];
+
+        // `E8-T72`: A PIN IS A FOURTH REASON, AND IT IS THE ONE THE CLIENT ASKED FOR.
+        //
+        // The other three are all about *now* - it is a watch, it is selected, the pointer is on
+        // it - so there was no way to keep one value on screen while working somewhere else short
+        // of wiring a `Watch` node into the graph. Pinning is that, without changing the graph.
+        return node.ShowsValue || node.PreviewPinned || _selection.Contains(slot) || slot == _hoverNode;
     }
 
-    private static void DrawPreview(DrawingContext context, in FramePens pens, CanvasNode node)
+    /// <summary>
+    /// The part of a preview bubble a world point lands on, and whose (<c>E8-T72</c>).
+    /// </summary>
+    /// <param name="world">The point, in world coordinates.</param>
+    /// <param name="slot">The node whose bubble was hit, or -1.</param>
+    /// <returns>Which part of it, or <see cref="CanvasPreviewPart.None"/>.</returns>
+    /// <remarks>
+    /// <b>Only bubbles that are on screen are hit, which is the same set that is drawn.</b> A
+    /// bubble belongs to a node and is drawn under it, so the spatial index — which is built from
+    /// node bounds — does not cover it; this walks the nodes instead. That is affordable because
+    /// <see cref="ShowsPreview"/> is false for nearly all of them, and it is the honest version:
+    /// the alternative is remembering where the last frame drew things, which is the defect this
+    /// canvas already fixed once.
+    /// </remarks>
+    public CanvasPreviewPart HitTestPreview(Point world, out int slot)
     {
-        if (node.ResultSummary is not { } summary || summary.Length == 0)
+        for (int candidate = _graph.Nodes.Count - 1; candidate >= 0; candidate--)
+        {
+            CanvasNode node = _graph.Nodes[candidate];
+
+            if (!node.HasPreview || !ShowsPreview(candidate) || !node.IsInPreview(world.X, world.Y))
+            {
+                continue;
+            }
+
+            slot = candidate;
+
+            if (node.PreviewExpanded && Inside(node, world, pin: true))
+            {
+                return CanvasPreviewPart.Pin;
+            }
+
+            return Inside(node, world, pin: false)
+                ? CanvasPreviewPart.Toggle
+                : CanvasPreviewPart.Body;
+        }
+
+        slot = -1;
+        return CanvasPreviewPart.None;
+
+        static bool Inside(CanvasNode node, Point world, bool pin)
+        {
+            if (pin)
+            {
+                node.PreviewPinBox(out double x, out double y, out double width, out double height);
+
+                return world.X >= x && world.X <= x + width && world.Y >= y && world.Y <= y + height;
+            }
+
+            node.PreviewToggleBox(out double tx, out double ty, out double tw, out double th);
+
+            return world.X >= tx && world.X <= tx + tw && world.Y >= ty && world.Y <= ty + th;
+        }
+    }
+
+    /// <summary>Opens or closes a node's preview bubble (<c>E8-T72</c>).</summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <remarks>
+    /// <b>Closing also unpins.</b> A pin keeps an <i>open</i> bubble, so a pinned bubble that was
+    /// closed would be an invisible piece of state that made the node behave differently from its
+    /// neighbours for no visible reason.
+    /// </remarks>
+    public void TogglePreview(int slot)
+    {
+        if (slot < 0 || slot >= _graph.Nodes.Count)
         {
             return;
         }
 
-        FormattedText rank = new(
-            CanvasGraph.RankLine(node),
-            CultureInfo.InvariantCulture,
-            FlowDirection.LeftToRight,
-            LabelTypeface,
-            TypeFontSize,
-            SparkPalette.TextMutedBrush);
+        CanvasNode node = _graph.Nodes[slot];
+        node.PreviewExpanded = !node.PreviewExpanded;
 
-        FormattedText value = new(
-            summary,
-            CultureInfo.InvariantCulture,
-            FlowDirection.LeftToRight,
-            LabelTypeface,
-            PortFontSize,
-            SparkPalette.TextPrimaryBrush)
+        if (!node.PreviewExpanded)
         {
-            MaxTextWidth = PreviewMaximumWidth,
-        };
+            node.PreviewPinned = false;
+        }
 
-        double width = Math.Max(rank.Width, value.Width) + (2 * PreviewPadding);
-        double height = rank.Height + value.Height + (2 * PreviewPadding) + PreviewLineGap;
+        InvalidateVisual();
+    }
 
-        // Under the node and left-aligned with it, so a column of nodes produces a column of
-        // bubbles rather than a staircase.
-        Rect box = new(node.X, node.Y + node.Height + PreviewGap, width, height);
+    /// <summary>Pins or unpins a node's preview bubble (<c>E8-T72</c>).</summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <remarks>
+    /// <b>Pinning opens it, because a pin on a closed bubble would keep a word on screen.</b> The
+    /// thing worth keeping is the value.
+    /// </remarks>
+    public void PinPreview(int slot)
+    {
+        if (slot < 0 || slot >= _graph.Nodes.Count)
+        {
+            return;
+        }
+
+        CanvasNode node = _graph.Nodes[slot];
+        node.PreviewPinned = !node.PreviewPinned;
+
+        if (node.PreviewPinned)
+        {
+            node.PreviewExpanded = true;
+        }
+
+        InvalidateVisual();
+    }
+
+    /// <summary>
+    /// Draws a node's preview bubble: a strip, and the value underneath when it is open
+    /// (<c>E8-T72</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Dynamo's shape, asked for by the client with two screenshots of it.</b> The bubble used
+    /// to be one thing that appeared whole and vanished whole; it is now a collapsed strip naming
+    /// the type, a toggle that opens it onto the rank and the value, and a pin that keeps it open
+    /// after the node stops being selected.
+    /// </para>
+    /// <para>
+    /// <b>Every rectangle here comes from <see cref="CanvasNode"/> rather than from measured
+    /// text</b>, which is what makes the toggle and the pin things a test can find. The bubble is
+    /// the node's own width and the value wraps inside it; a value too long for
+    /// <see cref="CanvasNode.PreviewMaximumLines"/> is clipped, and the properties pane is where
+    /// the whole of it lives.
+    /// </para>
+    /// </remarks>
+    /// <param name="context">The drawing context.</param>
+    /// <param name="pens">The frame's pens.</param>
+    /// <param name="node">The node.</param>
+    private static void DrawPreview(DrawingContext context, in FramePens pens, CanvasNode node)
+    {
+        if (node.ResultSummary is not { Length: > 0 } summary)
+        {
+            return;
+        }
+
+        node.PreviewBox(out double boxX, out double boxY, out double boxWidth, out double boxHeight);
+
+        Rect box = new(boxX, boxY, boxWidth, boxHeight);
         RoundedRect rounded = new(box, CornerRadius);
 
         context.DrawRectangle(SparkPalette.SurfaceFloatBrush, null, rounded);
@@ -2966,10 +3137,92 @@ public sealed class GraphCanvas : Control
 
         using (context.PushClip(box))
         {
-            context.DrawText(rank, new Point(box.X + PreviewPadding, box.Y + PreviewPadding));
+            FormattedText label = new(
+                node.PreviewLabel,
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                LabelTypeface,
+                PortFontSize,
+                SparkPalette.TextSecondaryBrush);
+
+            context.DrawText(
+                label,
+                new Point(
+                    box.X + CanvasNode.PreviewPadding,
+                    box.Y + ((CanvasNode.PreviewRowHeight - label.Height) / 2)));
+
+            if (node.PreviewExpanded)
+            {
+                node.PreviewPinBox(out double pinX, out double pinY, out double pinSize, out _);
+
+                DrawGlyph(
+                    context,
+                    PreviewGlyphs.Pin,
+                    pinX,
+                    pinY,
+                    pinSize,
+                    node.PreviewPinned ? SparkPalette.AccentBrush : SparkPalette.TextMutedBrush);
+            }
+
+            node.PreviewToggleBox(out double toggleX, out double toggleY, out double toggleSize, out _);
+
+            DrawGlyph(
+                context,
+                node.PreviewExpanded ? PreviewGlyphs.Collapse : PreviewGlyphs.Expand,
+                toggleX,
+                toggleY,
+                toggleSize,
+                SparkPalette.TextMutedBrush);
+
+            if (!node.PreviewExpanded)
+            {
+                return;
+            }
+
+            FormattedText rank = new(
+                CanvasGraph.RankLine(node),
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                LabelTypeface,
+                TypeFontSize,
+                SparkPalette.TextMutedBrush);
+
+            FormattedText value = new(
+                summary,
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                LabelTypeface,
+                PortFontSize,
+                SparkPalette.TextPrimaryBrush)
+            {
+                MaxTextWidth = Math.Max(1, box.Width - (2 * CanvasNode.PreviewPadding)),
+            };
+
+            double line = box.Y + CanvasNode.PreviewRowHeight;
+
+            context.DrawText(rank, new Point(box.X + CanvasNode.PreviewPadding, line));
             context.DrawText(
                 value,
-                new Point(box.X + PreviewPadding, box.Y + PreviewPadding + rank.Height + PreviewLineGap));
+                new Point(box.X + CanvasNode.PreviewPadding, line + CanvasNode.PreviewLineHeight));
+        }
+    }
+
+    /// <summary>Draws one 16-unit glyph path scaled into a box (<c>E8-T72</c>).</summary>
+    /// <param name="context">The drawing context.</param>
+    /// <param name="glyph">The path, authored in <see cref="PreviewGlyphs.DesignSize"/> units.</param>
+    /// <param name="x">The box's left edge, in world coordinates.</param>
+    /// <param name="y">Its top edge.</param>
+    /// <param name="size">Its side length.</param>
+    /// <param name="brush">What to fill it with.</param>
+    private static void DrawGlyph(
+        DrawingContext context, Avalonia.Media.Geometry glyph, double x, double y, double size, IBrush brush)
+    {
+        double scale = size / PreviewGlyphs.DesignSize;
+
+        using (context.PushTransform(
+            Matrix.CreateScale(scale, scale) * Matrix.CreateTranslation(x, y)))
+        {
+            context.DrawGeometry(brush, null, glyph);
         }
     }
 

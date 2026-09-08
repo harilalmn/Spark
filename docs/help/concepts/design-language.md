@@ -972,6 +972,36 @@ the node lands at the point that was **double-clicked**, not at the pointer's po
 was pressed — the wheel can pan and zoom while the box is open, and a node arriving somewhere other
 than where it was asked for is the kind of small betrayal that makes a gesture feel unreliable.
 
+### 7.6.2 The preview bubble
+
+**A node that has run carries a bubble under it, and it has three states** (`E8-T72`). Collapsed it
+is a 20 px strip, the node's own width, naming the type that came out — `Circle`, `Rgba`, `Brep` —
+or the node's rank line when its output declares no type. A triangle at the right opens it onto the
+rank line and the value, which is what the bubble has always shown (§7.6, `E8-T10`). A pin beside
+that triangle keeps it open after the node stops being selected.
+
+| Part | Size | Fill | Text |
+|---|---|---|---|
+| Strip | 20 px, the node's width | `surface.float` `#2E3440` | `text.secondary`, 11 px |
+| Rank line | 15 px | — | `text.muted`, 10 px |
+| Value | up to 8 wrapped lines | — | `text.primary`, 11 px |
+| Toggle, pin | 16 px | — | `text.muted`, `accent` when pinned |
+
+**The pin is what the bubble was missing rather than a convenience.** Before it there were two
+states and nothing between them: a value that went away the moment you looked elsewhere, or a
+`Watch` node wired into the graph — which is a change to the *document* to answer a question about
+*looking*. So a pin records no undo step, changes no wire, and is not saved: a bubble left open is
+the same kind of fact as which node is selected.
+
+**Closing a pinned bubble unpins it, and pinning a closed one opens it.** A pin keeps an *open*
+bubble, so a pinned closed one would be invisible state making a node behave differently from its
+neighbours for no visible reason — and a pin on a strip would keep a word on screen when the thing
+worth keeping is the value.
+
+**It is capped at eight wrapped lines.** A bubble is a glance; a list of a thousand points wraps to
+hundreds of lines and covers the graph it is annotating. The properties pane holds the whole value,
+and says how much it cut.
+
 ### 7.7 Frozen, preview off, and not evaluated
 
 Three states that all mean "this node is not currently contributing", and all three are easy to
