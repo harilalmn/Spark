@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (Dynamo's collapsible, pinnable preview bubble)
+**Last updated:** 2026-09-08 (the bubble vanished on the way to its own pin)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -522,6 +522,7 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] The viewport exports to PNG at a chosen resolution, and its geometry to STEP or IGES - `E9-T15`, with `Brep.Join` (`E2-T61`) putting several solids in one file. **Not ACIS**: nothing here can write it and OpenCascade has no ACIS writer, so the client was asked and chose STEP.
 - [x] A port's type label crossed the body divide - `E8-T70`. Nothing sized a node's *halves*; a row is now twice its wider half, and the drawing is bounded at the line as well as the measurement.
 - [x] Dynamo's preview bubble - `E8-T72`. A collapsed strip naming the type, a triangle that opens it onto the rank and the value, and a pin that keeps it open after the node stops being selected. Before it, keeping one value on screen meant wiring a `Watch` node into the graph.
+- [x] The preview bubble vanished on the way to its own pin - `E8-T73`. `E8-T72` kept the hover over the bubble and not over the six-unit gap above it, which is exactly the ground a pointer crosses to reach the toggle.
 - [x] The watch panel and the trust banner drew on top of each other - `E8-T71`. Two controls on one grid row that are not mutually exclusive; the same mistake the pane's own comment describes one row earlier.
 - [x] The node library is callable from a code block — `E6-T30`. `Solid`, `Logic`, `Colour` and the rest; the ten colliding names are pinned to what they always meant, so no existing block changed.
 - [x] A getting-started guide for the code block — `E10-T16`. `docs/CodeBlock.md`, twelve sections, all 23 samples run against the build.

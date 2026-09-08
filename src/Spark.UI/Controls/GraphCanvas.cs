@@ -1295,18 +1295,16 @@ public sealed class GraphCanvas : Control
 
         int node = HitTestNode(world);
 
-        // `E8-T72`: THE HOVER SURVIVES THE POINTER LEAVING THE NODE FOR ITS OWN BUBBLE.
+        // `E8-T72`, CORRECTED BY `E8-T73`: THE HOVER SURVIVES THE JOURNEY TO THE BUBBLE.
         //
-        // A bubble is drawn *below* the node and is not part of it, so moving down onto the strip
-        // to click its toggle used to drop the hover - which took the bubble away a frame before
-        // the click arrived, and the gesture was unreachable on any node that was not also
-        // selected. Only the node the pointer already left is considered, so this costs one
-        // rectangle test rather than a sweep.
-        if (node < 0 && _hoverNode >= 0 && _hoverNode < _graph.Nodes.Count
-            && _graph.Nodes[_hoverNode].HasPreview
-            && _graph.Nodes[_hoverNode].IsInPreview(world.X, world.Y))
+        // A bubble is drawn `PreviewGap` *below* its node and is not part of it, so moving down
+        // onto the strip to press its toggle used to drop the hover - which took the bubble away
+        // before the pointer arrived. `E8-T72` covered the bubble and not the gap between the two,
+        // which is six world units of neither, and the client hit it on the first try.
+        // `IsInPreviewReach` is the node, the gap and the bubble as one region.
+        if (node < 0)
         {
-            node = _hoverNode;
+            node = HitTestPreviewReach(world);
         }
 
         CanvasPort? port = HitTestPort(world);
@@ -3047,6 +3045,32 @@ public sealed class GraphCanvas : Control
 
             return world.X >= tx && world.X <= tx + tw && world.Y >= ty && world.Y <= ty + th;
         }
+    }
+
+    /// <summary>
+    /// The node whose bubble — or the gap above it — is under a world point (<c>E8-T73</c>).
+    /// </summary>
+    /// <param name="world">The point, in world coordinates.</param>
+    /// <returns>The node's slot, or -1.</returns>
+    /// <remarks>
+    /// <b>Only bubbles that are already on screen, which is what stops this being sticky.</b>
+    /// <see cref="ShowsPreview"/> is true for the hovered node, so a node whose bubble the pointer
+    /// is travelling towards keeps itself alive; a node with no bubble showing cannot be reached
+    /// into, and the moment the pointer leaves the region the hover clears like any other.
+    /// </remarks>
+    private int HitTestPreviewReach(Point world)
+    {
+        for (int slot = _graph.Nodes.Count - 1; slot >= 0; slot--)
+        {
+            CanvasNode node = _graph.Nodes[slot];
+
+            if (node.HasPreview && ShowsPreview(slot) && node.IsInPreviewReach(world.X, world.Y))
+            {
+                return slot;
+            }
+        }
+
+        return -1;
     }
 
     /// <summary>Opens or closes a node's preview bubble (<c>E8-T72</c>).</summary>

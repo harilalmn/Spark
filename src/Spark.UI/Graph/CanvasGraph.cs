@@ -1045,11 +1045,43 @@ public sealed class CanvasNode
     /// <param name="worldX">The point's x coordinate.</param>
     /// <param name="worldY">Its y coordinate.</param>
     /// <returns>True when the point is in the rectangle <see cref="PreviewBox"/> describes.</returns>
+    /// <remarks>
+    /// <b>Strictly the bubble, because this is what a click asks.</b> A press in the gap above it
+    /// belongs to the canvas and should start a marquee like any other press on nothing.
+    /// <see cref="IsInPreviewReach"/> is the generous version, and it answers a different question.
+    /// </remarks>
     public bool IsInPreview(double worldX, double worldY)
     {
         PreviewBox(out double x, out double y, out double width, out double height);
 
         return worldX >= x && worldX <= x + width && worldY >= y && worldY <= y + height;
+    }
+
+    /// <summary>
+    /// Whether a world point is anywhere in the node, the gap under it, or its bubble (`E8-T73`).
+    /// </summary>
+    /// <param name="worldX">The point's x coordinate.</param>
+    /// <param name="worldY">Its y coordinate.</param>
+    /// <returns>True when the point is in that one contiguous region.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The gap is the whole reason this exists, and leaving it out was a real defect.</b> A
+    /// bubble is shown while its node is hovered and is drawn <see cref="PreviewGap"/> below it —
+    /// so moving the pointer from the node down to the bubble's own toggle crosses six world units
+    /// that are neither, the hover drops, and the bubble is gone before the pointer arrives. The
+    /// client hit it on the first try: <i>pane disappears while moving the mouse down to pin it.</i>
+    /// </para>
+    /// <para>
+    /// <b>It is a hover question and never a click question.</b> Keeping a bubble on screen while a
+    /// pointer travels towards it is generous by design; deciding what a press landed on is not,
+    /// which is why <see cref="IsInPreview"/> stayed strict rather than being widened.
+    /// </para>
+    /// </remarks>
+    public bool IsInPreviewReach(double worldX, double worldY)
+    {
+        PreviewBox(out double x, out double y, out double width, out double height);
+
+        return worldX >= x && worldX <= x + width && worldY >= Y && worldY <= y + height;
     }
 
     /// <summary>

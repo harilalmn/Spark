@@ -288,6 +288,64 @@ public sealed class PinnedPreviewTests
     });
 
     /// <summary>
+    /// `E8-T73` — <b>the hover survives the six units between the node and its bubble.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>The defect the client found on the first try:</b> <i>pane disappears while moving the
+    /// mouse down to pin it.</i> `E8-T72` kept the hover over the bubble and not over the
+    /// <see cref="CanvasNode.PreviewGap"/> above it — which is exactly the ground a pointer crosses
+    /// on its way from the node to the toggle, so the bubble went away before the pointer arrived.
+    /// The three points below are the journey, and the middle one is the one that failed.
+    /// </remarks>
+    [Fact]
+    public void TheHoverSurvivesTheGapBetweenTheNodeAndItsBubble() => HeadlessSession.Run(() =>
+    {
+        (CanvasGraph graph, int slot) = Ran();
+
+        GraphCanvas canvas = new() { Graph = graph };
+        Window window = new() { Width = 900, Height = 700, Content = canvas };
+
+        window.Show();
+        window.CaptureRenderedFrame();
+
+        CanvasNode node = graph.Nodes[slot];
+
+        window.MouseMove(Screen(canvas, new Point(node.X + 20, node.Y + 6)), RawInputModifiers.None);
+        Assert.True(canvas.ShowsPreview(slot), "hovering the node showed no bubble");
+
+        // Halfway down the gap: not on the node any more, not on the bubble yet.
+        window.MouseMove(
+            Screen(canvas, new Point(node.X + 20, node.Y + node.Height + (CanvasNode.PreviewGap / 2))),
+            RawInputModifiers.None);
+
+        Assert.True(canvas.ShowsPreview(slot), "the bubble went away in the gap above itself");
+
+        window.MouseMove(Screen(canvas, Center(node, Part.Toggle)), RawInputModifiers.None);
+        Assert.True(canvas.ShowsPreview(slot), "the bubble went away on its own toggle");
+
+        window.Close();
+    });
+
+    /// <summary>
+    /// <b>The reach is generous for the hover and not for the press.</b> Widening what a click
+    /// lands on would swallow presses in the gap, which belong to the canvas.
+    /// </summary>
+    [Fact]
+    public void TheGapIsNotPartOfTheBubbleForAPress() => HeadlessSession.Run(() =>
+    {
+        (CanvasGraph graph, int slot) = Ran();
+        GraphCanvas canvas = new() { Graph = graph };
+        canvas.SelectOnly(slot);
+
+        CanvasNode node = graph.Nodes[slot];
+        Point gap = new(node.X + 20, node.Y + node.Height + (CanvasNode.PreviewGap / 2));
+
+        Assert.True(node.IsInPreviewReach(gap.X, gap.Y), "the gap is not within reach");
+        Assert.False(node.IsInPreview(gap.X, gap.Y), "the gap counts as the bubble");
+        Assert.Equal(CanvasPreviewPart.None, canvas.HitTestPreview(gap, out _));
+    });
+
+    /// <summary>
     /// The strip says what came out of the node in one word. A node whose output declares no type
     /// falls back to its shape, because an empty strip answers nothing.
     /// </summary>

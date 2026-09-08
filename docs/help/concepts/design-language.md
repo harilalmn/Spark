@@ -998,6 +998,12 @@ bubble, so a pinned closed one would be invisible state making a node behave dif
 neighbours for no visible reason — and a pin on a strip would keep a word on screen when the thing
 worth keeping is the value.
 
+**A node, the gap under it and its bubble are one region for the pointer** (`E8-T73`). The bubble
+is drawn six units clear of the node so the two read as separate things, and those six units are
+the ground a pointer crosses on the way to the toggle — so the hover treats the three as
+contiguous. That generosity is for hovering only: a *press* in the gap belongs to the canvas and
+starts a marquee like any other press on nothing.
+
 **It is capped at eight wrapped lines.** A bubble is a glance; a list of a thousand points wraps to
 hundreds of lines and covers the graph it is annotating. The properties pane holds the whole value,
 and says how much it cut.
