@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-08 (changing the code font did not redraw the open editor)
+**Last updated:** 2026-09-08 (the arrow keys cycle signature overloads)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing - between steps.** Two rows are waiting on the client's eyes rather than on a test: `E8-T61`'s blinking caret and `E8-T62`'s live font change. |
+| **Working on** | **Nothing - between steps.** Three client-answered rows are queued: `E8-T64` tighten the font list, `E2-T59` a constructor for every library factory, `E2-T60` `Centre` becomes `Center`. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Changing the code font did not redraw the open editor** - `E8-T62`. AvaloniaEdit caches its visual lines; the family changed and the glyphs did not. **Before it:** `E8-T61`, `E8-T60`, `E6-T31`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2656** tests green over ten executables with zero skips. **Two known flaky tests**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)) and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` (`E11-T27`, open). |
-| **Next action** | **Wait for the client on two things no test here can stand in for**: the caret blinking in a freshly double-clicked block (`E8-T61`), and the font changing under an open editor (`E8-T62`). **Then a row that has now earned itself three times over**: `E8-T59` tested a setting and not what the setting does, `E10-T16` found a product defect by *running* documentation samples, and `E8-T60`/`E8-T61` were behaviours two documents claimed and the code did not do. The deferred *compile and exercise every fenced sample* check in `DocumentationChecks` is the cheapest of those to build and would have caught the first and the third. |
-| **Verify with** | The client typing into a freshly double-clicked block without a second click, and picking a font from the dropdown while an editor is open. Then the ten executables and `tests/Spark.Docs.Verify`. **Grep the run output for `[FAIL]` and not only `Total:`.** |
+| **Last completed step** | **The arrow keys cycle signature overloads** - `E8-T63`. The binding existed as Alt+Up/Down and nothing on screen said so. **Before it:** `E8-T62`, `E8-T61`, `E8-T60`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2659** tests green over ten executables with zero skips. **Two known flaky tests**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)) and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` (`E11-T27`, open). |
+| **Next action** | **`E8-T64`, the smallest of the three: tighten the font list.** `MingLiU_HKSCS-ExtB` is offered because its Latin glyphs really are monospaced, so the measurement is right and the *question* is wrong - a code font is not merely a face whose letters are equal width. Then `E2-T59` (a constructor for every library factory, which `ADR-0004`'s dedup rule already makes safe - it suppresses a constructor when a matching factory exists, so no node appears twice) and `E2-T60` (`Centre` becomes `Center`, a rename the size of `E2-T58` with the same alias requirement). |
+| **Verify with** | For `E8-T64`: the list containing Consolas and Cascadia and not containing a CJK face, on this machine, asserted by name rather than by count. Then the ten executables. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -8125,3 +8125,44 @@ covered by the AvaloniaEdit behaviour being understood and by the client confirm
 executables with zero skips.
 
 **Documents.** `E8-T62`'s row and a TODO line.
+
+### 2026-09-08 — The arrow keys cycle signature overloads
+
+**What.** `E8-T63`. The client: *the signature help doesn't scroll up/down using arrow keys, though
+it would show 2/2*. They also confirmed `E8-T61` and `E8-T62` — the caret blinks and the font
+changes live — and answered the three open questions, which become the next three rows.
+
+**Cycling was already bound, to Alt+Up and Alt+Down.** That is VS Code's own binding for
+`showPrevParameterHint`, and the comment beside it explains the collision it was avoiding: plain
+Alt+Up/Down is *Move Line Up/Down* from `E6-T24`. So the feature existed and nobody could find it —
+the popup rendered `2/2`, a fact with no affordance, and nothing on screen named a key.
+
+**Plain Up and Down cycle too now, and the gate is what makes that safe.** They only claim the
+arrows when there is **more than one** overload and the completion list is closed. So the arrows go
+on reaching the caret in every case where there is nothing to cycle — which is exactly the case
+where the count is not on screen either. Visual Studio resolves the same collision the same way,
+and Escape still dismisses the popup and hands the arrows back. The label reads `↑↓ 2/2`.
+
+**Three drafts of the negative test, and the first two were unfalsifiable in opposite directions.**
+This is the part worth keeping.
+
+- The first asserted the popup's overload count and that a caret offset was not negative. Neither
+  can fail.
+- The second watched the caret cross a line break when the popup declined the key. That cannot
+  *pass*: a synthetic `KeyDown` raised on the inner editor does not move the caret in this harness
+  at all — established by probing with no popup open at all, `before=21 after=21`.
+- What survives asserts `Handled`. Whether the control claimed the key is the one observable
+  difference, and it is the one that matters: declining it is precisely what hands the arrow to the
+  caret in a real editor.
+
+**That is twice in two rows that I wrote an assertion which could not go red**, after writing a
+journal entry about exactly that failure. The habit that catches it is cheap and I should apply it
+without being prompted: revert the fix, run the test, and require it to fail. Both of today's
+survived that check — `ThePlainArrowsCycleTheOverloads` and `TwoOverloadsClaimTheArrow` go red when
+the binding is put back to Alt-only.
+
+**Verified.** Gates: build clean with zero warnings, format clean, **2659** tests green over ten
+executables with zero skips.
+
+**Documents.** `E8-T63`'s row, a TODO line, and a line in `CodeBlock.md`'s editor section naming
+the keys — which is the half of this that would have prevented the report.

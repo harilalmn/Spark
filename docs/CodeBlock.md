@@ -403,6 +403,8 @@ and VS Code's Selection commands on the context menu.
 
 - **Type a dot, or press Ctrl+Space**, and the list opens at the caret. Keep typing to narrow it —
   `centre.Di` selects `DistanceTo` — then **Enter** or **Tab** to accept, **Escape** to dismiss.
+- **Signature help appears when you type `(`.** If the method has overloads it says `↑↓ 2/2`, and
+  the arrow keys move between them. Escape dismisses it and gives the arrows back to the caret.
 - **Panning, zooming and dragging the block** all leave the editor open and carry it along.
 - **Code is set in Source Code Pro**, the face Dynamo uses. The **Font** dropdown under the editor
   in the Properties pane changes it for every block, and the choice is remembered between sessions.

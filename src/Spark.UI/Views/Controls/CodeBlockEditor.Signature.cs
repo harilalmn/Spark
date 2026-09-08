@@ -214,9 +214,14 @@ public sealed partial class CodeBlockEditor
 
         if (_signatureOverloads is not null)
         {
+            // `E8-T63`: THE COUNT SAYS THERE ARE OTHERS AND THE ARROWS SAY HOW TO REACH THEM.
+            //
+            // `2/2` on its own is a fact with no affordance - the client read it, pressed the
+            // arrows, and reported that nothing happened. It was Alt+Up and Alt+Down at the time
+            // and nothing on screen said so.
             _signatureOverloads.IsVisible = _signature.Signatures.Count > 1;
             _signatureOverloads.Text = _signature.Signatures.Count > 1
-                ? $"{_signature.ActiveSignature + 1}/{_signature.Signatures.Count}"
+                ? $"\u2191\u2193 {_signature.ActiveSignature + 1}/{_signature.Signatures.Count}"
                 : string.Empty;
         }
     }

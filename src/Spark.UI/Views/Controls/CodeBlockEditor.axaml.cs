@@ -637,7 +637,17 @@ public sealed partial class CodeBlockEditor : UserControl
         // **Cycling overloads outranks moving lines, and only while the popup is up.** Alt+Up and
         // Alt+Down are Move Line Up and Move Line Down (`E6-T24`) at every other moment; VS Code
         // resolves the same collision the same way, by letting the visible popup win.
-        if (IsSignatureOpen && e.KeyModifiers.HasFlag(KeyModifiers.Alt) && e.Key is Key.Up or Key.Down)
+        //
+        // THE PLAIN ARROWS DO IT TOO, AND THE GATE IS WHAT MAKES THAT SAFE (`E8-T63`).
+        //
+        // The client reported the popup saying `2/2` while the arrows did nothing - which it did,
+        // because Alt was the only binding and nothing on screen said so. Plain Up and Down now
+        // cycle as well, but only when there is **more than one** overload and the completion list
+        // is closed: so the arrows keep moving the caret in every case where there is nothing to
+        // cycle, which is exactly the case where `2/2` is not on screen either. Visual Studio
+        // resolves it the same way. Escape still dismisses the popup and hands the arrows back.
+        if (IsSignatureOpen && e.Key is Key.Up or Key.Down
+            && (e.KeyModifiers.HasFlag(KeyModifiers.Alt) || (!IsCompletionOpen && SignatureCount > 1)))
         {
             CycleSignature(e.Key == Key.Up ? -1 : 1);
             e.Handled = true;

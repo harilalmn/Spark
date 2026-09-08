@@ -382,6 +382,73 @@ public sealed class CodeBlockEditorTests
         Assert.Equal("FromCentreNormalRadius", editor.ActiveSignature?.Name);
     });
 
+    /// <summary>
+    /// <b>The plain arrows cycle the overloads too</b> (`E8-T63`), which is what the popup's
+    /// count implies and what the client tried.
+    /// </summary>
+    /// <remarks>
+    /// Alt+Up and Alt+Down were the only binding, and nothing on screen said so - the popup
+    /// rendered <c>2/2</c> and the arrows moved the caret. Both bindings work now; the label says
+    /// which.
+    /// </remarks>
+    [Fact]
+    public void ThePlainArrowsCycleTheOverloads() => OnUiThread(() =>
+    {
+        (Window _, CodeBlockEditor editor) = Open(Stub([]), Signatures());
+
+        Type(editor, "var c = Circle.FromCentreNormalRadius(");
+
+        Assert.Equal(2, editor.SignatureCount);
+
+        Key(editor, Avalonia.Input.Key.Down, KeyModifiers.None);
+
+        Assert.Equal("FromThreePoints", editor.ActiveSignature?.Name);
+
+        Key(editor, Avalonia.Input.Key.Up, KeyModifiers.None);
+
+        Assert.Equal("FromCentreNormalRadius", editor.ActiveSignature?.Name);
+    });
+
+    /// <summary>
+    /// <b>With one overload the arrows are left alone</b>, and that gate is what makes claiming
+    /// them safe: they go back to moving the caret in every case where there is nothing to cycle -
+    /// which is exactly the case where the count is not on screen either.
+    /// </summary>
+    /// <remarks>
+    /// <b>Asserted through <c>Handled</c>, and two earlier drafts were wrong.</b> The first
+    /// asserted the popup count and that an offset was not negative - neither could fail. The
+    /// second watched the caret cross a line break, and that could not <i>pass</i>: a synthetic
+    /// <c>KeyDown</c> does not move the caret in this harness at all, which was established by
+    /// probing with no popup open. What is left, and what actually matters, is whether the control
+    /// claimed the key: declining it is what hands the arrow to the caret in the real editor.
+    /// </remarks>
+    [Fact]
+    public void OneOverloadLeavesTheArrowsToTheCaret() => OnUiThread(() =>
+    {
+        (Window _, CodeBlockEditor editor) = Open(
+            Stub([]),
+            Signatures(0, new CodeSignatureCandidate("Only", ["double radius"], "Circle")));
+
+        Type(editor, "var c = Circle.FromPlaneRadius(");
+
+        Assert.Equal(1, editor.SignatureCount);
+        Assert.False(
+            Claimed(editor, Avalonia.Input.Key.Up),
+            "the popup ate an arrow it had nothing to cycle");
+    });
+
+    /// <summary>And with two, the popup does claim it — the other side of the same gate.</summary>
+    [Fact]
+    public void TwoOverloadsClaimTheArrow() => OnUiThread(() =>
+    {
+        (Window _, CodeBlockEditor editor) = Open(Stub([]), Signatures());
+
+        Type(editor, "var c = Circle.FromCentreNormalRadius(");
+
+        Assert.Equal(2, editor.SignatureCount);
+        Assert.True(Claimed(editor, Avalonia.Input.Key.Down), "the arrow was not claimed");
+    });
+
     /// <summary>Escape closes the popup, and the text is untouched.</summary>
     [Fact]
     public void EscapeClosesTheSignature() => OnUiThread(() =>
@@ -510,6 +577,33 @@ public sealed class CodeBlockEditorTests
             inner.Document.Insert(inner.CaretOffset, c.ToString());
             Pump();
         }
+    }
+
+    /// <summary>
+    /// Sends a key and reports whether the editor claimed it (`E8-T63`).
+    /// </summary>
+    /// <remarks>
+    /// <b>Handled is the only observable difference for a key the popup declines.</b> A synthetic
+    /// <c>KeyDown</c> raised on the inner editor does not move the caret in this harness - checked,
+    /// with no popup open at all, and the offset did not move - so "the arrow reached the caret"
+    /// cannot be asserted here. Whether the control took the key can.
+    /// </remarks>
+    private static bool Claimed(CodeBlockEditor editor, Key key, KeyModifiers modifiers = KeyModifiers.None)
+    {
+        TextEditor inner = Inner(editor);
+
+        KeyEventArgs args = new()
+        {
+            RoutedEvent = InputElement.KeyDownEvent,
+            Key = key,
+            KeyModifiers = modifiers,
+            Source = inner,
+        };
+
+        inner.RaiseEvent(args);
+        Pump();
+
+        return args.Handled;
     }
 
     private static void Key(CodeBlockEditor editor, Key key, KeyModifiers modifiers = KeyModifiers.None)
