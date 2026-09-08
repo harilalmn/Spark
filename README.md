@@ -117,6 +117,9 @@ which ships with Spark.
 > can be taken back. What is left of M2 is the polish: camel-hump library search, real docking,
 > watch nodes and `spark run`. See [docs/PRD.md §11](docs/PRD.md#11-release-plan) for the plan and
 > [docs/TODO.md](docs/TODO.md) for what happens next.
+>
+> New to the code block? [docs/CodeBlock.md](docs/CodeBlock.md) is a getting-started guide, with
+> every example run against the build rather than merely written.
 
 ---
 

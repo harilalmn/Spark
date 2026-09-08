@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (the node library is callable from a code block)
+**Last updated:** 2026-09-08 (a getting-started guide for the code block)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -506,6 +506,8 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] A renamed node still opens the files that name it — `E3-T23`. `[SparkNodeAlias]` on the member, resolved in `NodeLibrary.TryGet`, and the file heals itself on the next save.
 - [x] `By` becomes `From` on every factory — `E2-T58`. Both layers, so the canvas and the code block agree; infix `By` (`DivideByLength`, `RangeByCount`) is untouched; old keys still open.
 - [x] The node library is callable from a code block — `E6-T30`. `Solid`, `Logic`, `Colour` and the rest; the ten colliding names are pinned to what they always meant, so no existing block changed.
+- [x] A getting-started guide for the code block — `E10-T16`. `docs/CodeBlock.md`, twelve sections, all 23 samples run against the build.
+- [ ] `a * b;` on its own does not compile — `E6-T31`. Found by running the guide's samples; C# parses it as a pointer declaration. `a * 2;` and every other operator are fine.
 - [x] Dynamo's count ranges — `E10-T15`. `Number.RangeByCount` and
       `Number.RangeByCountAndStep` over one `Spark.Api.NumberRange`, and `0..1..#5`
       works as typed in a code block.

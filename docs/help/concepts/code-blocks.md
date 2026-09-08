@@ -17,6 +17,10 @@ since: "0.1"
 > a code block is the only node in a Spark graph whose author can hang the application by
 > accident.
 
+> **New to code blocks?** [Getting started with the code block](../../CodeBlock.md) is a tutorial
+> that goes through the same ground in order, with every example run rather than merely written.
+> This page is the reference.
+
 ---
 
 ## Writing one
