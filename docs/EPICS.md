@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (E6: a missing semicolon is put back on commit)
+**Last updated:** 2026-09-08 (E8: every port pill on a side is one length)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -846,6 +846,13 @@ another.
       never read alike and `[[1], [2]]` looks like `[1, 2]` at a glance. A bubble follows the
       pointer and the selection; a `Watch` node pins one, and `[KeepStructure]` on its port is
       what stops the engine replicating it and handing it one item at a time.*
+- [x] **Every port tab on one side of a node is the same length** (**E8-T66**) — done
+      2026-09-08, asked for by the client. A tab is a target as much as a label, which is why
+      ports are lozenges and not dots; three tabs of three lengths down one edge is a staircase
+      to aim at. The width is the one `TabAllowance` already computed for placing a code block's
+      source clear of the tabs, so the drawing and the allowance are now the same number — and
+      the node's measurement moved with it, or the longest port name would sit under the type
+      label beside it.
 - [ ] Aggressive autosave and crash recovery, because
       [R11](PRD.md#12-risks) means the process can die without warning (**E8-T13**).
 - [ ] Banners for a missing package and for a graph containing script nodes (**E8-T16**).

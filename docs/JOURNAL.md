@@ -19,9 +19,9 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | **A second client pass: six requests, taken one per step.** In the order given: **(1)** `E6-T33` a missing semicolon is added when a code block is clicked out of; **(2)** `E8-T66` every port pill on a side is as long as the longest one; **(3)** `E8-T67` a faint centre line and a tint step split a node's body into its input and output halves; **(4)** `E8-T68` double-clicking a node's title edits it in place, opening with the whole title selected; **(5)** `E8-T69` the graph exports to PNG at a chosen resolution, aspect locked, defaulting to the canvas size; **(6)** `E9-T15` the viewport's geometry exports to a solid file and to PNG at a chosen resolution. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A missing semicolon is put back when a block is clicked out of** - `E6-T33`, step 1 of the six. **Before it:** `E8-T65`, `E6-T32`, `E2-T60`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2700** tests green over **nine** executables with zero skips. **The previous two figures here were wrong and are corrected**: the suite measured **2690** on a stashed tree immediately before this step, not 2702, and `tests/` holds nine projects and not ten — `tests/Spark.Geometry.Io.Tests/` is a stale `bin`/`obj` with no `.csproj` in it, which is what the tenth was. **Six known flaky tests, all one defect** (`E11-T27`, open), across five classes; each passes alone and a different one fails each full run — none failed on either run of this step. |
-| **Next action** | **`E8-T66`, step 2 of 6: every port pill on a side is as long as the longest one.** `CanvasNode.PortTab` sizes each tab from *its own* name, so a node's left edge is a ragged staircase. Make the width one number per side — `TabAllowance(Inputs)` and `TabAllowance(Outputs)` already compute exactly that, uncapped — clamped as now to two fifths of the node. `WidestRow`/`SideWidth` must be widened to match, or the node will be measured narrower than the tabs it draws. Verify with new `CanvasGraphTests`-style cases: three inputs of very different name lengths give three equal tab widths, the widest name still fits, and a code block's `ScriptBox` is unchanged. |
+| **Last completed step** | **Every port pill on a side is as long as the longest one** - `E8-T66`, step 2 of the six. **Before it:** `E6-T33`, `E8-T65`, `E6-T32`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2705** tests green over **nine** executables with zero skips. **The previous two figures here were wrong and are corrected**: the suite measured **2690** on a stashed tree immediately before this step, not 2702, and `tests/` holds nine projects and not ten — `tests/Spark.Geometry.Io.Tests/` is a stale `bin`/`obj` with no `.csproj` in it, which is what the tenth was. **Six known flaky tests, all one defect** (`E11-T27`, open), across five classes; each passes alone and a different one fails each full run — none failed on either run of this step. |
+| **Next action** | **`E8-T67`, step 3 of 6: a faint centre line splits a node's body into its input and output halves.** Below the header, tint the right half a step differently from the left and draw a hairline down the middle, both clipped to the node's rounded body so the corners stay round. It goes in `GraphCanvas.DrawNodes` immediately after the body fill and **before** the header, the port tabs, the slider, the field and the script box, so everything drawn on a node still covers it. Gate it on the level of detail that draws the outline — at 30% zoom it is noise. Verify with a `SparkPalette` contrast case (the two tints must stay above the ratio the port labels need on both) plus a screenshot. |
 | **Verify with** | Whatever the next row needs. Nothing is half-done. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -8490,3 +8490,40 @@ Nothing in the repository can write ACIS, and OpenCascade has no ACIS writer —
 proprietary format, and hand-rolling a SAT B-rep serialiser would produce a file nobody here could
 prove valid. Asked, and the client chose **STEP with IGES beside it**, which
 `OcctBrepKernel.WriteFile` already produces and which every ACIS-based application reads.
+
+### 2026-09-08 — Every port pill on a side is as long as the longest one (`E8-T66`)
+
+**What.** `CanvasNode.PortTab` sizes a tab from the longest name on its side rather than from its
+own, and `WidestRow` was moved to match. Five tests. Step 2 of six.
+
+**Asked for over a screenshot** of `Colour.FromRgb`: *make the input port and output pills' length
+the same as the longest one.* `red`, `green` and `blue` are three, five and four characters, so
+the three tabs were three lengths and the node's left edge was a staircase.
+
+**Why it is worth doing rather than merely tidy.** A port tab is a *target* as much as a label —
+that is the whole reason ports are lozenges and not dots (`E8-T36`) — and a column of targets that
+all begin at the same edge and stop at three different ones is harder to aim down than a column of
+equal ones.
+
+**The number already existed, used for something else.** `TabAllowance(side)` is what a code
+block's source area has always been placed clear of, because the alternative is text drawn under a
+lozenge. Making `PortTab` draw that same number makes the allowance *exact* rather than generous,
+and deletes the one way the two could ever disagree.
+
+**The measurement had to move with the drawing, and that is the half that could have gone wrong.**
+`WidestRow` added *this port's* tab plus its type label, per row. It now adds *the side's* tab once
+and only the type label varies. A node measured from per-port tabs while drawing per-side ones is
+a node whose longest port name sits under the type label beside it — which is `E8-T18`'s defect
+approached from the other side, and is what `SideWidth`'s old remark was written about. It became
+`TypeWidth`, and the remark was rewritten rather than deleted, because the rule it states still
+holds: what is measured must be what is drawn.
+
+**The two sides are measured separately.** They face each other across the body, and matching them
+to *each other* is a rule nobody asked for — `Colour.FromRgb`'s output tab is wider than its input
+tabs, and a test asserts it.
+
+**Verified.** Build clean, format clean, **2,705 tests, 0 failures, 0 skips**. Five new tests, of
+which the sharpest is that every row still leaves a positive span between the two tabs on three
+different nodes — that is the assertion that goes red if the measurement is left behind. And a
+screenshot: `--graph demo` shows `Number.Range`, `Colour.FromRgb` and
+`Display.FromGeometryColour` each with one pill width per side.

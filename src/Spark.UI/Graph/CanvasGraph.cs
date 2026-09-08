@@ -328,7 +328,28 @@ public sealed class CanvasNode
         return digits;
     }
 
-    /// <summary>The widest tab a side needs, before <see cref="PortTab"/>'s clamp.</summary>
+    /// <summary>
+    /// The width every tab on one side is drawn at, before <see cref="PortTab"/>'s clamp
+    /// (`E8-T66`).
+    /// </summary>
+    /// <param name="ports">The ports on that side of the node.</param>
+    /// <returns>The width the longest name needs, or zero when the side has no ports.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>One number per side, and that is the change `E8-T66` made.</b> Each tab used to be
+    /// sized from its own name, so <c>red</c>, <c>green</c> and <c>blue</c> came out three
+    /// different lengths and a node's left edge was a staircase. A port tab is a target as much
+    /// as a label — it is the whole reason ports are lozenges and not dots (<see cref="PortTab"/>)
+    /// — and a column of targets that all start at the same edge and stop at different ones is
+    /// harder to aim down than a column of equal ones.
+    /// </para>
+    /// <para>
+    /// <b>It was already this method, used for something else.</b> The source area of a code
+    /// block has always been placed clear of <i>the widest</i> tab on each side, because the
+    /// alternative is text under a lozenge. Making the drawn tab the same number makes the
+    /// allowance exact rather than generous, and removes the one way the two could disagree.
+    /// </para>
+    /// </remarks>
     private static double TabAllowance(IReadOnlyList<CanvasPortInfo> ports)
     {
         double widest = 0;
@@ -611,6 +632,10 @@ public sealed class CanvasNode
             return 0;
         }
 
+        // `E8-T66`: one tab width per side, measured once, because that is what is drawn.
+        double inputTab = TabAllowance(inputs);
+        double outputTab = TabAllowance(outputs);
+
         double widest = 0;
         for (int row = 0; row < rows; row++)
         {
@@ -618,12 +643,12 @@ public sealed class CanvasNode
 
             if (row < inputs.Count)
             {
-                width += SideWidth(inputs[row]);
+                width += inputTab + TypeWidth(inputs[row]);
             }
 
             if (row < outputs.Count)
             {
-                width += SideWidth(outputs[row]);
+                width += outputTab + TypeWidth(outputs[row]);
             }
 
             widest = System.Math.Max(widest, width);
@@ -632,19 +657,19 @@ public sealed class CanvasNode
         return widest + (2 * PortInset) + RowGutter;
     }
 
+    /// <summary>What a row's type label adds beside its port tab, or zero when there is none.</summary>
+    /// <param name="port">The port on that side of the row.</param>
+    /// <returns>The gap plus the label's estimated width.</returns>
     /// <remarks>
-    /// <b>The name's side is the width of its TAB, not the width of its word</b>, and this used to
-    /// measure the word. A port name is drawn inside a lozenge with <see cref="PortTabPadding"/>
-    /// either side of it, so every side was under-measured by 16 px and every row by 32 — enough on
-    /// a node like <c>Math.Divide</c> for the two type labels to have nowhere to go. This mirrors
-    /// <see cref="PortTab"/> deliberately: if the two ever disagree again, the node is the wrong
-    /// width for what is drawn in it.
+    /// <b>The tab is no longer part of this, and that is `E8-T66`.</b> This used to return the tab
+    /// and the label together, measured from <i>this</i> port's name — which was right when every
+    /// tab was sized from its own word. Now a side has one tab width, <see cref="WidestRow"/> adds
+    /// it once per side, and what varies row by row is only the type beside it. The rule the old
+    /// remark stated still holds and still matters: what is measured must be what
+    /// <see cref="PortTab"/> draws, or the node is the wrong width for its own contents.
     /// </remarks>
-    private static double SideWidth(in CanvasPortInfo port) =>
-        System.Math.Max(
-            PortTabMinimumWidth,
-            (port.Name.Length * PortCharWidth) + (2 * PortTabPadding))
-        + (port.TypeName is { } type ? PortGap + (type.Length * TypeCharWidth) : 0);
+    private static double TypeWidth(in CanvasPortInfo port) =>
+        port.TypeName is { } type ? PortGap + (type.Length * TypeCharWidth) : 0;
 
     /// <summary>The world position of an input port's center.</summary>
     /// <param name="index">The zero-based port index.</param>
@@ -680,14 +705,12 @@ public sealed class CanvasNode
     public void PortTab(
         int index, bool isOutput, out double left, out double top, out double right, out double bottom)
     {
-        string name = isOutput
-            ? (index >= 0 && index < Outputs.Count ? Outputs[index].Name : string.Empty)
-            : (index >= 0 && index < Inputs.Count ? Inputs[index].Name : string.Empty);
-
-        // Wide enough for the word with room either side, never wider than two fifths of the node —
-        // the two tabs plus the type labels between them have to fit on one row.
+        // `E8-T66`: THE SIDE'S WIDTH, NOT THIS PORT'S. Sized from the longest name on the side, so
+        // every tab down an edge is the same length. Wide enough for that word with room either
+        // side, never wider than two fifths of the node - the two tabs plus the type labels
+        // between them have to fit on one row.
         double width = System.Math.Clamp(
-            (name.Length * PortCharWidth) + (PortTabPadding * 2),
+            TabAllowance(isOutput ? Outputs : Inputs),
             PortTabMinimumWidth,
             System.Math.Max(PortTabMinimumWidth, Width * 0.4));
 
