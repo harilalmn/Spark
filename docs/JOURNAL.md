@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-08 (completion reaches the aliased names)
+**Last updated:** 2026-09-08 (a code block reads the same either way)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **`E8-T65` - the code block on canvas gets line numbers, colour and a note about ports.** Three things the client asked for while testing. |
+| **Working on** | **Nothing.** Every item from the client's test pass is answered. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Completion and signature help were blind to the ten aliased names** - `E6-T32`. An alias is not a namespace, and the option they were passed to takes namespaces. **Before it:** `E2-T60`, `E2-T59`, `E8-T64`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2694** tests green over ten executables with zero skips. **Five known flaky tests, all one defect** (`E11-T27`, open), across four classes; each passes alone and a different one fails each full run. |
-| **Next action** | **`E8-T65`, three things the client asked for while testing the constructors.** (1) A **label between the title bar and the editor** saying why lines that declare nothing carry no output port - the client met that rule with seven such lines and accepted it, then asked that the block say so itself. (2) **Syntax colour on the canvas block always**, not only while editing. (3) **Line numbers on the canvas block always**, matching the properties editor. The canvas draws its script itself rather than hosting an editor - `CanvasGraph.ScriptCharWidth` and the node measuring in `GraphCanvas` are the two places that know about script text - so the colouring has to be a drawing concern rather than an AvaloniaEdit one, and the line-number gutter changes the node's measured width. |
-| **Verify with** | A screenshot of a block with several lines, showing colour, numbers and the label; the node measuring still agreeing with what is drawn (`CanvasGraphTests`); and the ten executables. **Grep the run output for `[FAIL]` and not only `Total:`.** |
+| **Last completed step** | **A code block reads the same whether or not you are typing in it** - `E8-T65`. Colour and line numbers always, and a note saying why a bare call carries no port. **Before it:** `E6-T32`, `E2-T60`, `E2-T59`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2702** tests green over ten executables with zero skips. **Six known flaky tests, all one defect** (`E11-T27`, open), across five classes; each passes alone and a different one fails each full run. |
+| **Next action** | **Take `E11-T27`.** It gained a sixth victim during `E8-T65` - `CompletionGlyphTests.TheEditorIsSetUpTheWayRcsSetsItUp`, which then passed three consecutive full runs. Six tests across five classes, a different one each time, is a suite that fails often enough that people stop reading it. `test-engineer` owns the choice between one xunit collection over every Avalonia-touching class and `DisableTestParallelization` for the assembly, which costs about 16 seconds. **Also flagged and unagreed**: promoting `DocumentationChecks`' deferred *compile every fenced sample* check. |
+| **Verify with** | Whatever the next row needs. Nothing is half-done. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -8389,3 +8389,54 @@ shift that was wrong for everything rather than only for aliases. Gates: build c
 warnings, format clean, **2694** tests green over ten executables with zero skips.
 
 **Documents.** `E6-T32`'s row and a TODO line.
+
+
+### 2026-09-08 — A code block reads the same whether or not you are typing in it
+
+**What.** `E8-T65`. Three things the client asked for while testing `E2-T59`'s constructors: a
+note under the title saying why a line can carry no output port, syntax colour always rather than
+only in edit mode, and line numbers always.
+
+**The last two were one complaint.** A block was drawn in flat white until it was clicked into,
+and then it was coloured and numbered — so the same node looked like two different things
+depending on whether anybody was typing in it. That is the sort of difference a user reads as an
+inconsistency in the product rather than as a rendering mode.
+
+**The colour comes from the editor's own definition, and that is the whole design.** A second
+tokeniser would be a second opinion about what a keyword is, and the two would drift until the
+canvas coloured `record` and the editor did not, with nobody able to say which was right. There is
+one `IHighlightingDefinition`, recoloured once by `EditorHighlightPalette`, and both readers get
+the same answer by construction. `Apply` is called from the colouriser as well, because the canvas
+can draw a block before any editor has ever been constructed.
+
+**Cached per whole script rather than per line**, which is not an optimisation but a correctness
+point: colour is a whole-document property, a line inside a block comment is a comment however it
+reads on its own, and a cache keyed by line text would hand one block another block's colours.
+There is a test for exactly that.
+
+**The note costs the node height rather than the source room.** It has a band of its own above
+`ScriptBox` — which is also the rectangle the pane lays the live editor over, so the note is still
+readable while a block is being typed into, which is the moment it is worth reading. Getting this
+backwards would have taken a line off every existing block on the day it landed.
+
+**The gutter is inside the measured width, and that is `E8-T57` again.** A gutter drawn inside a
+box measured without one eats the first characters of the longest line and of no other, which
+reads as a rendering quirk rather than as a sizing bug. It widens at ten lines and not before.
+
+**`DocumentHighlighter` verifies dispatcher access.** The canvas renders on the UI thread so the
+product was never at risk, but three tests passed alone and failed in company until they were put
+on the UI thread — which is a *different* failure from `E11-T27` and had a real stack trace rather
+than a flake's silence.
+
+**One test would have passed vacuously.** `Assert.All` over a list nobody had checked was
+non-empty succeeds — and it would have succeeded exactly when the colouriser had stopped returning
+anything, which is the one case it existed to catch.
+
+**Verified.** Screenshots of a six-line block: the note under the title, numbers 1–6 right-aligned
+in a gutter, `var` and `new` and the string and the comment each in their own colour; and the same
+block with its in-node editor open, showing the note uncovered and the editor's gutter landing
+where the drawn one was. Gates: build clean with zero warnings, format clean, **2702** tests green
+over ten executables with zero skips.
+
+**Documents.** `E8-T65`'s row, a TODO line, and a note in `CodeBlock.md` §4 pointing at the line
+the node now carries.

@@ -161,6 +161,10 @@ points.Add(new Point3d(1, 0, 0));
 
 One port, `points`. If `points.Add(...)` became a port, every block that builds a list would break.
 
+> **The block says this on itself.** Every code block carries a line under its title —
+> *a call or new makes no port — assign it with var* — because the rule is easiest to meet
+> at the moment you are breaking it.
+
 **So how do you get a call's value onto a port?** Put it in a variable:
 
 ```csharp

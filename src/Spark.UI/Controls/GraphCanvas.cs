@@ -264,6 +264,9 @@ public sealed class GraphCanvas : Control
     private readonly Dictionary<string, FormattedText> _glyphText = [];
     private readonly Dictionary<string, FormattedText> _typeText = [];
     private readonly Dictionary<string, FormattedText> _scriptText = [];
+    private readonly Dictionary<string, FormattedText> _numberText = [];
+    private readonly Dictionary<string, FormattedText> _hintText = [];
+    private readonly Dictionary<string, FormattedText[]> _colouredScript = [];
     private readonly List<WireVisual> _wireVisuals = [];
     private readonly HashSet<int> _selection = [];
 
@@ -1915,10 +1918,31 @@ public sealed class GraphCanvas : Control
             return;
         }
 
+        // THE NOTE ABOVE THE SOURCE (`E8-T65`).
+        //
+        // The client wrote seven `new Circle(...)` lines, got one output port, and said the rule
+        // was fine but that the block should say so itself. It is drawn outside the sunken ground,
+        // in the band `ScriptHintBox` reserves, so the editor laid over the source cannot cover it.
+        node.ScriptHintBox(out double hintX, out double hintY, out double hintWidth, out double hintHeight);
+
+        if (hintWidth > 0 && hintHeight > 0)
+        {
+            using (context.PushClip(new Rect(hintX, hintY, hintWidth, hintHeight)))
+            {
+                context.DrawText(HintRun(ScriptHint), new Point(hintX + CanvasNode.ScriptGap, hintY));
+            }
+        }
+
         using (context.PushClip(box))
         {
             double line = y + CanvasNode.ScriptPadding;
             int drawn = 0;
+
+            double gutter = node.ScriptGutterWidth;
+            double codeLeft = x + CanvasNode.ScriptGap + gutter;
+            double numberRight = codeLeft - CanvasNode.ScriptGap;
+
+            IReadOnlyList<FormattedText> coloured = ColouredScript(source);
 
             foreach (string text in source.ReplaceLineEndings("\n").Split('\n'))
             {
@@ -1929,9 +1953,16 @@ public sealed class GraphCanvas : Control
 
                 drawn++;
 
+                // Right-aligned, the way an editor's gutter is: the ones column lines up, so a
+                // ten-line block does not step its numbers sideways at line 10.
+                FormattedText number = NumberRun(drawn.ToString(CultureInfo.InvariantCulture));
+                context.DrawText(number, new Point(numberRight - number.Width, line));
+
                 if (text.Length > 0)
                 {
-                    context.DrawText(ScriptRun(text), new Point(x + CanvasNode.ScriptGap, line));
+                    context.DrawText(
+                        drawn <= coloured.Count ? coloured[drawn - 1] : ScriptRun(text),
+                        new Point(codeLeft, line));
                 }
 
                 line += CanvasNode.ScriptLineHeight;
@@ -3819,6 +3850,77 @@ public sealed class GraphCanvas : Control
 
     private FormattedText ScriptRun(string text) =>
         Run(_scriptText, text, ScriptTypeface, PortFontSize, SparkPalette.TextPrimaryBrush);
+
+    private FormattedText NumberRun(string text) =>
+        Run(_numberText, text, ScriptTypeface, ScriptFontSize, SparkPalette.TextMutedBrush);
+
+    private FormattedText HintRun(string text) =>
+        Run(_hintText, text, LabelTypeface, TypeFontSize, SparkPalette.TextMutedBrush);
+
+    /// <summary>The note drawn above every code block's source (`E8-T65`).</summary>
+    /// <remarks>
+    /// <b>It states the case that surprises rather than the whole rule</b>, because it has to fit
+    /// the narrowest block anybody draws. The full account is `CodeBlock.md` §4, and a node is
+    /// not the place to reproduce it.
+    /// </remarks>
+    private const string ScriptHint = "a call or new makes no port — assign it with var";
+
+    /// <summary>How many whole scripts' coloured lines are kept (`E8-T65`).</summary>
+    /// <remarks>
+    /// Far smaller than <see cref="MaximumCachedTextRuns"/> because an entry is a whole block
+    /// rather than one string, and a canvas holds tens of blocks rather than thousands.
+    /// </remarks>
+    private const int MaximumCachedScripts = 256;
+
+    /// <summary>A block's source, one <see cref="FormattedText"/> per line, syntax coloured.</summary>
+    /// <remarks>
+    /// <b>Cached by the whole source rather than line by line</b>, because colour is a
+    /// whole-document property: the same characters are a comment or are code depending on what
+    /// opened above them, so a per-line cache would hand one block another block's colours.
+    /// </remarks>
+    private IReadOnlyList<FormattedText> ColouredScript(string source)
+    {
+        if (_colouredScript.TryGetValue(source, out FormattedText[]? existing))
+        {
+            return existing;
+        }
+
+        if (_colouredScript.Count >= MaximumCachedScripts)
+        {
+            _colouredScript.Clear();
+        }
+
+        string[] lines = source.ReplaceLineEndings("\n").Split('\n');
+        IReadOnlyList<IReadOnlyList<Theming.ScriptColouring.Section>> sections =
+            Theming.ScriptColouring.Of(source);
+
+        FormattedText[] runs = new FormattedText[lines.Length];
+
+        for (int i = 0; i < lines.Length; i++)
+        {
+            FormattedText run = new(
+                lines[i],
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                ScriptTypeface,
+                ScriptFontSize,
+                SparkPalette.TextPrimaryBrush);
+
+            if (i < sections.Count)
+            {
+                foreach (Theming.ScriptColouring.Section section in sections[i])
+                {
+                    run.SetForegroundBrush(section.Brush, section.Start, section.Length);
+                }
+            }
+
+            runs[i] = run;
+        }
+
+        _colouredScript[source] = runs;
+
+        return runs;
+    }
 
     private static FormattedText Run(
         Dictionary<string, FormattedText> cache, string text, Typeface typeface, double size, IBrush brush)

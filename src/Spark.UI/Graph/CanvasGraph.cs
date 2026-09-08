@@ -157,6 +157,15 @@ public sealed class CanvasNode
     /// <summary>The gap between a port tab and the source between the tabs.</summary>
     public const double ScriptGap = 6;
 
+    /// <summary>The height of the note drawn above a code block's source (`E8-T65`).</summary>
+    /// <remarks>
+    /// <b>It comes out of the node rather than off the source.</b> The band sits between the
+    /// header and <see cref="ScriptBox"/>, so the editor the pane lays over that rectangle cannot
+    /// cover it — the note is readable while a block is being typed into, which is the moment it
+    /// is worth reading.
+    /// </remarks>
+    public const double ScriptHintHeight = 13;
+
     /// <summary>The font size a block's source is drawn at, matching <c>GraphCanvas</c>.</summary>
     private const double ScriptFontSize = 11;
 
@@ -288,8 +297,36 @@ public sealed class CanvasNode
                         // longest line only, which is why it read as a rendering quirk rather
                         // than a sizing bug. Counted twice so the text has the same margin on
                         // both sides.
-                        (_longestScriptLine * ScriptCharWidth) + (2 * ScriptGap)),
+                        (_longestScriptLine * ScriptCharWidth) + (2 * ScriptGap)
+                            + ScriptGutterWidth),
                     _reservedScriptWidth);
+
+    /// <summary>
+    /// The width of the line-number gutter drawn down the left of a block's source (`E8-T65`).
+    /// </summary>
+    /// <remarks>
+    /// <b>Derived from the line count rather than fixed</b>, so a nine-line block does not carry
+    /// the margin a hundred-line one needs. It is part of <see cref="ScriptWidth"/> for the reason
+    /// the inner inset is (`E8-T57`): a gutter drawn inside a box measured without it eats the
+    /// first characters of every line.
+    /// </remarks>
+    public double ScriptGutterWidth =>
+        Script is null
+            ? 0
+            : (Digits(System.Math.Max(1, ScriptLineCount)) * ScriptCharWidth) + ScriptGap;
+
+    /// <summary>How many decimal digits a line number needs.</summary>
+    private static int Digits(int count)
+    {
+        int digits = 1;
+
+        for (int remaining = count; remaining >= 10; remaining /= 10)
+        {
+            digits++;
+        }
+
+        return digits;
+    }
 
     /// <summary>The widest tab a side needs, before <see cref="PortTab"/>'s clamp.</summary>
     private static double TabAllowance(IReadOnlyList<CanvasPortInfo> ports)
@@ -485,7 +522,10 @@ public sealed class CanvasNode
         System.Math.Max(Inputs.Count, Outputs.Count) * PortPitch,
         Script is null
             ? 0
-            : System.Math.Max(
+            // The note is added to whichever of the two wins rather than being one of them, so
+            // reserving space for the editor reserves it for the *source* and the band above it
+            // stays the same height (`E8-T65`).
+            : ScriptHintHeight + System.Math.Max(
                 (System.Math.Max(1, ScriptLineCount) * ScriptLineHeight) + (2 * ScriptPadding),
                 _reservedScriptHeight));
 
@@ -751,8 +791,27 @@ public sealed class CanvasNode
 
         x = left;
         width = System.Math.Max(0, right - left);
+        y = Y + HeaderHeight + ScriptHintHeight;
+        height = System.Math.Max(0, ContentHeight - ScriptHintHeight);
+    }
+
+    /// <summary>
+    /// The band between the header and the source, where the note about output ports goes
+    /// (`E8-T65`).
+    /// </summary>
+    /// <param name="x">Its left edge, aligned with the source.</param>
+    /// <param name="y">Its top edge, immediately below the header.</param>
+    /// <param name="width">Its width, matching the source.</param>
+    /// <param name="height">Its height, <see cref="ScriptHintHeight"/>.</param>
+    public void ScriptHintBox(out double x, out double y, out double width, out double height)
+    {
+        double left = X + TabAllowance(Inputs) + ScriptGap;
+        double right = X + Width - TabAllowance(Outputs) - ScriptGap;
+
+        x = left;
+        width = System.Math.Max(0, right - left);
         y = Y + HeaderHeight;
-        height = ContentHeight;
+        height = Script is null ? 0 : ScriptHintHeight;
     }
 
     /// <summary>The world position of an output port's center.</summary>
