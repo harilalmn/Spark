@@ -125,6 +125,16 @@ public sealed partial class CodeBlockEditor : UserControl
         if (_editor is not null)
         {
             _editor.FontFamily = CodeFont.FontFamily;
+
+            // SETTING THE FAMILY IS NOT ENOUGH TO CHANGE WHAT IS ON SCREEN (`E8-T62`).
+            //
+            // AvaloniaEdit's TextView caches the visual line it built for each line of text, and
+            // a font change does not invalidate that cache - so the property is the new face and
+            // the glyphs are still the old one. The client saw exactly this: the dropdown said
+            // Consolas and the text did not move. A block opened *after* the change was always
+            // right, which is why it looked like the setting worked everywhere except where you
+            // were looking.
+            _editor.TextArea.TextView.Redraw();
         }
 
         if (_signatureText is not null)
