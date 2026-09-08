@@ -639,22 +639,27 @@ public sealed class CanvasNode
         double widest = 0;
         for (int row = 0; row < rows; row++)
         {
-            double width = 0;
+            // `E8-T70`: EACH HALF IS MEASURED, AND THE NODE IS TWICE THE WIDER ONE.
+            //
+            // This used to add the two sides together, which sizes the row and says nothing about
+            // where the split falls - so a node with a long input type and a short output one came
+            // out wide enough overall and drew `Vector3d` across the middle. Since `E8-T67` the
+            // middle is a drawn line dividing inputs from outputs, and a label crossing it says the
+            // opposite of what the line says.
+            double left = row < inputs.Count
+                ? PortInset + inputTab + TypeWidth(inputs[row]) + (RowGutter / 2)
+                : 0;
 
-            if (row < inputs.Count)
-            {
-                width += inputTab + TypeWidth(inputs[row]);
-            }
+            double right = row < outputs.Count
+                ? PortInset + outputTab + TypeWidth(outputs[row]) + (RowGutter / 2)
+                : 0;
 
-            if (row < outputs.Count)
-            {
-                width += outputTab + TypeWidth(outputs[row]);
-            }
-
-            widest = System.Math.Max(widest, width);
+            // Twice the wider half is never narrower than the two halves added together, so this
+            // subsumes the rule it replaces rather than trading one failure for another.
+            widest = System.Math.Max(widest, 2 * System.Math.Max(left, right));
         }
 
-        return widest + (2 * PortInset) + RowGutter;
+        return widest;
     }
 
     /// <summary>What a row's type label adds beside its port tab, or zero when there is none.</summary>
@@ -752,6 +757,31 @@ public sealed class CanvasNode
             PortTab(row, isOutput: true, out double tabLeft, out _, out _, out _);
             rightStart = System.Math.Min(rightStart, tabLeft - PortInset);
         }
+    }
+
+    /// <summary>
+    /// The room a row's type labels have on each side of the body divide (`E8-T70`).
+    /// </summary>
+    /// <param name="row">The zero-based row index.</param>
+    /// <param name="input">
+    /// The span between the end of the input tab and the divide, which is all the room an input's
+    /// type label has.
+    /// </param>
+    /// <param name="output">The span between the divide and the start of the output tab.</param>
+    /// <remarks>
+    /// <b>Two rooms rather than one span, and that is the change.</b>
+    /// <see cref="PortLabelRow"/> answers <i>what is clear of both tabs</i>, which was the whole
+    /// question until `E8-T67` drew a line down the middle of it. A type label belongs to a port,
+    /// a port belongs to a side, and a label that crosses the divide contradicts the line it
+    /// crosses — so the two labels no longer share one budget.
+    /// </remarks>
+    public void PortTypeRoom(int row, out double input, out double output)
+    {
+        PortLabelRow(row, out double leftEnd, out double rightStart);
+        BodyDivide(out double middle, out _, out _);
+
+        input = middle - leftEnd;
+        output = rightStart - middle;
     }
 
     /// <summary>

@@ -680,6 +680,12 @@ title with the whole title selected, because the commonest rename replaces the n
 code block this beats the click that opens the source editor — a rule with an exception for one
 node kind is a rule nobody can learn, and the cost is the one band of a block that is not source.
 
+**A node is as wide as twice its wider half** (`E8-T70`), not as wide as its widest row. Those are
+different numbers, and the difference is where the split falls: a row measured as a sum can be wide
+enough overall and still put an input's type label across the middle, which is what happened the
+moment the middle became a line. Each half is the port inset, the side's tab, the gap, the type
+label and half the row gutter.
+
 **The body is divided down the middle** (`E8-T67`), and what the line says is that a node's two
 columns mean different things: the left edge is where wires arrive, the right edge is where they
 leave. It is `border.hairline`, the palette's quietest line, because a divider *inside* a surface

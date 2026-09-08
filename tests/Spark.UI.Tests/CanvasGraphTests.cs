@@ -661,9 +661,19 @@ public sealed class CanvasGraphTests
     /// A node is wide enough for its widest port row, not only for its title.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <c>BoundingBox.FromCorners</c> is the case: its title fits inside the minimum width, and its
     /// first row — <c>corner Point3d</c> against <c>BoundingBox box</c> — does not. Before the row
     /// was measured, the two halves of that row met in the middle.
+    /// </para>
+    /// <para>
+    /// <b>`E8-T70` changed what "wide enough for a row" means, and this test with it.</b> A row is
+    /// now twice its wider <i>half</i> rather than the sum of its two sides, because since
+    /// `E8-T67` the middle of a node is a drawn line dividing inputs from outputs and a type label
+    /// crossing it says the opposite of what the line says. <c>Point.Origin</c> used to sit at the
+    /// minimum width; it does not any more, and that is the rule working rather than a regression —
+    /// its output side needs <c>point</c> and <c>Point3d</c>, and that side is half a node.
+    /// </para>
     /// </remarks>
     [Fact]
     public void ANodeIsWideEnoughForItsWidestPortRow()
@@ -672,8 +682,18 @@ public sealed class CanvasGraphTests
         graph.Add(TestGraphs.Library.ByName("BoundingBox.FromCorners"), 0, 0);
         graph.Add(TestGraphs.Library.ByName("Point.Origin"), 0, 0);
 
-        // A node with one short row and no inputs stays at the minimum.
-        Assert.Equal(CanvasNode.MinimumWidth, Node(graph, "Point.Origin").Width);
+        // A node whose only row is on one side is twice that side, and never below the floor.
+        CanvasNode origin = Node(graph, "Point.Origin");
+
+        Assert.True(origin.Width >= CanvasNode.MinimumWidth);
+
+        origin.PortTypeRoom(0, out _, out double output);
+
+        // Room for the 6 px gap, the seven characters of `Point3d` at 5.6 px, and the 8 px this
+        // keeps clear of the line - which is what the renderer requires before it draws the label.
+        Assert.True(
+            output >= 6 + (7 * 5.6) + 8,
+            $"the output type has {output:F1} px right of the divide");
 
         // And one whose rows are wider than its title grows past what the title asks for. The
         // bound is deliberately above the title's own estimate — 34 + 21 characters x 6.8 is

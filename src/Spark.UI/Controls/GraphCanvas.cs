@@ -2820,28 +2820,30 @@ public sealed class GraphCanvas : Control
                 continue;
             }
 
-            // The two type labels compete for the space between the two names, and the node was
-            // sized from an estimate rather than from measured text (N24). So each one is drawn
-            // only if it fits with a gap to spare — which makes an overlap impossible whatever the
-            // font turns out to measure, rather than merely unlikely.
-            double free = rightStart - leftEnd;
+            // `E8-T70`: EACH SIDE HAS ITS OWN ROOM, BOUNDED BY THE DIVIDE.
+            //
+            // The two labels used to share one span between the two tabs, so a long input type
+            // spent the output's budget as well as its own and was drawn across the middle of the
+            // node. Since `E8-T67` that middle is a line saying *inputs here, outputs there*, and a
+            // label crossing it says the opposite. `WidestRow` sizes each half to hold its own
+            // label; this is the guard that holds when the font measures wider than the estimate
+            // the node was sized from (N24), and it drops a label rather than crossing the line.
+            node.PortTypeRoom(row, out double inputRoom, out double outputRoom);
 
             if (row < node.Inputs.Count && node.Inputs[row].TypeName is { } inputType)
             {
                 FormattedText run = TypeRun(inputType);
-                if (free >= TypeGap + run.Width + MinimumRowGap)
+                if (inputRoom >= TypeGap + run.Width + MinimumRowGap)
                 {
                     context.DrawText(run, new Point(leftEnd + TypeGap, y - (run.Height / 2)));
-                    free -= TypeGap + run.Width;
                 }
             }
 
-            // An output name is right-aligned, so its type goes to its left. The input's type wins
-            // a contested row: the question a port label answers is what to plug in.
+            // An output name is right-aligned, so its type goes to its left.
             if (row < node.Outputs.Count && node.Outputs[row].TypeName is { } outputType)
             {
                 FormattedText run = TypeRun(outputType);
-                if (free >= TypeGap + run.Width + MinimumRowGap)
+                if (outputRoom >= TypeGap + run.Width + MinimumRowGap)
                 {
                     context.DrawText(
                         run, new Point(rightStart - TypeGap - run.Width, y - (run.Height / 2)));

@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing. The second client pass is finished: all six requests are in, one per step.** In the order given: **(1)** `E6-T33` a missing semicolon is added when a code block is clicked out of; **(2)** `E8-T66` every port pill on a side is as long as the longest one; **(3)** `E8-T67` a faint centre line and a tint step split a node's body into its input and output halves; **(4)** `E8-T68` double-clicking a node's title edits it in place, opening with the whole title selected; **(5)** `E8-T69` the graph exports to PNG at a chosen resolution, aspect locked, defaulting to the canvas size; **(6)** `E9-T15` the viewport's geometry exports to a solid file and to PNG at a chosen resolution. |
+| **Working on** | **Nothing.** The second client pass is finished — six requests, plus the two defects the client found while testing them. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The viewport exports to PNG at a chosen resolution, and its geometry to STEP or IGES** - `E9-T15`, with `Brep.Join` (`E2-T61`) beside it. Step 6 of six, and the last. **Before it:** `E8-T69`, `E8-T68`, `E8-T67`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2754** tests green over **nine** executables with zero skips. **The previous two figures here were wrong and are corrected**: the suite measured **2690** on a stashed tree immediately before this step, not 2702, and `tests/` holds nine projects and not ten — `tests/Spark.Geometry.Io.Tests/` is a stale `bin`/`obj` with no `.csproj` in it, which is what the tenth was. **Six known flaky tests, all one defect** (`E11-T27`, open), across five classes; each passes alone and a different one fails each full run. **A seventh victim appeared during `E8-T69`** — `GraphCanvasZoomToFitTests.AFitAskedForBeforeLayoutHappensOnceThereIsALayout`, which failed one full run, passed alone, and passed the next full run. Same shape, same class family, same one defect. |
-| **Next action** | **Take `E11-T27`**, which the run of six kept deferring and gained a seventh victim during. `GraphCanvasZoomToFitTests.AFitAskedForBeforeLayoutHappensOnceThereIsALayout` joined the list on 2026-09-08 — failed one full run, passed alone, passed the next. Seven tests across six classes, a different one each time, is a suite people stop reading. `test-engineer` owns the choice between one xunit collection over every Avalonia-touching class and `DisableTestParallelization` for the assembly, which costs about 16 seconds. **Also newly open and cheap where the toolchain allows it**: `E13-T18`, promoting a closed shell to a solid in `spark_occt_import`, which is five lines already written inside `spark_occt_sew`. |
+| **Last completed step** | **Two overlaps the client found by using the application** - `E8-T70` (a port's type label crossed the body divide) and `E8-T71` (the watch panel and the trust banner drew on top of each other). **Before it:** `E9-T15`, `E8-T69`, `E8-T68`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2761** tests green over **nine** executables with zero skips. **The previous two figures here were wrong and are corrected**: the suite measured **2690** on a stashed tree immediately before this step, not 2702, and `tests/` holds nine projects and not ten — `tests/Spark.Geometry.Io.Tests/` is a stale `bin`/`obj` with no `.csproj` in it, which is what the tenth was. **Six known flaky tests, all one defect** (`E11-T27`, open), across five classes; each passes alone and a different one fails each full run. **A seventh and an eighth victim appeared during this run** — `GraphCanvasZoomToFitTests.AFitAskedForBeforeLayoutHappensOnceThereIsALayout` on `E8-T69` and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` on `E8-T70`; both failed one full run, passed alone, and passed the next. Same shape, same class family, same one defect. |
+| **Next action** | **Take `E11-T27`.** It has eight victims now across seven classes and it gained two of them during this run alone; a suite that fails a different test every full run is one people stop reading. `test-engineer` owns the choice between one xunit collection over every Avalonia-touching class and `DisableTestParallelization` for the assembly, which costs about 16 seconds. **Also newly open**: `E13-T18`, promoting a closed shell to a solid in `spark_occt_import` — five lines that already exist inside `spark_occt_sew`, needing the C++ toolchain and a rebuild of the shim. |
 | **Verify with** | Whatever the next row needs. Nothing is half-done. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -8730,3 +8730,59 @@ does not discharge it.
 **The pixels of this export *are* asserted, where the graph's were not** ([N124](NOTES.md)). The
 viewport export goes through Spark's own rasteriser and Spark's own PNG encoder, neither of which
 is the headless platform's — so a test reads the file's IHDR back and gets a real answer.
+
+### 2026-09-08 - Two overlaps the client found by using it (`E8-T70`, `E8-T71`)
+
+**What.** `WidestRow` measures halves rather than rows; `CanvasNode.PortTypeRoom` bounds each type
+label at the divide; the script-trust banner gets its own row in `InspectorPane`. Seven tests, one
+existing test rewritten. Both defects came from the client opening the application, not from a
+gate - which is the fourth mechanism `AGENTS.md` names and cannot automate.
+
+**`E8-T70`: nothing sized a node's *halves*.** `WidestRow` measured a row as the **sum** of its two
+sides, which says how wide the row must be and nothing about where the split falls. A node with a
+long input type and a short output one therefore came out wide enough overall and drew the input's
+type across the middle - harmless until `E8-T67` drew a line there three steps earlier, at which
+point the label says the opposite of what the line says. `Solid.Extrude` put `Curve` and
+`Vector3d` past it; `Display.FromGeometryColour` put all three past it.
+
+**A row is now twice its wider half**, each half being `PortInset + sideTab + PortGap + typeWidth +
+RowGutter/2`. **Twice the wider half is never narrower than the two halves added together**, so the
+new rule subsumes the one it replaces rather than trading one failure for another - and that is
+asserted rather than argued, over the library.
+
+**The drawing is bounded as well as the measurement.** The two labels used to share one span
+between the tabs, so a long input type spent the output's budget too. They now have a room each,
+divided at `BodyDivide`'s x - which is the guard that holds when the real font measures wider than
+the character-count estimate the node was sized from ([N24](NOTES.md)), and it drops a label rather
+than crossing the line.
+
+**One existing test was asserting the old behaviour and was rewritten rather than relaxed.**
+`ANodeIsWideEnoughForItsWidestPortRow` claimed `Point.Origin` *stays at the minimum width*. It does
+not any more, and that is the rule working: its output side needs `point` and `Point3d`, and that
+side is half a node. The replacement asserts the floor and the actual room, and says in its remarks
+why the old number was right and is not.
+
+**Asserted over the whole shipped library, because `Solid.Extrude` is where it was reported and not
+where it stops.** 138 nodes, every row, both sides. Reinstating the sum rule names forty-odd
+offenders starting at `Arc.FromCenterStartPointSweepAngle`, which is the check run before the test
+was trusted.
+
+**`E8-T71`: two controls, one grid row, both visible.** The watch panel and the script-trust banner
+were both `Grid.Row="7"`, and they are not mutually exclusive - a watched node in a graph that has
+been opened and not run shows both. **It is the same mistake the comment at the top of that file
+already describes, one row earlier**, about the port list and the code editor; that comment ends
+*the fix is two rows rather than one*, and this is that fix applied where it had not been.
+
+**The regression test is the general one rather than the specific one.** It constructs the pane,
+groups the root grid's children by row, and asserts the only shared row left is 6 - the note box,
+the code editor and the group title, which are three views of *what is selected* and genuinely
+exclusive. A fourth accidental pairing anywhere in that pane now fails, which the targeted
+assertion would not have caught. The pane is constructed and never shown, which is what keeps this
+possible at all: [N90](NOTES.md) says a wrapping `TextBlock` in a `Grid` hangs headless
+`Window.Show()`, and the logical tree exists without it.
+
+**Verified.** Build clean, format clean, **2,761 tests, 0 failures, 0 skips** - after one flake,
+`MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes`, which passed alone and on the
+next run. And looked at: `--graph solids --export-size 2000x1250` shows every type label inside its
+own half on `Solid.Union`, `Solid.Difference`, `Solid.Cylinder`, `Colour.FromRgb` and
+`Display.FromGeometryColour`.

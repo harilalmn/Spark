@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (the viewport exports to PNG and to STEP)
+**Last updated:** 2026-09-08 (two overlaps the client found by using it)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -520,6 +520,8 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] Double-clicking a node's title edits it in place - `E8-T68`. The whole title is selected on open, so the commonest rename is type-and-Enter; it narrows `E8-T53` so a click on a code block's header renames rather than opening its source.
 - [x] The graph exports to PNG at a chosen resolution - `E8-T69`. Width, height and an aspect lock, defaulting to the canvas's own size; the whole graph is fitted into the image and the view is put back exactly where it was.
 - [x] The viewport exports to PNG at a chosen resolution, and its geometry to STEP or IGES - `E9-T15`, with `Brep.Join` (`E2-T61`) putting several solids in one file. **Not ACIS**: nothing here can write it and OpenCascade has no ACIS writer, so the client was asked and chose STEP.
+- [x] A port's type label crossed the body divide - `E8-T70`. Nothing sized a node's *halves*; a row is now twice its wider half, and the drawing is bounded at the line as well as the measurement.
+- [x] The watch panel and the trust banner drew on top of each other - `E8-T71`. Two controls on one grid row that are not mutually exclusive; the same mistake the pane's own comment describes one row earlier.
 - [x] The node library is callable from a code block — `E6-T30`. `Solid`, `Logic`, `Colour` and the rest; the ten colliding names are pinned to what they always meant, so no existing block changed.
 - [x] A getting-started guide for the code block — `E10-T16`. `docs/CodeBlock.md`, twelve sections, all 23 samples run against the build.
 - [x] `a * b;` on its own is a value — `E6-T31`. C# read it as a pointer declaration; a code block has no `unsafe`, so there was only ever one meaning it could have had.

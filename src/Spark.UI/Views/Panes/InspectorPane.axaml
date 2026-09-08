@@ -19,7 +19,7 @@
       A code block wants BOTH at once - the ports are how you see what your identifiers turned
       into - so the fix is two rows rather than hiding one of them.
     -->
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto,Auto">
       <TextBlock Grid.Row="0" Classes="paneTitle" Text="PROPERTIES" />
 
       <StackPanel Grid.Row="1" Margin="10,0,10,8" Spacing="2">
@@ -216,7 +216,7 @@
       <!-- The watch panel. A bubble on the canvas is a glance and is cut at sixty characters;
            this is where somebody goes to read the value. Read-only and selectable, because the
            thing people do with a watched value next is copy part of it. -->
-      <StackPanel Grid.Row="7" Margin="10,0,10,10" Spacing="3"
+      <StackPanel x:Name="WatchPanel" Grid.Row="7" Margin="10,0,10,10" Spacing="3"
                   IsVisible="{Binding WatchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
         <Border Height="1" Margin="0,0,0,3" Background="{DynamicResource SparkBorderHairlineBrush}" />
         <TextBlock Classes="paneTitle" Text="WATCH" Margin="0,0,0,2" />
@@ -230,8 +230,14 @@
 
       <!-- E6-T16: a graph containing a code block is opened, drawn, and not run. The banner is
            where the user is told so, and where they say otherwise. Saying it in the diagnostics
-           pane would read as a failure, which this is not. -->
-      <Border Grid.Row="7" Margin="10,0,10,10" Padding="8" CornerRadius="3"
+           pane would read as a failure, which this is not.
+
+           E8-T71: ITS OWN ROW. It shared row 7 with the watch panel, and the two are not mutually
+           exclusive - selecting a watched node in a graph that has been opened and not run shows
+           both, on top of each other. That is the same mistake the comment at the top of this file
+           describes about the port list and the code editor, one row later, and the fix is the same
+           one: two rows rather than a hope that only one of them appears. -->
+      <Border x:Name="TrustBanner" Grid.Row="8" Margin="10,0,10,10" Padding="8" CornerRadius="3"
               IsVisible="{Binding ScriptBanner, Converter={x:Static ObjectConverters.IsNotNull}}"
               Background="{DynamicResource ThemeAccentBrush4}"
               BorderBrush="{DynamicResource ThemeBorderMidBrush}"
@@ -247,9 +253,9 @@
         </StackPanel>
       </Border>
 
-      <Border Grid.Row="8" Height="1" Margin="10,0,10,6"
+      <Border Grid.Row="9" Height="1" Margin="10,0,10,6"
               Background="{DynamicResource SparkBorderHairlineBrush}" />
-      <StackPanel Grid.Row="9" Margin="0,0,0,4">
+      <StackPanel Grid.Row="10" Margin="0,0,0,4">
         <TextBlock Classes="paneTitle" Text="DIAGNOSTICS" />
         <TextBlock Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
                    Text="{Binding DiagnosticsText}" />

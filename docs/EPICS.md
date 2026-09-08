@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (E9 and E2: the viewport exports to PNG and to STEP)
+**Last updated:** 2026-09-08 (E8: two overlaps the client found by using it)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -883,6 +883,17 @@ another.
       not an edit. The frame-rate overlay is excluded, because it belongs on a screen and not in a
       file. Past 4× the image grows and the graph does not, which is `CanvasTransform`'s own
       ceiling and is stated rather than worked around.
+- [x] **A node's halves are measured, not only its rows** (**E8-T70**) — done 2026-09-08, found
+      by the client using the application. A row used to be sized as the sum of its two sides,
+      which says how wide the row must be and nothing about where the split falls; since
+      **E8-T67** the middle is a drawn line, and an input's type label was crossing it. A row is
+      now twice its wider half, and the drawing is bounded at the line as well as the measurement,
+      so a font wider than the estimate drops a label rather than crossing it.
+- [x] **No two controls in the properties pane share a grid row unless they are mutually
+      exclusive** (**E8-T71**) — done 2026-09-08. The watch panel and the script-trust banner were
+      both on row 7 and both can be visible at once. The test is the general one: the only shared
+      row left is the note box, the code editor and the group title, which are three views of one
+      selection.
 - [ ] Aggressive autosave and crash recovery, because
       [R11](PRD.md#12-risks) means the process can die without warning (**E8-T13**).
 - [ ] Banners for a missing package and for a graph containing script nodes (**E8-T16**).
