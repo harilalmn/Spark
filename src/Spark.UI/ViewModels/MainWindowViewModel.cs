@@ -1136,6 +1136,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             return false;
         }
 
+        // `E6-T33`: THE SEMICOLON GOES BACK ON BEFORE ANYTHING ELSE LOOKS AT THE TEXT.
+        //
+        // Here rather than in either editor, because there are two of them - the in-node editor
+        // and the properties pane - and a rule that lived in one would be a rule that applied
+        // depending on where you happened to be typing. Assigning it back to the property is what
+        // makes the pane's editor show the character that was added; the in-node editor closes on
+        // commit and redraws from the node.
+        ScriptText = _session.TerminateScript(ScriptText);
+
         if (ScriptOf(node) == ScriptText)
         {
             return false;

@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-07 (E6: one output port per value statement)
+**Last updated:** 2026-09-08 (E6: a missing semicolon is put back on commit)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -624,6 +624,13 @@ diverge most; rework is budgeted there specifically.
       The output port carries the type the script returns, inferred from the compilation that is
       emitted anyway, and written into the compile cache so it does not depend on whether the cache
       was warm ([N99](NOTES.md)).
+- [x] **A last statement with no semicolon is terminated when the block is committed**
+      (**E6-T33**) — done 2026-09-08. Asked for by the client, and it protects the ports rather
+      than the tidiness: a source that does not parse declares no variables, so **E6-T26** gives
+      it no output ports and the wires leave with them. Roslyn says which token is absent and the
+      semicolon is inserted after the statement's last *token*, so a trailing comment stays a
+      comment; the insertion is discarded unless it lowers the error count, so an unclosed brace
+      is never "fixed".
 - [ ] A graph containing no script nodes never loads `Spark.Scripting` (**E6-T14**).
 
 **Status.** **Complete except the docked C# Script Node (E6-T14's second half), as of

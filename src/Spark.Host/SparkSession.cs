@@ -116,6 +116,30 @@ public sealed class SparkSession : IDisposable
         return _completion ??= new Spark.Scripting.ScriptCompletion(factory.References);
     }
 
+    /// <summary>
+    /// Puts back the semicolon a code block's last statement is missing (`E6-T33`).
+    /// </summary>
+    /// <param name="script">The source as the editor holds it.</param>
+    /// <returns>
+    /// The tidied source, or the same string when nothing was missing — and always the same string
+    /// when scripting is off, because a session with no factory has no code blocks to tidy.
+    /// </returns>
+    /// <exception cref="ObjectDisposedException">The session has been disposed.</exception>
+    /// <remarks>
+    /// <b>Behind the host seam for the reason <see cref="Completion"/> is.</b> The rule needs
+    /// Roslyn's parser to know which token is absent, and <c>E6-T14</c> says a session that never
+    /// opens a code block never loads Roslyn — so the view model asks the session, and the session
+    /// answers without touching <c>Spark.Scripting</c> unless the factory is already there.
+    /// </remarks>
+    public string TerminateScript(string script)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        return Scripts is Spark.Scripting.ScriptNodeFactory
+            ? Spark.Scripting.ScriptTermination.Terminate(script)
+            : script;
+    }
+
     /// <summary>Turns scripting off — what <c>--no-script</c> means.</summary>
     /// <remarks>
     /// Once refused it stays refused: <see cref="EnableScripting"/> will not undo it. A switch that

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-08 (a code block reads the same either way)
+**Last updated:** 2026-09-08 (six client requests, taken one per step)
 **Protocol version:** 2
 
 ---
@@ -17,13 +17,14 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing.** Every item from the client's test pass is answered. |
+| **Working on** | **A second client pass: six requests, taken one per step.** In the order given: **(1)** `E6-T33` a missing semicolon is added when a code block is clicked out of; **(2)** `E8-T66` every port pill on a side is as long as the longest one; **(3)** `E8-T67` a faint centre line and a tint step split a node's body into its input and output halves; **(4)** `E8-T68` double-clicking a node's title edits it in place, opening with the whole title selected; **(5)** `E8-T69` the graph exports to PNG at a chosen resolution, aspect locked, defaulting to the canvas size; **(6)** `E9-T15` the viewport's geometry exports to a solid file and to PNG at a chosen resolution. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A code block reads the same whether or not you are typing in it** - `E8-T65`. Colour and line numbers always, and a note saying why a bare call carries no port. **Before it:** `E6-T32`, `E2-T60`, `E2-T59`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2702** tests green over ten executables with zero skips. **Six known flaky tests, all one defect** (`E11-T27`, open), across five classes; each passes alone and a different one fails each full run. |
-| **Next action** | **Take `E11-T27`.** It gained a sixth victim during `E8-T65` - `CompletionGlyphTests.TheEditorIsSetUpTheWayRcsSetsItUp`, which then passed three consecutive full runs. Six tests across five classes, a different one each time, is a suite that fails often enough that people stop reading it. `test-engineer` owns the choice between one xunit collection over every Avalonia-touching class and `DisableTestParallelization` for the assembly, which costs about 16 seconds. **Also flagged and unagreed**: promoting `DocumentationChecks`' deferred *compile every fenced sample* check. |
+| **Last completed step** | **A missing semicolon is put back when a block is clicked out of** - `E6-T33`, step 1 of the six. **Before it:** `E8-T65`, `E6-T32`, `E2-T60`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2700** tests green over **nine** executables with zero skips. **The previous two figures here were wrong and are corrected**: the suite measured **2690** on a stashed tree immediately before this step, not 2702, and `tests/` holds nine projects and not ten — `tests/Spark.Geometry.Io.Tests/` is a stale `bin`/`obj` with no `.csproj` in it, which is what the tenth was. **Six known flaky tests, all one defect** (`E11-T27`, open), across five classes; each passes alone and a different one fails each full run — none failed on either run of this step. |
+| **Next action** | **`E8-T66`, step 2 of 6: every port pill on a side is as long as the longest one.** `CanvasNode.PortTab` sizes each tab from *its own* name, so a node's left edge is a ragged staircase. Make the width one number per side — `TabAllowance(Inputs)` and `TabAllowance(Outputs)` already compute exactly that, uncapped — clamped as now to two fifths of the node. `WidestRow`/`SideWidth` must be widened to match, or the node will be measured narrower than the tabs it draws. Verify with new `CanvasGraphTests`-style cases: three inputs of very different name lengths give three equal tab widths, the widest name still fits, and a code block's `ScriptBox` is unchanged. |
 | **Verify with** | Whatever the next row needs. Nothing is half-done. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
+| **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
 **Step status vocabulary**, and it means exactly this:
 
@@ -8440,3 +8441,52 @@ over ten executables with zero skips.
 
 **Documents.** `E8-T65`'s row, a TODO line, and a note in `CodeBlock.md` §4 pointing at the line
 the node now carries.
+
+### 2026-09-08 — A missing semicolon is put back when a block is clicked out of (`E6-T33`)
+
+**What.** `ScriptTermination.Terminate` in `Spark.Scripting`, reached through
+`SparkSession.TerminateScript` and called at the top of `MainWindowViewModel.CommitScriptText`.
+Ten tests. Step 1 of six client requests taken one per step.
+
+**Why the character is worth a rule.** Not tidiness. A source that does not parse declares no
+variables, so `E6-T26`'s *one output port per variable* yields nothing — the node loses its output
+ports and takes its wires with it. Typing a last line and clicking away is the commonest gesture
+there is, and it was the one that cost the wiring.
+
+**The parser decides, and that is the whole design.** *Ends with `;` or `}`* is the obvious rule
+and is wrong in both directions: on `var a = 1 // twice` it appends **after** the comment, where
+the character does nothing and cannot be seen, and on `if (a > 1) {` it appends where nothing is
+missing but a brace. So the source is parsed, the last global statement's semicolon token is
+checked for `IsMissing`, and the insertion goes at the end of that statement's last **token** —
+before its trailing trivia. Two further refusals: a closed list of statement kinds, so a block
+statement never acquires a semicolon it has no grammar for; and the candidate is discarded unless
+it **lowers the error count**, which is what stops a half-typed block being *corrected* into a
+differently broken one. Six of the ten tests assert that the rule does not fire.
+
+**Where it lives, and why not in the editor.** There are two editors over the same block — the
+in-node one and the properties pane — so a rule in either would apply depending on where you
+happened to be typing. It runs on commit rather than on keystroke because an editor inserting a
+semicolon under a caret that is still on the line is fighting somebody who is mid-statement by
+definition. Roslyn stays behind the host seam for the reason `Completion()` does: `E6-T14` promises
+that a graph with no code blocks never loads `Spark.Scripting`, and `TerminateScript` returns its
+argument unchanged when there is no factory.
+
+**Deviation from the write-ahead, named because the note said otherwise.** It went into a new
+`ScriptTermination` class rather than onto `ScriptNodeFactory`, which is sealed and already 1,100
+lines; nothing else about the plan changed.
+
+**Verified.** Build clean with zero warnings; `dotnet format` clean; **2,700 tests, 0 failures,
+0 skips**. The end-to-end test is the one that matters: place a block, set its text to
+`var doubled = radius * 2` with no semicolon, commit, and the node comes back with an input port
+`radius` and an output port `doubled` — which is exactly what it did not do before.
+
+**Two numbers in *Current state* were wrong and are corrected.** The suite measured **2,690** on a
+stashed tree immediately before this step, not the 2,702 recorded; and `tests/` holds **nine**
+projects, not ten — `tests/Spark.Geometry.Io.Tests/` is a leftover `bin`/`obj` pair with no
+`.csproj` in it, which is what the tenth executable was. `AGENTS.md` said nine all along.
+
+**Recorded, because it changes item 6 of this run.** The client asked for **ACIS** export.
+Nothing in the repository can write ACIS, and OpenCascade has no ACIS writer — it is Spatial's
+proprietary format, and hand-rolling a SAT B-rep serialiser would produce a file nobody here could
+prove valid. Asked, and the client chose **STEP with IGES beside it**, which
+`OcctBrepKernel.WriteFile` already produces and which every ACIS-based application reads.
