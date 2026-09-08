@@ -70,6 +70,11 @@ public sealed class NodeDefinition
     /// the bucket a node nothing else describes belongs in. <see cref="NodeMemberKind.Auto"/> is a
     /// sentinel for "not stated" and is resolved by the importer, so it never arrives here.
     /// </param>
+    /// <param name="aliases">
+    /// Names this node used to be known by, without the package, so a graph that still spells it
+    /// the old way opens (`E3-T23`). Null for the overwhelming majority, which have never been
+    /// renamed.
+    /// </param>
     /// <param name="codeExample">
     /// The body of a code block that calls this node's underlying member, or
     /// <see langword="null"/> when there is no such member. See <see cref="CodeExample"/>.
@@ -94,12 +99,15 @@ public sealed class NodeDefinition
         bool hasSlider = false,
         bool hasField = false,
         NodeMemberKind memberKind = NodeMemberKind.Action,
-        string? codeExample = null)
+        string? codeExample = null,
+        IReadOnlyList<string>? aliases = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
         ArgumentNullException.ThrowIfNull(inputs);
         ArgumentNullException.ThrowIfNull(outputs);
         ArgumentNullException.ThrowIfNull(invoke);
+
+        Aliases = aliases ?? [];
 
         if (outputs.Count == 0)
         {
@@ -143,6 +151,17 @@ public sealed class NodeDefinition
         MemberKind = memberKind;
         CodeExample = codeExample;
     }
+
+    /// <summary>
+    /// Names this node used to be known by, without the package (<c>E3-T23</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>A node's key is written into every file that uses it</b>, so renaming one would break
+    /// every graph already saved. These are the older spellings <see cref="NodeLibrary"/> also
+    /// answers to, which is what lets a rename happen at all. Empty for almost every node — a name
+    /// that has never changed has no history to carry.
+    /// </remarks>
+    public IReadOnlyList<string> Aliases { get; }
 
     /// <summary>The definition's stable identity, including the package that published it.</summary>
     public NodeKey Key { get; }

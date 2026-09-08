@@ -610,6 +610,7 @@ public static class NodeImporter
                 candidate.Outputs,
                 candidate.Invoke,
                 memberAttribute?.DefaultLacing ?? typeAttribute?.DefaultLacing ?? LacingMode.Longest,
+                aliases: AliasesOf(candidate.Member),
                 version: 1,
                 isSideEffect: sideEffect,
                 description: candidate.Description,
@@ -720,6 +721,18 @@ public static class NodeImporter
 
     private static string Tuple(IReadOnlyList<string> names) =>
         string.Join(", ", names.Select(name => name + ": " + name));
+
+    /// <summary>
+    /// The names a member used to be known by, from its <c>SparkNodeAlias</c> attributes
+    /// (`E3-T23`).
+    /// </summary>
+    /// <remarks>
+    /// <b>Read from the member and not from its type</b>, exactly as <c>SparkNodeAttribute.Name</c>
+    /// is: an alias inherited by every member of a type would claim a dozen old names none of them
+    /// ever had, and the first file to use one would bind to the wrong node.
+    /// </remarks>
+    private static IReadOnlyList<string> AliasesOf(MemberInfo member) =>
+        [.. member.GetCustomAttributes<SparkNodeAliasAttribute>().Select(alias => alias.Name)];
 
     private static string CamelCase(string name) =>
         name.Length == 0 ? name : char.ToLowerInvariant(name[0]) + name[1..];

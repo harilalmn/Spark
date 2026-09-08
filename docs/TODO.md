@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (the code font is a setting)
+**Last updated:** 2026-09-08 (a renamed node still opens old files)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -503,6 +503,7 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] Spark ships Dynamo's code block font — `E8-T57`. Source Code Pro, embedded under OFL, so the face is the same on every machine rather than whatever a machine happens to have.
 - [x] A block's longest line was clipped by one gap — `E8-T58`. Pre-existing; the width never reserved the inset the text is drawn at.
 - [x] The code font is a setting — `E8-T59`. One for the application, in the properties pane, remembered between sessions; the list is the shipped face plus the machine's monospaced fonts.
+- [x] A renamed node still opens the files that name it — `E3-T23`. `[SparkNodeAlias]` on the member, resolved in `NodeLibrary.TryGet`, and the file heals itself on the next save.
 - [x] Dynamo's count ranges — `E10-T15`. `Number.RangeByCount` and
       `Number.RangeByCountAndStep` over one `Spark.Api.NumberRange`, and `0..1..#5`
       works as typed in a code block.

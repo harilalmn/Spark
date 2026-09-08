@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-08 (the code font is a setting)
+**Last updated:** 2026-09-08 (a renamed node still opens old files)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing - between steps.** **Queued, from the client, and both bigger than they look:** every node in the library reachable from a code block, and a `By` -> `From` rename across the constructor-style node names. |
+| **Working on** | **Nothing - between steps.** **Next up, and already decided by the client:** `E2-T58`, renaming 57 factory methods from `By` to `From` across `Spark.Nodes.Core` and `Spark.Geometry`; then making the node library reachable from a code block. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The code font is a setting** - `E8-T59`, one for the application, in the properties pane, remembered between sessions. **Before it:** `E8-T57`/`E8-T58`, `E6-T29`/`E8-T56`, `E8-T54`/`E8-T55`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2615** tests green over ten executables with zero skips, six consecutive full runs. **Two known flaky tests**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)) and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` (`E11-T27`, open). |
-| **Next action** | **The client's two library requests, and neither is a small edit.** **(1)** *All 136 properties and methods available in CodeBlock.* `Spark.Nodes.Core` is deliberately **not** in a block's scope today and `code-blocks.md` says why: it declares a `Math` that would shadow `System.Math` in every block. **The way through is an alias** - import the namespace and add `using Math = System.Math;` to the generated frame, which keeps `Math.PI` meaning what it has always meant while making the other 135 reachable unqualified. **(2)** *`By` becomes `From` in constructor names.* That is not a rename of C# methods only: node keys are stored in `.spark` files, so `docs/examples/*.spark` and every graph a user has saved name `Circle.ByCentreRadius` - it needs an alias or a load-time migration, or `E3-T17`'s promise that a graph outlives the process is broken for every existing file. **Ask before renaming**: the client wrote *Circle.ByCenterRadius*, and Spark spells it *Centre*. |
-| **Verify with** | For (1): a code block calling `Circle.ByCentreRadius(...)` unqualified, and `Math.PI` still resolving to `System.Math`. For (2): every `docs/examples/*.spark` still opening, and the round-trip test still byte for byte. Then the ten executables. **Grep the run output for `[FAIL]` and not only `Total:`.** |
+| **Last completed step** | **A renamed node still opens the files that name it** - `E3-T23`. `[SparkNodeAlias]` on the member, resolved in `NodeLibrary.TryGet`, and the file heals itself on the next save. **Before it:** `E8-T59`, `E8-T57`/`E8-T58`, `E6-T29`/`E8-T56`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2622** tests green over ten executables with zero skips. **Two known flaky tests**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)) and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` (`E11-T27`, open). |
+| **Next action** | **`E2-T58`: `By` becomes `From` on every factory, in both layers.** The client chose *nodes and geometry both*, because a code block calls the **geometry** type - `Circle.ByCentreRadius` in a block is `Spark.Geometry.Circle`, and the node of the same name is a thin facade over it - so renaming one layer only would have the canvas and the code block disagree. **26 node factories and 31 geometry factories**, about 620 call sites across `src` and `tests`, 58 of them in `DemoGraphs.cs` alone. **The four infix `By` methods are not touched**: `DivideByLength`, `TrimByParameter`, `RangeByCount`, `RangeByCountAndStep` are not constructors, and the client said *constructor method name*. Every renamed **node** gets a `[SparkNodeAlias]` for its old key; the geometry methods need none, because nothing serialises a geometry method name. `ADR-0004` names the `By` rule and has to be amended rather than quietly contradicted. |
+| **Verify with** | The three `docs/examples/*.spark` opening **unedited** - that is what `E3-T23` was built for and the only real proof it works - then re-saving and healing to the new keys. `NodeImporter.InferKind` already treats `By`, `From` and `Create` as equivalent, so node *kind* and the constructor-dedup rule must not move: `NodeMemberKindTests` is the guard. Then the ten executables and a run of the app. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -7731,3 +7731,51 @@ runs.
 
 **Documents.** `E8-T59`'s row, a TODO line, and a paragraph in `concepts/code-blocks.md` saying
 where the dropdown is, that it applies to every block, and why proportional fonts are not offered.
+
+### 2026-09-08 — A renamed node still opens the files that name it
+
+**What.** `E3-T23`, and it exists so that `E2-T58` can happen at all. The client asked for `By` to
+become `From` across the node library; a survey of the repository found the thing that makes that
+dangerous, and this is the answer to it, landed first and on its own.
+
+**Nothing existed for this, which the survey established rather than assumed.** No alias table, no
+rename map, no key migration keyed on format version — the only hit for *migration* anywhere in
+`src/` is a comment in `CustomNodeFile.cs` saying one is "a line of code" not yet written. A node's
+key is written into every file that uses it, so a rename would have degraded every saved graph to
+placeholder nodes: `MissingNodePolicy.Placeholder` keeps the wires, refuses to evaluate, and
+reports `SPK1062`. The user sees a graph that opens, looks nearly right, and produces nothing.
+`E3-T17` promises a graph outlives the process, and a rename without this breaks that promise for
+every file at once — including the three shipped examples, which between them name 50 `By` keys.
+
+**The alias sits on the member it renames.** `[SparkNodeAlias("Circle.ByCentreRadius")]` on the
+method, not a table of old-to-new pairs somewhere else. A central list drifts: delete the method and
+the entry survives, rename it twice and the chain has to be maintained by hand. On the member, the
+history is where the next person to rename it will already be standing, and deleting the method
+deletes its aliases.
+
+**It names the member half of the key and never the package.** The package comes from the assembly,
+so a full-key alias would be wrong the moment an assembly was renamed — and worse, it would let a
+member in one package claim a name in another, which is a third-party package hijacking a built-in.
+`AnAliasDoesNotCrossPackages` holds that line.
+
+**One lookup carries the whole feature.** `NodeLibrary.TryGet` is the single place a saved graph
+turns a key into a node, so putting the fallback there means every loader gets it — the shell, the
+command line, anything future — without any of them knowing aliases exist. That was worth checking
+rather than assuming, and it is why this row is small.
+
+**A live node beats a dead name**, which is the one ordering that matters. Aliases are consulted
+only after the real index misses. The other way round, renaming `A` to `B` in a library that still
+has its own `B` would make the real `B` unreachable — a worse bug than the one aliases fix, and
+silent in the same way.
+
+**A file heals itself.** The restored node carries the *new* definition, so the first save writes
+the new key and the alias stops being needed for that file. The bridge is meant to be temporary,
+and `SavingAnOpenedFileWritesTheNewKey` is what says so.
+
+**Verified.** Seven tests, including the end-to-end one — a file naming the old key opens with a
+real node — and the two that hold the boundaries: a real name beating an alias, and an alias not
+crossing packages. Gates: build clean with zero warnings, format clean, **2622** tests green over
+ten executables with zero skips.
+
+**Documents.** `E3-T23`'s row and a TODO line. The public API file gained the attribute, which the
+analyser insisted on and was right to.

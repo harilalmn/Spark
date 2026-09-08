@@ -4,7 +4,7 @@ Every task, its epic, and its state. Epics are described in [EPICS.md](EPICS.md)
 order for what to do next is in [TODO.md](TODO.md); the requirements behind them are in
 [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (the code font is a setting)
+**Last updated:** 2026-09-08 (a renamed node still opens old files)
 **Legend:** `Done` · `In progress` · `Open` · `Blocked` · `Withdrawn`
 
 **Summary:** 238 done · 23 in progress · 51 open · 2 deferred · 9 withdrawn — **323 rows**
@@ -314,6 +314,7 @@ Everything else in this file is a plan, not a claim.
 | E3-T20 | `.sparkz` container | Open | Zips graph plus assets for sharing |
 | E3-T21 | Public graph-construction API | Open | Needed by the CLI, by tests, and by collapse-to-custom-node. One of the four graph-model properties that survive **D8** on their own merits |
 | E3-T22 | Document tolerance flowing through `EvaluationContext` into every cache key | Open | Changing document tolerance must invalidate exactly the affected nodes — the decisive argument against an ambient tolerance |
+| E3-T23 | A renamed node still opens the files that name it | Done | **The safety net `E2-T58` needed, landed first and on purpose.** A node's key is written into every file that uses it, and **nothing existed for this**: no alias table, no rename map, no key migration keyed on format version. A rename would have degraded every saved graph to placeholder nodes - `MissingNodePolicy.Placeholder` keeps the wires, refuses to evaluate and reports `SPK1062`, so the user sees a graph that opens, looks nearly right and produces nothing. [E3-T17](#e3--the-file-format) promises a graph outlives the process; a rename without this breaks that for every file at once. **The alias sits on the member it renames**, as `[SparkNodeAlias("Circle.ByCentreRadius")]`, rather than in a central table - a list of old-to-new pairs elsewhere drifts, because deleting the method leaves the entry behind and renaming twice makes a chain somebody has to maintain. Here the history is where the next person to rename it will be standing. **It names the member half of the key only**, never the package: the package comes from the assembly, so a full-key alias would be wrong the moment an assembly was renamed and would let one package claim a name in another. **One lookup carries it** - `NodeLibrary.TryGet`, which is the single place a saved graph turns a key into a node, so every loader gets it including the command line without any of them knowing aliases exist. **A live node beats a dead name**: aliases are consulted only after the real index misses, or renaming `A` to `B` in a library that still has its own `B` would make `B` unreachable. **A file heals itself**: the restored node carries the new definition, so the first save writes the new key |
 
 ## E4 — Replication and lacing
 

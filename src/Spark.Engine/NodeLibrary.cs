@@ -58,6 +58,9 @@ public sealed class NodeLibrary
         return true;
     }
 
+    /// <summary>The names nodes used to have, mapped to what they are called now (`E3-T23`).</summary>
+    private readonly Dictionary<NodeKey, NodeDefinition> _aliases = [];
+
     /// <summary>Adds one definition.</summary>
     /// <param name="definition">The definition.</param>
     /// <exception cref="ArgumentNullException"><paramref name="definition"/> is <see langword="null"/>.</exception>
@@ -74,6 +77,19 @@ public sealed class NodeLibrary
         }
 
         _ordered.Add(definition);
+
+        // `E3-T23`: THE OLD NAMES ARE INDEXED SEPARATELY, AND NOT WITH `Add`'S DUPLICATE CHECK.
+        //
+        // An alias losing a race with a real key would be the wrong way round - a live node must
+        // always beat a dead name, or renaming A to B in a library that still has its own B would
+        // make B unreachable. So `TryGet` looks here only after the real index has missed, and a
+        // clash between two aliases is resolved by first-registered rather than by throwing: an
+        // assembly that renamed two members into one history is confused, not broken, and refusing
+        // to load its whole library over it would be a worse answer than picking one.
+        foreach (string alias in definition.Aliases)
+        {
+            _aliases.TryAdd(new NodeKey(definition.Key.Package, alias), definition);
+        }
     }
 
     /// <summary>Adds every definition in an import.</summary>
@@ -94,8 +110,14 @@ public sealed class NodeLibrary
     /// <param name="key">The key.</param>
     /// <param name="definition">The definition, when it is registered.</param>
     /// <returns><see langword="true"/> when it is registered.</returns>
+    /// <remarks>
+    /// <b>A key that misses is tried against the renamed names before it fails</b> (<c>E3-T23</c>).
+    /// This is the one place a saved graph turns a key into a node, so it is the one place a
+    /// rename has to be forgiven — and forgiving it here means every loader gets it, including the
+    /// command line, without any of them knowing aliases exist.
+    /// </remarks>
     public bool TryGet(NodeKey key, out NodeDefinition? definition) =>
-        _definitions.TryGetValue(key, out definition);
+        _definitions.TryGetValue(key, out definition) || _aliases.TryGetValue(key, out definition);
 
     /// <summary>Looks a definition up by key.</summary>
     /// <param name="key">The key.</param>
