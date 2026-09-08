@@ -43,6 +43,20 @@ namespace Spark.Geometry;
 /// </remarks>
 public readonly struct Quaternion : IEquatable<Quaternion>
 {
+    /// <summary>Creates the rotation of an angle about an axis (`E2-T59`).</summary>
+    /// <param name="axis">The axis. Need not be normalised.</param>
+    /// <param name="angle">The angle, turning anticlockwise about the axis.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="axis"/> has no length.</exception>
+    /// <remarks>Forwards to <see cref="FromAxisAngle"/>, so the two cannot drift apart.</remarks>
+    public Quaternion(in Vector3d axis, Angle angle) => this = FromAxisAngle(axis, angle);
+
+    /// <summary>Creates the shortest rotation taking one direction to another (`E2-T59`).</summary>
+    /// <param name="from">The direction to turn from.</param>
+    /// <param name="to">The direction to turn to.</param>
+    /// <exception cref="ArgumentException">Thrown when either has no length.</exception>
+    /// <remarks>Forwards to <see cref="FromRotationBetween"/>, so the two cannot drift apart.</remarks>
+    public Quaternion(in Vector3d from, in Vector3d to) => this = FromRotationBetween(from, to);
+
     /// <summary>
     /// Creates a quaternion from its four components. Not normalised, and not checked: this is
     /// the raw constructor, and <see cref="FromAxisAngle(in Vector3d, Angle)"/> is what most

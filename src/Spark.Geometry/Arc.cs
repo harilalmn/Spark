@@ -38,6 +38,55 @@ public sealed class Arc : Curve
         _sweep = sweep;
     }
 
+    /// <summary>Lifts an instance's state into a new one, so a constructor can call a factory.</summary>
+    /// <param name="other">The instance to copy. Already validated by whatever produced it.</param>
+    /// <remarks>
+    /// <b>`E2-T59` asked for a constructor beside every library factory, and a class constructor
+    /// cannot return.</b> This is what lets the public ones below read <c>: this(SomeFactory(x))</c>.
+    /// The arithmetic stays in the factory, which remains its only copy, so the constructor cannot
+    /// drift away from the method it mirrors.
+    /// </remarks>
+    private Arc(Arc other)
+        : this(other._plane, other._radius, other._startAngle, other._sweep)
+    {
+    }
+
+    /// <summary>Creates an arc in a plane from a radius and two angles.</summary>
+    /// <param name="plane">The plane. Its origin is the centre.</param>
+    /// <param name="radius">The radius. Must be positive and finite.</param>
+    /// <param name="startAngle">Where the arc begins, measured from the plane's x axis.</param>
+    /// <param name="sweepAngle">How far it turns. May be negative.</param>
+    /// <exception cref="ArgumentException">Thrown when the plane is not valid.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not positive.</exception>
+    /// <remarks>Forwards to <see cref="FromPlaneRadiusAngles"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public Arc(in Plane plane, double radius, Angle startAngle, Angle sweepAngle)
+        : this(FromPlaneRadiusAngles(plane, radius, startAngle, sweepAngle))
+    {
+    }
+
+    /// <summary>Creates the arc through three points.</summary>
+    /// <param name="first">The start point.</param>
+    /// <param name="second">A point the arc passes through.</param>
+    /// <param name="third">The end point.</param>
+    /// <exception cref="ArgumentException">Thrown when the points are collinear or coincident.</exception>
+    /// <remarks>Forwards to <see cref="FromThreePoints"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public Arc(in Point3d first, in Point3d second, in Point3d third)
+        : this(FromThreePoints(first, second, third))
+    {
+    }
+
+    /// <summary>Creates an arc from a centre, a start point and a sweep.</summary>
+    /// <param name="centre">The centre.</param>
+    /// <param name="startPoint">Where the arc begins. Its distance from the centre is the radius.</param>
+    /// <param name="normal">The axis the sweep turns about. Need not be unit length.</param>
+    /// <param name="sweepAngle">How far it turns. May be negative.</param>
+    /// <exception cref="ArgumentException">Thrown when the start point sits on the centre.</exception>
+    /// <remarks>Forwards to <see cref="FromCentreStartPointSweepAngle"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public Arc(in Point3d centre, in Point3d startPoint, in Vector3d normal, Angle sweepAngle)
+        : this(FromCentreStartPointSweepAngle(centre, startPoint, normal, sweepAngle))
+    {
+    }
+
     /// <inheritdoc/>
     public override Interval Domain => new(0.0, _sweep);
 

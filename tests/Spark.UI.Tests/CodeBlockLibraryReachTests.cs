@@ -131,6 +131,50 @@ public sealed class CodeBlockLibraryReachTests
         Compiles("Spark.Nodes.Core.Circle.FromCentreRadius(Point3d.Origin, 5.0);");
 
     /// <summary>
+    /// <b>Geometry can be built the way C# builds things — `E2-T59`.</b> Asked for by the client
+    /// after typing <c>new Circle(centre, 10)</c> into a block and being told there was no such
+    /// constructor.
+    /// </summary>
+    /// <remarks>
+    /// The kernel reached its geometry through named factories, which is what a node needs and not
+    /// what a person writing C# reaches for first. Parity between the two is now held by
+    /// <c>ConstructorParityTests</c> over in the geometry suite, by reflection; this is the other
+    /// end of the same claim, checking that the constructors are reachable from inside a block
+    /// rather than merely present on the type.
+    /// </remarks>
+    [Theory]
+    [InlineData("new Circle(Point3d.Origin, 5.0);")]
+    [InlineData("new Circle(Point3d.Origin, Vector3d.ZAxis, 5.0);")]
+    [InlineData("new Circle(Point3d.Origin, new Point3d(1, 1, 0), new Point3d(2, 0, 0));")]
+    [InlineData("new Line(Point3d.Origin, Vector3d.XAxis, 3.0);")]
+    [InlineData("new Arc(Point3d.Origin, new Point3d(1, 1, 0), new Point3d(2, 0, 0));")]
+    [InlineData("new Plane(Point3d.Origin, new Point3d(1, 0, 0), new Point3d(0, 1, 0));")]
+    [InlineData("new PolyLine(Plane.WorldXY, 4.0, 2.0);")]
+    [InlineData("new PolyLine(Plane.WorldXY, 2.0, 6);")]
+    [InlineData(
+        "var factory = Circle.FromCentreRadius(Point3d.Origin, 2.0);\n"
+        + "var constructed = new Circle(Point3d.Origin, 2.0);")]
+    public void TheConstructorsAreReachable(string script) => Compiles(script);
+
+    /// <summary>
+    /// <b>A constructor and the factory it mirrors give the same answer.</b> Every one of them
+    /// forwards to its factory rather than repeating the arithmetic, and this is the test that
+    /// says so from outside — a constructor that agreed only at compile time would be worse than
+    /// none.
+    /// </summary>
+    [Fact]
+    public void AConstructorAgreesWithItsFactory() =>
+        Assert.Equal(
+            true,
+            Run("""
+                var made = new Circle(Point3d.Origin, Vector3d.ZAxis, 5.0);
+                var factory = Circle.FromCentreNormalRadius(Point3d.Origin, Vector3d.ZAxis, 5.0);
+                var agree = made.Radius == factory.Radius
+                    && made.Plane.Origin == factory.Plane.Origin
+                    && made.Plane.Normal == factory.Plane.Normal;
+                """));
+
+    /// <summary>
     /// <b>A block that names nothing from the library is untouched.</b> The imports are a prelude,
     /// so a script that never uses them must not pay for them — least of all in ambiguity.
     /// </summary>

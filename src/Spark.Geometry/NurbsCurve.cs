@@ -148,6 +148,32 @@ public sealed class NurbsCurve : Curve
         }
     }
 
+    /// <summary>Lifts an instance's state into a new one, so a constructor can call a factory.</summary>
+    /// <param name="other">The instance to copy. Already validated by whatever produced it.</param>
+    /// <remarks>
+    /// <b>`E2-T59` asked for a constructor beside every factory, and a class constructor cannot
+    /// return.</b> The fields are taken across rather than revalidated through a public
+    /// constructor, because passing the weights back in would turn a non-rational curve into a
+    /// rational one carrying weights that all happen to be one.
+    /// </remarks>
+    private NurbsCurve(NurbsCurve other)
+    {
+        _controlPoints = other._controlPoints;
+        _weights = other._weights;
+        _homogeneous = other._homogeneous;
+        Knots = other.Knots;
+    }
+
+    /// <summary>Creates the degree-3 curve interpolating a sequence of points.</summary>
+    /// <param name="points">The points to pass through, in order. At least two.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="points"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">There are too few points, or one is not finite.</exception>
+    /// <remarks>Forwards to <see cref="FromPoints"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public NurbsCurve(IReadOnlyList<Point3d> points)
+        : this(FromPoints(points))
+    {
+    }
+
     /// <summary>The knot vector, which carries the degree and the domain.</summary>
     public KnotVector Knots { get; }
 

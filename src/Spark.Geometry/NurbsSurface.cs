@@ -117,6 +117,33 @@ public sealed class NurbsSurface : Surface
         }
     }
 
+    /// <summary>Lifts an instance's state into a new one, so a constructor can call a factory.</summary>
+    /// <param name="other">The instance to copy. Already validated by whatever produced it.</param>
+    /// <remarks>
+    /// <b>`E2-T59` asked for a constructor beside every factory, and a class constructor cannot
+    /// return.</b> The homogeneous array is taken across whole, which is also the only form the
+    /// surface keeps its control points in.
+    /// </remarks>
+    private NurbsSurface(NurbsSurface other)
+    {
+        _homogeneous = other._homogeneous;
+        _countU = other._countU;
+        _countV = other._countV;
+        _rational = other._rational;
+        KnotsU = other.KnotsU;
+        KnotsV = other.KnotsV;
+    }
+
+    /// <summary>Creates the flat bilinear surface spanning four corner points.</summary>
+    /// <param name="corners">The four corners, anticlockwise from the surface's origin.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="corners"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">There are not four corners, or one is not finite.</exception>
+    /// <remarks>Forwards to <see cref="FromCorners"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public NurbsSurface(IReadOnlyList<Point3d> corners)
+        : this(FromCorners(corners))
+    {
+    }
+
     /// <summary>The knot vector in <c>u</c>.</summary>
     public KnotVector KnotsU { get; }
 

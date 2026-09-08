@@ -34,6 +34,20 @@ namespace Spark.Geometry;
 /// </remarks>
 public readonly struct Plane : IEquatable<Plane>
 {
+    /// <summary>Creates the plane through three points (`E2-T59`).</summary>
+    /// <param name="first">The first point, which becomes the origin.</param>
+    /// <param name="second">The second point.</param>
+    /// <param name="third">The third point.</param>
+    /// <exception cref="ArgumentException">Thrown when the points are collinear or not finite.</exception>
+    /// <remarks>
+    /// <b>It forwards to <see cref="FromThreePoints"/> rather than repeating it.</b> The client
+    /// asked for every construction the node library offers to be callable from a code block, and
+    /// the shortest way to keep a constructor honest against the factory of the same shape is for
+    /// one of them to be the other.
+    /// </remarks>
+    public Plane(in Point3d first, in Point3d second, in Point3d third) =>
+        this = FromThreePoints(first, second, third);
+
     /// <summary>
     /// Creates a plane through a point with a given normal. The in-plane axes are chosen
     /// arbitrarily but deterministically, so the same normal always yields the same frame.

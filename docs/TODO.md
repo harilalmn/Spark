@@ -505,6 +505,7 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] The code font is a setting — `E8-T59`. One for the application, in the properties pane, remembered between sessions; the list is the shipped face plus the machine's monospaced fonts.
 - [x] A renamed node still opens the files that name it — `E3-T23`. `[SparkNodeAlias]` on the member, resolved in `NodeLibrary.TryGet`, and the file heals itself on the next save.
 - [x] `By` becomes `From` on every factory — `E2-T58`. Both layers, so the canvas and the code block agree; infix `By` (`DivideByLength`, `RangeByCount`) is untouched; old keys still open.
+- [x] A constructor beside every kernel factory - `E2-T59`. `new Circle(centre, radius)` works in a code block; parity held by reflection in both directions, with the two real ambiguities written down.
 - [x] The node library is callable from a code block — `E6-T30`. `Solid`, `Logic`, `Colour` and the rest; the ten colliding names are pinned to what they always meant, so no existing block changed.
 - [x] A getting-started guide for the code block — `E10-T16`. `docs/CodeBlock.md`, twelve sections, all 23 samples run against the build.
 - [x] `a * b;` on its own is a value — `E6-T31`. C# read it as a pointer declaration; a code block has no `unsafe`, so there was only ever one meaning it could have had.

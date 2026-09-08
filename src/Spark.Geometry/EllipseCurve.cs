@@ -47,6 +47,46 @@ public sealed class EllipseCurve : Curve
         _sweep = sweep;
     }
 
+    /// <summary>Lifts an instance's state into a new one, so a constructor can call a factory.</summary>
+    /// <param name="other">The instance to copy. Already validated by whatever produced it.</param>
+    /// <remarks>
+    /// <b>`E2-T59` asked for a constructor beside every library factory, and a class constructor
+    /// cannot return.</b> This is what lets the public ones below read <c>: this(SomeFactory(x))</c>.
+    /// The arithmetic stays in the factory, which remains its only copy, so the constructor cannot
+    /// drift away from the method it mirrors.
+    /// </remarks>
+    private EllipseCurve(EllipseCurve other)
+        : this(other._plane, other._xRadius, other._yRadius, other._startAngle, other._sweep)
+    {
+    }
+
+    /// <summary>Creates a whole ellipse in a plane.</summary>
+    /// <param name="plane">The plane. Its origin is the centre.</param>
+    /// <param name="xRadius">The radius along the plane's x axis. Must be positive.</param>
+    /// <param name="yRadius">The radius along the plane's y axis. Must be positive.</param>
+    /// <exception cref="ArgumentException">Thrown when the plane is not valid.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when a radius is not positive.</exception>
+    /// <remarks>Forwards to <see cref="FromPlaneRadii"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public EllipseCurve(in Plane plane, double xRadius, double yRadius)
+        : this(FromPlaneRadii(plane, xRadius, yRadius))
+    {
+    }
+
+    /// <summary>Creates an elliptical arc in a plane.</summary>
+    /// <param name="plane">The plane. Its origin is the centre.</param>
+    /// <param name="xRadius">The radius along the plane's x axis. Must be positive.</param>
+    /// <param name="yRadius">The radius along the plane's y axis. Must be positive.</param>
+    /// <param name="startAngle">Where it begins, measured from the plane's x axis.</param>
+    /// <param name="sweepAngle">How far it turns. May be negative.</param>
+    /// <exception cref="ArgumentException">Thrown when the plane is not valid.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when a radius is not positive.</exception>
+    /// <remarks>Forwards to <see cref="FromPlaneRadiiAngles"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public EllipseCurve(
+        in Plane plane, double xRadius, double yRadius, Angle startAngle, Angle sweepAngle)
+        : this(FromPlaneRadiiAngles(plane, xRadius, yRadius, startAngle, sweepAngle))
+    {
+    }
+
     /// <inheritdoc/>
     public override Interval Domain => new(0.0, _sweep);
 

@@ -55,6 +55,30 @@ public sealed class Line : Curve
         _direction = direction;
     }
 
+    /// <summary>Lifts an instance's state into a new one, so a constructor can call a factory.</summary>
+    /// <param name="other">The instance to copy. Already validated by whatever produced it.</param>
+    /// <remarks>
+    /// <b>`E2-T59` asked for a constructor beside every library factory, and a class constructor
+    /// cannot return.</b> This is what lets the public ones below read <c>: this(SomeFactory(x))</c>.
+    /// The arithmetic stays in the factory, which remains its only copy, so the constructor cannot
+    /// drift away from the method it mirrors.
+    /// </remarks>
+    private Line(Line other)
+        : this(other._start, other._end)
+    {
+    }
+
+    /// <summary>Creates a line from a start point, a direction and a length.</summary>
+    /// <param name="start">The start point.</param>
+    /// <param name="direction">The direction. Normalised first, so its length is ignored.</param>
+    /// <param name="length">The length. A negative length runs the line the other way.</param>
+    /// <exception cref="ArgumentException">Thrown when the direction has no length.</exception>
+    /// <remarks>Forwards to <see cref="FromStartPointDirectionLength"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public Line(in Point3d start, in Vector3d direction, double length)
+        : this(FromStartPointDirectionLength(start, direction, length))
+    {
+    }
+
     /// <inheritdoc/>
     public override Interval Domain => Interval.Unit;
 

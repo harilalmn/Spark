@@ -43,6 +43,31 @@ public sealed class PlaneSurface : Surface
         _domainV = Check(domainV, nameof(domainV));
     }
 
+    /// <summary>Lifts an instance's state into a new one, so a constructor can call a factory.</summary>
+    /// <param name="other">The instance to copy. Already validated by whatever produced it.</param>
+    /// <remarks>
+    /// <b>`E2-T59` asked for a constructor beside every library factory, and a class constructor
+    /// cannot return.</b> This is what lets the public ones below read <c>: this(SomeFactory(x))</c>.
+    /// The arithmetic stays in the factory, which remains its only copy, so the constructor cannot
+    /// drift away from the method it mirrors.
+    /// </remarks>
+    private PlaneSurface(PlaneSurface other)
+        : this(other._plane, other._domainU, other._domainV)
+    {
+    }
+
+    /// <summary>Creates a rectangular patch of a plane, centred on its origin.</summary>
+    /// <param name="plane">The plane. Its origin is the centre of the patch.</param>
+    /// <param name="width">The size along the plane's x axis. Must be positive.</param>
+    /// <param name="height">The size along the plane's y axis. Must be positive.</param>
+    /// <exception cref="ArgumentException">Thrown when the plane is not valid.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when a size is not positive.</exception>
+    /// <remarks>Forwards to <see cref="FromPlaneSize"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public PlaneSurface(in Plane plane, double width, double height)
+        : this(FromPlaneSize(plane, width, height))
+    {
+    }
+
     /// <summary>Creates a rectangle centred on a plane's origin.</summary>
     /// <param name="plane">The plane it lies in, and the centre of the rectangle.</param>
     /// <param name="width">Its extent along the plane's x-axis.</param>
@@ -58,6 +83,17 @@ public sealed class PlaneSurface : Surface
             plane,
             new Interval(-width * 0.5, width * 0.5),
             new Interval(-height * 0.5, height * 0.5));
+    }
+
+    /// <summary>Creates a rectangular patch of a plane between two corners.</summary>
+    /// <param name="plane">The plane.</param>
+    /// <param name="corner">One corner, in the plane's own coordinates.</param>
+    /// <param name="oppositeCorner">The opposite corner, in the plane's own coordinates.</param>
+    /// <exception cref="ArgumentException">The corners share an x or a y coordinate.</exception>
+    /// <remarks>Forwards to <see cref="FromPlaneCorners"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public PlaneSurface(in Plane plane, in Point2d corner, in Point2d oppositeCorner)
+        : this(FromPlaneCorners(plane, corner, oppositeCorner))
+    {
     }
 
     /// <summary>Creates the rectangle spanned by two corners of a plane's coordinates.</summary>

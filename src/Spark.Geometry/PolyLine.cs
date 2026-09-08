@@ -63,6 +63,43 @@ public sealed class PolyLine : Curve
         }
     }
 
+    /// <summary>Lifts an instance's state into a new one, so a constructor can call a factory.</summary>
+    /// <param name="other">The instance to copy. Already validated by whatever produced it.</param>
+    /// <remarks>
+    /// <b>`E2-T59` asked for a constructor beside every library factory, and a class constructor
+    /// cannot return.</b> This is what lets the public ones below read <c>: this(SomeFactory(x))</c>.
+    /// The arithmetic stays in the factory, which remains its only copy, so the constructor cannot
+    /// drift away from the method it mirrors.
+    /// </remarks>
+    private PolyLine(PolyLine other)
+        : this(other._points, string.Empty)
+    {
+    }
+
+    /// <summary>Creates a closed rectangle in a plane, centred on its origin.</summary>
+    /// <param name="plane">The plane. Its origin is the centre of the rectangle.</param>
+    /// <param name="width">The size along the plane's x axis. Must be positive.</param>
+    /// <param name="length">The size along the plane's y axis. Must be positive.</param>
+    /// <exception cref="ArgumentException">Thrown when the plane is not valid.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when a size is not positive.</exception>
+    /// <remarks>Forwards to <see cref="FromRectangle"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public PolyLine(in Plane plane, double width, double length)
+        : this(FromRectangle(plane, width, length))
+    {
+    }
+
+    /// <summary>Creates a closed regular polygon inscribed in a circle.</summary>
+    /// <param name="plane">The plane. Its origin is the centre.</param>
+    /// <param name="radius">The radius of the circle through the corners. Must be positive.</param>
+    /// <param name="sides">How many sides. Must be three or more.</param>
+    /// <exception cref="ArgumentException">Thrown when the plane is not valid.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius or the side count is too small.</exception>
+    /// <remarks>Forwards to <see cref="FromRegularPolygon"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public PolyLine(in Plane plane, double radius, int sides)
+        : this(FromRegularPolygon(plane, radius, sides))
+    {
+    }
+
     /// <inheritdoc/>
     public override Interval Domain => new(0.0, _points.Length - 1);
 

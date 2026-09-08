@@ -303,6 +303,22 @@ var one = Spark.Nodes.Core.Circle.FromCentreRadius(Point3d.Origin, 1.0);
 var two = Circle.FromCentreRadius(Point3d.Origin, 2.0);
 ```
 
+**Geometry can also be built with `new`.** Every construction the library offers as a named
+factory is a constructor as well, so whichever you reach for first is there, and the two are the
+same thing:
+
+```csharp
+var factory = Circle.FromCentreRadius(Point3d.Origin, 2.0);
+var constructed = new Circle(Point3d.Origin, 2.0);
+```
+
+Two are deliberately missing, and they are the two where a constructor could not say what you
+meant. `Angle.FromDegrees` and `Angle.FromRadians` both take a single `double`, so `new Angle(90)`
+would have to quietly pick one — and the line would read the same either way. `Plane` has the same
+problem with `FromOriginXAxisYAxis` and `FromOriginNormalXAxis`, which both take a point and two
+vectors but disagree about what the second vector is. Name those four; everything else takes
+`new`.
+
 ### Two things that will catch you once
 
 **Four node families are spelled differently in a block**, because their node name is a type C#

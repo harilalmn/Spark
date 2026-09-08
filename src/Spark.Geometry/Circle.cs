@@ -48,6 +48,52 @@ public sealed class Circle : Curve
         _radius = radius;
     }
 
+    /// <summary>Lifts an instance's state into a new one, so a constructor can call a factory.</summary>
+    /// <param name="other">The instance to copy. Already validated by whatever produced it.</param>
+    /// <remarks>
+    /// <b>`E2-T59` asked for a constructor beside every library factory, and a class constructor
+    /// cannot return.</b> This is what lets the public ones below read <c>: this(SomeFactory(x))</c>.
+    /// The arithmetic stays in the factory, which remains its only copy, so the constructor cannot
+    /// drift away from the method it mirrors.
+    /// </remarks>
+    private Circle(Circle other)
+        : this(other._plane, other._radius)
+    {
+    }
+
+    /// <summary>Creates a circle in the plane through its centre parallel to the world xy plane.</summary>
+    /// <param name="centre">The centre.</param>
+    /// <param name="radius">The radius. Must be positive and finite.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not positive.</exception>
+    /// <remarks>Forwards to <see cref="FromCentreRadius"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public Circle(in Point3d centre, double radius)
+        : this(FromCentreRadius(centre, radius))
+    {
+    }
+
+    /// <summary>Creates a circle about an axis.</summary>
+    /// <param name="centre">The centre.</param>
+    /// <param name="normal">The axis the circle turns about. Need not be unit length.</param>
+    /// <param name="radius">The radius. Must be positive and finite.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not positive.</exception>
+    /// <exception cref="ArgumentException">Thrown when the normal has no length.</exception>
+    /// <remarks>Forwards to <see cref="FromCentreNormalRadius"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public Circle(in Point3d centre, in Vector3d normal, double radius)
+        : this(FromCentreNormalRadius(centre, normal, radius))
+    {
+    }
+
+    /// <summary>Creates the circle through three points.</summary>
+    /// <param name="first">The first point.</param>
+    /// <param name="second">The second point.</param>
+    /// <param name="third">The third point.</param>
+    /// <exception cref="ArgumentException">Thrown when the points are collinear or coincident.</exception>
+    /// <remarks>Forwards to <see cref="FromThreePoints"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public Circle(in Point3d first, in Point3d second, in Point3d third)
+        : this(FromThreePoints(first, second, third))
+    {
+    }
+
     /// <inheritdoc/>
     public override Interval Domain => new(0.0, Math.PI * 2.0);
 

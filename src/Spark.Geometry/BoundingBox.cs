@@ -25,6 +25,20 @@ namespace Spark.Geometry;
 /// </remarks>
 public readonly struct BoundingBox : IEquatable<BoundingBox>
 {
+    /// <summary>Creates the smallest box containing every point.</summary>
+    /// <param name="points">The points. An empty span gives the empty box.</param>
+    /// <remarks>
+    /// Forwards to <see cref="FromPoints(ReadOnlySpan{Point3d})"/>, so the two cannot drift apart
+    /// (`E2-T59`). An array binds here rather than to the sequence overload, and the two agree.
+    /// </remarks>
+    public BoundingBox(ReadOnlySpan<Point3d> points) => this = FromPoints(points);
+
+    /// <summary>Creates the smallest box containing every point (`E2-T59`).</summary>
+    /// <param name="points">The points. An empty sequence gives the empty box.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="points"/> is null.</exception>
+    /// <remarks>Forwards to <see cref="FromPoints(IEnumerable{Point3d})"/>, so the two cannot drift apart.</remarks>
+    public BoundingBox(IEnumerable<Point3d> points) => this = FromPoints(points);
+
     /// <summary>
     /// Creates the smallest axis-aligned box containing two corner points.
     /// </summary>

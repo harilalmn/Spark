@@ -102,6 +102,28 @@ public sealed class KnotVector : IEquatable<KnotVector>
         CheckMultiplicities(nameof(knots));
     }
 
+    /// <summary>Lifts an instance's state into a new one, so a constructor can call a factory.</summary>
+    /// <param name="other">The instance to copy. Already validated by whatever produced it.</param>
+    /// <remarks>
+    /// <b>`E2-T59` asked for a constructor beside every factory, and a class constructor cannot
+    /// return.</b> This is what lets the public one below read <c>: this(CreateClamped(...))</c>.
+    /// </remarks>
+    private KnotVector(KnotVector other)
+    {
+        _knots = other._knots;
+        Degree = other.Degree;
+    }
+
+    /// <summary>Creates the clamped uniform knot vector for a control-point count.</summary>
+    /// <param name="degree">The curve's degree. At least 1.</param>
+    /// <param name="controlPoints">How many control points the curve has. More than the degree.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The degree or the count is too small.</exception>
+    /// <remarks>Forwards to <see cref="CreateClamped"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public KnotVector(int degree, int controlPoints)
+        : this(CreateClamped(degree, controlPoints))
+    {
+    }
+
     /// <summary>The degree of the curve this vector belongs to.</summary>
     public int Degree { get; }
 

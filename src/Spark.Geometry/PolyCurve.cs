@@ -35,6 +35,30 @@ public sealed class PolyCurve : Curve
 
     private PolyCurve(Curve[] segments) => _segments = segments;
 
+    /// <summary>Lifts an instance's state into a new one, so a constructor can call a factory.</summary>
+    /// <param name="other">The instance to copy. Already validated by whatever produced it.</param>
+    /// <remarks>
+    /// <b>`E2-T59` asked for a constructor beside every library factory, and a class constructor
+    /// cannot return.</b> This is what lets the public ones below read <c>: this(SomeFactory(x))</c>.
+    /// The arithmetic stays in the factory, which remains its only copy, so the constructor cannot
+    /// drift away from the method it mirrors.
+    /// </remarks>
+    private PolyCurve(PolyCurve other)
+        : this(other._segments)
+    {
+    }
+
+    /// <summary>Joins curves end to end into one curve.</summary>
+    /// <param name="curves">The curves, in order. Nested polycurves are flattened.</param>
+    /// <param name="tolerance">How far consecutive ends may sit apart. Defaults to the ambient tolerance.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="curves"/> is null, or holds a null.</exception>
+    /// <exception cref="ArgumentException">Thrown when there are no curves, or a gap is too wide.</exception>
+    /// <remarks>Forwards to <see cref="FromJoinedCurves"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public PolyCurve(IEnumerable<Curve> curves, in Tolerance tolerance = default)
+        : this(FromJoinedCurves(curves, tolerance))
+    {
+    }
+
     /// <inheritdoc/>
     public override Interval Domain => new(0.0, _segments.Length);
 

@@ -27,6 +27,13 @@ namespace Spark.Geometry;
 /// </remarks>
 public readonly struct Ray : IEquatable<Ray>
 {
+    /// <summary>Creates the ray from one point towards another (`E2-T59`).</summary>
+    /// <param name="from">The origin.</param>
+    /// <param name="towards">A point the ray passes through.</param>
+    /// <exception cref="ArgumentException">Thrown when the points coincide or are not finite.</exception>
+    /// <remarks>Forwards to <see cref="FromTwoPoints"/>, so the two cannot drift apart.</remarks>
+    public Ray(in Point3d from, in Point3d towards) => this = FromTwoPoints(from, towards);
+
     /// <summary>
     /// Creates a ray from a starting point and a direction.
     /// </summary>

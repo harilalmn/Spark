@@ -31,6 +31,26 @@ namespace Spark.Geometry;
 /// </remarks>
 public readonly struct CoordinateSystem : IEquatable<CoordinateSystem>
 {
+    /// <summary>Creates the world-aligned system at an origin (`E2-T59`).</summary>
+    /// <param name="origin">The origin.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="origin"/> is not finite.</exception>
+    /// <remarks>Forwards to <see cref="FromOrigin"/>, so the two cannot drift apart.</remarks>
+    public CoordinateSystem(in Point3d origin) => this = FromOrigin(origin);
+
+    /// <summary>Creates a system with its Z axis along a direction (`E2-T59`).</summary>
+    /// <param name="origin">The origin.</param>
+    /// <param name="zAxis">The Z axis. Need not be normalised.</param>
+    /// <exception cref="ArgumentException">Thrown when the arguments are not valid.</exception>
+    /// <remarks>Forwards to <see cref="FromOriginZAxis"/>, so the two cannot drift apart.</remarks>
+    public CoordinateSystem(in Point3d origin, in Vector3d zAxis) =>
+        this = FromOriginZAxis(origin, zAxis);
+
+    /// <summary>Creates the system a plane's axes describe (`E2-T59`).</summary>
+    /// <param name="plane">The plane.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="plane"/> is not valid.</exception>
+    /// <remarks>Forwards to <see cref="FromPlane"/>, so the two cannot drift apart.</remarks>
+    public CoordinateSystem(in Plane plane) => this = FromPlane(plane);
+
     /// <summary>
     /// Creates a coordinate system from an origin and two directions, orthonormalising them.
     /// </summary>

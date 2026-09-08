@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-08 (the code-font list offered CJK faces)
+**Last updated:** 2026-09-08 (a constructor beside every kernel factory)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing - between steps.** Two client-answered rows remain: `E2-T59` a constructor for every library factory, and `E2-T60` `Centre` becomes `Center`. |
+| **Working on** | **`E2-T60` - `Centre` becomes `Center` everywhere.** The client, asked whether to keep both spellings or one: *keep it 'Center' only*. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The code-font list offered CJK faces** - `E8-T64`. Monospaced Latin is not the same as a code font. **Before it:** `E8-T63`, `E8-T62`, `E8-T61`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2661** tests green over ten executables with zero skips. **Three known flaky tests, all one defect**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)), `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` and `ViewportNavigationTests.TheMiddleButtonPans` (`E11-T27`, open). |
-| **Next action** | **`E2-T59`: a constructor for every library factory.** The client asked for `new Circle(centre, radius)` and then for the general case - *whatever constructors are available in the Library, all those should be available in a code block too*. **`ADR-0004` already makes this safe**: the importer suppresses a constructor when a public static `From*`/`By*`/`Create*` on the same type returns that type and its **parameter type sequence** matches - so adding the constructors adds no nodes and duplicates nothing. **The risk is collisions between factories**: two `From*` methods on one type with the same parameter types cannot both become constructors, and that has to be surveyed before writing any. Then `E2-T60`, `Centre` -> `Center`, a rename the size of `E2-T58` with the same alias requirement. |
-| **Verify with** | `new Circle(Point3d.Origin, 5.0)` compiling in a code block; the library still reporting **138** nodes, which is what says no constructor became a second node; and `NodeMemberKindTests` green, which is the guard on the suppression rule. Then the ten executables. **Grep the run output for `[FAIL]` and not only `Total:`.** |
+| **Last completed step** | **A constructor beside every kernel factory** - `E2-T59`. `new Circle(centre, radius)` works in a code block, and parity is now held by reflection in both directions. **Before it:** `E8-T64`, `E8-T63`, `E8-T62`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2674** tests green over ten executables with zero skips. **Three known flaky tests, all one defect**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)), `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` and `ViewportNavigationTests.TheMiddleButtonPans` (`E11-T27`, open). |
+| **Next action** | **The same shape as `E2-T58`, which is the reason to expect it to go the same way.** `Centre` is a spelling in **three** places and they have different consequences: node keys, which are written into saved files; kernel members like `Circle.FromCentreRadius` and `Arc.Centre`, which are what a code block types; and parameter names, which are what a code block's signature help shows. **Every renamed node needs a `[SparkNodeAlias]` spelling the old name**, or every saved graph naming one degrades to a placeholder - `MissingNodePolicy.Placeholder` keeps the wires, refuses to evaluate and reports `SPK1062`, so the user sees a graph that opens, looks nearly right and produces nothing. **Hold the sweep back from `JOURNAL.md` and `NOTES.md`**, which are historical records, and from the alias attribute's own example and tests, which must keep spelling the old name or they assert nothing - `E2-T58` had to restore all four by hand after a blind sweep. **`E2-T59`'s new constructors and `ConstructorParityTests`' exemption keys both name `Centre` and move with the rest.** |
+| **Verify with** | **The three example graphs opened *unedited* first** - that is the only real proof the aliases work, and healing them to the new keys comes after. Then the library still reporting **138** nodes, `grep -ri centre` over `src/` coming back empty, `ConstructorParityTests` still green, and the ten executables. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -8211,3 +8211,63 @@ warnings, format clean, **2661** tests green over ten executables with zero skip
 
 **Documents.** `E8-T64`'s row, a TODO line, `E11-T27` gaining its third victim, and a clause in
 `CodeBlock.md` saying CJK families are left out and why.
+
+
+### 2026-09-08 — A constructor beside every kernel factory
+
+**What.** `E2-T59`. **Asked for by the client**, who typed `new Circle(center, 10)` into a code
+block, was told there was no such constructor, and then asked for the general case: *for all
+Geometry elements, whatever constructors are available in Library, all those should be available in
+codeblock (C#) too*. 26 constructors across 14 kernel types, and two deliberately left out.
+
+**Why it was missing.** A code block **is** C#, and in C# one builds a thing with `new`. The kernel
+reaches its geometry through named factories, which is what a *node* needs — a node has a name and
+a row of ports, and `Circle.FromCentreRadius` is that name. Nobody writing C# reaches for that
+first. So the two audiences had drifted apart without either being wrong, and the client found the
+seam by typing the obvious thing.
+
+**Surveyed by reflection before a line was written.** Guessing at which factories lacked
+constructors would have been guessing at 28 of them. The survey started as a throwaway probe and is
+now `ConstructorParityTests`, which is the more useful outcome: it diffs the assembly against itself
+in **both** directions. A factory added next year with no constructor is a red build that names
+itself; an exemption that has quietly been fixed is *also* a red build. That two-way shape is
+`NodeLibraryCoverageTests`' lesson applied a second time, and for the same reason — a hand-kept list
+rots in the direction nobody is looking.
+
+**Every constructor forwards to its factory, and that is the whole design.** A struct can say
+`this = FromThreePoints(a, b, c)` in one line. A class cannot, so each gained one **private copy
+constructor** and the public ones read `: this(FromCentreRadius(centre, radius))`. The arithmetic
+stays in the factory, which remains its only copy, so a constructor cannot drift away from the
+method it mirrors — which is the failure this row would otherwise have created twenty-six times
+over.
+
+**`NurbsCurve`'s copy constructor takes the fields across rather than going back through a public
+one**, and that is not laziness. Handing the weights back in turns a non-rational curve into a
+rational one carrying weights that all happen to be 1 — same points, different curve, and nothing
+would have failed.
+
+**Two are absent on purpose, and the test says why rather than merely omitting them.**
+`Angle.FromDegrees` and `FromRadians` are both `(double)`: `new Angle(90)` would have to quietly
+mean one of them and the reader of that line could not tell which. `Plane.FromOriginXAxisYAxis` and
+`FromOriginNormalXAxis` are both `(Point3d, Vector3d, Vector3d)` and disagree about what the second
+vector *is*. Both would fail by tilting the answer rather than by throwing, which is the worst way
+to be wrong. A third clash the survey had flagged — `PolyLine.FromPoints` against
+`FromClosedPoints` — resolved itself: the open one already owned the constructor.
+
+**The node count did not move.** Still 138, and that was the load-bearing check written down before
+the work started. It holds for a reason worth recording: `NodeImporter` sweeps `Spark.Nodes.Core`
+and not the kernel, so kernel constructors cannot reach the library at all. Had the count moved it
+would have meant ADR-0004's dedup rule missed one and the library had gained duplicates.
+
+**Verified.** `ConstructorParityTests` failed with all seven remaining names before the last five
+constructors were written, which is how I know it can fail. Nine cases in
+`CodeBlockLibraryReachTests` compile `new Circle`, `new Line`, `new Arc`, `new Plane` and
+`new PolyLine` *inside a block*, and one runs a constructor and its factory side by side and
+compares the results — a constructor that agreed only at compile time would be worse than none.
+Gates: build clean with zero warnings, format clean, **2674** tests green over ten executables with
+zero skips.
+
+**Documents.** `E2-T59`'s row, a TODO line, and a subsection in `CodeBlock.md` — which also names
+the four calls that still have to be spelled out, since *everything takes `new` except these* is
+the kind of rule a reader needs the exception to. The doc's sample is carried verbatim as a test
+case, because the docs harness checks links and dates and still does not compile samples.
