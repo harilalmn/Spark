@@ -837,6 +837,36 @@ public sealed class CanvasNode
         height = Script is null ? 0 : ScriptHintHeight;
     }
 
+    /// <summary>
+    /// The line down the middle of a node's body, dividing its inputs from its outputs
+    /// (`E8-T67`).
+    /// </summary>
+    /// <param name="x">The middle of the node, where the line is drawn.</param>
+    /// <param name="top">Its top end, immediately below the header.</param>
+    /// <param name="bottom">Its bottom end, at the foot of the node.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>Here rather than in the renderer, for the reason every other box on this type is.</b>
+    /// The canvas draws in immediate mode and holds no children
+    /// ([ADR-0013](../../docs/adr/0013-immediate-mode-node-canvas.md)), so a rectangle that lives
+    /// only inside <c>Render</c> is a rectangle no test can ask about. Every other piece of a
+    /// node's geometry — <see cref="PortTab"/>, <see cref="FieldBox"/>, <see cref="ScriptBox"/> —
+    /// is a method here for the same reason.
+    /// </para>
+    /// <para>
+    /// <b>It starts below the header and not at the top of the node.</b> The header carries one
+    /// title across the whole width and a state glyph at its right end; a line through it would
+    /// divide something that is not divided. What the line separates is the port rows, which
+    /// genuinely are two columns — inputs down the left edge, outputs down the right.
+    /// </para>
+    /// </remarks>
+    public void BodyDivide(out double x, out double top, out double bottom)
+    {
+        x = X + (Width / 2);
+        top = Y + HeaderHeight;
+        bottom = Y + Height;
+    }
+
     /// <summary>The world position of an output port's center.</summary>
     /// <param name="index">The zero-based port index.</param>
     /// <param name="x">The x coordinate: the node's right edge.</param>

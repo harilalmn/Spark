@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (E8: every port pill on a side is one length)
+**Last updated:** 2026-09-08 (E8: a node's body is divided down the middle)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -853,6 +853,13 @@ another.
       source clear of the tabs, so the drawing and the allowance are now the same number — and
       the node's measurement moved with it, or the longest port name would sit under the type
       label beside it.
+- [x] **A node's body is divided down the middle into its input and output halves**
+      (**E8-T67**) — done 2026-09-08, asked for by the client. `border.hairline` is the palette's
+      quietest line, because a divider *inside* a surface must not read as an edge *between* two
+      things, and the output half is washed 8% black — a step smaller than one rung of the body
+      ladder. The wash **darkens**, which is Principle 2 and not taste: body text on a node is
+      light, so it cannot lower a contrast ratio. Neither is drawn below 67% zoom, where the body
+      is already lerping towards its category colour and there are no port labels left to divide.
 - [ ] Aggressive autosave and crash recovery, because
       [R11](PRD.md#12-risks) means the process can die without warning (**E8-T13**).
 - [ ] Banners for a missing package and for a graph containing script nodes (**E8-T16**).

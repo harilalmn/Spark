@@ -1781,6 +1781,11 @@ public sealed class GraphCanvas : Control
 
             context.DrawRectangle(new ImmutableSolidColorBrush(bodyColour), null, rounded);
 
+            if (drawsTitle)
+            {
+                DrawBodyDivide(context, pens, node, rounded);
+            }
+
             // Header: full-strength category colour with dark text (Decision V2). Clipped rather
             // than drawn as a separately-rounded rectangle so the top corners match the body's
             // radius exactly.
@@ -1867,6 +1872,63 @@ public sealed class GraphCanvas : Control
                 DrawFocusSandwich(context, pens, nodeRect);
             }
         }
+    }
+
+    /// <summary>
+    /// Splits a node's body into its input and output halves (<c>E8-T67</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Asked for by the client</b>: a faint line down the middle of a node, and a very small
+    /// difference in tint either side of it. What it says is that the two columns of a node mean
+    /// different things — the left edge is where wires arrive and the right edge is where they
+    /// leave — which is the first thing somebody has to learn about a node and the one thing the
+    /// drawing never said.
+    /// </para>
+    /// <para>
+    /// <b>Drawn immediately after the body and before everything else on the node.</b> The header,
+    /// the port tabs, the slider, the value field and a code block's source all go over the top of
+    /// it, which is what makes this a wash on the body rather than a thing competing with what is
+    /// on the body. On a code block the source covers nearly all of it, and that is correct: a
+    /// block's body is one column of text, not two columns of ports.
+    /// </para>
+    /// <para>
+    /// <b>Clipped to the rounded body rather than drawn as a plain rectangle</b>, so the
+    /// bottom-right corner stays round. The wash is the same shape as the node, seen through the
+    /// half of it that is being tinted.
+    /// </para>
+    /// <para>
+    /// <b>Above 67% zoom only</b>, which is the level at which the header title appears and, not
+    /// coincidentally, the level at and below which the body lerps towards the category colour
+    /// (§7.3). Below it there are no port labels to separate, the tint would land on a brightened
+    /// fill, and a hairline is texture rather than structure.
+    /// </para>
+    /// </remarks>
+    /// <param name="context">The drawing context.</param>
+    /// <param name="pens">The frame's pens, for the hairline.</param>
+    /// <param name="node">The node.</param>
+    /// <param name="rounded">The node's rounded body, so the tint keeps its corners.</param>
+    private static void DrawBodyDivide(
+        DrawingContext context, in FramePens pens, CanvasNode node, in RoundedRect rounded)
+    {
+        node.BodyDivide(out double middle, out double top, out double bottom);
+
+        if (bottom <= top)
+        {
+            return;
+        }
+
+        double right = node.X + node.Width;
+
+        if (right > middle)
+        {
+            using (context.PushClip(new Rect(middle, top, right - middle, bottom - top)))
+            {
+                context.DrawRectangle(SparkPalette.NodeOutputTintBrush, null, rounded);
+            }
+        }
+
+        context.DrawLine(pens.BodyDivide, new Point(middle, top), new Point(middle, bottom));
     }
 
     /// <summary>
@@ -4011,6 +4073,11 @@ public sealed class GraphCanvas : Control
                 PenLineJoin.Round);
 
             PortRankRing = Pen(SparkPalette.PortRest, screen);
+
+            // `E8-T67`. border.hairline is the palette's quietest line, which is what a divider
+            // inside a surface is for: it separates two halves of one node without reading as an
+            // edge between two things.
+            BodyDivide = Pen(SparkPalette.BorderHairline, screen);
             WireSelected = Pen(SparkPalette.Accent, Math.Max(2.25, screen));
             LipRest = Pen(Color.FromArgb(0xB3, 0x3E, 0x46, 0x54), screen);
             LipHover = Pen(Color.FromArgb(0xB3, 0x86, 0x74, 0xD6), screen);
@@ -4059,6 +4126,8 @@ public sealed class GraphCanvas : Control
         internal IPen NodeOutlineDashed { get; }
 
         internal IPen PortRankRing { get; }
+
+        internal IPen BodyDivide { get; }
 
         internal IPen WireSelected { get; }
 

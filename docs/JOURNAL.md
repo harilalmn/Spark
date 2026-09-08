@@ -19,9 +19,9 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | **A second client pass: six requests, taken one per step.** In the order given: **(1)** `E6-T33` a missing semicolon is added when a code block is clicked out of; **(2)** `E8-T66` every port pill on a side is as long as the longest one; **(3)** `E8-T67` a faint centre line and a tint step split a node's body into its input and output halves; **(4)** `E8-T68` double-clicking a node's title edits it in place, opening with the whole title selected; **(5)** `E8-T69` the graph exports to PNG at a chosen resolution, aspect locked, defaulting to the canvas size; **(6)** `E9-T15` the viewport's geometry exports to a solid file and to PNG at a chosen resolution. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Every port pill on a side is as long as the longest one** - `E8-T66`, step 2 of the six. **Before it:** `E6-T33`, `E8-T65`, `E6-T32`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2705** tests green over **nine** executables with zero skips. **The previous two figures here were wrong and are corrected**: the suite measured **2690** on a stashed tree immediately before this step, not 2702, and `tests/` holds nine projects and not ten — `tests/Spark.Geometry.Io.Tests/` is a stale `bin`/`obj` with no `.csproj` in it, which is what the tenth was. **Six known flaky tests, all one defect** (`E11-T27`, open), across five classes; each passes alone and a different one fails each full run — none failed on either run of this step. |
-| **Next action** | **`E8-T67`, step 3 of 6: a faint centre line splits a node's body into its input and output halves.** Below the header, tint the right half a step differently from the left and draw a hairline down the middle, both clipped to the node's rounded body so the corners stay round. It goes in `GraphCanvas.DrawNodes` immediately after the body fill and **before** the header, the port tabs, the slider, the field and the script box, so everything drawn on a node still covers it. Gate it on the level of detail that draws the outline — at 30% zoom it is noise. Verify with a `SparkPalette` contrast case (the two tints must stay above the ratio the port labels need on both) plus a screenshot. |
+| **Last completed step** | **A faint line and a tint step divide a node's inputs from its outputs** - `E8-T67`, step 3 of the six. **Before it:** `E8-T66`, `E6-T33`, `E8-T65`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2717** tests green over **nine** executables with zero skips. **The previous two figures here were wrong and are corrected**: the suite measured **2690** on a stashed tree immediately before this step, not 2702, and `tests/` holds nine projects and not ten — `tests/Spark.Geometry.Io.Tests/` is a stale `bin`/`obj` with no `.csproj` in it, which is what the tenth was. **Six known flaky tests, all one defect** (`E11-T27`, open), across five classes; each passes alone and a different one fails each full run — none failed on either run of this step. |
+| **Next action** | **`E8-T68`, step 4 of 6: double-clicking a node's title edits it in place, with the whole title selected.** Renaming is only in the properties pane today (`MainWindowViewModel.NodeTitle`). Add a header hit test to `GraphCanvas` — the header rectangle is `node.Y`..`node.Y + HeaderHeight`, and `E8-T53` already made a single click on a code block open its editor, so the double-click has to be told apart from a drag by the same slop rule. Raise a `TitleEditRequested` event carrying the screen rectangle, and let `CanvasPane` put a `TextBox` over it in the overlay layer beside `FieldEditor`, `SelectAll()` on open, Enter commits, Escape abandons (the field's asymmetry, not the code editor's). Verify with headless pointer gestures in `CanvasWidgetGestureTests`' style plus a view-model test that the committed name reaches `CustomTitle` and records one undo step. |
 | **Verify with** | Whatever the next row needs. Nothing is half-done. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -8527,3 +8527,50 @@ which the sharpest is that every row still leaves a positive span between the tw
 different nodes — that is the assertion that goes red if the measurement is left behind. And a
 screenshot: `--graph demo` shows `Number.Range`, `Colour.FromRgb` and
 `Display.FromGeometryColour` each with one pill width per side.
+
+### 2026-09-08 — A faint line and a tint step divide a node's inputs from its outputs (`E8-T67`)
+
+**What.** `CanvasNode.BodyDivide`, `SparkPalette.NodeOutputTint`, a `BodyDivide` pen and
+`GraphCanvas.DrawBodyDivide`. Seven tests, and `design-language.md` §7.1 now draws it. Step 3 of
+six.
+
+**Asked for by the client**: *a faint gray vertical center line for nodes, separating the area
+below title into two, input and output sections, with a very small difference in the tint.* What
+it says is the first thing anybody has to learn about a node and the one thing the drawing never
+said — the left edge is where wires arrive, the right edge is where they leave.
+
+**Three decisions, each of which could have gone the other way.**
+
+*The line is `border.hairline`, not `border.control`.* A divider **inside** a surface must not read
+as an edge **between** two things, and the node already has an outline doing that job. A test
+asserts the divider is the quieter of the two against `node.body`.
+
+*The wash darkens rather than lightens, and that is Principle 2 and not taste.* Body text on a node
+is light, so darkening the surface under it can only **raise** contrast — the same direction hover
+and selection already step the fill. A brightening wash would have to be argued against every text
+token drawn on it. The test runs all three body colours against all four text tokens and asserts no
+ratio falls.
+
+*It is a wash rather than a fourth body colour.* A node is drawn in one of three fills, and below
+67% zoom in a lerp of one of those towards its category colour. One translucent overlay tints all
+of them by the same proportion; four paired constants would have to be kept agreeing by hand.
+
+**The geometry is a method on `CanvasNode`, not arithmetic inside `Render`.** A rectangle that
+exists only in the draw loop is a rectangle no test can ask about — which is why `PortTab`,
+`FieldBox` and `ScriptBox` are all methods there. That is what let this row assert the thing that
+actually matters: on four different nodes, every input tab ends left of the line and every output
+tab begins right of it.
+
+**Drawn immediately after the body and before everything else on the node**, so the header, the
+tabs, the slider, the field and a code block's source all cover it. On a block the source covers
+nearly all of it, which is correct: a block's body is one column of text, not two columns of ports.
+**Gated at 67%**, which is exactly where the category lerp finishes — a test asserts
+`CategoryFillBlend(TextThreshold)` is zero, so the wash can never land on a brightened fill.
+
+**One documentation line was already wrong and is fixed here rather than left.** §7.6 said a port
+lozenge is *as wide as the word* — which stopped being true in the previous step. It now states
+the per-side rule and why.
+
+**Verified.** Build clean, format clean, **2,717 tests, 0 failures, 0 skips**. And a screenshot at
+140% of `Colour.FromRgb`: three equal input pills, a hairline down the middle, and the output half
+a shade darker.

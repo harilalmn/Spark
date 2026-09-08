@@ -14,7 +14,7 @@ the named tokens are real, but several values below are worked examples, rejecte
 derived ladder steps, and no test tells those apart from tokens. If you change a colour here,
 change it in `SparkPalette` and `NodeCategory` too.
 **Owner:** `spark-ui`
-**Last updated:** 2026-09-01
+**Last updated:** 2026-09-08
 
 > This topic is both an end-user reference — *why does Spark look like this?* — and the
 > executable specification for the shell, the node canvas renderer and the viewport. Every
@@ -653,13 +653,15 @@ zoom nodes degrade to plain category-coloured rectangles with no text at all.
 ```text
         ┌───────────────────────────────────────┐   ← 1 px border.control, 6 px radius
         │  ◈  Point.FromCoordinates          ⚠ ⏸  │   ← header: FULL category colour,
-        ├───────────────────────────────────────┤     text.inverse, 22 px, glyphs right
-     ●──┤ x                                     │   ← body: node.body, text.secondary
-     ◎──┤ y                              output ├──●     port labels, 11 px
-     ●──┤ z                                     │
-        │                              ◉ preview│   ← preview toggle, E2 on / E1 off
-        └───────────────────────────────────────┘
+        ├──────────────────┬────────────────────┤     text.inverse, 22 px, glyphs right
+     ●──┤ x                │                    │   ← body: node.body, text.secondary
+     ◎──┤ y                │             output ├──●     port labels, 11 px
+     ●──┤ z                │                    │
+        │                  │           ◉ preview│   ← preview toggle, E2 on / E1 off
+        └──────────────────┴────────────────────┘
               ╲ E2 shadow, +3/+4, blur 12 ╱
+                           ↑ border.hairline down the middle, and the
+                             output half washed 8% darker
 ```
 
 | Part | Height / size at 100% | Fill | Text |
@@ -670,6 +672,18 @@ zoom nodes degrade to plain category-coloured rectangles with no text at all.
 | Ports | 7–9 px | `port.rest` / `port.connected` | — |
 | Preview toggle | 14 px pill | E2 raised (on) / E1 inset (off) | — |
 | Corner radius | 6 px | — | — |
+| Body divide | 1 px, header foot to node foot | `border.hairline` `#343A45` | — |
+| Output half | half the body width | the body, washed 8% black | — |
+
+**The body is divided down the middle** (`E8-T67`), and what the line says is that a node's two
+columns mean different things: the left edge is where wires arrive, the right edge is where they
+leave. It is `border.hairline`, the palette's quietest line, because a divider *inside* a surface
+must not read as an edge *between* two things. The output half is washed 8% black — a step
+smaller than one rung of the body ladder, so it reads as a tint and not as a second surface. **The
+wash darkens rather than lightens, and that direction is Principle 2 rather than taste**: body
+text on a node is light, so darkening the surface under it can only raise contrast. Neither is
+drawn below 67% zoom, which is where the body begins lerping towards the category colour and where
+there are no port labels left to separate.
 
 The header is the load-bearing element and it does four jobs at once: it names the node, it
 carries the category identity, it provides the node's most visible boundary against the canvas
@@ -887,8 +901,12 @@ of screen space as you zoom out. Ports are the smallest thing anyone has to aim 
 
 **A port is a lozenge carrying its own name, and the whole lozenge is the target.** It is an inset
 well in `surface.sunken` — a port is a socket, something a wire goes *into*, so it reads as a hole
-in the node rather than as a button on it — flush with the node's edge, 15 px tall, as wide as the
-word with 8 px either side and never wider than two fifths of the node. A connected one fills 45%
+in the node rather than as a button on it — flush with the node's edge, 15 px tall, and **as wide as the longest name on its side** with
+8 px either side, never wider than two fifths of the node. The width is per *side* and not
+per port (`E8-T66`): a lozenge is a target as much as a label, and a column of targets that
+all begin at the same edge and stop at three different ones is harder to aim down than a
+column of equal ones. The two sides are measured separately — they face each other across
+the body, and matching them to each other is a rule nobody asked for. A connected one fills 45%
 towards `port.connected`; the hovered one takes the same `accent` outline everything hoverable on
 this canvas takes. **The point of the shape is the target**: clicking the word `radius` starts the
 wire that `radius` wants, which is a fifty-pixel target instead of a five-pixel one. Below the zoom

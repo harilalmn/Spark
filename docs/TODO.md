@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (every port pill on a side is one length)
+**Last updated:** 2026-09-08 (a node's body is divided down the middle)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -511,6 +511,7 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] A code block reads the same whether or not you are typing in it - `E8-T65`. Colour and line numbers always, and a note under the title saying why a bare call carries no output port.
 - [x] A missing semicolon is put back when a block is clicked out of - `E6-T33`. An unterminated last line used to cost the node its output ports and its wires; the parser decides where the character goes, and the insertion is discarded unless it lowers the error count.
 - [x] Every port pill on a side is as long as the longest one - `E8-T66`. A tab is a target as much as a label, and `red`/`green`/`blue` came out three lengths; the node's measurement moved with the drawing, or the longest name lands under the type label.
+- [x] A faint line and a tint step divide a node's inputs from its outputs - `E8-T67`. `border.hairline` down the middle and the output half washed 8% darker; the wash darkens rather than lightens, because body text on a node is light.
 - [x] The node library is callable from a code block — `E6-T30`. `Solid`, `Logic`, `Colour` and the rest; the ten colliding names are pinned to what they always meant, so no existing block changed.
 - [x] A getting-started guide for the code block — `E10-T16`. `docs/CodeBlock.md`, twelve sections, all 23 samples run against the build.
 - [x] `a * b;` on its own is a value — `E6-T31`. C# read it as a pointer declaration; a code block has no `unsafe`, so there was only ever one meaning it could have had.

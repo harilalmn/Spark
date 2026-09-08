@@ -188,6 +188,30 @@ public static class SparkPalette
     /// <summary>A frozen brush for <see cref="NodeBodySelected"/>.</summary>
     public static IBrush NodeBodySelectedBrush { get; } = Frozen(NodeBodySelected);
 
+    /// <summary>
+    /// The wash laid over the output half of a node's body (`E8-T67`): black at 8%.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A wash rather than a second body colour, because there are four bodies.</b> A node is
+    /// drawn in <see cref="NodeBody"/>, <see cref="NodeBodyHover"/> or
+    /// <see cref="NodeBodySelected"/>, and below 67% zoom in a lerp of one of those towards its
+    /// category colour. One translucent overlay tints all of them by the same proportion; four
+    /// paired constants would have to be kept agreeing with each other by hand.
+    /// </para>
+    /// <para>
+    /// <b>It darkens rather than lightens, and that direction is a rule and not a preference.</b>
+    /// Body text on a node is light, so darkening the surface under it <i>raises</i> contrast —
+    /// which is why hover and selection step the fill down the ladder rather than up (§5.1,
+    /// Principle 2). A wash that brightened the half would have to be argued against every text
+    /// token drawn on it; this one cannot lower a ratio at all.
+    /// </para>
+    /// </remarks>
+    public static Color NodeOutputTint { get; } = Color.FromArgb(0x14, 0x00, 0x00, 0x00);
+
+    /// <summary>A frozen brush for <see cref="NodeOutputTint"/>.</summary>
+    public static IBrush NodeOutputTintBrush { get; } = Frozen(NodeOutputTint);
+
     /// <summary>A frozen brush for <see cref="TextPrimary"/>.</summary>
     public static IBrush TextPrimaryBrush { get; } = Frozen(TextPrimary);
 
