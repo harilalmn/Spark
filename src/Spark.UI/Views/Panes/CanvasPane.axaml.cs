@@ -27,6 +27,7 @@ public sealed partial class CanvasPane : UserControl
     private double _createWorldY;
     private int _editingSlot = -1;
     private int _editingScript = -1;
+    private int _editingTitle = -1;
 
     /// <summary>
     /// <i>Which</i> block the open editor belongs to, as an identity rather than a slot
@@ -89,6 +90,7 @@ public sealed partial class CanvasPane : UserControl
         CanvasControl.CodeBlockRequested += OnCanvasCodeBlockRequested;
         CanvasControl.FieldEditRequested += OnCanvasFieldEditRequested;
         CanvasControl.ScriptEditRequested += OnCanvasScriptEditRequested;
+        CanvasControl.TitleEditRequested += OnCanvasTitleEditRequested;
         CanvasControl.ContentMoved += OnCanvasContentMoved;
 
         // `E8-T39`. The same four sources the properties pane gives its editor, because it is
@@ -381,6 +383,104 @@ public sealed partial class CanvasPane : UserControl
         }
 
         FieldEditor.IsVisible = false;
+        CanvasControl.Focus();
+    }
+
+    /// <summary>
+    /// Puts a text box over the title the canvas drew, with the whole title selected
+    /// (<c>E8-T68</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Asked for by the client</b>: <i>let the user double click and edit the node title there
+    /// only. When entering edit mode, keep the entire title text selected.</i> Renaming was in the
+    /// properties pane and nowhere else, which is a panel away from the thing being renamed.
+    /// </para>
+    /// <para>
+    /// <b>The selection is the half that makes it fast.</b> The commonest rename replaces the name
+    /// outright — <c>Number.Value</c> becomes <c>radius</c> — so opening with the text selected
+    /// makes that gesture type-and-Enter. Opening with a caret would make it
+    /// select-all-then-type, every time, for the benefit of the rarer edit.
+    /// </para>
+    /// <para>
+    /// <b>Floored at a legible size, like the value field is.</b> A header zoomed out is a few
+    /// pixels tall and a text box that size is one nobody can type into; the editor stays legible
+    /// and covers a little more of the node than the header did.
+    /// </para>
+    /// </remarks>
+    /// <param name="sender">The canvas.</param>
+    /// <param name="e">Which node, its title, and where the header is on screen.</param>
+    private void OnCanvasTitleEditRequested(object? sender, CanvasFieldEditEventArgs e)
+    {
+        _editingTitle = e.Slot;
+
+        TitleEditor.Width = Math.Max(e.ScreenWidth, 90);
+        TitleEditor.Height = Math.Max(e.ScreenHeight, 24);
+
+        Avalonia.Controls.Canvas.SetLeft(TitleEditor, e.ScreenX);
+        Avalonia.Controls.Canvas.SetTop(TitleEditor, e.ScreenY);
+
+        TitleEditor.Text = e.Text;
+        TitleEditor.IsVisible = true;
+        TitleEditor.Focus();
+        TitleEditor.SelectAll();
+    }
+
+    /// <summary>
+    /// Enter commits, Escape abandons — the value field's asymmetry, not the code editor's.
+    /// </summary>
+    /// <remarks>
+    /// <b>A name is a word somebody can retype, so Escape may throw it away</b>; a code block holds
+    /// a screenful of work, which is why Escape commits there instead (<c>E8-T39</c>). Closing the
+    /// editor moves focus and focus loss is the commit path, so the slot is cleared <i>before</i>
+    /// the editor is hidden — without that, Escape would save the thing it was asked to discard.
+    /// </remarks>
+    /// <param name="sender">The editor.</param>
+    /// <param name="e">The key.</param>
+    private void OnTitleEditorKeyDown(object? sender, KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Enter:
+                CommitTitleEditor();
+                e.Handled = true;
+                break;
+
+            case Key.Escape:
+                _editingTitle = -1;
+                CloseTitleEditor();
+                e.Handled = true;
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    private void OnTitleEditorLostFocus(object? sender, RoutedEventArgs e) => CommitTitleEditor();
+
+    private void CommitTitleEditor()
+    {
+        if (_editingTitle < 0)
+        {
+            return;
+        }
+
+        int slot = _editingTitle;
+        _editingTitle = -1;
+
+        CanvasControl.CommitNodeTitle(slot, TitleEditor.Text);
+        CloseTitleEditor();
+    }
+
+    private void CloseTitleEditor()
+    {
+        if (!TitleEditor.IsVisible)
+        {
+            return;
+        }
+
+        TitleEditor.IsVisible = false;
         CanvasControl.Focus();
     }
 

@@ -19,9 +19,9 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | **A second client pass: six requests, taken one per step.** In the order given: **(1)** `E6-T33` a missing semicolon is added when a code block is clicked out of; **(2)** `E8-T66` every port pill on a side is as long as the longest one; **(3)** `E8-T67` a faint centre line and a tint step split a node's body into its input and output halves; **(4)** `E8-T68` double-clicking a node's title edits it in place, opening with the whole title selected; **(5)** `E8-T69` the graph exports to PNG at a chosen resolution, aspect locked, defaulting to the canvas size; **(6)** `E9-T15` the viewport's geometry exports to a solid file and to PNG at a chosen resolution. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A faint line and a tint step divide a node's inputs from its outputs** - `E8-T67`, step 3 of the six. **Before it:** `E8-T66`, `E6-T33`, `E8-T65`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2717** tests green over **nine** executables with zero skips. **The previous two figures here were wrong and are corrected**: the suite measured **2690** on a stashed tree immediately before this step, not 2702, and `tests/` holds nine projects and not ten — `tests/Spark.Geometry.Io.Tests/` is a stale `bin`/`obj` with no `.csproj` in it, which is what the tenth was. **Six known flaky tests, all one defect** (`E11-T27`, open), across five classes; each passes alone and a different one fails each full run — none failed on either run of this step. |
-| **Next action** | **`E8-T68`, step 4 of 6: double-clicking a node's title edits it in place, with the whole title selected.** Renaming is only in the properties pane today (`MainWindowViewModel.NodeTitle`). Add a header hit test to `GraphCanvas` — the header rectangle is `node.Y`..`node.Y + HeaderHeight`, and `E8-T53` already made a single click on a code block open its editor, so the double-click has to be told apart from a drag by the same slop rule. Raise a `TitleEditRequested` event carrying the screen rectangle, and let `CanvasPane` put a `TextBox` over it in the overlay layer beside `FieldEditor`, `SelectAll()` on open, Enter commits, Escape abandons (the field's asymmetry, not the code editor's). Verify with headless pointer gestures in `CanvasWidgetGestureTests`' style plus a view-model test that the committed name reaches `CustomTitle` and records one undo step. |
+| **Last completed step** | **Double-clicking a node's title edits it in place** - `E8-T68`, step 4 of the six. **Before it:** `E8-T67`, `E8-T66`, `E6-T33`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2727** tests green over **nine** executables with zero skips. **The previous two figures here were wrong and are corrected**: the suite measured **2690** on a stashed tree immediately before this step, not 2702, and `tests/` holds nine projects and not ten — `tests/Spark.Geometry.Io.Tests/` is a stale `bin`/`obj` with no `.csproj` in it, which is what the tenth was. **Six known flaky tests, all one defect** (`E11-T27`, open), across five classes; each passes alone and a different one fails each full run — none failed on either run of this step. |
+| **Next action** | **`E8-T69`, step 5 of 6: the graph exports to PNG at a chosen resolution.** A dialog offering width and height, an aspect lock, and both defaulting to the canvas control's own size; then render the graph into a `RenderTargetBitmap` of that size and `Save` it. The canvas is immediate-mode, so the render is `GraphCanvas` drawing itself through a transform that fits `ComputeBounds()` into the requested pixels rather than the control's — which means the export path must set the transform, draw, and put it back, or the on-screen view moves when you export. Verify with a headless test that writes a file of the asked-for pixel size, that the aspect lock derives the second number from the first, and that the view is unchanged afterwards. |
 | **Verify with** | Whatever the next row needs. Nothing is half-done. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -8574,3 +8574,47 @@ the per-side rule and why.
 **Verified.** Build clean, format clean, **2,717 tests, 0 failures, 0 skips**. And a screenshot at
 140% of `Colour.FromRgb`: three equal input pills, a hairline down the middle, and the output half
 a shade darker.
+
+### 2026-09-08 — Double-clicking a node's title edits it in place (`E8-T68`)
+
+**What.** `CanvasNode.HeaderBox`/`IsInHeader`, `GraphCanvas.TitleEditRequested`,
+`RequestTitleEdit` and `CommitNodeTitle`, a `TitleEditor` text box in `CanvasPane`'s overlay layer,
+and a `--rename-node` pose. Ten tests. Step 4 of six.
+
+**Asked for by the client**: *let the user double click and edit the node title there only. When
+entering edit mode, keep the entire title text selected.* Renaming lived in the properties pane and
+nowhere else, which is a panel away from the thing being renamed.
+
+**The selection is the half that makes it fast.** The commonest rename replaces the name outright —
+`Number.Value` becomes `radius` — so opening with the text selected makes that gesture
+type-and-Enter. Opening with a caret would make it select-all-then-type, every time, for the
+benefit of the rarer edit.
+
+**`HeaderBox` has three readers, and that is why it exists.** The renderer clips the category fill
+and the title to it, the double-click hit-tests against it, and the pane positions the editor by
+it. Three copies of `Y + HeaderHeight` is three chances for the target to drift away from where the
+title is drawn.
+
+**It narrows `E8-T39` and `E8-T53`, and that is the decision worth defending.** A single click
+anywhere on a code block opens its source editor. If that included the header, the first half of a
+double-click would put an editor over the block before the second half could ask for a rename — so
+the gesture would be unreachable on the one node kind whose body is text. The alternative was to
+except code blocks from renaming, and **a rule with an exception for one node kind is a rule nobody
+can learn**. What it costs is the top 22 px of a block, which is the one band of a block that was
+never source. One existing test pressed there deliberately; it moved down six pixels with the
+reason written in place rather than being quietly retargeted.
+
+**Escape abandons and Enter commits**, which is the value field's asymmetry and deliberately not
+the code editor's: a name is a word somebody can retype, and a screenful of code is not.
+
+**Typing the definition's own name back is a reset, not a custom title.** The two look identical
+and behave differently — a custom title is written into the document and survives the definition
+being renamed underneath it — and the user who typed it meant *put it back*. Blank means the same.
+Committing an unchanged name records no undo step at all, which is `CanvasLayout.Moves`'s rule
+about steps that undo nothing visible.
+
+**Verified.** Build clean, format clean, **2,727 tests, 0 failures, 0 skips**. And the screenshot
+this row is really proved by: `--rename-node 4` on the demo graph shows the box open over
+`Colour.FromRgb`'s header with the whole title highlighted. That switch exists for the reason
+`--code-block-in-node` does — an editor that opens on a double-click exists only while somebody is
+double-clicking, so no capture can contain one unless the application is asked to put it there.

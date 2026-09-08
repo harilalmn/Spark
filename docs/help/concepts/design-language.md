@@ -675,6 +675,11 @@ zoom nodes degrade to plain category-coloured rectangles with no text at all.
 | Body divide | 1 px, header foot to node foot | `border.hairline` `#343A45` | — |
 | Output half | half the body width | the body, washed 8% black | — |
 
+**The header is also the rename target** (`E8-T68`). Double-clicking it opens a text box over the
+title with the whole title selected, because the commonest rename replaces the name outright. On a
+code block this beats the click that opens the source editor — a rule with an exception for one
+node kind is a rule nobody can learn, and the cost is the one band of a block that is not source.
+
 **The body is divided down the middle** (`E8-T67`), and what the line says is that a node's two
 columns mean different things: the left edge is where wires arrive, the right edge is where they
 leave. It is `border.hairline`, the palette's quietest line, because a divider *inside* a surface

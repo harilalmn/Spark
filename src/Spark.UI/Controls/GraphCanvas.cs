@@ -439,6 +439,15 @@ public sealed class GraphCanvas : Control
     /// </remarks>
     public event EventHandler<CanvasFieldEditEventArgs>? ScriptEditRequested;
 
+    /// <summary>
+    /// Asks the pane above to put a text box over a node's title (<c>E8-T68</c>).
+    /// </summary>
+    /// <remarks>
+    /// The third member of the same family, shaped like the other two: the canvas says
+    /// <i>which node, what it holds, and where on screen</i>, and hosts nothing.
+    /// </remarks>
+    public event EventHandler<CanvasFieldEditEventArgs>? TitleEditRequested;
+
     /// <summary>Something moved a node's rectangle on screen (<c>E8-T43</c>, <c>E8-T52</c>).</summary>
     /// <remarks>
     /// <para>
@@ -1258,9 +1267,15 @@ public sealed class GraphCanvas : Control
         // No modifier, and that is not caution: Control arms a copy (`E8-T37`) and Shift toggles
         // the selection, so both are gestures about *which nodes*, and neither is a request to
         // type into one.
+        //
+        // NARROWED BY `E8-T68`: NOT ON THE HEADER. The header is now the rename target, and the
+        // first click of a double-click lands there - so a header that opened the source editor
+        // would make the rename gesture unreachable on the one node kind whose body is text. The
+        // block is still opened by a click anywhere else on it, which is all of it but 22 px.
         if (_mode is InteractionMode.DraggingNodes && !_nodeDragMoved && _nodePressPlain
             && _focusNode >= 0 && _focusNode < _graph.Nodes.Count
-            && _graph.Nodes[_focusNode].Script is not null)
+            && _graph.Nodes[_focusNode].Script is not null
+            && !_graph.Nodes[_focusNode].IsInHeader(_nodeDragAnchorWorld.X, _nodeDragAnchorWorld.Y))
         {
             RequestScriptEdit(_focusNode);
         }
@@ -1407,6 +1422,20 @@ public sealed class GraphCanvas : Control
 
         if (HitTestNode(world) is int node && node >= 0)
         {
+            // `E8-T68`. THE HEADER IS CHECKED FIRST, AND IT WINS ON A CODE BLOCK TOO.
+            //
+            // The header is where the title is drawn, so it is where a double-click meaning
+            // *rename this* has to land; a rule with an exception for one node kind is a rule
+            // nobody can learn. What it costs is the top 22 px of a block, which is the one band
+            // of a block that is not source.
+            if (_graph.Nodes[node].IsInHeader(world.X, world.Y))
+            {
+                e.Handled = true;
+                RequestTitleEdit(node);
+
+                return;
+            }
+
             // `E8-T39`. Anywhere on a code block, not only inside the source rectangle: the
             // node is almost entirely source, and a double-click that lands two pixels into the
             // padding and does nothing reads as the gesture not working.
@@ -1789,7 +1818,10 @@ public sealed class GraphCanvas : Control
             // Header: full-strength category colour with dark text (Decision V2). Clipped rather
             // than drawn as a separately-rounded rectangle so the top corners match the body's
             // radius exactly.
-            Rect headerRect = new(node.X, node.Y, node.Width, CanvasNode.HeaderHeight);
+            // The same rectangle the rename gesture hit-tests against and the title editor is
+            // placed by (`E8-T68`), so the target cannot drift away from where the title is drawn.
+            node.HeaderBox(out double headerX, out double headerY, out double headerWidth, out double headerHeight);
+            Rect headerRect = new(headerX, headerY, headerWidth, headerHeight);
             using (context.PushClip(headerRect))
             {
                 context.DrawRectangle(new ImmutableSolidColorBrush(categoryColour), null, rounded);
@@ -2215,6 +2247,86 @@ public sealed class GraphCanvas : Control
             topLeft.Y,
             bottomRight.X - topLeft.X,
             bottomRight.Y - topLeft.Y));
+    }
+
+    /// <summary>
+    /// Asks the pane to put a text box over a node's title (<c>E8-T68</c>).
+    /// </summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <remarks>
+    /// <b>The rectangle is <see cref="CanvasNode.HeaderBox"/></b>, which is the same rectangle the
+    /// title was drawn in — so the editor opens over the word rather than near it, and committing
+    /// puts the new word back in the same place.
+    /// </remarks>
+    public void RequestTitleEdit(int slot)
+    {
+        if (slot < 0 || slot >= _graph.Nodes.Count)
+        {
+            return;
+        }
+
+        CanvasNode node = _graph.Nodes[slot];
+        node.HeaderBox(out double x, out double y, out double width, out double height);
+
+        Point topLeft = new(_transform.ToScreenX(x), _transform.ToScreenY(y));
+        Point bottomRight = new(_transform.ToScreenX(x + width), _transform.ToScreenY(y + height));
+
+        TitleEditRequested?.Invoke(this, new CanvasFieldEditEventArgs(
+            slot,
+            node.DisplayTitle,
+            topLeft.X,
+            topLeft.Y,
+            bottomRight.X - topLeft.X,
+            bottomRight.Y - topLeft.Y));
+    }
+
+    /// <summary>
+    /// Renames a node from the in-place editor, as one undo step (<c>E8-T68</c>).
+    /// </summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <param name="text">What the user typed. Blank, or the definition's own name, clears it.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>Typing the definition's own name back is a reset, not a custom title.</b> A node called
+    /// <c>Math.Sin</c> whose <see cref="CanvasNode.CustomTitle"/> is the string
+    /// <c>"Math.Sin"</c> looks identical and behaves differently: it is a renamed node, so it is
+    /// written into the document and survives the definition being renamed underneath it. The
+    /// user who typed it meant <i>put it back</i>.
+    /// </para>
+    /// <para>
+    /// <b>The structure is refreshed as well as the frame</b>, because a longer name is a wider
+    /// node (<c>E8-T35</c>) and the spatial index was built from the old width.
+    /// </para>
+    /// </remarks>
+    public void CommitNodeTitle(int slot, string? text)
+    {
+        if (slot < 0 || slot >= _graph.Nodes.Count)
+        {
+            return;
+        }
+
+        CanvasNode node = _graph.Nodes[slot];
+
+        string? renamed = string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+
+        if (string.Equals(renamed, node.Title, StringComparison.Ordinal))
+        {
+            renamed = null;
+        }
+
+        if (string.Equals(renamed, node.CustomTitle, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        node.CustomTitle = renamed;
+
+        RefreshStructure();
+        GraphChanged?.Invoke(
+            this,
+            new GraphEditedEventArgs(
+                renamed is null ? "Reset node name" : "Rename node", affectsEvaluation: false));
+        AnnounceMove();
     }
 
     /// <summary>

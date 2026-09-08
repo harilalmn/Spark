@@ -838,6 +838,39 @@ public sealed class CanvasNode
     }
 
     /// <summary>
+    /// The header band: the title, the state glyph, and the target that renames the node
+    /// (`E8-T68`).
+    /// </summary>
+    /// <param name="x">Its left edge, which is the node's.</param>
+    /// <param name="y">Its top edge, which is the node's.</param>
+    /// <param name="width">Its width, which is the node's.</param>
+    /// <param name="height">Its height, <see cref="HeaderHeight"/>.</param>
+    /// <remarks>
+    /// <b>One rectangle, three readers.</b> The renderer clips the category fill and the title to
+    /// it, the double-click that opens an in-place rename hit-tests against it, and the editor the
+    /// pane lays over the node is positioned by it. Three copies of <c>Y + HeaderHeight</c> is
+    /// three chances for the target to stop being where the title is drawn.
+    /// </remarks>
+    public void HeaderBox(out double x, out double y, out double width, out double height)
+    {
+        x = X;
+        y = Y;
+        width = Width;
+        height = HeaderHeight;
+    }
+
+    /// <summary>Whether a world point is inside the node's header (`E8-T68`).</summary>
+    /// <param name="worldX">The point's x coordinate.</param>
+    /// <param name="worldY">Its y coordinate.</param>
+    /// <returns>True when the point is in the band <see cref="HeaderBox"/> describes.</returns>
+    public bool IsInHeader(double worldX, double worldY)
+    {
+        HeaderBox(out double x, out double y, out double width, out double height);
+
+        return worldX >= x && worldX <= x + width && worldY >= y && worldY <= y + height;
+    }
+
+    /// <summary>
     /// The line down the middle of a node's body, dividing its inputs from its outputs
     /// (`E8-T67`).
     /// </summary>

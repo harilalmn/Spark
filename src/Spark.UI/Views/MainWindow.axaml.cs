@@ -1325,6 +1325,14 @@ public sealed partial class MainWindow : Window
         // coordinates, so it has to be opened once the view it sits over has stopped moving.
         PoseScriptEditor();
 
+        // `E8-T68`, and for the same reason and in the same place. A rename editor exists only
+        // while somebody is double-clicking a title, so no capture can contain one unless the
+        // application is asked to put it there.
+        if (Options.RenameNode >= 0)
+        {
+            Canvas.RequestTitleEdit(Options.RenameNode);
+        }
+
         // `E11-T22`: typed through the input path rather than pushed into the document, so the
         // triggers a user's keystroke would fire actually fire. A pose that asks the language
         // service directly photographs a mechanism; this photographs a behaviour ([N112]).

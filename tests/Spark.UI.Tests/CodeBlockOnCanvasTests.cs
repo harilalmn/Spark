@@ -487,9 +487,14 @@ public sealed class CodeBlockOnCanvasTests
         canvas.ScriptEditRequested += (_, _) => asked++;
 
         CanvasNode node = graph.Nodes[slot];
-        Point title = new(
+
+        // BELOW THE HEADER, AND `E8-T68` IS WHY. This used to press on the title bar, which was
+        // the same thing as pressing anywhere else on a block until the header became the rename
+        // target. The header now opens no source editor, so the tremor half of this test would
+        // prove nothing there - and the slop rule it exists for is unchanged.
+        Point body = new(
             canvas.Transform.ToScreenX(node.X + (node.Width / 2)),
-            canvas.Transform.ToScreenY(node.Y + (CanvasNode.HeaderHeight / 2)));
+            canvas.Transform.ToScreenY(node.Y + CanvasNode.HeaderHeight + 6));
 
         // A SLOW DRAG, IN STEPS SMALLER THAN THE SLOP, AND THAT IS THE WHOLE POINT.
         //
@@ -498,21 +503,21 @@ public sealed class CodeBlockOnCanvasTests
         // `_dragStartWorld` — which a node drag advances on every move, so it holds the *previous*
         // position and each step reads as two pixels for ever. Under that mistake this drag is
         // sixty consecutive clicks. A drag that jumps 120 pixels in one move passes either way.
-        window.MouseDown(title, MouseButton.Left);
+        window.MouseDown(body, MouseButton.Left);
 
         for (int step = 1; step <= 60; step++)
         {
-            window.MouseMove(title + new Vector(step * 2, step), RawInputModifiers.LeftMouseButton);
+            window.MouseMove(body + new Vector(step * 2, step), RawInputModifiers.LeftMouseButton);
         }
 
-        window.MouseUp(title + new Vector(120, 60), MouseButton.Left);
+        window.MouseUp(body + new Vector(120, 60), MouseButton.Left);
 
         Assert.Equal(0, asked);
 
         // Two pixels, which is inside the slop: a hand that shakes has still clicked.
         Point again = new(
             canvas.Transform.ToScreenX(graph.Nodes[slot].X + (graph.Nodes[slot].Width / 2)),
-            canvas.Transform.ToScreenY(graph.Nodes[slot].Y + (CanvasNode.HeaderHeight / 2)));
+            canvas.Transform.ToScreenY(graph.Nodes[slot].Y + CanvasNode.HeaderHeight + 6));
 
         window.MouseDown(again, MouseButton.Left);
         window.MouseMove(again + new Vector(2, 1), RawInputModifiers.LeftMouseButton);

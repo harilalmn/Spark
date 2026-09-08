@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (E8: a node's body is divided down the middle)
+**Last updated:** 2026-09-08 (E8: double-clicking a title edits it in place)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -860,6 +860,14 @@ another.
       ladder. The wash **darkens**, which is Principle 2 and not taste: body text on a node is
       light, so it cannot lower a contrast ratio. Neither is drawn below 67% zoom, where the body
       is already lerping towards its category colour and there are no port labels left to divide.
+- [x] **Double-clicking a node's title edits it in place, with the whole title selected**
+      (**E8-T68**) — done 2026-09-08, asked for by the client. Renaming was in the properties pane
+      and nowhere else, which is a panel away from the thing being renamed; the selection on open
+      is what makes the commonest rename type-and-Enter rather than select-all-then-type. It
+      **narrows** `E8-T39` and `E8-T53` rather than excepting code blocks from the rule: a click
+      on a block's header no longer opens its source, because otherwise the first half of the
+      double-click would put an editor over the block before the second half could ask for a
+      rename.
 - [ ] Aggressive autosave and crash recovery, because
       [R11](PRD.md#12-risks) means the process can die without warning (**E8-T13**).
 - [ ] Banners for a missing package and for a graph containing script nodes (**E8-T16**).

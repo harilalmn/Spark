@@ -147,6 +147,12 @@ namespace Spark.UI;
 /// arrangement is a thing you look at, headless drawing produces no pixels, and pressing
 /// <c>Ctrl+L</c> is a keystroke a headless run cannot make.
 /// </param>
+/// <param name="RenameNode">
+/// Which node to open the in-place title editor over at startup (<c>--rename-node</c>), or -1 for
+/// none. Aimed at the screenshot path for the reason <c>--code-block-in-node</c> is: an editor
+/// that opens on a double-click exists only while somebody is double-clicking, so no capture can
+/// contain one unless the application is asked to put it there (<c>E8-T68</c>).
+/// </param>
 /// <param name="BenchmarkZoom">
 /// A zoom to pin the benchmark at, or zero to sweep. Pinning is what separates "how much does the
 /// graph cost" from "how much does what is on screen cost", which is the claim ADR-0013 actually
@@ -178,7 +184,8 @@ public readonly record struct StartupOptions(
     bool CodeBlockInNode = false,
     bool FrameNode = false,
     string? CodeBlockTyped = null,
-    bool CleanUpLayout = false)
+    bool CleanUpLayout = false,
+    int RenameNode = -1)
 {
     /// <summary>The ordinary interactive start: the demo graph, no benchmark.</summary>
     public static StartupOptions Default => new(0, 0, 0, null, null, null);
@@ -287,6 +294,7 @@ public readonly record struct StartupOptions(
         bool frameNode = false;
         string? codeBlockTyped = null;
         bool cleanUpLayout = false;
+        int renameNode = -1;
         bool software = false;
         bool listCodeFonts = false;
         string? helpTopic = null;
@@ -358,6 +366,12 @@ public readonly record struct StartupOptions(
 
                 case "--frame-node":
                     frameNode = true;
+                    break;
+
+                case "--rename-node" when i + 1 < args.Length
+                    && int.TryParse(args[i + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int rename):
+                    renameNode = rename;
+                    i++;
                     break;
 
                 case "--clean-up-layout":
@@ -441,7 +455,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped, cleanUpLayout)
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped, cleanUpLayout, renameNode)
         {
             ListCodeFonts = listCodeFonts,
         };
