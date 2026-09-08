@@ -77,6 +77,23 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private readonly HashSet<GeometryKey> _published = [];
     private readonly DocumentHistory _history = new();
+
+    /// <summary>Where the chosen code font is remembered (`E8-T59`).</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Applied in <c>App</c>, not here.</b> The face is global mutable state, so it gets exactly
+    /// one writer at startup rather than one per view model - a view model that applied it on
+    /// construction would mutate it every time one was built, which raced the tests that read it
+    /// and would have raced a second window.
+    /// </para>
+    /// <para>
+    /// <b>Built on demand rather than in the constructor</b>, because constructing one reads a
+    /// file and the only thing that needs it is a user choosing a font. Every view model paying
+    /// for that is a cost on every test that builds one - and this assembly has a known flake in
+    /// exactly that family (`E11-T27`), which is not a thing to add timing to.
+    /// </para>
+    /// </remarks>
+    private CodeFontPreference? _codeFont;
     private EvaluationResult? _lastResult;
     private readonly System.Threading.SemaphoreSlim _applying = new(1, 1);
 
@@ -656,6 +673,63 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <summary>The colours a node's header can be set to.</summary>
     /// <remarks>Static because the list is the palette and never depends on the selection.</remarks>
     public static IReadOnlyList<string> NodeColourNames => NodeColourChoices.All;
+
+    /// <summary>
+    /// Applies the face the user last chose, once, before any node is built (`E8-T59`).
+    /// </summary>
+    /// <remarks>
+    /// A remembered name that no longer resolves falls back to the shipped face, so a machine that
+    /// has lost a font is not a broken one.
+    /// </remarks>
+    public static void ApplyRememberedCodeFont() => CodeFont.Use(new CodeFontPreference().Family);
+
+    /// <summary>The faces a code block can be drawn in (`E8-T59`).</summary>
+    /// <remarks>
+    /// <b>The shipped face, then the monospaced fonts on this machine</b>, filtered by measuring
+    /// rather than by asking — Avalonia has no "is this monospaced" flag. A proportional face is
+    /// left out on purpose: node width is <c>characters × one character's width</c>, so a font
+    /// where that is not a fact would draw a block's source over its own port tabs.
+    /// </remarks>
+    public static IReadOnlyList<string> CodeFontNames => CodeFont.Available();
+
+    /// <summary>
+    /// The face code blocks are drawn and edited in, for the whole application (`E8-T59`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One setting for the application rather than one per block</b>, which the client chose: a
+    /// font is about the person reading, not about the document. It also leaves the <c>.spark</c>
+    /// format alone, and `E7-T7` promises a graph survives a round trip byte for byte.
+    /// </para>
+    /// <para>
+    /// <b>It is shown in the properties pane beside a code block's own settings</b>, which is
+    /// where the client asked for it — so the pane holds one control that is not about the
+    /// selected node, and its tooltip says so rather than leaving the reader to find out by
+    /// selecting a second block.
+    /// </para>
+    /// </remarks>
+    public string CodeFontName
+    {
+        get => CodeFont.Current;
+
+        set
+        {
+            if (value is null || value == CodeFont.Current)
+            {
+                return;
+            }
+
+            CodeFont.Use(value);
+
+            // Remembered only once it has been applied, and only if it took: a name that no longer
+            // resolves falls back to the shipped face, and storing what the user clicked rather
+            // than what they got would restore the same disappointment every session.
+            (_codeFont ??= new CodeFontPreference()).Family =
+                CodeFont.Current == CodeFont.Name ? null : CodeFont.Current;
+
+            OnPropertyChanged();
+        }
+    }
 
     /// <summary>Raised when a node's name or colour changed and the canvas has to redraw.</summary>
     /// <remarks>

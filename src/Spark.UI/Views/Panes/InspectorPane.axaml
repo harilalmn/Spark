@@ -177,9 +177,35 @@
            built from the types the wires carry (E6-T11, E6-T12, E6-T7). The text is pushed in and
            read back by the pane rather than bound, because a two-way binding onto a document the
            user is typing into buys nothing and invites a feedback loop. -->
-      <controls:CodeBlockEditor Name="ScriptEditor" Grid.Row="6" Margin="10,0,10,10"
-                                IsVisible="{Binding SelectedCodeBlock, Converter={x:Static ObjectConverters.IsNotNull}}"
-                                VerticalAlignment="Stretch" />
+      <Grid Grid.Row="6" Margin="10,0,10,10" RowDefinitions="*,Auto"
+            IsVisible="{Binding SelectedCodeBlock, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <controls:CodeBlockEditor Name="ScriptEditor" Grid.Row="0" VerticalAlignment="Stretch" />
+        <!--
+          E8-T59: the code font, asked for by the client.
+
+          THE ONE CONTROL IN THIS PANE THAT IS NOT ABOUT THE SELECTED NODE, and the tooltip says
+          so. It sits under a code block's editor because that is where the client asked for it,
+          and it applies to every block because a font is about the person reading rather than the
+          document - which also leaves the .spark format alone, and E7-T7 promises a graph
+          round-trips byte for byte.
+
+          The list is the shipped face plus the monospaced fonts on this machine, filtered by
+          MEASURING rather than by asking: Avalonia has no is-this-monospaced flag, and a
+          proportional face would draw a block's source over its own port tabs, because node width
+          is characters times one character's width.
+
+          Inside the editor's row rather than beside it, because the editor stretches to fill that
+          row - a sibling on the same row is drawn on top of the text.
+        -->
+        <Grid Grid.Row="1" Margin="0,6,0,0" ColumnDefinitions="92,*">
+          <TextBlock Grid.Column="0" Classes="muted" VerticalAlignment="Center" Text="Font"
+                     ToolTip.Tip="The face code is written in, for every block in the application. Remembered between sessions." />
+          <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" FontSize="11"
+                    AutomationProperties.Name="Code font"
+                    ItemsSource="{Binding CodeFontNames}"
+                    SelectedItem="{Binding CodeFontName, Mode=TwoWay}" />
+        </Grid>
+      </Grid>
 
       <!-- A group's title, on the same principle as a note's text. -->
       <TextBox Grid.Row="6" Margin="10,0,10,10" VerticalAlignment="Top"

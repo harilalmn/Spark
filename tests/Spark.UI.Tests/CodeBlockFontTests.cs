@@ -66,8 +66,8 @@ public sealed class CodeBlockFontTests
     [Fact]
     public void TheUriNamesTheFolderAndTheFamily()
     {
-        Assert.Equal("avares://Spark.UI/Assets/Fonts#Source Code Pro", CodeFont.Family);
-        Assert.EndsWith(CodeFont.Name, CodeFont.Family, StringComparison.Ordinal);
+        Assert.Equal("avares://Spark.UI/Assets/Fonts#Source Code Pro", CodeFont.DefaultFamily);
+        Assert.EndsWith(CodeFont.Name, CodeFont.DefaultFamily, StringComparison.Ordinal);
     }
 
     /// <summary>

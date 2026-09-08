@@ -249,8 +249,13 @@ public sealed class GraphCanvas : Control
     /// fact rather than an estimate that happens to hold.
     /// </para>
     /// </remarks>
-    private static readonly Typeface ScriptTypeface =
-        new(CodeFont.Family, FontStyle.Normal, FontWeight.Normal, FontStretch.Normal);
+    /// <remarks>
+    /// <b>A property rather than a field, because the face is a setting now</b> (`E8-T59`). A
+    /// <c>static readonly</c> Typeface captured the family at class load, so changing the font
+    /// redrew every block in the face it started with until the application was restarted.
+    /// </remarks>
+    private static Typeface ScriptTypeface =>
+        new(CodeFont.FontFamily, FontStyle.Normal, FontWeight.Normal, FontStretch.Normal);
 
     private readonly SceneIndex _index = new();
     private readonly CanvasTransform _transform = new();
@@ -348,6 +353,32 @@ public sealed class GraphCanvas : Control
         // the control has to repaint when focus arrives or leaves. Nothing else notices.
         GotFocus += (_, _) => InvalidateVisual();
         LostFocus += (_, _) => InvalidateVisual();
+
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <b>The code font is listened for from here rather than from the constructor</b> (`E8-T59`).
+    /// `CodeFont` is static, so a subscription taken in the constructor outlives any canvas that
+    /// is never attached - and the handler is then invoked on whichever thread changed the font,
+    /// against a control owned by the thread that built it. That is not hypothetical: it turned
+    /// three font tests red in the full suite and green in isolation, because other tests build a
+    /// canvas off the UI thread and never show it.
+    /// </remarks>
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+
+        CodeFont.Changed += OnCodeFontChanged;
+        OnCodeFontChanged(this, EventArgs.Empty);
+    }
+
+    /// <inheritdoc/>
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+
+        CodeFont.Changed -= OnCodeFontChanged;
     }
 
     /// <summary>
@@ -501,6 +532,45 @@ public sealed class GraphCanvas : Control
         _indexDirty = true;
         InvalidateVisual();
     }
+
+    /// <summary>
+    /// Re-measures and redraws every block when the code font changes (`E8-T59`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Three things have to happen and none of them are optional.</b> The cached
+    /// <see cref="FormattedText"/> runs hold the old face, so they go; a node's width came from the
+    /// old face's character width, so every node measures again; and the spatial index was built
+    /// from the widths that just changed, so it is rebuilt before anything hit-tests against it.
+    /// </para>
+    /// <para>
+    /// <b>It announces as well as redrawing</b>, because a block that has just changed width has
+    /// moved its source rectangle — and an open editor is positioned over that rectangle in screen
+    /// pixels. This is the fourth caller of that funnel and the first that is not a position
+    /// change, which is why <c>ContentMoved</c> is named for the *consequence* rather than the
+    /// cause.
+    /// </para>
+    /// </remarks>
+    private void OnCodeFontChanged(object? sender, EventArgs e)
+    {
+        // The same guard `CodeBlockEditor.ApplyCodeFont` carries, for the same reason: a canvas
+        // this thread does not own is dead or will re-measure when it is next attached.
+        if (!CheckAccess())
+        {
+            return;
+        }
+
+        CanvasNode.ScriptCharWidth = ScriptFontSize * CodeFont.CurrentAdvanceRatio;
+
+        _scriptText.Clear();
+        _graph.RemeasureNodes();
+        _wireVisuals.Clear();
+        RefreshStructure();
+        AnnounceMove();
+    }
+
+    /// <summary>The size a block's source is drawn at, which the character width is measured at.</summary>
+    private const double ScriptFontSize = PortFontSize;
 
     /// <summary>
     /// Redraws, and tells the overlay that a node is somewhere else now (<c>E8-T43</c>,

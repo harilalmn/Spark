@@ -34,6 +34,18 @@ public sealed class App : Application
             MainWindowViewModel.PackageSource = Options.PackageSource;
             MainWindowViewModel.FreezeFirst = Options.FreezeFirst;
 
+            // `E8-T59`: THE REMEMBERED FACE IS APPLIED ONCE, HERE, AND BEFORE ANY NODE EXISTS.
+            //
+            // Before, because a node measures itself when it is built and its width comes from the
+            // face's character width - applying it afterwards would size every block from the
+            // shipped face and draw it in the chosen one, which is the collision `E8-T58` fixed.
+            //
+            // Once, and in the application rather than in the view model, because the face is
+            // global mutable state: a view model that applied it on construction would mutate it
+            // every time one was built, which is a hundred times an hour under a test run and
+            // raced the tests that read it. Global state deserves exactly one writer at startup.
+            MainWindowViewModel.ApplyRememberedCodeFont();
+
             desktop.MainWindow = new MainWindow
             {
                 DataContext = new MainWindowViewModel(Options.Graph, Options.OpenPath, Options.NoScript),

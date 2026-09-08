@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-08 (Spark ships Dynamo's code block font)
+**Last updated:** 2026-09-08 (the code font is a setting)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing - between steps.** **Queued, from the client:** `E8-T59`, the font dropdown - one application-wide setting in the properties pane, offering the shipped face plus the monospaced fonts found on the machine, remembered between sessions. |
+| **Working on** | **Nothing - between steps.** **Queued, from the client, and both bigger than they look:** every node in the library reachable from a code block, and a `By` -> `From` rename across the constructor-style node names. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Spark ships Dynamo's code block font** - `E8-T57`, Source Code Pro embedded under OFL, and `E8-T58`, a block's longest line clipped by one gap. **Before it:** `E6-T29`/`E8-T56`, `E8-T54`/`E8-T55`, `E8-T53`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2605** tests green over ten executables with zero skips. **One known flaky test**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, about one full run in five, green in isolation - [N120](NOTES.md). |
-| **Next action** | **`E8-T59`: the font setting.** The client chose **one setting for the whole application**, shown in the properties pane and remembered between sessions, offering the shipped face **plus the monospaced fonts installed on the machine**. Follow `UpdatePreference` for the storage - `Spark.Host`, under `LocalApplicationData`, already the pattern for a remembered user choice. **Avalonia has no *is this monospaced* flag**, so the list is filtered by measuring: a family whose `i` and `W` come out the same width is monospaced, which is the same `FormattedText` call `CodeBlockFontTests` already uses. `CodeFont.Family` becomes the *default* rather than the answer, and the three surfaces that read it have to keep agreeing. |
-| **Verify with** | Changing the dropdown re-draws every block in the new face and survives a restart; the list contains the shipped face and excludes a proportional one such as Inter. Then the ten executables, and a screenshot of the pane. **Grep the run output for `[FAIL]` and not only `Total:`.** |
+| **Last completed step** | **The code font is a setting** - `E8-T59`, one for the application, in the properties pane, remembered between sessions. **Before it:** `E8-T57`/`E8-T58`, `E6-T29`/`E8-T56`, `E8-T54`/`E8-T55`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2615** tests green over ten executables with zero skips, six consecutive full runs. **Two known flaky tests**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)) and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` (`E11-T27`, open). |
+| **Next action** | **The client's two library requests, and neither is a small edit.** **(1)** *All 136 properties and methods available in CodeBlock.* `Spark.Nodes.Core` is deliberately **not** in a block's scope today and `code-blocks.md` says why: it declares a `Math` that would shadow `System.Math` in every block. **The way through is an alias** - import the namespace and add `using Math = System.Math;` to the generated frame, which keeps `Math.PI` meaning what it has always meant while making the other 135 reachable unqualified. **(2)** *`By` becomes `From` in constructor names.* That is not a rename of C# methods only: node keys are stored in `.spark` files, so `docs/examples/*.spark` and every graph a user has saved name `Circle.ByCentreRadius` - it needs an alias or a load-time migration, or `E3-T17`'s promise that a graph outlives the process is broken for every existing file. **Ask before renaming**: the client wrote *Circle.ByCenterRadius*, and Spark spells it *Centre*. |
+| **Verify with** | For (1): a code block calling `Circle.ByCentreRadius(...)` unqualified, and `Math.PI` still resolving to `System.Math`. For (2): every `docs/examples/*.spark` still opening, and the round-trip test still byte for byte. Then the ten executables. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -7674,3 +7674,60 @@ semicolon missing, once with it back.
 
 **Documents.** `E8-T57` and `E8-T58` rows, two TODO lines, and a line in `concepts/code-blocks.md`
 saying which font code is set in and that Spark ships it.
+
+### 2026-09-08 — The code font is a setting
+
+**What.** `E8-T59`. The client asked for the font to be changeable in the properties window, and
+chose **one setting for the whole application** over one per block when asked — a font is about the
+person reading, not the document, and it leaves the `.spark` format alone, which `E7-T7` promises
+round-trips byte for byte.
+
+**It triggered the thing `UpdatePreference` said to wait for.** That type's own remarks read: *"a
+configuration system introduced for one boolean is a configuration system nobody designed. When
+there is a second persisted preference, that is the moment to build the thing that holds both — not
+before."* This is the second one, so `PreferenceFile` exists now and holds exactly what was about to
+be copied a third time: where the file goes, what counts as a recoverable failure, and that every
+failure is silent. No schema, no sections, no migration — none of those have a second caller either,
+and inventing them would be the same mistake one level up.
+
+**The dropdown is filtered by measuring, because Avalonia has no "is this monospaced" flag.** A
+family qualifies when its `i` and `W` come out the same width *and* its ten-character run is ten
+times its one-character run — the second check is what catches a proportional face that happens to
+have two equal glyphs. Offering an unfiltered list would let a user pick a face that draws every
+block's source over its own port tabs, because node width is *characters × one character's width*.
+That is `E8-T58` again, and a setting whose wrong values break the layout should not offer them. The
+advance ratio follows the chosen face for the same reason: Consolas is 0.55 em where Source Code Pro
+is 0.6.
+
+**Three defects, and the full suite found all three where the change itself looked fine.** Each one
+is the same shape — global mutable state meeting a parallel test suite — and each is a real bug
+rather than a test artefact:
+
+- **Applying the preference in the view model's constructor** mutated the face once per view model.
+  A hundred view models an hour under test, racing every test that reads it. `App` applies it once
+  at startup instead, which is also the honest place: one writer for global state.
+- **Subscribing to the static event in a control's constructor** outlived every control that was
+  never attached — and the handler was then invoked on whichever thread changed the font, against a
+  control owned by the thread that built it. Both surfaces subscribe on **attach** now, which also
+  fixes a leak nobody had noticed.
+- **A control another thread owns is skipped rather than touched.** That is not papering over the
+  race: such a control is either dead — a window a test showed and never closed — or will be
+  correct the moment it matters, because the attach path applies the current face.
+
+**And one thing I made worse and then undid.** Constructing the preference reads a file, and I had
+every view model do it. This assembly has a known open flake in exactly that family — `E11-T27`,
+`MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes`, recorded at one run in 26 —
+and it appeared once in three runs while that read was in the constructor. It is lazy now, built
+only when somebody actually chooses a font, and six consecutive full runs are clean. **I cannot
+prove I caused it and I am not claiming I fixed it**: `E11-T27` is still open, and the honest
+statement is that adding file I/O to a hot constructor was a bad idea next to a known timing flake.
+
+**Verified.** Ten new tests, and the fallbacks are the ones that matter: a remembered font that is
+no longer installed falls back to the shipped face rather than to Avalonia's, and choosing the
+default *forgets* the setting rather than storing its name — storing it would pin a user who never
+chose anything to whatever the default was the day they first ran Spark. Gates: build clean with
+zero warnings, format clean, **2615** tests green over ten executables with zero skips, six full
+runs.
+
+**Documents.** `E8-T59`'s row, a TODO line, and a paragraph in `concepts/code-blocks.md` saying
+where the dropdown is, that it applies to every block, and why proportional fonts are not offered.

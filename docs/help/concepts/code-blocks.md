@@ -228,6 +228,12 @@ under errors as you type, and VS Code's Selection commands on the context menu.
 **Code is set in Source Code Pro**, which is the face Dynamo draws its Code Block in. Spark ships
 the font rather than asking your machine for one, so a block looks the same everywhere.
 
+**The Font dropdown under the editor in the Properties pane changes it** — for every code block
+rather than the selected one, and Spark remembers your choice between sessions. The list is Source
+Code Pro plus the monospaced fonts installed on your machine. Proportional fonts are left out
+because a block is sized by counting characters, and one whose characters are different widths
+would draw its code over its own ports.
+
 On the canvas it opens over the block's own source, and **the block widens to hold it** — the
 editor is drawn at a readable size whatever the canvas is zoomed to, so the node makes room
 rather than the editor covering the ports. It goes back to its own size when you close it.

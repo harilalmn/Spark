@@ -78,6 +78,61 @@ public sealed partial class CodeBlockEditor : UserControl
     private int _filterStart;
     private bool _suppressTextChanged;
 
+    private void OnCodeFontChanged(object? sender, EventArgs e) => ApplyCodeFont();
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Subscribed on attach for the reason <c>GraphCanvas</c> records: `CodeFont` is static, so a
+    /// subscription taken in the constructor outlives an editor that is never shown and is then
+    /// invoked on the wrong thread.
+    /// </remarks>
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+
+        ApplyCodeFont();
+        CodeFont.Changed += OnCodeFontChanged;
+    }
+
+    /// <inheritdoc/>
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+
+        CodeFont.Changed -= OnCodeFontChanged;
+    }
+
+    /// <summary>Puts the chosen face on the editor and on the signature strip (`E8-T59`).</summary>
+    /// <remarks>
+    /// <b>The signature strip takes it too.</b> It shows a method signature, which is code, and a
+    /// strip in a different face from the editor it sits under reads as two applications.
+    /// </remarks>
+    private void ApplyCodeFont()
+    {
+        // A CONTROL THIS THREAD DOES NOT OWN CANNOT BE UPDATED BY IT, AND DOES NOT NEED TO BE.
+        //
+        // `CodeFont` is static, so its event reaches every attached editor from whichever thread
+        // changed the face. An editor owned by another thread is either dead - a window a test
+        // showed and never closed - or will be correct the moment it matters, because
+        // `OnAttachedToVisualTree` applies the current face. Touching it anyway is the
+        // cross-thread exception this guard exists to stop, and it turned three tests red in the
+        // full suite and green in isolation.
+        if (!CheckAccess())
+        {
+            return;
+        }
+
+        if (_editor is not null)
+        {
+            _editor.FontFamily = CodeFont.FontFamily;
+        }
+
+        if (_signatureText is not null)
+        {
+            _signatureText.FontFamily = CodeFont.FontFamily;
+        }
+    }
+
     /// <summary>Creates the editor.</summary>
     public CodeBlockEditor()
     {
@@ -89,6 +144,14 @@ public sealed partial class CodeBlockEditor : UserControl
         _signatureFrame = this.FindControl<Border>("SignatureFrame");
         _signatureText = this.FindControl<TextBlock>("SignatureText");
         _signatureOverloads = this.FindControl<TextBlock>("SignatureOverloads");
+
+        // `E8-T59`: THE FACE IS A SETTING, SO IT IS APPLIED RATHER THAN DECLARED.
+        //
+        // The markup names it too, which is what makes the editor look right before this runs -
+        // but `x:Static` is read once, so an editor built from markup alone would keep the face it
+        // was created with for the life of the application. Unsubscribed on detach, because
+        // `CodeFont` is static and would otherwise hold every editor ever opened alive.
+        ApplyCodeFont();
 
         if (_list is not null)
         {

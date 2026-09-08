@@ -157,8 +157,22 @@ public sealed class CanvasNode
     /// <summary>The gap between a port tab and the source between the tabs.</summary>
     public const double ScriptGap = 6;
 
-    /// <summary>Approximate width of one character at 11 px in the editor's monospaced face.</summary>
-    private const double ScriptCharWidth = 6.6;
+    /// <summary>The font size a block's source is drawn at, matching <c>GraphCanvas</c>.</summary>
+    private const double ScriptFontSize = 11;
+
+    /// <summary>
+    /// Width of one character at <see cref="ScriptFontSize"/> in the face code is drawn in.
+    /// </summary>
+    /// <remarks>
+    /// <b>It follows the chosen font rather than being a constant</b> (`E8-T59`). It was 6.6, which
+    /// is 0.6 em at 11 px and correct for both Cascadia Mono and the shipped Source Code Pro — but
+    /// the font is a setting now, and the offered faces are not all the same width: Consolas
+    /// advances 0.55 em and Cascadia 0.586. A node sized from one ratio and drawn in another puts
+    /// its longest line under its own port tabs, which is `E8-T58` again and on every machine at
+    /// once. <b>Settable so the canvas can be tested without a font manager</b>, and so a headless
+    /// measurement of zero cannot collapse every block to the minimum width.
+    /// </remarks>
+    internal static double ScriptCharWidth { get; set; } = ScriptFontSize * 0.6;
 
     /// <summary>The narrowest the source area is allowed to be, so a node is never all tabs.</summary>
     private const double ScriptMinimumWidth = 120;
@@ -234,7 +248,7 @@ public sealed class CanvasNode
     /// off by a width measured from the old one. The port rows are measured too, because a row
     /// carries a name and the type beside it and the two sides must not meet in the middle.
     /// </remarks>
-    private void Remeasure() =>
+    internal void Remeasure() =>
         Width = System.Math.Max(
             System.Math.Max(
                 System.Math.Max(MinimumWidth, 34 + (DisplayTitle.Length * 6.8)),
@@ -1878,6 +1892,24 @@ public sealed class CanvasGraph
         }
 
         return ports;
+    }
+
+    /// <summary>
+    /// Measures every node again, for when something outside them changed their size (`E8-T59`).
+    /// </summary>
+    /// <remarks>
+    /// <b>A node measures itself once, when it is built</b>, because its text and its ports only
+    /// change by the node being rebuilt. The code font is the first thing that changes a node's
+    /// width without touching the node, so it is the first caller — and the alternative, rebuilding
+    /// every node to change a font, would throw away selection, wires and undo along with the
+    /// sizing.
+    /// </remarks>
+    public void RemeasureNodes()
+    {
+        foreach (CanvasNode node in _nodes)
+        {
+            node.Remeasure();
+        }
     }
 
     /// <summary>The slot a node identity occupies, or −1.</summary>
