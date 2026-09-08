@@ -225,6 +225,9 @@ which is what the *In a code block* line on each node's reference page already s
 a real one: C# syntax highlighting, line numbers, a completion list, signature help, squiggles
 under errors as you type, and VS Code's Selection commands on the context menu.
 
+**Code is set in Source Code Pro**, which is the face Dynamo draws its Code Block in. Spark ships
+the font rather than asking your machine for one, so a block looks the same everywhere.
+
 On the canvas it opens over the block's own source, and **the block widens to hold it** — the
 editor is drawn at a readable size whatever the canvas is zoomed to, so the node makes room
 rather than the editor covering the ports. It goes back to its own size when you close it.

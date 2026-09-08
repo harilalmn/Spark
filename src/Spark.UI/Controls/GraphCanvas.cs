@@ -228,12 +228,29 @@ public sealed class GraphCanvas : Control
     /// The face a code block's source is drawn in on the canvas (<c>E8-T39</c>).
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>The same family the editor uses</b>, because the drawn text and the editor that opens
     /// over it are the same lines in the same place, and a node whose text reflowed the instant
     /// it was clicked into would read as the node moving.
+    /// </para>
+    /// <para>
+    /// <b>Source Code Pro, shipped rather than asked for by name</b> (`E8-T57`). It is the face
+    /// Dynamo draws its Code Block in, and the client asked for that face. What was here before —
+    /// <c>Cascadia Mono, Consolas, Menlo, monospace</c> — is a wish list that resolves to whatever
+    /// a machine happens to have, so the answer differed per machine and matched Dynamo on none of
+    /// them by design.
+    /// </para>
+    /// <para>
+    /// <b>No layout constant moved, and that was measured rather than hoped.</b> Source Code Pro
+    /// advances <c>0.6 em</c> for every glyph, which is 6.6 px at
+    /// <see cref="PortFontSize"/> — exactly the <c>ScriptCharWidth</c> that Cascadia Mono was
+    /// estimated against, because that is a monospaced convention rather than a coincidence.
+    /// <c>CodeBlockFontTests</c> asserts it against the shipped file, so the constant is a checked
+    /// fact rather than an estimate that happens to hold.
+    /// </para>
     /// </remarks>
     private static readonly Typeface ScriptTypeface =
-        new("Cascadia Mono, Consolas, Menlo, monospace", FontStyle.Normal, FontWeight.Normal, FontStretch.Normal);
+        new(CodeFont.Family, FontStyle.Normal, FontWeight.Normal, FontStretch.Normal);
 
     private readonly SceneIndex _index = new();
     private readonly CanvasTransform _transform = new();

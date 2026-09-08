@@ -19,6 +19,21 @@
     -->
     <AvaloniaResource Include="Assets/*.png" />
 
+    <!--
+      Source Code Pro (`E8-T57`), the face Dynamo draws its Code Block in. Embedded for the same
+      reason the mark is: a loose font beside the executable is one more thing a publish or a
+      single-file bundle can lose, and the failure is silent - Avalonia falls back to whatever it
+      finds and the block is drawn in the wrong font on the one machine nobody tested.
+
+      SHIPPED RATHER THAN ASKED FOR BY NAME, and that is the point. `Cascadia Mono, Consolas,
+      Menlo, monospace` is a wish list: it resolves to a different face per machine, so the client
+      would have got Dynamo's font only where Dynamo had been installed. `Assets/Fonts/OFL.txt` is
+      the licence it travels under - Adobe, SIL Open Font License 1.1, Reserved Font Name "Source",
+      which permits redistribution and is why this font and not a proprietary one.
+    -->
+    <AvaloniaResource Include="Assets/Fonts/*.ttf" />
+    <AvaloniaResource Include="Assets/Fonts/OFL.txt" />
+
     <ProjectReference Include="..\Spark.Host\Spark.Host.csproj" />
     <ProjectReference Include="..\Spark.Viewport\Spark.Viewport.csproj" />
   </ItemGroup>

@@ -187,7 +187,7 @@ public sealed class HelpView : UserControl
             Content = new SelectableTextBlock
             {
                 Text = block.Text ?? string.Empty,
-                FontFamily = new FontFamily("Cascadia Mono, Consolas, monospace"),
+                FontFamily = CodeFont.FontFamily,
                 FontSize = 12.5,
                 Foreground = SparkPalette.TextPrimaryBrush,
             },
@@ -265,7 +265,7 @@ public sealed class HelpView : UserControl
                 case HelpInlineKind.Code:
                     target.Add(new Run(inline.Text)
                     {
-                        FontFamily = new FontFamily("Cascadia Mono, Consolas, monospace"),
+                        FontFamily = CodeFont.FontFamily,
                         FontSize = size - 1,
                         Foreground = SparkPalette.AccentBrush,
                     });

@@ -264,7 +264,17 @@ public sealed class CanvasNode
             ? 0
             : TabAllowance(Inputs) + TabAllowance(Outputs) + (2 * ScriptGap)
                 + System.Math.Max(
-                    System.Math.Max(ScriptMinimumWidth, _longestScriptLine * ScriptCharWidth),
+                    System.Math.Max(
+                        ScriptMinimumWidth,
+                        // THE INNER INSET IS PART OF THE WIDTH, AND IT WAS MISSING (`E8-T57`).
+                        //
+                        // `GraphCanvas` draws each line at `box.x + ScriptGap` and clips to the
+                        // box, so a box measured as exactly the text is a box whose last
+                        // characters are cut off - every block was short by one gap, on its
+                        // longest line only, which is why it read as a rendering quirk rather
+                        // than a sizing bug. Counted twice so the text has the same margin on
+                        // both sides.
+                        (_longestScriptLine * ScriptCharWidth) + (2 * ScriptGap)),
                     _reservedScriptWidth);
 
     /// <summary>The widest tab a side needs, before <see cref="PortTab"/>'s clamp.</summary>

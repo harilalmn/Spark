@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-08 (Dynamo's port naming, exactly)
+**Last updated:** 2026-09-08 (Spark ships Dynamo's code block font)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing - between steps.** **Queued, from the client:** `E8-T57`, matching Dynamo's code block font and look. |
+| **Working on** | **Nothing - between steps.** **Queued, from the client:** `E8-T59`, the font dropdown - one application-wide setting in the properties pane, offering the shipped face plus the monospaced fonts found on the machine, remembered between sessions. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Dynamo's port naming, exactly** - `E6-T29`, and `E8-T56` which fell out of screenshotting it. One port per line that makes something, named after the variable or the expression's kind; reverses `E6-T27`'s replace rule at the client's later instruction. **Before it:** `E8-T54`/`E8-T55`, `E8-T53`, `E8-T52`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2593** tests green over ten executables with zero skips. **One known flaky test**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, about one full run in five, green in isolation - [N120](NOTES.md). |
-| **Next action** | **`E8-T57`: match Dynamo's code block font and look.** The client asked for it while `E6-T29` was in flight - *follow the same font as in Dynamo Codeblock; if you can match the look and feel exactly the same, that will be great*. Start by comparing their screenshot against ours side by side: Dynamo's editor is a monospaced face on a ground slightly lighter than the node, with a numbered gutter, blue numerals and orange strings. Spark draws the block's source through `CanvasNode`/`GraphCanvas` on the canvas and through `CodeBlockEditor` when open, and **the two have to agree or committing an edit makes the text jump** - `ScriptBox`'s remark says so. Check `EditorHighlightPalette` for the colours and `ScriptCharWidth` for the metric, which is an estimate that a face change invalidates. |
-| **Verify with** | A screenshot of the same six lines beside the client's Dynamo screenshot, and a second one with the editor open over the block to show the drawn text and the editing text land in the same place. Then the ten executables. **Grep the run output for `[FAIL]` and not only `Total:`.** |
+| **Last completed step** | **Spark ships Dynamo's code block font** - `E8-T57`, Source Code Pro embedded under OFL, and `E8-T58`, a block's longest line clipped by one gap. **Before it:** `E6-T29`/`E8-T56`, `E8-T54`/`E8-T55`, `E8-T53`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2605** tests green over ten executables with zero skips. **One known flaky test**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, about one full run in five, green in isolation - [N120](NOTES.md). |
+| **Next action** | **`E8-T59`: the font setting.** The client chose **one setting for the whole application**, shown in the properties pane and remembered between sessions, offering the shipped face **plus the monospaced fonts installed on the machine**. Follow `UpdatePreference` for the storage - `Spark.Host`, under `LocalApplicationData`, already the pattern for a remembered user choice. **Avalonia has no *is this monospaced* flag**, so the list is filtered by measuring: a family whose `i` and `W` come out the same width is monospaced, which is the same `FormattedText` call `CodeBlockFontTests` already uses. `CodeFont.Family` becomes the *default* rather than the answer, and the three surfaces that read it have to keep agreeing. |
+| **Verify with** | Changing the dropdown re-draws every block in the new face and survives a restart; the list contains the shipped face and excludes a proportional one such as Inter. Then the ten executables, and a screenshot of the pane. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -7617,3 +7617,60 @@ format clean, **2593** tests green over ten executables with zero skips.
 **Documents.** `E6-T29` and `E8-T56` rows, two TODO lines, and `concepts/code-blocks.md`, which had
 a whole section describing the rule that was reversed — it now has *What the ports are called*, with
 the client's six lines as the example.
+
+### 2026-09-08 — Spark ships Dynamo's code block font
+
+**What.** `E8-T57`, and `E8-T58` which fell out of screenshotting it — which is now the third time
+in two days that looking at the thing found a defect every gate was green on.
+
+**The face was identified, not guessed, and that mattered.** The client asked for *the same font as
+in Dynamo Codeblock* and sent a screenshot. Dynamo turned out to be installed on this machine at
+`C:\Work\DynamoCoreRuntime4.1.1.5050`, so the question had a real answer rather than a confident
+one: it bundles exactly two monospaced faces, `SourceCodePro-Regular.ttf` and
+`CourierPrime-Regular.ttf`. Courier Prime is a slab serif and the screenshot plainly is not one;
+Dynamo's own notification UI declares `'Source Code Pro'` as its monospace; and the screenshot's
+**plain zeros** rule out Consolas and Cascadia, which both slash theirs. Adobe, SIL Open Font
+License 1.1, Reserved Font Name "Source" — which is what makes shipping it legal, and why the
+licence text travels beside it.
+
+**The substance of the row is *shipped* rather than *named*.** The canvas asked for
+`Cascadia Mono, Consolas, Menlo, monospace`, which is a wish list: it resolves to a different face
+on every machine, and to Dynamo's face on none of them unless Dynamo happened to be installed. A
+font family string cannot deliver what was asked for; embedding the file can.
+
+**No layout constant moved, and that was measured before anything was changed.** Every glyph in
+Source Code Pro advances **0.6 em** — checked against `0`, `W`, `i`, `m` and `.` through
+`GlyphTypeface` before writing a line — which is 6.6 px at the canvas's 11 px, exactly the
+`ScriptCharWidth` that Cascadia Mono was estimated against. That is a monospaced convention rather
+than luck, and the row turned it from an estimate into a checked fact: `CodeBlockFontTests` measures
+through `FormattedText`, the same call the renderer makes, so it also survives Avalonia renaming its
+glyph-metrics API — which it has, and which cost a compile error on the first draft.
+
+**Every failure this row can produce is silent, so the tests are shaped around that.** A font that
+is not shipped, a family name misspelt, a metric that stops holding — none of them throw. Avalonia
+falls back to some other monospaced face and the block looks *fine*. So the assembly test checks the
+`sfnt` header and 188 KB rather than a readable stream, and the metric test says in its own remarks
+that **it cannot tell the shipped face from a fallback** — Cascadia advances 0.6 em too, which is
+the very reason the swap was free. What proves the right face is being used is the file being in the
+assembly and being asked for by the name it declares. Confirmed end to end: a Release publish leaves
+`Spark.UI.dll` at 744 KB carrying both `SourceCodePro-Regular` and `SIL OPEN FONT`.
+
+**`E8-T58` is a real defect, older than this row and hidden by a rounding error.** `GraphCanvas`
+draws each source line at `box.x + ScriptGap` and clips to the box; `ScriptWidth` measured the box
+as *exactly* the text. So the longest line of every code block was cut off by one gap. It read as a
+rendering quirk rather than a sizing bug because it only ever touched one line of one block — and
+Cascadia Mono's real 0.586 em is narrower than the 0.6 the constant assumes, which absorbed most of
+it. Source Code Pro's true 0.6 took the entire semicolon off `var t = 0..1..#10;`, which is how it
+was finally visible. The inset is counted twice now, so the text has the same margin on both sides.
+
+**Help topic code samples take the shipped face too.** They were on the same wish list, and a
+project that ships a code font and then does not use it for code is odd. Adjacent to what was asked
+for, small, and said here rather than left to be noticed.
+
+**Verified.** Twelve new tests. Gates: build clean with zero warnings, format clean — after an
+imports-ordering failure that the build did not catch and `dotnet format` did — **2605** tests green
+over ten executables with zero skips. Plus the screenshot, twice: once showing the new face with the
+semicolon missing, once with it back.
+
+**Documents.** `E8-T57` and `E8-T58` rows, two TODO lines, and a line in `concepts/code-blocks.md`
+saying which font code is set in and that Spark ships it.

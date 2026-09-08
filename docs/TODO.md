@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (Dynamo's port naming, exactly)
+**Last updated:** 2026-09-08 (Spark ships Dynamo's code block font)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -500,6 +500,8 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] The application opens maximised — `E8-T55`. Screenshots and the canvas benchmark keep the declared 1480x900, because both are compared across runs.
 - [x] Dynamo's port naming, exactly — `E6-T29`. One port per line that makes something, named after the variable or the expression's kind: `integer`, `function`, `string`, `n`, `t`, `list`. Reverses `E6-T27`'s replace rule at the client's later instruction.
 - [x] A code block draws no type labels — `E8-T56`. That span is the source, and since `E6-T29` the port's name is already its kind.
+- [x] Spark ships Dynamo's code block font — `E8-T57`. Source Code Pro, embedded under OFL, so the face is the same on every machine rather than whatever a machine happens to have.
+- [x] A block's longest line was clipped by one gap — `E8-T58`. Pre-existing; the width never reserved the inset the text is drawn at.
 - [x] Dynamo's count ranges — `E10-T15`. `Number.RangeByCount` and
       `Number.RangeByCountAndStep` over one `Spark.Api.NumberRange`, and `0..1..#5`
       works as typed in a code block.
