@@ -140,8 +140,11 @@
           <MenuItem Header="_Open…" InputGesture="Ctrl+O" Click="OnOpenGraph" />
           <MenuItem Header="_Save as…" InputGesture="Ctrl+S" Click="OnSaveGraph" />
           <Separator />
-          <!-- E8-T69: a picture of the graph, at a resolution the user chooses. -->
+          <!-- E8-T69, E9-T15: a picture and a solid, each at a resolution or a format the user
+               chooses. -->
           <MenuItem Header="Export _graph as PNG…" Click="OnExportGraphImage" />
+          <MenuItem Header="Export _viewport as PNG…" Click="OnExportViewportImage" />
+          <MenuItem Header="Export viewport g_eometry…" Click="OnExportViewportGeometry" />
           <Separator />
           <MenuItem Header="Open _demo graph" Click="OnLoadDemo" />
           <MenuItem Header="Open _curves example" Click="OnLoadCurves" />

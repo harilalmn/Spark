@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (the graph exports to PNG at a chosen resolution)
+**Last updated:** 2026-09-08 (the viewport exports to PNG and to STEP)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -208,6 +208,11 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
       registries it has to empty do not exist until `E7-T2`.
 - [ ] **`E9-T7` and `E9-T8`** — parallel streamed tessellation, and picking through the
       kernel's BVH ray caster. Both are M2-era viewport work rather than anything M5 owed.
+- [ ] **`E13-T18` — an imported model's closed shells should come back as solids.** Found by
+      `E9-T15` and asserted rather than assumed: a kernel-held solid writes to STEP as
+      `MANIFOLD_SOLID_BREP`, and anything rebuilt from managed arrays writes as closed shells. The
+      fix is the promotion `spark_occt_sew` already does, moved into `spark_occt_import`; it needs
+      the C++ toolchain and a rebuild of the shim.
 - [x] ~~**`E6-T20` — a rendering test for the surfaces a person touches.**~~ **Closed 2026-09-02 in
       the half that is reachable, and the other half is not ours to fix.** A data-bound `TextBlock`
       with `TextWrapping="Wrap"` inside a `Grid` hangs Avalonia's headless `Window.Show()` —
@@ -514,6 +519,7 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] A faint line and a tint step divide a node's inputs from its outputs - `E8-T67`. `border.hairline` down the middle and the output half washed 8% darker; the wash darkens rather than lightens, because body text on a node is light.
 - [x] Double-clicking a node's title edits it in place - `E8-T68`. The whole title is selected on open, so the commonest rename is type-and-Enter; it narrows `E8-T53` so a click on a code block's header renames rather than opening its source.
 - [x] The graph exports to PNG at a chosen resolution - `E8-T69`. Width, height and an aspect lock, defaulting to the canvas's own size; the whole graph is fitted into the image and the view is put back exactly where it was.
+- [x] The viewport exports to PNG at a chosen resolution, and its geometry to STEP or IGES - `E9-T15`, with `Brep.Join` (`E2-T61`) putting several solids in one file. **Not ACIS**: nothing here can write it and OpenCascade has no ACIS writer, so the client was asked and chose STEP.
 - [x] The node library is callable from a code block — `E6-T30`. `Solid`, `Logic`, `Colour` and the rest; the ten colliding names are pinned to what they always meant, so no existing block changed.
 - [x] A getting-started guide for the code block — `E10-T16`. `docs/CodeBlock.md`, twelve sections, all 23 samples run against the build.
 - [x] `a * b;` on its own is a value — `E6-T31`. C# read it as a pointer declaration; a code block has no `unsafe`, so there was only ever one meaning it could have had.

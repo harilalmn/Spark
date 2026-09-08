@@ -159,6 +159,14 @@ namespace Spark.UI;
 /// so nothing automated can look at one unless the application can be asked for it (<c>E8-T69</c>).
 /// The size comes from <c>--export-size</c>.
 /// </param>
+/// <param name="ExportViewport">
+/// A path to write the viewport to as a PNG and exit (<c>--export-viewport</c>), or null
+/// (<c>E9-T15</c>).
+/// </param>
+/// <param name="ExportSolids">
+/// A path to write the viewport's solids to as STEP or IGES and exit (<c>--export-solids</c>), or
+/// null. The extension chooses the format (<c>E9-T15</c>).
+/// </param>
 /// <param name="ExportWidth">The width <c>--export-size</c> asked for, or 0 for the window's.</param>
 /// <param name="ExportHeight">The height it asked for, or 0.</param>
 /// <param name="BenchmarkZoom">
@@ -195,6 +203,8 @@ public readonly record struct StartupOptions(
     bool CleanUpLayout = false,
     int RenameNode = -1,
     string? ExportGraph = null,
+    string? ExportViewport = null,
+    string? ExportSolids = null,
     int ExportWidth = 0,
     int ExportHeight = 0)
 {
@@ -238,8 +248,11 @@ public readonly record struct StartupOptions(
     /// </remarks>
     public bool ListCodeFonts { get; private init; }
 
-    /// <summary>True when the graph should be exported to a file and the window closed (`E8-T69`).</summary>
-    public bool IsGraphExport => !string.IsNullOrWhiteSpace(ExportGraph);
+    /// <summary>True when something should be exported to a file and the window closed (`E8-T69`).</summary>
+    public bool IsGraphExport =>
+        !string.IsNullOrWhiteSpace(ExportGraph)
+        || !string.IsNullOrWhiteSpace(ExportViewport)
+        || !string.IsNullOrWhiteSpace(ExportSolids);
 
     /// <summary>True when the window should open maximised (`E8-T55`).</summary>
     /// <remarks>
@@ -329,6 +342,8 @@ public readonly record struct StartupOptions(
         bool cleanUpLayout = false;
         int renameNode = -1;
         string? exportGraph = null;
+        string? exportViewport = null;
+        string? exportSolids = null;
         int exportWidth = 0;
         int exportHeight = 0;
         bool software = false;
@@ -412,6 +427,14 @@ public readonly record struct StartupOptions(
 
                 case "--export-graph" when i + 1 < args.Length:
                     exportGraph = args[++i];
+                    break;
+
+                case "--export-viewport" when i + 1 < args.Length:
+                    exportViewport = args[++i];
+                    break;
+
+                case "--export-solids" when i + 1 < args.Length:
+                    exportSolids = args[++i];
                     break;
 
                 // `<width>x<height>`, one argument, because two numbers that can be given
@@ -503,7 +526,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped, cleanUpLayout, renameNode, exportGraph, exportWidth, exportHeight)
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped, cleanUpLayout, renameNode, exportGraph, exportViewport, exportSolids, exportWidth, exportHeight)
         {
             ListCodeFonts = listCodeFonts,
         };

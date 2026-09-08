@@ -998,6 +998,81 @@ public sealed partial class MainWindow : Window
             (path, width, height) => Canvas.ExportImage(path, width, height)).ConfigureAwait(true);
 
     /// <summary>
+    /// Exports what the viewport is showing to a PNG at a chosen resolution (<c>E9-T15</c>).
+    /// </summary>
+    /// <param name="sender">The menu item.</param>
+    /// <param name="e">Unused.</param>
+    private async void OnExportViewportImage(object? sender, RoutedEventArgs e) =>
+        await ExportImageAsync(
+            "viewport",
+            (int)Viewport.Bounds.Width,
+            (int)Viewport.Bounds.Height,
+            "viewport.png",
+            (path, width, height) => Viewport.ExportImage(path, width, height)).ConfigureAwait(true);
+
+    /// <summary>
+    /// The solid-modelling interchange formats the geometry export offers (<c>E9-T15</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>STEP first, because it is the one to choose.</b> The client asked for ACIS; nothing here
+    /// can write it and OpenCascade has no ACIS writer, so STEP is what an ACIS-based application
+    /// reads instead. IGES is beside it because the kernel already writes it and a surface model
+    /// occasionally has to travel that way.
+    /// </remarks>
+    private static FilePickerFileType[] SolidFileTypes =>
+    [
+        new("STEP") { Patterns = ["*.step", "*.stp"] },
+        new("IGES") { Patterns = ["*.iges", "*.igs"] },
+    ];
+
+    /// <summary>
+    /// Writes every solid the viewport is showing to one interchange file (<c>E9-T15</c>).
+    /// </summary>
+    /// <param name="sender">The menu item.</param>
+    /// <param name="e">Unused.</param>
+    /// <remarks>
+    /// <b>No size dialog, because a solid has no resolution.</b> That is the difference between
+    /// this and the two image exports beside it, and it is why they are three menu items rather
+    /// than one with a format list.
+    /// </remarks>
+    private async void OnExportViewportGeometry(object? sender, RoutedEventArgs e)
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        IStorageFile? target = await StorageProvider.SaveFilePickerAsync(
+            new FilePickerSaveOptions
+            {
+                Title = "Export viewport geometry",
+                DefaultExtension = "step",
+                SuggestedFileName = "model.step",
+                FileTypeChoices = SolidFileTypes,
+            }).ConfigureAwait(true);
+
+        if (target?.TryGetLocalPath() is not { } path)
+        {
+            return;
+        }
+
+        try
+        {
+            model.TryExportSolids(path);
+        }
+        catch (IOException error)
+        {
+            model.ReportFailure($"That file could not be written: {error.Message}");
+        }
+        catch (UnauthorizedAccessException error)
+        {
+            model.ReportFailure($"That file could not be written: {error.Message}");
+        }
+
+        UpdateStatus();
+    }
+
+    /// <summary>
     /// Asks for a size, asks for a path, and writes the image (<c>E8-T69</c>).
     /// </summary>
     /// <param name="what">What is being exported, for the dialog's title and its wording.</param>
@@ -1286,7 +1361,7 @@ public sealed partial class MainWindow : Window
 
         if (Options.IsGraphExport)
         {
-            _ = ExportWhenReadyAsync(Options.ExportGraph!);
+            _ = ExportWhenReadyAsync();
             return;
         }
 
@@ -1440,17 +1515,17 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Writes the graph to a PNG and closes the window (<c>E8-T69</c>).
+    /// Writes whatever <c>--export-*</c> asked for and closes the window (<c>E8-T69</c>,
+    /// <c>E9-T15</c>).
     /// </summary>
-    /// <param name="path">Where to write it.</param>
-    /// <returns>A task that completes once the file is written.</returns>
+    /// <returns>A task that completes once the files are written.</returns>
     /// <remarks>
     /// <b>The same order the capture path uses, and for the same reason</b>
-    /// ([N111](../../../docs/NOTES.md)): the graph is evaluated first so the picture is of a graph
+    /// ([N111](../../../docs/NOTES.md)): the graph is evaluated first so the export is of a graph
     /// that has run, and the layout is waited for so the default size is the window's real size
     /// rather than zero.
     /// </remarks>
-    private async Task ExportWhenReadyAsync(string path)
+    private async Task ExportWhenReadyAsync()
     {
         if (Model is { } model)
         {
@@ -1459,16 +1534,41 @@ public sealed partial class MainWindow : Window
 
         await WaitForLayoutAsync().ConfigureAwait(true);
 
-        int width = Options.ExportWidth > 0 ? Options.ExportWidth : (int)Canvas.Bounds.Width;
-        int height = Options.ExportHeight > 0 ? Options.ExportHeight : (int)Canvas.Bounds.Height;
+        Canvas.ZoomToFit();
+        Viewport.ZoomToFit();
 
-        Canvas.ExportImage(path, width, height);
+        if (Options.ExportGraph is { Length: > 0 } graph)
+        {
+            Write(graph, Canvas.Bounds, Canvas.ExportImage);
+        }
 
-        Console.WriteLine(string.Create(
-            CultureInfo.InvariantCulture,
-            $"wrote {path} ({CanvasExport.Clamp(width)}x{CanvasExport.Clamp(height)})"));
+        if (Options.ExportViewport is { Length: > 0 } viewport)
+        {
+            Write(viewport, Viewport.Bounds, Viewport.ExportImage);
+        }
+
+        if (Options.ExportSolids is { Length: > 0 } solids && Model is { } exporting)
+        {
+            bool written = exporting.TryExportSolids(solids);
+
+            Console.WriteLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{(written ? "wrote" : "refused")} {solids}: {exporting.DiagnosticsText}"));
+        }
 
         Close();
+
+        void Write(string path, Rect bounds, Action<string, int, int> writer)
+        {
+            int width = Options.ExportWidth > 0 ? Options.ExportWidth : (int)bounds.Width;
+            int height = Options.ExportHeight > 0 ? Options.ExportHeight : (int)bounds.Height;
+
+            writer(path, width, height);
+
+            Console.WriteLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"wrote {path} ({CanvasExport.Clamp(width)}x{CanvasExport.Clamp(height)})"));
+        }
     }
 
     /// <summary>

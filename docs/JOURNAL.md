@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **A second client pass: six requests, taken one per step.** In the order given: **(1)** `E6-T33` a missing semicolon is added when a code block is clicked out of; **(2)** `E8-T66` every port pill on a side is as long as the longest one; **(3)** `E8-T67` a faint centre line and a tint step split a node's body into its input and output halves; **(4)** `E8-T68` double-clicking a node's title edits it in place, opening with the whole title selected; **(5)** `E8-T69` the graph exports to PNG at a chosen resolution, aspect locked, defaulting to the canvas size; **(6)** `E9-T15` the viewport's geometry exports to a solid file and to PNG at a chosen resolution. |
+| **Working on** | **Nothing. The second client pass is finished: all six requests are in, one per step.** In the order given: **(1)** `E6-T33` a missing semicolon is added when a code block is clicked out of; **(2)** `E8-T66` every port pill on a side is as long as the longest one; **(3)** `E8-T67` a faint centre line and a tint step split a node's body into its input and output halves; **(4)** `E8-T68` double-clicking a node's title edits it in place, opening with the whole title selected; **(5)** `E8-T69` the graph exports to PNG at a chosen resolution, aspect locked, defaulting to the canvas size; **(6)** `E9-T15` the viewport's geometry exports to a solid file and to PNG at a chosen resolution. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The graph exports to PNG at a chosen resolution** - `E8-T69`, step 5 of the six. **Before it:** `E8-T68`, `E8-T67`, `E8-T66`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2737** tests green over **nine** executables with zero skips. **The previous two figures here were wrong and are corrected**: the suite measured **2690** on a stashed tree immediately before this step, not 2702, and `tests/` holds nine projects and not ten — `tests/Spark.Geometry.Io.Tests/` is a stale `bin`/`obj` with no `.csproj` in it, which is what the tenth was. **Six known flaky tests, all one defect** (`E11-T27`, open), across five classes; each passes alone and a different one fails each full run. **A seventh victim appeared during `E8-T69`** — `GraphCanvasZoomToFitTests.AFitAskedForBeforeLayoutHappensOnceThereIsALayout`, which failed one full run, passed alone, and passed the next full run. Same shape, same class family, same one defect. |
-| **Next action** | **`E9-T15`, step 6 of 6 and the last: the viewport's geometry exports to a solid file and to PNG at a chosen resolution.** The PNG half reuses `ExportImageWindow` and `MainWindow.ExportImageAsync` — what is needed is `ViewportControl.ExportImage`, and the viewport is GL rather than a drawn control, so it is a read-back rather than a `RenderTargetBitmap`: `RequestCapture`/`TakeCapture` already produce RGBA at the control's size, and a chosen resolution needs the backend asked for that size instead. **The solid half is STEP and IGES, not ACIS** — the client was asked and chose it; `OcctBrepKernel.WriteFile` writes both and refuses anything else by extension. Gather the `Brep` values the last run produced, and refuse with a diagnostic when there are none or when no kernel is loaded. |
+| **Last completed step** | **The viewport exports to PNG at a chosen resolution, and its geometry to STEP or IGES** - `E9-T15`, with `Brep.Join` (`E2-T61`) beside it. Step 6 of six, and the last. **Before it:** `E8-T69`, `E8-T68`, `E8-T67`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2754** tests green over **nine** executables with zero skips. **The previous two figures here were wrong and are corrected**: the suite measured **2690** on a stashed tree immediately before this step, not 2702, and `tests/` holds nine projects and not ten — `tests/Spark.Geometry.Io.Tests/` is a stale `bin`/`obj` with no `.csproj` in it, which is what the tenth was. **Six known flaky tests, all one defect** (`E11-T27`, open), across five classes; each passes alone and a different one fails each full run. **A seventh victim appeared during `E8-T69`** — `GraphCanvasZoomToFitTests.AFitAskedForBeforeLayoutHappensOnceThereIsALayout`, which failed one full run, passed alone, and passed the next full run. Same shape, same class family, same one defect. |
+| **Next action** | **Take `E11-T27`**, which the run of six kept deferring and gained a seventh victim during. `GraphCanvasZoomToFitTests.AFitAskedForBeforeLayoutHappensOnceThereIsALayout` joined the list on 2026-09-08 — failed one full run, passed alone, passed the next. Seven tests across six classes, a different one each time, is a suite people stop reading. `test-engineer` owns the choice between one xunit collection over every Avalonia-touching class and `DisableTestParallelization` for the assembly, which costs about 16 seconds. **Also newly open and cheap where the toolchain allows it**: `E13-T18`, promoting a closed shell to a solid in `spark_occt_import`, which is five lines already written inside `spark_occt_sew`. |
 | **Verify with** | Whatever the next row needs. Nothing is half-done. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -8665,3 +8665,68 @@ this row was actually looked at through: nine nodes, eight wires, no HUD, crisp 
 and passed both alone and on the next; it is `E11-T27`'s seventh victim and the same shape as the
 other six. `dotnet format` also caught the one thing the compiler did not: a `using` in the wrong
 order.
+
+### 2026-09-08 — The viewport exports to PNG and to STEP (`E9-T15`, `E2-T61`)
+
+**What.** `ViewportControl.ExportImage`, `MainWindowViewModel.SolidsInScene` and
+`TryExportSolids`, `Brep.Join` in the kernel, two more File-menu items, and
+`--export-viewport`/`--export-solids`. Seventeen tests across three assemblies. Step 6 of six,
+and the last.
+
+**The solid is STEP, and the substitution was agreed rather than assumed.** The client asked for
+**ACIS**. Nothing in this repository can write it, OpenCascade has no ACIS writer, and
+hand-rolling a SAT B-rep serialiser would produce a file nobody here could prove valid — so the
+question went back, and the answer was STEP with IGES beside it. That is what every ACIS-based
+application reads, and `OcctBrepKernel.WriteFile` already produces both.
+
+**The picture is rasterised on the CPU rather than read back off the GPU, and that is a decision.**
+`TakeCapture` hands back the frame the GL surface actually drew, which is exactly the size of the
+control — and resizing a live swap chain to 4,000 pixels to take a photograph is not something a
+user's window should be put through. `ThumbnailRenderer` renders any scene at any size with no
+display connection at all: it is what `spark render` uses and what the viewport itself falls back
+to on a machine with no GPU, so this is the **fourth** thing `E9-T5`'s software backend earns its
+place with. What it costs is stated rather than hidden: the software rasteriser is not
+pixel-identical to GL, so an export is a picture of the same scene through the same camera rather
+than a photograph of the window. The alternative was a picture that could only ever be the size of
+somebody's window, which is not an export.
+
+**The camera is copied, not borrowed.** Rendering sets a camera's viewport size to the image, and
+a camera framed for one aspect ratio and drawn at another crops silently — so handing the live
+camera to the renderer would leave the user's view framed for a file they had already saved. A
+test asserts the on-screen camera afterwards.
+
+**`Brep.Join`, and why it is not a union.** The writer takes one model and a viewport shows
+several solids. A boolean union asks the kernel what the *combined solid* is: it intersects the
+parts, removes what is inside, and can refuse on geometry that is merely near-tangent. A join
+asserts nothing about how the parts relate — it puts three solids in one model the way three
+solids sit in one STEP file — so it cannot fail, and it is what an export actually wants. A model
+has always been able to hold several shells; reading a STEP file with three solids in it produces
+exactly this.
+
+**Eight offsets, and the tests are aimed at them.** Getting one wrong produces a model with the
+right number of everything that walks to the wrong place, and `Validate` approves of most of that.
+So the checks are geometric as well as structural: the second box's corners are still a hundred
+units away, its faces name surfaces the first box did not have, and every
+face-loop-trim-edge-vertex chain resolves. One part is returned *as it came* rather than copied,
+which is what keeps a single kernel-held solid resident.
+
+**One limitation found, asserted, and turned into a row rather than glossed.** A kernel-held solid
+writes to STEP as `MANIFOLD_SOLID_BREP`; a model rebuilt from managed arrays writes as **closed
+shells** in a `SHELL_BASED_SURFACE_MODEL`, because `spark_occt_import` builds shells and never
+promotes a closed one to a solid. It is **pre-existing** — equally true of `BrepPrimitives.Box`
+and of anything read back from a file — and joining makes it visible, because joining
+materialises. Most applications stitch a closed shell back into a solid on import. The fix is five
+lines that already exist inside `spark_occt_sew`, moved into the import path, and needs the C++
+toolchain: `E13-T18`, open. `InterchangeTests.AResidentSolidIsWrittenAsASolidAndAJoinedOneAsShells`
+records today's behaviour and goes red the day it changes.
+
+**Verified.** Build clean, format clean, **2,754 tests, 0 failures, 0 skips**. And looked at:
+`--graph solids --export-viewport … --export-size 1600x1000` gives the three solids on the ground
+grid at 1600×1000, and `--export-solids` writes a 155 KB STEP naming 48 `ADVANCED_FACE`, 14
+`CYLINDRICAL_SURFACE`, 8 `SPHERICAL_SURFACE`, 3 `CLOSED_SHELL` and no `POLY_LOOP` — exact
+surfaces, not triangles. **The third-party viewer `E13-T12` asks for is still owed**, and this row
+does not discharge it.
+
+**The pixels of this export *are* asserted, where the graph's were not** ([N124](NOTES.md)). The
+viewport export goes through Spark's own rasteriser and Spark's own PNG encoder, neither of which
+is the headless platform's — so a test reads the file's IHDR back and gets a real answer.

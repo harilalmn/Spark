@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (E8: the graph exports to PNG at a chosen resolution)
+**Last updated:** 2026-09-08 (E9 and E2: the viewport exports to PNG and to STEP)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -207,6 +207,13 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       from `double` (**E2-T5**). *Verified against the public-API baseline rather than by
       recollection: `Vector3d.Rotate`, `AngleTo`, `SignedAngleTo`, `Vector2d.Rotate` and
       `Transform.Rotation` all take or return `Angle`, and `Tolerance.Angular` is one.*
+- [x] **Several models can be put into one, as separate shells** (**E2-T61**) — done
+      2026-09-08, for `E9-T15`'s export. A join is not a boolean union: it asserts nothing about
+      how the parts relate, so it cannot fail on geometry a union would refuse, and it is what an
+      interchange file wants. A model has always been able to hold several shells — reading a STEP
+      file with three solids in it produces exactly that — so this is a way to build one from
+      parts rather than a new shape. Nothing is welded; merging is `Sew`'s job and needs a
+      tolerance.
 - [ ] Analytic surfaces are first-class, not NURBS in disguise (**E2-T18**).
 - [ ] BRep topology is index-based — arrays and int indices, no object references — with
       `readonly ref struct` navigator views for ergonomics (**E2-T22**, **E2-T23**).
@@ -966,6 +973,16 @@ unmaintained since around 2023 — a poor bet on a multi-year horizon.
 - [x] Geometry reaches the viewport as immutable `RenderPackage` records, one GPU buffer set
       per `(NodeId, PortIndex)`, so re-evaluating one node re-uploads one buffer
       (**E9-T3**, **E9-T6**).
+- [x] **What the viewport shows can be exported: a PNG at any resolution, and the solids as
+      STEP or IGES** (**E9-T15**) — done 2026-09-08, asked for by the client. **The solid is STEP
+      and not the ACIS that was asked for**, and the substitution was agreed rather than assumed:
+      nothing here can write ACIS and OpenCascade has no ACIS writer. The picture is rasterised by
+      `ThumbnailRenderer` on the CPU rather than read back off the GPU — a GL read-back is exactly
+      the size of the control, and resizing a live swap chain to take a photograph is not something
+      a user's window should be put through — which is the fourth thing the software backend earns
+      its place with. Several solids become one file through `Brep.Join`, and the one limitation is
+      asserted rather than glossed: a joined model writes as closed shells rather than as solids
+      (**E13-T18**).
 - [ ] Tessellation is parallel and streams during a run (**E9-T7**).
 - [ ] Picking uses the kernel's BVH ray caster (**E9-T8**).
 - [x] **Selection sync falls out of node-keyed identity with no extra bookkeeping** — the

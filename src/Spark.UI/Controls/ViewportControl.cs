@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.IO;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
@@ -10,6 +11,7 @@ using Avalonia.OpenGL;
 using Avalonia.OpenGL.Controls;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using Spark.UI.Canvas;
 using Spark.UI.Interop;
 using Spark.UI.Theming;
 using Spark.Viewport;
@@ -205,6 +207,60 @@ public sealed class ViewportControl : OpenGlControlBase
     /// to do is ask for a frame.
     /// </remarks>
     public void InvalidateGeometry() => RequestFrame();
+
+    /// <summary>
+    /// Writes what the viewport is showing to a PNG at a chosen resolution (<c>E9-T15</c>).
+    /// </summary>
+    /// <param name="path">Where to write the file.</param>
+    /// <param name="pixelWidth">The image width, clamped by <see cref="CanvasExport"/>.</param>
+    /// <param name="pixelHeight">The image height, clamped the same way.</param>
+    /// <exception cref="ArgumentException"><paramref name="path"/> is null or blank.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Rasterised on the CPU rather than read back off the GPU, and that is a decision rather
+    /// than a shortcut.</b> <see cref="TakeCapture"/> hands back the frame the GL surface actually
+    /// drew — which is exactly the size of the control, and resizing a live swap chain to 4,000
+    /// pixels to take a picture is not something a user's window should be put through.
+    /// <see cref="ThumbnailRenderer"/> already renders a scene at any size with no display
+    /// connection at all: it is what <c>spark render</c> uses, and it is the same rasteriser the
+    /// viewport itself falls back to when there is no GPU.
+    /// </para>
+    /// <para>
+    /// <b>What that costs is honesty about the image.</b> The software rasteriser is not
+    /// pixel-identical to the GL path — it is the trade <c>E9-T5</c> already records — so an export
+    /// is a picture of the same scene through the same camera rather than a photograph of the
+    /// window. The alternative was a picture that could only ever be the size of somebody's window,
+    /// which is not an export.
+    /// </para>
+    /// <para>
+    /// <b>The camera is copied, not borrowed.</b> Rendering sets the camera's viewport size to the
+    /// image, and a camera framed for one aspect ratio and drawn at another crops silently — so
+    /// handing the live camera to the renderer would leave the user's view framed for a file they
+    /// have already saved.
+    /// </para>
+    /// </remarks>
+    public void ExportImage(string path, int pixelWidth, int pixelHeight)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        int width = CanvasExport.Clamp(pixelWidth);
+        int height = CanvasExport.Clamp(pixelHeight);
+
+        Camera camera = new()
+        {
+            Target = _camera.Target,
+            Distance = _camera.Distance,
+            Azimuth = _camera.Azimuth,
+            Elevation = _camera.Elevation,
+            FieldOfView = _camera.FieldOfView,
+        };
+
+        camera.SetViewportSize(width, height);
+
+        byte[] pixels = ThumbnailRenderer.Render(_scene, camera, width, height, drawGroundGrid: true);
+
+        File.WriteAllBytes(path, PngImage.Encode(pixels, width, height));
+    }
 
     /// <summary>Frames the whole scene.</summary>
     public void ZoomToFit()

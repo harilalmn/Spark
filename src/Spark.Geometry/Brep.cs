@@ -266,6 +266,115 @@ public sealed class Brep
     /// <returns>The shells, in index order.</returns>
     public BrepShell[] Shells() => [.. RawShells];
 
+    /// <summary>
+    /// Puts several models into one, as separate shells (`E2-T61`).
+    /// </summary>
+    /// <param name="parts">The models to join. An empty list gives an empty model.</param>
+    /// <returns>
+    /// One model whose shells are every part's shells, in order, and whose points, curves,
+    /// surfaces, vertices, edges, trims, loops and faces are every part's with their indices
+    /// shifted to match.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="parts"/>, or a part, is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>A join is not a union, and the difference is the whole reason this exists.</b> A boolean
+    /// union asks the kernel what the *combined solid* is: it intersects the parts, removes what is
+    /// inside, and can fail on geometry that is merely near-tangent. A join asserts nothing about
+    /// how the parts relate — it puts three solids in one model the way three solids sit in one
+    /// STEP file. That is what an <i>export</i> wants, and asking a boolean engine for it would be
+    /// paying for an answer nobody asked and risking a refusal on a model that is perfectly fine.
+    /// </para>
+    /// <para>
+    /// <b>A model has always been able to hold several shells</b> — reading a STEP file with three
+    /// solids in it produces exactly this — so nothing here is a new shape, only a way to build one
+    /// from parts.
+    /// </para>
+    /// <para>
+    /// <b>Nothing is welded.</b> Two parts that share a face keep two copies of it, and two
+    /// coincident vertices stay two vertices. Merging them is the kernel's <c>Sew</c>, which needs a
+    /// tolerance; this is index arithmetic and needs none, which is also why it cannot fail.
+    /// </para>
+    /// <para>
+    /// <b>The result is materialised, not resident.</b> Every part is read out into arrays, so a
+    /// join of provider-held shapes costs a materialisation of each — which is the correct place to
+    /// pay it, because the caller is about to write the model to a file.
+    /// </para>
+    /// </remarks>
+    public static Brep Join(IReadOnlyList<Brep> parts)
+    {
+        ArgumentNullException.ThrowIfNull(parts);
+
+        if (parts.Count == 1)
+        {
+            return parts[0] ?? throw new ArgumentNullException(nameof(parts));
+        }
+
+        List<Point3d> points = [];
+        List<Curve> curves = [];
+        List<Surface> surfaces = [];
+        List<BrepVertex> vertices = [];
+        List<BrepEdge> edges = [];
+        List<BrepTrim> trims = [];
+        List<BrepLoop> loops = [];
+        List<BrepFace> faces = [];
+        List<BrepShell> shells = [];
+
+        foreach (Brep part in parts)
+        {
+            ArgumentNullException.ThrowIfNull(part, nameof(parts));
+
+            // Read before anything is appended: every offset below is the count *before* this
+            // part's own elements went in, and computing one afterwards shifts a part by itself.
+            int pointOffset = points.Count;
+            int curveOffset = curves.Count;
+            int surfaceOffset = surfaces.Count;
+            int vertexOffset = vertices.Count;
+            int edgeOffset = edges.Count;
+            int trimOffset = trims.Count;
+            int loopOffset = loops.Count;
+            int faceOffset = faces.Count;
+
+            points.AddRange(part.RawPoints);
+            curves.AddRange(part.RawCurves);
+            surfaces.AddRange(part.RawSurfaces);
+
+            foreach (BrepVertex vertex in part.RawVertices)
+            {
+                vertices.Add(new BrepVertex(vertex.Point + pointOffset));
+            }
+
+            foreach (BrepEdge edge in part.RawEdges)
+            {
+                edges.Add(new BrepEdge(
+                    edge.Start + vertexOffset, edge.End + vertexOffset, edge.Curve + curveOffset));
+            }
+
+            foreach (BrepTrim trim in part.RawTrims)
+            {
+                trims.Add(new BrepTrim(trim.Edge + edgeOffset, trim.IsReversed));
+            }
+
+            foreach (BrepLoop loop in part.RawLoops)
+            {
+                loops.Add(new BrepLoop(loop.FirstTrim + trimOffset, loop.TrimCount, loop.Kind));
+            }
+
+            foreach (BrepFace face in part.RawFaces)
+            {
+                faces.Add(new BrepFace(
+                    face.Surface + surfaceOffset, face.FirstLoop + loopOffset, face.LoopCount, face.IsReversed));
+            }
+
+            foreach (BrepShell shell in part.RawShells)
+            {
+                shells.Add(new BrepShell(shell.FirstFace + faceOffset, shell.FaceCount));
+            }
+        }
+
+        return new Brep(points, curves, surfaces, vertices, edges, trims, loops, faces, shells);
+    }
+
     /// <summary>A navigator over one face.</summary>
     /// <param name="index">The face index.</param>
     /// <returns>A view that can walk to its loops, trims, edges and surface.</returns>

@@ -25,3 +25,4 @@ Spark.Geometry.PolyLine.PolyLine(in Spark.Geometry.Plane plane, double width, do
 Spark.Geometry.Quaternion.Quaternion(in Spark.Geometry.Vector3d axis, Spark.Geometry.Angle angle) -> void
 Spark.Geometry.Quaternion.Quaternion(in Spark.Geometry.Vector3d from, in Spark.Geometry.Vector3d to) -> void
 Spark.Geometry.Ray.Ray(in Spark.Geometry.Point3d from, in Spark.Geometry.Point3d towards) -> void
+static Spark.Geometry.Brep.Join(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>! parts) -> Spark.Geometry.Brep!

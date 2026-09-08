@@ -12,6 +12,7 @@ using CommunityToolkit.Mvvm.Input;
 using Spark.Api;
 using Spark.Api.Help;
 using Spark.Engine;
+using Spark.Geometry;
 using Spark.Host;
 using Spark.Scripting;
 using Spark.UI.Graph;
@@ -2594,6 +2595,126 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         // node, and were showing different numbers.
         WatchRank = node.ResultSummary is null ? string.Empty : CanvasGraph.RankLine(node);
         WatchText = _lastResult is null ? string.Empty : CanvasGraph.Expand(_lastResult.Value(node.Id));
+    }
+
+    /// <summary>
+    /// Every solid the viewport is showing, in the order the graph produced them (`E9-T15`).
+    /// </summary>
+    /// <returns>The models behind the preview ports, or an empty list when there are none.</returns>
+    /// <remarks>
+    /// <b>The same walk <see cref="SceneBuilder"/> does, over the same ports</b> — the preview
+    /// ports of the last run, with lists flattened to any depth and a <see cref="Displayable"/>
+    /// unwrapped. That is what makes *the viewport's geometry* a phrase with one meaning: an
+    /// export that read the graph's outputs instead would include solids the user had turned the
+    /// preview off for, which is the one thing turning it off is supposed to prevent.
+    /// </remarks>
+    public IReadOnlyList<Brep> SolidsInScene()
+    {
+        if (_lastResult is not { } result)
+        {
+            return [];
+        }
+
+        List<Brep> solids = [];
+
+        foreach ((int slot, int portIndex) in _graph.PreviewPorts())
+        {
+            CanvasNode node = _graph.Nodes[slot];
+            CollectSolids(result.Value(node.Id, portIndex), solids);
+        }
+
+        return solids;
+    }
+
+    /// <summary>Walks a graph value for solids, to any list depth.</summary>
+    /// <param name="value">The value.</param>
+    /// <param name="into">Where to put what is found.</param>
+    private static void CollectSolids(object? value, List<Brep> into)
+    {
+        switch (value)
+        {
+            case Brep solid:
+                into.Add(solid);
+                return;
+
+            case Displayable displayable:
+                CollectSolids(displayable.Geometry, into);
+                return;
+
+            case SparkList list:
+                foreach (object? item in list)
+                {
+                    CollectSolids(item, into);
+                }
+
+                return;
+
+            default:
+                return;
+        }
+    }
+
+    /// <summary>
+    /// Writes every solid the viewport is showing to one interchange file (`E9-T15`).
+    /// </summary>
+    /// <param name="path">Where to write it. The extension chooses the format.</param>
+    /// <returns>True when a file was written; false with a diagnostic reported when not.</returns>
+    /// <exception cref="ArgumentException"><paramref name="path"/> is null or blank.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>STEP and IGES, and not ACIS.</b> The client asked for ACIS by name; nothing in this
+    /// repository can write it and OpenCascade has no ACIS writer, so the client was asked and
+    /// chose STEP — which is what every ACIS-based application reads.
+    /// <c>OcctBrepKernel.WriteFile</c> picks the format from the extension and refuses anything it
+    /// does not know, by name, rather than guessing.
+    /// </para>
+    /// <para>
+    /// <b>Several solids become one model rather than several files</b> (<c>Brep.Join</c>). A join
+    /// is not a boolean union: it asserts nothing about how the parts relate and cannot fail, which
+    /// is what an export wants — asking a boolean engine to combine three unrelated solids is
+    /// paying for an answer nobody asked and risking a refusal on a model that is perfectly fine.
+    /// </para>
+    /// <para>
+    /// <b>Both refusals are diagnostics rather than exceptions</b>, because both are ordinary: a
+    /// graph that has not been run has no geometry to export, and a build with no kernel installed
+    /// cannot write a solid at all.
+    /// </para>
+    /// </remarks>
+    public bool TryExportSolids(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        IReadOnlyList<Brep> solids = SolidsInScene();
+
+        if (solids.Count == 0)
+        {
+            ReportFailure(
+                "There are no solids in the viewport to export. Run a graph that produces one, and "
+                + "leave its preview on.");
+            return false;
+        }
+
+        if (!BrepKernel.Current.Capabilities.HasFlag(BrepCapabilities.Step))
+        {
+            ReportFailure(
+                "This build has no solid-modelling kernel loaded, so it cannot write a solid file.");
+            return false;
+        }
+
+        KernelResult<bool> written = BrepKernel.Current.WriteFile(
+            Brep.Join(solids), path, Tolerance.Default);
+
+        if (written.Diagnostic is { } problem)
+        {
+            ReportFailure(Describe(problem));
+            return false;
+        }
+
+        DiagnosticsText = string.Create(
+            CultureInfo.InvariantCulture,
+            $"Wrote {solids.Count} solid{(solids.Count == 1 ? string.Empty : "s")} to {Path.GetFileName(path)}.");
+
+        return true;
     }
 
     private void PublishGeometry(EvaluationResult result)

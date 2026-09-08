@@ -94,6 +94,37 @@ public sealed class InterchangeTests : IDisposable
     }
 
     /// <summary>
+    /// <b>Several models in one file</b> (`E2-T61`, for `E9-T15`). A viewport showing three solids
+    /// has to become one STEP file, and the writer takes one model — so the parts are joined into
+    /// one before they are written, and this is the end-to-end check that the join is something a
+    /// STEP processor accepts rather than merely something <c>Validate</c> approves of.
+    /// </summary>
+    [NativeFact]
+    public void JoinedModelsSurviveAStepRoundTripAsSeparateShells()
+    {
+        string file = Path0("joined.step");
+
+        Brep joined = Brep.Join(
+        [
+            BrepPrimitives.Box(Plane.WorldXY, 2, 3, 4),
+            BrepPrimitives.Box(
+                Plane.FromOriginXAxisYAxis(new Point3d(100, 0, 0), Vector3d.XAxis, Vector3d.YAxis),
+                1, 1, 1),
+        ]);
+
+        Assert.True(Kernel.WriteFile(joined, file, Fine).IsSuccess);
+
+        Brep back = Kernel.ReadFile(file, Fine).Value;
+
+        Assert.Equal(12, back.FaceCount);
+        Assert.Equal(2, back.ShellCount);
+
+        // 24 and 1: the two boxes are a hundred units apart, so nothing merged and nothing was
+        // dropped on the way through.
+        Assert.Equal(25.0, Kernel.Tessellate(back, Fine).Value.Volume(), 3);
+    }
+
+    /// <summary>
     /// The file is read as text and asked what it says. A third-party viewer is what `E13-T12`
     /// actually requires; this is the part of that check a test can do.
     /// </summary>
@@ -130,6 +161,43 @@ public sealed class InterchangeTests : IDisposable
 
         Assert.Equal(fused.FaceCount, back.FaceCount);
         Assert.Equal(42.0, Kernel.Tessellate(back, Fine).Value.Volume(), 2);
+    }
+
+    /// <summary>
+    /// <b>A kernel-held solid is written as a solid; a model rebuilt from managed arrays is
+    /// written as shells.</b> This is a pre-existing property of the interchange path and not
+    /// something `E2-T61` introduced — <c>Borrow</c> hands the writer the provider's own shape when
+    /// there is one, and otherwise re-imports the nine arrays, and the importer builds shells.
+    /// </summary>
+    /// <remarks>
+    /// <b>Asserted rather than assumed, because `E9-T15` states it to users.</b> Exporting one
+    /// solid from the viewport gives a <c>MANIFOLD_SOLID_BREP</c>; exporting three gives three
+    /// closed shells in a <c>SHELL_BASED_SURFACE_MODEL</c>, because joining them materialises them.
+    /// Most applications stitch a closed shell back into a solid on import, and this is still worth
+    /// a row (`E13-T18`): the promotion belongs in <c>spark_occt_import</c>, beside the one
+    /// <c>spark_occt_sew</c> already does.
+    /// </remarks>
+    [NativeFact]
+    public void AResidentSolidIsWrittenAsASolidAndAJoinedOneAsShells()
+    {
+        Brep resident = Kernel.Union(
+            BrepPrimitives.Box(Plane.WorldXY, 2, 3, 4),
+            BrepPrimitives.Box(
+                Plane.FromOriginXAxisYAxis(new Point3d(1, 1, 1), Vector3d.XAxis, Vector3d.YAxis), 2, 3, 4),
+            Fine).Value;
+
+        string solidFile = Path0("resident.step");
+        Assert.True(Kernel.WriteFile(resident, solidFile, Fine).IsSuccess);
+
+        Assert.Contains("MANIFOLD_SOLID_BREP", File.ReadAllText(solidFile), StringComparison.Ordinal);
+
+        string joinedFile = Path0("joined-shells.step");
+        Assert.True(Kernel.WriteFile(Brep.Join([resident, resident]), joinedFile, Fine).IsSuccess);
+
+        string joined = File.ReadAllText(joinedFile);
+
+        Assert.Contains("CLOSED_SHELL", joined, StringComparison.Ordinal);
+        Assert.DoesNotContain("MANIFOLD_SOLID_BREP", joined, StringComparison.Ordinal);
     }
 
     [NativeFact]
