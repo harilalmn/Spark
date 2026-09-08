@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-08 (`Centre` becomes `Center`, everywhere)
+**Last updated:** 2026-09-08 (completion reaches the aliased names)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing.** The client's last five answers are all answered: the caret and the live font change confirmed, `Center` chosen, the constructors added, the font list tightened and signature help scrolling with the arrow keys. |
+| **Working on** | **`E8-T65` - the code block on canvas gets line numbers, colour and a note about ports.** Three things the client asked for while testing. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`Centre` becomes `Center`, everywhere** - `E2-T60`. One spelling, four node keys aliased, and `ShippedAliasTests` now guards every alias the library declares. **Before it:** `E2-T59`, `E8-T64`, `E8-T63`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2684** tests green over ten executables with zero skips. **Five known flaky tests, all one defect** (`E11-T27`, open), across four classes: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)) and `.ASingleClickOnACodeBlockOpensTheEditor`, `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes`, `ViewportNavigationTests.TheMiddleButtonPans` and `PackageBrowserTests.TheRowActionsNeedARow`. **Each passes alone**; a different one fails each full run. |
-| **Next action** | **Take `E11-T27`** - the Avalonia global dispatcher shared across parallel test classes. It gained a fourth and fifth victim during `E2-T60`, in different classes and inside five minutes, and a suite that fails about one full run in three is a suite people stop reading. `test-engineer` owns the choice between one xunit collection over every Avalonia-touching class and `DisableTestParallelization` for the assembly, which costs about 16 seconds. **Also flagged and unagreed**: promoting `DocumentationChecks`' deferred *compile every fenced sample* check, which would have caught `CodeBlock.md`'s `a * b;` defect without a person running 23 samples by hand. |
-| **Verify with** | Whatever the next row needs. Nothing is half-done. |
+| **Last completed step** | **Completion and signature help were blind to the ten aliased names** - `E6-T32`. An alias is not a namespace, and the option they were passed to takes namespaces. **Before it:** `E2-T60`, `E2-T59`, `E8-T64`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2694** tests green over ten executables with zero skips. **Five known flaky tests, all one defect** (`E11-T27`, open), across four classes; each passes alone and a different one fails each full run. |
+| **Next action** | **`E8-T65`, three things the client asked for while testing the constructors.** (1) A **label between the title bar and the editor** saying why lines that declare nothing carry no output port - the client met that rule with seven such lines and accepted it, then asked that the block say so itself. (2) **Syntax colour on the canvas block always**, not only while editing. (3) **Line numbers on the canvas block always**, matching the properties editor. The canvas draws its script itself rather than hosting an editor - `CanvasGraph.ScriptCharWidth` and the node measuring in `GraphCanvas` are the two places that know about script text - so the colouring has to be a drawing concern rather than an AvaloniaEdit one, and the line-number gutter changes the node's measured width. |
+| **Verify with** | A screenshot of a block with several lines, showing colour, numbers and the label; the node measuring still agreeing with what is drawn (`CanvasGraphTests`); and the ten executables. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -8343,3 +8343,49 @@ made twice and which had evidently landed in a document without being noticed.
 
 **Documents.** `E2-T60`'s row, a TODO line, the `E3-T23` row's alias example put back to a string
 that exists, and the two stale help pages.
+
+
+### 2026-09-08 — Completion and signature help were blind to the ten aliased names
+
+**What.** `E6-T32`. **Reported by the client**, testing yesterday's constructors: no completion
+and no signature help inside a code block, in the canvas editor and in the properties pane alike.
+Ten names — `Circle`, `Line`, `Plane`, `Arc`, `Curve`, `Surface`, `PolyCurve`, `PolyLine`,
+`BoundingBox` and `Math` — had no IntelliSense at all, which is most of what anybody types.
+
+**A seam, rather than a fault in either half.** `ScriptNodeFactory` writes the catalogue's imports
+into the generated script as `using` **source lines**, where `using Circle =
+Spark.Geometry.Circle;` is ordinary C#. `ScriptCompletion` passed the *same strings* to
+`CSharpCompilationOptions.Usings` — which is the global-usings list, and takes **namespace
+names**. An alias is not a namespace, so all ten were discarded **without a diagnostic**, while
+`using Spark.Nodes.Core;` came through intact. Every aliased name was therefore ambiguous
+(`CS0104`) in the workspace that answers the editor, and unambiguous in the compiler that runs the
+block. The two halves disagreed, and only one of them said so.
+
+**Measured before a line was written, and the numbers are the reason this went quickly.**
+`Circle.` listed **6** members rather than 24; `new Circle(` and `Math.Max(` answered nothing;
+`new Point3d(` answered normally, because `Point3d` is not one of the ten. That last one is what
+turned a vague report into a one-line hypothesis: the failures were exactly the alias list.
+
+**The fix splits the imports** — namespaces still go to the options, and `X = Y` entries are
+prepended to the document as `using X = Y;` with every caret shifted past them. That is precisely
+what `Declarations(inputs)` already did for input ports, so the two prefixes compose and no new
+mechanism was needed.
+
+**The defect lived in the gap between two constructors.** Every completion test in the repository
+builds `ScriptCompletion` from an *assembly list*, which carries no aliases at all — so the whole
+failure was invisible to the suite, and no number of extra cases on those tests could have found
+it. The new ones use `ReferenceCatalog`, which is the constructor the shell actually calls. That
+is the general lesson worth keeping: the tested constructor was not the shipped one.
+
+**Two drafts of one test could not fail, and both were caught by reinstating the defect.**
+`Spark.Nodes.Core.Circle` is a façade carrying factories of the same four names, so a member list
+cannot tell it from `Spark.Geometry.Circle`; and quick info prints `MinimallyQualifiedFormat`,
+which drops the namespace that would have settled it. What does settle it: the façade is a
+**static class**, so a constructor signature is something only the geometry type can produce.
+
+**Verified.** 8 of the 10 new tests go red with the defect reinstated, and the 2 that do not are
+the deliberate controls — an unaliased name and an input port — which would have caught a caret
+shift that was wrong for everything rather than only for aliases. Gates: build clean with zero
+warnings, format clean, **2694** tests green over ten executables with zero skips.
+
+**Documents.** `E6-T32`'s row and a TODO line.

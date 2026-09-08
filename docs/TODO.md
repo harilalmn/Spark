@@ -507,6 +507,7 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] `By` becomes `From` on every factory — `E2-T58`. Both layers, so the canvas and the code block agree; infix `By` (`DivideByLength`, `RangeByCount`) is untouched; old keys still open.
 - [x] A constructor beside every kernel factory - `E2-T59`. `new Circle(center, radius)` works in a code block; parity held by reflection in both directions, with the two real ambiguities written down.
 - [x] `Centre` becomes `Center` everywhere - `E2-T60`. One spelling, four node keys aliased, and `ShippedAliasTests` now guards every alias the library declares.
+- [x] Completion and signature help reach the aliased names - `E6-T32`. Ten of the most used names in the app had no IntelliSense; an alias is not a namespace, and the option they were passed to takes namespaces.
 - [x] The node library is callable from a code block — `E6-T30`. `Solid`, `Logic`, `Colour` and the rest; the ten colliding names are pinned to what they always meant, so no existing block changed.
 - [x] A getting-started guide for the code block — `E10-T16`. `docs/CodeBlock.md`, twelve sections, all 23 samples run against the build.
 - [x] `a * b;` on its own is a value — `E6-T31`. C# read it as a pointer declaration; a code block has no `unsafe`, so there was only ever one meaning it could have had.

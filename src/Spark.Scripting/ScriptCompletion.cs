@@ -50,6 +50,7 @@ public sealed class ScriptCompletion : IDisposable
 {
     private readonly AdhocWorkspace _workspace;
     private readonly ProjectId _projectId;
+    private readonly string _aliasPrelude;
     private DocumentId? _documentId;
 
     /// <summary>
@@ -87,6 +88,22 @@ public sealed class ScriptCompletion : IDisposable
 
     private ScriptCompletion(ImmutableArray<MetadataReference> metadata, IEnumerable<string> usings)
     {
+        string[] imports = [.. usings];
+
+        // AN ALIAS IS NOT A NAMESPACE, AND THIS OPTION TAKES NAMESPACES (`E6-T32`).
+        //
+        // `CSharpCompilationOptions.Usings` is the *global usings* list, which the compiler reads
+        // as namespace names; `Circle = Spark.Geometry.Circle` is not one, and it is discarded
+        // without a diagnostic. Passing the catalogue's imports here wholesale therefore kept
+        // `using Spark.Nodes.Core;` and threw away the ten aliases that make it safe — so every
+        // one of those names was ambiguous (`CS0104`) in this workspace while binding perfectly in
+        // the compiler that actually runs the block. The client saw that as no completion and no
+        // signature help on `Circle`, `Line`, `Plane` and `Math`, which is most of the library.
+        //
+        // Aliases go into the document instead, as the source lines they have to be, and every
+        // caret is shifted past them exactly as it is past `Declarations`.
+        _aliasPrelude = string.Concat(imports.Where(IsAlias).Select(alias => $"using {alias}; "));
+
         // MefHostServices.DefaultAssemblies is the workspace layer only, and completion lives in
         // the *Features* layer. Composing without these, CompletionService.GetService returns
         // null and every request answers with an empty list — a silent no rather than an error,
@@ -108,7 +125,7 @@ public sealed class ScriptCompletion : IDisposable
             .WithMetadataReferences(metadata)
             .WithCompilationOptions(new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
-                usings: [.. usings]))
+                usings: [.. imports.Where(import => !IsAlias(import))]))
             .WithParseOptions(new CSharpParseOptions(kind: SourceCodeKind.Script));
 
         _projectId = _workspace.AddProject(project).Id;
@@ -160,7 +177,7 @@ public sealed class ScriptCompletion : IDisposable
         ArgumentOutOfRangeException.ThrowIfNegative(caret);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(caret, code.Length);
 
-        string prefix = Declarations(inputs);
+        string prefix = _aliasPrelude + Declarations(inputs);
         code = prefix + code;
         caret += prefix.Length;
 
@@ -242,7 +259,7 @@ public sealed class ScriptCompletion : IDisposable
         ArgumentOutOfRangeException.ThrowIfNegative(offset);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(offset, code.Length);
 
-        string prefix = Declarations(inputs);
+        string prefix = _aliasPrelude + Declarations(inputs);
         Document document = Replace(prefix + code);
 
         SyntaxNode? root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
@@ -335,7 +352,7 @@ public sealed class ScriptCompletion : IDisposable
         ArgumentOutOfRangeException.ThrowIfNegative(caret);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(caret, code.Length);
 
-        string prefix = Declarations(inputs);
+        string prefix = _aliasPrelude + Declarations(inputs);
 
         Document document = Replace(prefix + code);
 
@@ -418,6 +435,14 @@ public sealed class ScriptCompletion : IDisposable
 
         return line.ToString();
     }
+
+    /// <summary>Whether an import is an alias — <c>Circle = Spark.Geometry.Circle</c> — rather than a namespace.</summary>
+    /// <remarks>
+    /// The catalogue keeps both in one list because a code block's prelude writes both as
+    /// <c>using</c> lines. Only this workspace has to tell them apart, because only this workspace
+    /// declares its imports through an option that cannot express the second kind.
+    /// </remarks>
+    private static bool IsAlias(string import) => import.Contains('=', StringComparison.Ordinal);
 
     /// <summary>Whether a port name can be a C# identifier, so a declaration of it will compile.</summary>
     private static bool IsIdentifier(string name) =>
