@@ -21,7 +21,7 @@ public sealed class CanvasGraphTests
     {
         CanvasGraph graph = new();
         int one = graph.Add(TestGraphs.Library.ByName("Math.Sin"), 0, 0);
-        int three = graph.Add(TestGraphs.Library.ByName("Point.ByCoordinates"), 0, 0);
+        int three = graph.Add(TestGraphs.Library.ByName("Point.FromCoordinates"), 0, 0);
 
         Assert.True(graph.Nodes[three].Height > graph.Nodes[one].Height);
         Assert.Equal(CanvasNode.PortPitch * 2, graph.Nodes[three].Height - graph.Nodes[one].Height);
@@ -54,7 +54,7 @@ public sealed class CanvasGraphTests
     public void CategoriesFromTheEngineReachTheRenderer()
     {
         CanvasGraph graph = new();
-        int point = graph.Add(TestGraphs.Library.ByName("Point.ByCoordinates"), 0, 0);
+        int point = graph.Add(TestGraphs.Library.ByName("Point.FromCoordinates"), 0, 0);
         int math = graph.Add(TestGraphs.Library.ByName("Math.Add"), 0, 0);
         int input = graph.Add(TestGraphs.Library.ByName("Number.Range"), 0, 0);
 
@@ -73,7 +73,7 @@ public sealed class CanvasGraphTests
     {
         CanvasGraph graph = new();
         int range = graph.Add(TestGraphs.Library.ByName("Number.Range"), 0, 0);
-        int point = graph.Add(TestGraphs.Library.ByName("Point.ByCoordinates"), 0, 0);
+        int point = graph.Add(TestGraphs.Library.ByName("Point.FromCoordinates"), 0, 0);
 
         Assert.Equal(1, graph.Nodes[range].Outputs[0].DeclaredRank);
         Assert.Equal(0, graph.Nodes[point].Inputs[0].DeclaredRank);
@@ -89,7 +89,7 @@ public sealed class CanvasGraphTests
         CanvasGraph graph = new();
         int value = graph.Add(TestGraphs.Library.ByName("Number.Value"), 0, 0);
         int sin = graph.Add(TestGraphs.Library.ByName("Math.Sin"), 300, 0);
-        int point = graph.Add(TestGraphs.Library.ByName("Point.ByCoordinates"), 600, 0);
+        int point = graph.Add(TestGraphs.Library.ByName("Point.FromCoordinates"), 600, 0);
 
         Assert.Equal(WireOutcome.Accepted, graph.Preview(Output(value, 0), Input(sin, 0)));
 
@@ -203,7 +203,7 @@ public sealed class CanvasGraphTests
         CanvasGraph graph = DemoGraphs.Demo(TestGraphs.Library);
         EvaluationResult result = GraphEvaluator.Evaluate(graph.Engine, new EvaluationContext(), TestContext.Current.CancellationToken);
 
-        CanvasNode points = Node(graph, "Point.ByCoordinates");
+        CanvasNode points = Node(graph, "Point.FromCoordinates");
         SparkList grid = Assert.IsType<SparkList>(result.Value(points.Id));
 
         // Cross Product raises rank by k, not by one: ten crossed with ten is a 10 x 10 nested
@@ -424,7 +424,7 @@ public sealed class CanvasGraphTests
 
         Assert.DoesNotContain(reopened.Nodes, node => node.State.HasFlag(CanvasNodeState.Error));
         SparkList circles = Assert.IsType<SparkList>(
-            result.Value(Node(reopened, "Circle.ByCentreRadius").Id));
+            result.Value(Node(reopened, "Circle.FromCentreRadius").Id));
         Assert.Equal(8, circles.Count);
     }
 
@@ -454,17 +454,17 @@ public sealed class CanvasGraphTests
         Assert.DoesNotContain(graph.Nodes, node => node.State.HasFlag(CanvasNodeState.Error));
 
         Spark.Geometry.EllipseCurve ellipse =
-            Assert.IsType<Spark.Geometry.EllipseCurve>(result.Value(Node(graph, "Ellipse.ByPlaneRadii").Id));
+            Assert.IsType<Spark.Geometry.EllipseCurve>(result.Value(Node(graph, "Ellipse.FromPlaneRadii").Id));
         Assert.Equal(6.0, ellipse.XRadius);
         Assert.Equal(2.0, ellipse.YRadius);
 
         // One node, eight circles: replication over the list of centres, producing curves.
-        SparkList circles = Assert.IsType<SparkList>(result.Value(Node(graph, "Circle.ByCentreRadius").Id));
+        SparkList circles = Assert.IsType<SparkList>(result.Value(Node(graph, "Circle.FromCentreRadius").Id));
         Assert.Equal(8, circles.Count);
         Assert.IsType<Spark.Geometry.Circle>(circles[0]);
 
         Spark.Geometry.PolyLine polygon =
-            Assert.IsType<Spark.Geometry.PolyLine>(result.Value(Node(graph, "PolyLine.ByRegularPolygon").Id));
+            Assert.IsType<Spark.Geometry.PolyLine>(result.Value(Node(graph, "PolyLine.FromRegularPolygon").Id));
         Assert.Equal(5, polygon.SegmentCount);
         Assert.True(polygon.IsClosed);
     }
@@ -483,7 +483,7 @@ public sealed class CanvasGraphTests
         Assert.Equal(25, points.Count);
 
         Spark.Geometry.EllipseCurve ellipse =
-            Assert.IsType<Spark.Geometry.EllipseCurve>(result.Value(Node(graph, "Ellipse.ByPlaneRadii").Id));
+            Assert.IsType<Spark.Geometry.EllipseCurve>(result.Value(Node(graph, "Ellipse.FromPlaneRadii").Id));
 
         // Consecutive chords of an equal-length division of an ellipse differ by a few percent at
         // most; an equal-parameter division of these radii differs by a factor of about three.
@@ -512,7 +512,7 @@ public sealed class CanvasGraphTests
     public void TheSameGraphUnderLongestProducesATenPointDiagonal()
     {
         CanvasGraph graph = DemoGraphs.Demo(TestGraphs.Library);
-        CanvasNode points = Node(graph, "Point.ByCoordinates");
+        CanvasNode points = Node(graph, "Point.FromCoordinates");
 
         graph.Engine.SetLacing(points.Id, LacingMode.Longest);
 
@@ -537,9 +537,9 @@ public sealed class CanvasGraphTests
             .. graph.PreviewPorts().Select(port => graph.Nodes[port.Slot].Title),
         ];
 
-        Assert.Contains("Display.ByGeometryColour", previewed);
+        Assert.Contains("Display.FromGeometryColour", previewed);
         Assert.Contains("Point.Translate", previewed);
-        Assert.DoesNotContain("Point.ByCoordinates", previewed);
+        Assert.DoesNotContain("Point.FromCoordinates", previewed);
         Assert.DoesNotContain("Number.Range", previewed);
     }
 
@@ -634,7 +634,7 @@ public sealed class CanvasGraphTests
     /// A port carries the type it wants, taken from the real definition and phrased for a reader.
     /// </summary>
     /// <remarks>
-    /// This is the seam the canvas draws from. <c>Circle.ByCentreRadius</c> is the node that
+    /// This is the seam the canvas draws from. <c>Circle.FromCentreRadius</c> is the node that
     /// prompted it: a port called <c>centre</c> gave a user no way to know a <c>Point3d</c> was
     /// wanted, and the two places that would have said so — the library signature and the
     /// wire-drag preview — are both somewhere other than the node.
@@ -643,9 +643,9 @@ public sealed class CanvasGraphTests
     public void APortCarriesTheTypeItWants()
     {
         CanvasGraph graph = new();
-        graph.Add(TestGraphs.Library.ByName("Circle.ByCentreRadius"), 0, 0);
+        graph.Add(TestGraphs.Library.ByName("Circle.FromCentreRadius"), 0, 0);
 
-        CanvasNode circle = Node(graph, "Circle.ByCentreRadius");
+        CanvasNode circle = Node(graph, "Circle.FromCentreRadius");
 
         Assert.Equal("centre", circle.Inputs[0].Name);
         Assert.Equal("Point3d", circle.Inputs[0].TypeName);
@@ -661,7 +661,7 @@ public sealed class CanvasGraphTests
     /// A node is wide enough for its widest port row, not only for its title.
     /// </summary>
     /// <remarks>
-    /// <c>BoundingBox.ByCorners</c> is the case: its title fits inside the minimum width, and its
+    /// <c>BoundingBox.FromCorners</c> is the case: its title fits inside the minimum width, and its
     /// first row — <c>corner Point3d</c> against <c>BoundingBox box</c> — does not. Before the row
     /// was measured, the two halves of that row met in the middle.
     /// </remarks>
@@ -669,7 +669,7 @@ public sealed class CanvasGraphTests
     public void ANodeIsWideEnoughForItsWidestPortRow()
     {
         CanvasGraph graph = new();
-        graph.Add(TestGraphs.Library.ByName("BoundingBox.ByCorners"), 0, 0);
+        graph.Add(TestGraphs.Library.ByName("BoundingBox.FromCorners"), 0, 0);
         graph.Add(TestGraphs.Library.ByName("Point.Origin"), 0, 0);
 
         // A node with one short row and no inputs stays at the minimum.
@@ -681,7 +681,7 @@ public sealed class CanvasGraphTests
         // title alone, and a test that passes for the wrong reason is the trap this project has
         // fallen into three times ([N18](../../docs/NOTES.md), [N19](../../docs/NOTES.md)).
         Assert.True(
-            Node(graph, "BoundingBox.ByCorners").Width > 190,
+            Node(graph, "BoundingBox.FromCorners").Width > 190,
             "The row 'corner Point3d' against 'BoundingBox box' did not widen the node.");
     }
 

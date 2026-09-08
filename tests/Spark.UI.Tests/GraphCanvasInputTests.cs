@@ -583,7 +583,7 @@ public sealed class GraphCanvasInputTests
     public void ARefusedWireIsNotCreated() => OnUiThread(() =>
     {
         CanvasGraph graph = new();
-        int point = graph.Add(TestGraphs.Library.ByName("Point.ByCoordinates"), 0, 0);
+        int point = graph.Add(TestGraphs.Library.ByName("Point.FromCoordinates"), 0, 0);
         int sin = graph.Add(TestGraphs.Library.ByName("Math.Sin"), 300, 0);
 
         (Window window, GraphCanvas canvas) = Open(graph);
@@ -830,7 +830,7 @@ public sealed class GraphCanvasInputTests
     {
         CanvasGraph graph = new();
         graph.Add(TestGraphs.Library.ByName("Number.Value"), 0, 0);
-        int point = graph.Add(TestGraphs.Library.ByName("Point.ByCoordinates"), 300, 0);
+        int point = graph.Add(TestGraphs.Library.ByName("Point.FromCoordinates"), 300, 0);
 
         (Window window, GraphCanvas canvas) = Open(graph);
         DragWire(window, canvas, 0, point);
@@ -929,7 +929,7 @@ public sealed class GraphCanvasInputTests
     {
         CanvasGraph graph = new();
         graph.Add(TestGraphs.Library.ByName("Number.Value"), 0, 0);
-        int point = graph.Add(TestGraphs.Library.ByName("Point.ByCoordinates"), 300, 0);
+        int point = graph.Add(TestGraphs.Library.ByName("Point.FromCoordinates"), 300, 0);
 
         (Window window, GraphCanvas canvas) = Open(graph);
         DragWire(window, canvas, 0, point);

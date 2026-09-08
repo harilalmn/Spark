@@ -274,7 +274,7 @@ public sealed class TypedScriptInputTests
 
     private static NodeId AddPoint(CanvasGraph graph)
     {
-        int slot = graph.Add(TestGraphs.Library.ByName("Point.ByCoordinates"), 0, 200);
+        int slot = graph.Add(TestGraphs.Library.ByName("Point.FromCoordinates"), 0, 200);
 
         return graph.Nodes[slot].Id;
     }

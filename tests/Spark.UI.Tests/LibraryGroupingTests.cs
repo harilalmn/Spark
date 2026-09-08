@@ -244,7 +244,7 @@ public sealed class LibraryGroupingTests
 
         int before = model.LibraryGroups.Sum(group => group.Entries.Count);
 
-        model.PublishCustomNode(TestGraphs.Library.ByName("Point.ByCoordinates"));
+        model.PublishCustomNode(TestGraphs.Library.ByName("Point.FromCoordinates"));
 
         Assert.Equal(before + 1, model.LibraryGroups.Sum(group => group.Entries.Count));
     }

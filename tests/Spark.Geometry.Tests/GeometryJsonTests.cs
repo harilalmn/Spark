@@ -24,7 +24,7 @@ public sealed class GeometryJsonTests
         [typeof(UV)] = new UV(0.3, 0.7),
         [typeof(Point3d)] = new Point3d(1.0, -2.0, 3.5),
         [typeof(Vector3d)] = new Vector3d(-0.5, 0.25, 8.0),
-        [typeof(Quaternion)] = Quaternion.ByAxisAngle(new Vector3d(1.0, 2.0, 3.0), Angle.FromDegrees(37.0)),
+        [typeof(Quaternion)] = Quaternion.FromAxisAngle(new Vector3d(1.0, 2.0, 3.0), Angle.FromDegrees(37.0)),
         [typeof(Angle)] = Angle.FromDegrees(123.75),
         [typeof(Interval)] = new Interval(-4.0, 9.5),
 
@@ -34,18 +34,18 @@ public sealed class GeometryJsonTests
         [typeof(KnotVector)] = new KnotVector(3, [2, 2, 2, 2, 3.5, 5, 7, 7, 7, 7]),
         [typeof(Tolerance)] = new Tolerance(1e-7, Angle.FromDegrees(0.01), 1e-11),
         [typeof(BoundingBox)] = new BoundingBox(new Point3d(-1.0, -2.0, -3.0), new Point3d(4.0, 5.0, 6.0)),
-        [typeof(Plane)] = Plane.ByOriginXAxisYAxis(
+        [typeof(Plane)] = Plane.FromOriginXAxisYAxis(
             new Point3d(1.0, 2.0, 3.0), new Vector3d(1.0, 1.0, 0.0), new Vector3d(0.0, 1.0, 1.0)),
-        [typeof(CoordinateSystem)] = CoordinateSystem.ByOriginXAxisYAxis(
+        [typeof(CoordinateSystem)] = CoordinateSystem.FromOriginXAxisYAxis(
             new Point3d(-1.0, 0.5, 2.0), new Vector3d(0.0, 1.0, 0.0), new Vector3d(0.0, 0.0, 1.0)),
         [typeof(Ray)] = new Ray(new Point3d(1.0, 1.0, 1.0), new Vector3d(0.0, -1.0, 2.0)),
         [typeof(Transform)] = Transform.Translation(new Vector3d(3.0, 4.0, 5.0))
             * Transform.Rotation(Vector3d.ZAxis, Angle.FromDegrees(30.0)),
         [typeof(Line)] = new Line(new Point3d(0.0, 0.0, 0.0), new Point3d(3.0, 4.0, 12.0)),
-        [typeof(Circle)] = Circle.ByCentreRadius(new Point3d(1.0, 2.0, 3.0), 2.5),
-        [typeof(Arc)] = Arc.ByPlaneRadiusAngles(
+        [typeof(Circle)] = Circle.FromCentreRadius(new Point3d(1.0, 2.0, 3.0), 2.5),
+        [typeof(Arc)] = Arc.FromPlaneRadiusAngles(
             Plane.WorldXY, 3.0, Angle.FromDegrees(15.0), Angle.FromDegrees(220.0)),
-        [typeof(EllipseCurve)] = EllipseCurve.ByPlaneRadiiAngles(
+        [typeof(EllipseCurve)] = EllipseCurve.FromPlaneRadiiAngles(
             Plane.WorldYZ, 4.0, 2.0, Angle.Zero, Angle.FromDegrees(300.0)),
         // Rational, degree 3, with an interior knot and unequal weights. A non-rational curve
         // over a uniform 0..1 vector would round-trip even if the weights or the knots were being
@@ -62,13 +62,13 @@ public sealed class GeometryJsonTests
             [2, 2, 2, 2, 4, 6, 6, 6, 6],
             [1.0, 2.5, 0.4, 1.8, 1.0]),
 
-        [typeof(PolyLine)] = PolyLine.ByPoints(
+        [typeof(PolyLine)] = PolyLine.FromPoints(
         [
             new Point3d(0.0, 0.0, 0.0),
             new Point3d(1.0, 0.0, 0.0),
             new Point3d(1.0, 1.0, 0.5),
         ]),
-        [typeof(PolyCurve)] = PolyCurve.ByJoinedCurves(
+        [typeof(PolyCurve)] = PolyCurve.FromJoinedCurves(
         [
             new Line(new Point3d(0.0, 0.0, 0.0), new Point3d(1.0, 0.0, 0.0)),
             new Line(new Point3d(1.0, 0.0, 0.0), new Point3d(1.0, 2.0, 0.0)),
@@ -245,7 +245,7 @@ public sealed class GeometryJsonTests
     {
         // A Circle holds a Plane which holds three Point3d and Vector3d values. Each one is
         // self-describing, which is what lets a type version on its own timetable.
-        string json = GeometryJson.Serialize(Circle.ByCentreRadius(Point3d.Origin, 1.0));
+        string json = GeometryJson.Serialize(Circle.FromCentreRadius(Point3d.Origin, 1.0));
 
         Assert.Contains("\"type\":\"Circle\"", json);
         Assert.Contains("\"type\":\"Plane\"", json);

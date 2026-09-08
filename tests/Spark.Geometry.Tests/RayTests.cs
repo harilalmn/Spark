@@ -19,7 +19,7 @@ public sealed class RayTests
     [Fact]
     public void ByTwoPointsAimsAtTheSecondPoint()
     {
-        Ray ray = Ray.ByTwoPoints(new Point3d(1.0, 1.0, 1.0), new Point3d(1.0, 5.0, 1.0));
+        Ray ray = Ray.FromTwoPoints(new Point3d(1.0, 1.0, 1.0), new Point3d(1.0, 5.0, 1.0));
 
         Assert.True(ray.Direction.EqualsWithin(Vector3d.YAxis));
         Assert.True(ray.PointAt(4.0).EqualsWithin(new Point3d(1.0, 5.0, 1.0)));
@@ -31,7 +31,7 @@ public sealed class RayTests
         Assert.Throws<ArgumentException>(() => new Ray(Point3d.Origin, Vector3d.Zero));
         Assert.Throws<ArgumentException>(
             () => new Ray(new Point3d(double.NaN, 0.0, 0.0), Vector3d.XAxis));
-        Assert.Throws<ArgumentException>(() => Ray.ByTwoPoints(Point3d.Origin, Point3d.Origin));
+        Assert.Throws<ArgumentException>(() => Ray.FromTwoPoints(Point3d.Origin, Point3d.Origin));
     }
 
     [Fact]

@@ -463,7 +463,7 @@ public sealed class NurbsSurface : Surface
     /// <returns>A bilinear surface.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="corners"/> is null.</exception>
     /// <exception cref="ArgumentException">There are not exactly four corners.</exception>
-    public static NurbsSurface ByCorners(IReadOnlyList<Point3d> corners)
+    public static NurbsSurface FromCorners(IReadOnlyList<Point3d> corners)
     {
         ArgumentNullException.ThrowIfNull(corners);
 

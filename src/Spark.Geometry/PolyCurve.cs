@@ -22,7 +22,7 @@ namespace Spark.Geometry;
 /// not depend on the order it was assembled in.
 /// </para>
 /// <para>
-/// <b>The join tolerance is passed, never assumed.</b> <see cref="ByJoinedCurves"/> takes a
+/// <b>The join tolerance is passed, never assumed.</b> <see cref="FromJoinedCurves"/> takes a
 /// <see cref="Tolerance"/> and refuses a chain whose segments do not meet within it, naming the
 /// index and the gap. Silently accepting a gap would produce a curve whose length is not the length
 /// of the path it draws.
@@ -61,7 +61,7 @@ public sealed class PolyCurve : Curve
     /// Thrown when there are no curves, or when consecutive curves do not meet within the tolerance.
     /// The message names the index and the size of the gap.
     /// </exception>
-    public static PolyCurve ByJoinedCurves(
+    public static PolyCurve FromJoinedCurves(
         IEnumerable<Curve> curves, in Tolerance tolerance = default)
     {
         ArgumentNullException.ThrowIfNull(curves);

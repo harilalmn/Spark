@@ -78,7 +78,7 @@ public readonly struct Ray : IEquatable<Ray>
     /// Thrown when either point is not finite, or when they are the same point and therefore
     /// give no direction.
     /// </exception>
-    public static Ray ByTwoPoints(in Point3d from, in Point3d towards) => new(from, towards - from);
+    public static Ray FromTwoPoints(in Point3d from, in Point3d towards) => new(from, towards - from);
 
     /// <summary>
     /// The point a given distance along the ray.

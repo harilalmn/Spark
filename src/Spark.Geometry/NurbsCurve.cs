@@ -211,7 +211,7 @@ public sealed class NurbsCurve : Curve
     /// <see cref="PolyLine"/> and with <see cref="Line"/>, and that agreement is worth more as a
     /// check than any number of self-consistent assertions about the spline arithmetic.
     /// </remarks>
-    public static NurbsCurve ByPoints(IReadOnlyList<Point3d> points)
+    public static NurbsCurve FromPoints(IReadOnlyList<Point3d> points)
     {
         ArgumentNullException.ThrowIfNull(points);
 

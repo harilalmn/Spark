@@ -21,7 +21,8 @@ public static class Point
     /// <param name="z">The z coordinate.</param>
     /// <returns>The point.</returns>
     [return: NodePort("point")]
-    public static Point3d ByCoordinates(double x = 0, double y = 0, double z = 0) => new(x, y, z);
+    [SparkNodeAlias("Point.ByCoordinates")]
+    public static Point3d FromCoordinates(double x = 0, double y = 0, double z = 0) => new(x, y, z);
 
     /// <summary>The world origin.</summary>
     /// <returns>The point at (0, 0, 0).</returns>

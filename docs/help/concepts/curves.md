@@ -1,7 +1,7 @@
 ---
 id: concepts.curves
 title: Curves, parameters and arc length
-nodes: [Line.ByStartPointEndPoint, Circle.ByCentreRadius, Arc.ByThreePoints, Ellipse.ByPlaneRadii, PolyLine.ByRegularPolygon, PolyCurve.ByJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength]
+nodes: [Line.FromStartPointEndPoint, Circle.FromCentreRadius, Arc.FromThreePoints, Ellipse.FromPlaneRadii, PolyLine.FromRegularPolygon, PolyCurve.FromJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength]
 related: [concepts.geometry-basics, concepts.lacing]
 since: "0.1"
 ---
@@ -44,7 +44,7 @@ the example below uses an eighth rather than a quarter.)
 ```csharp
 using Spark.Geometry;
 
-EllipseCurve ellipse = EllipseCurve.ByPlaneRadii(Plane.WorldXY, 3.0, 1.0);
+EllipseCurve ellipse = EllipseCurve.FromPlaneRadii(Plane.WorldXY, 3.0, 1.0);
 
 // An eighth of the way through the domain, and an eighth of the way along the curve.
 Point3d byParameter = ellipse.PointAt(ellipse.Domain.Denormalise(0.125));
@@ -70,7 +70,7 @@ maths — matching a point to a tangent you already computed, for instance.
 ```csharp
 using Spark.Geometry;
 
-Circle circle = Circle.ByCentreRadius(Point3d.Origin, 10.0);
+Circle circle = Circle.FromCentreRadius(Point3d.Origin, 10.0);
 Point3d[] posts = circle.DivideEqually(8);   // 9 points: eight gaps, and the loop closes
 
 // The last point repeats the first, because the circle is closed. That is deliberate: it
@@ -106,7 +106,7 @@ fraction, which is exactly what the node layer does for you:
 ```csharp
 using Spark.Geometry;
 
-PolyLine path = PolyLine.ByPoints(
+PolyLine path = PolyLine.FromPoints(
 [
     Point3d.Origin,
     new Point3d(3.0, 0.0, 0.0),
@@ -132,19 +132,19 @@ using Spark.Geometry;
 Line straight = new(Point3d.Origin, new Point3d(10.0, 0.0, 0.0));
 
 // Circular. Three points define an arc; the middle one decides which way round it goes.
-Arc bend = Arc.ByThreePoints(
+Arc bend = Arc.FromThreePoints(
     new Point3d(1.0, 0.0, 0.0),
     new Point3d(0.0, 1.0, 0.0),
     new Point3d(-1.0, 0.0, 0.0));
 
 // Closed shapes are polylines, not their own types: a polygon is a closed polyline, and a
 // rectangle is a factory rather than a class of its own.
-PolyLine hexagon = PolyLine.ByRegularPolygon(Plane.WorldXY, 2.0, 6);
-PolyLine frame = PolyLine.ByRectangle(Plane.WorldXY, 4.0, 3.0);
+PolyLine hexagon = PolyLine.FromRegularPolygon(Plane.WorldXY, 2.0, 6);
+PolyLine frame = PolyLine.FromRectangle(Plane.WorldXY, 4.0, 3.0);
 
 // Chained. The join tolerance is passed, never assumed, and a chain that does not meet
 // within it is refused rather than silently accepted with a gap in it.
-PolyCurve chain = PolyCurve.ByJoinedCurves([straight, bend]);
+PolyCurve chain = PolyCurve.FromJoinedCurves([straight, bend]);
 ```
 
 ---
@@ -165,7 +165,7 @@ Spark's kernel answers or fails loudly; it does not return a plausible-looking d
 ```csharp
 using Spark.Geometry;
 
-Circle circle = Circle.ByCentreRadius(Point3d.Origin, 1.0);
+Circle circle = Circle.FromCentreRadius(Point3d.Origin, 1.0);
 
 Curve moved = circle.TransformedBy(Transform.Scale(1.0, 1.0, 3.0));   // fine: still a circle
 // circle.TransformedBy(Transform.Scale(2.0, 1.0, 1.0));              // throws: that is an ellipse
@@ -181,7 +181,7 @@ Every operation returns a new curve and leaves yours alone. The names say so —
 ```csharp
 using Spark.Geometry;
 
-Circle circle = Circle.ByCentreRadius(Point3d.Origin, 5.0);
+Circle circle = Circle.FromCentreRadius(Point3d.Origin, 5.0);
 Curve half = circle.Trimmed(new Interval(0.0, System.Math.PI));   // an Arc, not a Circle
 
 double untouched = circle.Length;   // still the full circumference

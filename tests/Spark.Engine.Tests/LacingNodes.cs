@@ -193,8 +193,8 @@ public static class LacingNodes
         NodeInvoker.ForMethod(Method(nameof(LacingMembers.Range))));
 
     public static NodeDefinition PointByCoordinates { get; } = new(
-        new NodeKey(Package, "Point.ByCoordinates"),
-        "Point.ByCoordinates",
+        new NodeKey(Package, "Point.FromCoordinates"),
+        "Point.FromCoordinates",
         [
             new PortDefinition("x", typeof(double), 0),
             new PortDefinition("y", typeof(double), 0),

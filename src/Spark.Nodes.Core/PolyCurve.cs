@@ -21,8 +21,9 @@ public static class PolyCurve
     /// </param>
     /// <returns>The joined curve.</returns>
     [return: NodePort("polycurve")]
-    public static Spark.Geometry.PolyCurve ByJoinedCurves(
+    [SparkNodeAlias("PolyCurve.ByJoinedCurves")]
+    public static Spark.Geometry.PolyCurve FromJoinedCurves(
         IReadOnlyList<Spark.Geometry.Curve> curves, double tolerance = 1e-6) =>
-        Spark.Geometry.PolyCurve.ByJoinedCurves(
+        Spark.Geometry.PolyCurve.FromJoinedCurves(
             curves, new Tolerance(tolerance, Angle.FromDegrees(0.001), 1e-12));
 }

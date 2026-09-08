@@ -80,8 +80,8 @@ public sealed class EllipseCurve : Curve
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown when either radius is not positive and finite.
     /// </exception>
-    public static EllipseCurve ByPlaneRadii(in Plane plane, double xRadius, double yRadius) =>
-        ByPlaneRadiiAngles(plane, xRadius, yRadius, Angle.Zero, Angle.FullTurn);
+    public static EllipseCurve FromPlaneRadii(in Plane plane, double xRadius, double yRadius) =>
+        FromPlaneRadiiAngles(plane, xRadius, yRadius, Angle.Zero, Angle.FullTurn);
 
     /// <summary>Creates part of an ellipse in a plane.</summary>
     /// <param name="plane">The plane. Its origin is the centre.</param>
@@ -98,7 +98,7 @@ public sealed class EllipseCurve : Curve
     /// Thrown when either radius is not positive and finite, or when <paramref name="sweepAngle"/>
     /// is zero, not finite, or larger than a full turn.
     /// </exception>
-    public static EllipseCurve ByPlaneRadiiAngles(
+    public static EllipseCurve FromPlaneRadiiAngles(
         in Plane plane, double xRadius, double yRadius, Angle startAngle, Angle sweepAngle)
     {
         if (!plane.IsValid)
@@ -138,7 +138,7 @@ public sealed class EllipseCurve : Curve
         return sweep > 0.0
             ? new EllipseCurve(plane, xRadius, yRadius, start, sweep)
             : new EllipseCurve(
-                Plane.ByOriginXAxisYAxis(plane.Origin, plane.XAxis, -plane.YAxis),
+                Plane.FromOriginXAxisYAxis(plane.Origin, plane.XAxis, -plane.YAxis),
                 xRadius,
                 yRadius,
                 -start,
@@ -148,7 +148,7 @@ public sealed class EllipseCurve : Curve
     /// <inheritdoc/>
     public override Curve Reversed() =>
         new EllipseCurve(
-            Plane.ByOriginXAxisYAxis(_plane.Origin, _plane.XAxis, -_plane.YAxis),
+            Plane.FromOriginXAxisYAxis(_plane.Origin, _plane.XAxis, -_plane.YAxis),
             _xRadius,
             _yRadius,
             -(_startAngle + _sweep),
@@ -158,7 +158,7 @@ public sealed class EllipseCurve : Curve
     public override Curve Trimmed(in Interval domain)
     {
         CheckTrimDomain(domain, Domain);
-        return ByPlaneRadiiAngles(
+        return FromPlaneRadiiAngles(
             _plane,
             _xRadius,
             _yRadius,

@@ -26,7 +26,7 @@ public sealed class CoordinateSystemTests
     [Fact]
     public void ByOriginKeepsTheWorldAxes()
     {
-        CoordinateSystem frame = CoordinateSystem.ByOrigin(new Point3d(1.0, 2.0, 3.0));
+        CoordinateSystem frame = CoordinateSystem.FromOrigin(new Point3d(1.0, 2.0, 3.0));
 
         Assert.Equal(new Point3d(1.0, 2.0, 3.0), frame.Origin);
         Assert.Equal(Vector3d.XAxis, frame.XAxis);
@@ -36,7 +36,7 @@ public sealed class CoordinateSystemTests
     [Fact]
     public void TheAxesAreAlwaysOrthonormalAndRightHanded()
     {
-        CoordinateSystem frame = CoordinateSystem.ByOriginXAxisYAxis(
+        CoordinateSystem frame = CoordinateSystem.FromOriginXAxisYAxis(
             new Point3d(1.0, 2.0, 3.0),
             new Vector3d(2.0, 0.0, 0.0),
             new Vector3d(3.0, 4.0, 0.0));
@@ -65,7 +65,7 @@ public sealed class CoordinateSystemTests
     [Fact]
     public void ByOriginZAxisAlignsTheThirdAxisAndReproducesTheWorldFrameForZ()
     {
-        CoordinateSystem frame = CoordinateSystem.ByOriginZAxis(Point3d.Origin, new Vector3d(0.0, 0.0, 9.0));
+        CoordinateSystem frame = CoordinateSystem.FromOriginZAxis(Point3d.Origin, new Vector3d(0.0, 0.0, 9.0));
 
         Assert.Equal(CoordinateSystem.Identity, frame);
     }
@@ -74,7 +74,7 @@ public sealed class CoordinateSystemTests
     public void ByOriginZAxisPointsTheThirdAxisWhereItIsTold()
     {
         Vector3d direction = new(1.0, 2.0, 3.0);
-        CoordinateSystem frame = CoordinateSystem.ByOriginZAxis(Point3d.Origin, direction);
+        CoordinateSystem frame = CoordinateSystem.FromOriginZAxis(Point3d.Origin, direction);
 
         Assert.True(frame.ZAxis.EqualsWithin(direction.Normalised()));
     }
@@ -82,8 +82,8 @@ public sealed class CoordinateSystemTests
     [Fact]
     public void AFrameAndAPlaneCarryTheSameInformation()
     {
-        Plane plane = Plane.ByOriginNormal(new Point3d(1.0, 2.0, 3.0), new Vector3d(1.0, 1.0, 1.0));
-        CoordinateSystem frame = CoordinateSystem.ByPlane(plane);
+        Plane plane = Plane.FromOriginNormal(new Point3d(1.0, 2.0, 3.0), new Vector3d(1.0, 1.0, 1.0));
+        CoordinateSystem frame = CoordinateSystem.FromPlane(plane);
 
         Assert.Equal(plane.Origin, frame.Origin);
         Assert.Equal(plane.XAxis, frame.XAxis);
@@ -104,13 +104,13 @@ public sealed class CoordinateSystemTests
     [Fact]
     public void ByPlaneRejectsAnInvalidPlane()
     {
-        Assert.Throws<ArgumentException>(() => CoordinateSystem.ByPlane(default));
+        Assert.Throws<ArgumentException>(() => CoordinateSystem.FromPlane(default));
     }
 
     [Fact]
     public void ToLocalAndToWorldAreInversesForPoints()
     {
-        CoordinateSystem frame = CoordinateSystem.ByOriginXAxisYAxis(
+        CoordinateSystem frame = CoordinateSystem.FromOriginXAxisYAxis(
             new Point3d(10.0, 20.0, 30.0),
             new Vector3d(0.0, 1.0, 0.0),
             new Vector3d(0.0, 0.0, 1.0));
@@ -124,7 +124,7 @@ public sealed class CoordinateSystemTests
     [Fact]
     public void TheFramesOriginIsTheZeroOfItsLocalCoordinates()
     {
-        CoordinateSystem frame = CoordinateSystem.ByOrigin(new Point3d(5.0, 6.0, 7.0));
+        CoordinateSystem frame = CoordinateSystem.FromOrigin(new Point3d(5.0, 6.0, 7.0));
 
         Assert.True(frame.ToLocal(frame.Origin).EqualsWithin(Point3d.Origin));
         Assert.True(frame.ToWorld(Point3d.Origin).EqualsWithin(frame.Origin));
@@ -133,7 +133,7 @@ public sealed class CoordinateSystemTests
     [Fact]
     public void ConvertingADirectionIgnoresTheOrigin()
     {
-        CoordinateSystem frame = CoordinateSystem.ByOrigin(new Point3d(1000.0, 1000.0, 1000.0));
+        CoordinateSystem frame = CoordinateSystem.FromOrigin(new Point3d(1000.0, 1000.0, 1000.0));
 
         Assert.True(frame.ToLocal(Vector3d.XAxis).EqualsWithin(Vector3d.XAxis));
         Assert.True(frame.ToWorld(Vector3d.XAxis).EqualsWithin(Vector3d.XAxis));
@@ -142,7 +142,7 @@ public sealed class CoordinateSystemTests
     [Fact]
     public void ToTransformAgreesWithToWorld()
     {
-        CoordinateSystem frame = CoordinateSystem.ByOriginXAxisYAxis(
+        CoordinateSystem frame = CoordinateSystem.FromOriginXAxisYAxis(
             new Point3d(10.0, 20.0, 30.0),
             new Vector3d(1.0, 1.0, 0.0),
             new Vector3d(-1.0, 1.0, 0.0));
@@ -158,7 +158,7 @@ public sealed class CoordinateSystemTests
     [Fact]
     public void ToTransformIsTheInverseOfChangeBasisOnTheEquivalentPlane()
     {
-        CoordinateSystem frame = CoordinateSystem.ByOriginZAxis(
+        CoordinateSystem frame = CoordinateSystem.FromOriginZAxis(
             new Point3d(4.0, 5.0, 6.0),
             new Vector3d(1.0, -2.0, 3.0));
 
@@ -169,7 +169,7 @@ public sealed class CoordinateSystemTests
     public void EqualityIsExactAndEqualFramesShareAHashCode()
     {
         Assert.True(CoordinateSystem.Identity == CoordinateSystem.Identity);
-        Assert.True(CoordinateSystem.Identity != CoordinateSystem.ByOrigin(new Point3d(1.0, 0.0, 0.0)));
+        Assert.True(CoordinateSystem.Identity != CoordinateSystem.FromOrigin(new Point3d(1.0, 0.0, 0.0)));
         Assert.Equal(
             CoordinateSystem.Identity.GetHashCode(),
             CoordinateSystem.Identity.GetHashCode());

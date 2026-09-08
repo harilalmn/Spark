@@ -146,7 +146,7 @@ public readonly struct Plane : IEquatable<Plane>
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="normal"/> is zero-length or non-finite.
     /// </exception>
-    public static Plane ByOriginNormal(in Point3d origin, in Vector3d normal) => new(origin, normal);
+    public static Plane FromOriginNormal(in Point3d origin, in Vector3d normal) => new(origin, normal);
 
     /// <summary>
     /// Creates a plane from an origin and two in-plane directions.
@@ -167,7 +167,7 @@ public readonly struct Plane : IEquatable<Plane>
     /// Thrown when either direction is zero-length or non-finite, or when the two are
     /// parallel and therefore span no plane.
     /// </exception>
-    public static Plane ByOriginXAxisYAxis(in Point3d origin, in Vector3d xAxis, in Vector3d yAxis)
+    public static Plane FromOriginXAxisYAxis(in Point3d origin, in Vector3d xAxis, in Vector3d yAxis)
     {
         if (!origin.IsValid)
         {
@@ -211,12 +211,12 @@ public readonly struct Plane : IEquatable<Plane>
     /// <remarks>
     /// This is the only factory that fixes both the plane <b>and</b> its in-plane rotation
     /// without needing a second point.
-    /// <see cref="ByOriginNormal(in Point3d, in Vector3d)"/> picks an arbitrary X axis, and
-    /// <see cref="ByOriginXAxisYAxis(in Point3d, in Vector3d, in Vector3d)"/> asks for the
+    /// <see cref="FromOriginNormal(in Point3d, in Vector3d)"/> picks an arbitrary X axis, and
+    /// <see cref="FromOriginXAxisYAxis(in Point3d, in Vector3d, in Vector3d)"/> asks for the
     /// plane in terms of two in-plane directions rather than in terms of the normal. Which of
     /// the three to reach for is decided by which two facts the caller actually has.
     /// </remarks>
-    public static Plane ByOriginNormalXAxis(in Point3d origin, in Vector3d normal, in Vector3d xAxis)
+    public static Plane FromOriginNormalXAxis(in Point3d origin, in Vector3d normal, in Vector3d xAxis)
     {
         if (!origin.IsValid)
         {
@@ -264,10 +264,10 @@ public readonly struct Plane : IEquatable<Plane>
     /// Thrown when the three points are collinear or coincident, and therefore define no
     /// unique plane, or when any of them is not finite. The <c>ParamName</c> names the
     /// offending point from <i>this</i> method's signature: an earlier version forwarded to
-    /// <see cref="ByOriginXAxisYAxis(in Point3d, in Vector3d, in Vector3d)"/> and reported
+    /// <see cref="FromOriginXAxisYAxis(in Point3d, in Vector3d, in Vector3d)"/> and reported
     /// <c>yAxis</c>, a parameter no caller of this method has ever heard of.
     /// </exception>
-    public static Plane ByThreePoints(in Point3d first, in Point3d second, in Point3d third)
+    public static Plane FromThreePoints(in Point3d first, in Point3d second, in Point3d third)
     {
         if (!first.IsValid)
         {

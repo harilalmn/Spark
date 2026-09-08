@@ -35,7 +35,7 @@ public sealed class PlaneTests
     [Fact]
     public void APlaneWithAZNormalReproducesTheWorldXYFrameExactly()
     {
-        Plane plane = Plane.ByOriginNormal(Point3d.Origin, new Vector3d(0.0, 0.0, 4.0));
+        Plane plane = Plane.FromOriginNormal(Point3d.Origin, new Vector3d(0.0, 0.0, 4.0));
 
         Assert.Equal(Vector3d.XAxis, plane.XAxis);
         Assert.Equal(Vector3d.YAxis, plane.YAxis);
@@ -45,7 +45,7 @@ public sealed class PlaneTests
     [Fact]
     public void AnArbitraryNormalStillProducesAnOrthonormalRightHandedFrame()
     {
-        Plane plane = Plane.ByOriginNormal(new Point3d(1.0, 2.0, 3.0), new Vector3d(1.0, 2.0, 3.0));
+        Plane plane = Plane.FromOriginNormal(new Point3d(1.0, 2.0, 3.0), new Vector3d(1.0, 2.0, 3.0));
 
         AssertRightHanded(plane);
         Assert.True(plane.Normal.IsUnit());
@@ -63,7 +63,7 @@ public sealed class PlaneTests
     [Fact]
     public void ByOriginXAxisYAxisKeepsTheXAxisAndOrthogonalisesTheY()
     {
-        Plane plane = Plane.ByOriginXAxisYAxis(
+        Plane plane = Plane.FromOriginXAxisYAxis(
             Point3d.Origin,
             Vector3d.XAxis,
             new Vector3d(1.0, 1.0, 0.0));
@@ -77,13 +77,13 @@ public sealed class PlaneTests
     public void ByOriginXAxisYAxisRejectsParallelAxes()
     {
         Assert.Throws<ArgumentException>(
-            () => Plane.ByOriginXAxisYAxis(Point3d.Origin, Vector3d.XAxis, Vector3d.XAxis));
+            () => Plane.FromOriginXAxisYAxis(Point3d.Origin, Vector3d.XAxis, Vector3d.XAxis));
     }
 
     [Fact]
     public void ByThreePointsPutsTheOriginOnTheFirstPointAndTheXAxisTowardsTheSecond()
     {
-        Plane plane = Plane.ByThreePoints(
+        Plane plane = Plane.FromThreePoints(
             new Point3d(1.0, 1.0, 0.0),
             new Point3d(3.0, 1.0, 0.0),
             new Point3d(1.0, 5.0, 0.0));
@@ -100,14 +100,14 @@ public sealed class PlaneTests
         Point3d b = new(1.0, 0.0, 0.0);
         Point3d c = new(0.0, 1.0, 0.0);
 
-        Assert.True(Plane.ByThreePoints(a, b, c).Normal.EqualsWithin(Vector3d.ZAxis));
-        Assert.True(Plane.ByThreePoints(a, c, b).Normal.EqualsWithin(-Vector3d.ZAxis));
+        Assert.True(Plane.FromThreePoints(a, b, c).Normal.EqualsWithin(Vector3d.ZAxis));
+        Assert.True(Plane.FromThreePoints(a, c, b).Normal.EqualsWithin(-Vector3d.ZAxis));
     }
 
     [Fact]
     public void ByThreePointsRejectsCollinearPoints()
     {
-        Assert.Throws<ArgumentException>(() => Plane.ByThreePoints(
+        Assert.Throws<ArgumentException>(() => Plane.FromThreePoints(
             new Point3d(0.0, 0.0, 0.0),
             new Point3d(1.0, 0.0, 0.0),
             new Point3d(2.0, 0.0, 0.0)));
@@ -116,24 +116,24 @@ public sealed class PlaneTests
     [Fact]
     public void ByThreePointsBlamesAParameterItActuallyHas()
     {
-        // It used to forward to ByOriginXAxisYAxis, so a caller who passed three collinear
+        // It used to forward to FromOriginXAxisYAxis, so a caller who passed three collinear
         // points was told the problem was with "yAxis" - a parameter absent from the
         // signature they called.
-        ArgumentException collinear = Assert.Throws<ArgumentException>(() => Plane.ByThreePoints(
+        ArgumentException collinear = Assert.Throws<ArgumentException>(() => Plane.FromThreePoints(
             new Point3d(0.0, 0.0, 0.0),
             new Point3d(1.0, 0.0, 0.0),
             new Point3d(2.0, 0.0, 0.0)));
 
         Assert.Equal("third", collinear.ParamName);
 
-        ArgumentException coincident = Assert.Throws<ArgumentException>(() => Plane.ByThreePoints(
+        ArgumentException coincident = Assert.Throws<ArgumentException>(() => Plane.FromThreePoints(
             new Point3d(1.0, 1.0, 1.0),
             new Point3d(1.0, 1.0, 1.0),
             new Point3d(2.0, 0.0, 0.0)));
 
         Assert.Equal("second", coincident.ParamName);
 
-        ArgumentException unset = Assert.Throws<ArgumentException>(() => Plane.ByThreePoints(
+        ArgumentException unset = Assert.Throws<ArgumentException>(() => Plane.FromThreePoints(
             Point3d.Origin,
             Point3d.Unset,
             new Point3d(2.0, 0.0, 0.0)));
@@ -144,7 +144,7 @@ public sealed class PlaneTests
     [Fact]
     public void ContainsIsScaleAwareLikeEveryOtherProximityTestInTheLayer()
     {
-        Plane plane = Plane.ByOriginNormal(new Point3d(0.0, 0.0, 1e12), Vector3d.ZAxis);
+        Plane plane = Plane.FromOriginNormal(new Point3d(0.0, 0.0, 1e12), Vector3d.ZAxis);
 
         Assert.True(plane.Contains(new Point3d(0.0, 0.0, 1e12 + 0.5)));
         Assert.False(plane.Contains(new Point3d(0.0, 0.0, 1e12 + 500.0)));
@@ -193,7 +193,7 @@ public sealed class PlaneTests
     [Fact]
     public void ConvertingToTwoDimensionsAndBackRoundTripsAPointOnThePlane()
     {
-        Plane plane = Plane.ByOriginNormal(new Point3d(1.0, 2.0, 3.0), new Vector3d(1.0, 1.0, 1.0));
+        Plane plane = Plane.FromOriginNormal(new Point3d(1.0, 2.0, 3.0), new Vector3d(1.0, 1.0, 1.0));
         Point3d onPlane = plane.To3d(new Point2d(4.0, -7.0));
 
         Assert.True(plane.To3d(plane.To2d(onPlane)).EqualsWithin(onPlane));
@@ -203,7 +203,7 @@ public sealed class PlaneTests
     [Fact]
     public void TheOriginIsTheZeroOfThePlanesTwoDimensionalCoordinates()
     {
-        Plane plane = Plane.ByOriginNormal(new Point3d(5.0, 6.0, 7.0), Vector3d.ZAxis);
+        Plane plane = Plane.FromOriginNormal(new Point3d(5.0, 6.0, 7.0), Vector3d.ZAxis);
 
         Assert.True(plane.To2d(plane.Origin).EqualsWithin(Point2d.Origin));
     }
@@ -220,11 +220,11 @@ public sealed class PlaneTests
     public void CoplanarityIgnoresDirectionAndTheInPlaneAxes()
     {
         Plane plane = Plane.WorldXY;
-        Plane shifted = Plane.ByOriginNormal(new Point3d(50.0, -20.0, 0.0), Vector3d.ZAxis);
+        Plane shifted = Plane.FromOriginNormal(new Point3d(50.0, -20.0, 0.0), Vector3d.ZAxis);
 
         Assert.True(plane.IsCoplanar(shifted));
         Assert.True(plane.IsCoplanar(plane.Flipped()));
-        Assert.False(plane.IsCoplanar(Plane.ByOriginNormal(new Point3d(0.0, 0.0, 1.0), Vector3d.ZAxis)));
+        Assert.False(plane.IsCoplanar(Plane.FromOriginNormal(new Point3d(0.0, 0.0, 1.0), Vector3d.ZAxis)));
         Assert.False(plane.IsCoplanar(Plane.WorldYZ));
     }
 
@@ -232,7 +232,7 @@ public sealed class PlaneTests
     public void EqualsWithinIsStricterThanCoplanarity()
     {
         Plane plane = Plane.WorldXY;
-        Plane shifted = Plane.ByOriginNormal(new Point3d(50.0, -20.0, 0.0), Vector3d.ZAxis);
+        Plane shifted = Plane.FromOriginNormal(new Point3d(50.0, -20.0, 0.0), Vector3d.ZAxis);
 
         Assert.True(plane.IsCoplanar(shifted));
         Assert.False(plane.EqualsWithin(shifted));
@@ -297,7 +297,7 @@ public sealed class PlaneTests
     {
         // The requested X axis leans out of the plane by 45 degrees; only what lies in the
         // plane survives, so the frame is orthonormal and XAxis is the projection.
-        Plane plane = Plane.ByOriginNormalXAxis(
+        Plane plane = Plane.FromOriginNormalXAxis(
             Point3d.Origin,
             Vector3d.ZAxis,
             new Vector3d(1.0, 0.0, 1.0));
@@ -310,7 +310,7 @@ public sealed class PlaneTests
     [Fact]
     public void ByOriginNormalXAxisPinsTheInPlaneRotation()
     {
-        Plane rotated = Plane.ByOriginNormalXAxis(
+        Plane rotated = Plane.FromOriginNormalXAxis(
             Point3d.Origin,
             Vector3d.ZAxis,
             new Vector3d(1.0, 1.0, 0.0));
@@ -328,7 +328,7 @@ public sealed class PlaneTests
     public void ByOriginNormalXAxisRejectsAnXAxisParallelToTheNormal()
     {
         ArgumentException failure = Assert.Throws<ArgumentException>(
-            () => Plane.ByOriginNormalXAxis(Point3d.Origin, Vector3d.ZAxis, new Vector3d(0.0, 0.0, -2.0)));
+            () => Plane.FromOriginNormalXAxis(Point3d.Origin, Vector3d.ZAxis, new Vector3d(0.0, 0.0, -2.0)));
 
         Assert.Equal("xAxis", failure.ParamName);
     }
@@ -337,9 +337,9 @@ public sealed class PlaneTests
     public void ByOriginNormalXAxisRejectsADegenerateNormalAndANonFiniteOrigin()
     {
         Assert.Throws<ArgumentException>(
-            () => Plane.ByOriginNormalXAxis(Point3d.Origin, Vector3d.Zero, Vector3d.XAxis));
+            () => Plane.FromOriginNormalXAxis(Point3d.Origin, Vector3d.Zero, Vector3d.XAxis));
         Assert.Throws<ArgumentException>(
-            () => Plane.ByOriginNormalXAxis(new Point3d(double.NaN, 0.0, 0.0), Vector3d.ZAxis, Vector3d.XAxis));
+            () => Plane.FromOriginNormalXAxis(new Point3d(double.NaN, 0.0, 0.0), Vector3d.ZAxis, Vector3d.XAxis));
     }
     private static void AssertRightHanded(in Plane plane)
     {

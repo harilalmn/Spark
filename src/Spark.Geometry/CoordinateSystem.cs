@@ -10,7 +10,7 @@ namespace Spark.Geometry;
 /// <para>
 /// A coordinate system is a full three-dimensional frame, where a <see cref="Plane"/> is the
 /// same information read as a surface. The two are interchangeable through
-/// <see cref="ByPlane(in Plane)"/> and <see cref="ToPlane"/>; use whichever names the thing
+/// <see cref="FromPlane(in Plane)"/> and <see cref="ToPlane"/>; use whichever names the thing
 /// you are actually talking about, since a reader learns more from
 /// <c>CoordinateSystem</c> in a signature about placement than from <c>Plane</c>.
 /// </para>
@@ -121,7 +121,7 @@ public readonly struct CoordinateSystem : IEquatable<CoordinateSystem>
     /// <param name="origin">The frame's origin.</param>
     /// <returns>A world-aligned frame at that point.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="origin"/> is not finite.</exception>
-    public static CoordinateSystem ByOrigin(in Point3d origin)
+    public static CoordinateSystem FromOrigin(in Point3d origin)
     {
         if (!origin.IsValid)
         {
@@ -145,7 +145,7 @@ public readonly struct CoordinateSystem : IEquatable<CoordinateSystem>
     /// <exception cref="ArgumentException">
     /// Thrown when either direction is degenerate or the two are parallel.
     /// </exception>
-    public static CoordinateSystem ByOriginXAxisYAxis(
+    public static CoordinateSystem FromOriginXAxisYAxis(
         in Point3d origin,
         in Vector3d xAxis,
         in Vector3d yAxis) => new(origin, xAxis, yAxis);
@@ -165,8 +165,8 @@ public readonly struct CoordinateSystem : IEquatable<CoordinateSystem>
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="zAxis"/> is zero-length or non-finite.
     /// </exception>
-    public static CoordinateSystem ByOriginZAxis(in Point3d origin, in Vector3d zAxis) =>
-        ByPlane(new Plane(origin, zAxis));
+    public static CoordinateSystem FromOriginZAxis(in Point3d origin, in Vector3d zAxis) =>
+        FromPlane(new Plane(origin, zAxis));
 
     /// <summary>
     /// Creates the coordinate system whose X and Y axes are a plane's in-plane axes and whose
@@ -175,7 +175,7 @@ public readonly struct CoordinateSystem : IEquatable<CoordinateSystem>
     /// <param name="plane">The plane to read as a frame.</param>
     /// <returns>The equivalent coordinate system.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="plane"/> is not valid.</exception>
-    public static CoordinateSystem ByPlane(in Plane plane)
+    public static CoordinateSystem FromPlane(in Plane plane)
     {
         if (!plane.IsValid)
         {
@@ -197,7 +197,7 @@ public readonly struct CoordinateSystem : IEquatable<CoordinateSystem>
     {
         ThrowIfInvalid();
 
-        return Plane.ByOriginXAxisYAxis(Origin, XAxis, YAxis);
+        return Plane.FromOriginXAxisYAxis(Origin, XAxis, YAxis);
     }
 
     /// <summary>

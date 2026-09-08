@@ -51,8 +51,8 @@ public sealed class SweepAndPatchTests
         Circle profile = new(Plane.WorldXY, 0.5);
 
         // A quarter turn in the XZ plane, starting where the profile is.
-        Arc rail = Arc.ByPlaneRadiusAngles(
-            Plane.ByOriginXAxisYAxis(new Point3d(4, 0, 0), Vector3d.XAxis, Vector3d.ZAxis),
+        Arc rail = Arc.FromPlaneRadiusAngles(
+            Plane.FromOriginXAxisYAxis(new Point3d(4, 0, 0), Vector3d.XAxis, Vector3d.ZAxis),
             4.0,
             Angle.FromDegrees(180),
             Angle.FromDegrees(90));
@@ -101,11 +101,11 @@ public sealed class SweepAndPatchTests
     [NativeFact]
     public void APolyCurveOfMixedSegmentsSweepsWithoutApproximation()
     {
-        PolyCurve chain = PolyCurve.ByJoinedCurves(
+        PolyCurve chain = PolyCurve.FromJoinedCurves(
         [
             new Line(new Point3d(0, 0, 0), new Point3d(4, 0, 0)),
-            Arc.ByPlaneRadiusAngles(
-                Plane.ByOriginXAxisYAxis(new Point3d(4, 1, 0), Vector3d.XAxis, Vector3d.YAxis),
+            Arc.FromPlaneRadiusAngles(
+                Plane.FromOriginXAxisYAxis(new Point3d(4, 1, 0), Vector3d.XAxis, Vector3d.YAxis),
                 1.0,
                 Angle.FromDegrees(-90),
                 Angle.FromDegrees(90)),

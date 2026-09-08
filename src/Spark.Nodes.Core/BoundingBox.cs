@@ -8,7 +8,7 @@ namespace Spark.Nodes.Core;
 /// </summary>
 /// <remarks>
 /// As with <see cref="Plane"/>, the type name shadows the kernel type of the same name so that the
-/// generated node reads <c>BoundingBox.ByCorners</c>; the kernel type is written out in full.
+/// generated node reads <c>BoundingBox.FromCorners</c>; the kernel type is written out in full.
 /// </remarks>
 [SparkNode(Category = NodeCategories.Solid)]
 public static class BoundingBox
@@ -18,7 +18,8 @@ public static class BoundingBox
     /// <param name="oppositeCorner">The corner diagonally opposite it.</param>
     /// <returns>The box.</returns>
     [return: NodePort("box")]
-    public static Spark.Geometry.BoundingBox ByCorners(Point3d corner, Point3d oppositeCorner) =>
+    [SparkNodeAlias("BoundingBox.ByCorners")]
+    public static Spark.Geometry.BoundingBox FromCorners(Point3d corner, Point3d oppositeCorner) =>
         new(corner, oppositeCorner);
 
     /// <summary>The centre of a box.</summary>

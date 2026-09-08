@@ -39,7 +39,7 @@ public sealed class KernelEnvelopeTests
     private static Brep Realistic(int seed)
     {
         Brep plate = BrepPrimitives.Box(
-            Plane.ByOriginXAxisYAxis(new Point3d(0, 0, seed * 0.01), Vector3d.XAxis, Vector3d.YAxis),
+            Plane.FromOriginXAxisYAxis(new Point3d(0, 0, seed * 0.01), Vector3d.XAxis, Vector3d.YAxis),
             20,
             12,
             2);
@@ -49,7 +49,7 @@ public sealed class KernelEnvelopeTests
         for (int i = 0; i < 6; i++)
         {
             Brep drill = BrepPrimitives.Cylinder(
-                Plane.ByOriginXAxisYAxis(
+                Plane.FromOriginXAxisYAxis(
                     new Point3d(2 + (i * 3), 6, (seed * 0.01) - 1), Vector3d.XAxis, Vector3d.YAxis),
                 0.8,
                 4);
@@ -142,9 +142,9 @@ public sealed class KernelEnvelopeTests
             for (int i = 0; i < Each; i++)
             {
                 Brep first = BrepPrimitives.Box(
-                    Plane.ByOriginXAxisYAxis(Point3d.Origin, Vector3d.XAxis, Vector3d.YAxis), 2, 3, 4);
+                    Plane.FromOriginXAxisYAxis(Point3d.Origin, Vector3d.XAxis, Vector3d.YAxis), 2, 3, 4);
                 Brep second = BrepPrimitives.Box(
-                    Plane.ByOriginXAxisYAxis(new Point3d(1, 1, 1), Vector3d.XAxis, Vector3d.YAxis), 2, 3, 4);
+                    Plane.FromOriginXAxisYAxis(new Point3d(1, 1, 1), Vector3d.XAxis, Vector3d.YAxis), 2, 3, 4);
 
                 KernelResult<Brep> fused = Kernel.Union(first, second, Fine);
 
@@ -278,7 +278,7 @@ public sealed class KernelEnvelopeTests
             ("union", Kernel.Union(
                 BrepPrimitives.Box(Plane.WorldXY, 2, 3, 4),
                 BrepPrimitives.Box(
-                    Plane.ByOriginXAxisYAxis(new Point3d(1, 1, 1), Vector3d.XAxis, Vector3d.YAxis),
+                    Plane.FromOriginXAxisYAxis(new Point3d(1, 1, 1), Vector3d.XAxis, Vector3d.YAxis),
                     2,
                     3,
                     4),

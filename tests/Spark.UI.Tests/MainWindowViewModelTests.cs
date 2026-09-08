@@ -28,7 +28,7 @@ public sealed class MainWindowViewModelTests
         using MainWindowViewModel model = new();
 
         Assert.True(model.LibraryCount > 20, $"Only {model.LibraryCount} nodes were imported.");
-        Assert.Contains(model.AllLibraryEntries, entry => entry.DisplayName == "Point.ByCoordinates");
+        Assert.Contains(model.AllLibraryEntries, entry => entry.DisplayName == "Point.FromCoordinates");
         Assert.Contains(model.AllLibraryEntries, entry => entry.DisplayName == "Number.Range");
 
         // Descriptions come from the XML comments, which is what makes the tooltips real.
@@ -132,7 +132,7 @@ public sealed class MainWindowViewModelTests
     {
         using MainWindowViewModel model = new();
 
-        model.ShowSelection([SlotOf(model, "Point.ByCoordinates")]);
+        model.ShowSelection([SlotOf(model, "Point.FromCoordinates")]);
 
         Assert.All(model.Inspector, port => Assert.True(port.IsWired));
         Assert.All(model.Inspector, port => Assert.False(port.IsEditable));
@@ -175,7 +175,7 @@ public sealed class MainWindowViewModelTests
 
         Assert.Equal(1, model.Scene.Count);
 
-        model.Graph.Remove(SlotOf(model, "Display.ByGeometryColour"));
+        model.Graph.Remove(SlotOf(model, "Display.FromGeometryColour"));
         await model.EvaluateAsync();
 
         // Nothing else in the demo is a terminal port that produces geometry — the point node still
@@ -218,7 +218,7 @@ public sealed class MainWindowViewModelTests
     /// The library panel ranks rather than filters: typing the capitals finds the node.
     /// </summary>
     /// <remarks>
-    /// `cbcr` finding `Circle.ByCentreRadius` is the specified behaviour (`E8-T8`) and the reason
+    /// `cfcr` finding `Circle.FromCentreRadius` is the specified behaviour (`E8-T8`) and the reason
     /// the search is a ranking rather than a `Contains`. The old filter returned nothing for this
     /// query, which is the failure a library of thousands makes unbearable.
     /// </remarks>
@@ -227,10 +227,10 @@ public sealed class MainWindowViewModelTests
     {
         using MainWindowViewModel model = new();
 
-        model.LibrarySearch = "cbcr";
+        model.LibrarySearch = "cfcr";
 
         Assert.NotEmpty(model.LibraryEntries);
-        Assert.Equal("Circle.ByCentreRadius", model.LibraryEntries[0].DisplayName);
+        Assert.Equal("Circle.FromCentreRadius", model.LibraryEntries[0].DisplayName);
     }
 
     /// <summary>
@@ -265,7 +265,7 @@ public sealed class MainWindowViewModelTests
     /// <b>This is the screenful the client photographed.</b> <c>circ</c> matches four <c>Circle</c>
     /// constructors equally well, and they used to come out ordered by name length — a rule that is
     /// real and that nobody looking at the list can see. The fifth result is the one that proves
-    /// relevance still sits above the new keys: <c>PolyLine.ByRegularPolygon</c> is also a
+    /// relevance still sits above the new keys: <c>PolyLine.FromRegularPolygon</c> is also a
     /// <c>Create</c>, and it stays below all four because it matches the query less well, not
     /// because of what it does. <see cref="NodeSearchTests"/> pins the rule; this pins the screen.
     /// </remarks>
@@ -278,11 +278,11 @@ public sealed class MainWindowViewModelTests
 
         Assert.Equal(
             [
-                "Circle.ByCentreNormalRadius",
-                "Circle.ByCentreRadius",
-                "Circle.ByPlaneRadius",
-                "Circle.ByThreePoints",
-                "PolyLine.ByRegularPolygon",
+                "Circle.FromCentreNormalRadius",
+                "Circle.FromCentreRadius",
+                "Circle.FromPlaneRadius",
+                "Circle.FromThreePoints",
+                "PolyLine.FromRegularPolygon",
             ],
             model.CreateResults.Select(result => result.DisplayName));
     }
@@ -295,18 +295,18 @@ public sealed class MainWindowViewModelTests
     {
         using MainWindowViewModel model = new();
 
-        model.CreateSearch = "cbcr";
+        model.CreateSearch = "cfcr";
         LibraryEntryViewModel entry = model.CreateResults[0];
 
         int slot = model.PlaceEntryAt(entry, 420, 240);
 
-        Assert.Equal("Circle.ByCentreRadius", model.Graph.Nodes[slot].Title);
+        Assert.Equal("Circle.FromCentreRadius", model.Graph.Nodes[slot].Title);
         Assert.Equal(420, model.Graph.Nodes[slot].X, 6);
         Assert.Equal(240, model.Graph.Nodes[slot].Y, 6);
-        Assert.Equal("Undo Add Circle.ByCentreRadius", model.UndoDescription);
+        Assert.Equal("Undo Add Circle.FromCentreRadius", model.UndoDescription);
 
         model.Undo();
-        Assert.DoesNotContain(model.Graph.Nodes, node => node.Title == "Circle.ByCentreRadius");
+        Assert.DoesNotContain(model.Graph.Nodes, node => node.Title == "Circle.FromCentreRadius");
 
         await model.EvaluateAsync();
     }

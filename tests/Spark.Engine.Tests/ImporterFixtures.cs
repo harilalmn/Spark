@@ -30,7 +30,7 @@ public sealed class ImportedCircle
     /// <param name="centre">The centre.</param>
     /// <param name="radius">The radius.</param>
     /// <returns>The circle.</returns>
-    public static ImportedCircle ByCentreRadius(double centre, double radius) => new(centre, radius);
+    public static ImportedCircle FromCentreRadius(double centre, double radius) => new(centre, radius);
 }
 
 /// <summary>

@@ -40,7 +40,7 @@ public static class NodeReference
 
     /// <summary>The topic id for a node key.</summary>
     /// <param name="key">The node key.</param>
-    /// <returns>A stable id such as <c>nodes.Spark.Core/Point.ByCoordinates</c>.</returns>
+    /// <returns>A stable id such as <c>nodes.Spark.Core/Point.FromCoordinates</c>.</returns>
     public static string TopicIdFor(NodeKey key) => TopicPrefix + key.Value;
 
     /// <summary>Builds the page for one node.</summary>

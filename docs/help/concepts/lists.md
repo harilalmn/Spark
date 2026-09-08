@@ -99,7 +99,7 @@ Ten points along a line, keeping every third one:
 1. **Place `Number.Range`.** Set `start` to `0`, `end` to `9`, `step` to `1`. Its output is ten
    numbers. Put a Watch node on it and you will see them.
 
-2. **Place `Point.ByCoordinates`** and wire the range into `x`. Leave `y` and `z` at zero. Ten
+2. **Place `Point.FromCoordinates`** and wire the range into `x`. Leave `y` and `z` at zero. Ten
    points appear in the viewport, in a row along the world x axis. *That is lacing doing its work
    — one node, ten results — and it is [lacing.md](lacing.md)'s subject, not this topic's.*
 

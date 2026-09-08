@@ -34,8 +34,8 @@ public enum NodeMemberKind
     Auto = 0,
 
     /// <summary>
-    /// Makes a new thing out of values that are not one — <c>Point.ByCoordinates</c>,
-    /// <c>Circle.ByCentreRadius</c>, <c>Vector.ZAxis</c>. The green <c>+</c>.
+    /// Makes a new thing out of values that are not one — <c>Point.FromCoordinates</c>,
+    /// <c>Circle.FromCentreRadius</c>, <c>Vector.ZAxis</c>. The green <c>+</c>.
     /// </summary>
     Create = 1,
 

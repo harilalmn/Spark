@@ -13,7 +13,7 @@ public sealed class ObjWriterTests
     private static readonly Curve[] Two =
     [
         new Line(new Point3d(0.0, 0.0, 0.0), new Point3d(1.0, 0.0, 0.0)),
-        Circle.ByCentreRadius(new Point3d(5.0, 0.0, 0.0), 2.0),
+        Circle.FromCentreRadius(new Point3d(5.0, 0.0, 0.0), 2.0),
     ];
 
     [Fact]

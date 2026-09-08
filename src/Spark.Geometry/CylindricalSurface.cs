@@ -95,7 +95,7 @@ public sealed class CylindricalSurface : Surface
         double scale = SphericalSurface.UniformScale(transform, nameof(transform), "cylinder");
 
         return new CylindricalSurface(
-            Plane.ByOriginXAxisYAxis(
+            Plane.FromOriginXAxisYAxis(
                 transform.OfPoint(_frame.Origin),
                 transform.OfVector(_frame.XAxis),
                 transform.OfVector(_frame.YAxis)),

@@ -155,7 +155,7 @@ public sealed class CurveClosestPointTests
     [Fact]
     public void TheCentreOfACircleIsADegenerateCaseThatStillAnswers()
     {
-        Circle circle = Circle.ByPlaneRadius(Plane.WorldXY, 4.0);
+        Circle circle = Circle.FromPlaneRadius(Plane.WorldXY, 4.0);
 
         Assert.Equal(4.0, circle.DistanceTo(Point3d.Origin), 6);
         Assert.InRange(circle.ClosestParameter(Point3d.Origin), circle.Domain.Min, circle.Domain.Max);
@@ -168,7 +168,7 @@ public sealed class CurveClosestPointTests
     [Fact]
     public void AClosedCurveReturnsTheNearSideAndNotTheFar()
     {
-        Circle circle = Circle.ByPlaneRadius(Plane.WorldXY, 4.0);
+        Circle circle = Circle.FromPlaneRadius(Plane.WorldXY, 4.0);
         Point3d outside = new(6, 0, 0);
 
         Assert.True(circle.ClosestPoint(outside).EqualsWithin(new Point3d(4, 0, 0)));
@@ -242,14 +242,14 @@ public sealed class CurveClosestPointTests
     private static Curve Build(string name) => name switch
     {
         "line" => new Line(new Point3d(-3, 1, 2), new Point3d(6, 4, -1)),
-        "circle" => Circle.ByPlaneRadius(Plane.WorldXY, 4.0),
-        "arc" => Arc.ByPlaneRadiusAngles(
+        "circle" => Circle.FromPlaneRadius(Plane.WorldXY, 4.0),
+        "arc" => Arc.FromPlaneRadiusAngles(
             Plane.WorldXY, 3.0, Angle.FromDegrees(20), Angle.FromDegrees(200)),
-        "ellipse" => EllipseCurve.ByPlaneRadiiAngles(
+        "ellipse" => EllipseCurve.FromPlaneRadiiAngles(
             Plane.WorldXY, 5.0, 2.0, Angle.FromDegrees(0), Angle.FromDegrees(360)),
         "polyline" => new PolyLine(
             [new Point3d(0, 0, 0), new Point3d(2, 3, 0), new Point3d(5, 3, 1), new Point3d(7, 0, 1)]),
-        "polycurve" => PolyCurve.ByJoinedCurves(
+        "polycurve" => PolyCurve.FromJoinedCurves(
         [
             new Line(new Point3d(0, 0, 0), new Point3d(4, 0, 0)),
             new Line(new Point3d(4, 0, 0), new Point3d(4, 5, 0)),

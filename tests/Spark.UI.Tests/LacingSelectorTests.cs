@@ -113,7 +113,7 @@ public sealed class LacingSelectorTests
         using MainWindowViewModel model = new();
 
         model.ShowSelection([SlotOf(model, "Math.Divide")]);
-        model.ShowSelection([SlotOf(model, "Point.ByCoordinates")]);
+        model.ShowSelection([SlotOf(model, "Point.FromCoordinates")]);
         model.ShowSelection([SlotOf(model, "Math.Divide")]);
 
         Assert.False(model.CanUndo);

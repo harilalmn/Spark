@@ -61,7 +61,7 @@ public sealed class SurfaceTests
         // Flip the plane's y-axis and the normal flips with it, rather than being recomputed from
         // some absolute rule.
         PlaneSurface flipped = new(
-            Plane.ByOriginXAxisYAxis(Point3d.Origin, Vector3d.XAxis, -Vector3d.YAxis),
+            Plane.FromOriginXAxisYAxis(Point3d.Origin, Vector3d.XAxis, -Vector3d.YAxis),
             new Interval(0, 1),
             new Interval(0, 1));
 
@@ -271,7 +271,7 @@ public sealed class SurfaceTests
     [Fact]
     public void TheCentredFactoryCentresIt()
     {
-        PlaneSurface surface = PlaneSurface.ByPlaneSize(Plane.WorldXY, 4.0, 6.0);
+        PlaneSurface surface = PlaneSurface.FromPlaneSize(Plane.WorldXY, 4.0, 6.0);
 
         Assert.Equal(new Interval(-2, 2), surface.DomainU);
         Assert.Equal(new Interval(-3, 3), surface.DomainV);
@@ -283,8 +283,8 @@ public sealed class SurfaceTests
     [Fact]
     public void TheCornerFactorySortsItsCorners()
     {
-        PlaneSurface one = PlaneSurface.ByPlaneCorners(Plane.WorldXY, new Point2d(3, 4), new Point2d(1, 2));
-        PlaneSurface other = PlaneSurface.ByPlaneCorners(Plane.WorldXY, new Point2d(1, 2), new Point2d(3, 4));
+        PlaneSurface one = PlaneSurface.FromPlaneCorners(Plane.WorldXY, new Point2d(3, 4), new Point2d(1, 2));
+        PlaneSurface other = PlaneSurface.FromPlaneCorners(Plane.WorldXY, new Point2d(1, 2), new Point2d(3, 4));
 
         Assert.Equal(one.DomainU, other.DomainU);
         Assert.Equal(one.DomainV, other.DomainV);

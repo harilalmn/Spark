@@ -78,9 +78,10 @@ public static class DateAndTime
     /// that has just been placed produces a value that is obviously a placeholder. A default of
     /// today's date would be a side effect wearing a default's clothes.
     /// </remarks>
-    [SparkNode(Name = "DateTime.ByDateAndTime")]
+    [SparkNode(Name = "DateTime.FromDateAndTime")]
     [return: NodePort("dateTime")]
-    public static DateTime ByDateAndTime(
+    [SparkNodeAlias("DateTime.ByDateAndTime")]
+    public static DateTime FromDateAndTime(
         int year = 1,
         int month = 1,
         int day = 1,
@@ -284,9 +285,10 @@ public static class Duration
     /// Negative rather than absolute. "How long until the deadline" and "how long since it passed"
     /// are the same question, and a node that returned the magnitude would answer neither.
     /// </remarks>
-    [SparkNode(Name = "TimeSpan.ByDateDifference")]
+    [SparkNode(Name = "TimeSpan.FromDateDifference")]
     [return: NodePort("timeSpan")]
-    public static TimeSpan ByDateDifference(DateTime start, DateTime end) => end - start;
+    [SparkNodeAlias("TimeSpan.ByDateDifference")]
+    public static TimeSpan FromDateDifference(DateTime start, DateTime end) => end - start;
 
     /// <summary>Takes a span apart.</summary>
     /// <param name="timeSpan">The span.</param>

@@ -231,7 +231,7 @@ public sealed class AnalyticSurfaceTests
     public void ExtrudingALineGivesARectangle()
     {
         ExtrusionSurface surface = new(
-            Line.ByStartPointEndPoint(Point3d.Origin, new Point3d(3, 0, 0)), new Vector3d(0, 4, 0));
+            Line.FromStartPointEndPoint(Point3d.Origin, new Point3d(3, 0, 0)), new Vector3d(0, 4, 0));
 
         Assert.Equal(12.0, surface.Area, 1e-6);
         Assert.Equal(new Point3d(3, 4, 0), surface.PointAt(surface.DomainU.Max, 4.0));
@@ -246,7 +246,7 @@ public sealed class AnalyticSurfaceTests
     public void ExtrudingALineAlongItselfHasNoArea()
     {
         ExtrusionSurface surface = new(
-            Line.ByStartPointEndPoint(Point3d.Origin, new Point3d(3, 0, 0)), new Vector3d(4, 0, 0));
+            Line.FromStartPointEndPoint(Point3d.Origin, new Point3d(3, 0, 0)), new Vector3d(4, 0, 0));
 
         Assert.Equal(0.0, surface.Area, 1e-9);
     }
@@ -255,7 +255,7 @@ public sealed class AnalyticSurfaceTests
     [Fact]
     public void AnExtrusionKeepsTheProfilesDomain()
     {
-        Circle circle = Circle.ByCentreRadius(Point3d.Origin, 2.0);
+        Circle circle = Circle.FromCentreRadius(Point3d.Origin, 2.0);
         ExtrusionSurface surface = new(circle, new Vector3d(0, 0, 5));
 
         Assert.Equal(circle.Domain, surface.DomainU);
@@ -274,7 +274,7 @@ public sealed class AnalyticSurfaceTests
     public void RevolvingALineGivesACylinder()
     {
         RevolutionSurface revolved = new(
-            Line.ByStartPointEndPoint(new Point3d(2, 0, 0), new Point3d(2, 0, 5)),
+            Line.FromStartPointEndPoint(new Point3d(2, 0, 0), new Point3d(2, 0, 5)),
             Point3d.Origin,
             Vector3d.ZAxis);
 
@@ -295,7 +295,7 @@ public sealed class AnalyticSurfaceTests
     public void RevolvingAHalfCircleGivesASphere()
     {
         // A half-circle in the XZ plane from the south pole to the north, radius 2.
-        Arc profile = Arc.ByCentreStartPointSweepAngle(
+        Arc profile = Arc.FromCentreStartPointSweepAngle(
             Point3d.Origin,
             new Point3d(0, 0, -2),
             Vector3d.YAxis,
@@ -313,8 +313,8 @@ public sealed class AnalyticSurfaceTests
     public void RulingBetweenTwoLinesGivesAQuadrilateral()
     {
         RuledSurface surface = new(
-            Line.ByStartPointEndPoint(Point3d.Origin, new Point3d(3, 0, 0)),
-            Line.ByStartPointEndPoint(new Point3d(0, 4, 0), new Point3d(3, 4, 0)));
+            Line.FromStartPointEndPoint(Point3d.Origin, new Point3d(3, 0, 0)),
+            Line.FromStartPointEndPoint(new Point3d(0, 4, 0), new Point3d(3, 4, 0)));
 
         Assert.Equal(12.0, surface.Area, 1e-6);
         Assert.Equal(new Point3d(1.5, 2.0, 0.0), surface.PointAt(0.5, 0.5));
@@ -329,14 +329,14 @@ public sealed class AnalyticSurfaceTests
     public void TheCurvesDomainLengthsReachTheDerivatives()
     {
         RuledSurface plain = new(
-            Line.ByStartPointEndPoint(Point3d.Origin, new Point3d(3, 0, 0)),
-            Line.ByStartPointEndPoint(new Point3d(0, 4, 0), new Point3d(3, 4, 0)));
+            Line.FromStartPointEndPoint(Point3d.Origin, new Point3d(3, 0, 0)),
+            Line.FromStartPointEndPoint(new Point3d(0, 4, 0), new Point3d(3, 4, 0)));
 
         // A circle's domain is [0, 2π] and a line's is [0, 1]; ruling between two arcs of different
         // domains is where an unscaled derivative shows up.
         RuledSurface arcs = new(
-            Circle.ByCentreRadius(Point3d.Origin, 2.0),
-            Circle.ByCentreRadius(new Point3d(0, 0, 4), 2.0));
+            Circle.FromCentreRadius(Point3d.Origin, 2.0),
+            Circle.FromCentreRadius(new Point3d(0, 0, 4), 2.0));
 
         Assert.Equal(12.0, plain.Area, 1e-6);
         Assert.Equal(2.0 * Math.PI * 2.0 * 4.0, arcs.Area, 1e-4);
@@ -410,11 +410,11 @@ public sealed class AnalyticSurfaceTests
         new CylindricalSurface(Plane.WorldXY, 2.0, new Interval(0.0, 5.0)),
         new ConicalSurface(Plane.WorldXY, 1.0, Angle.FromRadians(0.3), new Interval(0.0, 4.0)),
         new ToroidalSurface(Plane.WorldXY, 5.0, 2.0),
-        new ExtrusionSurface(Circle.ByCentreRadius(Point3d.Origin, 2.0), new Vector3d(0, 0, 5)),
+        new ExtrusionSurface(Circle.FromCentreRadius(Point3d.Origin, 2.0), new Vector3d(0, 0, 5)),
         new RevolutionSurface(
-            Line.ByStartPointEndPoint(new Point3d(2, 0, 0), new Point3d(2, 0, 5)), Point3d.Origin, Vector3d.ZAxis),
+            Line.FromStartPointEndPoint(new Point3d(2, 0, 0), new Point3d(2, 0, 5)), Point3d.Origin, Vector3d.ZAxis),
         new RuledSurface(
-            Circle.ByCentreRadius(Point3d.Origin, 2.0),
-            Circle.ByCentreRadius(new Point3d(0, 0, 4), 3.0)),
+            Circle.FromCentreRadius(Point3d.Origin, 2.0),
+            Circle.FromCentreRadius(new Point3d(0, 0, 4), 3.0)),
     ];
 }

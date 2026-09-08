@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (a renamed node still opens old files)
+**Last updated:** 2026-09-08 (`By` becomes `From` on every factory)
 
 **`v0.1.0` shipped on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -78,7 +78,7 @@ because `ShapeFix` is now on the *import* path rather than only behind `Heal`
 **One row on this page came from using the product rather than from planning it**, and it is worth
 saying so where the plan lives: `E8-T18`, port type labels. Nothing in the PRD asked for them and
 nothing in EPICS was short without them. Somebody opened the application, put down a
-`Circle.ByCentreRadius`, and could not tell what `centre` wanted. The requirement was written
+`Circle.FromCentreRadius`, and could not tell what `centre` wanted. The requirement was written
 afterwards (**FR-82**), which is the right order for a defect nobody predicted and the wrong order
 for anything else.
 
@@ -440,7 +440,7 @@ Only then the writing:
       never approach the boundary it checks is a test that cannot fail, which is the trap this
       project has already fallen into twice.
 - [x] **Close the three small parity gaps in the value layer** — `E2-T40`, done 2026-08-29.
-      `BoundingBox.Intersection`, `Plane.Offset` and `Plane.ByOriginNormalXAxis`. Parity moves
+      `BoundingBox.Intersection`, `Plane.Offset` and `Plane.FromOriginNormalXAxis`. Parity moves
       from 92 to 95 of 837. **Two of the three were not as trivial as the register said**:
       `Intersection` delegates each axis to `Interval.Intersection` rather than reimplementing
       the tolerance rule, which is what stops a box and its three intervals disagreeing about a
@@ -489,7 +489,7 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] Undo and redo — `E8-T9`. Over the same file format, which is what makes it cover a node
       position as readily as a wire.
 - [x] Every port shows the type it wants — `E8-T18`. Not in the plan; found by opening the
-      application and looking at `Circle.ByCentreRadius`, where a port called `centre` gave no way
+      application and looking at `Circle.FromCentreRadius`, where a port called `centre` gave no way
       to learn that a `Point3d` belongs in it.
 - [x] A new code block starts empty — `E6-T18`. The starter comment is gone.
 - [x] A block's last expression is its result — `E6-T27`. `n + p;` returns 4.
@@ -504,10 +504,11 @@ What is left of it is the part that makes the skeleton usable rather than demons
 - [x] A block's longest line was clipped by one gap — `E8-T58`. Pre-existing; the width never reserved the inset the text is drawn at.
 - [x] The code font is a setting — `E8-T59`. One for the application, in the properties pane, remembered between sessions; the list is the shipped face plus the machine's monospaced fonts.
 - [x] A renamed node still opens the files that name it — `E3-T23`. `[SparkNodeAlias]` on the member, resolved in `NodeLibrary.TryGet`, and the file heals itself on the next save.
+- [x] `By` becomes `From` on every factory — `E2-T58`. Both layers, so the canvas and the code block agree; infix `By` (`DivideByLength`, `RangeByCount`) is untouched; old keys still open.
 - [x] Dynamo's count ranges — `E10-T15`. `Number.RangeByCount` and
       `Number.RangeByCountAndStep` over one `Spark.Api.NumberRange`, and `0..1..#5`
       works as typed in a code block.
-- [x] Library search with camel-hump ranking — `E8-T8`. `cbcr` finds `Circle.ByCentreRadius`,
+- [x] Library search with camel-hump ranking — `E8-T8`. `cfcr` finds `Circle.FromCentreRadius`,
       and equally good matches are ordered `Create` → `Action` → `Query`, then alphabetically.
 - [x] Double-click empty canvas to create a node there — `E8-T19`. Asked for as *"let
       double-clicking a blank space add the code block, as in Dynamo"*, and delivered as the half

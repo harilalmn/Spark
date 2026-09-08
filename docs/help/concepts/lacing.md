@@ -562,7 +562,7 @@ canvas.
 ```text
 xs = [0,1,2,3,4,5,6,7,8,9]      ys = [0,1,2,3,4,5,6,7,8,9]      z = 0
 
-Point.ByCoordinates(x, y, z)  with Cross Product
+Point.FromCoordinates(x, y, z)  with Cross Product
 
    excess:      x = +1,  y = +1,  z = 0
    replicating: x, y                   →  k = 2
@@ -692,7 +692,7 @@ Sum(IReadOnlyList<double> xs) -> double                  1       -> 0        Lon
 Total2d(IReadOnlyList<IReadOnlyList<double>> rows)
         -> double                                        2       -> 0        Longest
 Range(double n) -> IReadOnlyList<double>  // 0 .. n-1     0       -> 1        Longest
-Point.ByCoordinates(double x, double y, double z)
+Point.FromCoordinates(double x, double y, double z)
         -> Point                                         0,0,0   -> 0        Longest
 Circle.ByCenterRadius(Point center, double radius)
         -> Circle                                        0,0     -> 0        Longest
@@ -782,13 +782,13 @@ All use `Add(double a, double b)` with both ports declared rank 0.
 
 | # | Description | Node | Declared | Inputs | Mode | Expected output | Rank | Diagnostic |
 |---|---|---|---|---|---|---|---|---|
-| 43 | Three replicating inputs, equal lengths — Shortest | `Point.ByCoordinates` | x:0, y:0, z:0 | x=`[1,2]`, y=`[3,4]`, z=`[5,6]` | Shortest | `[p(1,3,5),p(2,4,6)]` | 1 | — |
-| 44 | Three replicating, mixed lengths — Shortest takes min(3,2,4)=2 | `Point.ByCoordinates` | x:0, y:0, z:0 | x=`[1,2,3]`, y=`[10,20]`, z=`[100,200,300,400]` | Shortest | `[p(1,10,100),p(2,20,200)]` | 1 | — |
-| 45 | Same inputs — Longest takes max=4; x and y repeat their last | `Point.ByCoordinates` | x:0, y:0, z:0 | x=`[1,2,3]`, y=`[10,20]`, z=`[100,200,300,400]` | Longest | `[p(1,10,100),p(2,20,200),p(3,20,300),p(3,20,400)]` | 1 | — |
-| 46 | **Three replicating inputs — Cross Product gives rank 3**, shape 2×2×2 | `Point.ByCoordinates` | x:0, y:0, z:0 | x=`[0,1]`, y=`[0,1]`, z=`[0,1]` | CrossProduct | `[[[p(0,0,0),p(0,0,1)],[p(0,1,0),p(0,1,1)]],[[p(1,0,0),p(1,0,1)],[p(1,1,0),p(1,1,1)]]]` | 3 | — |
-| 47 | Two replicating plus one broadcast — Cross Product k=2, not 3 | `Point.ByCoordinates` | x:0, y:0, z:0 | x=`[1,2]`, y=`[10,20]`, z=`0` | CrossProduct | `[[p(1,10,0),p(1,20,0)],[p(2,10,0),p(2,20,0)]]` | 2 | — |
-| 48 | Mixed excess 1 / 0 / 2 — outermost-first alignment (Decision D1) | `Point.ByCoordinates` | x:0, y:0, z:0 | x=`[1,2]`, y=`5`, z=`[[7,8],[9,10]]` | Longest | `[[p(1,5,7),p(1,5,8)],[p(2,5,9),p(2,5,10)]]` | 2 | — |
-| 49 | Three inputs, one of length 1 — Longest | `Point.ByCoordinates` | x:0, y:0, z:0 | x=`[1,2,3]`, y=`[0]`, z=`0` | Longest | `[p(1,0,0),p(2,0,0),p(3,0,0)]` | 1 | — |
+| 43 | Three replicating inputs, equal lengths — Shortest | `Point.FromCoordinates` | x:0, y:0, z:0 | x=`[1,2]`, y=`[3,4]`, z=`[5,6]` | Shortest | `[p(1,3,5),p(2,4,6)]` | 1 | — |
+| 44 | Three replicating, mixed lengths — Shortest takes min(3,2,4)=2 | `Point.FromCoordinates` | x:0, y:0, z:0 | x=`[1,2,3]`, y=`[10,20]`, z=`[100,200,300,400]` | Shortest | `[p(1,10,100),p(2,20,200)]` | 1 | — |
+| 45 | Same inputs — Longest takes max=4; x and y repeat their last | `Point.FromCoordinates` | x:0, y:0, z:0 | x=`[1,2,3]`, y=`[10,20]`, z=`[100,200,300,400]` | Longest | `[p(1,10,100),p(2,20,200),p(3,20,300),p(3,20,400)]` | 1 | — |
+| 46 | **Three replicating inputs — Cross Product gives rank 3**, shape 2×2×2 | `Point.FromCoordinates` | x:0, y:0, z:0 | x=`[0,1]`, y=`[0,1]`, z=`[0,1]` | CrossProduct | `[[[p(0,0,0),p(0,0,1)],[p(0,1,0),p(0,1,1)]],[[p(1,0,0),p(1,0,1)],[p(1,1,0),p(1,1,1)]]]` | 3 | — |
+| 47 | Two replicating plus one broadcast — Cross Product k=2, not 3 | `Point.FromCoordinates` | x:0, y:0, z:0 | x=`[1,2]`, y=`[10,20]`, z=`0` | CrossProduct | `[[p(1,10,0),p(1,20,0)],[p(2,10,0),p(2,20,0)]]` | 2 | — |
+| 48 | Mixed excess 1 / 0 / 2 — outermost-first alignment (Decision D1) | `Point.FromCoordinates` | x:0, y:0, z:0 | x=`[1,2]`, y=`5`, z=`[[7,8],[9,10]]` | Longest | `[[p(1,5,7),p(1,5,8)],[p(2,5,9),p(2,5,10)]]` | 2 | — |
+| 49 | Three inputs, one of length 1 — Longest | `Point.FromCoordinates` | x:0, y:0, z:0 | x=`[1,2,3]`, y=`[0]`, z=`0` | Longest | `[p(1,0,0),p(2,0,0),p(3,0,0)]` | 1 | — |
 
 ### Group E — Cross Product specifics and replication guides
 

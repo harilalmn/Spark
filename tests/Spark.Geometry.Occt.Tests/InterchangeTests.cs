@@ -120,7 +120,7 @@ public sealed class InterchangeTests : IDisposable
 
         Brep first = BrepPrimitives.Box(Plane.WorldXY, 2, 3, 4);
         Brep second = BrepPrimitives.Box(
-            Plane.ByOriginXAxisYAxis(new Point3d(1, 1, 1), Vector3d.XAxis, Vector3d.YAxis), 2, 3, 4);
+            Plane.FromOriginXAxisYAxis(new Point3d(1, 1, 1), Vector3d.XAxis, Vector3d.YAxis), 2, 3, 4);
 
         Brep fused = Kernel.Union(first, second, Fine).Value;
 

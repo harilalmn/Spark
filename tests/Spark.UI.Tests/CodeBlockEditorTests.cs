@@ -34,8 +34,8 @@ public sealed class CodeBlockEditorTests
 {
     private static readonly CodeSignatureCandidate[] Overloads =
     [
-        new("ByCentreNormalRadius", ["Point3d centre", "Vector3d normal", "double radius"], "Circle"),
-        new("ByThreePoints", ["Point3d first", "Point3d second", "Point3d third"], "Circle"),
+        new("FromCentreNormalRadius", ["Point3d centre", "Vector3d normal", "double radius"], "Circle"),
+        new("FromThreePoints", ["Point3d first", "Point3d second", "Point3d third"], "Circle"),
     ];
 
     private static readonly CodeCompletionCandidate[] Members =
@@ -333,7 +333,7 @@ public sealed class CodeBlockEditorTests
 
     /// <summary>
     /// <b>An open parenthesis says what the call wants</b> — `E6-T22`, and the defect it fixes is
-    /// that the only way to learn the parameters of <c>Circle.ByCentreNormalRadius</c> was to run
+    /// that the only way to learn the parameters of <c>Circle.FromCentreNormalRadius</c> was to run
     /// the graph and read the compiler error.
     /// </summary>
     [Fact]
@@ -341,10 +341,10 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub([]), Signatures());
 
-        Type(editor, "var c = Circle.ByCentreNormalRadius(");
+        Type(editor, "var c = Circle.FromCentreNormalRadius(");
 
         Assert.True(editor.IsSignatureOpen);
-        Assert.Equal("ByCentreNormalRadius", editor.ActiveSignature?.Name);
+        Assert.Equal("FromCentreNormalRadius", editor.ActiveSignature?.Name);
         Assert.Equal(0, editor.ActiveParameter);
     });
 
@@ -354,7 +354,7 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub([]), Signatures(activeParameter: 2));
 
-        Type(editor, "var c = Circle.ByCentreNormalRadius(a, b,");
+        Type(editor, "var c = Circle.FromCentreNormalRadius(a, b,");
 
         Assert.True(editor.IsSignatureOpen);
         Assert.Equal(2, editor.ActiveParameter);
@@ -369,17 +369,17 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub([]), Signatures());
 
-        Type(editor, "var c = Circle.ByCentreNormalRadius(");
+        Type(editor, "var c = Circle.FromCentreNormalRadius(");
 
         Assert.Equal(2, editor.SignatureCount);
 
         Key(editor, Avalonia.Input.Key.Down, KeyModifiers.Alt);
 
-        Assert.Equal("ByThreePoints", editor.ActiveSignature?.Name);
+        Assert.Equal("FromThreePoints", editor.ActiveSignature?.Name);
 
         Key(editor, Avalonia.Input.Key.Down, KeyModifiers.Alt);
 
-        Assert.Equal("ByCentreNormalRadius", editor.ActiveSignature?.Name);
+        Assert.Equal("FromCentreNormalRadius", editor.ActiveSignature?.Name);
     });
 
     /// <summary>Escape closes the popup, and the text is untouched.</summary>
@@ -388,11 +388,11 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub([]), Signatures());
 
-        Type(editor, "var c = Circle.ByCentreNormalRadius(");
+        Type(editor, "var c = Circle.FromCentreNormalRadius(");
         Key(editor, Avalonia.Input.Key.Escape);
 
         Assert.False(editor.IsSignatureOpen);
-        Assert.Equal("var c = Circle.ByCentreNormalRadius(", editor.Text);
+        Assert.Equal("var c = Circle.FromCentreNormalRadius(", editor.Text);
     });
 
     /// <summary>
@@ -410,7 +410,7 @@ public sealed class CodeBlockEditorTests
             (_, _, _) => Task.FromResult<CodeSignatureInfo?>(
                 inside ? new CodeSignatureInfo(Overloads, 0, 0) : null));
 
-        Type(editor, "var c = Circle.ByCentreNormalRadius(");
+        Type(editor, "var c = Circle.FromCentreNormalRadius(");
 
         Assert.True(editor.IsSignatureOpen);
 
@@ -426,7 +426,7 @@ public sealed class CodeBlockEditorTests
     {
         (Window _, CodeBlockEditor editor) = Open(Stub([]));
 
-        Type(editor, "var c = Circle.ByCentreNormalRadius(");
+        Type(editor, "var c = Circle.FromCentreNormalRadius(");
 
         Assert.False(editor.IsSignatureOpen);
     });
@@ -476,7 +476,7 @@ public sealed class CodeBlockEditorTests
     {
         (Window window, CodeBlockEditor editor) = Open(Stub(Members), Signatures());
 
-        editor.Text = "var a = 1;\nvar b = 2;\nvar c = Circle.ByCentreNormalRadius(";
+        editor.Text = "var a = 1;\nvar b = 2;\nvar c = Circle.FromCentreNormalRadius(";
         Layout(window);
 
         Pump(editor.RequestSignatureAsync());

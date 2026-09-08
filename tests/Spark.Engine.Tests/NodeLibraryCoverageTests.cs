@@ -174,17 +174,17 @@ public sealed class NodeLibraryCoverageTests
     /// the task describe, and filed under a category the canvas can colour.
     /// </summary>
     [Theory]
-    [InlineData("Point.ByCoordinates", "Point", 3, 1)]
+    [InlineData("Point.FromCoordinates", "Point", 3, 1)]
     [InlineData("Point.Origin", "Point", 0, 1)]
     [InlineData("Point.Translate", "Point", 3, 1)]
-    [InlineData("Vector.ByCoordinates", "Point", 3, 1)]
+    [InlineData("Vector.FromCoordinates", "Point", 3, 1)]
     [InlineData("Vector.XAxis", "Point", 0, 1)]
     [InlineData("Number.Range", "Input", 3, 1)]
     [InlineData("Math.Add", "Math", 2, 1)]
     [InlineData("Math.Sin", "Math", 1, 1)]
-    [InlineData("Plane.ByOriginNormal", "Solid", 2, 1)]
-    [InlineData("BoundingBox.ByCorners", "Solid", 2, 1)]
-    [InlineData("Display.ByGeometryColour", "Display", 3, 1)]
+    [InlineData("Plane.FromOriginNormal", "Solid", 2, 1)]
+    [InlineData("BoundingBox.FromCorners", "Solid", 2, 1)]
+    [InlineData("Display.FromGeometryColour", "Display", 3, 1)]
     public void TheSkeletonNodesAreImportedWithTheRightShape(
         string name, string category, int inputs, int outputs)
     {
@@ -239,7 +239,7 @@ public sealed class NodeLibraryCoverageTests
         NodeDefinition range = Definition("Number.Range");
 
         Assert.Equal(1, range.Outputs[0].DeclaredRank);
-        Assert.Equal(0, Definition("Point.ByCoordinates").Inputs[0].DeclaredRank);
+        Assert.Equal(0, Definition("Point.FromCoordinates").Inputs[0].DeclaredRank);
     }
 
     /// <summary>
@@ -249,7 +249,7 @@ public sealed class NodeLibraryCoverageTests
     [Fact]
     public void ReplicationOptOutsSurviveTheImport()
     {
-        NodeDefinition display = Definition("Display.ByGeometryColour");
+        NodeDefinition display = Definition("Display.FromGeometryColour");
 
         Assert.False(display.Inputs[0].NoReplication);
         Assert.True(display.Inputs[1].NoReplication);
@@ -275,7 +275,7 @@ public sealed class NodeLibraryCoverageTests
     [Fact]
     public void EveryNodeCompilesToAWorkingInvoker()
     {
-        object?[] result = Definition("Point.ByCoordinates").Invoke([1.0, 2.0, 3.0]);
+        object?[] result = Definition("Point.FromCoordinates").Invoke([1.0, 2.0, 3.0]);
 
         Assert.Single(result);
         Assert.Equal(new Spark.Geometry.Point3d(1, 2, 3), result[0]);

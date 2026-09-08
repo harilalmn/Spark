@@ -13,7 +13,7 @@ namespace Spark.UI.Tests;
 /// <remarks>
 /// <para>
 /// <b>The complaint this answers came from the running application.</b> Typing
-/// <c>Circle.ByCentreNormalRadius(</c> said nothing at all, so the only way to learn that it wants
+/// <c>Circle.FromCentreNormalRadius(</c> said nothing at all, so the only way to learn that it wants
 /// a centre, a normal and a radius — in that order — was to finish the line, run the graph and
 /// read <c>SPK1046</c>. A compiler is already in the process; not telling the user what it knows
 /// is the defect.
@@ -36,7 +36,7 @@ public sealed class SignatureHelpTests
     {
         using ScriptCompletion completion = new([typeof(Point3d).Assembly]);
 
-        const string Snippet = "var c = Circle.ByCentreNormalRadius(";
+        const string Snippet = "var c = Circle.FromCentreNormalRadius(";
 
         ScriptSignatureHelp? help = await completion.SignatureAsync(
             Snippet, Snippet.Length, null, TestContext.Current.CancellationToken);
@@ -45,7 +45,7 @@ public sealed class SignatureHelpTests
 
         ScriptSignatureItem active = help.Value.Signatures[help.Value.ActiveSignature];
 
-        Assert.Equal("ByCentreNormalRadius", active.Name);
+        Assert.Equal("FromCentreNormalRadius", active.Name);
         Assert.Equal(3, active.Parameters.Count);
         Assert.Contains("centre", active.Parameters[0]);
         Assert.Contains("Point3d", active.Parameters[0]);
@@ -62,7 +62,7 @@ public sealed class SignatureHelpTests
     {
         using ScriptCompletion completion = new([typeof(Point3d).Assembly]);
 
-        const string Snippet = "var c = Circle.ByCentreNormalRadius(a, b, ";
+        const string Snippet = "var c = Circle.FromCentreNormalRadius(a, b, ";
 
         ScriptSignatureHelp? help = await completion.SignatureAsync(
             Snippet, Snippet.Length, null, TestContext.Current.CancellationToken);

@@ -36,7 +36,7 @@ public sealed class NurbsCurveTests
         Point3d start = new(1, 2, 3);
         Point3d end = new(7, -4, 11);
 
-        NurbsCurve curve = NurbsCurve.ByPoints([start, end]);
+        NurbsCurve curve = NurbsCurve.FromPoints([start, end]);
         Line line = new(start, end);
 
         for (int i = 0; i <= 20; i++)
@@ -57,7 +57,7 @@ public sealed class NurbsCurveTests
     {
         Point3d[] points = [new(0, 0, 0), new(2, 3, 0), new(5, 3, 1), new(7, 0, 1)];
 
-        NurbsCurve curve = NurbsCurve.ByPoints(points);
+        NurbsCurve curve = NurbsCurve.FromPoints(points);
         PolyLine polyline = new(points);
 
         // The two are parameterised differently — the polyline by segment, the curve by its
@@ -94,7 +94,7 @@ public sealed class NurbsCurveTests
             [0, 0, 0, 1, 1, 1],
             [1.0, weight, 1.0]);
 
-        Arc arc = Arc.ByPlaneRadiusAngles(
+        Arc arc = Arc.FromPlaneRadiusAngles(
             Plane.WorldXY, radius, Angle.FromDegrees(0), Angle.FromDegrees(90));
 
         Assert.True(curve.IsRational);
@@ -612,7 +612,7 @@ public sealed class NurbsCurveTests
         Point3d start = new(1, 2, 3);
         Point3d end = new(7, -4, 11);
 
-        NurbsCurve raised = NurbsCurve.ByPoints([start, end]).WithDegreeElevated(2);
+        NurbsCurve raised = NurbsCurve.FromPoints([start, end]).WithDegreeElevated(2);
         Line line = new(start, end);
 
         Assert.Equal(3, raised.Degree);

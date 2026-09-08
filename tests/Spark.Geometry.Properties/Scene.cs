@@ -35,10 +35,10 @@ internal readonly record struct Scene(
     public Point3d SecondPoint => (Point3d)(Second * Scale);
 
     /// <summary>A plane through <see cref="FirstPoint"/> with an arbitrary normal.</summary>
-    public Plane Plane => Plane.ByOriginNormal(FirstPoint, Axis);
+    public Plane Plane => Plane.FromOriginNormal(FirstPoint, Axis);
 
     /// <summary>A right-handed frame at the working scale.</summary>
-    public CoordinateSystem Frame => CoordinateSystem.ByPlane(Plane);
+    public CoordinateSystem Frame => CoordinateSystem.FromPlane(Plane);
 
     /// <summary>In-plane coordinates at the working scale.</summary>
     public Point2d Planar => new(Second.X * Scale, Second.Y * Scale);

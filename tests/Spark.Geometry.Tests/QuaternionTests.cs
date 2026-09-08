@@ -32,7 +32,7 @@ public sealed class QuaternionTests
 
         // Two independent implementations of the same right-handed convention. If either drifts
         // - a sign, a half-angle, a transposed matrix - this is what says so.
-        Vector3d viaQuaternion = Quaternion.ByAxisAngle(axis, angle).OfVector(Probe);
+        Vector3d viaQuaternion = Quaternion.FromAxisAngle(axis, angle).OfVector(Probe);
         Vector3d viaMatrix = Transform.Rotation(axis, angle).OfVector(Probe);
 
         Assert.True(viaQuaternion.EqualsWithin(viaMatrix));
@@ -44,7 +44,7 @@ public sealed class QuaternionTests
         Vector3d axis = new(1.0, 2.0, -0.5);
         Angle angle = Angle.FromDegrees(63.0);
 
-        Transform fromQuaternion = Quaternion.ByAxisAngle(axis, angle).ToTransform();
+        Transform fromQuaternion = Quaternion.FromAxisAngle(axis, angle).ToTransform();
         Transform direct = Transform.Rotation(axis, angle);
 
         Assert.True(fromQuaternion.OfVector(Probe).EqualsWithin(direct.OfVector(Probe)));
@@ -55,8 +55,8 @@ public sealed class QuaternionTests
     [Fact]
     public void CompositionAppliesTheRightHandRotationFirst()
     {
-        Quaternion yaw = Quaternion.ByAxisAngle(Vector3d.ZAxis, Angle.QuarterTurn);
-        Quaternion pitch = Quaternion.ByAxisAngle(Vector3d.YAxis, Angle.QuarterTurn);
+        Quaternion yaw = Quaternion.FromAxisAngle(Vector3d.ZAxis, Angle.QuarterTurn);
+        Quaternion pitch = Quaternion.FromAxisAngle(Vector3d.YAxis, Angle.QuarterTurn);
 
         // Same order as matrix multiplication: (yaw * pitch) means pitch, then yaw.
         Vector3d composed = (yaw * pitch).OfVector(Probe);
@@ -71,8 +71,8 @@ public sealed class QuaternionTests
     [Fact]
     public void MultiplyMatchesTheOperator()
     {
-        Quaternion a = Quaternion.ByAxisAngle(Vector3d.XAxis, Angle.FromDegrees(20.0));
-        Quaternion b = Quaternion.ByAxisAngle(Vector3d.YAxis, Angle.FromDegrees(35.0));
+        Quaternion a = Quaternion.FromAxisAngle(Vector3d.XAxis, Angle.FromDegrees(20.0));
+        Quaternion b = Quaternion.FromAxisAngle(Vector3d.YAxis, Angle.FromDegrees(35.0));
 
         Assert.Equal(a * b, Quaternion.Multiply(a, b));
     }
@@ -80,7 +80,7 @@ public sealed class QuaternionTests
     [Fact]
     public void TheInverseUndoesTheRotation()
     {
-        Quaternion q = Quaternion.ByAxisAngle(new Vector3d(1.0, 1.0, 0.0), Angle.FromDegrees(112.0));
+        Quaternion q = Quaternion.FromAxisAngle(new Vector3d(1.0, 1.0, 0.0), Angle.FromDegrees(112.0));
 
         Assert.True(q.TryGetInverse(out Quaternion inverse));
         Assert.True(inverse.OfVector(q.OfVector(Probe)).EqualsWithin(Probe));
@@ -90,7 +90,7 @@ public sealed class QuaternionTests
     [Fact]
     public void ConjugateIsTheInverseForAUnitQuaternionAndIsNotForOthers()
     {
-        Quaternion q = Quaternion.ByAxisAngle(Vector3d.ZAxis, Angle.FromDegrees(40.0));
+        Quaternion q = Quaternion.FromAxisAngle(Vector3d.ZAxis, Angle.FromDegrees(40.0));
         Assert.True(q.TryGetInverse(out Quaternion inverse));
         Assert.True(q.Conjugate().EqualsWithin(inverse));
 
@@ -104,7 +104,7 @@ public sealed class QuaternionTests
     [Fact]
     public void RotationPreservesLengthAndHandlesANonUnitQuaternion()
     {
-        Quaternion q = Quaternion.ByAxisAngle(new Vector3d(0.3, -0.7, 1.0), Angle.FromDegrees(77.0));
+        Quaternion q = Quaternion.FromAxisAngle(new Vector3d(0.3, -0.7, 1.0), Angle.FromDegrees(77.0));
         Quaternion scaled = new(q.X * 5.0, q.Y * 5.0, q.Z * 5.0, q.W * 5.0);
 
         Vector3d rotated = q.OfVector(Probe);
@@ -120,7 +120,7 @@ public sealed class QuaternionTests
     [Fact]
     public void OfPointRotatesAboutTheOrigin()
     {
-        Quaternion halfTurn = Quaternion.ByAxisAngle(Vector3d.ZAxis, Angle.HalfTurn);
+        Quaternion halfTurn = Quaternion.FromAxisAngle(Vector3d.ZAxis, Angle.HalfTurn);
 
         Assert.True(halfTurn.OfPoint(new Point3d(2.0, 0.0, 5.0))
             .EqualsWithin(new Point3d(-2.0, 0.0, 5.0)));
@@ -133,7 +133,7 @@ public sealed class QuaternionTests
         Vector3d axis = new Vector3d(2.0, -1.0, 0.5).Normalised();
         Angle angle = Angle.FromDegrees(123.0);
 
-        (Vector3d recoveredAxis, Angle recoveredAngle) = Quaternion.ByAxisAngle(axis, angle).ToAxisAngle();
+        (Vector3d recoveredAxis, Angle recoveredAngle) = Quaternion.FromAxisAngle(axis, angle).ToAxisAngle();
 
         Assert.True(recoveredAxis.EqualsWithin(axis));
         Assert.Equal(angle.Radians, recoveredAngle.Radians, 12);
@@ -145,7 +145,7 @@ public sealed class QuaternionTests
         // The angle always comes back in [0, pi] and the axis carries the sign, so a negative
         // turn about +Z is reported as a positive turn about -Z.
         (Vector3d axis, Angle angle) = Quaternion
-            .ByAxisAngle(Vector3d.ZAxis, Angle.FromDegrees(-90.0))
+            .FromAxisAngle(Vector3d.ZAxis, Angle.FromDegrees(-90.0))
             .ToAxisAngle();
 
         Assert.True(axis.EqualsWithin(-Vector3d.ZAxis));
@@ -165,7 +165,7 @@ public sealed class QuaternionTests
     public void SlerpReturnsItsEndsAndHalvesTheAngleInTheMiddle()
     {
         Quaternion start = Quaternion.Identity;
-        Quaternion end = Quaternion.ByAxisAngle(Vector3d.ZAxis, Angle.FromDegrees(90.0));
+        Quaternion end = Quaternion.FromAxisAngle(Vector3d.ZAxis, Angle.FromDegrees(90.0));
 
         Assert.True(Quaternion.Slerp(start, end, 0.0).IsSameRotation(start));
         Assert.True(Quaternion.Slerp(start, end, 1.0).IsSameRotation(end));
@@ -179,7 +179,7 @@ public sealed class QuaternionTests
     [Fact]
     public void SlerpTakesTheShortPathWhenAnInputIsNegated()
     {
-        Quaternion end = Quaternion.ByAxisAngle(Vector3d.ZAxis, Angle.FromDegrees(90.0));
+        Quaternion end = Quaternion.FromAxisAngle(Vector3d.ZAxis, Angle.FromDegrees(90.0));
         Quaternion negated = new(-end.X, -end.Y, -end.Z, -end.W);
 
         // The same rotation, written the other way. Without the sign check inside Slerp this
@@ -192,8 +192,8 @@ public sealed class QuaternionTests
     [Fact]
     public void SlerpBetweenNearlyEqualRotationsStaysOnTheArc()
     {
-        Quaternion a = Quaternion.ByAxisAngle(Vector3d.XAxis, Angle.FromDegrees(10.0));
-        Quaternion b = Quaternion.ByAxisAngle(Vector3d.XAxis, Angle.FromDegrees(10.000001));
+        Quaternion a = Quaternion.FromAxisAngle(Vector3d.XAxis, Angle.FromDegrees(10.0));
+        Quaternion b = Quaternion.FromAxisAngle(Vector3d.XAxis, Angle.FromDegrees(10.000001));
 
         // The near-parallel branch: sin(theta) is at the edge of usefulness here, so this is
         // where a naive implementation divides by nearly zero.
@@ -215,7 +215,7 @@ public sealed class QuaternionTests
     [Fact]
     public void IsSameRotationAcceptsTheNegatedFormThatEqualityRejects()
     {
-        Quaternion q = Quaternion.ByAxisAngle(Vector3d.YAxis, Angle.FromDegrees(64.0));
+        Quaternion q = Quaternion.FromAxisAngle(Vector3d.YAxis, Angle.FromDegrees(64.0));
         Quaternion negated = new(-q.X, -q.Y, -q.Z, -q.W);
 
         Assert.False(q.EqualsWithin(negated));
@@ -234,7 +234,7 @@ public sealed class QuaternionTests
         Vector3d from = new(1.0, 2.0, 3.0);
         Vector3d to = new(-4.0, 0.5, 2.0);
 
-        Vector3d turned = Quaternion.ByRotationBetween(from, to).OfVector(from.Normalised());
+        Vector3d turned = Quaternion.FromRotationBetween(from, to).OfVector(from.Normalised());
 
         Assert.True(turned.EqualsWithin(to.Normalised()));
     }
@@ -242,7 +242,7 @@ public sealed class QuaternionTests
     [Fact]
     public void ByRotationBetweenIsTheIdentityForParallelDirections()
     {
-        Assert.True(Quaternion.ByRotationBetween(Vector3d.XAxis, Vector3d.XAxis * 7.0)
+        Assert.True(Quaternion.FromRotationBetween(Vector3d.XAxis, Vector3d.XAxis * 7.0)
             .IsSameRotation(Quaternion.Identity));
     }
 
@@ -252,7 +252,7 @@ public sealed class QuaternionTests
         // No unique answer exists here, so what is asserted is the only thing that should be:
         // the result is a rotation and it lands on the opposite direction.
         Vector3d from = new(0.0, 0.0, 1.0);
-        Quaternion q = Quaternion.ByRotationBetween(from, -from);
+        Quaternion q = Quaternion.FromRotationBetween(from, -from);
 
         Assert.True(q.IsUnit());
         Assert.True(q.OfVector(from).EqualsWithin(-from));
@@ -261,11 +261,11 @@ public sealed class QuaternionTests
     [Fact]
     public void ByAxisAngleAndByRotationBetweenRejectDegenerateInput()
     {
-        Assert.Throws<ArgumentException>(() => Quaternion.ByAxisAngle(Vector3d.Zero, Angle.QuarterTurn));
+        Assert.Throws<ArgumentException>(() => Quaternion.FromAxisAngle(Vector3d.Zero, Angle.QuarterTurn));
         Assert.Throws<ArgumentException>(
-            () => Quaternion.ByAxisAngle(Vector3d.ZAxis, Angle.FromRadians(double.NaN)));
-        Assert.Throws<ArgumentException>(() => Quaternion.ByRotationBetween(Vector3d.Zero, Vector3d.XAxis));
-        Assert.Throws<ArgumentException>(() => Quaternion.ByRotationBetween(Vector3d.XAxis, Vector3d.Zero));
+            () => Quaternion.FromAxisAngle(Vector3d.ZAxis, Angle.FromRadians(double.NaN)));
+        Assert.Throws<ArgumentException>(() => Quaternion.FromRotationBetween(Vector3d.Zero, Vector3d.XAxis));
+        Assert.Throws<ArgumentException>(() => Quaternion.FromRotationBetween(Vector3d.XAxis, Vector3d.Zero));
     }
 
     [Fact]
@@ -306,7 +306,7 @@ public sealed class QuaternionTests
     [Fact]
     public void TheVectorPartIsTheAxisScaledByTheHalfAngleSine()
     {
-        Quaternion q = Quaternion.ByAxisAngle(Vector3d.YAxis, Angle.HalfTurn);
+        Quaternion q = Quaternion.FromAxisAngle(Vector3d.YAxis, Angle.HalfTurn);
 
         Assert.True(q.Vector.EqualsWithin(Vector3d.YAxis));
         Assert.Equal(0.0, q.W, 12);

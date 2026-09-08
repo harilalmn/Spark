@@ -12,7 +12,7 @@ namespace Spark.Geometry;
 /// <para>
 /// <b>A closed polyline is what Dynamo calls a <c>Polygon</c>, and a rectangle is a factory rather
 /// than a type.</b> A <c>Rectangle</c> that derives from a <c>Polygon</c> that derives from a
-/// <c>PolyCurve</c> buys nothing over a closed polyline built by <see cref="ByRectangle"/>, and it
+/// <c>PolyCurve</c> buys nothing over a closed polyline built by <see cref="FromRectangle"/>, and it
 /// costs a public type that has to be serialised, versioned, documented and turned into nodes
 /// forever. See <c>docs/DYNAMO-COVERAGE.md</c> §3.2.
 /// </para>
@@ -83,7 +83,7 @@ public sealed class PolyLine : Curve
     /// Thrown when there are fewer than two points, when any point is not finite, or when two
     /// consecutive points coincide.
     /// </exception>
-    public static PolyLine ByPoints(IEnumerable<Point3d> points) => new(points);
+    public static PolyLine FromPoints(IEnumerable<Point3d> points) => new(points);
 
     /// <summary>
     /// Creates a closed polyline through a list of points, repeating the first point at the end.
@@ -98,7 +98,7 @@ public sealed class PolyLine : Curve
     /// Thrown when there are fewer than three distinct points, when any point is not finite, or when
     /// two consecutive points coincide.
     /// </exception>
-    public static PolyLine ByClosedPoints(IEnumerable<Point3d> points)
+    public static PolyLine FromClosedPoints(IEnumerable<Point3d> points)
     {
         ArgumentNullException.ThrowIfNull(points);
         List<Point3d> loop = [.. points];
@@ -125,7 +125,7 @@ public sealed class PolyLine : Curve
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown when either size is not positive and finite.
     /// </exception>
-    public static PolyLine ByRectangle(in Plane plane, double width, double length)
+    public static PolyLine FromRectangle(in Plane plane, double width, double length)
     {
         if (!plane.IsValid)
         {
@@ -166,7 +166,7 @@ public sealed class PolyLine : Curve
     /// Thrown when <paramref name="radius"/> is not positive and finite, or when
     /// <paramref name="sides"/> is less than three.
     /// </exception>
-    public static PolyLine ByRegularPolygon(in Plane plane, double radius, int sides)
+    public static PolyLine FromRegularPolygon(in Plane plane, double radius, int sides)
     {
         if (!plane.IsValid)
         {

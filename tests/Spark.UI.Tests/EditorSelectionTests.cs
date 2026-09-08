@@ -522,14 +522,14 @@ public sealed class EditorSelectionTests
 
         window.Show();
 
-        editor.Text = "var c = Circle.ByCentreNormalRadius";
+        editor.Text = "var c = Circle.FromCentreNormalRadius";
         editor.FocusEditor();
         editor.CaretOffset = editor.Text.Length;
 
         editor.TypeText("(");
 
         // The closing bracket is the editor's, not the caller's: typing one character produced two.
-        Assert.Equal("var c = Circle.ByCentreNormalRadius()", Text(editor));
+        Assert.Equal("var c = Circle.FromCentreNormalRadius()", Text(editor));
 
         window.Close();
     });

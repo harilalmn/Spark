@@ -552,7 +552,7 @@ internal static class Program
     /// **Every node's outputs, not only the graph's last ones.** The first version of this took
     /// the nodes nothing consumes, on the reasoning that ingredients are not results — and it
     /// exported nothing at all from `docs/examples/curves.spark`, because that graph ends in
-    /// `Display.ByGeometryColour` nodes whose output is an appearance rather than a curve. The
+    /// `Display.FromGeometryColour` nodes whose output is an appearance rather than a curve. The
     /// lesson generalises: **a graph's interesting geometry is routinely mid-chain**, and a rule
     /// that only looks at the leaves is a rule that exports the labelling.
     /// </para>

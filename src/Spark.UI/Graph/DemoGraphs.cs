@@ -18,7 +18,7 @@ public static class DemoGraphs
 
     /// <summary>
     /// The walking skeleton, as a graph: two <c>Number.Range</c> nodes feeding
-    /// <c>Point.ByCoordinates</c> under <b>Cross Product</b>, so a 10 × 10 grid of points appears in
+    /// <c>Point.FromCoordinates</c> under <b>Cross Product</b>, so a 10 × 10 grid of points appears in
     /// the viewport.
     /// </summary>
     /// <remarks>
@@ -47,9 +47,9 @@ public static class DemoGraphs
         int rows = graph.Add(library.ByName("Number.Range"), 30, 150);
         int height = graph.Add(library.ByName("Number.Value"), 30, 270);
 
-        int points = graph.Add(library.ByName("Point.ByCoordinates"), 300, 60);
-        int colour = graph.Add(library.ByName("Colour.ByRgb"), 300, 200);
-        int display = graph.Add(library.ByName("Display.ByGeometryColour"), 580, 90);
+        int points = graph.Add(library.ByName("Point.FromCoordinates"), 300, 60);
+        int colour = graph.Add(library.ByName("Colour.FromRgb"), 300, 200);
+        int display = graph.Add(library.ByName("Display.FromGeometryColour"), 580, 90);
 
         // The error branch. Divide by zero throws, so this node errors and everything downstream of
         // it is greyed rather than blamed.
@@ -110,35 +110,35 @@ public static class DemoGraphs
 
         CanvasGraph graph = new();
 
-        int sphereCentre = graph.Add(library.ByName("Point.ByCoordinates"), 30, 30, Seeded("surfaces", "sphereCentre"));
+        int sphereCentre = graph.Add(library.ByName("Point.FromCoordinates"), 30, 30, Seeded("surfaces", "sphereCentre"));
         int sphere = graph.Add(library.ByName("Surface.Sphere"), 280, 30, Seeded("surfaces", "sphere"));
-        int sphereColour = graph.Add(library.ByName("Colour.ByRgb"), 280, 170, Seeded("surfaces", "sphereColour"));
-        int sphereDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 560, 30, Seeded("surfaces", "sphereDisplay"));
+        int sphereColour = graph.Add(library.ByName("Colour.FromRgb"), 280, 170, Seeded("surfaces", "sphereColour"));
+        int sphereDisplay = graph.Add(library.ByName("Display.FromGeometryColour"), 560, 30, Seeded("surfaces", "sphereDisplay"));
 
-        int cylinderBase = graph.Add(library.ByName("Point.ByCoordinates"), 30, 320, Seeded("surfaces", "cylinderBase"));
-        int cylinderPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 320, Seeded("surfaces", "cylinderPlane"));
+        int cylinderBase = graph.Add(library.ByName("Point.FromCoordinates"), 30, 320, Seeded("surfaces", "cylinderBase"));
+        int cylinderPlane = graph.Add(library.ByName("Plane.FromOriginNormal"), 280, 320, Seeded("surfaces", "cylinderPlane"));
         int axis = graph.Add(library.ByName("Vector.ZAxis"), 30, 440, Seeded("surfaces", "axis"));
         int cylinder = graph.Add(library.ByName("Surface.Cylinder"), 560, 320, Seeded("surfaces", "cylinder"));
-        int cylinderColour = graph.Add(library.ByName("Colour.ByRgb"), 560, 460, Seeded("surfaces", "cylinderColour"));
-        int cylinderDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 840, 320, Seeded("surfaces", "cylinderDisplay"));
+        int cylinderColour = graph.Add(library.ByName("Colour.FromRgb"), 560, 460, Seeded("surfaces", "cylinderColour"));
+        int cylinderDisplay = graph.Add(library.ByName("Display.FromGeometryColour"), 840, 320, Seeded("surfaces", "cylinderDisplay"));
 
-        int coneBase = graph.Add(library.ByName("Point.ByCoordinates"), 30, 620, Seeded("surfaces", "coneBase"));
-        int conePlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 620, Seeded("surfaces", "conePlane"));
+        int coneBase = graph.Add(library.ByName("Point.FromCoordinates"), 30, 620, Seeded("surfaces", "coneBase"));
+        int conePlane = graph.Add(library.ByName("Plane.FromOriginNormal"), 280, 620, Seeded("surfaces", "conePlane"));
         int cone = graph.Add(library.ByName("Surface.Cone"), 560, 620, Seeded("surfaces", "cone"));
-        int coneColour = graph.Add(library.ByName("Colour.ByRgb"), 560, 780, Seeded("surfaces", "coneColour"));
-        int coneDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 840, 620, Seeded("surfaces", "coneDisplay"));
+        int coneColour = graph.Add(library.ByName("Colour.FromRgb"), 560, 780, Seeded("surfaces", "coneColour"));
+        int coneDisplay = graph.Add(library.ByName("Display.FromGeometryColour"), 840, 620, Seeded("surfaces", "coneDisplay"));
 
-        int boxBase = graph.Add(library.ByName("Point.ByCoordinates"), 30, 1180, Seeded("surfaces", "boxBase"));
-        int boxPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 1180, Seeded("surfaces", "boxPlane"));
+        int boxBase = graph.Add(library.ByName("Point.FromCoordinates"), 30, 1180, Seeded("surfaces", "boxBase"));
+        int boxPlane = graph.Add(library.ByName("Plane.FromOriginNormal"), 280, 1180, Seeded("surfaces", "boxPlane"));
         int box = graph.Add(library.ByName("Solid.Box"), 560, 1180, Seeded("surfaces", "box"));
-        int boxColour = graph.Add(library.ByName("Colour.ByRgb"), 560, 1320, Seeded("surfaces", "boxColour"));
-        int boxDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 840, 1180, Seeded("surfaces", "boxDisplay"));
+        int boxColour = graph.Add(library.ByName("Colour.FromRgb"), 560, 1320, Seeded("surfaces", "boxColour"));
+        int boxDisplay = graph.Add(library.ByName("Display.FromGeometryColour"), 840, 1180, Seeded("surfaces", "boxDisplay"));
 
-        int torusCentre = graph.Add(library.ByName("Point.ByCoordinates"), 30, 900, Seeded("surfaces", "torusCentre"));
-        int torusPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 900, Seeded("surfaces", "torusPlane"));
+        int torusCentre = graph.Add(library.ByName("Point.FromCoordinates"), 30, 900, Seeded("surfaces", "torusCentre"));
+        int torusPlane = graph.Add(library.ByName("Plane.FromOriginNormal"), 280, 900, Seeded("surfaces", "torusPlane"));
         int torus = graph.Add(library.ByName("Surface.Torus"), 560, 900, Seeded("surfaces", "torus"));
-        int torusColour = graph.Add(library.ByName("Colour.ByRgb"), 560, 1040, Seeded("surfaces", "torusColour"));
-        int torusDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 840, 900, Seeded("surfaces", "torusDisplay"));
+        int torusColour = graph.Add(library.ByName("Colour.FromRgb"), 560, 1040, Seeded("surfaces", "torusColour"));
+        int torusDisplay = graph.Add(library.ByName("Display.FromGeometryColour"), 840, 900, Seeded("surfaces", "torusDisplay"));
 
         Literal(graph, sphereCentre, 0, -9.0);
         Literal(graph, sphereCentre, 1, 0.0);
@@ -253,36 +253,36 @@ public static class DemoGraphs
 
         int axis = graph.Add(library.ByName("Vector.ZAxis"), 30, 560, Seeded("solids", "axis"));
 
-        int boxBase = graph.Add(library.ByName("Point.ByCoordinates"), 30, 30, Seeded("solids", "boxBase"));
-        int boxPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 30, Seeded("solids", "boxPlane"));
+        int boxBase = graph.Add(library.ByName("Point.FromCoordinates"), 30, 30, Seeded("solids", "boxBase"));
+        int boxPlane = graph.Add(library.ByName("Plane.FromOriginNormal"), 280, 30, Seeded("solids", "boxPlane"));
         int box = graph.Add(library.ByName("Solid.Box"), 540, 30, Seeded("solids", "box"));
 
-        int postBase = graph.Add(library.ByName("Point.ByCoordinates"), 30, 220, Seeded("solids", "postBase"));
-        int postPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 220, Seeded("solids", "postPlane"));
+        int postBase = graph.Add(library.ByName("Point.FromCoordinates"), 30, 220, Seeded("solids", "postBase"));
+        int postPlane = graph.Add(library.ByName("Plane.FromOriginNormal"), 280, 220, Seeded("solids", "postPlane"));
         int post = graph.Add(library.ByName("Solid.Cylinder"), 540, 220, Seeded("solids", "post"));
 
-        int drillBase = graph.Add(library.ByName("Point.ByCoordinates"), 30, 400, Seeded("solids", "drillBase"));
-        int drillPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 400, Seeded("solids", "drillPlane"));
+        int drillBase = graph.Add(library.ByName("Point.FromCoordinates"), 30, 400, Seeded("solids", "drillBase"));
+        int drillPlane = graph.Add(library.ByName("Plane.FromOriginNormal"), 280, 400, Seeded("solids", "drillPlane"));
         int drill = graph.Add(library.ByName("Solid.Cylinder"), 540, 400, Seeded("solids", "drill"));
 
         int fused = graph.Add(library.ByName("Solid.Union"), 820, 90, Seeded("solids", "fused"));
         int drilled = graph.Add(library.ByName("Solid.Difference"), 1080, 160, Seeded("solids", "drilled"));
-        int colour = graph.Add(library.ByName("Colour.ByRgb"), 1080, 330, Seeded("solids", "colour"));
-        int display = graph.Add(library.ByName("Display.ByGeometryColour"), 1360, 160, Seeded("solids", "display"));
+        int colour = graph.Add(library.ByName("Colour.FromRgb"), 1080, 330, Seeded("solids", "colour"));
+        int display = graph.Add(library.ByName("Display.FromGeometryColour"), 1360, 160, Seeded("solids", "display"));
 
-        int plinthBase = graph.Add(library.ByName("Point.ByCoordinates"), 30, 1000, Seeded("solids", "plinthBase"));
-        int plinthPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 1000, Seeded("solids", "plinthPlane"));
+        int plinthBase = graph.Add(library.ByName("Point.FromCoordinates"), 30, 1000, Seeded("solids", "plinthBase"));
+        int plinthPlane = graph.Add(library.ByName("Plane.FromOriginNormal"), 280, 1000, Seeded("solids", "plinthPlane"));
         int plinth = graph.Add(library.ByName("Solid.Box"), 540, 1000, Seeded("solids", "plinth"));
         int rounded = graph.Add(library.ByName("Solid.FilletAll"), 820, 1000, Seeded("solids", "rounded"));
-        int roundedColour = graph.Add(library.ByName("Colour.ByRgb"), 820, 1160, Seeded("solids", "roundedColour"));
-        int roundedDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 1100, 1000, Seeded("solids", "roundedDisplay"));
+        int roundedColour = graph.Add(library.ByName("Colour.FromRgb"), 820, 1160, Seeded("solids", "roundedColour"));
+        int roundedDisplay = graph.Add(library.ByName("Display.FromGeometryColour"), 1100, 1000, Seeded("solids", "roundedDisplay"));
 
-        int shellBase = graph.Add(library.ByName("Point.ByCoordinates"), 30, 720, Seeded("solids", "shellBase"));
-        int shellPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 280, 720, Seeded("solids", "shellPlane"));
+        int shellBase = graph.Add(library.ByName("Point.FromCoordinates"), 30, 720, Seeded("solids", "shellBase"));
+        int shellPlane = graph.Add(library.ByName("Plane.FromOriginNormal"), 280, 720, Seeded("solids", "shellPlane"));
         int shellBox = graph.Add(library.ByName("Solid.Box"), 540, 720, Seeded("solids", "shellBox"));
         int hollow = graph.Add(library.ByName("Solid.Hollow"), 820, 720, Seeded("solids", "hollow"));
-        int shellColour = graph.Add(library.ByName("Colour.ByRgb"), 820, 880, Seeded("solids", "shellColour"));
-        int shellDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 1100, 720, Seeded("solids", "shellDisplay"));
+        int shellColour = graph.Add(library.ByName("Colour.FromRgb"), 820, 880, Seeded("solids", "shellColour"));
+        int shellDisplay = graph.Add(library.ByName("Display.FromGeometryColour"), 1100, 720, Seeded("solids", "shellDisplay"));
 
         Literal(graph, boxBase, 0, -4.0);
         Literal(graph, boxBase, 1, -2.0);
@@ -378,7 +378,7 @@ public static class DemoGraphs
     /// circle is the curve the demo divides.
     /// </para>
     /// <para>
-    /// The row of circles is one <c>Circle.ByCentreRadius</c> node fed a list of eight centres — the
+    /// The row of circles is one <c>Circle.FromCentreRadius</c> node fed a list of eight centres — the
     /// same replication the point grid demonstrates, now producing curves rather than points, which
     /// is the thing worth seeing twice.
     /// </para>
@@ -393,25 +393,25 @@ public static class DemoGraphs
         CanvasGraph graph = new();
 
         int plane = graph.Add(library.ByName("Plane.XY"), 30, 30, Seeded("curves", "plane"));
-        int ellipse = graph.Add(library.ByName("Ellipse.ByPlaneRadii"), 250, 30, Seeded("curves", "ellipse"));
+        int ellipse = graph.Add(library.ByName("Ellipse.FromPlaneRadii"), 250, 30, Seeded("curves", "ellipse"));
         int divide = graph.Add(library.ByName("Curve.DivideEqually"), 520, 140, Seeded("curves", "divide"));
-        int ellipseColour = graph.Add(library.ByName("Colour.ByRgb"), 250, 180, Seeded("curves", "ellipseColour"));
-        int pointColour = graph.Add(library.ByName("Colour.ByRgb"), 520, 300, Seeded("curves", "pointColour"));
-        int ellipseDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 820, 30, Seeded("curves", "ellipseDisplay"));
-        int pointDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 820, 160, Seeded("curves", "pointDisplay"));
+        int ellipseColour = graph.Add(library.ByName("Colour.FromRgb"), 250, 180, Seeded("curves", "ellipseColour"));
+        int pointColour = graph.Add(library.ByName("Colour.FromRgb"), 520, 300, Seeded("curves", "pointColour"));
+        int ellipseDisplay = graph.Add(library.ByName("Display.FromGeometryColour"), 820, 30, Seeded("curves", "ellipseDisplay"));
+        int pointDisplay = graph.Add(library.ByName("Display.FromGeometryColour"), 820, 160, Seeded("curves", "pointDisplay"));
 
         int range = graph.Add(library.ByName("Number.Range"), 30, 440, Seeded("curves", "range"));
-        int centres = graph.Add(library.ByName("Point.ByCoordinates"), 250, 440, Seeded("curves", "centres"));
-        int circles = graph.Add(library.ByName("Circle.ByCentreRadius"), 520, 440, Seeded("curves", "circles"));
-        int circleColour = graph.Add(library.ByName("Colour.ByRgb"), 520, 580, Seeded("curves", "circleColour"));
-        int circleDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 820, 440, Seeded("curves", "circleDisplay"));
+        int centres = graph.Add(library.ByName("Point.FromCoordinates"), 250, 440, Seeded("curves", "centres"));
+        int circles = graph.Add(library.ByName("Circle.FromCentreRadius"), 520, 440, Seeded("curves", "circles"));
+        int circleColour = graph.Add(library.ByName("Colour.FromRgb"), 520, 580, Seeded("curves", "circleColour"));
+        int circleDisplay = graph.Add(library.ByName("Display.FromGeometryColour"), 820, 440, Seeded("curves", "circleDisplay"));
 
-        int base3 = graph.Add(library.ByName("Point.ByCoordinates"), 30, 700, Seeded("curves", "base3"));
+        int base3 = graph.Add(library.ByName("Point.FromCoordinates"), 30, 700, Seeded("curves", "base3"));
         int axis = graph.Add(library.ByName("Vector.ZAxis"), 30, 830, Seeded("curves", "axis"));
-        int polygonPlane = graph.Add(library.ByName("Plane.ByOriginNormal"), 250, 700, Seeded("curves", "polygonPlane"));
-        int polygon = graph.Add(library.ByName("PolyLine.ByRegularPolygon"), 520, 700, Seeded("curves", "polygon"));
-        int polygonColour = graph.Add(library.ByName("Colour.ByRgb"), 520, 840, Seeded("curves", "polygonColour"));
-        int polygonDisplay = graph.Add(library.ByName("Display.ByGeometryColour"), 820, 700, Seeded("curves", "polygonDisplay"));
+        int polygonPlane = graph.Add(library.ByName("Plane.FromOriginNormal"), 250, 700, Seeded("curves", "polygonPlane"));
+        int polygon = graph.Add(library.ByName("PolyLine.FromRegularPolygon"), 520, 700, Seeded("curves", "polygon"));
+        int polygonColour = graph.Add(library.ByName("Colour.FromRgb"), 520, 840, Seeded("curves", "polygonColour"));
+        int polygonDisplay = graph.Add(library.ByName("Display.FromGeometryColour"), 820, 700, Seeded("curves", "polygonDisplay"));
 
         Literal(graph, ellipse, 1, 6.0);
         Literal(graph, ellipse, 2, 2.0);
@@ -497,17 +497,17 @@ public static class DemoGraphs
             "Math.Multiply",
             "Math.Sin",
             "Number.Range",
-            "Point.ByCoordinates",
-            "BoundingBox.ByCorners",
+            "Point.FromCoordinates",
+            "BoundingBox.FromCorners",
             "BoundingBox.Centre",
-            "Plane.ByOriginNormal",
+            "Plane.FromOriginNormal",
             "Point.Translate",
             "Point.Distance",
-            "Vector.ByCoordinates",
+            "Vector.FromCoordinates",
             "Vector.Scale",
             "Vector.Length",
-            "Colour.ByRgb",
-            "Display.ByGeometryColour",
+            "Colour.FromRgb",
+            "Display.FromGeometryColour",
         ];
 
         CanvasGraph graph = new();

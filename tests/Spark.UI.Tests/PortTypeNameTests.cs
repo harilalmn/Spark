@@ -70,7 +70,7 @@ public sealed class PortTypeNameTests
     /// A plural name over a list of that type is the same word, and is suppressed too.
     /// </summary>
     /// <remarks>
-    /// <c>PolyCurve.ByJoinedCurves</c> takes <c>curves</c> as a list of <c>Curve</c>. Without this
+    /// <c>PolyCurve.FromJoinedCurves</c> takes <c>curves</c> as a list of <c>Curve</c>. Without this
     /// it would read "curves Curve", which is the node saying the same thing twice — and the ring
     /// on the port has already said the third thing, that there are several of them.
     /// </remarks>

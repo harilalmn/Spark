@@ -80,8 +80,8 @@ public sealed class EqualityContractTests
         AssertEqualsAndHashAgree(Tolerance.Default, default);
         AssertEqualsAndHashAgree(new Vector3d(1.0, 2.0, 3.0), new Vector3d(0.5, 1.0, 1.5) * 2.0);
         AssertEqualsAndHashAgree(Point3d.Origin + new Vector3d(1.0, 0.0, 0.0), new Point3d(1.0, 0.0, 0.0));
-        AssertEqualsAndHashAgree(Plane.WorldXY, Plane.ByOriginNormal(Point3d.Origin, Vector3d.ZAxis));
-        AssertEqualsAndHashAgree(CoordinateSystem.Identity, CoordinateSystem.ByOrigin(Point3d.Origin));
+        AssertEqualsAndHashAgree(Plane.WorldXY, Plane.FromOriginNormal(Point3d.Origin, Vector3d.ZAxis));
+        AssertEqualsAndHashAgree(CoordinateSystem.Identity, CoordinateSystem.FromOrigin(Point3d.Origin));
         AssertEqualsAndHashAgree(Transform.Identity, Transform.Scale(1.0));
         AssertEqualsAndHashAgree(BoundingBox.Empty, BoundingBox.FromPoints(Array.Empty<Point3d>()));
     }

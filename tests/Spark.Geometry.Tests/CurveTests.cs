@@ -53,7 +53,7 @@ public sealed class CurveTests
     [Fact]
     public void APointBeyondAClosedCurvesDomainWrapsInstead()
     {
-        Circle circle = Circle.ByCentreRadius(Point3d.Origin, 2.0);
+        Circle circle = Circle.FromCentreRadius(Point3d.Origin, 2.0);
 
         Point3d wrapped = circle.PointAt((Math.PI * 2.0) + (Math.PI / 2.0));
         Point3d direct = circle.PointAt(Math.PI / 2.0);
@@ -66,7 +66,7 @@ public sealed class CurveTests
     [Fact]
     public void ACircleIsWhereItsPlaneSaysItIs()
     {
-        Plane plane = Plane.ByOriginNormal(new Point3d(0.0, 0.0, 5.0), Vector3d.ZAxis);
+        Plane plane = Plane.FromOriginNormal(new Point3d(0.0, 0.0, 5.0), Vector3d.ZAxis);
         Circle circle = new(plane, 3.0);
 
         Assert.Equal(Math.PI * 6.0, circle.Length, Tight);
@@ -82,7 +82,7 @@ public sealed class CurveTests
     {
         // A tilted circle's box is the case a tessellated box gets wrong: the extreme in each
         // world axis falls between samples, so the box comes back systematically too small.
-        Plane plane = Plane.ByOriginNormal(Point3d.Origin, new Vector3d(1.0, 1.0, 1.0));
+        Plane plane = Plane.FromOriginNormal(Point3d.Origin, new Vector3d(1.0, 1.0, 1.0));
         Circle circle = new(plane, 1.0);
         BoundingBox box = circle.BoundingBox;
 
@@ -106,7 +106,7 @@ public sealed class CurveTests
         Point3d second = new(0.0, 1.0, 0.0);
         Point3d third = new(-1.0, 0.0, 0.0);
 
-        Arc arc = Arc.ByThreePoints(first, second, third);
+        Arc arc = Arc.FromThreePoints(first, second, third);
 
         AssertClose(first, arc.StartPoint);
         AssertClose(third, arc.EndPoint);
@@ -119,12 +119,12 @@ public sealed class CurveTests
     public void AnArcThroughThreePointsTakesTheLongWayRoundWhenTheMiddlePointIsThere()
     {
         // The same start and end as the half turn above, but with the middle point below the axis.
-        // If ByThreePoints ignored the middle point, this would produce the identical arc.
+        // If FromThreePoints ignored the middle point, this would produce the identical arc.
         Point3d first = new(1.0, 0.0, 0.0);
         Point3d second = new(0.0, -1.0, 0.0);
         Point3d third = new(-1.0, 0.0, 0.0);
 
-        Arc arc = Arc.ByThreePoints(first, second, third);
+        Arc arc = Arc.FromThreePoints(first, second, third);
 
         AssertClose(second, arc.MidPoint);
         Assert.Equal(-1.0, arc.MidPoint.Y, Tight);
@@ -133,7 +133,7 @@ public sealed class CurveTests
     [Fact]
     public void ANegativeSweepFlipsThePlaneRatherThanReversingTheDomain()
     {
-        Arc clockwise = Arc.ByPlaneRadiusAngles(
+        Arc clockwise = Arc.FromPlaneRadiusAngles(
             Plane.WorldXY, 1.0, Angle.Zero, Angle.FromDegrees(-90.0));
 
         Assert.True(clockwise.Domain.Min < clockwise.Domain.Max);
@@ -146,7 +146,7 @@ public sealed class CurveTests
     [Fact]
     public void ReversingACurveWalksTheSamePathBackwards()
     {
-        Arc arc = Arc.ByPlaneRadiusAngles(
+        Arc arc = Arc.FromPlaneRadiusAngles(
             Plane.WorldXY, 2.0, Angle.FromDegrees(30.0), Angle.FromDegrees(140.0));
         Curve reversed = arc.Reversed();
 
@@ -164,7 +164,7 @@ public sealed class CurveTests
     [Fact]
     public void TrimmingACircleProducesAnArcOverTheRequestedAngles()
     {
-        Circle circle = Circle.ByCentreRadius(Point3d.Origin, 1.0);
+        Circle circle = Circle.FromCentreRadius(Point3d.Origin, 1.0);
 
         Curve trimmed = circle.Trimmed(new Interval(0.0, Math.PI / 2.0));
 
@@ -178,7 +178,7 @@ public sealed class CurveTests
     [Fact]
     public void DividingACircleEquallyPlacesPointsOnTheQuadrantsAndClosesTheLoop()
     {
-        Circle circle = Circle.ByCentreRadius(Point3d.Origin, 1.0);
+        Circle circle = Circle.FromCentreRadius(Point3d.Origin, 1.0);
 
         Point3d[] points = circle.DivideEqually(4);
 
@@ -196,7 +196,7 @@ public sealed class CurveTests
         // The load-bearing test of the whole arc-length layer. On an ellipse of radii 3 and 1 the
         // speed varies by a factor of three, so a division by parameter gives spacings that differ
         // by nearly that much; only a division by arc length gives equal ones.
-        EllipseCurve ellipse = EllipseCurve.ByPlaneRadii(Plane.WorldXY, 3.0, 1.0);
+        EllipseCurve ellipse = EllipseCurve.FromPlaneRadii(Plane.WorldXY, 3.0, 1.0);
         const int divisions = 16;
 
         Point3d[] points = ellipse.DivideEqually(divisions);
@@ -222,7 +222,7 @@ public sealed class CurveTests
     [Fact]
     public void AnEllipsesLengthMatchesAFineIndependentPolygonalMeasurement()
     {
-        EllipseCurve ellipse = EllipseCurve.ByPlaneRadii(Plane.WorldXY, 2.0, 1.0);
+        EllipseCurve ellipse = EllipseCurve.FromPlaneRadii(Plane.WorldXY, 2.0, 1.0);
 
         // An inscribed polygon of many sides underestimates the perimeter, converging from below.
         // This is computed here from the ellipse's own parametric definition rather than from any
@@ -244,7 +244,7 @@ public sealed class CurveTests
     [Fact]
     public void AnEllipseParameterAndItsLengthAreInverses()
     {
-        EllipseCurve ellipse = EllipseCurve.ByPlaneRadiiAngles(
+        EllipseCurve ellipse = EllipseCurve.FromPlaneRadiiAngles(
             Plane.WorldXY, 5.0, 2.0, Angle.FromDegrees(20.0), Angle.FromDegrees(250.0));
 
         for (int step = 0; step <= 20; step++)
@@ -258,7 +258,7 @@ public sealed class CurveTests
     [Fact]
     public void APolyLinesWholeNumberParametersAreItsVertices()
     {
-        PolyLine polyline = PolyLine.ByPoints(
+        PolyLine polyline = PolyLine.FromPoints(
         [
             Point3d.Origin,
             new Point3d(3.0, 0.0, 0.0),
@@ -278,7 +278,7 @@ public sealed class CurveTests
     {
         // Three units along, then four up. A division every two units has to cross the corner: the
         // third point is one unit past it, which a per-segment division would put in the wrong place.
-        PolyLine polyline = PolyLine.ByPoints(
+        PolyLine polyline = PolyLine.FromPoints(
         [
             Point3d.Origin,
             new Point3d(3.0, 0.0, 0.0),
@@ -297,7 +297,7 @@ public sealed class CurveTests
     [Fact]
     public void APolyLineWithACoincidentPairIsRejectedAndTheMessageNamesTheIndex()
     {
-        ArgumentException error = Assert.Throws<ArgumentException>(() => PolyLine.ByPoints(
+        ArgumentException error = Assert.Throws<ArgumentException>(() => PolyLine.FromPoints(
         [
             Point3d.Origin,
             new Point3d(1.0, 0.0, 0.0),
@@ -310,7 +310,7 @@ public sealed class CurveTests
     [Fact]
     public void ARectangleIsAClosedPolylineOfFourSegments()
     {
-        PolyLine rectangle = PolyLine.ByRectangle(Plane.WorldXY, 4.0, 2.0);
+        PolyLine rectangle = PolyLine.FromRectangle(Plane.WorldXY, 4.0, 2.0);
 
         Assert.Equal(4, rectangle.SegmentCount);
         Assert.True(rectangle.IsClosed);
@@ -323,7 +323,7 @@ public sealed class CurveTests
     {
         // Closure here is exact equality, so a polygon that closed by arithmetic rather than by
         // repeating its first point would report IsClosed false while looking closed on screen.
-        PolyLine hexagon = PolyLine.ByRegularPolygon(Plane.WorldXY, 1.0, 6);
+        PolyLine hexagon = PolyLine.FromRegularPolygon(Plane.WorldXY, 1.0, 6);
 
         Assert.True(hexagon.IsClosed);
         Assert.Equal(hexagon.StartPoint, hexagon.EndPoint);
@@ -335,13 +335,13 @@ public sealed class CurveTests
     public void APolyCurveMeasuresLengthAcrossItsSegments()
     {
         Line line = new(Point3d.Origin, new Point3d(4.0, 0.0, 0.0));
-        Arc arc = Arc.ByPlaneRadiusAngles(
-            Plane.ByOriginNormal(new Point3d(4.0, 1.0, 0.0), Vector3d.ZAxis),
+        Arc arc = Arc.FromPlaneRadiusAngles(
+            Plane.FromOriginNormal(new Point3d(4.0, 1.0, 0.0), Vector3d.ZAxis),
             1.0,
             Angle.FromDegrees(-90.0),
             Angle.FromDegrees(90.0));
 
-        PolyCurve chain = PolyCurve.ByJoinedCurves([line, arc]);
+        PolyCurve chain = PolyCurve.FromJoinedCurves([line, arc]);
 
         Assert.Equal(2, chain.SegmentCount);
         Assert.Equal(new Interval(0.0, 2.0), chain.Domain);
@@ -367,12 +367,12 @@ public sealed class CurveTests
         // being checked, so a test written against the public surface passes whether the factor is
         // there or not. It was: this test replaces one that did precisely that.
         Line line = new(Point3d.Origin, new Point3d(4.0, 0.0, 0.0));
-        Arc quarter = Arc.ByPlaneRadiusAngles(
-            Plane.ByOriginNormal(new Point3d(4.0, 1.0, 0.0), Vector3d.ZAxis),
+        Arc quarter = Arc.FromPlaneRadiusAngles(
+            Plane.FromOriginNormal(new Point3d(4.0, 1.0, 0.0), Vector3d.ZAxis),
             1.0,
             Angle.FromDegrees(-90.0),
             Angle.FromDegrees(90.0));
-        PolyCurve chain = PolyCurve.ByJoinedCurves([line, quarter]);
+        PolyCurve chain = PolyCurve.FromJoinedCurves([line, quarter]);
 
         // The line's domain is [0, 1] and it is 4 long, so its speed in chain parameters is 4. The
         // arc's domain is [0, π/2] and its speed there is its radius of 1, so the chain rule makes
@@ -402,9 +402,9 @@ public sealed class CurveTests
     public void APolyCurveTangentIsUnitLengthAcrossItsJoints()
     {
         Line line = new(Point3d.Origin, new Point3d(4.0, 0.0, 0.0));
-        Circle circle = Circle.ByCentreRadius(new Point3d(5.0, 0.0, 0.0), 1.0);
+        Circle circle = Circle.FromCentreRadius(new Point3d(5.0, 0.0, 0.0), 1.0);
         Curve half = circle.Trimmed(new Interval(Math.PI, Math.PI * 2.0));
-        PolyCurve chain = PolyCurve.ByJoinedCurves([line, half]);
+        PolyCurve chain = PolyCurve.FromJoinedCurves([line, half]);
 
         for (int step = 0; step <= 20; step++)
         {
@@ -422,12 +422,12 @@ public sealed class CurveTests
         Line second = new(new Point3d(1.0, 0.01, 0.0), new Point3d(2.0, 0.0, 0.0));
 
         ArgumentException error = Assert.Throws<ArgumentException>(
-            () => PolyCurve.ByJoinedCurves([first, second]));
+            () => PolyCurve.FromJoinedCurves([first, second]));
         Assert.Contains("0 and 1", error.Message, StringComparison.Ordinal);
 
         // The same pair is accepted when the caller says the gap is acceptable, because the
         // tolerance is passed rather than assumed.
-        PolyCurve joined = PolyCurve.ByJoinedCurves(
+        PolyCurve joined = PolyCurve.FromJoinedCurves(
             [first, second], new Tolerance(0.1, Angle.FromDegrees(0.001), 1e-12));
         Assert.Equal(2, joined.SegmentCount);
     }
@@ -439,9 +439,9 @@ public sealed class CurveTests
         Line second = new(new Point3d(1.0, 0.0, 0.0), new Point3d(2.0, 0.0, 0.0));
         Line third = new(new Point3d(2.0, 0.0, 0.0), new Point3d(3.0, 0.0, 0.0));
 
-        PolyCurve nested = PolyCurve.ByJoinedCurves(
-            [PolyCurve.ByJoinedCurves([first, second]), third]);
-        PolyCurve flat = PolyCurve.ByJoinedCurves([first, second, third]);
+        PolyCurve nested = PolyCurve.FromJoinedCurves(
+            [PolyCurve.FromJoinedCurves([first, second]), third]);
+        PolyCurve flat = PolyCurve.FromJoinedCurves([first, second, third]);
 
         Assert.Equal(3, nested.SegmentCount);
         Assert.Equal(flat.Domain, nested.Domain);
@@ -450,7 +450,7 @@ public sealed class CurveTests
     [Fact]
     public void TessellationStaysWithinTheToleranceItWasGiven()
     {
-        Circle circle = Circle.ByCentreRadius(Point3d.Origin, 10.0);
+        Circle circle = Circle.FromCentreRadius(Point3d.Origin, 10.0);
         Tolerance tolerance = new(0.01, Angle.FromDegrees(0.001), 1e-12);
 
         Point3d[] points = circle.Tessellate(tolerance);
@@ -471,7 +471,7 @@ public sealed class CurveTests
     [Fact]
     public void ACoarserToleranceProducesFewerPoints()
     {
-        Circle circle = Circle.ByCentreRadius(Point3d.Origin, 10.0);
+        Circle circle = Circle.FromCentreRadius(Point3d.Origin, 10.0);
 
         int fine = circle.Tessellate(new Tolerance(0.001, Angle.FromDegrees(0.001), 1e-12)).Length;
         int coarse = circle.Tessellate(new Tolerance(0.1, Angle.FromDegrees(0.001), 1e-12)).Length;
@@ -494,7 +494,7 @@ public sealed class CurveTests
     [Fact]
     public void ACurvesFrameIsRightHandedAndSitsOnTheCurve()
     {
-        Arc arc = Arc.ByPlaneRadiusAngles(
+        Arc arc = Arc.FromPlaneRadiusAngles(
             Plane.WorldXY, 2.0, Angle.Zero, Angle.FromDegrees(120.0));
 
         CoordinateSystem frame = arc.CoordinateSystemAt(arc.Domain.Mid);
@@ -512,7 +512,7 @@ public sealed class CurveTests
     [Fact]
     public void APlaneOnACurveHasTheTangentForItsNormal()
     {
-        Circle circle = Circle.ByCentreRadius(Point3d.Origin, 1.0);
+        Circle circle = Circle.FromCentreRadius(Point3d.Origin, 1.0);
 
         Plane plane = circle.PlaneAt(0.0);
 
@@ -523,7 +523,7 @@ public sealed class CurveTests
     [Fact]
     public void TransformingACurveMovesEveryPointOnIt()
     {
-        Arc arc = Arc.ByPlaneRadiusAngles(
+        Arc arc = Arc.FromPlaneRadiusAngles(
             Plane.WorldXY, 1.0, Angle.Zero, Angle.FromDegrees(90.0));
         Transform transform =
             Transform.Translation(new Vector3d(5.0, 0.0, 0.0)) * Transform.Scale(2.0);
@@ -543,7 +543,7 @@ public sealed class CurveTests
     [Fact]
     public void ANonUniformScaleIsRefusedRatherThanQuietlyDeformingACircle()
     {
-        Circle circle = Circle.ByCentreRadius(Point3d.Origin, 1.0);
+        Circle circle = Circle.FromCentreRadius(Point3d.Origin, 1.0);
 
         ArgumentException error = Assert.Throws<ArgumentException>(
             () => circle.TransformedBy(Transform.Scale(2.0, 1.0, 1.0)));
@@ -557,7 +557,7 @@ public sealed class CurveTests
     [Fact]
     public void TrimmingAPolyLineKeepsTheVerticesInBetween()
     {
-        PolyLine polyline = PolyLine.ByPoints(
+        PolyLine polyline = PolyLine.FromPoints(
         [
             Point3d.Origin,
             new Point3d(2.0, 0.0, 0.0),
@@ -580,7 +580,7 @@ public sealed class CurveTests
         Line first = new(Point3d.Origin, new Point3d(2.0, 0.0, 0.0));
         Line second = new(new Point3d(2.0, 0.0, 0.0), new Point3d(2.0, 2.0, 0.0));
         Line third = new(new Point3d(2.0, 2.0, 0.0), new Point3d(4.0, 2.0, 0.0));
-        PolyCurve chain = PolyCurve.ByJoinedCurves([first, second, third]);
+        PolyCurve chain = PolyCurve.FromJoinedCurves([first, second, third]);
 
         Curve trimmed = chain.Trimmed(new Interval(0.5, 2.5));
 
@@ -609,15 +609,15 @@ public sealed class CurveTests
         List<Curve> curves =
         [
             new Line(Point3d.Origin, new Point3d(1.0, 2.0, 3.0)),
-            Circle.ByCentreRadius(Point3d.Origin, 2.5),
-            Arc.ByPlaneRadiusAngles(Plane.WorldXY, 3.0, Angle.FromDegrees(15.0), Angle.FromDegrees(200.0)),
-            EllipseCurve.ByPlaneRadii(Plane.WorldXY, 4.0, 1.5),
-            PolyLine.ByRegularPolygon(Plane.WorldXY, 2.0, 7),
-            PolyCurve.ByJoinedCurves(
+            Circle.FromCentreRadius(Point3d.Origin, 2.5),
+            Arc.FromPlaneRadiusAngles(Plane.WorldXY, 3.0, Angle.FromDegrees(15.0), Angle.FromDegrees(200.0)),
+            EllipseCurve.FromPlaneRadii(Plane.WorldXY, 4.0, 1.5),
+            PolyLine.FromRegularPolygon(Plane.WorldXY, 2.0, 7),
+            PolyCurve.FromJoinedCurves(
             [
                 new Line(Point3d.Origin, new Point3d(1.0, 0.0, 0.0)),
-                Arc.ByPlaneRadiusAngles(
-                    Plane.ByOriginNormal(new Point3d(1.0, 1.0, 0.0), Vector3d.ZAxis),
+                Arc.FromPlaneRadiusAngles(
+                    Plane.FromOriginNormal(new Point3d(1.0, 1.0, 0.0), Vector3d.ZAxis),
                     1.0,
                     Angle.FromDegrees(-90.0),
                     Angle.FromDegrees(90.0)),
@@ -648,7 +648,7 @@ public sealed class CurveTests
     [Fact]
     public void TheHelpTopicsEllipseExampleIsTrue()
     {
-        EllipseCurve ellipse = EllipseCurve.ByPlaneRadii(Plane.WorldXY, 3.0, 1.0);
+        EllipseCurve ellipse = EllipseCurve.FromPlaneRadii(Plane.WorldXY, 3.0, 1.0);
 
         Point3d byParameter = ellipse.PointAt(ellipse.Domain.Denormalise(0.125));
         Point3d byLength = ellipse.PointAtLength(ellipse.Length * 0.125);

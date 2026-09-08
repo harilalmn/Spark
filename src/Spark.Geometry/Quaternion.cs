@@ -45,7 +45,7 @@ public readonly struct Quaternion : IEquatable<Quaternion>
 {
     /// <summary>
     /// Creates a quaternion from its four components. Not normalised, and not checked: this is
-    /// the raw constructor, and <see cref="ByAxisAngle(in Vector3d, Angle)"/> is what most
+    /// the raw constructor, and <see cref="FromAxisAngle(in Vector3d, Angle)"/> is what most
     /// callers want.
     /// </summary>
     /// <param name="x">The X component of the vector part.</param>
@@ -114,7 +114,7 @@ public readonly struct Quaternion : IEquatable<Quaternion>
     /// Thrown when <paramref name="axis"/> is zero-length or non-finite, or when
     /// <paramref name="angle"/> is not finite.
     /// </exception>
-    public static Quaternion ByAxisAngle(in Vector3d axis, Angle angle)
+    public static Quaternion FromAxisAngle(in Vector3d axis, Angle angle)
     {
         if (!axis.TryNormalise(out Vector3d k))
         {
@@ -152,9 +152,9 @@ public readonly struct Quaternion : IEquatable<Quaternion>
     /// chosen from the world axis least aligned with <paramref name="from"/> so that the choice
     /// is stable rather than a function of floating-point noise. Callers who need a *particular*
     /// axis in that case must say so themselves, with
-    /// <see cref="ByAxisAngle(in Vector3d, Angle)"/>.
+    /// <see cref="FromAxisAngle(in Vector3d, Angle)"/>.
     /// </remarks>
-    public static Quaternion ByRotationBetween(in Vector3d from, in Vector3d to)
+    public static Quaternion FromRotationBetween(in Vector3d from, in Vector3d to)
     {
         if (!from.TryNormalise(out Vector3d a))
         {

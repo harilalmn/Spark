@@ -92,7 +92,7 @@ public static class BrepPrimitives
         Face(
             builder,
             new PlaneSurface(
-                Plane.ByOriginXAxisYAxis(plane.Origin + (plane.Normal * height), plane.XAxis, plane.YAxis),
+                Plane.FromOriginXAxisYAxis(plane.Origin + (plane.Normal * height), plane.XAxis, plane.YAxis),
                 new Interval(0, length),
                 new Interval(0, width)),
             [(topFront, false), (topRight, false), (topBack, false), (topLeft, false)],
@@ -101,7 +101,7 @@ public static class BrepPrimitives
         Face(
             builder,
             new PlaneSurface(
-                Plane.ByOriginXAxisYAxis(plane.Origin, plane.XAxis, plane.Normal),
+                Plane.FromOriginXAxisYAxis(plane.Origin, plane.XAxis, plane.Normal),
                 new Interval(0, length),
                 new Interval(0, height)),
             [(bottomFront, false), (frontRight, false), (topFront, true), (frontLeft, true)],
@@ -110,7 +110,7 @@ public static class BrepPrimitives
         Face(
             builder,
             new PlaneSurface(
-                Plane.ByOriginXAxisYAxis(plane.Origin + (plane.XAxis * length), plane.YAxis, plane.Normal),
+                Plane.FromOriginXAxisYAxis(plane.Origin + (plane.XAxis * length), plane.YAxis, plane.Normal),
                 new Interval(0, width),
                 new Interval(0, height)),
             [(bottomRight, false), (backRight, false), (topRight, true), (frontRight, true)],
@@ -119,7 +119,7 @@ public static class BrepPrimitives
         Face(
             builder,
             new PlaneSurface(
-                Plane.ByOriginXAxisYAxis(plane.Origin + (plane.YAxis * width) + (plane.XAxis * length), -plane.XAxis, plane.Normal),
+                Plane.FromOriginXAxisYAxis(plane.Origin + (plane.YAxis * width) + (plane.XAxis * length), -plane.XAxis, plane.Normal),
                 new Interval(0, length),
                 new Interval(0, height)),
             [(bottomBack, false), (backLeft, false), (topBack, true), (backRight, true)],
@@ -128,7 +128,7 @@ public static class BrepPrimitives
         Face(
             builder,
             new PlaneSurface(
-                Plane.ByOriginXAxisYAxis(plane.Origin + (plane.YAxis * width), -plane.YAxis, plane.Normal),
+                Plane.FromOriginXAxisYAxis(plane.Origin + (plane.YAxis * width), -plane.YAxis, plane.Normal),
                 new Interval(0, width),
                 new Interval(0, height)),
             [(bottomLeft, false), (frontLeft, false), (topLeft, true), (backLeft, true)],
@@ -161,14 +161,14 @@ public static class BrepPrimitives
         Point3d bottomCentre = plane.Origin;
         Point3d topCentre = plane.Origin + (plane.Normal * height);
 
-        Plane bottomPlane = Plane.ByOriginXAxisYAxis(bottomCentre, plane.XAxis, plane.YAxis);
-        Plane topPlane = Plane.ByOriginXAxisYAxis(topCentre, plane.XAxis, plane.YAxis);
+        Plane bottomPlane = Plane.FromOriginXAxisYAxis(bottomCentre, plane.XAxis, plane.YAxis);
+        Plane topPlane = Plane.FromOriginXAxisYAxis(topCentre, plane.XAxis, plane.YAxis);
 
         int bottomSeam = builder.AddVertex(bottomCentre + (plane.XAxis * radius));
         int topSeam = builder.AddVertex(topCentre + (plane.XAxis * radius));
 
-        int bottomCircle = builder.AddEdge(bottomSeam, bottomSeam, Circle.ByPlaneRadius(bottomPlane, radius));
-        int topCircle = builder.AddEdge(topSeam, topSeam, Circle.ByPlaneRadius(topPlane, radius));
+        int bottomCircle = builder.AddEdge(bottomSeam, bottomSeam, Circle.FromPlaneRadius(bottomPlane, radius));
+        int topCircle = builder.AddEdge(topSeam, topSeam, Circle.FromPlaneRadius(topPlane, radius));
         int seam = builder.AddLineEdge(bottomSeam, topSeam);
 
         // The bottom cap, wound so its outward normal points down: seen from below, the circle

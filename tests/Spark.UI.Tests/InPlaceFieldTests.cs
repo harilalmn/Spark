@@ -158,7 +158,7 @@ public sealed class InPlaceFieldTests
     public void ANodeWithoutAFieldHasNoFieldText()
     {
         CanvasGraph graph = new();
-        int slot = graph.Add(Library.ByName("Point.ByCoordinates"), 0, 0);
+        int slot = graph.Add(Library.ByName("Point.FromCoordinates"), 0, 0);
 
         Assert.False(graph.Nodes[slot].HasField);
         Assert.Null(graph.FieldText(slot));

@@ -71,7 +71,7 @@ public sealed class Circle : Curve
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown when <paramref name="radius"/> is not positive and finite.
     /// </exception>
-    public static Circle ByPlaneRadius(in Plane plane, double radius) => new(plane, radius);
+    public static Circle FromPlaneRadius(in Plane plane, double radius) => new(plane, radius);
 
     /// <summary>Creates a circle in the world xy plane.</summary>
     /// <param name="centre">The centre.</param>
@@ -81,8 +81,8 @@ public sealed class Circle : Curve
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown when <paramref name="radius"/> is not positive and finite.
     /// </exception>
-    public static Circle ByCentreRadius(in Point3d centre, double radius) =>
-        new(Plane.ByOriginNormal(centre, Vector3d.ZAxis), radius);
+    public static Circle FromCentreRadius(in Point3d centre, double radius) =>
+        new(Plane.FromOriginNormal(centre, Vector3d.ZAxis), radius);
 
     /// <summary>Creates a circle in the plane defined by a centre and a normal.</summary>
     /// <param name="centre">The centre.</param>
@@ -96,9 +96,9 @@ public sealed class Circle : Curve
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown when <paramref name="radius"/> is not positive and finite.
     /// </exception>
-    public static Circle ByCentreNormalRadius(
+    public static Circle FromCentreNormalRadius(
         in Point3d centre, in Vector3d normal, double radius) =>
-        new(Plane.ByOriginNormal(centre, normal), radius);
+        new(Plane.FromOriginNormal(centre, normal), radius);
 
     /// <summary>Creates the circle through three points.</summary>
     /// <param name="first">The first point.</param>
@@ -108,7 +108,7 @@ public sealed class Circle : Curve
     /// <exception cref="ArgumentException">
     /// Thrown when the three points are collinear or coincident, so no circle passes through them.
     /// </exception>
-    public static Circle ByThreePoints(
+    public static Circle FromThreePoints(
         in Point3d first, in Point3d second, in Point3d third)
     {
         (Plane plane, double radius) = Arc.Circumcircle(first, second, third);
@@ -132,7 +132,7 @@ public sealed class Circle : Curve
 
     /// <inheritdoc/>
     public override Curve Reversed() =>
-        new Circle(Plane.ByOriginXAxisYAxis(_plane.Origin, _plane.XAxis, -_plane.YAxis), _radius);
+        new Circle(Plane.FromOriginXAxisYAxis(_plane.Origin, _plane.XAxis, -_plane.YAxis), _radius);
 
     /// <summary>Returns the arc between two parameters on the circle.</summary>
     /// <param name="domain">
@@ -153,8 +153,8 @@ public sealed class Circle : Curve
 
         double sweep = Math.Min(Math.Abs(domain.Length), Math.PI * 2.0);
         return domain.Length > 0.0
-            ? Arc.ByPlaneRadiusAngles(_plane, _radius, Angle.FromRadians(domain.Min), Angle.FromRadians(sweep))
-            : Arc.ByPlaneRadiusAngles(_plane, _radius, Angle.FromRadians(domain.Min), Angle.FromRadians(-sweep));
+            ? Arc.FromPlaneRadiusAngles(_plane, _radius, Angle.FromRadians(domain.Min), Angle.FromRadians(sweep))
+            : Arc.FromPlaneRadiusAngles(_plane, _radius, Angle.FromRadians(domain.Min), Angle.FromRadians(-sweep));
     }
 
     /// <inheritdoc/>

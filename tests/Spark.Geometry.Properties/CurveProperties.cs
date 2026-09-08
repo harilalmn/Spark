@@ -252,7 +252,7 @@ public sealed class CurveProperties
                 Point3d second = circle.PointAtLength(full * firstFraction * 0.98);
                 Point3d third = circle.PointAtLength(full * ((firstFraction * 0.98) + ((1.0 - (firstFraction * 0.98)) * secondFraction)));
 
-                Arc arc = Arc.ByThreePoints(first, second, third);
+                Arc arc = Arc.FromThreePoints(first, second, third);
                 double slack = scene.Scale * 1e-9;
 
                 Assert.True(arc.StartPoint.DistanceTo(first) <= slack, "The arc misses its start.");
@@ -286,16 +286,16 @@ public sealed class CurveProperties
         Line line = new(origin, origin + (plane.XAxis * scene.Scale));
         yield return line;
 
-        yield return Arc.ByPlaneRadiusAngles(
+        yield return Arc.FromPlaneRadiusAngles(
             plane, radius, Angle.FromDegrees(17.0), Angle.FromDegrees(203.0));
 
         yield return new Circle(plane, radius);
 
         // Radii of 2:1, which is enough eccentricity that a parameter division and a length
         // division are visibly different rather than merely different in the last digits.
-        yield return EllipseCurve.ByPlaneRadii(plane, radius, radius * 0.5);
+        yield return EllipseCurve.FromPlaneRadii(plane, radius, radius * 0.5);
 
-        PolyLine polyline = PolyLine.ByPoints(
+        PolyLine polyline = PolyLine.FromPoints(
         [
             origin,
             origin + (plane.XAxis * scene.Scale),
@@ -304,7 +304,7 @@ public sealed class CurveProperties
         yield return polyline;
 
         Point3d joint = origin + (plane.XAxis * scene.Scale);
-        yield return PolyCurve.ByJoinedCurves(
+        yield return PolyCurve.FromJoinedCurves(
             [
                 line,
                 new Line(joint, joint + (plane.YAxis * (scene.Scale * 0.6))),

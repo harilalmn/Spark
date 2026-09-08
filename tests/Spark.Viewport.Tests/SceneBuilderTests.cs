@@ -167,7 +167,7 @@ public sealed class SceneBuilderTests
     public void ACurveIsDrawnAsItsOwnTessellation()
     {
         SceneBuilder builder = new();
-        Circle circle = Circle.ByCentreRadius(Point3d.Origin, 10.0);
+        Circle circle = Circle.FromCentreRadius(Point3d.Origin, 10.0);
         builder.Add(Key, circle);
 
         RenderPackage package = Assert.Single(builder.Build());
@@ -196,10 +196,10 @@ public sealed class SceneBuilderTests
     public void ALargeCurveDoesNotCostMoreSegmentsThanASmallOne()
     {
         SceneBuilder small = new();
-        small.Add(Key, Circle.ByCentreRadius(Point3d.Origin, 1.0));
+        small.Add(Key, Circle.FromCentreRadius(Point3d.Origin, 1.0));
 
         SceneBuilder large = new();
-        large.Add(Key, Circle.ByCentreRadius(Point3d.Origin, 1000.0));
+        large.Add(Key, Circle.FromCentreRadius(Point3d.Origin, 1000.0));
 
         int smallEdges = Assert.Single(small.Build()).EdgeCount;
         int largeEdges = Assert.Single(large.Build()).EdgeCount;
@@ -218,7 +218,7 @@ public sealed class SceneBuilderTests
         SceneBuilder builder = new();
         SparkList curves = new(
         [
-            new Displayable(Circle.ByCentreRadius(Point3d.Origin, 1.0), new Spark.Api.Appearance(new Rgba(10, 20, 30))),
+            new Displayable(Circle.FromCentreRadius(Point3d.Origin, 1.0), new Spark.Api.Appearance(new Rgba(10, 20, 30))),
             new Displayable(new Line(Point3d.Origin, new Point3d(5, 0, 0)), new Spark.Api.Appearance(new Rgba(10, 20, 30))),
         ],
             1);

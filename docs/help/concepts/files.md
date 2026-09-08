@@ -49,7 +49,7 @@ Here is a whole graph, in full:
     },
     {
       "id": "1f5b2c4d-6e7a-4b8c-9d0e-1f2a3b4c5d6e",
-      "key": "Spark.Nodes.Core/Point.ByCoordinates",
+      "key": "Spark.Nodes.Core/Point.FromCoordinates",
       "lacing": "CrossProduct",
       "x": 300,
       "y": 60

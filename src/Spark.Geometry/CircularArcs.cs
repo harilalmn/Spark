@@ -162,6 +162,6 @@ internal static class CircularArcs
         }
 
         scale = xLength;
-        return Plane.ByOriginXAxisYAxis(transform.OfPoint(plane.Origin), x, y);
+        return Plane.FromOriginXAxisYAxis(transform.OfPoint(plane.Origin), x, y);
     }
 }

@@ -45,7 +45,7 @@ which ships with Spark.
 > rather than hoped for. `docs/examples/curves.spark` is one.
 >
 > **Nodes are found by typing.** Double-click empty canvas and a search box opens there; type
-> `cbcr`, press Enter, and `Circle.ByCentreRadius` lands at that point. The same ranking runs the
+> `cbcr`, press Enter, and `Circle.FromCentreRadius` lands at that point. The same ranking runs the
 > library panel — exact, prefix, camel-hump, substring, category, description — because a library
 > of thousands, which is what packages make, cannot be skimmed. **Dynamo's double-click makes a
 > code block and Spark's does not**: the code block is a later milestone, and the gesture will gain

@@ -152,7 +152,7 @@ the right-hand rule for the points **in the order you gave them**, so swapping a
 them flips it:
 
 ```csharp
-Plane wall = Plane.ByThreePoints(
+Plane wall = Plane.FromThreePoints(
     new Point3d(0.0, 0.0, 0.0),
     new Point3d(5.0, 0.0, 0.0),
     new Point3d(5.0, 0.0, 3.0));
@@ -162,19 +162,19 @@ double side = wall.DistanceTo(new Point3d(0.0, 1.0, 0.0)); // −1: one unit beh
 Plane turned = wall.Flipped();                          // same plane, normal reversed
 ```
 
-Three collinear or coincident points define no unique plane, and `ByThreePoints` throws
+Three collinear or coincident points define no unique plane, and `FromThreePoints` throws
 `ArgumentException` rather than inventing one.
 
 ### Choosing a factory: which two facts do you have?
 
-The four factories differ only in what you already know. `ByOriginNormal` takes a point and a
-normal and picks the in-plane rotation for you; `ByOriginNormalXAxis` takes the same and lets
+The four factories differ only in what you already know. `FromOriginNormal` takes a point and a
+normal and picks the in-plane rotation for you; `FromOriginNormalXAxis` takes the same and lets
 you **pin that rotation**, which matters the moment you use `To2d` and care which way *along*
 the plane is X. Like every factory, it orthonormalises: the X axis you pass need not lie in the
 plane, and only the part of it that does is kept.
 
 ```csharp
-Plane spun = Plane.ByOriginNormalXAxis(
+Plane spun = Plane.FromOriginNormalXAxis(
     Point3d.Origin,
     Vector3d.ZAxis,                      // the same plane as WorldXY...
     new Vector3d(1.0, 1.0, 0.0));        // ...turned 45° about the normal
@@ -456,13 +456,13 @@ at: **composing** many rotations without accumulating shear, **interpolating** b
 orientations, and **storing** an orientation in four numbers rather than sixteen.
 
 ```csharp
-Quaternion yaw   = Quaternion.ByAxisAngle(Vector3d.ZAxis, Angle.FromDegrees(90.0));
-Quaternion pitch = Quaternion.ByAxisAngle(Vector3d.YAxis, Angle.FromDegrees(30.0));
+Quaternion yaw   = Quaternion.FromAxisAngle(Vector3d.ZAxis, Angle.FromDegrees(90.0));
+Quaternion pitch = Quaternion.FromAxisAngle(Vector3d.YAxis, Angle.FromDegrees(30.0));
 
 Quaternion both = yaw * pitch;              // pitch first, then yaw - matrix order
 Vector3d aimed  = both.OfVector(Vector3d.XAxis);
 
-Quaternion onto = Quaternion.ByRotationBetween(Vector3d.XAxis, new Vector3d(1.0, 1.0, 0.0));
+Quaternion onto = Quaternion.FromRotationBetween(Vector3d.XAxis, new Vector3d(1.0, 1.0, 0.0));
 Quaternion half = Quaternion.Slerp(Quaternion.Identity, yaw, 0.5); // 45° about Z
 
 Transform asMatrix = both.ToTransform();     // when you need it in a Transform chain
@@ -475,7 +475,7 @@ question as *is this the same rotation*:
 ```csharp
 using Spark.Geometry;
 
-Quaternion yaw = Quaternion.ByAxisAngle(Vector3d.ZAxis, Angle.FromDegrees(90.0));
+Quaternion yaw = Quaternion.FromAxisAngle(Vector3d.ZAxis, Angle.FromDegrees(90.0));
 
 Quaternion negated = new(-yaw.X, -yaw.Y, -yaw.Z, -yaw.W);
 
@@ -504,7 +504,7 @@ Point3d camera = new(0.0, -10.0, 5.0);
 Point3d target = Point3d.Origin;
 BoundingBox someBox = new(new Point3d(-1, -1, -1), new Point3d(1, 1, 1));
 
-Ray look = Ray.ByTwoPoints(camera, target);
+Ray look = Ray.FromTwoPoints(camera, target);
 
 Point3d ahead = look.PointAt(5.0);                  // five units along, not five direction-lengths
 bool hits = look.Intersects(someBox, out double entry, out double exit);
@@ -519,7 +519,7 @@ triangles, curves, whole objects — and never needs to know what an item is:
 using System.Collections.Generic;
 using Spark.Geometry;
 
-Ray look = Ray.ByTwoPoints(new Point3d(0.0, -10.0, 0.0), Point3d.Origin);
+Ray look = Ray.FromTwoPoints(new Point3d(0.0, -10.0, 0.0), Point3d.Origin);
 BoundingBox regionBox = new(new Point3d(-2, -2, -2), new Point3d(2, 2, 2));
 List<BoundingBox> bounds = [regionBox];
 
@@ -547,7 +547,7 @@ is a new index rather than an update.
 `GeometryJson` writes any geometry value as JSON and reads it back:
 
 ```csharp
-string json = GeometryJson.Serialize(Circle.ByCentreRadius(Point3d.Origin, 2.5), indented: true);
+string json = GeometryJson.Serialize(Circle.FromCentreRadius(Point3d.Origin, 2.5), indented: true);
 Circle again = GeometryJson.Deserialize<Circle>(json);
 ```
 

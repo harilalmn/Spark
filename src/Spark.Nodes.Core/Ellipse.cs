@@ -19,9 +19,10 @@ public static class Ellipse
     /// <param name="yRadius">The radius along the plane's y axis.</param>
     /// <returns>The ellipse.</returns>
     [return: NodePort("ellipse")]
-    public static EllipseCurve ByPlaneRadii(
+    [SparkNodeAlias("Ellipse.ByPlaneRadii")]
+    public static EllipseCurve FromPlaneRadii(
         Spark.Geometry.Plane plane, double xRadius = 2.0, double yRadius = 1.0) =>
-        EllipseCurve.ByPlaneRadii(plane, xRadius, yRadius);
+        EllipseCurve.FromPlaneRadii(plane, xRadius, yRadius);
 
     /// <summary>Makes part of an ellipse in a plane.</summary>
     /// <param name="plane">The plane.</param>
@@ -31,11 +32,12 @@ public static class Ellipse
     /// <param name="sweepAngle">How far it sweeps, in degrees. Negative sweeps the other way.</param>
     /// <returns>The elliptical arc.</returns>
     [return: NodePort("ellipse")]
-    public static EllipseCurve ByPlaneRadiiAngles(
+    [SparkNodeAlias("Ellipse.ByPlaneRadiiAngles")]
+    public static EllipseCurve FromPlaneRadiiAngles(
         Spark.Geometry.Plane plane,
         double xRadius,
         double yRadius,
         Angle startAngle,
         Angle sweepAngle) =>
-        EllipseCurve.ByPlaneRadiiAngles(plane, xRadius, yRadius, startAngle, sweepAngle);
+        EllipseCurve.FromPlaneRadiiAngles(plane, xRadius, yRadius, startAngle, sweepAngle);
 }

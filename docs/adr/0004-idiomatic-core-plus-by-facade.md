@@ -1,6 +1,6 @@
-# ADR-0004 — Idiomatic C# core plus `By*` façade, with parameter-type-sequence dedup for node generation
+# ADR-0004 — Idiomatic C# core plus `From*` façade, with parameter-type-sequence dedup for node generation
 
-**Status:** Accepted
+**Status:** Accepted, amended 2026-09-08 (`By*` became `From*`)
 **Date:** 2026-08-27
 **Deciders:** Nicety
 
@@ -42,6 +42,31 @@ prophylactically rather than after the damage.
 
 Because ADR-0016 removes any Dynamo compatibility obligation, the `By*` names carry no
 semantic contract with ProtoGeometry. They are for human recognition only.
+
+## Amendment, 2026-09-08 — the façade is spelled `From*`
+
+**The prefix is `From`, not `By`** (`E2-T58`), across both `Spark.Geometry` and
+`Spark.Nodes.Core`: `Circle.FromCentreRadius`, `Point.FromCoordinates`,
+`Plane.FromOriginNormal`. Asked for by the client, who chose to change both layers rather
+than one when shown that a code block calls the *geometry* type — `Circle` in a block is
+`Spark.Geometry.Circle`, and the node of the same name is a thin façade over it, so renaming
+one layer alone would have the canvas and the code block disagree about the same call.
+
+**Nothing above this line changes except the spelling.** The importer's suppression rule
+already read `By*`/`From*`/`Create*` as equivalent, so node *kind* inference and the
+constructor-dedup rule are untouched by the rename — which is why 57 methods could move
+without a single node appearing or disappearing.
+
+**The four infix `By` methods keep it**: `Curve.DivideByLength`, `Curve.TrimByParameter`,
+`Number.RangeByCount`, `Number.RangeByCountAndStep`. Those are not factories — the word is
+doing its ordinary English work there, and `DivideFromLength` would mean something else.
+`Spark.Api.NumberRange.ByCount` and its two siblings keep it for the same reason: they are
+the plumbing behind those nodes.
+
+**A renamed node still opens the files that name it** (`E3-T23`). A node's key is written
+into every `.spark` file, so each renamed node carries a `[SparkNodeAlias]` for its old key
+and the file heals to the new one when it is next saved. The geometry factories need none:
+nothing serialises a geometry method name.
 
 ## Alternatives considered
 

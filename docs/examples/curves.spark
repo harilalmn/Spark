@@ -3,7 +3,7 @@
   "nodes": [
     {
       "id": "154973cf-8779-eba9-6c9d-c2581f629ea3",
-      "key": "Spark.Nodes.Core/Circle.ByCentreRadius",
+      "key": "Spark.Nodes.Core/Circle.FromCentreRadius",
       "lacing": "Auto",
       "x": 520,
       "y": 440,
@@ -24,7 +24,7 @@
     },
     {
       "id": "4bec66fd-bb83-ffee-7da3-ed0404e451b9",
-      "key": "Spark.Nodes.Core/PolyLine.ByRegularPolygon",
+      "key": "Spark.Nodes.Core/PolyLine.FromRegularPolygon",
       "lacing": "Auto",
       "x": 520,
       "y": 700,
@@ -43,14 +43,14 @@
     },
     {
       "id": "7f93a88c-b3d6-bd35-90f0-43745f259f0b",
-      "key": "Spark.Nodes.Core/Display.ByGeometryColour",
+      "key": "Spark.Nodes.Core/Display.FromGeometryColour",
       "lacing": "Auto",
       "x": 820,
       "y": 160
     },
     {
       "id": "86388ee7-9abc-11a6-7915-41d56fd67a3d",
-      "key": "Spark.Nodes.Core/Colour.ByRgb",
+      "key": "Spark.Nodes.Core/Colour.FromRgb",
       "lacing": "Auto",
       "x": 520,
       "y": 840,
@@ -69,7 +69,7 @@
     },
     {
       "id": "8f360f4a-3fc2-0ca8-d6f8-5c418eec108c",
-      "key": "Spark.Nodes.Core/Ellipse.ByPlaneRadii",
+      "key": "Spark.Nodes.Core/Ellipse.FromPlaneRadii",
       "lacing": "Auto",
       "x": 250,
       "y": 30,
@@ -88,14 +88,14 @@
     },
     {
       "id": "93835458-272d-3886-044d-c69dee84d9eb",
-      "key": "Spark.Nodes.Core/Display.ByGeometryColour",
+      "key": "Spark.Nodes.Core/Display.FromGeometryColour",
       "lacing": "Auto",
       "x": 820,
       "y": 440
     },
     {
       "id": "94c6c444-fdf6-4ff1-f4c8-e1f9ce6dd15e",
-      "key": "Spark.Nodes.Core/Point.ByCoordinates",
+      "key": "Spark.Nodes.Core/Point.FromCoordinates",
       "lacing": "Auto",
       "x": 250,
       "y": 440,
@@ -147,7 +147,7 @@
     },
     {
       "id": "cc72750c-4ba4-b6e5-2168-1d4ae8fedd71",
-      "key": "Spark.Nodes.Core/Colour.ByRgb",
+      "key": "Spark.Nodes.Core/Colour.FromRgb",
       "lacing": "Auto",
       "x": 520,
       "y": 300,
@@ -166,21 +166,21 @@
     },
     {
       "id": "da93cf82-a1ce-1f2e-4ad2-84c39e7b3633",
-      "key": "Spark.Nodes.Core/Plane.ByOriginNormal",
+      "key": "Spark.Nodes.Core/Plane.FromOriginNormal",
       "lacing": "Auto",
       "x": 250,
       "y": 700
     },
     {
       "id": "dc853929-e237-25fc-47b2-aef5ade3b9e3",
-      "key": "Spark.Nodes.Core/Display.ByGeometryColour",
+      "key": "Spark.Nodes.Core/Display.FromGeometryColour",
       "lacing": "Auto",
       "x": 820,
       "y": 30
     },
     {
       "id": "ec2b1532-5845-6fd0-bdd3-7b8882eba6e7",
-      "key": "Spark.Nodes.Core/Colour.ByRgb",
+      "key": "Spark.Nodes.Core/Colour.FromRgb",
       "lacing": "Auto",
       "x": 520,
       "y": 580,
@@ -199,7 +199,7 @@
     },
     {
       "id": "edce521a-d3cd-4630-0439-f73b1e1c0b18",
-      "key": "Spark.Nodes.Core/Point.ByCoordinates",
+      "key": "Spark.Nodes.Core/Point.FromCoordinates",
       "lacing": "Auto",
       "x": 30,
       "y": 700,
@@ -213,7 +213,7 @@
     },
     {
       "id": "ef05f9f6-a6f8-27aa-d681-29f863bb3f3c",
-      "key": "Spark.Nodes.Core/Colour.ByRgb",
+      "key": "Spark.Nodes.Core/Colour.FromRgb",
       "lacing": "Auto",
       "x": 250,
       "y": 180,
@@ -239,7 +239,7 @@
     },
     {
       "id": "faf7ebf6-d6be-b4b9-6d05-5d3c639f680e",
-      "key": "Spark.Nodes.Core/Display.ByGeometryColour",
+      "key": "Spark.Nodes.Core/Display.FromGeometryColour",
       "lacing": "Auto",
       "x": 820,
       "y": 700

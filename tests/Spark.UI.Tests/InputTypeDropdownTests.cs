@@ -50,7 +50,7 @@ public sealed class InputTypeDropdownTests
     {
         MainWindowViewModel model = new();
 
-        int slot = model.Graph.Add(TestGraphs.Library.ByName("Point.ByCoordinates"), 0, 0);
+        int slot = model.Graph.Add(TestGraphs.Library.ByName("Point.FromCoordinates"), 0, 0);
         model.ShowSelection([slot]);
 
         Assert.NotEmpty(model.Inspector);

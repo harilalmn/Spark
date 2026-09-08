@@ -29,7 +29,8 @@ public static class Display
     /// <exception cref="ArgumentNullException"><paramref name="geometry"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="lineWeight"/> is not positive and finite.</exception>
     [return: NodePort("displayable")]
-    public static Displayable ByGeometryColour(
+    [SparkNodeAlias("Display.ByGeometryColour")]
+    public static Displayable FromGeometryColour(
         object geometry,
         [NoReplication] Rgba colour = default,
         [NoReplication] double lineWeight = 1.0)
@@ -53,7 +54,8 @@ public static class Colour
     /// <param name="blue">The blue channel. Clamped to 0–255.</param>
     /// <returns>The colour.</returns>
     [return: NodePort("colour")]
-    public static Rgba ByRgb(double red = 255, double green = 255, double blue = 255) =>
+    [SparkNodeAlias("Colour.ByRgb")]
+    public static Rgba FromRgb(double red = 255, double green = 255, double blue = 255) =>
         new(Channel(red), Channel(green), Channel(blue));
 
     private static byte Channel(double value) =>

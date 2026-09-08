@@ -239,7 +239,7 @@ public abstract class Surface
                 "The surface is degenerate at this parameter, so it has no tangent plane there.");
         }
 
-        return Plane.ByOriginNormalXAxis(Evaluate(u, v), normal, du);
+        return Plane.FromOriginNormalXAxis(Evaluate(u, v), normal, du);
     }
 
     /// <summary>

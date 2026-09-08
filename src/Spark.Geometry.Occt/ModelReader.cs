@@ -176,7 +176,7 @@ internal static class ModelReader
     // --------------------------------------------------------------------------------------------
 
     private static Plane Frame(ReadOnlySpan<double> values) =>
-        Plane.ByOriginXAxisYAxis(
+        Plane.FromOriginXAxisYAxis(
             new Point3d(values[0], values[1], values[2]),
             new Vector3d(values[3], values[4], values[5]),
             new Vector3d(values[6], values[7], values[8]));
@@ -194,14 +194,14 @@ internal static class ModelReader
                 return new Circle(Frame(values), values[9]);
 
             case NativeMethods.CurveArc:
-                return Arc.ByPlaneRadiusAngles(
+                return Arc.FromPlaneRadiusAngles(
                     Frame(values),
                     values[9],
                     Angle.FromRadians(values[10]),
                     Angle.FromRadians(values[11]));
 
             case NativeMethods.CurveEllipse:
-                return EllipseCurve.ByPlaneRadiiAngles(
+                return EllipseCurve.FromPlaneRadiiAngles(
                     Frame(values),
                     values[9],
                     values[10],

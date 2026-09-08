@@ -157,11 +157,11 @@ construction is a small, real convenience), `Point.PruneDuplicates` (planned, an
 it needs surfaces), and `Vector.FromJson`/`ToJson` (planned under FR-57). Nothing here is a
 design difference.
 
-**`Plane` had four gaps and has two.** `ByOriginNormalXAxis` and `Offset(distance)` were
+**`Plane` had four gaps and has two.** `FromOriginNormalXAxis` and `Offset(distance)` were
 **added 2026-08-29** (`E2-T40`) — the first because it is the only factory that pins the
 in-plane rotation without a second point, the second because a parallel plane at a distance is
 asked for constantly and there is nothing to decide about it. Neither turned out to be quite
-trivial: `ByOriginNormalXAxis` projects the requested X axis into the plane rather than
+trivial: `FromOriginNormalXAxis` projects the requested X axis into the plane rather than
 demanding one that already lies in it, and `Offset` refuses a non-finite distance rather than
 producing a plane whose origin is `NaN`, which would be the only way to obtain an invalid
 `Plane` from a factory. What remains is `ByBestFitThroughPoints` (planned — least-squares
@@ -261,7 +261,7 @@ as deliberate. Leaving it unstated is how a gap becomes a surprise at M3.
 
 **`Rectangle` and `Polygon` are types in Dynamo and should be factories in Spark.** A
 `Rectangle` that is a subclass of `Polygon` which is a subclass of `PolyCurve` gains nothing
-over a closed `PolyLine` built by `PolyLine.ByRectangle(plane, width, length)`, and it costs a
+over a closed `PolyLine` built by `PolyLine.FromRectangle(plane, width, length)`, and it costs a
 public type that must be serialised, versioned, documented and node-ified forever. The four
 capabilities that only live on those types — `Polygon.Center`, `Polygon.Corners`,
 `Polygon.ContainmentTest`, `Polygon.SelfIntersections`, `Polygon.PlaneDeviation` and

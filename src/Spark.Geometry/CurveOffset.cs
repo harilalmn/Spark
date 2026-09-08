@@ -105,7 +105,7 @@ public static class CurveOffset
 
                     if (radius > 0)
                     {
-                        return (Circle.ByPlaneRadius(circle.Plane, radius), true);
+                        return (Circle.FromPlaneRadius(circle.Plane, radius), true);
                     }
 
                     break;
@@ -117,7 +117,7 @@ public static class CurveOffset
 
                     if (radius > 0)
                     {
-                        return (Arc.ByPlaneRadiusAngles(arc.Plane, radius, arc.StartAngle, arc.SweepAngle), true);
+                        return (Arc.FromPlaneRadiusAngles(arc.Plane, radius, arc.StartAngle, arc.SweepAngle), true);
                     }
 
                     break;
@@ -256,7 +256,7 @@ public static class CurveOffset
         Vector3d bisector = (awayFromFirst + towardsSecond).Normalised();
         Point3d centre = corner + (bisector * (radius / Math.Sin(half)));
 
-        Arc fillet = Arc.ByThreePoints(tangentOnFirst, MidArcPoint(centre, tangentOnFirst, tangentOnSecond, radius), tangentOnSecond);
+        Arc fillet = Arc.FromThreePoints(tangentOnFirst, MidArcPoint(centre, tangentOnFirst, tangentOnSecond, radius), tangentOnSecond);
 
         return (
             fillet,

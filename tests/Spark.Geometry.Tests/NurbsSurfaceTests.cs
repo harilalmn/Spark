@@ -32,7 +32,7 @@ public sealed class NurbsSurfaceTests
     [Fact]
     public void ABilinearSurfaceInterpolatesItsCorners()
     {
-        NurbsSurface surface = NurbsSurface.ByCorners(
+        NurbsSurface surface = NurbsSurface.FromCorners(
         [
             new Point3d(0, 0, 0),
             new Point3d(0, 4, 0),
@@ -111,7 +111,7 @@ public sealed class NurbsSurfaceTests
     [Fact]
     public void TransformingTheNetTransformsTheSurface()
     {
-        NurbsSurface surface = NurbsSurface.ByCorners(
+        NurbsSurface surface = NurbsSurface.FromCorners(
         [
             new Point3d(0, 0, 0), new Point3d(0, 4, 0), new Point3d(3, 0, 0), new Point3d(3, 4, 0),
         ]);

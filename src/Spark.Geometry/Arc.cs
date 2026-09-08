@@ -79,7 +79,7 @@ public sealed class Arc : Curve
     /// Thrown when <paramref name="radius"/> is not positive and finite, or when
     /// <paramref name="sweepAngle"/> is zero, not finite, or larger than a full turn.
     /// </exception>
-    public static Arc ByPlaneRadiusAngles(
+    public static Arc FromPlaneRadiusAngles(
         in Plane plane, double radius, Angle startAngle, Angle sweepAngle)
     {
         if (!plane.IsValid)
@@ -113,7 +113,7 @@ public sealed class Arc : Curve
         return sweep > 0.0
             ? new Arc(plane, radius, start, sweep)
             : new Arc(
-                Plane.ByOriginXAxisYAxis(plane.Origin, plane.XAxis, -plane.YAxis),
+                Plane.FromOriginXAxisYAxis(plane.Origin, plane.XAxis, -plane.YAxis),
                 radius,
                 -start,
                 -sweep);
@@ -127,7 +127,7 @@ public sealed class Arc : Curve
     /// <exception cref="ArgumentException">
     /// Thrown when the three points are collinear or coincident, so no arc passes through them.
     /// </exception>
-    public static Arc ByThreePoints(in Point3d first, in Point3d second, in Point3d third)
+    public static Arc FromThreePoints(in Point3d first, in Point3d second, in Point3d third)
     {
         (Plane plane, double radius) = Circumcircle(first, second, third);
 
@@ -158,7 +158,7 @@ public sealed class Arc : Curve
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown when <paramref name="sweepAngle"/> is zero, not finite, or larger than a full turn.
     /// </exception>
-    public static Arc ByCentreStartPointSweepAngle(
+    public static Arc FromCentreStartPointSweepAngle(
         in Point3d centre, in Point3d startPoint, in Vector3d normal, Angle sweepAngle)
     {
         Vector3d radial = startPoint - centre;
@@ -182,8 +182,8 @@ public sealed class Arc : Curve
                 nameof(normal));
         }
 
-        Plane plane = Plane.ByOriginXAxisYAxis(centre, xAxis, unitY);
-        return ByPlaneRadiusAngles(plane, radial.Length, Angle.Zero, sweepAngle);
+        Plane plane = Plane.FromOriginXAxisYAxis(centre, xAxis, unitY);
+        return FromPlaneRadiusAngles(plane, radial.Length, Angle.Zero, sweepAngle);
     }
 
     /// <inheritdoc/>
@@ -204,7 +204,7 @@ public sealed class Arc : Curve
     /// <inheritdoc/>
     public override Curve Reversed() =>
         new Arc(
-            Plane.ByOriginXAxisYAxis(_plane.Origin, _plane.XAxis, -_plane.YAxis),
+            Plane.FromOriginXAxisYAxis(_plane.Origin, _plane.XAxis, -_plane.YAxis),
             _radius,
             -(_startAngle + _sweep),
             _sweep);
@@ -213,7 +213,7 @@ public sealed class Arc : Curve
     public override Curve Trimmed(in Interval domain)
     {
         CheckTrimDomain(domain, Domain);
-        return ByPlaneRadiusAngles(
+        return FromPlaneRadiusAngles(
             _plane,
             _radius,
             Angle.FromRadians(_startAngle + domain.Min),
@@ -257,7 +257,7 @@ public sealed class Arc : Curve
         // Working in the plane's own 2d coordinates turns the circumcentre into the standard
         // determinant expression, which is both shorter and better conditioned than solving the
         // three-dimensional system directly.
-        Plane frame = Plane.ByOriginNormal(first, normal);
+        Plane frame = Plane.FromOriginNormal(first, normal);
         Point2d a = frame.To2d(first);
         Point2d b = frame.To2d(second);
         Point2d c = frame.To2d(third);
@@ -285,7 +285,7 @@ public sealed class Arc : Curve
         }
 
         Vector3d xAxis = radial.Normalised();
-        return (Plane.ByOriginXAxisYAxis(centre, xAxis, normal.Cross(xAxis)), radius);
+        return (Plane.FromOriginXAxisYAxis(centre, xAxis, normal.Cross(xAxis)), radius);
     }
 
     /// <inheritdoc/>

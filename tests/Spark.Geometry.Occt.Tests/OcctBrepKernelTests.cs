@@ -17,7 +17,7 @@ public sealed class OcctBrepKernelTests
 
     private static Brep Box(double x, double y, double z, double length, double width, double height) =>
         BrepPrimitives.Box(
-            Plane.ByOriginXAxisYAxis(new Point3d(x, y, z), Vector3d.XAxis, Vector3d.YAxis),
+            Plane.FromOriginXAxisYAxis(new Point3d(x, y, z), Vector3d.XAxis, Vector3d.YAxis),
             length,
             width,
             height);
@@ -263,11 +263,11 @@ public sealed class OcctBrepKernelTests
     public void TheSolidDemosChainRuns()
     {
         Brep box = BrepPrimitives.Box(
-            Plane.ByOriginXAxisYAxis(new Point3d(-4, -2, 0), Vector3d.XAxis, Vector3d.YAxis), 5, 4, 2);
+            Plane.FromOriginXAxisYAxis(new Point3d(-4, -2, 0), Vector3d.XAxis, Vector3d.YAxis), 5, 4, 2);
         Brep post = BrepPrimitives.Cylinder(
-            Plane.ByOriginXAxisYAxis(new Point3d(-1.5, 0, 0), Vector3d.XAxis, Vector3d.YAxis), 1.6, 4.5);
+            Plane.FromOriginXAxisYAxis(new Point3d(-1.5, 0, 0), Vector3d.XAxis, Vector3d.YAxis), 1.6, 4.5);
         Brep drill = BrepPrimitives.Cylinder(
-            Plane.ByOriginXAxisYAxis(new Point3d(-1.5, 0, -1), Vector3d.XAxis, Vector3d.YAxis), 0.8, 7.0);
+            Plane.FromOriginXAxisYAxis(new Point3d(-1.5, 0, -1), Vector3d.XAxis, Vector3d.YAxis), 0.8, 7.0);
 
         KernelResult<Brep> fused = Kernel.Union(box, post, Fine);
         Assert.True(fused.IsSuccess, fused.Diagnostic?.Detail);
@@ -281,7 +281,7 @@ public sealed class OcctBrepKernelTests
         // The demo's third object: a box with every edge rounded, which is the thing no mesh
         // boolean could have produced.
         Brep plinth = BrepPrimitives.Box(
-            Plane.ByOriginXAxisYAxis(new Point3d(12, -1.5, 0), Vector3d.XAxis, Vector3d.YAxis), 3, 3, 3);
+            Plane.FromOriginXAxisYAxis(new Point3d(12, -1.5, 0), Vector3d.XAxis, Vector3d.YAxis), 3, 3, 3);
 
         KernelResult<Brep> rounded = Kernel.Fillet(plinth, [], 0.4, Fine);
         Assert.True(rounded.IsSuccess, rounded.Diagnostic?.Detail);
@@ -290,7 +290,7 @@ public sealed class OcctBrepKernelTests
         // And its second object: a hollowed box.
         Brep hollow = Kernel.Shell(
             BrepPrimitives.Box(
-                Plane.ByOriginXAxisYAxis(new Point3d(6, -1.5, 0), Vector3d.XAxis, Vector3d.YAxis), 3, 3, 3),
+                Plane.FromOriginXAxisYAxis(new Point3d(6, -1.5, 0), Vector3d.XAxis, Vector3d.YAxis), 3, 3, 3),
             [],
             -0.4,
             Fine).Value;
@@ -386,7 +386,7 @@ public sealed class OcctBrepKernelTests
         Brep sheet = new(
             [],
             [],
-            [PlaneSurface.ByPlaneSize(Plane.WorldXY, 4, 4)],
+            [PlaneSurface.FromPlaneSize(Plane.WorldXY, 4, 4)],
             [],
             [],
             [],
@@ -413,7 +413,7 @@ public sealed class OcctBrepKernelTests
             [],
             Vector3d.ZAxis,
             Angle.FromDegrees(5),
-            Plane.ByOriginNormal(new Point3d(0, 0, 2), Vector3d.ZAxis),
+            Plane.FromOriginNormal(new Point3d(0, 0, 2), Vector3d.ZAxis),
             Fine);
 
         Assert.True(drafted.IsSuccess, drafted.Diagnostic?.Detail);

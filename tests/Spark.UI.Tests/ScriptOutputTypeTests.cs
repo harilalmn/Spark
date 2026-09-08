@@ -83,7 +83,7 @@ public sealed class ScriptOutputTypeTests : IDisposable
     [Fact]
     public void AReturnedCircleTypesThePortAndReachesACurvePort()
     {
-        ScriptPort output = Single("return Circle.ByCentreRadius(new Point3d(10, 10, 0), 10);");
+        ScriptPort output = Single("return Circle.FromCentreRadius(new Point3d(10, 10, 0), 10);");
 
         Assert.Equal(typeof(Circle), output.ValueType);
 
@@ -176,7 +176,7 @@ public sealed class ScriptOutputTypeTests : IDisposable
     [Fact]
     public void TheTypeSurvivesTheDiskCache()
     {
-        const string Script = "return Circle.ByCentreRadius(new Point3d(0, 0, 0), 5.0);";
+        const string Script = "return Circle.FromCentreRadius(new Point3d(0, 0, 0), 5.0);";
 
         ScriptPort compiled = Assert.Single(Factory().Create(Script).Outputs);
         ScriptPort restored = Assert.Single(Factory().Create(Script).Outputs);
@@ -222,7 +222,7 @@ public sealed class ScriptOutputTypeTests : IDisposable
     {
         ScriptNodeFactory scripts = Factory();
 
-        const string Script = "return Circle.ByCentreRadius(new Point3d(0, 0, 0), 5.0);";
+        const string Script = "return Circle.FromCentreRadius(new Point3d(0, 0, 0), 5.0);";
 
         Spark.Engine.Graph graph = new();
         NodeId block = graph.AddNode(NodeDefinition.FromScript(scripts.Create(Script), Script)).Id;

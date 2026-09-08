@@ -255,7 +255,7 @@ public abstract class Curve
         double valid = CheckParameter(parameter);
         Vector3d tangent = EvaluateDerivative(valid).Normalised();
         Vector3d normal = NormalAt(valid);
-        return Plane.ByOriginXAxisYAxis(Evaluate(valid), normal, tangent.Cross(normal));
+        return Plane.FromOriginXAxisYAxis(Evaluate(valid), normal, tangent.Cross(normal));
     }
 
     /// <summary>
@@ -272,7 +272,7 @@ public abstract class Curve
     {
         double valid = CheckParameter(parameter);
         Vector3d tangent = EvaluateDerivative(valid).Normalised();
-        return CoordinateSystem.ByOriginXAxisYAxis(Evaluate(valid), tangent, NormalAt(valid));
+        return CoordinateSystem.FromOriginXAxisYAxis(Evaluate(valid), tangent, NormalAt(valid));
     }
 
     /// <summary>

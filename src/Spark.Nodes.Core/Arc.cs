@@ -15,9 +15,10 @@ public static class Arc
     /// <param name="third">The end point.</param>
     /// <returns>The arc. The three points must not be collinear.</returns>
     [return: NodePort("arc")]
-    public static Spark.Geometry.Arc ByThreePoints(
+    [SparkNodeAlias("Arc.ByThreePoints")]
+    public static Spark.Geometry.Arc FromThreePoints(
         Point3d first, Point3d second, Point3d third) =>
-        Spark.Geometry.Arc.ByThreePoints(first, second, third);
+        Spark.Geometry.Arc.FromThreePoints(first, second, third);
 
     /// <summary>Makes an arc from a plane, a radius and two angles.</summary>
     /// <param name="plane">The plane. Its origin is the centre of the arc's circle.</param>
@@ -30,12 +31,13 @@ public static class Arc
     /// </param>
     /// <returns>The arc.</returns>
     [return: NodePort("arc")]
-    public static Spark.Geometry.Arc ByPlaneRadiusAngles(
+    [SparkNodeAlias("Arc.ByPlaneRadiusAngles")]
+    public static Spark.Geometry.Arc FromPlaneRadiusAngles(
         Spark.Geometry.Plane plane,
         double radius,
         Angle startAngle,
         Angle sweepAngle) =>
-        Spark.Geometry.Arc.ByPlaneRadiusAngles(plane, radius, startAngle, sweepAngle);
+        Spark.Geometry.Arc.FromPlaneRadiusAngles(plane, radius, startAngle, sweepAngle);
 
     /// <summary>Makes an arc from its centre, its start point and how far to sweep.</summary>
     /// <param name="centre">The centre of the arc's circle.</param>
@@ -44,10 +46,11 @@ public static class Arc
     /// <param name="sweepAngle">How far to sweep, in degrees. Negative sweeps the other way.</param>
     /// <returns>The arc.</returns>
     [return: NodePort("arc")]
-    public static Spark.Geometry.Arc ByCentreStartPointSweepAngle(
+    [SparkNodeAlias("Arc.ByCentreStartPointSweepAngle")]
+    public static Spark.Geometry.Arc FromCentreStartPointSweepAngle(
         Point3d centre,
         Point3d startPoint,
         Vector3d normal,
         Angle sweepAngle) =>
-        Spark.Geometry.Arc.ByCentreStartPointSweepAngle(centre, startPoint, normal, sweepAngle);
+        Spark.Geometry.Arc.FromCentreStartPointSweepAngle(centre, startPoint, normal, sweepAngle);
 }

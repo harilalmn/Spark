@@ -129,7 +129,7 @@ public sealed class NodeLibrary
     /// Looks a definition up by display name, ignoring the package. Convenient for tests and for
     /// building a demo graph; a saved document always uses the full key.
     /// </summary>
-    /// <param name="displayName">The display name, for example <c>Point.ByCoordinates</c>.</param>
+    /// <param name="displayName">The display name, for example <c>Point.FromCoordinates</c>.</param>
     /// <returns>The definition.</returns>
     /// <exception cref="KeyNotFoundException">No definition has that display name.</exception>
     public NodeDefinition ByName(string displayName)

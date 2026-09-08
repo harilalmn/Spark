@@ -69,7 +69,7 @@ public sealed class CurveOffsetTests
     [Fact]
     public void ACircleOffsetsToAConcentricCircleExactly()
     {
-        Circle circle = Circle.ByPlaneRadius(Plane.WorldXY, 5.0);
+        Circle circle = Circle.FromPlaneRadius(Plane.WorldXY, 5.0);
 
         (Curve outward, bool exactOutward) = CurveOffset.Offset(circle, -2.0, Vector3d.ZAxis, Loose);
         (Curve inward, bool exactInward) = CurveOffset.Offset(circle, 2.0, Vector3d.ZAxis, Loose);
@@ -85,7 +85,7 @@ public sealed class CurveOffsetTests
     [Fact]
     public void AnArcOffsetsToAnArcExactly()
     {
-        Arc arc = Arc.ByPlaneRadiusAngles(
+        Arc arc = Arc.FromPlaneRadiusAngles(
             Plane.WorldXY, 4.0, Angle.FromDegrees(30), Angle.FromDegrees(120));
 
         (Curve offset, bool exact) = CurveOffset.Offset(arc, -1.0, Vector3d.ZAxis, Loose);

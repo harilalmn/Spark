@@ -537,7 +537,7 @@ state transitions that actually occur, computed the same way as everything else.
 | Node port label | `text.secondary` on `node.body` | 8.90 | **9.73** | **10.33** | rises |
 | Text field value | `text.primary` on `surface.sunken` | 15.31 | **15.99** | **16.74** | rises |
 | Primary button label | `text.inverse` on `accent` | 6.61 | **8.69** | **11.11** | rises |
-| Node header title (`Point.ByCoordinates`) | `text.inverse` on `cat.point` | 6.58 | **7.66** | — | rises |
+| Node header title (`Point.FromCoordinates`) | `text.inverse` on `cat.point` | 6.58 | **7.66** | — | rises |
 | Node header title (`Math.Sin`) | `text.inverse` on `cat.math` | 5.96 | **6.99** | — | rises |
 
 Not one of them falls. That is the whole design of the state ladder.
@@ -652,7 +652,7 @@ zoom nodes degrade to plain category-coloured rectangles with no text at all.
 
 ```text
         ┌───────────────────────────────────────┐   ← 1 px border.control, 6 px radius
-        │  ◈  Point.ByCoordinates          ⚠ ⏸  │   ← header: FULL category colour,
+        │  ◈  Point.FromCoordinates          ⚠ ⏸  │   ← header: FULL category colour,
         ├───────────────────────────────────────┤     text.inverse, 22 px, glyphs right
      ●──┤ x                                     │   ← body: node.body, text.secondary
      ◎──┤ y                              output ├──●     port labels, 11 px
@@ -903,7 +903,7 @@ that looks wrong.
 
 **Beside the port name, in `text.muted` at 10 px, is the type the port wants.** `centre  Point3d`.
 `radius  number`. `sweepAngle  degrees`. Without it a port is a word and not an instruction: a user
-looking at `Circle.ByCentreRadius` for the first time has no way to learn from the node that
+looking at `Circle.FromCentreRadius` for the first time has no way to learn from the node that
 `centre` wants a point, and the two places that would have told them — the library entry's
 signature and the colour of a wire being dragged at it — are both somewhere other than where the
 question is asked. `text.muted` reads 6.28:1 on `node.body`, and it is the token this design

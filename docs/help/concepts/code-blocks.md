@@ -264,7 +264,7 @@ of the node.
 script reads like C#, and what `radius` turns out to be is worked out while the graph runs.
 
 **Once you wire something in, the port has a type, and the block is recompiled with it.** Wire a
-`Point.ByCoordinates` into a port called `centre` and the block is compiled as though you had
+`Point.FromCoordinates` into a port called `centre` and the block is compiled as though you had
 written `Point3d centre = …;` — so this works:
 
 ```csharp
@@ -375,7 +375,7 @@ a code block.
 Divide a circle into points, and report how many you made:
 
 ```csharp
-var circle = Circle.ByCentreRadius(Point3d.Origin, radius);
+var circle = Circle.FromCentreRadius(Point3d.Origin, radius);
 var points = new List<Point3d>();
 var step = circle.Length / count;
 

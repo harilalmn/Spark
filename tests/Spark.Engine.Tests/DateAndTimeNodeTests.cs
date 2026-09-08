@@ -109,7 +109,7 @@ public sealed class DateAndTimeNodeTests
     [Fact]
     public void BuildingAndTakingApartRoundTrips()
     {
-        DateTime built = DateAndTime.ByDateAndTime(2026, 9, 1, 14, 30, 15, 250);
+        DateTime built = DateAndTime.FromDateAndTime(2026, 9, 1, 14, 30, 15, 250);
 
         DateAndTime.Components(
             built,
@@ -133,7 +133,7 @@ public sealed class DateAndTimeNodeTests
     public void AnImpossibleDateNamesItself()
     {
         ArgumentOutOfRangeException error = Assert.Throws<ArgumentOutOfRangeException>(
-            () => DateAndTime.ByDateAndTime(2026, 4, 31));
+            () => DateAndTime.FromDateAndTime(2026, 4, 31));
 
         Assert.Contains("2026-04-31", error.Message, StringComparison.Ordinal);
     }
@@ -176,8 +176,8 @@ public sealed class DateAndTimeNodeTests
         DateTime start = new(2026, 1, 1);
         DateTime end = new(2026, 1, 8);
 
-        Assert.Equal(7.0, Duration.ByDateDifference(start, end).TotalDays);
-        Assert.Equal(-7.0, Duration.ByDateDifference(end, start).TotalDays);
+        Assert.Equal(7.0, Duration.FromDateDifference(start, end).TotalDays);
+        Assert.Equal(-7.0, Duration.FromDateDifference(end, start).TotalDays);
     }
 
     /// <summary>
@@ -211,7 +211,7 @@ public sealed class DateAndTimeNodeTests
     [Theory]
     [InlineData("DateTime.Now")]
     [InlineData("DateTime.Today")]
-    [InlineData("DateTime.ByDateAndTime")]
+    [InlineData("DateTime.FromDateAndTime")]
     [InlineData("DateTime.Components")]
     [InlineData("DateTime.FromString")]
     [InlineData("DateTime.Format")]
@@ -222,7 +222,7 @@ public sealed class DateAndTimeNodeTests
     [InlineData("DateTime.DaysInMonth")]
     [InlineData("DateTime.IsLeapYear")]
     [InlineData("TimeSpan.Create")]
-    [InlineData("TimeSpan.ByDateDifference")]
+    [InlineData("TimeSpan.FromDateDifference")]
     [InlineData("TimeSpan.Components")]
     [InlineData("TimeSpan.TotalDays")]
     [InlineData("TimeSpan.TotalHours")]

@@ -71,7 +71,7 @@ public sealed class Line : Curve
     /// <exception cref="ArgumentException">
     /// Thrown when either point is not finite, or when the two coincide.
     /// </exception>
-    public static Line ByStartPointEndPoint(in Point3d start, in Point3d end) => new(start, end);
+    public static Line FromStartPointEndPoint(in Point3d start, in Point3d end) => new(start, end);
 
     /// <summary>Creates a line from a start point, a direction and a length.</summary>
     /// <param name="start">The start point.</param>
@@ -82,7 +82,7 @@ public sealed class Line : Curve
     /// Thrown when <paramref name="start"/> is not finite, when <paramref name="direction"/> is
     /// zero-length or not finite, or when <paramref name="length"/> is zero or not finite.
     /// </exception>
-    public static Line ByStartPointDirectionLength(
+    public static Line FromStartPointDirectionLength(
         in Point3d start, in Vector3d direction, double length)
     {
         if (!direction.TryNormalise(out Vector3d unit))

@@ -116,7 +116,7 @@ public sealed class SphericalSurface : Surface
         double scale = UniformScale(transform, nameof(transform), "sphere");
 
         return new SphericalSurface(
-            Plane.ByOriginXAxisYAxis(
+            Plane.FromOriginXAxisYAxis(
                 transform.OfPoint(_frame.Origin),
                 transform.OfVector(_frame.XAxis),
                 transform.OfVector(_frame.YAxis)),

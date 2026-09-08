@@ -135,7 +135,7 @@ public sealed class ConicalSurface : Surface
         double scale = SphericalSurface.UniformScale(transform, nameof(transform), "cone");
 
         return new ConicalSurface(
-            Plane.ByOriginXAxisYAxis(
+            Plane.FromOriginXAxisYAxis(
                 transform.OfPoint(_frame.Origin),
                 transform.OfVector(_frame.XAxis),
                 transform.OfVector(_frame.YAxis)),

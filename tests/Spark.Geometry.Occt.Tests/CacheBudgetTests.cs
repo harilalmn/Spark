@@ -25,7 +25,7 @@ public sealed class CacheBudgetTests
         Kernel.Union(
             BrepPrimitives.Box(Plane.WorldXY, 2, 3, 4),
             BrepPrimitives.Box(
-                Plane.ByOriginXAxisYAxis(new Point3d(1, 1, seed * 0.25), Vector3d.XAxis, Vector3d.YAxis),
+                Plane.FromOriginXAxisYAxis(new Point3d(1, 1, seed * 0.25), Vector3d.XAxis, Vector3d.YAxis),
                 2,
                 3,
                 4),

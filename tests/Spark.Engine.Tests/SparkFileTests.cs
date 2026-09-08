@@ -182,7 +182,7 @@ public sealed class SparkFileTests
     public void AnUnknownNodeIsKeptRatherThanSkipped()
     {
         string text = SparkFile.Write(GraphDocument.Capture(BuildGraph(out _, out _)))
-            .Replace("Point.ByCoordinates", "Point.BySomethingElse", StringComparison.Ordinal);
+            .Replace("Point.FromCoordinates", "Point.BySomethingElse", StringComparison.Ordinal);
 
         Graph graph = SparkFile.Read(text).Restore(Library);
 
@@ -198,7 +198,7 @@ public sealed class SparkFileTests
     public void AnUnknownNodeIsNamedWhenTheStrictPolicyIsAsked()
     {
         string text = SparkFile.Write(GraphDocument.Capture(BuildGraph(out _, out _)))
-            .Replace("Point.ByCoordinates", "Point.BySomethingElse", StringComparison.Ordinal);
+            .Replace("Point.FromCoordinates", "Point.BySomethingElse", StringComparison.Ordinal);
 
         SparkFileException error = Assert.Throws<SparkFileException>(
             () => SparkFile.Read(text).Restore(Library, null, MissingNodePolicy.Refuse));
@@ -274,7 +274,7 @@ public sealed class SparkFileTests
     private static Graph BuildGraph(out NodeId points, out NodeId range)
     {
         Graph graph = new();
-        NodeDefinition pointDefinition = Library.ByName("Point.ByCoordinates");
+        NodeDefinition pointDefinition = Library.ByName("Point.FromCoordinates");
         NodeDefinition rangeDefinition = Library.ByName("Number.Range");
 
         points = NodeId.New();

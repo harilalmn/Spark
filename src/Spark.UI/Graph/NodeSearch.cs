@@ -26,7 +26,7 @@ public enum NodeMatch
     /// <summary>The query appears somewhere in the node's name.</summary>
     Substring = 3,
 
-    /// <summary>The query is the node's capitals: <c>cbcr</c> for <c>Circle.ByCentreRadius</c>.</summary>
+    /// <summary>The query is the node's capitals: <c>cfcr</c> for <c>Circle.FromCentreRadius</c>.</summary>
     CamelHump = 4,
 
     /// <summary>The node's name, or the part after the dot, starts with the query.</summary>
@@ -64,7 +64,7 @@ public readonly record struct NodeSearchResult(NodeMatch Kind, int Distance)
 /// <see cref="NodeSearch"/> stays what its remarks promise: pure data, testable without a library.
 /// </remarks>
 /// <param name="Result">How well the query matched.</param>
-/// <param name="DisplayName">The node's name, such as <c>Circle.ByCentreRadius</c>.</param>
+/// <param name="DisplayName">The node's name, such as <c>Circle.FromCentreRadius</c>.</param>
 /// <param name="Kind">Whether the node makes, changes or measures the thing.</param>
 public readonly record struct NodeSearchCandidate(
     NodeSearchResult Result, string DisplayName, NodeMemberKind Kind);
@@ -81,7 +81,7 @@ public readonly record struct NodeSearchCandidate(
 /// </para>
 /// <para>
 /// The order — exact, prefix, camel-hump, substring, category, description — is from the plan and
-/// is not a matter of taste. What it buys is that <c>cbcr</c> finds <c>Circle.ByCentreRadius</c>,
+/// is not a matter of taste. What it buys is that <c>cfcr</c> finds <c>Circle.FromCentreRadius</c>,
 /// <c>circle</c> finds every circle node, and <c>radius</c> still finds the nodes that only mention
 /// one in their description, ranked below both. Nodes that answer the query <i>equally</i> well are
 /// then ordered <b>Create</b>, <b>Action</b>, <b>Query</b> and alphabetically within each — the
@@ -98,7 +98,7 @@ public static class NodeSearch
     /// <summary>
     /// Scores one node against a query.
     /// </summary>
-    /// <param name="displayName">The node's name, such as <c>Circle.ByCentreRadius</c>.</param>
+    /// <param name="displayName">The node's name, such as <c>Circle.FromCentreRadius</c>.</param>
     /// <param name="category">The node's library category, or null.</param>
     /// <param name="description">The node's one-paragraph description, or null.</param>
     /// <param name="query">What the user typed. An empty query matches everything equally.</param>
@@ -117,7 +117,7 @@ public static class NodeSearch
             return new NodeSearchResult(NodeMatch.Exact, 0);
         }
 
-        // The part after the last dot is what a user usually means. Circle.ByCentreRadius is found
+        // The part after the last dot is what a user usually means. Circle.FromCentreRadius is found
         // by "circle" and by "bycentre", and both should feel like a prefix match.
         int dot = displayName.LastIndexOf('.');
         string member = dot >= 0 && dot < displayName.Length - 1 ? displayName[(dot + 1)..] : displayName;
@@ -170,8 +170,8 @@ public static class NodeSearch
     /// <remarks>
     /// <para>
     /// <b>Relevance stays on top, and the two keys under it are the ones a user can predict.</b>
-    /// The tie-break used to be name length, which put <c>Circle.ByCentreRadius</c> above
-    /// <c>Circle.ByCentreNormalRadius</c> — a rule that is defensible and that nobody reading the
+    /// The tie-break used to be name length, which put <c>Circle.FromCentreRadius</c> above
+    /// <c>Circle.FromCentreNormalRadius</c> — a rule that is defensible and that nobody reading the
     /// list can see. Between results that answer the query <i>equally well</i>, the useful question
     /// is the one the library panel already asks: does this node make the thing, change it, or
     /// measure it. Somebody who typed <c>circ</c> to <i>draw</i> a circle reads the Creates first
@@ -245,7 +245,7 @@ public static class NodeSearch
     /// The capitals of a name, which is what a camel-hump query is matched against.
     /// </summary>
     /// <remarks>
-    /// <c>Circle.ByCentreRadius</c> reduces to <c>CBCR</c>. A digit counts as a hump because
+    /// <c>Circle.FromCentreRadius</c> reduces to <c>CBCR</c>. A digit counts as a hump because
     /// <c>Point2d</c> is meaningfully searched as <c>p2</c>, and the first letter of every
     /// dot-separated part always counts so that a lower-case name is still reachable.
     /// </remarks>

@@ -22,15 +22,17 @@ public static class PolyLine
     /// </param>
     /// <returns>The polyline.</returns>
     [return: NodePort("polyline")]
-    public static Spark.Geometry.PolyLine ByPoints(IReadOnlyList<Point3d> points) =>
-        Spark.Geometry.PolyLine.ByPoints(points);
+    [SparkNodeAlias("PolyLine.ByPoints")]
+    public static Spark.Geometry.PolyLine FromPoints(IReadOnlyList<Point3d> points) =>
+        Spark.Geometry.PolyLine.FromPoints(points);
 
     /// <summary>Makes a closed polyline through a list of points, joining the last back to the first.</summary>
     /// <param name="points">At least three points, no two consecutive ones coinciding.</param>
     /// <returns>The closed polyline.</returns>
     [return: NodePort("polyline")]
-    public static Spark.Geometry.PolyLine ByClosedPoints(IReadOnlyList<Point3d> points) =>
-        Spark.Geometry.PolyLine.ByClosedPoints(points);
+    [SparkNodeAlias("PolyLine.ByClosedPoints")]
+    public static Spark.Geometry.PolyLine FromClosedPoints(IReadOnlyList<Point3d> points) =>
+        Spark.Geometry.PolyLine.FromClosedPoints(points);
 
     /// <summary>Makes a closed rectangle centred on a plane's origin.</summary>
     /// <param name="plane">The plane the rectangle lies in.</param>
@@ -38,9 +40,10 @@ public static class PolyLine
     /// <param name="length">The size along the plane's y axis.</param>
     /// <returns>A closed polyline of four segments.</returns>
     [return: NodePort("rectangle")]
-    public static Spark.Geometry.PolyLine ByRectangle(
+    [SparkNodeAlias("PolyLine.ByRectangle")]
+    public static Spark.Geometry.PolyLine FromRectangle(
         Spark.Geometry.Plane plane, double width = 1.0, double length = 1.0) =>
-        Spark.Geometry.PolyLine.ByRectangle(plane, width, length);
+        Spark.Geometry.PolyLine.FromRectangle(plane, width, length);
 
     /// <summary>Makes a closed regular polygon inscribed in a circle.</summary>
     /// <param name="plane">The plane the polygon lies in, centred on its origin.</param>
@@ -48,7 +51,8 @@ public static class PolyLine
     /// <param name="sides">How many sides. At least three.</param>
     /// <returns>A closed polyline.</returns>
     [return: NodePort("polygon")]
-    public static Spark.Geometry.PolyLine ByRegularPolygon(
+    [SparkNodeAlias("PolyLine.ByRegularPolygon")]
+    public static Spark.Geometry.PolyLine FromRegularPolygon(
         Spark.Geometry.Plane plane, double radius = 1.0, int sides = 6) =>
-        Spark.Geometry.PolyLine.ByRegularPolygon(plane, radius, sides);
+        Spark.Geometry.PolyLine.FromRegularPolygon(plane, radius, sides);
 }

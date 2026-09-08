@@ -15,7 +15,8 @@ public static class Vector
     /// <param name="z">The z component.</param>
     /// <returns>The vector.</returns>
     [return: NodePort("vector")]
-    public static Vector3d ByCoordinates(double x = 0, double y = 0, double z = 0) => new(x, y, z);
+    [SparkNodeAlias("Vector.ByCoordinates")]
+    public static Vector3d FromCoordinates(double x = 0, double y = 0, double z = 0) => new(x, y, z);
 
     /// <summary>The world x axis, (1, 0, 0).</summary>
     /// <returns>The unit vector.</returns>
@@ -37,7 +38,8 @@ public static class Vector
     /// <param name="end">The head.</param>
     /// <returns>The vector.</returns>
     [return: NodePort("vector")]
-    public static Vector3d ByTwoPoints(Point3d start, Point3d end) =>
+    [SparkNodeAlias("Vector.ByTwoPoints")]
+    public static Vector3d FromTwoPoints(Point3d start, Point3d end) =>
         new(end.X - start.X, end.Y - start.Y, end.Z - start.Z);
 
     /// <summary>Multiplies a vector's length by a factor.</summary>

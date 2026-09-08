@@ -49,7 +49,7 @@ public sealed class PlaneSurface : Surface
     /// <param name="height">Its extent along the plane's y-axis.</param>
     /// <returns>The surface.</returns>
     /// <exception cref="ArgumentOutOfRangeException">A side is not finite and positive.</exception>
-    public static PlaneSurface ByPlaneSize(in Plane plane, double width, double height)
+    public static PlaneSurface FromPlaneSize(in Plane plane, double width, double height)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
@@ -66,7 +66,7 @@ public sealed class PlaneSurface : Surface
     /// <param name="oppositeCorner">The opposite corner, in the plane's own coordinates.</param>
     /// <returns>The surface.</returns>
     /// <exception cref="ArgumentException">The corners share an x or a y coordinate.</exception>
-    public static PlaneSurface ByPlaneCorners(in Plane plane, in Point2d corner, in Point2d oppositeCorner) =>
+    public static PlaneSurface FromPlaneCorners(in Plane plane, in Point2d corner, in Point2d oppositeCorner) =>
         new(
             plane,
             new Interval(corner.X, oppositeCorner.X).MakeIncreasing(),
@@ -130,7 +130,7 @@ public sealed class PlaneSurface : Surface
         // original domains: `Plane` requires unit axes, so the scale has to go somewhere, and the
         // domain is the only place it can go without changing what a parameter means.
         return new PlaneSurface(
-            Plane.ByOriginXAxisYAxis(origin, x, y),
+            Plane.FromOriginXAxisYAxis(origin, x, y),
             new Interval(_domainU.Min * scaleX, _domainU.Max * scaleX),
             new Interval(_domainV.Min * scaleY, _domainV.Max * scaleY));
     }

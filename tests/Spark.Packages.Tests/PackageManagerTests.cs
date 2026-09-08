@@ -117,8 +117,12 @@ public sealed class PackageManagerTests : IDisposable
         NodeLibrary library = new();
         new PackageManager(store, library).Load(identity);
 
+        // NAMED, NOT "THE FIRST Point.* NODE". The original took whichever came first and relied on
+        // `ByCoordinates` sorting ahead of `Point.X` and friends - so `E2-T58` renaming it to
+        // `FromCoordinates` moved a property to the front and the test started asserting that a
+        // `double` comes from Spark.Geometry. The claim was always about the factory.
         NodeDefinition point = library.Definitions()
-            .First(definition => definition.DisplayName.StartsWith("Point.", StringComparison.Ordinal));
+            .First(definition => definition.DisplayName == "Point.FromCoordinates");
 
         Type produced = point.Outputs[0].ValueType;
 

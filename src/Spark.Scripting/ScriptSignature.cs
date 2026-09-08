@@ -18,7 +18,7 @@ namespace Spark.Scripting;
 /// <param name="ReturnType">What the call evaluates to, spelt shortly; empty for a constructor.</param>
 /// <remarks>
 /// <b>Split into its parts rather than handed over as one string.</b> The editor bolds the
-/// parameter the caret is on, and a caller given <c>ByCentreNormalRadius(Point3d centre, …)</c> as
+/// parameter the caret is on, and a caller given <c>FromCentreNormalRadius(Point3d centre, …)</c> as
 /// one line would have to parse the commas back out of it — inside type arguments and default
 /// values, where that is wrong.
 /// </remarks>
@@ -51,7 +51,7 @@ public readonly record struct ScriptSignatureHelp(
 /// </para>
 /// <para>
 /// <b>The member group, not the resolved symbol.</b> While a call is being typed it does not bind
-/// — <c>Circle.ByCentreNormalRadius(</c> has no arguments at all, so overload resolution fails —
+/// — <c>Circle.FromCentreNormalRadius(</c> has no arguments at all, so overload resolution fails —
 /// which means <c>GetSymbolInfo(...).Symbol</c> is null exactly when signature help is wanted.
 /// <c>GetMemberGroup</c> answers with every accessible overload regardless, and that is the whole
 /// list the popup cycles through anyway.

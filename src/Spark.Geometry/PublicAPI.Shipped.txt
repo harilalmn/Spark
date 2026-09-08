@@ -831,9 +831,9 @@ static Spark.Geometry.Angle.operator <=(Spark.Geometry.Angle left, Spark.Geometr
 static Spark.Geometry.Angle.operator ==(Spark.Geometry.Angle left, Spark.Geometry.Angle right) -> bool
 static Spark.Geometry.Angle.operator >(Spark.Geometry.Angle left, Spark.Geometry.Angle right) -> bool
 static Spark.Geometry.Angle.operator >=(Spark.Geometry.Angle left, Spark.Geometry.Angle right) -> bool
-static Spark.Geometry.Arc.ByCentreStartPointSweepAngle(in Spark.Geometry.Point3d centre, in Spark.Geometry.Point3d startPoint, in Spark.Geometry.Vector3d normal, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Arc!
-static Spark.Geometry.Arc.ByPlaneRadiusAngles(in Spark.Geometry.Plane plane, double radius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Arc!
-static Spark.Geometry.Arc.ByThreePoints(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> Spark.Geometry.Arc!
+static Spark.Geometry.Arc.FromCentreStartPointSweepAngle(in Spark.Geometry.Point3d centre, in Spark.Geometry.Point3d startPoint, in Spark.Geometry.Vector3d normal, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Arc!
+static Spark.Geometry.Arc.FromPlaneRadiusAngles(in Spark.Geometry.Plane plane, double radius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Arc!
+static Spark.Geometry.Arc.FromThreePoints(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> Spark.Geometry.Arc!
 static Spark.Geometry.BoundingBox.Empty.get -> Spark.Geometry.BoundingBox
 static Spark.Geometry.BoundingBox.FromPoints(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> Spark.Geometry.BoundingBox
 static Spark.Geometry.BoundingBox.FromPoints(System.ReadOnlySpan<Spark.Geometry.Point3d> points) -> Spark.Geometry.BoundingBox
@@ -858,21 +858,21 @@ static Spark.Geometry.BrepTrim.operator !=(Spark.Geometry.BrepTrim left, Spark.G
 static Spark.Geometry.BrepTrim.operator ==(Spark.Geometry.BrepTrim left, Spark.Geometry.BrepTrim right) -> bool
 static Spark.Geometry.BrepVertex.operator !=(Spark.Geometry.BrepVertex left, Spark.Geometry.BrepVertex right) -> bool
 static Spark.Geometry.BrepVertex.operator ==(Spark.Geometry.BrepVertex left, Spark.Geometry.BrepVertex right) -> bool
-static Spark.Geometry.Circle.ByCentreNormalRadius(in Spark.Geometry.Point3d centre, in Spark.Geometry.Vector3d normal, double radius) -> Spark.Geometry.Circle!
-static Spark.Geometry.Circle.ByCentreRadius(in Spark.Geometry.Point3d centre, double radius) -> Spark.Geometry.Circle!
-static Spark.Geometry.Circle.ByPlaneRadius(in Spark.Geometry.Plane plane, double radius) -> Spark.Geometry.Circle!
-static Spark.Geometry.Circle.ByThreePoints(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> Spark.Geometry.Circle!
-static Spark.Geometry.CoordinateSystem.ByOrigin(in Spark.Geometry.Point3d origin) -> Spark.Geometry.CoordinateSystem
-static Spark.Geometry.CoordinateSystem.ByOriginXAxisYAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d xAxis, in Spark.Geometry.Vector3d yAxis) -> Spark.Geometry.CoordinateSystem
-static Spark.Geometry.CoordinateSystem.ByOriginZAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d zAxis) -> Spark.Geometry.CoordinateSystem
-static Spark.Geometry.CoordinateSystem.ByPlane(in Spark.Geometry.Plane plane) -> Spark.Geometry.CoordinateSystem
+static Spark.Geometry.Circle.FromCentreNormalRadius(in Spark.Geometry.Point3d centre, in Spark.Geometry.Vector3d normal, double radius) -> Spark.Geometry.Circle!
+static Spark.Geometry.Circle.FromCentreRadius(in Spark.Geometry.Point3d centre, double radius) -> Spark.Geometry.Circle!
+static Spark.Geometry.Circle.FromPlaneRadius(in Spark.Geometry.Plane plane, double radius) -> Spark.Geometry.Circle!
+static Spark.Geometry.Circle.FromThreePoints(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> Spark.Geometry.Circle!
+static Spark.Geometry.CoordinateSystem.FromOrigin(in Spark.Geometry.Point3d origin) -> Spark.Geometry.CoordinateSystem
+static Spark.Geometry.CoordinateSystem.FromOriginXAxisYAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d xAxis, in Spark.Geometry.Vector3d yAxis) -> Spark.Geometry.CoordinateSystem
+static Spark.Geometry.CoordinateSystem.FromOriginZAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d zAxis) -> Spark.Geometry.CoordinateSystem
+static Spark.Geometry.CoordinateSystem.FromPlane(in Spark.Geometry.Plane plane) -> Spark.Geometry.CoordinateSystem
 static Spark.Geometry.CoordinateSystem.Identity.get -> Spark.Geometry.CoordinateSystem
 static Spark.Geometry.CoordinateSystem.operator !=(in Spark.Geometry.CoordinateSystem left, in Spark.Geometry.CoordinateSystem right) -> bool
 static Spark.Geometry.CoordinateSystem.operator ==(in Spark.Geometry.CoordinateSystem left, in Spark.Geometry.CoordinateSystem right) -> bool
 static Spark.Geometry.CurveOffset.FilletLines(Spark.Geometry.Line! first, Spark.Geometry.Line! second, double radius) -> (Spark.Geometry.Arc! Fillet, Spark.Geometry.Line! First, Spark.Geometry.Line! Second)
 static Spark.Geometry.CurveOffset.Offset(Spark.Geometry.Curve! curve, double distance, in Spark.Geometry.Vector3d normal, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> (Spark.Geometry.Curve! Curve, bool Exact)
-static Spark.Geometry.EllipseCurve.ByPlaneRadii(in Spark.Geometry.Plane plane, double xRadius, double yRadius) -> Spark.Geometry.EllipseCurve!
-static Spark.Geometry.EllipseCurve.ByPlaneRadiiAngles(in Spark.Geometry.Plane plane, double xRadius, double yRadius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.EllipseCurve!
+static Spark.Geometry.EllipseCurve.FromPlaneRadii(in Spark.Geometry.Plane plane, double xRadius, double yRadius) -> Spark.Geometry.EllipseCurve!
+static Spark.Geometry.EllipseCurve.FromPlaneRadiiAngles(in Spark.Geometry.Plane plane, double xRadius, double yRadius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.EllipseCurve!
 static Spark.Geometry.GeometryJson.Deserialize(string! json) -> object!
 static Spark.Geometry.GeometryJson.Deserialize<T>(string! json) -> T
 static Spark.Geometry.GeometryJson.Serialize(object! value, bool indented = false) -> string!
@@ -880,26 +880,26 @@ static Spark.Geometry.Interval.Unit.get -> Spark.Geometry.Interval
 static Spark.Geometry.Interval.operator !=(in Spark.Geometry.Interval left, in Spark.Geometry.Interval right) -> bool
 static Spark.Geometry.Interval.operator ==(in Spark.Geometry.Interval left, in Spark.Geometry.Interval right) -> bool
 static Spark.Geometry.KnotVector.CreateClamped(int degree, int controlPoints) -> Spark.Geometry.KnotVector!
-static Spark.Geometry.Line.ByStartPointDirectionLength(in Spark.Geometry.Point3d start, in Spark.Geometry.Vector3d direction, double length) -> Spark.Geometry.Line!
-static Spark.Geometry.Line.ByStartPointEndPoint(in Spark.Geometry.Point3d start, in Spark.Geometry.Point3d end) -> Spark.Geometry.Line!
+static Spark.Geometry.Line.FromStartPointDirectionLength(in Spark.Geometry.Point3d start, in Spark.Geometry.Vector3d direction, double length) -> Spark.Geometry.Line!
+static Spark.Geometry.Line.FromStartPointEndPoint(in Spark.Geometry.Point3d start, in Spark.Geometry.Point3d end) -> Spark.Geometry.Line!
 static Spark.Geometry.MeshFace.operator !=(Spark.Geometry.MeshFace left, Spark.Geometry.MeshFace right) -> bool
 static Spark.Geometry.MeshFace.operator ==(Spark.Geometry.MeshFace left, Spark.Geometry.MeshFace right) -> bool
 static Spark.Geometry.NurbsCurve.ApproximatePoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, int controlPoints, int degree = 3) -> Spark.Geometry.NurbsCurve!
-static Spark.Geometry.NurbsCurve.ByPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.NurbsCurve!
+static Spark.Geometry.NurbsCurve.FromPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.NurbsCurve!
 static Spark.Geometry.NurbsCurve.FitPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance), int degree = 3) -> (Spark.Geometry.NurbsCurve! Curve, double Deviation, bool Fits)
 static Spark.Geometry.NurbsCurve.InterpolatePoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, int degree = 3) -> Spark.Geometry.NurbsCurve!
-static Spark.Geometry.NurbsSurface.ByCorners(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! corners) -> Spark.Geometry.NurbsSurface!
-static Spark.Geometry.Plane.ByOriginNormal(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal) -> Spark.Geometry.Plane
-static Spark.Geometry.Plane.ByOriginNormalXAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal, in Spark.Geometry.Vector3d xAxis) -> Spark.Geometry.Plane
-static Spark.Geometry.Plane.ByOriginXAxisYAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d xAxis, in Spark.Geometry.Vector3d yAxis) -> Spark.Geometry.Plane
-static Spark.Geometry.Plane.ByThreePoints(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> Spark.Geometry.Plane
+static Spark.Geometry.NurbsSurface.FromCorners(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! corners) -> Spark.Geometry.NurbsSurface!
+static Spark.Geometry.Plane.FromOriginNormal(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal) -> Spark.Geometry.Plane
+static Spark.Geometry.Plane.FromOriginNormalXAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d normal, in Spark.Geometry.Vector3d xAxis) -> Spark.Geometry.Plane
+static Spark.Geometry.Plane.FromOriginXAxisYAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d xAxis, in Spark.Geometry.Vector3d yAxis) -> Spark.Geometry.Plane
+static Spark.Geometry.Plane.FromThreePoints(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.WorldXY.get -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.WorldXZ.get -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.WorldYZ.get -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.operator !=(in Spark.Geometry.Plane left, in Spark.Geometry.Plane right) -> bool
 static Spark.Geometry.Plane.operator ==(in Spark.Geometry.Plane left, in Spark.Geometry.Plane right) -> bool
-static Spark.Geometry.PlaneSurface.ByPlaneCorners(in Spark.Geometry.Plane plane, in Spark.Geometry.Point2d corner, in Spark.Geometry.Point2d oppositeCorner) -> Spark.Geometry.PlaneSurface!
-static Spark.Geometry.PlaneSurface.ByPlaneSize(in Spark.Geometry.Plane plane, double width, double height) -> Spark.Geometry.PlaneSurface!
+static Spark.Geometry.PlaneSurface.FromPlaneCorners(in Spark.Geometry.Plane plane, in Spark.Geometry.Point2d corner, in Spark.Geometry.Point2d oppositeCorner) -> Spark.Geometry.PlaneSurface!
+static Spark.Geometry.PlaneSurface.FromPlaneSize(in Spark.Geometry.Plane plane, double width, double height) -> Spark.Geometry.PlaneSurface!
 static Spark.Geometry.Point2d.Add(in Spark.Geometry.Point2d point, in Spark.Geometry.Vector2d offset) -> Spark.Geometry.Point2d
 static Spark.Geometry.Point2d.Lerp(in Spark.Geometry.Point2d start, in Spark.Geometry.Point2d end, double t) -> Spark.Geometry.Point2d
 static Spark.Geometry.Point2d.Origin.get -> Spark.Geometry.Point2d
@@ -924,20 +924,20 @@ static Spark.Geometry.Point3d.operator +(in Spark.Geometry.Point3d point, in Spa
 static Spark.Geometry.Point3d.operator -(in Spark.Geometry.Point3d left, in Spark.Geometry.Point3d right) -> Spark.Geometry.Vector3d
 static Spark.Geometry.Point3d.operator -(in Spark.Geometry.Point3d point, in Spark.Geometry.Vector3d offset) -> Spark.Geometry.Point3d
 static Spark.Geometry.Point3d.operator ==(in Spark.Geometry.Point3d left, in Spark.Geometry.Point3d right) -> bool
-static Spark.Geometry.PolyCurve.ByJoinedCurves(System.Collections.Generic.IEnumerable<Spark.Geometry.Curve!>! curves, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.PolyCurve!
-static Spark.Geometry.PolyLine.ByClosedPoints(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> Spark.Geometry.PolyLine!
-static Spark.Geometry.PolyLine.ByPoints(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> Spark.Geometry.PolyLine!
-static Spark.Geometry.PolyLine.ByRectangle(in Spark.Geometry.Plane plane, double width, double length) -> Spark.Geometry.PolyLine!
-static Spark.Geometry.PolyLine.ByRegularPolygon(in Spark.Geometry.Plane plane, double radius, int sides) -> Spark.Geometry.PolyLine!
-static Spark.Geometry.Quaternion.ByAxisAngle(in Spark.Geometry.Vector3d axis, Spark.Geometry.Angle angle) -> Spark.Geometry.Quaternion
-static Spark.Geometry.Quaternion.ByRotationBetween(in Spark.Geometry.Vector3d from, in Spark.Geometry.Vector3d to) -> Spark.Geometry.Quaternion
+static Spark.Geometry.PolyCurve.FromJoinedCurves(System.Collections.Generic.IEnumerable<Spark.Geometry.Curve!>! curves, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.PolyCurve!
+static Spark.Geometry.PolyLine.FromClosedPoints(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> Spark.Geometry.PolyLine!
+static Spark.Geometry.PolyLine.FromPoints(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> Spark.Geometry.PolyLine!
+static Spark.Geometry.PolyLine.FromRectangle(in Spark.Geometry.Plane plane, double width, double length) -> Spark.Geometry.PolyLine!
+static Spark.Geometry.PolyLine.FromRegularPolygon(in Spark.Geometry.Plane plane, double radius, int sides) -> Spark.Geometry.PolyLine!
+static Spark.Geometry.Quaternion.FromAxisAngle(in Spark.Geometry.Vector3d axis, Spark.Geometry.Angle angle) -> Spark.Geometry.Quaternion
+static Spark.Geometry.Quaternion.FromRotationBetween(in Spark.Geometry.Vector3d from, in Spark.Geometry.Vector3d to) -> Spark.Geometry.Quaternion
 static Spark.Geometry.Quaternion.Identity.get -> Spark.Geometry.Quaternion
 static Spark.Geometry.Quaternion.Multiply(in Spark.Geometry.Quaternion a, in Spark.Geometry.Quaternion b) -> Spark.Geometry.Quaternion
 static Spark.Geometry.Quaternion.Slerp(in Spark.Geometry.Quaternion from, in Spark.Geometry.Quaternion to, double parameter) -> Spark.Geometry.Quaternion
 static Spark.Geometry.Quaternion.operator !=(in Spark.Geometry.Quaternion left, in Spark.Geometry.Quaternion right) -> bool
 static Spark.Geometry.Quaternion.operator *(in Spark.Geometry.Quaternion a, in Spark.Geometry.Quaternion b) -> Spark.Geometry.Quaternion
 static Spark.Geometry.Quaternion.operator ==(in Spark.Geometry.Quaternion left, in Spark.Geometry.Quaternion right) -> bool
-static Spark.Geometry.Ray.ByTwoPoints(in Spark.Geometry.Point3d from, in Spark.Geometry.Point3d towards) -> Spark.Geometry.Ray
+static Spark.Geometry.Ray.FromTwoPoints(in Spark.Geometry.Point3d from, in Spark.Geometry.Point3d towards) -> Spark.Geometry.Ray
 static Spark.Geometry.Ray.operator !=(in Spark.Geometry.Ray left, in Spark.Geometry.Ray right) -> bool
 static Spark.Geometry.Ray.operator ==(in Spark.Geometry.Ray left, in Spark.Geometry.Ray right) -> bool
 static Spark.Geometry.SurfaceConversion.ToNurbsSurface(this Spark.Geometry.ConicalSurface! surface) -> Spark.Geometry.NurbsSurface!

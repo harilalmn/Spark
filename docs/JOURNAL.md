@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-08 (a renamed node still opens old files)
+**Last updated:** 2026-09-08 (`By` becomes `From` on every factory)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing - between steps.** **Next up, and already decided by the client:** `E2-T58`, renaming 57 factory methods from `By` to `From` across `Spark.Nodes.Core` and `Spark.Geometry`; then making the node library reachable from a code block. |
+| **Working on** | **Nothing - between steps.** **One client request is still open:** every node in the library reachable from a code block. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A renamed node still opens the files that name it** - `E3-T23`. `[SparkNodeAlias]` on the member, resolved in `NodeLibrary.TryGet`, and the file heals itself on the next save. **Before it:** `E8-T59`, `E8-T57`/`E8-T58`, `E6-T29`/`E8-T56`. |
+| **Last completed step** | **`By` becomes `From` on every factory, in both layers** - `E2-T58`, 32 names and 715 replacements, with the three example graphs run *unedited* first to prove `E3-T23`'s aliases. **Before it:** `E3-T23`, `E8-T59`, `E8-T57`/`E8-T58`. |
 | **Working tree** | Clean. Build clean with zero warnings, format clean, **2622** tests green over ten executables with zero skips. **Two known flaky tests**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)) and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` (`E11-T27`, open). |
-| **Next action** | **`E2-T58`: `By` becomes `From` on every factory, in both layers.** The client chose *nodes and geometry both*, because a code block calls the **geometry** type - `Circle.ByCentreRadius` in a block is `Spark.Geometry.Circle`, and the node of the same name is a thin facade over it - so renaming one layer only would have the canvas and the code block disagree. **26 node factories and 31 geometry factories**, about 620 call sites across `src` and `tests`, 58 of them in `DemoGraphs.cs` alone. **The four infix `By` methods are not touched**: `DivideByLength`, `TrimByParameter`, `RangeByCount`, `RangeByCountAndStep` are not constructors, and the client said *constructor method name*. Every renamed **node** gets a `[SparkNodeAlias]` for its old key; the geometry methods need none, because nothing serialises a geometry method name. `ADR-0004` names the `By` rule and has to be amended rather than quietly contradicted. |
-| **Verify with** | The three `docs/examples/*.spark` opening **unedited** - that is what `E3-T23` was built for and the only real proof it works - then re-saving and healing to the new keys. `NodeImporter.InferKind` already treats `By`, `From` and `Create` as equivalent, so node *kind* and the constructor-dedup rule must not move: `NodeMemberKindTests` is the guard. Then the ten executables and a run of the app. **Grep the run output for `[FAIL]` and not only `Total:`.** |
+| **Next action** | **`E6-T30`: the node library reachable from a code block**, the client's remaining request. **It is smaller than *all 136* sounds and the difference has to be said plainly**: the geometry-shaped nodes are *already* reachable, because a block imports `Spark.Geometry` and the node is a facade over it - `Circle.FromCentreRadius(pt, 5)` works today. What is genuinely out of reach is the utility facades with no geometry equivalent: `Math.*`, `List.*`, `String.*`, `Logic.*`, `Number.*`, `DateTime.*`, `TimeSpan.*`, `Colour.*`, `Display.*`, `Watch.*`. **A bare `using Spark.Nodes.Core;` cannot be the answer**: 10 of its 23 type names collide with `Spark.Geometry` (`Arc`, `Circle`, `Curve`, `Line`, `Plane`, `PolyCurve`, `PolyLine`, `Surface`, `BoundingBox`) plus `Math` with `System.Math`, so every existing block would break with `CS0104`. **The way through is explicit aliases after the import** - `using Circle = Spark.Geometry.Circle;` and so on - because an alias beats a namespace import, which keeps every script that compiles today compiling and makes the other 13 facades reachable unqualified. **Gate the import on the assembly being referenced**, since `ReferenceCatalog` builds from loaded assemblies and a host that never loaded `Spark.Nodes.Core` would otherwise fail every compile. |
+| **Verify with** | A block calling `List.Flatten(...)` and `Math.Pi()` unqualified; `Math.PI` still resolving to `System.Math`; and `Circle.FromCentreRadius(...)` still meaning the geometry type. Then the ten executables. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -7779,3 +7779,66 @@ ten executables with zero skips.
 
 **Documents.** `E3-T23`'s row and a TODO line. The public API file gained the attribute, which the
 analyser insisted on and was right to.
+
+### 2026-09-08 — `By` becomes `From` on every factory, in both layers
+
+**What.** `E2-T58`. The client asked for `By` to become `From` in the constructor-style names.
+Asked how far it should reach, they chose **nodes and geometry both** — which was the right call
+and not the obvious one.
+
+**Why one layer alone would not have worked.** A code block does not call the node library; it
+calls the *geometry kernel*. `Circle.FromCentreRadius` in a block is `Spark.Geometry.Circle`, and
+the node of the same name is a thin façade over it. Renaming only the library would have left the
+canvas saying `From` while every code block, and every node's *In a code block* help line, still
+said `By`. That was worth establishing before writing anything, and it is why the question was
+asked with numbers attached rather than guessed at.
+
+**32 distinct names, 715 replacements, 115 files.** Sixty of them in `DemoGraphs.cs`, which is
+production code rather than tests — the single largest concentration in the repository.
+
+**Four `By` methods are deliberately left alone.** `Curve.DivideByLength`, `Curve.TrimByParameter`,
+`Number.RangeByCount` and `Number.RangeByCountAndStep` are not constructors, and the client said
+*constructor method name*. There the word is doing its ordinary English work: `DivideFromLength`
+would mean something else. `Spark.Api.NumberRange.ByCount` and its two siblings stay for the same
+reason — they are the plumbing behind exactly those nodes.
+
+**Node kind and constructor dedup could not move, and that was luck rather than design.**
+`NodeImporter.InferKind` and the constructor-suppression rule already read `By`, `From` and
+`Create` as equivalent — ADR-0004 wrote it that way in August. So 57 methods changed name without a
+single node appearing or disappearing, and the library still reports 138.
+
+**The sweep had to be held back from three places, and each is a different kind of wrong.**
+
+- **`JOURNAL.md` and `NOTES.md` are historical records.** Rewriting `ByCentreRadius` in an entry
+  from 2026-08-29 would falsify what was decided when. They were reverted.
+- **The alias attribute's own example and `NodeAliasTests`** must keep spelling the *old* name.
+  The sweep renamed them, which turned `[SparkNodeAlias("Circle.ByCentreRadius")]` into an alias
+  for the name the method already has — a test that asserts nothing, and would have stayed green.
+- **`docs/examples/*.spark` were held back on purpose**, so the alias mechanism could be measured
+  against unedited files before they were touched.
+
+**That last one is the only real proof `E3-T23` works.** All three example graphs — still naming
+`Circle.ByCentreRadius`, `Point.ByCoordinates`, `Colour.ByRgb` — ran after the rename with **zero
+diagnostics**: 18, 25 and 26 nodes evaluated, exactly as before it. Then they were healed to the
+new keys, because a shipped example should show current names.
+
+**Two latent test defects surfaced, neither caused by the rename.**
+
+- The camel-hump expectations were *data*: `Circle.ByCentreRadius` has humps `CBCR`, and the sweep
+  renamed the name without the expectation. `CFCR` now, along with the `cbcr` queries.
+- `AGeometryTypeFromAPackageIsTheHostsType` took *the first `Point.*` node* and asserted its output
+  came from `Spark.Geometry`. It had been relying on `ByCoordinates` sorting ahead of `Point.X`;
+  with `From`, a property returning a `double` came first and the test started asserting that a
+  `double` lives in the geometry assembly. It names the node it means now.
+
+**ADR-0004 is amended rather than contradicted.** Its title, status and a new section say the
+façade is spelled `From`, why both layers moved, which four methods kept `By` and why, and that
+nothing above the amendment changed except the spelling.
+
+**Verified.** Gates: build clean with zero warnings, format clean, **2622** tests green over ten
+executables with zero skips. The three example graphs, before and after. And the curve demo in the
+application: 18 nodes, no diagnostics, eight laced circles, a divided ellipse and a pentagon — the
+same picture as before the rename, which is the point.
+
+**Documents.** `E2-T58`'s row, a TODO line, the ADR amendment, and the sweep itself through
+`docs/help/`, `PRD.md`, `EPICS.md` and `DYNAMO-COVERAGE.md`.

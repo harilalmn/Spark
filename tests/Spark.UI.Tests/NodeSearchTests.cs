@@ -12,7 +12,7 @@ namespace Spark.UI.Tests;
 /// <remarks>
 /// The order is from the plan — exact, prefix, camel-hump, substring, category, description — and
 /// these tests are what keep it from decaying into "contains", which is what it was before and
-/// which cannot find <c>Circle.ByCentreRadius</c> from <c>cbcr</c>.
+/// which cannot find <c>Circle.FromCentreRadius</c> from <c>cfcr</c>.
 /// </remarks>
 public sealed class NodeSearchTests
 {
@@ -20,7 +20,7 @@ public sealed class NodeSearchTests
     [Fact]
     public void TheCapitalsFindTheNode()
     {
-        NodeSearchResult result = NodeSearch.Score("Circle.ByCentreRadius", "Geometry", null, "cbcr");
+        NodeSearchResult result = NodeSearch.Score("Circle.FromCentreRadius", "Geometry", null, "cfcr");
 
         Assert.Equal(NodeMatch.CamelHump, result.Kind);
         Assert.Equal(0, result.Distance);
@@ -30,8 +30,8 @@ public sealed class NodeSearchTests
     [Fact]
     public void APartialRunOfCapitalsRanksBehindACompleteOne()
     {
-        NodeSearchResult whole = NodeSearch.Score("Circle.ByCentreRadius", "Geometry", null, "cbcr");
-        NodeSearchResult partial = NodeSearch.Score("Circle.ByCentreRadius", "Geometry", null, "cbc");
+        NodeSearchResult whole = NodeSearch.Score("Circle.FromCentreRadius", "Geometry", null, "cfcr");
+        NodeSearchResult partial = NodeSearch.Score("Circle.FromCentreRadius", "Geometry", null, "cfc");
 
         Assert.Equal(NodeMatch.CamelHump, partial.Kind);
         Assert.True(partial.Distance > whole.Distance);
@@ -39,8 +39,8 @@ public sealed class NodeSearchTests
 
     /// <summary>The capitals of a name, which is what a camel-hump query is matched against.</summary>
     [Theory]
-    [InlineData("Circle.ByCentreRadius", "CBCR")]
-    [InlineData("Point.ByCoordinates", "PBC")]
+    [InlineData("Circle.FromCentreRadius", "CFCR")]
+    [InlineData("Point.FromCoordinates", "PFC")]
     [InlineData("Math.Sin", "MS")]
     [InlineData("Point2d", "P2")]
     public void HumpsAreTheCapitalsAndTheDigits(string name, string expected) =>
@@ -52,9 +52,9 @@ public sealed class NodeSearchTests
     {
         Assert.Equal(NodeMatch.Exact, NodeSearch.Score("Math.Sin", "Math", null, "Math.Sin").Kind);
         Assert.Equal(NodeMatch.Exact, NodeSearch.Score("Math.Sin", "Math", null, "sin").Kind);
-        Assert.Equal(NodeMatch.Prefix, NodeSearch.Score("Circle.ByCentreRadius", "Geometry", null, "circ").Kind);
-        Assert.Equal(NodeMatch.CamelHump, NodeSearch.Score("Circle.ByCentreRadius", "Geometry", null, "cbc").Kind);
-        Assert.Equal(NodeMatch.Substring, NodeSearch.Score("Arc.ByPlaneRadiusAngles", "Geometry", null, "radiusa").Kind);
+        Assert.Equal(NodeMatch.Prefix, NodeSearch.Score("Circle.FromCentreRadius", "Geometry", null, "circ").Kind);
+        Assert.Equal(NodeMatch.CamelHump, NodeSearch.Score("Circle.FromCentreRadius", "Geometry", null, "cfc").Kind);
+        Assert.Equal(NodeMatch.Substring, NodeSearch.Score("Arc.FromPlaneRadiusAngles", "Geometry", null, "radiusa").Kind);
         Assert.Equal(NodeMatch.Category, NodeSearch.Score("Math.Sin", "Maths and logic", null, "logic").Kind);
         Assert.Equal(
             NodeMatch.Description,
@@ -65,7 +65,7 @@ public sealed class NodeSearchTests
     [Fact]
     public void TheMemberNameIsSearchableAndRanksBehindTheWholeName()
     {
-        NodeSearchResult whole = NodeSearch.Score("Circle.ByCentreRadius", "Geometry", null, "circle");
+        NodeSearchResult whole = NodeSearch.Score("Circle.FromCentreRadius", "Geometry", null, "circle");
         NodeSearchResult member = NodeSearch.Score("Arc.ByCircleAndPoint", "Geometry", null, "bycircle");
 
         Assert.Equal(NodeMatch.Prefix, whole.Kind);
@@ -102,7 +102,7 @@ public sealed class NodeSearchTests
     [Fact]
     public void AQueryWithASeparatorIsNotACamelHumpQuery()
     {
-        NodeSearchResult result = NodeSearch.Score("Circle.ByCentreRadius", "Geometry", null, "cle.by");
+        NodeSearchResult result = NodeSearch.Score("Circle.FromCentreRadius", "Geometry", null, "cle.fr");
 
         Assert.Equal(NodeMatch.Substring, result.Kind);
     }
@@ -113,8 +113,8 @@ public sealed class NodeSearchTests
     /// <remarks>
     /// <b>This is the screenful the client photographed.</b> Typing <c>circ</c> matched four
     /// <c>Create</c> nodes equally well and they came out ordered by <i>name length</i> —
-    /// <c>ByPlaneRadius</c>, <c>ByThreePoints</c>, <c>ByCentreRadius</c>,
-    /// <c>ByCentreNormalRadius</c> — which is a rule nobody reading the list can see. Alphabetical
+    /// <c>FromPlaneRadius</c>, <c>FromThreePoints</c>, <c>FromCentreRadius</c>,
+    /// <c>FromCentreNormalRadius</c> — which is a rule nobody reading the list can see. Alphabetical
     /// is the one order a user can predict without being told it. Totality matters just as much: a
     /// result list that reshuffles between keystrokes cannot be clicked.
     /// </remarks>
@@ -123,20 +123,20 @@ public sealed class NodeSearchTests
     {
         string[] names =
         [
-            "Circle.ByPlaneRadius",
-            "Circle.ByThreePoints",
-            "Circle.ByCentreRadius",
-            "Circle.ByCentreNormalRadius",
+            "Circle.FromPlaneRadius",
+            "Circle.FromThreePoints",
+            "Circle.FromCentreRadius",
+            "Circle.FromCentreNormalRadius",
         ];
 
         List<string> ordered = Order(names, "circ", NodeMemberKind.Create);
 
         Assert.Equal(
             [
-                "Circle.ByCentreNormalRadius",
-                "Circle.ByCentreRadius",
-                "Circle.ByPlaneRadius",
-                "Circle.ByThreePoints",
+                "Circle.FromCentreNormalRadius",
+                "Circle.FromCentreRadius",
+                "Circle.FromPlaneRadius",
+                "Circle.FromThreePoints",
             ],
             ordered);
     }
@@ -157,9 +157,9 @@ public sealed class NodeSearchTests
         [
             Candidate("Circle.Area", "circle", NodeMemberKind.Query),
             Candidate("Circle.Offset", "circle", NodeMemberKind.Action),
-            Candidate("Circle.ByThreePoints", "circle", NodeMemberKind.Create),
+            Candidate("Circle.FromThreePoints", "circle", NodeMemberKind.Create),
             Candidate("Circle.Length", "circle", NodeMemberKind.Query),
-            Candidate("Circle.ByCentreRadius", "circle", NodeMemberKind.Create),
+            Candidate("Circle.FromCentreRadius", "circle", NodeMemberKind.Create),
         ];
 
         List<string> ordered = candidates
@@ -169,8 +169,8 @@ public sealed class NodeSearchTests
 
         Assert.Equal(
             [
-                "Circle.ByCentreRadius",
-                "Circle.ByThreePoints",
+                "Circle.FromCentreRadius",
+                "Circle.FromThreePoints",
                 "Circle.Offset",
                 "Circle.Area",
                 "Circle.Length",

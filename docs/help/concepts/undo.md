@@ -34,7 +34,7 @@ that appears to do nothing, and a user who then presses it four more times and l
 
 ## A worked example
 
-Open Spark. It starts on the demo graph: a `Number.Range` feeding a `Point.ByCoordinates`, and a
+Open Spark. It starts on the demo graph: a `Number.Range` feeding a `Point.FromCoordinates`, and a
 hundred points in the viewport.
 
 1. **Change a value.** Select the `Number.Range` node. In the properties pane, set `end` to `2`

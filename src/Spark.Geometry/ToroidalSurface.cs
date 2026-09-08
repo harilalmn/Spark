@@ -99,7 +99,7 @@ public sealed class ToroidalSurface : Surface
         double scale = SphericalSurface.UniformScale(transform, nameof(transform), "torus");
 
         return new ToroidalSurface(
-            Plane.ByOriginXAxisYAxis(
+            Plane.FromOriginXAxisYAxis(
                 transform.OfPoint(_frame.Origin),
                 transform.OfVector(_frame.XAxis),
                 transform.OfVector(_frame.YAxis)),

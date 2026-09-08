@@ -498,7 +498,7 @@ internal sealed class ModelWriter
         // A bilinear patch through the corners is a poor surface and an honest placeholder; the
         // real conversion is E2 work. Nothing in the built-in node set reaches this today, and
         // the flag means a caller can refuse rather than believe it.
-        return NurbsSurface.ByCorners([
+        return NurbsSurface.FromCorners([
             surface.PointAt(surface.DomainU.Min, surface.DomainV.Min),
             surface.PointAt(surface.DomainU.Max, surface.DomainV.Min),
             surface.PointAt(surface.DomainU.Max, surface.DomainV.Max),

@@ -149,8 +149,8 @@ public sealed class ModelRoundTripTests
     public void RevolvingAnArcMakesASphere()
     {
         KernelResult<Brep> spun = Kernel.Revolve(
-            Arc.ByPlaneRadiusAngles(
-                Plane.ByOriginXAxisYAxis(Point3d.Origin, Vector3d.XAxis, Vector3d.ZAxis),
+            Arc.FromPlaneRadiusAngles(
+                Plane.FromOriginXAxisYAxis(Point3d.Origin, Vector3d.XAxis, Vector3d.ZAxis),
                 2.0,
                 Angle.FromDegrees(-90),
                 Angle.FromDegrees(180)),
@@ -228,7 +228,7 @@ public sealed class ModelRoundTripTests
             .Union(
                 BrepPrimitives.Box(Plane.WorldXY, 2, 2, 2),
                 BrepPrimitives.Box(
-                    Plane.ByOriginXAxisYAxis(new Point3d(1, 1, 1), Vector3d.XAxis, Vector3d.YAxis),
+                    Plane.FromOriginXAxisYAxis(new Point3d(1, 1, 1), Vector3d.XAxis, Vector3d.YAxis),
                     2,
                     2,
                     2),

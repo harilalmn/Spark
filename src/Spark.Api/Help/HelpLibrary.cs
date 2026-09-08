@@ -14,7 +14,7 @@ namespace Spark.Api.Help;
 /// <b>Two sources, one lookup.</b> A reader following a link does not care whether the page on the
 /// other end was typed by a person or produced from a node definition, and neither should
 /// anything that resolves links, searches, or renders. Keeping one index is what makes
-/// <c>concepts.lacing</c> and <c>nodes.Spark.Core/Point.ByCoordinates</c> equally reachable from
+/// <c>concepts.lacing</c> and <c>nodes.Spark.Core/Point.FromCoordinates</c> equally reachable from
 /// each other.
 /// </para>
 /// <para>

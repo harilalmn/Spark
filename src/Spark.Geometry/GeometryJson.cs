@@ -576,20 +576,20 @@ public static class GeometryJson
                 Angle.FromRadians(Number(element, "angular")),
                 Number(element, "relativeEpsilon")),
             nameof(BoundingBox) => BoundingBox.FromSortedCorners(Point(element, "min"), Point(element, "max")),
-            nameof(Plane) => Spark.Geometry.Plane.ByOriginXAxisYAxis(
+            nameof(Plane) => Spark.Geometry.Plane.FromOriginXAxisYAxis(
                 Point(element, "origin"), Vector(element, "xAxis"), Vector(element, "yAxis")),
-            nameof(CoordinateSystem) => CoordinateSystem.ByOriginXAxisYAxis(
+            nameof(CoordinateSystem) => CoordinateSystem.FromOriginXAxisYAxis(
                 Point(element, "origin"), Vector(element, "xAxis"), Vector(element, "yAxis")),
             nameof(Ray) => new Ray(Point(element, "origin"), Vector(element, "direction")),
             nameof(Transform) => ReadTransform(element),
             nameof(Line) => new Line(Point(element, "start"), Point(element, "end")),
-            nameof(Circle) => Circle.ByPlaneRadius(ReadPlane(element, "plane"), Number(element, "radius")),
-            nameof(Arc) => Arc.ByPlaneRadiusAngles(
+            nameof(Circle) => Circle.FromPlaneRadius(ReadPlane(element, "plane"), Number(element, "radius")),
+            nameof(Arc) => Arc.FromPlaneRadiusAngles(
                 ReadPlane(element, "plane"),
                 Number(element, "radius"),
                 Angle.FromRadians(Number(element, "startAngle")),
                 Angle.FromRadians(Number(element, "sweepAngle"))),
-            nameof(EllipseCurve) => EllipseCurve.ByPlaneRadiiAngles(
+            nameof(EllipseCurve) => EllipseCurve.FromPlaneRadiiAngles(
                 ReadPlane(element, "plane"),
                 Number(element, "xRadius"),
                 Number(element, "yRadius"),
@@ -734,7 +734,7 @@ public static class GeometryJson
             segments.Add((Curve)Read(segment));
         }
 
-        return PolyCurve.ByJoinedCurves(segments);
+        return PolyCurve.FromJoinedCurves(segments);
     }
 
     private static IEnumerable<double> Elements(Transform t)

@@ -22,8 +22,9 @@ public static class Surface
     /// <param name="height">Its extent along the plane's y-axis.</param>
     /// <returns>The surface.</returns>
     [return: NodePort("surface")]
-    public static PlaneSurface ByPlaneSize(Spark.Geometry.Plane plane, double width = 1, double height = 1) =>
-        PlaneSurface.ByPlaneSize(plane, width, height);
+    [SparkNodeAlias("Surface.ByPlaneSize")]
+    public static PlaneSurface FromPlaneSize(Spark.Geometry.Plane plane, double width = 1, double height = 1) =>
+        PlaneSurface.FromPlaneSize(plane, width, height);
 
     /// <summary>Makes a whole sphere.</summary>
     /// <param name="centre">The centre.</param>
@@ -32,7 +33,7 @@ public static class Surface
     [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("surface")]
     public static SphericalSurface Sphere(Point3d centre, double radius = 1) =>
-        new(Spark.Geometry.Plane.ByOriginNormal(centre, Vector3d.ZAxis), radius);
+        new(Spark.Geometry.Plane.FromOriginNormal(centre, Vector3d.ZAxis), radius);
 
     /// <summary>Makes a cylinder standing on a plane.</summary>
     /// <param name="plane">The base: its origin is on the axis and its normal is the axis.</param>

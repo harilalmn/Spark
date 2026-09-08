@@ -139,7 +139,7 @@ public sealed class TransformTests
     [Fact]
     public void MirroringInAnOffsetPlaneKeepsThatPlaneFixed()
     {
-        Plane plane = Plane.ByOriginNormal(new Point3d(0.0, 0.0, 5.0), Vector3d.ZAxis);
+        Plane plane = Plane.FromOriginNormal(new Point3d(0.0, 0.0, 5.0), Vector3d.ZAxis);
         Transform mirror = Transform.Mirror(plane);
 
         Assert.True(mirror.OfPoint(new Point3d(0.0, 0.0, 7.0)).EqualsWithin(new Point3d(0.0, 0.0, 3.0)));
@@ -160,7 +160,7 @@ public sealed class TransformTests
     public void MirroringTwiceIsTheIdentity()
     {
         Transform mirror = Transform.Mirror(
-            Plane.ByOriginNormal(new Point3d(1.0, 2.0, 3.0), new Vector3d(1.0, 1.0, 1.0)));
+            Plane.FromOriginNormal(new Point3d(1.0, 2.0, 3.0), new Vector3d(1.0, 1.0, 1.0)));
 
         Assert.True((mirror * mirror).IsIdentity());
     }
@@ -225,7 +225,7 @@ public sealed class TransformTests
     public void PlaneToPlaneCarriesTheSourceFrameOntoTheTarget()
     {
         Plane from = Plane.WorldXY;
-        Plane to = Plane.ByOriginXAxisYAxis(
+        Plane to = Plane.FromOriginXAxisYAxis(
             new Point3d(10.0, 20.0, 30.0),
             new Vector3d(0.0, 1.0, 0.0),
             new Vector3d(0.0, 0.0, 1.0));
@@ -242,7 +242,7 @@ public sealed class TransformTests
     [Fact]
     public void PlaneToPlaneWithTheSamePlaneTwiceIsTheIdentity()
     {
-        Plane plane = Plane.ByOriginNormal(new Point3d(1.0, 2.0, 3.0), new Vector3d(4.0, 5.0, 6.0));
+        Plane plane = Plane.FromOriginNormal(new Point3d(1.0, 2.0, 3.0), new Vector3d(4.0, 5.0, 6.0));
 
         Assert.True(Transform.PlaneToPlane(plane, plane).IsIdentity());
     }
@@ -250,7 +250,7 @@ public sealed class TransformTests
     [Fact]
     public void ChangeBasisReportsAPointsCoordinatesInThePlanesFrame()
     {
-        Plane plane = Plane.ByOriginNormal(new Point3d(0.0, 0.0, 5.0), Vector3d.ZAxis);
+        Plane plane = Plane.FromOriginNormal(new Point3d(0.0, 0.0, 5.0), Vector3d.ZAxis);
         Transform changeBasis = Transform.ChangeBasis(plane);
 
         Point3d local = changeBasis.OfPoint(new Point3d(1.0, 2.0, 8.0));
@@ -261,7 +261,7 @@ public sealed class TransformTests
     [Fact]
     public void ChangeBasisIsTheInverseOfPlacingGeometryOnThatPlane()
     {
-        Plane plane = Plane.ByOriginNormal(new Point3d(1.0, 2.0, 3.0), new Vector3d(1.0, -2.0, 4.0));
+        Plane plane = Plane.FromOriginNormal(new Point3d(1.0, 2.0, 3.0), new Vector3d(1.0, -2.0, 4.0));
 
         Transform onto = Transform.PlaneToPlane(Plane.WorldXY, plane);
         Transform back = Transform.ChangeBasis(plane);

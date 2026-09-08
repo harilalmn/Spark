@@ -328,7 +328,7 @@ public static class CanvasCollapse
     /// called.
     /// </summary>
     /// <remarks>
-    /// A user who selected a <c>Circle.ByCentreRadius</c> and wired a number into its
+    /// A user who selected a <c>Circle.FromCentreRadius</c> and wired a number into its
     /// <c>radius</c> expects the resulting node to have a port called <c>radius</c>. Inventing
     /// <c>in0</c> would be correct and unhelpful.
     /// </remarks>

@@ -36,15 +36,15 @@ A worked example. Take this graph:
 
 ```
 Number.Range ──┐
-               ├──> Point.ByCoordinates ──> Circle.ByCentreRadius ──> Watch
+               ├──> Point.FromCoordinates ──> Circle.FromCentreRadius ──> Watch
 Number(5) ─────┘
 ```
 
 | Level | Nodes | Why |
 |---|---|---|
 | 0 | `Number.Range`, `Number` | Nothing feeds them |
-| 1 | `Point.ByCoordinates` | Both its inputs are level 0 |
-| 2 | `Circle.ByCentreRadius` | Its input is level 1 |
+| 1 | `Point.FromCoordinates` | Both its inputs are level 0 |
+| 2 | `Circle.FromCentreRadius` | Its input is level 1 |
 | 3 | `Watch` | Its input is level 2 |
 
 Move any node anywhere on the canvas and the table is unchanged.
