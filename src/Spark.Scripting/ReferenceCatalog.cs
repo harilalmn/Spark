@@ -43,6 +43,67 @@ public sealed class ReferenceCatalog
         "Spark.Geometry",
     ];
 
+    /// <summary>The assembly holding the node library, named rather than referenced.</summary>
+    /// <remarks>
+    /// <b><c>Spark.Scripting</c> does not reference <c>Spark.Nodes.Core</c> and must not.</b> The
+    /// node library is a *consumer* of the engine, and a scripting layer that depended on it would
+    /// invert that — so the assembly is recognised by name among the ones the process has loaded,
+    /// exactly as the sweep in <see cref="Build"/> already finds everything else.
+    /// </remarks>
+    private const string NodeLibrary = "Spark.Nodes.Core";
+
+    /// <summary>
+    /// What a code block gains when the node library is loaded (`E6-T30`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Asked for by the client: every node in the library callable from a block.</b> Most
+    /// already were — the geometry-shaped nodes are thin façades over <c>Spark.Geometry</c>, which
+    /// a block has always imported, so <c>Circle.FromCentreRadius(pt, 5)</c> has worked all along.
+    /// What was out of reach is the façades with no geometry equivalent, and there are a lot of
+    /// them: <c>Solid</c>'s 38 booleans and fillets, <c>List</c>, <c>Logic</c>, <c>String</c>,
+    /// <c>Number</c>, <c>Colour</c>, <c>Display</c>, <c>DateTime</c>, <c>TimeSpan</c>.
+    /// </para>
+    /// <para>
+    /// <b>The import alone would break every block anybody has written</b>, which is why the
+    /// namespace was excluded in the first place. Nine of the library's twenty-three type names
+    /// collide with <c>Spark.Geometry</c> — <c>Arc</c>, <c>BoundingBox</c>, <c>Circle</c>,
+    /// <c>Curve</c>, <c>Line</c>, <c>Plane</c>, <c>PolyCurve</c>, <c>PolyLine</c>, <c>Surface</c> —
+    /// and <c>Math</c> collides with <c>System.Math</c>. Two namespace imports offering the same
+    /// name is <c>CS0104</c>, on the user's line, for code that compiled yesterday.
+    /// </para>
+    /// <para>
+    /// <b>An explicit alias beats a namespace import, and that is the whole mechanism.</b> Each
+    /// colliding name is pinned to what it has always meant, so nothing that compiles today changes
+    /// meaning and the other fourteen façades become reachable unqualified. The library's own
+    /// versions stay available in full — <c>Spark.Nodes.Core.Circle.FromCentreRadius</c> — which is
+    /// what the reference pages have always printed.
+    /// </para>
+    /// <para>
+    /// <b><c>Math</c> is pinned to <c>System.Math</c> deliberately.</b> A block is C#, and
+    /// <c>Math.PI</c> meaning anything else would be a trap; the library's <c>Math.Sin</c> does what
+    /// <c>System.Math.Sin</c> does anyway. This is the collision that kept the namespace out of the
+    /// prelude for a year, recorded in <c>NodeDefinition</c> and <c>NodeImporter</c>.
+    /// </para>
+    /// </remarks>
+    private static readonly string[] NodeLibraryImports =
+    [
+        NodeLibrary,
+
+        // The nine that collide with Spark.Geometry, pinned to the geometry type a block has always
+        // meant by them, and `Math`, pinned to System's.
+        "Math = System.Math",
+        "Arc = Spark.Geometry.Arc",
+        "BoundingBox = Spark.Geometry.BoundingBox",
+        "Circle = Spark.Geometry.Circle",
+        "Curve = Spark.Geometry.Curve",
+        "Line = Spark.Geometry.Line",
+        "Plane = Spark.Geometry.Plane",
+        "PolyCurve = Spark.Geometry.PolyCurve",
+        "PolyLine = Spark.Geometry.PolyLine",
+        "Surface = Spark.Geometry.Surface",
+    ];
+
     private Snapshot _current;
 
     /// <summary>Creates a catalogue over the assemblies this process already has loaded.</summary>
@@ -305,9 +366,19 @@ public sealed class ReferenceCatalog
             }
         }
 
+        // `E6-T30`: THE NODE LIBRARY IS IMPORTED ONLY WHEN IT IS ACTUALLY REFERENCED.
+        //
+        // The sweep above finds what the process has loaded, and a host that never loaded
+        // `Spark.Nodes.Core` - a test, an embedder, a tool - would otherwise be told
+        // `using Spark.Nodes.Core;` for an assembly that is not there, and EVERY script would
+        // fail to compile on a line the user did not write. That is the failure mode the comment
+        // above this method already records for Spark.Geometry, met a second time.
+        bool nodes = byPath.Keys.Any(path =>
+            string.Equals(Path.GetFileNameWithoutExtension(path), NodeLibrary, StringComparison.OrdinalIgnoreCase));
+
         return new Snapshot(
             [.. byPath.Values],
-            [.. DefaultImports],
+            nodes ? [.. DefaultImports, .. NodeLibraryImports] : [.. DefaultImports],
             _current?.Version ?? 0);
     }
 

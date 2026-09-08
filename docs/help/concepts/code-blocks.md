@@ -214,10 +214,36 @@ else. Each block above declares one variable and so has one output port, `number
 described under [Several outputs](#several-outputs). Written without the variable, as
 `0..1..#8;`, the port is called `list`.
 
-**One import is deliberately missing.** `Spark.Nodes.Core` is *not* in scope, because it declares a
-`Math` of its own that would shadow `System.Math` in every block you write. Calling a node's member
-from a code block therefore means naming it in full — `Spark.Nodes.Core.Number.Range(3, 5, 1)` —
-which is what the *In a code block* line on each node's reference page already shows you.
+## The library is in scope too
+
+**Every node in the library can be called from a block.** `Solid`, `Logic`, `Colour`, `Number`,
+`Display` and the rest are in scope by name:
+
+```csharp
+var box = Solid.Box(Plane.WorldXY, 2, 2, 2);
+var hole = Solid.Cylinder(Plane.WorldXY, 0.5, 4);
+
+Solid.Difference(box, hole);
+```
+
+**Where a library name would have collided, the name you already knew wins.** `Circle`, `Curve`,
+`Line`, `Plane`, `Arc`, `Surface`, `PolyCurve`, `PolyLine` and `BoundingBox` are the geometry
+types, exactly as they always were, and **`Math` is `System.Math`** — so `Math.PI` is what you
+expect. The library's own version is still there in full when you want it:
+`Spark.Nodes.Core.Circle.FromCentreRadius(...)`.
+
+**Four have a different name in a block**, because their node name is a type C# already uses:
+
+| On the canvas | In a code block |
+|---|---|
+| `List.Count` | `ListNodes.Count` |
+| `String.FromNumber` | `Text.FromNumber` |
+| `DateTime.Now` | `DateAndTime.Now` |
+| `TimeSpan.FromDateDifference` | `Duration.FromDateDifference` |
+
+**And a list node counts a graph list, not a C# one.** `ListNodes.Count(new List<object> {1, 2, 3})`
+is `1`, because rank is something the graph adds around a node and a code block is inside the
+node. Use ordinary C# — `xs.Count` — for a list you made yourself.
 
 ## The editor
 

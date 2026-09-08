@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-08 (`By` becomes `From` on every factory)
+**Last updated:** 2026-09-08 (the node library is callable from a code block)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing - between steps.** **One client request is still open:** every node in the library reachable from a code block. |
+| **Working on** | **Nothing - between steps.** Every request the client has made in this sitting is delivered. **What is left of `E12-T21` is a person seeing the update pill in their own installed shell**, still the only unproven link in that chain. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`By` becomes `From` on every factory, in both layers** - `E2-T58`, 32 names and 715 replacements, with the three example graphs run *unedited* first to prove `E3-T23`'s aliases. **Before it:** `E3-T23`, `E8-T59`, `E8-T57`/`E8-T58`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2622** tests green over ten executables with zero skips. **Two known flaky tests**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)) and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` (`E11-T27`, open). |
-| **Next action** | **`E6-T30`: the node library reachable from a code block**, the client's remaining request. **It is smaller than *all 136* sounds and the difference has to be said plainly**: the geometry-shaped nodes are *already* reachable, because a block imports `Spark.Geometry` and the node is a facade over it - `Circle.FromCentreRadius(pt, 5)` works today. What is genuinely out of reach is the utility facades with no geometry equivalent: `Math.*`, `List.*`, `String.*`, `Logic.*`, `Number.*`, `DateTime.*`, `TimeSpan.*`, `Colour.*`, `Display.*`, `Watch.*`. **A bare `using Spark.Nodes.Core;` cannot be the answer**: 10 of its 23 type names collide with `Spark.Geometry` (`Arc`, `Circle`, `Curve`, `Line`, `Plane`, `PolyCurve`, `PolyLine`, `Surface`, `BoundingBox`) plus `Math` with `System.Math`, so every existing block would break with `CS0104`. **The way through is explicit aliases after the import** - `using Circle = Spark.Geometry.Circle;` and so on - because an alias beats a namespace import, which keeps every script that compiles today compiling and makes the other 13 facades reachable unqualified. **Gate the import on the assembly being referenced**, since `ReferenceCatalog` builds from loaded assemblies and a host that never loaded `Spark.Nodes.Core` would otherwise fail every compile. |
-| **Verify with** | A block calling `List.Flatten(...)` and `Math.Pi()` unqualified; `Math.PI` still resolving to `System.Math`; and `Circle.FromCentreRadius(...)` still meaning the geometry type. Then the ten executables. **Grep the run output for `[FAIL]` and not only `Total:`.** |
+| **Last completed step** | **The node library is callable from a code block** - `E6-T30`. `Solid`'s 38 booleans and the other utility facades, with the ten colliding names pinned to what they always meant. **Before it:** `E2-T58`, `E3-T23`, `E8-T59`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2637** tests green over ten executables with zero skips. **Two known flaky tests**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom` ([N120](NOTES.md)) and `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` (`E11-T27`, open). |
+| **Next action** | **Nothing is queued that does not need a person.** The nearest unblocked engineering row is still the *Queue*'s `+` pair: **persist the workspace layout between sessions** (`WorkspaceLayout` already serialises and round-trips under test, and nothing writes it - a dragged arrangement dies with the window, which is the one thing a dock is for), and **a guard that no test project reports zero tests**, one line that catches a truncated test file, a discovery failure and the `dotnet test` anomaly alike ([N30](NOTES.md)). Take the layout one; it is the one a user would notice. **Also worth raising with the client**: `E11-T27` is open and this assembly now has two known flakes. |
+| **Verify with** | For the layout row: drag the docks into a new arrangement, close the application, reopen it, and find the arrangement still there - then the ten executables and `tests/Spark.Docs.Verify`. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -7842,3 +7842,61 @@ same picture as before the rename, which is the point.
 
 **Documents.** `E2-T58`'s row, a TODO line, the ADR amendment, and the sweep itself through
 `docs/help/`, `PRD.md`, `EPICS.md` and `DYNAMO-COVERAGE.md`.
+
+### 2026-09-08 — The node library is callable from a code block
+
+**What.** `E6-T30`, the last of the client's four requests: *I want all these 136 properties and
+methods available in CodeBlock.*
+
+**Most of them already were, and saying so was the first job.** The geometry-shaped nodes are thin
+façades over `Spark.Geometry`, which a block has always imported — `Circle.FromCentreRadius(pt, 5)`
+has worked since `E6-T1`. Delivering "136 nodes now available" without saying that would have been
+claiming credit for work already done. What was genuinely out of reach is the façades with **no**
+geometry equivalent, and that is not a small set: `Solid` alone is 38 nodes — every boolean, fillet
+and shell — plus `Logic`, `Colour`, `Display`, `Number`, and the list, string and date families.
+
+**A bare `using Spark.Nodes.Core;` could not be the answer, which is exactly why the namespace was
+excluded in the first place.** Nine of its twenty-three type names collide with `Spark.Geometry` —
+`Arc`, `BoundingBox`, `Circle`, `Curve`, `Line`, `Plane`, `PolyCurve`, `PolyLine`, `Surface` — and
+`Math` collides with `System.Math`. Two namespace imports offering the same name is `CS0104`, on
+the user's line, for code that compiled yesterday. `NodeDefinition` and `NodeImporter` both record
+the `Math` half of that; the other nine were found by comparing the two assemblies' public type
+names rather than by trusting the note.
+
+**An explicit alias beats a namespace import, and that is the whole mechanism.** Each colliding
+name is pinned to what it has always meant, so every block that compiled before this compiles after
+it and means the same thing, while the other fourteen façades become reachable unqualified. `Math`
+is pinned to `System.Math` deliberately: a block is C#, and `Math.PI` meaning anything else would
+be a trap.
+
+**The import is gated on the assembly actually being referenced.** `ReferenceCatalog` builds from
+what the process has loaded, and `Spark.Scripting` does not — and must not — reference
+`Spark.Nodes.Core`, since the node library is a consumer of the engine. A host that never loaded it
+would otherwise be told `using Spark.Nodes.Core;` for an assembly that is not there and fail *every*
+compile. That is the failure the catalogue already records for `Spark.Geometry`, met a second time
+and handled before it happened rather than after.
+
+**Two warts, written down rather than smoothed over.**
+
+- **Four façades have a different name in a block than on the canvas**: `ListNodes`, `Text`,
+  `DateAndTime` and `Duration` where the canvas says `List`, `String`, `DateTime` and `TimeSpan`.
+  Their C# types are named that way precisely because the node name is a type C# already uses, and
+  no import can fix it. Shadowing `List<T>` in every code block is not a trade worth making.
+- **A list node counts a `SparkList`, so `ListNodes.Count(new List<object> {1,2,3})` is `1`.** Rank
+  is something the graph puts *around* a node, and a code block is inside one. My first test
+  asserted 3 — measuring what I expected instead of what the node does — and the corrected test
+  now documents the trap this row opens.
+
+**A third mistake in the tests, and the same shape as the second.** `Logic.And(true, true);` on its
+own returns nothing, because a bare invocation is a *statement* — `E6-T27`'s rule, the one
+`ACallIsStillAStatement` guards. Assigning it gives the value. That is correct behaviour and my
+test was wrong twice before it was right.
+
+**Verified.** Fifteen tests, and the load-bearing one is `TheGeometryTypesStillWin` — the pinned
+names are what makes this safe. Proved end to end first through the CLI, where `Solid.Difference`
+of a box and a cylinder ran from a code block with zero diagnostics. Gates: build clean with zero
+warnings, format clean, **2637** tests green over ten executables with zero skips.
+
+**Documents.** `E6-T30`'s row, a TODO line, and `concepts/code-blocks.md`, whose *One import is
+deliberately missing* section is replaced by *The library is in scope too* — with the collision
+rule, the four renamed façades in a table, and the `SparkList` trap.
