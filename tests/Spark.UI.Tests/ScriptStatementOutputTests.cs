@@ -9,20 +9,23 @@ using Spark.Scripting;
 namespace Spark.UI.Tests;
 
 /// <summary>
-/// A code block gives one output port per value statement, not just for the last one — `E6-T28`.
+/// Dynamo's Code Block rule: one output port per line that makes something, named after the
+/// variable when there is one and after the expression's kind when there is not — `E6-T28`,
+/// `E6-T29`.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Asked for by the client with a screenshot</b> of a block reading <c>5+3;</c> then
-/// <c>"Test";</c>, one <c>result</c> port and the <c>CS0201</c> that line 1 still was: <i>"let the
-/// code block give output ports corresponding to each statement, in this case 8 and Test"</i>.
+/// <b>Specified by the client with a Dynamo screenshot</b> of six lines and six ports, and the
+/// instruction <i>let us follow the Dynamo code block exactly</i>.
+/// <see cref="TheClientsDynamoBlockLineForLine"/> is that screenshot, and it is the test to read
+/// first.
 /// </para>
 /// <para>
-/// <b>This is `E6-T27` read once per statement rather than once per block, and it inherits that
-/// row's safety unchanged</b> — only an expression C# would refuse as a statement is claimed. The
-/// test that holds the line is still <c>ScriptTrailingValueTests.ACallIsStillAStatement</c>, and
-/// <b>that whole file must stay green without being edited</b>: it is what says the single-value
-/// case did not move underneath this one.
+/// <b>This reversed `E6-T27`'s rule that a trailing value replaces the declared ports</b> — the
+/// client's own earlier decision, superseded by their own later instruction. What survives from
+/// `E6-T27` is the part that was never about counting: only an expression C# would <i>refuse</i>
+/// as a statement is claimed, so a call still discards its value on purpose and no script that
+/// compiled ever changed meaning. <c>ACallIsStillAStatement</c> holds that line.
 /// </para>
 /// </remarks>
 public sealed class ScriptStatementOutputTests
@@ -36,24 +39,63 @@ public sealed class ScriptStatementOutputTests
 
     private static NodeDefinitionSource Compile(string script) => Factory().Create(script);
 
+    private static string[] Ports(string script) =>
+        [.. Compile(script).Outputs.Select(port => port.Name)];
+
     private static object?[] Run(string script) =>
         [.. Compile(script).Invoke([], CancellationToken.None)];
 
-    /// <summary>The client's block, exactly as their screenshot shows it.</summary>
+    /// <summary>
+    /// <b>The client's Dynamo screenshot, line for line, in Spark's syntax.</b> Six lines, six
+    /// ports, and the names Dynamo gives them.
+    /// </summary>
+    /// <remarks>
+    /// Dynamo's <c>n = 100;</c> declares; C#'s does not — an assignment to a name nothing declared
+    /// is the <c>CS0103</c> that makes it an <i>input</i> port. So the Spark spelling of that line
+    /// is <c>var n = 100;</c>, and it is the one place the translation is not literal.
+    /// </remarks>
+    [Fact]
+    public void TheClientsDynamoBlockLineForLine()
+    {
+        const string Script = """
+            5;
+            5.0 + 6;
+            "hello";
+            var n = 100;
+            var t = 0..1..#10;
+            0..#6..10;
+            """;
+
+        Assert.Equal(["integer", "function", "string", "n", "t", "list"], Ports(Script));
+    }
+
+    /// <summary>And the values really arrive on those ports, in that order.</summary>
+    [Fact]
+    public void TheValuesArriveOnThosePorts()
+    {
+        const string Script = """
+            5;
+            5.0 + 6;
+            "hello";
+            var n = 100;
+            """;
+
+        Assert.Equal([5, 11.0, "hello", 100], Run(Script));
+    }
+
+    /// <summary>The client's first block, which started all of this.</summary>
     [Fact]
     public void EachValueStatementIsAPort()
     {
         const string Script = "5+3;\n\"Test\";";
 
-        NodeDefinitionSource definition = Compile(Script);
-
-        Assert.Equal(["result", "result2"], definition.Outputs.Select(port => port.Name));
+        Assert.Equal(["function", "string"], Ports(Script));
         Assert.Equal([8, "Test"], Run(Script));
     }
 
     /// <summary>
-    /// <b>It was a compile error before this row</b>, which is the whole reason the change is safe
-    /// to make: nothing that worked can have changed meaning.
+    /// <b>It was a compile error before `E6-T28`</b>, which is what makes claiming these lines
+    /// safe: nothing that worked can have changed meaning.
     /// </summary>
     [Fact]
     public void ItUsedToBeACompileError()
@@ -61,28 +103,45 @@ public sealed class ScriptStatementOutputTests
         Assert.DoesNotContain(Factory().Diagnose("5+3;\n\"Test\";"), diagnostic => diagnostic.IsError);
     }
 
-    /// <summary>More than two, and the ports keep the source order.</summary>
+    /// <summary>
+    /// <b>`E6-T29` reversed `E6-T27`: declarations and values join.</b> The block that was one port
+    /// carrying 4 is now three ports, which is Dynamo's answer and the client's later instruction.
+    /// </summary>
+    /// <remarks>
+    /// This test exists to be <i>read</i> as much as run. If it is ever changed back, the reason
+    /// has to be a third instruction from the client, not a tidy-up.
+    /// </remarks>
+    [Fact]
+    public void DeclarationsAndValuesJoinRatherThanCompete()
+    {
+        const string Script = "var n = 10 / 5;\nvar p = 8 / 4;\nn + p;";
+
+        Assert.Equal(["n", "p", "function"], Ports(Script));
+        Assert.Equal([2, 2, 4], Run(Script));
+    }
+
+    /// <summary>The ports keep source order however the two kinds of line interleave.</summary>
     [Fact]
     public void ThePortsAreInSourceOrder()
     {
-        const string Script = "1;\n2;\n3;\n4;";
-
         Assert.Equal(
-            ["result", "result2", "result3", "result4"],
-            Compile(Script).Outputs.Select(port => port.Name));
+            ["integer", "a", "string", "b"],
+            Ports("1;\nvar a = 2;\n\"three\";\nvar b = 4;"));
 
-        Assert.Equal([1, 2, 3, 4], Run(Script));
+        Assert.Equal([1, 2, "three", 4], Run("1;\nvar a = 2;\n\"three\";\nvar b = 4;"));
     }
 
     /// <summary>
-    /// <b>The first port keeps the name it had</b>, so typing a second line into an existing block
-    /// does not disconnect the wire already on it — wires are re-made by port name.
+    /// <b>Repeats are separated by a number, and the first keeps the bare name.</b> Wires are
+    /// re-made by port name, so two ports called <c>integer</c> would be indistinguishable — and
+    /// numbering from <c>integer1</c> would rename the port that already had a wire on it the
+    /// moment a second integer line was typed.
     /// </summary>
     [Fact]
-    public void TheFirstPortIsStillCalledResult()
+    public void RepeatedKindsAreNumberedAndTheFirstKeepsItsName()
     {
-        Assert.Equal(["result"], Compile("5+3;").Outputs.Select(port => port.Name));
-        Assert.Equal("result", Compile("5+3;\n\"Test\";").Outputs[0].Name);
+        Assert.Equal(["integer", "integer2", "integer3"], Ports("1;\n2;\n3;"));
+        Assert.Equal([1, 2, 3], Run("1;\n2;\n3;"));
     }
 
     /// <summary>Each port carries its own value's type, not one type for the block.</summary>
@@ -97,21 +156,8 @@ public sealed class ScriptStatementOutputTests
     }
 
     /// <summary>
-    /// <b>Values replace the declared-variable ports rather than joining them</b> — `E6-T27`'s
-    /// decision, and one this row does not reopen. The block has said what it produces.
-    /// </summary>
-    [Fact]
-    public void ValuesStillReplaceTheDeclaredPorts()
-    {
-        NodeDefinitionSource definition = Compile("var a = 1; var b = 2; a; b; a + b;");
-
-        Assert.Equal(["result", "result2", "result3"], definition.Outputs.Select(port => port.Name));
-        Assert.Equal([1, 2, 3], definition.Invoke([], CancellationToken.None).ToArray());
-    }
-
-    /// <summary>
-    /// A statement that C# accepts is left alone even in the middle, so a block that computes with
-    /// calls between its values still means what it says.
+    /// A statement C# accepts is left alone wherever it sits, so a block that computes with calls
+    /// between its values still means what it says.
     /// </summary>
     [Fact]
     public void CallsBetweenValuesAreStillStatements()
@@ -119,8 +165,8 @@ public sealed class ScriptStatementOutputTests
         const string Script =
             "var list = new List<int>();\nlist.Add(3);\nlist.Count;\nlist.Add(4);\nlist.Count;";
 
-        Assert.Equal(["result", "result2"], Compile(Script).Outputs.Select(port => port.Name));
-        Assert.Equal([1, 2], Run(Script));
+        Assert.Equal(["list", "function", "function2"], Ports(Script));
+        Assert.Equal([new[] { 3, 4 }, 1, 2], [.. Run(Script).Select(v => v is List<int> l ? l.ToArray() : v)]);
     }
 
     /// <summary>
@@ -137,16 +183,15 @@ public sealed class ScriptStatementOutputTests
     }
 
     /// <summary>
-    /// <b>An explicit <c>return</c> still decides the ports</b>, and a value beside one is
-    /// unreachable rather than a second answer — the gate `E6-T26` put on all of this.
+    /// <b>An explicit <c>return</c> still decides the ports</b>, which is Spark's own escape hatch
+    /// and has no Dynamo equivalent — so <i>follow Dynamo exactly</i> says nothing about it, and it
+    /// stays.
     /// </summary>
     [Fact]
     public void AnExplicitReturnStillWins()
     {
-        Assert.Equal(["result"], Compile("var a = 1; var b = 2; return b;").Outputs.Select(p => p.Name));
-        Assert.Equal(
-            ["area", "count"],
-            Compile("var a = 1; return (area: a, count: 2);").Outputs.Select(p => p.Name));
+        Assert.Equal(["result"], Ports("var a = 1; var b = 2; return b;"));
+        Assert.Equal(["area", "count"], Ports("var a = 1; return (area: a, count: 2);"));
     }
 
     /// <summary>
@@ -155,10 +200,6 @@ public sealed class ScriptStatementOutputTests
     /// insertions in front of it — and a marker looked for in the wrong place is lowered as the
     /// <i>other</i> range form, which is a wrong answer and not an error.
     /// </summary>
-    /// <remarks>
-    /// This is the interaction between `E6-T28` and `E10-T15`, and it is a defect the single-value
-    /// version of this code could not have had: with one insertion the shift is a constant.
-    /// </remarks>
     [Fact]
     public void RangesInSeveralValuesAreEachLoweredCorrectly()
     {

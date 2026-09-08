@@ -9,15 +9,23 @@ using Spark.Scripting;
 namespace Spark.UI.Tests;
 
 /// <summary>
-/// A code block whose last line is an expression returns it — `E6-T27`.
+/// A code block's bare expressions are values rather than errors — `E6-T27`, as `E6-T29` left it.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>The rule is narrower than "the last expression is the result", and the narrowness is the
-/// design.</b> Only an expression C# would <i>reject</i> as a statement is claimed, so every script
-/// this changes was a <c>CS0201</c> compile error a moment ago and nothing that already compiles can
-/// change meaning. <see cref="ACallIsStillAStatement"/> is the test that holds that line, and it is
-/// the one to read first.
+/// <b>`E6-T27` made two claims and only one of them survived, so this file is worth reading
+/// carefully.</b> The claim that <i>stands</i> is which lines are claimed at all: only an
+/// expression C# would <i>reject</i> as a statement, so every script these rows change was a
+/// <c>CS0201</c> compile error a moment before and nothing that already compiles can change
+/// meaning. <see cref="ACallIsStillAStatement"/> is the test that holds that line and it is the one
+/// to read first.
+/// </para>
+/// <para>
+/// <b>The claim that was reversed is that a trailing value <i>replaces</i> the declared ports.</b>
+/// The client asked for that in `E6-T27` and then asked for Dynamo's rule instead in `E6-T29`,
+/// where every line that makes something gets a port. Their call both times.
+/// <c>ScriptStatementOutputTests</c> owns the new rule; what is left here is the older, narrower
+/// claim underneath it.
 /// </para>
 /// <para>
 /// Everything here goes through the real <see cref="ScriptNodeFactory"/> and evaluates the block,
@@ -42,9 +50,31 @@ public sealed class ScriptTrailingValueTests
         return outputs.Length > 0 ? outputs[0] : null;
     }
 
-    /// <summary>The client's first script, exactly as they wrote it.</summary>
+    /// <summary>
+    /// The value on the <i>last</i> port, which is where a trailing value now lands.
+    /// </summary>
+    /// <remarks>
+    /// Under `E6-T27` a trailing value was the block's only port and <see cref="Run"/> found it at
+    /// index 0. Under `E6-T29` the declarations above it have ports of their own, so the trailing
+    /// value is last rather than only — the value is the same, and it moved.
+    /// </remarks>
+    private static object? RunLast(string script)
+    {
+        object?[] outputs = [.. Compile(script).Invoke([], CancellationToken.None)];
+
+        return outputs.Length > 0 ? outputs[^1] : null;
+    }
+
+    /// <summary>
+    /// The client's first script, exactly as they wrote it: the last line is a value and carries 4.
+    /// </summary>
+    /// <remarks>
+    /// <b>It is the last port rather than the only one, and that is `E6-T29`.</b> When this test
+    /// was written the answer was one port; <c>n</c> and <c>p</c> now have ports of their own. The
+    /// number the client asked about is unchanged.
+    /// </remarks>
     [Fact]
-    public void TheLastLineIsTheResult()
+    public void TheLastLineIsAValue()
     {
         const string Script = """
             var n = 10 / 5;
@@ -52,7 +82,7 @@ public sealed class ScriptTrailingValueTests
             n + p;
             """;
 
-        Assert.Equal(4, Run(Script));
+        Assert.Equal(4, RunLast(Script));
     }
 
     /// <summary>The client's second script: one interpolated string, and nothing else.</summary>
@@ -72,15 +102,21 @@ public sealed class ScriptTrailingValueTests
     }
 
     /// <summary>
-    /// <b>A trailing value replaces the declared-variable ports, exactly as a <c>return</c>
-    /// does.</b> The block says what it produces, so <c>n</c> and <c>p</c> stop being ports.
+    /// <b>A trailing value joins the declared ports rather than replacing them</b> — the reversal
+    /// `E6-T29` made, kept here beside the rule it replaced so the change is visible in one place.
     /// </summary>
+    /// <remarks>
+    /// This test previously asserted <c>["result"]</c>, and `E6-T27`'s reasoning for that was
+    /// sound: a block that says what it produces has said it. The client asked for Dynamo's rule
+    /// instead, where every line that makes something is a port. If this is ever changed back, the
+    /// reason must be a third instruction rather than a tidy-up.
+    /// </remarks>
     [Fact]
-    public void ATrailingValueGivesOneResultPort()
+    public void ATrailingValueJoinsTheDeclaredPorts()
     {
         NodeDefinitionSource definition = Compile("var n = 1; var p = 2; n + p;");
 
-        Assert.Equal(["result"], definition.Outputs.Select(port => port.Name));
+        Assert.Equal(["n", "p", "function"], definition.Outputs.Select(port => port.Name));
     }
 
     /// <summary>
@@ -154,10 +190,13 @@ public sealed class ScriptTrailingValueTests
         Assert.Equal([0, 1, 2, 3, 4], (IReadOnlyList<double>)Run("0..#5..1;")!);
 
         // A marker before the trailing statement and another inside it: the first must not move and
-        // the second must.
-        Assert.Equal(
-            [3, 4, 5],
-            (IReadOnlyList<double>)Run("var first = 0..1..#5;\n3..5..#3;")!);
+        // the second must. `first` is a port of its own since `E6-T29`, so the trailing value is
+        // the last port rather than the only one - and both ranges are checked, because the
+        // declaration's marker is exactly the one that must NOT have moved.
+        object?[] both = [.. Compile("var first = 0..1..#5;\n3..5..#3;").Invoke([], CancellationToken.None)];
+
+        Assert.Equal([0, 0.25, 0.5, 0.75, 1], (IReadOnlyList<double>)both[0]!);
+        Assert.Equal([3, 4, 5], (IReadOnlyList<double>)both[1]!);
     }
 
     /// <summary>

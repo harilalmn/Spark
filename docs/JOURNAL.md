@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-08 (a deleted block takes its editor with it; the window opens maximised)
+**Last updated:** 2026-09-08 (Dynamo's port naming, exactly)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v0.4.0` shipped on 2026-09-07** — published by `Release (win-x64) #9`, with `spark-0.4.0-setup.exe` (48.6 MB) and `spark-portable-win-x64.zip` (73.8 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>. **Nothing is signed.** `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing - between steps.** **Queued, both from the client and both specified:** `E6-T29`, Dynamo's port naming, settled by a Dynamo screenshot; and `E8-T56`, matching Dynamo's code block font and look. |
+| **Working on** | **Nothing - between steps.** **Queued, from the client:** `E8-T57`, matching Dynamo's code block font and look. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A deleted block takes its editor with it, and the window opens maximised** - `E8-T54` and `E8-T55`. The delete was the node-moving site `E8-T52` did not look for, and the pane was holding a slot across an edit that renumbers slots. **Before it:** `E8-T53`, `E8-T52`, `E6-T28`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2591** tests green over ten executables with zero skips. **One known flaky test**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, about one full run in five, green in isolation - [N120](NOTES.md). |
-| **Next action** | **`E6-T29`: Dynamo's code block port naming, exactly.** The client sent a Dynamo screenshot of six lines and six ports - `5;`->`integer`, `5.0 + 6;`->`function`, `"hello";`->`string`, `n = 100;`->`n`, `t = [0..1..#10];`->`t`, `[0..#6..10];`->`list` - and said *follow the Dynamo code block exactly*. Two consequences, both deliberate: **one port per statement**, which reverses `E6-T27`'s *a trailing value replaces the declared ports* (the client's own earlier decision, now superseded by their own instruction), and **`result`/`result2` disappear** in favour of the variable name when there is one and the expression's *syntax kind* otherwise. Naming by syntax and not by value is forced anyway - ports exist before the graph runs, and wires are re-made by name. Duplicates take a numeric suffix. `return` stays the Spark-only escape hatch that says exactly what the ports are; Dynamo has none, so *exactly* does not speak to it. |
-| **Verify with** | The client's six Dynamo lines, in Spark's syntax, giving six ports with those six names. `ScriptTrailingValueTests` and `ScriptStatementOutputTests` **will both need rewriting** - they assert the rule being reversed, so this is one of the rare steps where a red existing test is the intended outcome rather than a regression, and the journal has to say so before it happens. Then the ten executables, and the app. **Grep the run output for `[FAIL]` and not only `Total:`.** |
+| **Last completed step** | **Dynamo's port naming, exactly** - `E6-T29`, and `E8-T56` which fell out of screenshotting it. One port per line that makes something, named after the variable or the expression's kind; reverses `E6-T27`'s replace rule at the client's later instruction. **Before it:** `E8-T54`/`E8-T55`, `E8-T53`, `E8-T52`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2593** tests green over ten executables with zero skips. **One known flaky test**: `CodeBlockOnCanvasTests.TheRoomIsAskedForInScreenPixelsWhateverTheZoom`, about one full run in five, green in isolation - [N120](NOTES.md). |
+| **Next action** | **`E8-T57`: match Dynamo's code block font and look.** The client asked for it while `E6-T29` was in flight - *follow the same font as in Dynamo Codeblock; if you can match the look and feel exactly the same, that will be great*. Start by comparing their screenshot against ours side by side: Dynamo's editor is a monospaced face on a ground slightly lighter than the node, with a numbered gutter, blue numerals and orange strings. Spark draws the block's source through `CanvasNode`/`GraphCanvas` on the canvas and through `CodeBlockEditor` when open, and **the two have to agree or committing an edit makes the text jump** - `ScriptBox`'s remark says so. Check `EditorHighlightPalette` for the colours and `ScriptCharWidth` for the metric, which is an estimate that a face change invalidates. |
+| **Verify with** | A screenshot of the same six lines beside the client's Dynamo screenshot, and a second one with the editor open over the block to show the drawn text and the editing text land in the same place. Then the ten executables. **Grep the run output for `[FAIL]` and not only `Total:`.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s installer, code signing and antivirus submissions, which need an identity to sign with — which is why `release.yml` drafts and never publishes. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -7550,3 +7550,70 @@ view model — said plainly here rather than implied by a green run. Gates: buil
 warnings, format clean, **2591** tests green over ten executables with zero skips.
 
 **Documents.** `E8-T54` and `E8-T55` rows in TASKS, two lines in TODO.
+
+### 2026-09-08 — Dynamo's port naming, exactly
+
+**What.** `E6-T29`, and `E8-T56` which fell out of screenshotting it. The client sent a Dynamo
+screenshot of six lines and six ports and wrote *let us follow the Dynamo code block exactly*, after
+explicitly discarding an answer they had given me a minute earlier. That is the whole specification
+and it settled two questions at once.
+
+**It reverses `E6-T27`, which the same client asked for six days ago.** A trailing value used to
+*replace* the declared ports: `var n = 10 / 5; var p = 8 / 4; n + p;` was one port carrying 4. Under
+Dynamo's rule it is three. Both were the client's call and this is the later one, so the reversal is
+the deliverable rather than a regression — which is why the write-ahead said, before any code, that
+two existing test files would have to be rewritten and that a red test here was the intended
+outcome. `ATrailingValueGivesOneResultPort` is now `ATrailingValueJoinsTheDeclaredPorts` and carries
+the old claim in its remarks, so the reversal is legible from the test rather than only from here.
+
+**`result`/`result2` are gone.** A port is named after its variable when the line declares one and
+after the expression's *kind* when it does not: `integer`, `double`, `string`, `boolean`, `list`,
+and `function` for everything else.
+
+**Naming from the syntax rather than the value is forced, not chosen.** The client's first sketch
+asked for `5 + 9;` to be called `14`. Ports are built before the graph runs — they are what the
+graph runs *through* — and editing a script re-makes the wires by port *name*, so a name that moved
+with the value would drop every wire every time a number changed. Dynamo names from the syntax for
+the same reason, which is why its own screenshot calls `5.0 + 6;` a **function**: in DesignScript an
+operator is a function. **That is the one place this reads worse than naming the type would** — a
+port called `double` would tell a user more — and *exactly* is what was asked for, so `function` it
+is. It is one line to change if the client would rather have the type.
+
+**Three details that are not obvious.**
+
+- **Repeats take a numeric suffix and the first keeps the bare name.** Two ports called `integer`
+  would be indistinguishable to by-name wire matching; renaming the first would drop the wire
+  already on it. Same reasoning `E6-T28` used when these were called `result`.
+- **The generated tuple's element names are left off entirely.** Nothing reads them — `OutputsOf`
+  names ports from the user's syntax and `ScriptOutputTypes.Infer` walks the tuple by index — and a
+  port called `double` or `string` cannot be spelt as a C# identifier without `@`. Discovering that
+  before writing it was luck; the tuple only needed names in the first place because `E6-T26` gave
+  them names that happened to be legal.
+- **What survives from `E6-T27` is the half that was never about counting.** Only an expression
+  `CS0201` would reject is claimed, so `points.Add(p);` is still a statement discarding its value on
+  purpose and `new List<int>();` is still a statement too. Nothing that compiled ever changed
+  meaning, and `ACallIsStillAStatement` still holds that line.
+
+**`E8-T56` was found by looking, not by testing, and that is the point of taking a screenshot.**
+Every gate was green and the block was wrong: the type labels were being drawn *over the source*.
+On an ordinary node the span between the two port tabs is empty and a type label is the best thing
+that could be in it; on a code block that span **is** the source. It had never collided because a
+single `result` port on an `object` has a short tab and no type to draw — `E6-T29` gave those ports
+real names and real types in the same change.
+
+**My first fix was wrong and the screenshot said so too.** I widened the node to reserve tab *plus*
+type, which is genuinely the under-measurement `SideWidth`'s own remark records one level up — and
+it left a permanent empty margin either side of every block's text, for a label that should not be
+there at all. The right fix is that a code block draws no type labels: since `E6-T29` the port's
+*name* is its kind, so a port called `integer` was being labelled `integer` and one called `string`
+was being labelled `text`. Dynamo shows none either.
+
+**Verified.** `ScriptStatementOutputTests` rewritten around the client's six Dynamo lines, green
+first run; `ScriptTrailingValueTests` updated where it asserted the reversed rule and left alone
+where it did not. **And the block photographed three times** — once wrong, once half-fixed, once
+right — because none of the three states differ in any test. Gates: build clean with zero warnings,
+format clean, **2593** tests green over ten executables with zero skips.
+
+**Documents.** `E6-T29` and `E8-T56` rows, two TODO lines, and `concepts/code-blocks.md`, which had
+a whole section describing the rule that was reversed — it now has *What the ports are called*, with
+the client's six lines as the example.

@@ -658,25 +658,157 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             return [new ScriptPort("result", typeof(object))];
         }
 
-        if (ValueStatements(root) is { Count: > 0 } values)
+        string[] named = [.. Unique(Producers(root).Select(producer => producer.Name))];
+
+        // A block that produces nothing - an empty one, or a script that calls something only for
+        // its effect - still has one port, and `Trailer` gives it `return null;` so that it
+        // compiles. `E6-T18` claimed that from the day the starter became a comment and it was not
+        // true: a method returning `object` with no `return` in it is `CS0161`, so every fresh code
+        // block was quietly failing to compile until `E6-T26`.
+        return named.Length > 0
+            ? [.. named.Select(name => new ScriptPort(name, typeof(object)))]
+            : [new ScriptPort("result", typeof(object))];
+    }
+
+    /// <summary>
+    /// Every top-level statement that produces a value, in source order, with the name its port
+    /// takes and the identifier the generated <c>return</c> reads it back from (`E6-T29`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is Dynamo's Code Block rule, and the client specified it with a Dynamo
+    /// screenshot</b>: six lines, six ports - <c>5;</c> is <c>integer</c>, <c>"hello";</c> is
+    /// <c>string</c>, <c>n = 100;</c> is <c>n</c>, <c>[0..#6..10];</c> is <c>list</c>. One port per
+    /// line that makes something, named after the variable when there is one and after the
+    /// expression's <i>kind</i> when there is not.
+    /// </para>
+    /// <para>
+    /// <b>Declarations and values join rather than compete, which reverses `E6-T27`.</b> That row
+    /// had a trailing value <i>replace</i> the declared ports - <c>var n = 10 / 5; var p = 8 / 4;
+    /// n + p;</c> was one port carrying 4 - and the client, who asked for that, has since asked for
+    /// Dynamo's rule instead, where the same block is three ports. Their call both times, and this
+    /// is the later one.
+    /// </para>
+    /// <para>
+    /// <b>A statement C# accepts stays a statement and gets no port.</b> <c>points.Add(p);</c>
+    /// discards its value on purpose, and <c>new List&lt;int&gt;();</c> is a legal statement too, so
+    /// neither is claimed - the closed list in <see cref="IsStatementExpression"/> is still what
+    /// draws the line, and it is why nothing that compiled before any of these rows changed
+    /// meaning. Put such a value in a variable and the variable names the port.
+    /// </para>
+    /// </remarks>
+    private static IEnumerable<Producer> Producers(CompilationUnitSyntax root)
+    {
+        int captured = 0;
+
+        foreach (MemberDeclarationSyntax member in root.Members)
         {
-            // A value statement says what the block produces just as plainly as a `return` does, so
-            // they replace the declared-variable ports rather than joining them (`E6-T27`) - and
-            // there is one port per statement rather than one for the last (`E6-T28`).
-            return [.. Enumerable.Range(0, values.Count).Select(i => new ScriptPort(ResultName(i), typeof(object)))];
+            if (member is not GlobalStatementSyntax global)
+            {
+                continue;
+            }
+
+            if (global.Statement is LocalDeclarationStatementSyntax { IsConst: false } declaration)
+            {
+                foreach (VariableDeclaratorSyntax variable in declaration.Declaration.Variables)
+                {
+                    if (variable.Initializer is not null
+                        && variable.Identifier.ValueText is { Length: > 0 } name)
+                    {
+                        yield return new Producer(name, name);
+                    }
+                }
+
+                continue;
+            }
+
+            if (global.Statement is ExpressionStatementSyntax statement
+                && !IsStatementExpression(statement.Expression))
+            {
+                yield return new Producer(KindOf(statement.Expression), Captured(captured));
+                captured++;
+            }
         }
+    }
 
-        ScriptPort[] declared =
-        [
-            .. DeclaredNames(root).Select(name => new ScriptPort(name, typeof(object))),
-        ];
+    /// <summary>One output: what its port is called, and what the generated return reads.</summary>
+    /// <param name="Name">The port's name, before duplicates are separated.</param>
+    /// <param name="Reference">
+    /// The identifier the trailer names - the variable itself for a declaration, and the temporary
+    /// <see cref="WithGeneratedReturns"/> captured it into for a bare value.
+    /// </param>
+    private readonly record struct Producer(string Name, string Reference);
 
-        // A block that declares nothing - the comment a fresh block starts as, or a script that
-        // calls something only for its effect - still has one port, and `Trailer` gives it
-        // `return null;` so that it compiles. `E6-T18` has claimed that since the starter became a
-        // comment and it was not true: a method returning `object` with no `return` in it is
-        // `CS0161`, so every fresh code block was quietly failing to compile until `E6-T26`.
-        return declared.Length > 0 ? declared : [new ScriptPort("result", typeof(object))];
+    /// <summary>
+    /// What Dynamo calls a port whose line declared no variable: the expression's <i>kind</i>
+    /// (`E6-T29`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Read from the syntax, and it has to be.</b> The client's first sketch asked for the
+    /// <i>value</i> - <c>5 + 9;</c> called <c>14</c> - and a port name cannot be that: ports are
+    /// built before the graph runs, and editing a script re-makes the wires <i>by port name</i>, so
+    /// a name that moved with the value would drop every wire on every edit. Dynamo names these
+    /// from the syntax too, which is why its own screenshot calls <c>5.0 + 6;</c> a
+    /// <c>function</c> rather than a double.
+    /// </para>
+    /// <para>
+    /// <b><c>function</c> for everything unrecognised is Dynamo's answer, not a shrug.</b> In
+    /// DesignScript an operator <i>is</i> a function, so a binary expression is a function call and
+    /// the port says so. It is the one place this scheme reads worse than naming the type would,
+    /// and it is what <i>follow the Dynamo code block exactly</i> asks for.
+    /// </para>
+    /// </remarks>
+    private static string KindOf(ExpressionSyntax expression) => expression switch
+    {
+        InterpolatedStringExpressionSyntax => "string",
+
+        // A range is `E10-T15`'s three-part form with its `#` blanked, which parses as `(a..b)..c`.
+        // Dynamo calls the same line a list, and so does this.
+        RangeExpressionSyntax => "list",
+        CollectionExpressionSyntax => "list",
+        ArrayCreationExpressionSyntax or ImplicitArrayCreationExpressionSyntax => "list",
+
+        ParenthesizedExpressionSyntax parenthesised => KindOf(parenthesised.Expression),
+
+        LiteralExpressionSyntax literal => literal.Kind() switch
+        {
+            SyntaxKind.NumericLiteralExpression =>
+                literal.Token.Value is int or long or uint or ulong ? "integer" : "double",
+            SyntaxKind.StringLiteralExpression
+                or SyntaxKind.Utf8StringLiteralExpression
+                or SyntaxKind.CharacterLiteralExpression => "string",
+            SyntaxKind.TrueLiteralExpression or SyntaxKind.FalseLiteralExpression => "boolean",
+            _ => "function",
+        },
+
+        _ => "function",
+    };
+
+    /// <summary>The same names, with repeats separated by a number (`E6-T29`).</summary>
+    /// <remarks>
+    /// <b>Two lines of the same kind are two ports called <c>integer</c>, and Spark cannot have
+    /// that</b> - wires are re-made by port name, so a duplicate would make two ports
+    /// indistinguishable and a wire land on whichever came first. <b>The first keeps the bare
+    /// name</b>, for the reason `E6-T28` gave when these ports were called <c>result</c>: adding a
+    /// second line of a kind must not rename the port that already had a wire on it.
+    /// </remarks>
+    private static IEnumerable<string> Unique(IEnumerable<string> names)
+    {
+        Dictionary<string, int> seen = [];
+
+        foreach (string name in names)
+        {
+            if (!seen.TryGetValue(name, out int count))
+            {
+                seen[name] = 1;
+                yield return name;
+                continue;
+            }
+
+            seen[name] = ++count;
+            yield return name + count.ToString(CultureInfo.InvariantCulture);
+        }
     }
 
     /// <summary>
@@ -706,34 +838,49 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             return null;
         }
 
-        List<ExpressionStatementSyntax> values = ValueStatements(root);
-
-        if (IsTrailingValue(root, values))
+        if (IsBareReturn(root))
         {
-            // `E6-T27`: `Wrap` has turned that last line into the return itself, so appending one
+            // `E6-T27`: `Wrap` has turned that one line into the return itself, so appending one
             // here would make a second, unreachable.
             return null;
         }
 
-        if (values.Count > 0)
-        {
-            // `E6-T28`: `Wrap` has captured each value into its own temporary, in source order, and
-            // this is what puts them on the ports.
-            return "return ("
-                + string.Join(
-                    ", ",
-                    Enumerable.Range(0, values.Count).Select(i => ResultName(i) + ": " + Captured(i)))
-                + ");";
-        }
+        string[] read = [.. Producers(root).Select(producer => producer.Reference)];
 
-        string[] names = [.. DeclaredNames(root)];
-
-        return names.Length switch
+        // THE TUPLE'S ELEMENT NAMES ARE LEFT OFF, AND THAT IS NOT AN OMISSION.
+        //
+        // Nothing reads them: `OutputsOf` names the ports from the *user's* syntax, and
+        // `ScriptOutputTypes.Infer` walks this tuple's arguments by index. Naming them would mean
+        // spelling a port called `double` or `string` as a C# identifier - both are keywords, so
+        // `return (double: __result1);` does not compile and would need `@double`. An unnamed
+        // tuple has no such problem and `Unpack` reads `Item1..ItemN` either way (`E6-T29`).
+        return read.Length switch
         {
             0 => "return null;",
-            1 => "return " + names[0] + ";",
-            _ => "return (" + string.Join(", ", names.Select(name => name + ": " + name)) + ");",
+
+            // C# has no one-element tuple syntax, and `(p1)` is a parenthesised expression whose
+            // element name goes nowhere - so a single output is returned bare.
+            1 => "return " + read[0] + ";",
+            _ => "return (" + string.Join(", ", read) + ");",
         };
+    }
+
+    /// <summary>
+    /// Whether the block's one and only output is a bare value on its last line - `E6-T27`'s case,
+    /// kept on `E6-T27`'s code path.
+    /// </summary>
+    /// <remarks>
+    /// <b>It is kept because <c>var</c> needs a natural type and some expressions have none.</b>
+    /// Everything else is captured into <c>var __resultN = …;</c> so that several outputs can be
+    /// returned together, and <c>null;</c>, <c>default;</c>, a bare lambda and a method group are
+    /// <c>CS0815</c> under that treatment where <c>return null;</c> compiles. Returning the single
+    /// value directly costs nothing and means no script that worked before `E6-T28` stopped.
+    /// </remarks>
+    private static bool IsBareReturn(CompilationUnitSyntax root)
+    {
+        List<ExpressionStatementSyntax> values = ValueStatements(root);
+
+        return Producers(root).Take(2).Count() == 1 && IsTrailingValue(root, values);
     }
 
     /// <summary>
@@ -844,16 +991,6 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         values.Count == 1
         && root.Members.LastOrDefault() is GlobalStatementSyntax { Statement: ExpressionStatementSyntax last }
         && last == values[0];
-
-    /// <summary>What the <i>n</i>th value port is called: <c>result</c>, <c>result2</c>, … .</summary>
-    /// <remarks>
-    /// <b>The first port keeps the name it has always had, and that is the point of the
-    /// asymmetry.</b> Editing a script re-makes the wires <i>by port name</i>, so numbering from
-    /// <c>result1</c> would disconnect the wire on every existing one-value block the moment its
-    /// author typed a second line — which is precisely the edit this row exists to make useful.
-    /// </remarks>
-    private static string ResultName(int index) =>
-        index == 0 ? "result" : "result" + (index + 1).ToString(CultureInfo.InvariantCulture);
 
     /// <summary>The temporary the <i>n</i>th value is captured into (`E6-T28`).</summary>
     /// <remarks>
@@ -1088,7 +1225,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             return (blanked.Text, blanked.Markers);
         }
 
-        (int At, string Text)[] insertions = IsTrailingValue(root, values)
+        (int At, string Text)[] insertions = IsBareReturn(root)
             ? [(values[0].SpanStart, "return ")]
             : [.. values.Select((statement, i) => (statement.SpanStart, "var " + Captured(i) + " = "))];
 

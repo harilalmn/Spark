@@ -2423,6 +2423,22 @@ public sealed class GraphCanvas : Control
                 continue;
             }
 
+            // A CODE BLOCK DRAWS NO TYPE LABELS, AND THE SPACE IS THE REASON (`E6-T29`).
+            //
+            // On an ordinary node the span between the two tabs is empty and a type label is the
+            // best thing that could be in it. On a block that span *is the source*, so a label
+            // there is drawn over the user's code - which is what the client saw the moment
+            // `E6-T29` gave these ports real types to report.
+            //
+            // It costs nothing, which is the other half of the argument: since `E6-T29` the port's
+            // NAME is its kind, so a port called `integer` was being labelled `integer` and one
+            // called `string` was being labelled `text`. The rank pip on the port still says what
+            // the type could not, and the properties pane still says the rest.
+            if (node.Script is not null)
+            {
+                continue;
+            }
+
             // The two type labels compete for the space between the two names, and the node was
             // sized from an estimate rather than from measured text (N24). So each one is drawn
             // only if it fits with a gap to spare — which makes an overlap impossible whatever the

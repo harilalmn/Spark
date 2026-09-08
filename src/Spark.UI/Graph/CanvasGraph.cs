@@ -245,11 +245,19 @@ public sealed class CanvasNode
     /// How wide the node has to be for its source to sit between the port tabs (`E8-T39`).
     /// </summary>
     /// <remarks>
-    /// <b>The tab allowance is the <i>uncapped</i> tab width</b>, and that is what stops this
-    /// being circular: <see cref="PortTab"/> clamps a tab to two fifths of the node, which is a
-    /// width this method is in the middle of deciding. The uncapped estimate is an upper bound on
-    /// the clamped one, so the source can never be drawn under a tab — only further from it than
-    /// it strictly had to be, on a node whose ports have very long names.
+    /// <para>
+    /// <b>The side allowance is the <i>uncapped</i> width</b>, and that is what stops this being
+    /// circular: <see cref="PortTab"/> clamps a tab to two fifths of the node, which is a width
+    /// this method is in the middle of deciding. The uncapped estimate is an upper bound on the
+    /// clamped one, so the source can never be drawn under a tab — only further from it than it
+    /// strictly had to be, on a node whose ports have very long names.
+    /// </para>
+    /// <para>
+    /// <b>The tab and nothing beside it, because a code block draws no type labels</b>
+    /// (<c>DrawPortLabels</c>, `E6-T29`). On an ordinary node the space between the tabs is empty
+    /// and the types go there; on a block it is the source, so widening for a label that is never
+    /// drawn would put a permanent empty margin either side of every block's text.
+    /// </para>
     /// </remarks>
     private double ScriptWidth() =>
         Script is null
@@ -711,6 +719,9 @@ public sealed class CanvasNode
     /// </remarks>
     public void ScriptBox(out double x, out double y, out double width, out double height)
     {
+        // The SAME allowance ScriptWidth reserved. If these two ever disagree the node is the
+        // wrong width for what is drawn in it, which is why they name one method rather than each
+        // computing the port side for themselves.
         double left = X + TabAllowance(Inputs) + ScriptGap;
         double right = X + Width - TabAllowance(Outputs) - ScriptGap;
 

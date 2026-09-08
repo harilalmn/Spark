@@ -8,12 +8,11 @@ since: "0.1"
 
 **Status:** Current. Describes the code block in the running application.
 **Owner:** `scripting`
-**Last updated:** 2026-09-07
+**Last updated:** 2026-09-08
 
 > **Scope.** A code block is a node whose body is C# you type. Its input ports come from the
-> identifiers your code uses but does not declare; its output ports are the variables it
-> declares, the values it writes on lines of their own, or whatever it returns when it returns
-> something.
+> identifiers your code uses but does not declare; it gets one output port per line that makes
+> something — Dynamo's Code Block rule — or exactly what it says when it writes a `return`.
 > This topic covers writing one, and it covers **what stops one that never finishes** — because
 > a code block is the only node in a Spark graph whose author can hang the application by
 > accident.
@@ -97,11 +96,10 @@ var circumference = 2 * Math.PI * radius;
 return (area: area, circumference: circumference);
 ```
 
-Two ports again — but now they are the two you named, so a block with eleven working variables can
-put three of them on the canvas. Any other return shape gives one port called `result`.
+Two ports again — but now they are the two you named. Any other return shape gives one port called
+`result`.
 
-**A line that is just an expression is one of the block's results.** It behaves exactly like
-writing `return` in front of it, and one such line gives one port called `result`:
+**A line that is just an expression is a result too**, and gets a port of its own:
 
 ```csharp
 var n = 10 / 5;
@@ -110,27 +108,39 @@ var p = 8 / 4;
 n + p;
 ```
 
-One port, `result`, carrying `4` — the `n` and `p` ports are gone, because the block has said what
-it produces. A block that is nothing *but* an expression works the same way:
+Three ports — `n`, `p`, and one carrying `4`. Every line that makes something gets a port, in the
+order the lines appear. This is Dynamo's Code Block rule, and Spark follows it.
+
+## What the ports are called
+
+**A line that declares a variable gives a port named after it.** A line that does not gives a port
+named after the *kind* of thing the expression is:
 
 ```csharp
-$"{name} has {count} items";
+5;
+5.0 + 6;
+"hello";
+var n = 100;
+var t = 0..1..#10;
+0..#6..10;
 ```
 
-**Write several and you get several ports**, in the order the lines appear:
+Six lines, six ports: `integer`, `function`, `string`, `n`, `t`, `list`.
 
-```csharp
-5 + 3;
-"Test";
-```
+`function` is what an operator gives you, because an operator is a function — that is Dynamo's
+name for it and Spark uses the same one. **If you would rather the port said something, name the
+line:** `var sum = 5.0 + 6;` gives a port called `sum`.
 
-Two ports, `result` and `result2`, carrying `8` and `"Test"`. Each carries its own type, so the
-first is a number and the second is text — and **the first port is always called `result`**, so
-adding a second line to a block that already had one does not disturb the wire on it.
+**Two lines of the same kind are numbered** — `integer`, `integer2`, `integer3` — and the first
+keeps the bare name, so adding a second integer line does not disturb the wire on the first.
 
-**The rule is narrower than it looks, and deliberately so.** Only an expression C# would refuse to
-accept as a statement counts — `n + p;`, `$"..."`, `total;`. A **call** is still a
-statement, because discarding its value is usually the point:
+**The port name is read from what you typed, never from what it computed.** A port called `14`
+would be impossible: ports exist before the graph runs, and editing a script re-makes the wires by
+port *name*, so a name that changed with the value would drop every wire every time a number moved.
+
+**The rule for which lines count is narrower than it looks, and deliberately so.** Only an
+expression C# would refuse to accept as a statement gets a port — `n + p;`, `$"..."`, `total;`. A
+**call** is still a statement, because discarding its value is usually the point:
 
 ```csharp
 var points = new List<Point3d>();
@@ -138,14 +148,14 @@ var points = new List<Point3d>();
 points.Add(new Point3d(0, 0, 0));
 ```
 
-One port, `points`. If you want a call's value instead, say `return` — or write the call's result
-on a line of its own, as `points.Count;`. Nothing that compiled before this rule existed changed
-meaning, because every line it claims was an error until it did.
+One port, `points`. `new List<int>();` on a line of its own is a statement for the same reason. If
+you want such a value on a port, put it in a variable — `var made = points.Count;` — or write
+`return`. Nothing that compiled before this rule existed changed meaning, because every line it
+claims was an error until it did.
 
-**The rules do not compete.** Returning, or writing values, is how a block says exactly what its
-ports are; the per-variable reading is what it gets when it says nothing. A scratch variable added
-to a block that returns nothing does add a port — visible, named, and connected to nothing; the same
-variable added to a block that returns a tuple changes nothing at all.
+**A `return` overrules all of it.** That is Spark's own escape hatch and Dynamo has no equivalent:
+write one and the ports are exactly what it says, so a block with eleven working variables can put
+three of them on the canvas.
 
 Names matter more than positions here. **Editing a script re-makes the wires by port name**, so
 adding an identifier in the middle of your code does not silently rewire the graph — a port
@@ -201,7 +211,8 @@ a `System.Range` has no `..` operator — `a..b..c` cannot mean anything else in
 
 A `#` inside a string or a comment is left alone, so `var label = "#3";` is a string and nothing
 else. Each block above declares one variable and so has one output port, `numbers` — the rule
-described under [Several outputs](#several-outputs).
+described under [Several outputs](#several-outputs). Written without the variable, as
+`0..1..#8;`, the port is called `list`.
 
 **One import is deliberately missing.** `Spark.Nodes.Core` is *not* in scope, because it declares a
 `Math` of its own that would shadow `System.Math` in every block you write. Calling a node's member
@@ -373,6 +384,9 @@ and wire `points` into a watch node to see them.
 Delete that last line and the same block has **three** outputs instead — `circle`, `points` and
 `step`, one for each line that made something. Which of the two you want is the whole of the
 choice: the `return` is there to say *these* and not the rest.
+
+The `for` loop adds no port, and neither does `points.Add(...)` inside it: a loop is not an
+expression and a call is a statement. Only the three declarations make something.
 
 ## Trust
 
