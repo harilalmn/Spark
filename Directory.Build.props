@@ -4,10 +4,18 @@
     Canonical build settings for every project in this repository.
 
     Version is NOT set here. It comes from MinVer, derived from the nearest git tag
-    (see ADR-0007 and AGENTS.md). Spark uses SemVer rather than calendar versioning
-    because Spark.Api and Spark.Geometry are contract assemblies that embedders and node
-    authors build against from an install: the version number has to answer "does
-    upgrading break me?", which a date cannot.
+    (see ADR-0007 and AGENTS.md).
+
+    The NUMBERS have been calendar-flavoured since v2026.8.1, at the client's instruction;
+    the RULES for incrementing them are still SemVer, read against Spark's public surface,
+    and AGENTS.md ("Cutting a release") is where they live. That distinction is the whole of
+    what a reader needs: Spark.Api and Spark.Geometry are contract assemblies that embedders
+    and node authors build against from an install, so the increment has to answer "does
+    upgrading break me?" even when the digits happen to look like a date.
+
+    This comment said Spark used SemVer "rather than" calendar versioning until 2026-09-09,
+    which stopped being true on 2026-09-08 and is corrected here rather than left to mislead
+    the next person choosing a tag.
   -->
 
   <PropertyGroup>
