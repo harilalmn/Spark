@@ -92,8 +92,63 @@ public sealed class PackageTrustStore
     /// <returns>The entries, as <c>id/version</c>.</returns>
     public IReadOnlyList<string> Entries() => [.. _trusted.OrderBy(entry => entry, StringComparer.Ordinal)];
 
+    /// <summary>
+    /// Whether the user has agreed to an assembly with exactly these bytes (`E7-T16`).
+    /// </summary>
+    /// <param name="hash">The assembly's SHA-256, as <see cref="GraphAssembly.Hash"/> gives it.</param>
+    /// <returns>True when this exact content has been trusted.</returns>
+    /// <remarks>
+    /// <b>Keyed on the bytes, at the client's instruction, and it is the only key that means
+    /// anything here.</b> A package from a feed has an identity and a version to record against; a
+    /// <c>.dll</c> somebody dropped into a folder has neither, and its path says nothing about what
+    /// is in it. Hashing means a rebuilt assembly asks again — which is right, because it is
+    /// different code — and an unchanged one never does.
+    /// </remarks>
+    public bool IsTrusted(string hash) =>
+        !string.IsNullOrEmpty(hash) && _trusted.Contains(Key(hash));
+
+    /// <summary>Records that the user agreed to load an assembly with these bytes.</summary>
+    /// <param name="hash">The assembly's SHA-256.</param>
+    /// <exception cref="ArgumentException"><paramref name="hash"/> is null or blank.</exception>
+    /// <exception cref="SparkPackageException">The decision could not be saved.</exception>
+    public void Trust(string hash)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(hash);
+
+        if (_trusted.Add(Key(hash)))
+        {
+            Save();
+        }
+    }
+
+    /// <summary>Forgets a decision about an assembly, so the user is asked again.</summary>
+    /// <param name="hash">The assembly's SHA-256.</param>
+    /// <returns>True when something was forgotten.</returns>
+    /// <exception cref="SparkPackageException">The change could not be saved.</exception>
+    public bool Revoke(string hash)
+    {
+        if (string.IsNullOrEmpty(hash) || !_trusted.Remove(Key(hash)))
+        {
+            return false;
+        }
+
+        Save();
+        return true;
+    }
+
     private static string Key(PackageIdentity identity) =>
         identity.Id.ToLowerInvariant() + "/" + identity.Version.ToLowerInvariant();
+
+    /// <summary>
+    /// The key an assembly's content is filed under.
+    /// </summary>
+    /// <remarks>
+    /// <b>Prefixed, so that the two kinds of entry share one file without colliding.</b> A package
+    /// key is <c>id/version</c> and can never begin <c>sha256:</c>, so both live in the same list,
+    /// are saved by the same code, and are listed together by <see cref="Entries"/> — which is what
+    /// a user revoking a decision wants to read.
+    /// </remarks>
+    private static string Key(string hash) => "sha256:" + hash.ToLowerInvariant();
 
     private void Load()
     {
