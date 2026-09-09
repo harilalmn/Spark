@@ -4,20 +4,23 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (E7-T21: add a NuGet package as a library)
+**Last updated:** 2026-09-09 (the register audit: epic statuses re-derived from the task register)
 
-No product code has yet been reviewed as landed, though the first M1 kernel value types
-began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
-below. Three epics are partly done — foundations, documentation and now
-verification — and everything else is `Not started`. Epics are derived from the milestone
-plan; the milestone each mostly serves is named, but epics and milestones are not the same
-axis and several epics span both.
+**Every epic has landed code, and the statuses below were re-derived from
+[TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
+`v2026.9.0` is published; what remains is M8 and the long tail each epic names for itself.
+Three epics still read `Not started` before that audit — `E6`, `E7` and `E12` — and all three
+were wrong: the C# code block evaluates on the canvas, packages install from nuget.org into a
+graph-local folder, and there is a signed-off release with an installer. Epics are derived from
+the milestone plan; the milestone each mostly serves is named, but epics and milestones are not
+the same axis and several epics span both.
 
 **A criterion is ticked when something demonstrates it, never when code exists that would
-satisfy it.** The CI workflow is the live example: it is written, committed and has never
-run on GitHub, so every criterion that depends on CI is untouched. The architecture and
-documentation tests are the other side of the same rule — they pass locally, so what they
-prove is ticked.
+satisfy it.** CI is the live example, and it is now a permanent one: **GitHub Actions is
+switched off for this repository** (`E13-T19`), so every criterion that depended on a CI run is
+untickable rather than merely untouched, and the three task rows that were held open by one are
+`Blocked`. The architecture and documentation tests are the other side of the same rule — they
+pass locally on every commit, so what they prove is ticked.
 
 | Epic | Title | Milestones | Status |
 |---|---|---|---|
@@ -26,13 +29,13 @@ prove is ticked.
 | [E3](#e3--graph-engine) | Graph engine | M2 | Partly done |
 | [E4](#e4--replication-and-lacing) | Replication and lacing | M2 | Partly done |
 | [E5](#e5--node-authoring-and-library) | Node authoring and library | M2, M3 | Partly done |
-| [E6](#e6--c-code-block) | C# code block | M4 | Not started |
-| [E7](#e7--packages-and-extensibility) | Packages and extensibility | M7 | Not started |
+| [E6](#e6--c-code-block) | C# code block | M4 | Partly done |
+| [E7](#e7--packages-and-extensibility) | Packages and extensibility | M7 | Partly done |
 | [E8](#e8--ui-shell-and-node-canvas) | UI shell and node canvas | M2 | Partly done |
 | [E9](#e9--3d-viewport) | 3D viewport | M2, M5 | Partly done |
 | [E10](#e10--documentation) | Documentation | M0 onwards; **the user-facing Help pass is post-1.0** ([D19](PRD.md#13-decision-log)) | Partly done |
 | [E11](#e11--quality-and-verification) | Quality and verification | M0 onwards | Partly done |
-| [E12](#e12--embedding-and-release) | Embedding and release | M8 | Not started |
+| [E12](#e12--embedding-and-release) | Embedding and release | M8 | Partly done |
 | [E13](#e13--occt-provider) | OCCT provider | M1.6, M6, M8 | In progress |
 
 **E13 is new and it is the largest single change to this plan since it was written.** The

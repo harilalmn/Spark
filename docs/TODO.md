@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (`E7-T21`: add a NuGet package as a library)
+**Last updated:** 2026-09-09 (the register audit: every `In progress` row settled against the source tree)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -12,18 +12,22 @@ a second box and rounds every edge of a third. **F1 opens help for the selected 
 node outlines its geometry in the viewport. A graph naming a package you do not have still opens,
 keeps everything, and re-saves byte for byte. A user can define a node by drawing a graph.
 
-`dotnet build --no-incremental -warnaserror`, the per-project test executables (**1,893 tests over
-nine projects**) and `dotnet format` are all clean on Windows as of 2026-08-31, with the native
-shim built and **nothing skipped**. **CI has not run since the provider landed**, and its Linux leg
-is now a question rather than a habit — see `Q15(c)`.
+`dotnet build --no-incremental -warnaserror`, the per-project test executables (**2,966 tests over
+ten projects**) and `dotnet format` are all clean on Windows as of 2026-09-09, with the native
+shim built and **nothing skipped** — the skip count is the part that matters, because
+`Spark.Geometry.Occt.Tests` skips itself when the shim is absent. **CI does not run at all any
+more**: Actions is switched off for this repository (`E13-T19`) since it went private and minutes
+stopped being free (`E12-T22`, `E13-T20`), so a green local run is the whole of the evidence and
+`Q15(c)`'s Linux question is moot while it stays off.
 
-**The benchmarks stopped being a report and became a guard on 2026-08-29.** A nightly workflow
-runs the three suites on both operating systems and the application's own canvas benchmark on
-Windows, and checks every number against budgets committed in `bench/budgets.jsonc` — allocation
-tightly, ratios sharply, wall-clock loosely and for stated reasons
-([ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md), [N29](NOTES.md)). It is
-green locally end to end and **has never run on a hosted runner**, which is the difference between
-proven to detect and proven to run.
+**The benchmarks stopped being a report and became a guard on 2026-08-29, and became a *manual*
+guard on 2026-09-09.** The budgets in `bench/budgets.jsonc` still fail a run that breaks them —
+allocation tightly, ratios sharply, wall-clock loosely and for stated reasons
+([ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md), [N29](NOTES.md)) — but
+only when somebody starts the run, and [AGENTS.md](../AGENTS.md#before-you-commit) gives the two
+commands. The nightly workflow that used to start it **has never run on a hosted runner and now
+cannot**, which is why `E1-T21`, `E8-T15` and `E11-T14` are `Blocked` rather than `In progress`
+after the 2026-09-09 audit: no work in this tree advances a workflow that is switched off.
 
 Three distinctions still do the work in what follows:
 
@@ -31,15 +35,18 @@ Three distinctions still do the work in what follows:
   including `NurbsSurface`, meshes and adaptive tessellation, BRep topology, the graph engine and
   replicator, the reflection importer with its two-way diff, Roslyn code blocks on the canvas, the
   Avalonia shell, the immediate-mode canvas, the GL viewport, 108 nodes in `Spark.Nodes.Core`,
-  OBJ/STL/PLY/glTF on the way out, a `.spark` file a graph survives a round trip through byte for
-  byte, and a 64-step undo stack over that same file format. **And the OpenCascade provider**:
-  `native/spark_occt` and `Spark.Geometry.Occt`, with union, difference, intersection, extrude,
-  revolve, loft, fillet, chamfer, shell, sew, heal and tessellate behind `IBrepKernel`.
-  **1,707 tests over eight projects** as of 2026-08-31.
-- **What is not.** No STEP or IGES, though the provider can do both. No split, trim, thicken,
-  draft or offset. No packages. No mesh booleans. Trimmed faces come *back* from the provider but
-  cannot be authored. The software renderer and the CI visual-regression check are deliberately
-  deferred past M6.
+  OBJ/STL/PLY/glTF on the way out, **STEP and IGES both ways**, a `.spark` file a graph survives a
+  round trip through byte for byte, and a 64-step undo stack over that same file format.
+  **And the OpenCascade provider**: `native/spark_occt` and `Spark.Geometry.Occt`, with union,
+  difference, intersection, extrude, revolve, loft, fillet, chamfer, shell, sew, heal and
+  tessellate behind `IBrepKernel`. **141 node methods over 21 families** in `Spark.Nodes.Core`.
+  **2,966 tests over ten projects** as of 2026-09-09.
+- **What is not.** No split, trim, thicken, draft or offset on the kernel contract. No mesh
+  booleans. Trimmed faces come *back* from the provider but cannot be authored. **Five of the
+  seven `spark` verbs** — `check`, `render`, `pkg`, `docs`, `graph` — are unwritten; the CLI
+  dispatches `run`, `export` and `--version`. **No surface or solid property tests**: CsCheck
+  covers the value layer and the curve layer and stops there. The software renderer and the CI
+  visual-regression check are deliberately deferred past M6.
 - **M2 finished on 2026-08-30.** Real docking (`E8-T2`), group, note and align (`E8-T6`), watch
   nodes and preview bubbles (`E8-T10`) and `spark run` (`E12-T5`) all landed that day, which was
   the whole of what the milestone still owed. The shell is a `DockControl` whose presets rearrange
@@ -192,6 +199,35 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 
 ## Now — what is next, in order
 
+> **The register was audited on 2026-09-09 and this list is its output.** Every `In progress` row
+> in [TASKS.md](TASKS.md) was settled against the source tree: two closed (`E1-T12`, `E10-T8`,
+> and `E13-T15`/`E13-T16` with them), three moved to `Blocked` because the only thing left of
+> them is a CI job that can no longer run (`E1-T21`, `E8-T15`, `E11-T14`), and the rest now name
+> what is missing in a sentence somebody could act on. **Four of those sentences are small enough
+> to take immediately and are listed first**, because a register audit whose findings are not
+> scheduled is a register audit that gets redone.
+
+- [ ] **`spark check` — the sixth verb, and the one that needs nothing that does not exist.**
+      `E12-T5`. It is `spark run` without the printing: open a graph, restore it against the node
+      library, evaluate with no window, report the diagnostics, and **exit non-zero if any node is
+      in error**. That is a build gate somebody can put in a script the day it lands, which is more
+      than can be said for `render`, `pkg`, `docs` or `graph` — each of those waits on a milestone
+      that gives it something to do.
+- [ ] **Compile the XML `<example>` blocks.** `E11-T2`. Every ` ```csharp ` fence in `docs/help/`
+      already compiles through the same `ReferenceCatalog` a real code block gets, and
+      `AllowedSkips` is **0**. The `<example>` half was written when no contract project used one;
+      there are now **four** in `src/`, and nothing compiles them. Same harness, one more source of
+      samples.
+- [ ] **Surface and solid properties.** `E2-T33`, `E11-T10`. `tests/Spark.Geometry.Properties`
+      holds `ValueLayerProperties.cs` and `CurveProperties.cs` and nothing else, so the criteria
+      naming **union volume**, **watertight tessellation** and **surface `ClosestPoint`** have no
+      property behind them — and the types they need all exist now. **Mind the generator**: the
+      lesson this file keeps repeating is that a property whose generator never straddles the
+      boundary it tests cannot fail and looks exactly like a passing test.
+- [ ] **The four named value-layer parity gaps.** `E2-T40`. Cylindrical and spherical construction
+      on `Point3d` and `Vector3d`, `Plane.ByBestFitThroughPoints`, `Plane.ByLineAndPoint` — checked
+      against the source on 2026-09-09 and absent from it. Four members, and then the row closes.
+
 - [ ] **`E7-T16` … `E7-T20` — the graph-local package folder.** Asked for by the client, who drew
       the layout: `<name>.packages` beside `<name>.spark`, one folder per NuGet package, loose
       `.dll` files for anything hand-added, loaded when the file opens. It answers the question
@@ -285,8 +321,11 @@ release rather than a feature.
 - [x] ~~**`E12-T18`'s About box.**~~ **Done 2026-08-31, and it was never a person's job.** It sat under *waiting on a person* because the dialog did not exist — which is code, not an errand. `ProductNotice` in `Spark.Api` now holds one text that both `spark --version` and the About dialog print, because two copies of a licence notice is one copy that stops matching the build. Seven tests assert the obligation itself: with a kernel loaded the notice **must** name Open CASCADE, LGPL-2.1, dynamic linking and replaceability; without one it must **not** claim to link something absent.
 - [ ] **Opening an exported OBJ or STEP in a third-party viewer**, which is also M1's stated
       acceptance and has never been done.
-- [ ] **Watching the first nightly benchmark run.** It is green locally end to end and has never
-      run on a hosted runner.
+- [x] ~~**Watching the first nightly benchmark run.**~~ **Off this list on 2026-09-09, and not
+      because it happened.** Actions is switched off (`E13-T19`), so there is no nightly to watch
+      and no person who can make there be one short of a billing decision. The benchmark is green
+      locally end to end and its budgets are a manual gate; `E1-T21` and `E8-T15` hold the record
+      as `Blocked`. Putting it under *waiting on a person* implied somebody could go and look.
 
 **And one that was on this list and should not have been.** `E12-T4`, proving `Spark.Host` inside a
 real Revit or AutoCAD add-in, does need a licence and a person — but it proves a **second**

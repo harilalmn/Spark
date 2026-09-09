@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-09 (the package-authoring guide)
+**Last updated:** 2026-09-09 (the register audit)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Preparing the first public release.** `E11-T27` is committed and the suite is deterministic, which was the precondition for everything else — with CI off, a green local run is now the only evidence there is and it now means what it says. |
+| **Working on** | **Preparing the first public release.** The register audit is done, so the register can be quoted in release notes without lying. What is next is the release itself, and the four small pieces of work the audit named. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The suite is deterministic again** — `E11-T27`, with `E8-T81` withdrawn into it. **Before it:** the bookkeeping correction, `E8-T84`, `E8-T83`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2966** tests over ten executables, and `Spark.UI.Tests` green ten times consecutively. |
-| **Next action** | **Audit the register against reality before anything is tagged.** Twenty-six rows say `In progress` and several are plainly finished — `E1-T12` *create the tests projects* among them. **A release cut from a register that is wrong ships release notes that are wrong**, and the summary line's own comment admits it drifts. Then the release itself, following `AGENTS.md`'s nine steps. **Two blockers are the client's and have lead times measured in weeks**: `Q13` items 1 and 3, which the PRD says must be answered *before M6* and this is a public release; and a **code-signing identity** (`E13-T17`), without which every downloader meets SmartScreen on first run. |
-| **Verify with** | For the audit: every row that says `In progress` either has work left that can be named, or is moved to `Done` with what closed it. For the release: `AGENTS.md`'s nine steps, ending with the artefact downloaded **without credentials** from the public releases repository and the application launched from it. |
+| **Last completed step** | **The register audit** — every `In progress` row in TASKS.md settled against the source tree, and TODO.md and EPICS.md brought level with it. **Before it:** `E11-T27` the suite is deterministic, the bookkeeping correction, `E8-T84`, `E8-T83`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2966** tests over ten executables with **zero skips**, and the docs harness green — it caught one thing in this step, a dangling ADR link written into a row, which is exactly what it is for. |
+| **Next action** | **Take `spark check`** — `E12-T5`, the sixth verb and the only one that needs nothing that does not exist. It is `spark run` without the printing: open, restore against the node library, evaluate with no window, report diagnostics, **exit non-zero if any node is in error**. It is a build gate somebody can put in a script the day it lands. After it, in order, the other three the audit named: the XML `<example>` blocks (`E11-T2`), surface and solid properties (`E2-T33`/`E11-T10`), and the four value-layer parity members (`E2-T40`). The release itself follows `AGENTS.md`'s nine steps and is gated on two things that are the client's, not ours: `Q13` items 1 and 3, and a code-signing identity (`E13-T17`). |
+| **Verify with** | For `spark check`: a graph with a deliberate error exits non-zero and names the node; a clean graph exits zero and prints nothing on stdout; and the diagnostics are the same text `spark run` produces, because both go through `Spark.Api.ValueText` and a second renderer is the failure `ValueRenderingTests` exists to prevent. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -10066,3 +10066,59 @@ consecutively, to the standard `E11-T26` set for itself and met.
 exact fault without finding `E11-T26` or `E11-T27` first, then cited it three times as the reason a
 recorded run was not green. The register is nearly four hundred rows; **searching it costs one
 command and was worth about a day**.
+
+### 2026-09-09 — The register audit
+
+**What.** Every `In progress` row in [TASKS.md](TASKS.md) settled against the source tree, and
+TODO.md and EPICS.md brought level with the result. Twenty-seven rows went in; **nineteen came
+out**, and every one of those nineteen now names what is missing in a sentence a stranger could
+act on.
+
+**The three outcomes, because the split is the useful part.**
+
+- **Four closed.** `E1-T12` asked for the test projects to exist and be in the solution, and ten
+  of them are. `E10-T8` asked for XML docs across `Spark.Geometry` and `Spark.Geometry.Io` — CS1591
+  is an error on both projects, so an undocumented public member does not compile, and the build is
+  clean; the row's own note still said `Spark.Geometry.Io` was *an empty project*. `E13-T15` and
+  `E13-T16` both said *landed* in their prose and `In progress` in their status column.
+- **Three moved to `Blocked`, and this is the finding worth carrying.** `E1-T21`, `E8-T15` and
+  `E11-T14` were each held open by **a CI job that had never executed**, and since `E13-T19`
+  switched Actions off they cannot execute. **`In progress` on a row nothing in the tree can
+  advance is a promise nobody can keep** — the blocked count had been zero and is now three, which
+  is a truer number than the zero was.
+- **Twelve stayed `In progress` with the remainder re-verified by grep rather than by memory.**
+  `grep -rn Impure src/Spark.Api` returns nothing, so `E3-T10` has not moved; no file under
+  `src/Spark.Geometry` mentions `CancellationToken`, so `E3-T12` has not either; `EvaluationCache`
+  is still the only cache and its ceiling is still a count.
+
+**Four rows turned out to have grown a gap since they were written, which is the opposite of what
+an audit expects to find.** `E11-T2` owed the XML `<example>` half when *no contract project used
+one*; there are now four in `src/` and nothing compiles them, so a hypothetical became a real gap.
+`E11-T16`'s tessellation benchmark had nothing to measure and now has `Tessellation`,
+`ITessellationSink` and the provider. `E2-T33` named union volume and watertight tessellation
+against types that did not exist and now do. `E5-T14` said 57 nodes; there are **141 node methods
+over 21 families**.
+
+**Verified.** All three gates on the inherited tree before anything was edited — build clean over
+sixteen projects with zero warnings, **2,966 tests over ten executables with zero failures and zero
+skips**, format clean — and the docs harness re-run after. **It went red once and correctly**:
+`EveryRelativeLinkResolves` caught an ADR link I had written from memory as
+`0015-documentation-enforced-by-the-build.md` when the file is
+`0015-xml-docs-as-single-source-of-truth.md`. A documentation step whose only executable check is
+the link checker is exactly the step where that check earns its place.
+
+**The summary line is now produced by a script rather than by hand.** It read 271/26/53/2/10 over
+362 rows; parsing the status column gives **301 done · 19 in progress · 53 open · 3 blocked · 2
+deferred · 10 withdrawn — 388 rows**, which adds up to its own total. The comment beside it says to
+re-derive it rather than adjust it, because it will drift again and adjusting a drifted count by
+hand is how it got to be wrong twice.
+
+**What was deliberately not done.** [DYNAMO-COVERAGE.md](DYNAMO-COVERAGE.md) still reads *0
+reachable* for surfaces and solids, which stopped being true when the provider and the
+`Surface`/`Solid` node families landed. Re-counting 837 members is `E2-T46`'s job and patching it
+row by row from inside a different task is how a survey becomes untrustworthy; TASKS.md now says so
+where the parity rows are.
+
+**Cost.** About an hour, most of it reading rather than writing, and it is the last thing standing
+between here and a tag: **a release cut from a register that is wrong ships release notes that are
+wrong.**
