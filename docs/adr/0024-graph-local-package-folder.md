@@ -106,9 +106,25 @@ anything. This is the consequence of the third decision above and it was not obv
 decision was made — it is written here because the next reader will wonder why a convention-based
 folder needed anything in the file at all.
 
+**The references go first in the file, and that is load order rather than tidiness.** The format is
+JSON written in source order with `formatVersion` first, and `GraphDocument.Restore` builds node
+definitions as it reads nodes — building a code block's definition *compiles* it. The assemblies
+must therefore be loaded before the first node is touched, so the reader has to see the list before
+it sees the graph. It also means a person opening a `.spark` in a text editor reads what it needs
+before what it does.
+
 **It is a record, not a lock.** The folder is still discovered by convention, so a user may drop in
 a DLL nobody wrote down and it will load. The record exists to make an *absence* nameable, not to
 refuse an addition.
+
+**Two questions left open deliberately, because guessing either would be worse than asking.**
+*How relative is relative* — confined to the sibling `<name>.packages` folder, which keeps Save As
+able to know what to copy and stops a recorded path escaping into a system directory; or free,
+which permits one shared folder across several graphs and makes Save As unable to carry
+dependencies. The recommendation is confined now, shared later as its own feature. And *whether a
+reference carries a hash* — it would catch **changed** as well as **missing**, but a rebuilt DLL is
+ordinary during development and `E7-T9` already hot-reloads one; the recommendation is name and path
+only, with trust keyed on the hash separately at load time.
 
 **`E7-T7` has to be re-proved.** It promises a graph naming a package you do not have re-saves byte
 for byte. That promise now covers a new section, and re-proving it is part of `E7-T17` rather than
