@@ -13,6 +13,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Emit;
+using Microsoft.CodeAnalysis.Text;
 using Spark.Api;
 
 namespace Spark.Scripting;
@@ -173,6 +174,17 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
 
         return _compiled.GetOrAdd(CacheKey(script, known), _ => Compile(script, known));
     }
+
+    /// <summary>The generated class the entry point lives on.</summary>
+    /// <remarks>
+    /// <b>Double-underscored since `E6-T34`, and the row is the reason.</b> It was <c>Block</c>,
+    /// which was safe while nothing a user wrote could reach namespace scope - and this is a CAD
+    /// application, where <c>Block</c> is a word people name types after. A block declaring
+    /// <c>public class Block { }</c> would have been told that <c>SparkGenerated</c> already
+    /// contains a definition for it, naming a namespace they have never heard of and a class they
+    /// did not write. The convention is the one <c>__in</c> and <c>__token</c> already follow.
+    /// </remarks>
+    private const string EntryPointType = "__Block";
 
     private static readonly Dictionary<string, Type> EmptyTypes = [];
 
@@ -501,7 +513,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         try
         {
             MethodInfo? method = _context.Load(assembly)
-                .GetType("SparkGenerated.Block")
+                .GetType("SparkGenerated." + EntryPointType)
                 ?.GetMethod("Run");
 
             return method?.CreateDelegate<Func<object?[], CancellationToken, object?>>();
@@ -527,9 +539,11 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// </remarks>
     private string[] InferInputs(string script)
     {
+        WrappedScript wrapped = Wrap(script, [], EmptyTypes);
+
         CSharpCompilation probe = CSharpCompilation.Create(
             "SparkProbe",
-            [CSharpSyntaxTree.ParseText(Wrap(script, [], EmptyTypes).Source)],
+            [CSharpSyntaxTree.ParseText(wrapped.Source)],
             _references.References,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
@@ -539,6 +553,14 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             .Where(d => d.Id is "CS0103" or "CS0117")
             .OrderBy(d => d.Location.SourceSpan.Start))
         {
+            // `E6-T34`: a type the block declares is compiled beside the entry point and cannot see
+            // its locals, so a name that does not resolve in a class body is the user's own typo.
+            // Making a port out of it would answer a misspelling with an extra socket.
+            if (wrapped.Map.IsHoisted(diagnostic.Location.GetLineSpan().StartLinePosition.Line + 1))
+            {
+                continue;
+            }
+
             // The identifier is the first argument of the message. Reading it from the diagnostic's
             // own arguments rather than parsing the text keeps this working in any locale.
             string name = diagnostic.GetMessage(CultureInfo.InvariantCulture);
@@ -1117,10 +1139,18 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// The script's own <c>return</c> statements — not the ones inside a function it declares.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// A <c>return</c> in a local function or a lambda returns from <i>that</i>, so it says nothing
     /// about the block's outputs. <c>ScriptOutputTypes.Returns</c> draws the same line on the
     /// wrapped tree, and the two have to agree or a block would be given ports whose types were read
     /// from somewhere else.
+    /// </para>
+    /// <para>
+    /// <b>A type the block declares is on the same side of that line</b> (`E6-T34`), and it is the
+    /// case that would have been missed: the client's own example is a class whose one method ends
+    /// <c>return new Circle(p, 1.0);</c>, and reading that as the <i>block's</i> return would have
+    /// given the node a single <c>result</c> port typed from a method nobody calls.
+    /// </para>
     /// </remarks>
     private static IEnumerable<ReturnStatementSyntax> TopLevelReturns(CompilationUnitSyntax root)
     {
@@ -1128,7 +1158,9 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             descendIntoChildren: child => child is not (LocalFunctionStatementSyntax
                 or ParenthesizedLambdaExpressionSyntax
                 or SimpleLambdaExpressionSyntax
-                or AnonymousMethodExpressionSyntax)))
+                or AnonymousMethodExpressionSyntax
+                or BaseTypeDeclarationSyntax
+                or DelegateDeclarationSyntax)))
         {
             if (node is ReturnStatementSyntax statement)
             {
@@ -1203,7 +1235,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         StringBuilder source = new();
         source.AppendLine(_references.Prelude());
         source.AppendLine("namespace SparkGenerated;");
-        source.AppendLine("public static class Block {");
+        source.AppendLine("public static class " + EntryPointType + " {");
         source.AppendLine("public static object Run(object[] __in, System.Threading.CancellationToken __token) {");
 
         // `E6-T17`. On its own this only stops a script that has not started yet, which matters
@@ -1237,21 +1269,28 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         // `E6-T1`: everything the frame adds goes *before* the user's first line, so mapping a
         // diagnostic back is a subtraction rather than a table - and the guard weaver adds no
         // lines at all, which is what keeps it one.
-        ScriptSourceMap map = new(Lines(source));
+        int frame = Lines(source);
 
         // `E10-T15`: Dynamo's `#` breaks the lexer, so it is blanked before the parse rather than
         // rewritten after it. Blanking is length-preserving, so `offset` is all it takes to move a
         // marker into the generated source's coordinates - no table, for the same reason the map is
         // a subtraction.
         BlankedScript blanked = ScriptRanges.Blank(script);
-        (string body, ImmutableArray<int> markers) = WithGeneratedReturns(blanked);
+
+        // `E6-T34`: and the declarations come out the same way, for the same reason. Blanked to
+        // spaces where they stood rather than cut out, so every statement keeps the offset and the
+        // line it had - which means `markers` needs no adjustment and the statements' half of the
+        // map is still the subtraction it was.
+        (string statements, ImmutableArray<TextSpan> declarations) = WithoutDeclarations(blanked.Text);
+
+        (string body, ImmutableArray<int> markers) = WithGeneratedReturns(blanked with { Text = statements });
         int offset = source.Length;
 
         source.AppendLine(body);
 
         // `E6-T26`: the block's own `return`, when it has none of its own. After the user's last
         // line, so it shifts nothing above it and the map stays a subtraction.
-        if (Trailer(blanked.Text) is { } trailer)
+        if (Trailer(statements) is { } trailer)
         {
             source.AppendLine(trailer);
         }
@@ -1259,12 +1298,152 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         source.AppendLine("}");
         source.AppendLine("}");
 
+        // Before the source is read, and that is not a style choice: arguments are evaluated left to
+        // right, so building the string first would have snapshotted the frame *without* the
+        // declarations this appends - which compiles, and reports every one of them missing.
+        ImmutableArray<ScriptSourceSegment> hoisted = Hoisted(source, blanked.Text, declarations);
+
         return new WrappedScript(
             source.ToString(),
-            map,
+            new ScriptSourceMap(frame, hoisted),
             markers.IsDefaultOrEmpty
                 ? ImmutableArray<int>.Empty
                 : [.. markers.Select(marker => marker + offset)]);
+    }
+
+    /// <summary>
+    /// The script with every top-level type declaration blanked out, and where each of them stood
+    /// (`E6-T34`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>C# has no local class, and a code block's text is a method body</b> — so
+    /// <c>public class TestClass { … }</c>, which is an ordinary thing to write, was answered with
+    /// <c>CS1022</c> <i>type or namespace definition, or end-of-file expected</i> and
+    /// <c>CS0161</c> <i>not all code paths return a value</i>, neither of which names what is wrong.
+    /// The declaration has to move, and this is the half that takes it out.
+    /// </para>
+    /// <para>
+    /// <b>Blanked to spaces rather than cut, and that is the whole trick.</b> Removing the text
+    /// would shorten every offset after it and join the line before it to the line after it, which
+    /// would move `E10-T15`'s range markers and turn `E6-T1`'s source map into a table for the
+    /// statements as well as for the declarations. Overwriting each character with a space and
+    /// leaving the newlines alone changes neither the length nor the line count, so nothing above,
+    /// below or beside a declaration notices that it left.
+    /// </para>
+    /// <para>
+    /// <b>Types and delegates only.</b> A <c>public static</c> method at the top level is not
+    /// hoisted: a method has nowhere legal to go at namespace scope, and the thing a block wants
+    /// there — a helper — is a local function, which has always worked and is guarded (`E6-T4`).
+    /// </para>
+    /// </remarks>
+    private static (string Statements, ImmutableArray<TextSpan> Declarations) WithoutDeclarations(
+        string blanked)
+    {
+        CompilationUnitSyntax root = CSharpSyntaxTree.ParseText(blanked).GetCompilationUnitRoot();
+
+        ImmutableArray<TextSpan> declarations =
+        [
+            .. root.Members
+                .Where(member => member is BaseTypeDeclarationSyntax or DelegateDeclarationSyntax)
+                .Select(member => member.Span),
+        ];
+
+        if (declarations.IsEmpty)
+        {
+            return (blanked, declarations);
+        }
+
+        char[] text = blanked.ToCharArray();
+
+        foreach (TextSpan span in declarations)
+        {
+            for (int i = span.Start; i < span.End; i++)
+            {
+                if (text[i] is not ('\n' or '\r'))
+                {
+                    text[i] = ' ';
+                }
+            }
+        }
+
+        return (new string(text), declarations);
+    }
+
+    /// <summary>
+    /// Re-emits the declarations after the generated class, and says where each of them landed
+    /// (`E6-T34`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>At namespace scope rather than nested inside <c>Block</c>.</b> Both compile and both are
+    /// nameable unqualified from the entry point, which is the only thing the user cares about; the
+    /// namespace is chosen because it is what they wrote — a type declared in a block is a type,
+    /// not a member of something they have never heard of — and because it is where a type would
+    /// have to be for one block ever to see another's.
+    /// </para>
+    /// <para>
+    /// <b>Emitted from the blanked text, not from the original.</b> A range marker inside a class
+    /// body is nonsense, but re-emitting a live <c>#</c> would break the lexer for the whole file
+    /// and report a syntax error somewhere else entirely; the blanked form parses, and the marker
+    /// offsets left pointing at those spaces simply match nothing when `E10-T15` lowers.
+    /// </para>
+    /// <para>
+    /// <b>Padded to the column it was written at</b>, so <see cref="ScriptSourceMap"/>'s claim that
+    /// a column needs no mapping survives the move as well as a line does.
+    /// </para>
+    /// </remarks>
+    private static ImmutableArray<ScriptSourceSegment> Hoisted(
+        StringBuilder source, string blanked, ImmutableArray<TextSpan> declarations)
+    {
+        if (declarations.IsEmpty)
+        {
+            return ImmutableArray<ScriptSourceSegment>.Empty;
+        }
+
+        ImmutableArray<ScriptSourceSegment>.Builder segments =
+            ImmutableArray.CreateBuilder<ScriptSourceSegment>(declarations.Length);
+
+        foreach (TextSpan span in declarations)
+        {
+            int start = Lines(source) + 1;
+
+            source.Append(' ', span.Start - StartOfLine(blanked, span.Start))
+                .AppendLine(blanked[span.Start..span.End]);
+
+            segments.Add(new ScriptSourceSegment(start, LineAt(blanked, span.Start), Lines(source) - start + 1));
+        }
+
+        return segments.MoveToImmutable();
+    }
+
+    /// <summary>The offset the line containing a position begins at.</summary>
+    private static int StartOfLine(string text, int position)
+    {
+        if (position <= 0)
+        {
+            return 0;
+        }
+
+        int start = text.LastIndexOf('\n', position - 1);
+
+        return start < 0 ? 0 : start + 1;
+    }
+
+    /// <summary>The one-based line a position is on.</summary>
+    private static int LineAt(string text, int position)
+    {
+        int line = 1;
+
+        for (int i = 0; i < position; i++)
+        {
+            if (text[i] == '\n')
+            {
+                line++;
+            }
+        }
+
+        return line;
     }
 
     /// <summary>

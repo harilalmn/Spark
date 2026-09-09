@@ -109,8 +109,20 @@ public sealed class ScriptAssemblyCache
     /// as the multiplication it must be, so <c>a * b;</c> emits source where 5 emitted the user's
     /// line unchanged.
     /// </para>
+    /// <para>
+    /// <b>7 is <c>E6-T34</c></b>, and it changes the frame twice over: a top-level type declaration
+    /// is blanked out of the entry point and re-emitted after the generated class, and
+    /// <c>ScriptGuard.Begin</c> is now handed the cancellation token so that a loop inside such a
+    /// type can be stopped. Every script that declares a type failed to compile under 6 and was
+    /// therefore never cached, but every script that does <i>not</i> declare one now emits a
+    /// different <c>Begin</c> call and would otherwise have been answered from an assembly whose
+    /// guards never saw the token. The generated class is also renamed from <c>Block</c> to
+    /// <c>__Block</c>, so that a block declaring <c>public class Block</c> - a plausible thing to
+    /// write in a CAD application - is not told that a namespace it has never heard of already
+    /// contains one.
+    /// </para>
     /// </remarks>
-    public const int GeneratorVersion = 6;
+    public const int GeneratorVersion = 7;
 
     private readonly string? _directory;
 

@@ -11,7 +11,7 @@ namespace Spark.Scripting;
 /// <remarks>
 /// <para>
 /// <b>This type is called only by generated code</b> (`E6-T4`). <see cref="GuardWeaver"/> rewrites
-/// a script's syntax tree so that every loop body begins with <see cref="Tick"/> and every local
+/// a script's syntax tree so that every loop body begins with <see cref="Tick(CancellationToken)"/> and every local
 /// function is bracketed by <see cref="Enter"/> and <see cref="Exit"/>. Nothing a user writes calls
 /// it directly, and nothing in Spark outside the weaver should.
 /// </para>
@@ -20,7 +20,7 @@ namespace Spark.Scripting;
 /// replicated code block on several threads at once, and each of those invocations needs its own
 /// budget — a shared counter would let a wide list exhaust a ceiling that no single item came close
 /// to, and would report the wrong node. A field per thread costs one static read at each guard and
-/// needs no allocation, no parameter and no closure, which matters because <see cref="Tick"/> runs
+/// needs no allocation, no parameter and no closure, which matters because <see cref="Tick(CancellationToken)"/> runs
 /// once per iteration of every loop the user wrote.
 /// </para>
 /// <para>
@@ -68,6 +68,19 @@ public static class ScriptGuard
     [ThreadStatic]
     private static int _depthLimit;
 
+    /// <summary>The evaluation's token, for the guards that cannot be handed one.</summary>
+    /// <remarks>
+    /// <b>`E6-T34`.</b> A loop the weaver finds inside a <i>type the block declares</i> is not in
+    /// the entry point, so <c>__token</c> — a parameter of that method — is not in scope there and a
+    /// woven <c>Tick(__token)</c> would be <c>CS0103</c> on a line the user did write, about an
+    /// identifier they did not. The token is therefore put where the counters already are: on the
+    /// thread, by <see cref="Begin(long, int, CancellationToken)"/>, for exactly the same reason
+    /// they are — one invocation per thread, reset on entry, nothing shared between replicated
+    /// items.
+    /// </remarks>
+    [ThreadStatic]
+    private static CancellationToken _cancellation;
+
     /// <summary>Starts one invocation, resetting both counters.</summary>
     /// <param name="iterationLimit">The ceiling on loop iterations.</param>
     /// <param name="depthLimit">The ceiling on recursion depth.</param>
@@ -76,13 +89,40 @@ public static class ScriptGuard
     /// rather than per node or per session. Resetting on entry rather than restoring on exit is
     /// what makes an invocation that threw leave nothing behind for the next one on that thread.
     /// </remarks>
-    public static void Begin(long iterationLimit, int depthLimit)
+    public static void Begin(long iterationLimit, int depthLimit) =>
+        Begin(iterationLimit, depthLimit, CancellationToken.None);
+
+    /// <summary>Starts one invocation, resetting both counters and recording its token.</summary>
+    /// <param name="iterationLimit">The ceiling on loop iterations.</param>
+    /// <param name="depthLimit">The ceiling on recursion depth.</param>
+    /// <param name="cancellationToken">The evaluation's token, for <see cref="Tick()"/>.</param>
+    /// <remarks>
+    /// <b>This is the overload the weaver actually writes</b> (`E6-T34`); the two-argument one is
+    /// what a caller with no token to give would use, and it means <i>uncancellable</i> rather than
+    /// <i>unguarded</i>. The token is held for the length of the invocation and replaced by the next
+    /// <c>Begin</c> on the same thread — resetting on entry rather than clearing on exit is what
+    /// makes an invocation that threw leave nothing behind, and it is how the counters already work.
+    /// </remarks>
+    public static void Begin(long iterationLimit, int depthLimit, CancellationToken cancellationToken)
     {
         _iterations = 0;
         _depth = 0;
         _iterationLimit = iterationLimit;
         _depthLimit = depthLimit;
+        _cancellation = cancellationToken;
     }
+
+    /// <summary>One turn of a loop the weaver rewrote where <c>__token</c> is out of scope.</summary>
+    /// <exception cref="OperationCanceledException">The evaluation was cancelled.</exception>
+    /// <exception cref="ScriptGuardException">The iteration ceiling was passed.</exception>
+    /// <remarks>
+    /// <b>Woven into the types a block declares</b> (`E6-T34`), which are compiled beside the entry
+    /// point rather than inside it. It is <see cref="Tick(CancellationToken)"/> reading the token
+    /// off the thread instead of off a parameter, so a loop in a user's own class is cancellable and
+    /// counted exactly like a loop in the block's body — the one difference being a thread the
+    /// script started itself, which has no token of its own and never had one.
+    /// </remarks>
+    public static void Tick() => Tick(_cancellation);
 
     /// <summary>One turn of a loop the weaver rewrote.</summary>
     /// <param name="cancellationToken">The evaluation's token.</param>

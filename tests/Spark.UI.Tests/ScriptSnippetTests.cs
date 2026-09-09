@@ -148,7 +148,7 @@ public sealed class ScriptSnippetTests
             "using System;\n"
             + "using System.Collections.Generic;\n"
             + "namespace SparkGenerated;\n"
-            + "public static class Block {\n"
+            + "public static class __Block {\n"
             + "public static object Run(object[] __in, System.Threading.CancellationToken __token) {\n"
             + body
             + "\nreturn null;\n}\n}\n";

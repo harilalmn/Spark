@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Spark.Api;
+using Spark.Geometry;
 using Spark.Scripting;
 
 namespace Spark.UI.Tests;
@@ -298,5 +299,161 @@ public sealed class ScriptNodeFactoryTests
         catalogue.Add(["Z:\\does\\not\\exist.dll", string.Empty]);
 
         Assert.NotEmpty(catalogue.References);
+    }
+
+    /// <summary>
+    /// <b>The client's own block, character for character, and it did not compile at all</b>
+    /// (`E6-T34`). A code block's text is the body of a generated method and C# has no local class,
+    /// so a block that declared one was answered with <c>CS1022</c> and <c>CS0161</c> — neither of
+    /// which names what is wrong, and both of which are about the frame rather than the script.
+    /// </summary>
+    [Fact]
+    public void ABlockCanDeclareAClassAndUseIt()
+    {
+        const string script = """
+            public class TestClass
+            {
+                public static Circle Test()
+                {
+                    Point3d p = new Point3d(0,0,0);
+                    return new Circle(p,1.0);
+                }
+            }
+            var circle = TestClass.Test();
+            """;
+
+        ScriptNodeFactory factory = new();
+
+        Assert.Empty(factory.Diagnose(script));
+
+        NodeDefinitionSource block = factory.Create(script);
+
+        Assert.Empty(block.Inputs);
+        Assert.Equal(["circle"], block.Outputs.Select(port => port.Name));
+        Assert.Equal(1.0, Assert.IsType<Circle>(Assert.Single(block.Invoke([], CancellationToken.None))).Radius);
+    }
+
+    /// <summary>
+    /// <b>The declaration may come before the statements that use it</b>, which is the case a
+    /// scheme that kept the user's text in one contiguous run could not have handled — it would
+    /// have had to close the generated method before the class and reopen it after, and the
+    /// block's locals do not survive that. Blanking the declaration to spaces where it stood and
+    /// re-emitting it below is what makes the position of the class irrelevant.
+    /// </summary>
+    [Fact]
+    public void ADeclarationMayComeBeforeTheStatementsThatUseIt()
+    {
+        NodeDefinitionSource block = new ScriptNodeFactory().Create(
+            """
+            public class Helper
+            {
+                public static double Twice(double x) => x * 2;
+            }
+            var doubled = Helper.Twice(seed);
+            """);
+
+        Assert.Equal(["seed"], block.Inputs.Select(port => port.Name));
+        Assert.Equal(["doubled"], block.Outputs.Select(port => port.Name));
+        Assert.Equal(84.0, Assert.Single(block.Invoke([42.0], CancellationToken.None)));
+    }
+
+    /// <summary>Records, structs and enums move the same way a class does.</summary>
+    [Theory]
+    [InlineData("public record Pair(double A, double B);\nvar sum = new Pair(1, 2).A;")]
+    [InlineData("public struct Pair { public double A; }\nvar sum = new Pair { A = 1 }.A;")]
+    [InlineData("public enum Side { Left = 1 }\nvar sum = (double)Side.Left;")]
+    public void EveryKindOfTypeDeclarationIsHoisted(string script)
+    {
+        Assert.Equal(1.0, Assert.Single(new ScriptNodeFactory().Create(script).Invoke([], CancellationToken.None)));
+    }
+
+    /// <summary>
+    /// <b>A diagnostic inside a declared type lands on the user's own line.</b> The declaration is
+    /// re-emitted a long way below where it was written, so this is the one place the source map is
+    /// no longer a subtraction — and getting it wrong would put the squiggle on whatever statement
+    /// happened to share the arithmetic.
+    /// </summary>
+    [Fact]
+    public void ADiagnosticInsideADeclaredTypeIsPlacedOnTheUsersLine()
+    {
+        ScriptDiagnostic error = Assert.Single(
+            new ScriptNodeFactory().Diagnose(
+                """
+                var a = 1;
+                public class Helper
+                {
+                    public static double Twice(double x) => nope;
+                }
+                """),
+            diagnostic => diagnostic.IsError);
+
+        Assert.Equal("CS0103", error.Id);
+        Assert.Equal(4, error.Line);
+    }
+
+    /// <summary>
+    /// <b>An unresolved name in a class body is a typo, not an input port.</b> Ports are found by
+    /// compiling with nothing declared and reading the <c>CS0103</c>s, and a declared type cannot
+    /// see the entry point's locals — so without this the block above would grow a socket called
+    /// <c>nope</c> and hide the misspelling behind it.
+    /// </summary>
+    [Fact]
+    public void AnUnresolvedNameInsideADeclaredTypeIsNotAnInputPort()
+    {
+        NodeDefinitionSource block = new ScriptNodeFactory().Create(
+            """
+            public class Helper
+            {
+                public static double Twice(double x) => nope;
+            }
+            var doubled = seed * 2;
+            """);
+
+        Assert.Equal(["seed"], block.Inputs.Select(port => port.Name));
+    }
+
+    /// <summary>
+    /// <b>A block may declare a type called <c>Block</c></b>, which is not a contrived name in a
+    /// CAD application. The generated class was called that until `E6-T34` let a user's type reach
+    /// namespace scope, at which point the collision would have been reported against a namespace
+    /// they have never heard of.
+    /// </summary>
+    [Fact]
+    public void ADeclaredTypeMayBeCalledBlock()
+    {
+        NodeDefinitionSource block = new ScriptNodeFactory().Create(
+            """
+            public class Block
+            {
+                public static double Height => 3;
+            }
+            var height = Block.Height;
+            """);
+
+        Assert.Equal(3.0, Assert.Single(block.Invoke([], CancellationToken.None)));
+    }
+
+    /// <summary>
+    /// <b>`E10-T15`'s range markers are unmoved by a declaration leaving.</b> They are offsets into
+    /// the script, and the declaration is blanked to spaces rather than cut out precisely so that
+    /// every offset after it stays where it was. Cutting instead would lower <c>0..8..#5</c> as a
+    /// step range — a wrong list rather than an error.
+    /// </summary>
+    [Fact]
+    public void ARangeAfterADeclarationIsStillLoweredCorrectly()
+    {
+        NodeDefinitionSource block = new ScriptNodeFactory().Create(
+            """
+            public class Helper
+            {
+                public static double Twice(double x) => x * 2;
+            }
+            var counted = 0..8..#5;
+            """);
+
+        Assert.Equal(
+            [0.0, 2.0, 4.0, 6.0, 8.0],
+            Assert.IsAssignableFrom<System.Collections.IEnumerable>(
+                Assert.Single(block.Invoke([], CancellationToken.None))).Cast<object>());
     }
 }

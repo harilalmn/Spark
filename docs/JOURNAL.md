@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-08 (six client requests, taken one per step)
+**Last updated:** 2026-09-09 (a code block can declare a type)
 **Protocol version:** 2
 
 ---
@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v2026.8.1` shipped on 2026-09-08** — published by `Release (win-x64)` run `34239709515` in 7m31s, with `spark-2026.8.1-setup.exe` (51.1 MB) and `spark-portable-win-x64.zip` (77.5 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v2026.8.1>. **Nothing is signed**, and the release notes say so rather than hiding it. **The scheme changed here**, at the client's instruction: `v0.4.0` was the last of the semantic run and this is the first calendar one. `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing.** `v2026.8.1` is published. |
+| **Working on** | **Nothing.** `E6-T34` is committed. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The ribbon's selection label is gone** - `E8-T74` - and **`v2026.8.1` cut from it**. **Before it:** `E8-T73`, `E8-T72`, `E8-T70` and `E8-T71`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2776** tests green over **nine** executables with zero skips. **Nine known flaky tests, all one defect** (`E11-T27`, open), across eight classes; each passes alone and a different one fails each full run. **Three of the nine arrived during this run** — `GraphCanvasZoomToFitTests.AFitAskedForBeforeLayoutHappensOnceThereIsALayout`, `MainWindowViewModelTests.APresetMovesTheTicksTheSameWayAToggleDoes` and `ViewportExportTests.ExportingSolidsFromAnEmptySceneRefusesWithAReason`, each failing one full run and passing both alone and on the next. **The count in this row said six for three steps while the sentence beside it named eight**, which is a row disagreeing with itself; it is one number now. |
-| **Next action** | **Take `E11-T27`.** Nine victims across eight classes, three of them gained during this run; a suite that fails a different test every full run is one people stop reading. `test-engineer` owns the choice between one xunit collection over every Avalonia-touching class and `DisableTestParallelization` for the assembly, which costs about 16 seconds. **Also open and cheap where the toolchain allows it**: `E13-T18`, promoting a closed shell to a solid in `spark_occt_import`. |
+| **Last completed step** | **A code block can declare a type** - `E6-T34`. **Before it:** `E8-T74` and the `v2026.8.1` cut, `E8-T73`, `E8-T72`, `E8-T70` and `E8-T71`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2788** tests green over nine executables with zero skips - 12 more than the 2776 before this step, and **no flaky failure in this run**, which is one observation and not a fix. `E11-T27` is still open: nine known victims across eight classes, each passing alone. |
+| **Next action** | **Ask the client which half they want next**, because `E6-T34` answered one half of their screenshot and named the other. **`E6-T35`** makes a type declared in one block visible to another, which is what their two-block example was actually doing; it is three decisions rather than one - compile **order**, **cycles** and name collisions, and what **invalidates** a consumer when its definer is edited - and it is at the top of TODO. **`E11-T27`** is the flaky suite, unchanged and still worth taking. **`E13-T18`** is cheap where the toolchain allows it. |
 | **Verify with** | Whatever the next row needs. Nothing is half-done. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -8929,3 +8929,75 @@ cares - MinVer reads whatever the tag says - but the in-application update check
 and the jump from `0.4.x` to `2026.x` is monotonic under SemVer, so *Latest release* and the update
 pill both keep pointing the right way. **What a later reader needs to know is that a return to
 `0.x` would now go backwards**, and the update check would stop offering it.
+
+### 2026-09-09 — A code block can declare a type (`E6-T34`)
+
+**What.** The client sent a screenshot of two code blocks. The first held
+`public class TestClass { public static Circle Test() { … } }` and did not compile at all; the
+second called it. The first is fixed and the second is written down as `E6-T35` rather than
+quietly left out — see *What this does not do* below.
+
+**Why it failed, which neither error said.** A block's text is emitted inside the generated
+`Block.Run`, and C# has no local class. So the compiler complained about the *frame*: `CS1022`
+*type or namespace definition, or end-of-file expected*, and `CS0161`
+*'Block.Run(object[], CancellationToken)': not all code paths return a value* — a method the user
+has never seen, in a class they did not write.
+
+**The decision worth recording.** The declaration is **blanked to spaces where it stood** and
+re-emitted after the generated class. Cutting the text out instead is the obvious move and is the
+expensive one: it shortens every offset after the declaration and joins the line above it to the
+line below, which moves `E10-T15`'s range markers and turns `E6-T1`'s source map into a table for
+the *statements* as well as for the declarations. Overwriting each character with a space and
+leaving the newlines alone changes neither the length nor the line count, so only the re-emitted
+lines need a map segment and a block that declares nothing is byte-for-byte what it was
+([N125](NOTES.md)). It also buys a property a cheaper scheme does not have: the class may be
+written **above** the lines that use it.
+
+**Three things had to move with the declaration.** `TopLevelReturns` descended into type
+declarations, so the client's own `return new Circle(p, 1.0);` — a line inside *their* method —
+would have been read as the block's return and typed its port from a method nobody calls.
+`InferInputs` finds ports by reading `CS0103`, and a declared type cannot see the entry point's
+locals, so a typo in a class body would have become a socket rather than a squiggle. And
+`GuardWeaver` wove `Tick(__token)`, naming a parameter of `Run` that is out of scope in a declared
+type; `ScriptGuard.Begin` now takes the token and puts it on the thread beside the counters, where
+a parameterless `Tick()` reads it back.
+
+**The guard hole was the real risk in the row, and it bit during the work.** A class with a method
+that calls itself is the shortest script anybody could write that reaches `R11`, and a
+`StackOverflowException` ends the application rather than the evaluation. Methods, constructors,
+operators and property accessors of a declared type are now bracketed like local functions — and
+the test written for `public int X => X;` **took the test process down** rather than failing,
+because an expression-bodied property has no accessor node to visit. That is `R11` demonstrated for
+the second time in this repository, and it is why the property and indexer overrides exist.
+
+**Two things fell out that were not in the plan.** Turning `=> expr;` into a block discards the
+member's own semicolon token, and for `double Twice(double x) => x *;` that token is where the
+parser hung `CS1525` — so the weaver deleted the only complaint about a line that plainly does not
+compile, and the editor showed *nothing at all*. Reachable from a local function since `E6-T4`, and
+invisible to any test written against code that compiles ([N126](NOTES.md)). A member that does not
+parse is now left alone, which loses nothing: it never runs. And the generated class was called
+`Block` — safe while nothing a user wrote could reach namespace scope, and this is a CAD
+application, where `Block` is a word people name types after. It is `__Block` now, by the
+convention `__in` and `__token` already follow.
+
+**Verified.** The three gates: clean build with zero warnings, `dotnet format` clean, **2788 tests
+green over nine executables with zero skips**, up from 2776. Twelve new tests, and the ones that
+matter go red when the change is reverted: the client's block character for character; a class
+declared *before* the statements that use it; `record`, `struct` and `enum`; a diagnostic inside a
+class body landing on the user's own line; an unresolved name in a class body **not** becoming an
+input port; a range `0..8..#5` after a declaration still lowering correctly; a class called `Block`;
+a `while (true)` inside a declared type being cancelled; recursion and a self-reading property
+being bounded; and the `CS1525` that used to disappear. **And in the application**, which is where
+the client found it: `--code-block` with their exact script, screenshotted — the node carries a
+`circle` output port and no error, and the only diagnostic on screen is the demo graph's own
+`Math.Divide`.
+
+**What this does not do.** A type declared in one block is still invisible to another, so the
+client's second block still says *the name 'TestClass' does not exist in the current context*. Each
+block compiles to its own assembly referencing no other; a graph-wide scope needs a compile order,
+a rule for cycles and collisions, and an invalidation rule for a consumer whose definer was edited.
+That is `E6-T35`, at the top of TODO. **The answer in the meantime is worth saying out loud**:
+declare the type in the block that uses it, or put shared code in a DLL and load it, which is what
+a type five blocks share wants to be anyway.
+
+**Cost.** One session. `GeneratorVersion` is 7, so every cached script assembly is a miss once.

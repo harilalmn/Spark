@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-08 (N124: the headless platform draws nothing)
+**Last updated:** 2026-09-09 (N125, N126: blanking a declaration, and the semicolon that carried a diagnostic)
 
 ---
 
@@ -3665,6 +3665,13 @@ reader who noticed it in `ScriptRanges` alone would be tempted to do. The two ar
 never runs either rewriter. `ScriptRanges` blanks `#` to a space precisely so that the text
 completion sees is the same length as what the user typed.
 
+**`E6-T34` widened the first of the two without changing its shape.** The depth guard now brackets
+the methods, constructors, operators and accessors of a type a block declares, and bracketing a body
+is the same insertion on the same line — so the columns on the *first* line of such a body move by
+about fifty characters, and a body written on one line moves entirely. Lines two onward are
+untouched, because the body keeps its own newlines. It is the same trade this note already records,
+paid in one more place; the title still says two because it is still two rewriters.
+
 ## N123 — What compiles in a code block depends on what the host process has loaded
 
 `ReferenceCatalog` builds its reference set from *the assemblies this process already has loaded*,
@@ -3717,3 +3724,58 @@ parts this repository wrote.
 it would make one assembly's rendering depend on a second headless backend whose output is not the
 one users see either, in exchange for pixels that the application itself already produces on demand.
 
+
+---
+
+## N125 — Moving code out of a generated method without moving anything else
+
+A code block's text is emitted inside `Block.Run`, and C# has no local class — so
+`public class TestClass { … }`, which is an ordinary thing for a user to write, could not compile.
+The declaration has to be lifted out to namespace scope, and the obvious way to lift it is to cut
+the text out and append it below.
+
+**Cutting is what makes the rest of the pipeline expensive.** Removing a span shortens every offset
+after it and joins the line before it to the line after it, and two things in `Spark.Scripting`
+are built on neither of those happening:
+
+- `ScriptSourceMap` is a *subtraction* — a diagnostic's user line is its generated line minus a
+  constant. `GuardWeaver` weaves statements with no trivia, and the wrapper puts every line it adds
+  before the user's first, precisely so that it can stay one.
+- `ScriptRanges` records where each `#` marker stood as a **character offset** into the script, and
+  `Wrap` moves them into the generated source's coordinates by adding a single constant. Blanking is
+  length-preserving for exactly this reason ([N122](#n122--a-tree-rewrite-keeps-the-line-and-moves-the-column-and-two-of-them-do-it-now)).
+
+So the declaration is **blanked to spaces where it stood** — every character overwritten with a
+space, every newline left alone — and re-emitted after the generated class. The statements keep
+their lengths, their offsets and their line numbers; nothing above, below or beside a declaration
+notices that it left. Only the re-emitted lines need a map entry, and a block that declares no type
+produces none at all.
+
+**The property this buys is worth naming**, because a cheaper scheme does not have it: the
+declaration may appear *anywhere* in the block, including above the statements that use it. A scheme
+that kept the user's text in one contiguous run would have had to close the generated method before
+the class and reopen it after, and the block's locals do not survive that.
+
+---
+
+## N126 — The token that carried the diagnostic, and the rewrite that threw it away
+
+`GuardWeaver` turns an expression-bodied member into a block so a depth guard can go inside it:
+`double Twice(double x) => x * 2;` becomes `double Twice(double x) { …Enter(); try { return x * 2; }
+finally { …Exit(); } }`. Building the block means dropping the member's `=>` clause **and its
+semicolon token**.
+
+For `double Twice(double x) => x *;` that semicolon is where the parser hung
+`CS1525: Invalid expression term ';'`. Dropping the token dropped the diagnostic, and because it was
+the only one, the block reported **nothing at all** — no squiggle, no message — on a line that
+plainly does not compile.
+
+It is not obvious from reading the rewrite, and it is invisible to any test written against code
+that compiles. It was found while generalising the same rewrite to the members of a declared type
+(`E6-T34`), and it had been reachable from a local function since `E6-T4`.
+
+**The fix is to leave a member that does not parse exactly as it is.** Nothing is lost by not
+weaving a guard into it: a member that does not parse never runs. The general form of the rule is
+worth keeping in mind whenever a syntax rewriter discards a token — *a token you delete takes its
+diagnostics with it*, and the parser attaches them to the token nearest the problem rather than to
+the node you are thinking about.

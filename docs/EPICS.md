@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-08 (E8: Dynamo's collapsible, pinnable preview bubble)
+**Last updated:** 2026-09-09 (E6: a code block can declare a type)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -638,6 +638,22 @@ diverge most; rework is budgeted there specifically.
       semicolon is inserted after the statement's last *token*, so a trailing comment stays a
       comment; the insertion is discarded unless it lowers the error count, so an unclosed brace
       is never "fixed".
+- [x] **A block can declare a class, a record, a struct or an enum and use it** (**E6-T34**) —
+      done 2026-09-09. Reported by the client, whose block did not compile at all: a block's text is
+      the body of a generated method and C# has no local class, so the errors were `CS1022` and
+      `CS0161` about a method they have never seen. The declaration is **blanked to spaces where it
+      stood** and re-emitted after the generated class, which is what keeps every statement's offset
+      and line number exactly where it was — so a class may be written above the lines that use it,
+      and only the moved declarations need a source-map segment. **The guards moved with it**: a
+      loop inside a declared type reads its token off the thread rather than off `Run`'s parameter,
+      and the type's methods, constructors, operators and accessors are depth-bounded like local
+      functions, because a class whose method calls itself is the shortest route to `R11` anybody
+      could write.
+- [ ] **A type declared in one block is visible to another** (**E6-T35**). The other half of the
+      screenshot `E6-T34` came from, and not a small one: each block compiles to its own assembly
+      referencing no other, so a graph-wide scope needs a compile **order**, a rule for **cycles**
+      and name collisions, and an **invalidation** rule for a consumer whose definer was edited.
+      Until then, declare the type in the block that uses it, or put shared code in a DLL.
 - [ ] A graph containing no script nodes never loads `Spark.Scripting` (**E6-T14**).
 
 **Status.** **Complete except the docked C# Script Node (E6-T14's second half), as of

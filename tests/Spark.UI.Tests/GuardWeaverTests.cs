@@ -293,6 +293,100 @@ public sealed class GuardWeaverTests
     }
 
     /// <summary>
+    /// <b>A loop inside a type the block declares is cancelled too</b> (`E6-T34`). It is the case
+    /// the obvious implementation gets wrong twice over: a declared type is compiled beside the
+    /// entry point, so <c>__token</c> is out of scope there and the woven check does not compile —
+    /// and weaving nothing instead leaves <c>while (true)</c> inside a user's own class as a way to
+    /// hang the application that the block's own body has been guarded against since `E6-T4`.
+    /// </summary>
+    [Fact]
+    public void ALoopInsideADeclaredTypeIsCancelled()
+    {
+        NodeDefinitionSource block = Factory(iterations: long.MaxValue).Create(
+            """
+            public class Spinner
+            {
+                public static int Spin()
+                {
+                    int n = 0;
+                    while (true) { n++; }
+                    return n;
+                }
+            }
+            return Spinner.Spin();
+            """);
+
+        using CancellationTokenSource cancellation = new();
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(200));
+
+        Assert.True(
+            Ran(() => Assert.ThrowsAny<OperationCanceledException>(
+                () => block.Invoke([], cancellation.Token))),
+            "The script was still running after the deadline: the loop guard is not woven into declared types.");
+    }
+
+    /// <summary>
+    /// <b>A method of a declared type that calls itself is bounded</b> (`E6-T34`). Without this,
+    /// the shortest script anybody could write reaches <c>R11</c> — a
+    /// <see cref="StackOverflowException"/> cannot be caught in .NET and ends the whole
+    /// application, so this must be stopped before it happens rather than handled after.
+    /// </summary>
+    [Fact]
+    public void RecursionInsideADeclaredTypeIsBounded()
+    {
+        NodeDefinitionSource block = Factory(depth: 16).Create(
+            """
+            public class Deep
+            {
+                public static int Down(int n) => Down(n + 1);
+            }
+            return Deep.Down(0);
+            """);
+
+        ScriptGuardException failure = Assert.Throws<ScriptGuardException>(
+            () => block.Invoke([], CancellationToken.None));
+
+        Assert.Contains("recursed", failure.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>A property that reads itself is bounded as well</b>, and it is the one that gets written
+    /// by accident: <c>public int X =&gt; X;</c> is a typo, not an algorithm.
+    /// </summary>
+    [Fact]
+    public void ASelfReadingPropertyIsBounded()
+    {
+        NodeDefinitionSource block = Factory(depth: 16).Create(
+            """
+            public class Loop
+            {
+                public int X => X;
+            }
+            return new Loop().X;
+            """);
+
+        Assert.Throws<ScriptGuardException>(() => block.Invoke([], CancellationToken.None));
+    }
+
+    /// <summary>
+    /// <b>A member that does not parse keeps its diagnostic, and this was broken before `E6-T34`
+    /// generalised the rewrite.</b> Turning <c>=&gt; expr;</c> into a block drops the member's own
+    /// semicolon token, and that token is exactly where the parser hangs <c>CS1525</c> for
+    /// <c>=&gt; x *;</c> — so the weaver deleted the only complaint about a line that plainly does
+    /// not compile, and the editor showed nothing at all.
+    /// </summary>
+    [Fact]
+    public void AnExpressionBodyThatDoesNotParseKeepsItsDiagnostic()
+    {
+        ScriptDiagnostic error = Assert.Single(
+            Factory().Diagnose("double Twice(double x) => x *;\nvar a = Twice(1);"),
+            diagnostic => diagnostic.IsError);
+
+        Assert.Equal("CS1525", error.Id);
+        Assert.Equal(1, error.Line);
+    }
+
+    /// <summary>
     /// Runs an assertion on a worker and reports whether it finished, so a guard that is missing
     /// fails the test instead of hanging the suite.
     /// </summary>
