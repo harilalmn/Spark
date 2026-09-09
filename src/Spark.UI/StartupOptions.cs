@@ -115,6 +115,12 @@ namespace Spark.UI;
 /// reason <c>--package-prepare</c> does. The prompt is where a user decides to compile against
 /// somebody else's code, so it is one that should be looked at rather than only asserted about.
 /// </param>
+/// <param name="PackageEverything">
+/// Whether the package browser searches the whole feed rather than only Spark node packages
+/// (<c>--packages-all</c>), which is the *Spark packages only* box unticked (`E7-T20`). Aimed at
+/// the screenshot path for the reason <c>--select</c> and <c>--collapse</c> are: it is a checkbox,
+/// a checkbox needs a click, and a click is the one thing a headless run cannot make.
+/// </param>
 /// <param name="PackageQuery">
 /// The feed search to run when the package manager opens at startup
 /// (<c>--packages-window [query]</c>), empty to open it without searching, or null not to open it
@@ -194,6 +200,7 @@ public readonly record struct StartupOptions(
     string? HelpTopic = null,
     bool OpenAbout = false,
     string? PackageSource = null,
+    bool PackageEverything = false,
     string? PackageQuery = null,
     string? PreparePackage = null,
     string? ReferenceAssembly = null,
@@ -360,6 +367,7 @@ public readonly record struct StartupOptions(
         bool listCodeFonts = false;
         string? helpTopic = null;
         bool aboutWindow = false;
+        bool packageEverything = false;
         string? packageQuery = null;
         string? packageSource = null;
         string? preparePackage = null;
@@ -490,6 +498,10 @@ public readonly record struct StartupOptions(
                     preparePackage = args[++i];
                     break;
 
+                case "--packages-all":
+                    packageEverything = true;
+                    break;
+
                 case "--package-source" when i + 1 < args.Length:
                     packageSource = args[++i];
                     break;
@@ -542,7 +554,7 @@ public readonly record struct StartupOptions(
             nodes = 2000;
         }
 
-        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped, cleanUpLayout, renameNode, pinPreview, exportGraph, exportViewport, exportSolids, exportWidth, exportHeight)
+        return new StartupOptions(nodes, frames, zoom, screenshot, graph, open, noScript, software, helpTopic, aboutWindow, packageSource, packageEverything, packageQuery, preparePackage, referenceAssembly, freezeFirst, collapseFirst, selectFirst, librarySearch, noUpdateCheck, updateBadge, codeBlock, codeBlockCommand, codeBlockInNode, frameNode, codeBlockTyped, cleanUpLayout, renameNode, pinPreview, exportGraph, exportViewport, exportSolids, exportWidth, exportHeight)
         {
             ListCodeFonts = listCodeFonts,
         };

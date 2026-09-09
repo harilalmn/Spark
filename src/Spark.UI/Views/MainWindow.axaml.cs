@@ -1160,6 +1160,9 @@ public sealed partial class MainWindow : Window
     /// <summary>Command-line options, chiefly the benchmark switches.</summary>
     public StartupOptions Options { get; set; } = StartupOptions.Default;
 
+    /// <summary>The posed package search, so a capture can wait for it (`E7-T20`).</summary>
+    private Task? _posedSearch;
+
     private void OnOpened(object? sender, EventArgs e)
     {
         // Before anything asks for a frame: the switch has to be in place before the first GL
@@ -1223,11 +1226,24 @@ public sealed partial class MainWindow : Window
                 packageModel.Packages().Query = Options.PackageQuery;
             }
 
+            // `E7-T20`: the *Spark packages only* box, unticked. Set on the model before the window
+            // reads it, exactly as the query above is.
+            if (Options.PackageEverything && Model is { } everythingModel)
+            {
+                everythingModel.Packages().SparkPackagesOnly = false;
+            }
+
             OpenPackages();
 
             if (!string.IsNullOrWhiteSpace(Options.PackageQuery) && _packages is not null)
             {
-                _ = SearchThenPrepareAsync(_packages, Options.PreparePackage);
+                // `E7-T20`: KEPT RATHER THAN DISCARDED, SO THE SHUTTER CAN WAIT FOR IT. `OnOpened`
+                // is void and cannot await, and a fire-and-forget search means every screenshot of
+                // this window is taken while it still says "Searching…". That was true of the
+                // `--code-block-typed` pose as well, and it is the same lesson twice: a capture
+                // path that does not await the thing it is photographing photographs the moment
+                // before.
+                _posedSearch = SearchThenPrepareAsync(_packages, Options.PreparePackage);
             }
 
             // The tab comes to the front whenever --reference was given at all, so passing it an
@@ -1512,6 +1528,14 @@ public sealed partial class MainWindow : Window
         // triggers a user's keystroke would fire actually fire. A pose that asks the language
         // service directly photographs a mechanism; this photographs a behaviour ([N112]).
         _canvasPane.TypeIntoScriptEditor(Options.CodeBlockTyped);
+
+        // `E7-T20`: and the package search too, for exactly the same reason one line down. A
+        // window photographed mid-search shows "Searching…" and proves nothing about what it
+        // found.
+        if (_posedSearch is { } search)
+        {
+            await search.ConfigureAwait(true);
+        }
 
         // **Awaited**, so the shutter is not racing Roslyn. The first completion request pays
         // for MEF composition, and a capture taken before it lands photographs a closed list.

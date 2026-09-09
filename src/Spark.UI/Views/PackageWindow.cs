@@ -43,6 +43,7 @@ public sealed class PackageWindow : Window
     private readonly PackageBrowserViewModel _model;
     private readonly TextBox _query = new();
     private readonly Button _searchButton = new();
+    private readonly CheckBox _sparkOnly = new();
     private readonly Button _installButton = new();
     private readonly Button _confirmButton = new();
     private readonly Button _cancelButton = new();
@@ -204,12 +205,38 @@ public sealed class PackageWindow : Window
         _searchButton.Content = "Search";
         _searchButton.Click += OnSearch;
 
+        // `E7-T20`: THE TOGGLE IS THE WHOLE FIX, AND IT IS ON BY DEFAULT.
+        //
+        // The window's older job is finding Spark *node* packages, which carry the `spark` tag and
+        // a manifest and add nodes when installed - that is still what most people opening it
+        // want, so it stays the default. Unticking it searches nuget.org for an ordinary .NET
+        // *library* to write code against, which is what the client was doing when they searched
+        // for `nice3point` and were told nothing was found. Both are real questions and the tag is
+        // the right answer to exactly one of them.
+        _sparkOnly.Content = "Spark packages only";
+        _sparkOnly.IsChecked = _model.SparkPackagesOnly;
+        _sparkOnly.Margin = new Thickness(0, 0, 8, 0);
+        _sparkOnly.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
+        _sparkOnly.IsCheckedChanged += OnSparkOnlyChanged;
+
         DockPanel row = new() { Margin = new Thickness(12, 12, 12, 8) };
         DockPanel.SetDock(_searchButton, Avalonia.Controls.Dock.Right);
+        DockPanel.SetDock(_sparkOnly, Avalonia.Controls.Dock.Right);
         row.Children.Add(_searchButton);
+        row.Children.Add(_sparkOnly);
         row.Children.Add(_query);
         return row;
     }
+
+    /// <summary>Whether the search is limited to Spark node packages, as a test would ask.</summary>
+    public bool SparkPackagesOnly
+    {
+        get => _sparkOnly.IsChecked == true;
+        set => _sparkOnly.IsChecked = value;
+    }
+
+    private void OnSparkOnlyChanged(object? sender, RoutedEventArgs e) =>
+        _model.SparkPackagesOnly = _sparkOnly.IsChecked == true;
 
     private Control BuildLists()
     {

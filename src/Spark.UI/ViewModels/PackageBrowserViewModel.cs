@@ -146,6 +146,20 @@ public sealed partial class PackageBrowserViewModel : ObservableObject
     /// </remarks>
     public IReadOnlyList<string> StartupProblems { get; private set; } = [];
 
+    /// <summary>
+    /// Whether the search asks only for Spark node packages, or for anything on the feed
+    /// (`E7-T20`).
+    /// </summary>
+    /// <remarks>
+    /// <b>On by default, because the window's older job is still its main one.</b> A Spark package
+    /// carries the <c>spark</c> tag and a <c>tools/spark.json</c> manifest, and installing it adds
+    /// **nodes**. Turning this off looks for an ordinary .NET **library** to write code against,
+    /// which is what the client was doing when they searched for <c>nice3point</c> and were told
+    /// nothing was found.
+    /// </remarks>
+    [ObservableProperty]
+    private bool _sparkPackagesOnly = true;
+
     /// <summary>Searches the feed.</summary>
     /// <param name="cancellationToken">Cancels the search.</param>
     /// <returns>A task that completes when the results have been replaced.</returns>
@@ -157,7 +171,7 @@ public sealed partial class PackageBrowserViewModel : ObservableObject
         try
         {
             IReadOnlyList<PackageListing> found = await _client
-                .SearchAsync(Query, 30, cancellationToken).ConfigureAwait(true);
+                .SearchAsync(Query, 30, cancellationToken, SparkPackagesOnly).ConfigureAwait(true);
 
             Results.Clear();
             foreach (PackageListing listing in found)
@@ -170,9 +184,24 @@ public sealed partial class PackageBrowserViewModel : ObservableObject
                     _store.IsInstalled(listing.Identity)));
             }
 
-            Status = Results.Count == 0
-                ? "Nothing found on " + SourceLabel + ". Spark packages carry the tag 'spark'."
-                : string.Create(CultureInfo.InvariantCulture, $"{Results.Count} package(s) on {SourceLabel}.");
+            // THE MESSAGE NAMES THE WAY OUT, WHICH IS THE HALF THE OLD ONE WAS MISSING (`E7-T20`).
+            //
+            // It used to say "Nothing found on nuget.org. Spark packages carry the tag 'spark'." -
+            // true, and no help at all to somebody searching for an ordinary library. It stated the
+            // rule that had just excluded their result and left them to work out that the rule was
+            // the problem. The client did work it out, by asking.
+            Status = Results.Count switch
+            {
+                0 when SparkPackagesOnly =>
+                    "No Spark node package found on " + SourceLabel
+                    + ". Untick 'Spark packages only' to search every library on the feed.",
+                0 =>
+                    "Nothing found on " + SourceLabel + ".",
+                _ when SparkPackagesOnly =>
+                    string.Create(CultureInfo.InvariantCulture, $"{Results.Count} Spark package(s) on {SourceLabel}."),
+                _ =>
+                    string.Create(CultureInfo.InvariantCulture, $"{Results.Count} package(s) on {SourceLabel}."),
+            };
         }
         catch (SparkPackageException failure)
         {

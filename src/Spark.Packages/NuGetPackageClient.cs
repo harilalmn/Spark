@@ -79,18 +79,49 @@ public sealed class NuGetPackageClient
     /// <param name="limit">The most results to return.</param>
     /// <param name="cancellationToken">Cancels the search.</param>
     /// <returns>The listings, most relevant first.</returns>
+    /// <param name="sparkOnly">
+    /// True to ask only for Spark node packages, which is the <c>spark</c> tag; false to search
+    /// nuget.org as a person would (`E7-T20`).
+    /// </param>
     /// <remarks>
+    /// <para>
     /// <b>The <c>spark</c> tag is added to the query rather than filtered afterwards.</b> Filtering
     /// a page of general results would return almost nothing and would get worse as nuget.org
     /// grows; asking the feed to do it is what the tag is for.
+    /// </para>
+    /// <para>
+    /// <b>`E7-T20` made the tag optional, and the reason is a defect the client reported.</b>
+    /// Searching for <c>nice3point</c> - a real, popular, entirely ordinary .NET library - returned
+    /// <i>Nothing found on nuget.org. Spark packages carry the tag 'spark'.</i> That message is
+    /// correct and useless: the package is not a Spark node package and never will be, and the
+    /// person searching wanted a <b>library to write code against</b>, not nodes.
+    /// </para>
+    /// <para>
+    /// <b>Two searches rather than one widened search.</b> The tagged query is still exactly right
+    /// for finding node packages, which is what the global store installs; the untagged one is
+    /// right for finding a library to put in a graph's own folder
+    /// ([ADR-0024](../../docs/adr/0024-graph-local-package-folder.md)). Widening the first would
+    /// have buried twenty node packages under a hundred thousand libraries and made the original
+    /// feature worse to fix the new one.
+    /// </para>
     /// </remarks>
     /// <exception cref="SparkPackageException">The feed could not be searched.</exception>
     public async Task<IReadOnlyList<PackageListing>> SearchAsync(
-        string? query, int limit = 25, CancellationToken cancellationToken = default)
+        string? query,
+        int limit = 25,
+        CancellationToken cancellationToken = default,
+        bool sparkOnly = true)
     {
-        string tagged = string.IsNullOrWhiteSpace(query)
-            ? "tags:" + SparkPackageManifest.Tag
-            : query.Trim() + " tags:" + SparkPackageManifest.Tag;
+        string trimmed = query?.Trim() ?? string.Empty;
+
+        string tagged = sparkOnly
+            ? (trimmed.Length == 0
+                ? "tags:" + SparkPackageManifest.Tag
+                : trimmed + " tags:" + SparkPackageManifest.Tag)
+
+            // An empty untagged query asks the feed for whatever it offers first, which is what
+            // every package browser does when the box is empty and is more use than nothing.
+            : trimmed;
 
         try
         {

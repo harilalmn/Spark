@@ -106,6 +106,52 @@ public sealed class NuGetFeedTests
             listing => listing.Identity.Id.Equals("Newtonsoft.Json", StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// <b>The same query, untagged, returns the thing the tagged one excluded</b> (`E7-T20`). This
+    /// is the mirror of the test above and the pair is the point: one query, one flag, opposite
+    /// results, so the filter is doing exactly what it claims and nothing else is.
+    /// </summary>
+    [Fact]
+    public async Task AnUntaggedSearchReturnsOrdinaryLibraries()
+    {
+        if (!FeedReachable.Value)
+        {
+            return;
+        }
+
+        NuGetPackageClient client = new();
+
+        IReadOnlyList<PackageListing> found = await client.SearchAsync(
+            "newtonsoft", 10, TestContext.Current.CancellationToken, sparkOnly: false);
+
+        Assert.Contains(
+            found,
+            listing => listing.Identity.Id.Equals("Newtonsoft.Json", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// <b>The client's own search</b> (`E7-T20`). They typed <c>nice3point</c> into the Packages
+    /// window and were told <i>Nothing found on nuget.org. Spark packages carry the tag 'spark'.</i>
+    /// — correct, and useless: those are ordinary Revit API libraries, not Spark node packages, and
+    /// the person searching wanted a library to write code against.
+    /// </summary>
+    [Fact]
+    public async Task TheClientsSearchFindsSomethingWhenItIsNotTagged()
+    {
+        if (!FeedReachable.Value)
+        {
+            return;
+        }
+
+        NuGetPackageClient client = new();
+
+        Assert.Empty(await client.SearchAsync(
+            "nice3point", 10, TestContext.Current.CancellationToken));
+
+        Assert.NotEmpty(await client.SearchAsync(
+            "nice3point", 10, TestContext.Current.CancellationToken, sparkOnly: false));
+    }
+
     /// <summary>Asking a real feed for a version that does not exist fails with a usable message.</summary>
     [Fact]
     public async Task InstallingAVersionThatDoesNotExistSaysSo()
