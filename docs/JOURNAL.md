@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — `E13-T19` is committed.** GitHub Actions is off at the repository, the three workflow files stay in the tree inert, and five documents stopped promising checks that no longer happen. **`dotnet test Spark.slnx` now has no authority behind it at all** and `AGENTS.md` says so. |
+| **Working on** | **`E8-T83` is committed; the client's other report is next.** A slider's value is now clamped where the literal is written rather than only where the thumb is dragged. **The remaining half of their message is the code block**: *add line breaks automatically when one clicks out of a code block, or perform an auto-formatting.* |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **GitHub Actions turned off entirely** — `E13-T19`. **Before it:** `E13-T18`, `E8-T82`, `E8-T80`'s three steps. |
-| **Working tree** | Clean. Documentation and one repository setting this step; the last full run was **2943** tests over ten executables with one `E8-T81` flake. |
-| **Next action** | **`E8-T81` — the headless flakiness, and it matters more now than it did an hour ago.** With CI off, the local suite is the **only** evidence anything works, and it needs a re-run to be green about one time in three. A gate that is the sole authority cannot also be unreliable. **Acceptance is ten consecutive green runs of `Spark.UI.Tests`**; every failure so far has been inside `HeadlessSession.Run`, in a different class each time, which points at session setup or teardown rather than at any test's subject. |
-| **Verify with** | Ten consecutive green runs of `Spark.UI.Tests`. Nothing smaller distinguishes a fix from luck on an intermittent fault. |
+| **Last completed step** | **A slider's value never sits outside its own range** — `E8-T83`. **Before it:** `E13-T19`, `E13-T18`, `E8-T82`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2951** tests over ten executables. |
+| **Next action** | **`E8-T84` — format a code block when it loses focus.** The client's screenshot shows `3;20;` on one line, which is legal C# and unreadable, and the block's own message — *a call or new makes no port, assign it with `var`* — is answering a different question than the one the layout raises. **The check that makes this safe was done first**: a block's output ports come from `LocalDeclarationStatementSyntax`, not from lines, so whitespace-only formatting **cannot change a node's ports or break a wire**. Parse as a compilation unit rather than a statement list, because a block may carry `using` directives that `E6-T39` hoists and those are not statements. **Format only when the text parses cleanly** — reformatting a half-typed block would fight the person typing it. |
+| **Verify with** | The three gates, plus: `3;20;` becomes two lines; a block that does not parse is returned **byte for byte**; `using` directives survive and stay at the top; comments survive; the ports and their names are identical before and after, which is the assertion that protects existing graphs; and formatting an already-formatted block changes nothing, so it is idempotent and does not dirty a document by being looked at. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -9925,3 +9925,40 @@ whose it was.
 the check that every relative link still resolves after five documents were edited. **The claim that
 no run starts on the next push cannot be verified from here** — it is the absence of a thing, and it
 will be visible on the Actions tab the next time anybody pushes.
+
+### 2026-09-09 — A slider's value never sits outside its own range (`E8-T83`)
+
+**Reported by the client**: *if min and max values are set for an integer/number slider, do not let
+the user slide beyond those values; currently the slider slides beyond these values.*
+
+**The first thing done was to check the named door, and it was shut.** A throwaway probe built a
+slider, set min to 10 and max to 20, dragged three hundred pixels past the right end and read the
+literal back: **20**. `DragSlider` clamps the fraction to 0–1 and clamps the value again on the way
+out, and `DraggingToTheEndClampsToTheMaximum` had been asserting it since `E8-T25`. **Fixing what
+the report named would have changed nothing**, and the probe is the reason that was known in two
+minutes rather than after a change that did not help.
+
+**Three routes reach a slider's value and only the drag was guarded.** The properties panel takes
+any number typed into the value box. And **changing `min` or `max` afterwards leaves a value that
+was legal when it was set stranded outside the new range** — which is almost certainly what was
+seen, because `Number.Slider` clamps its *output*: the node returns the end of the range while the
+panel and the value label still show the old number. The display and the result disagree, and the
+display is the half a user believes.
+
+**Clamped in `CanvasGraph.SetLiteral`**, which is the one gate all three pass through — so undo, a
+paste, and whatever writes a literal next are covered without being named. Writing `min` or `max`
+therefore rewrites `value`, an edit inside an edit, which is deliberate: the alternative is a node
+whose stored state is invalid by its own declaration and every reader of it re-deriving the same
+clamp.
+
+**A test premise was wrong before the code was**, and it is worth the note. The inverted-range test
+set value 50, then min 80, then max 20, and expected 50 to stand. It came back 80 — correctly:
+setting min to 80 while max was still 100 is a legal range in which 50 does not fit. **The
+intermediate state clamped, and no later state remembers what the value used to be.** That is a real
+cost of never storing an out-of-range value, so it has its own test saying so out loud rather than a
+comment apologising for it.
+
+**Verified.** The three gates. Seven tests, **all seven watched going red** with the clamp removed —
+which is what a one-line guard deserves, since the line is easy to delete and impossible to miss the
+absence of. One of them asserts that a node which is *not* a slider keeps whatever it is given,
+because every literal in the graph goes through this gate now.

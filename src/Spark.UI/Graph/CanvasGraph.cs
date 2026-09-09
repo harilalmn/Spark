@@ -2002,6 +2002,11 @@ public sealed class CanvasGraph
     /// <param name="slot">The node's slot.</param>
     /// <param name="portIndex">The input port index.</param>
     /// <param name="value">The literal.</param>
+    /// <remarks>
+    /// <b>A slider's value is kept inside its own range here</b> (`E8-T83`), because this is the
+    /// one gate every route passes through — the properties panel, an undo, a paste, and whatever
+    /// is written next. Clamping in the drag alone was the state that produced the client's report.
+    /// </remarks>
     public void SetLiteral(int slot, int portIndex, object? value)
     {
         if (slot < 0 || slot >= _nodes.Count)
@@ -2009,7 +2014,79 @@ public sealed class CanvasGraph
             return;
         }
 
-        Edit(() => Engine.SetLiteral(_nodes[slot].Id, portIndex, value));
+        Edit(() =>
+        {
+            Engine.SetLiteral(_nodes[slot].Id, portIndex, value);
+            ConstrainSlider(slot, portIndex);
+        });
+    }
+
+    /// <summary>
+    /// Keeps a slider's value inside the range its own <c>min</c> and <c>max</c> declare
+    /// (`E8-T83`).
+    /// </summary>
+    /// <param name="slot">The node's slot.</param>
+    /// <param name="portIndex">The port that was just written.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>Reported by the client as <i>the slider slides beyond min and max</i>, and dragging was
+    /// not the door that was open.</b> A probe dragged three hundred pixels past the right end of a
+    /// 10–20 slider and got 20. What was unguarded was everything else: the properties panel takes
+    /// any number typed into the value box, and <b>changing <c>min</c> or <c>max</c> afterwards
+    /// leaves a value that was legal when it was set stranded outside the new range</b>.
+    /// </para>
+    /// <para>
+    /// <b>The stranded case is the one that reads as a bug.</b> <c>Number.Slider</c> clamps its
+    /// <i>output</i>, so the node quietly returns the end of the range while the panel and the
+    /// value label still show the old number — the display and the result disagree, and the display
+    /// is the half a user believes. Clamping the literal makes them agree.
+    /// </para>
+    /// <para>
+    /// <b>Writing <c>min</c> or <c>max</c> therefore rewrites <c>value</c>, which is a second edit
+    /// inside the first.</b> That is deliberate: the alternative is a node whose stored state is
+    /// invalid by its own declaration, and every reader of it — the canvas, the panel, the
+    /// evaluator — having to re-derive the same clamp.
+    /// </para>
+    /// </remarks>
+    private void ConstrainSlider(int slot, int portIndex)
+    {
+        // Only the three ports that define the range, and only on a slider. Every other literal in
+        // the graph goes through here too, and none of them wants an opinion.
+        if (portIndex > 2 || !_nodes[slot].HasSlider)
+        {
+            return;
+        }
+
+        if (!TryNumber(Literal(slot, 0), out double value)
+            || !TryNumber(Literal(slot, 1), out double minimum)
+            || !TryNumber(Literal(slot, 2), out double maximum))
+        {
+            return;
+        }
+
+        // An inverted range is a half-finished gesture, not an error - the same rule the node
+        // itself follows. The ends are read swapped and neither literal is rewritten, so the user
+        // gets their range back when they finish typing it.
+        (double low, double high) = minimum <= maximum ? (minimum, maximum) : (maximum, minimum);
+
+        double clamped = Math.Clamp(value, low, high);
+
+        if (clamped.Equals(value))
+        {
+            return;
+        }
+
+        NodeId id = _nodes[slot].Id;
+
+        // In the port's own declared type, exactly as `SetSliderValue` does: an integer slider's
+        // value port must not be handed a double, or the literal is a `4.0` where the graph
+        // promised an `int`.
+        Engine.SetLiteral(
+            id,
+            0,
+            Engine.Node(id).Definition.Inputs[0].ValueType == typeof(int)
+                ? (object)(int)Math.Round(clamped)
+                : clamped);
     }
 
     /// <summary>
