@@ -220,7 +220,7 @@ public sealed class DuplicateAndNewTests
     [Fact]
     public void NewEmptiesTheDocument()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         Assert.NotEmpty(model.Graph.Nodes);
 

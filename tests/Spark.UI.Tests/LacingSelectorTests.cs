@@ -25,7 +25,7 @@ public sealed class LacingSelectorTests
     [Fact]
     public void ASingleSelectionOffersLacingAndAMultipleOneDoesNot()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.ShowSelection([SlotOf(model, "Math.Divide")]);
         Assert.True(model.CanSetLacing);
@@ -49,7 +49,7 @@ public sealed class LacingSelectorTests
     [Fact]
     public void TheNoteExplainsAutoAndNothingElse()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
         int slot = SlotOf(model, "Math.Divide");
 
         model.ShowSelection([slot]);
@@ -63,7 +63,7 @@ public sealed class LacingSelectorTests
     [Fact]
     public void ChoosingAModeSetsItOnTheNode()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
         int slot = SlotOf(model, "Math.Divide");
         NodeId id = model.Graph.Nodes[slot].Id;
 
@@ -82,7 +82,7 @@ public sealed class LacingSelectorTests
     [Fact]
     public void ChangingLacingIsOneUndoStep()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.ShowSelection([SlotOf(model, "Math.Divide")]);
         model.SelectedLacing = "Shortest";
@@ -110,7 +110,7 @@ public sealed class LacingSelectorTests
     [Fact]
     public void SelectingANodeIsNotAnEdit()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.ShowSelection([SlotOf(model, "Math.Divide")]);
         model.ShowSelection([SlotOf(model, "Point.FromCoordinates")]);
@@ -123,7 +123,7 @@ public sealed class LacingSelectorTests
     [Fact]
     public void ChoosingTheModeItAlreadyHasIsNotAnEdit()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.ShowSelection([SlotOf(model, "Math.Divide")]);
         model.SelectedLacing = LacingNames.Auto;

@@ -172,7 +172,7 @@ public sealed class NodeAppearanceTests
     [Fact]
     public void SelectingANodeShowsItsNameAndColour()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.Graph.Nodes[0].CustomTitle = "Profile";
         model.Graph.Nodes[0].ColourOverride = NodeCategory.Curve;
@@ -191,7 +191,7 @@ public sealed class NodeAppearanceTests
     [Fact]
     public void SelectingANodeIsNotAnEdit()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.ShowSelection([0]);
         model.ShowSelection([1]);
@@ -204,7 +204,7 @@ public sealed class NodeAppearanceTests
     [Fact]
     public void TypingANameRenamesLiveAndCommitsOnce()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.ShowSelection([0]);
 
@@ -233,7 +233,7 @@ public sealed class NodeAppearanceTests
     [Fact]
     public void ChoosingAColourIsOneUndoableEdit()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.ShowSelection([0]);
         model.NodeColour = nameof(NodeCategory.Math);

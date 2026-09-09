@@ -437,7 +437,16 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 ? DemoGraphs.Curves(_session.Library)
                 : string.Equals(startupGraph, "solids", StringComparison.OrdinalIgnoreCase)
                 ? DemoGraphs.Solids(_session.Library)
-                : DemoGraphs.Demo(_session.Library));
+                : string.Equals(startupGraph, "demo", StringComparison.OrdinalIgnoreCase)
+                ? DemoGraphs.Demo(_session.Library)
+
+                // `E8-T76`: AN EMPTY CANVAS IS THE DEFAULT, AND THE DEMO IS SOMETHING YOU ASK FOR.
+                // Asked for by the client. Spark opened on nine wired nodes nobody had put there,
+                // so the first thing anybody did was delete somebody else's graph - and the demo's
+                // `Math.Divide` is deliberately divided by zero, so a fresh window also opened with
+                // an error in the diagnostics panel. The four demos are unchanged and all still one
+                // click away under the Graph menu, and `--graph demo` still names this one.
+                : new CanvasGraph());
         for (int slot = 0; slot < FreezeFirst && slot < _graph.Nodes.Count; slot++)
         {
             _ = _graph.Engine.SetFrozen(_graph.Nodes[slot].Id, frozen: true);

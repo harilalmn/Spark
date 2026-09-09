@@ -21,7 +21,7 @@ public sealed class MissingPackageBannerTests
     [Fact]
     public void AGraphThatResolvesNeedsNothing()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         Assert.Empty(model.MissingPackages());
     }
@@ -34,7 +34,7 @@ public sealed class MissingPackageBannerTests
     [Fact]
     public void AGraphNamingAnUninstalledPackageReportsItOnce()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         Assert.True(model.TryOpenDocument(Rewritten(model, "Acme.Nodes")));
 
@@ -45,7 +45,7 @@ public sealed class MissingPackageBannerTests
     [Fact]
     public void TwoMissingPackagesAreBothReported()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         string text = Rewritten(model, "Acme.Nodes");
 
@@ -69,7 +69,7 @@ public sealed class MissingPackageBannerTests
     [Fact]
     public void TheGraphIsUnharmedAndStillSavesByteForByte()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         string text = Rewritten(model, "Acme.Nodes");
         int before = model.Graph.Nodes.Count;
@@ -86,7 +86,7 @@ public sealed class MissingPackageBannerTests
     [Fact]
     public void ReopeningAResolvableGraphClearsTheAnswer()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         string ordinary = model.TrySaveDocument() ?? throw new InvalidOperationException("the graph did not save");
 

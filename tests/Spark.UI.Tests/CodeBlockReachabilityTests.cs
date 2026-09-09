@@ -20,7 +20,7 @@ public sealed class CodeBlockReachabilityTests
     [Fact]
     public void SelectingACodeBlockShowsItsSource()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         int slot = model.PlaceCodeBlock(0, 0);
 
@@ -36,7 +36,7 @@ public sealed class CodeBlockReachabilityTests
     [Fact]
     public void SelectingSomethingElseClearsIt()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         int slot = model.PlaceCodeBlock(0, 0);
         model.ShowSelection([slot]);
@@ -61,7 +61,7 @@ public sealed class CodeBlockReachabilityTests
     [Fact]
     public void AFreshCodeBlockIsEmptyAndStillASensibleSize()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         int slot = model.PlaceCodeBlock(0, 0);
         model.ShowSelection([slot]);
@@ -87,7 +87,7 @@ public sealed class CodeBlockReachabilityTests
     [Fact]
     public void AFreshCodeBlockHasNoInputs()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         int slot = model.PlaceCodeBlock(0, 0);
 
@@ -104,7 +104,7 @@ public sealed class CodeBlockReachabilityTests
     [Fact]
     public void TypingAnUndeclaredNameAddsAnInput()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         int slot = model.PlaceCodeBlock(0, 0);
 
@@ -131,7 +131,7 @@ public sealed class CodeBlockReachabilityTests
     [Fact]
     public void EachLineOfACommittedScriptBecomesAnOutputPortOnTheNode()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         int slot = model.PlaceCodeBlock(0, 0);
         Spark.UI.Graph.CanvasNode node = model.Graph.Nodes[slot];

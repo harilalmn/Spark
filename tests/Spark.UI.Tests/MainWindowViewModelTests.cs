@@ -25,7 +25,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void TheLibraryIsImportedAtStartup()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         Assert.True(model.LibraryCount > 20, $"Only {model.LibraryCount} nodes were imported.");
         Assert.Contains(model.AllLibraryEntries, entry => entry.DisplayName == "Point.FromCoordinates");
@@ -38,12 +38,59 @@ public sealed class MainWindowViewModelTests
     }
 
     /// <summary>
+    /// <b>Spark opens on an empty canvas</b> (`E8-T76`). Asked for by the client, and the reason is
+    /// worth keeping beside the assertion: it used to open on nine wired nodes nobody had put
+    /// there, so the first thing anybody did was delete somebody else's graph — and the demo's
+    /// <c>Math.Divide</c> is deliberately divided by zero, so a fresh window also opened with a red
+    /// error in the diagnostics panel.
+    /// </summary>
+    [Fact]
+    public async Task AFreshSessionOpensOnAnEmptyCanvas()
+    {
+        using MainWindowViewModel model = new();
+
+        Assert.Empty(model.Graph.Nodes);
+        Assert.Empty(model.Graph.Engine.Wires());
+
+        await model.EvaluateAsync();
+
+        // Nothing to draw, and - the half that was the client's actual complaint - nothing to
+        // apologise for.
+        Assert.Empty(model.Scene.Snapshot());
+        Assert.DoesNotContain("Error", model.DiagnosticsText ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>The demo is still there, and is now something you ask for</b> (`E8-T76`). It was reached
+    /// by <i>falling through</i> every other name, so making the fall-through empty needed a branch
+    /// that had never existed — and a switch nobody tests is a switch that stops working quietly.
+    /// </summary>
+    [Fact]
+    public void TheDemoGraphIsStillReachableByName()
+    {
+        using MainWindowViewModel model = new("demo");
+
+        Assert.NotEmpty(model.Graph.Nodes);
+    }
+
+    /// <summary>
+    /// A name that means nothing opens an empty canvas rather than guessing at a demo.
+    /// </summary>
+    [Fact]
+    public void AnUnknownGraphNameOpensNothing()
+    {
+        using MainWindowViewModel model = new("nonsense");
+
+        Assert.Empty(model.Graph.Nodes);
+    }
+
+    /// <summary>
     /// The demo graph evaluates and puts a hundred points into the viewport as one buffer set.
     /// </summary>
     [Fact]
     public async Task TheDemoGraphPutsAHundredPointsInTheViewport()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
         await model.EvaluateAsync();
 
         RenderPackage package = Assert.Single(model.Scene.Snapshot());
@@ -65,7 +112,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public async Task EditingALiteralChangesTheGeometry()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
         await model.EvaluateAsync();
 
         Assert.Equal(100 * 8, model.Scene.Snapshot().Single().TriangleCount);
@@ -90,7 +137,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public async Task InvalidLiteralTextIsRefusedRatherThanCoerced()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
         await model.EvaluateAsync();
 
         model.ShowSelection([SlotOf(model, "Number.Range")]);
@@ -117,7 +164,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void EveryInspectorRowNamesTheTypeItWants()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.ShowSelection([SlotOf(model, "Number.Range")]);
 
@@ -130,7 +177,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void AWiredPortIsNotEditable()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.ShowSelection([SlotOf(model, "Point.FromCoordinates")]);
 
@@ -146,7 +193,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public async Task PlacingANodeAddsGeometryToTheViewport()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
         await model.EvaluateAsync();
 
         Assert.Equal(1, model.Scene.Count);
@@ -170,7 +217,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public async Task RemovingANodeRemovesItsGeometry()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
         await model.EvaluateAsync();
 
         Assert.Equal(1, model.Scene.Count);
@@ -188,7 +235,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public async Task LoadingTheSyntheticGraphReplacesTheDocument()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
         await model.EvaluateAsync();
         Assert.Equal(1, model.Scene.Count);
 
@@ -202,7 +249,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void TheLibrarySearchFilters()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
         int all = model.LibraryEntries.Count;
 
         model.LibrarySearch = "vector";
@@ -225,7 +272,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void TheLibrarySearchRanksCamelHumpsFirst()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.LibrarySearch = "cfcr";
 
@@ -243,7 +290,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void TheCreationBoxOffersAShortRankedListAndNothingUntilAsked()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         Assert.Empty(model.CreateResults);
 
@@ -272,7 +319,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void TheCreationBoxOrdersEqualMatchesByKindThenAlphabetically()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.CreateSearch = "circ";
 
@@ -293,7 +340,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public async Task ANodeCreatedFromTheBoxLandsWhereItWasAskedFor()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.CreateSearch = "cfcr";
         LibraryEntryViewModel entry = model.CreateResults[0];
@@ -340,7 +387,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public async Task ARunBringsThePropertiesPanelLevelWithTheGraph()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         int slot = model.Graph.Add(TestGraphs.Library.ByName("Number.Slider"), 0, 0);
         model.ShowSelection([slot]);
@@ -374,7 +421,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void TogglingAPaneLeavesTheOthersWhereTheyWere()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         double library = model.Layout.LibraryFraction;
         double canvas = model.Layout.CanvasFraction;
@@ -399,7 +446,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void TheLibraryTogglesIndependentlyOfTheProperties()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.TogglePane("Library");
 
@@ -416,7 +463,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void APresetMovesTheTicksTheSameWayAToggleDoes()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
         List<string> changed = [];
         model.PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? string.Empty);
 
@@ -439,7 +486,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void TogglingAPaneAsksTheShellToRearrange()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
         int asked = 0;
         model.WorkspaceChanged += (_, _) => asked++;
 
@@ -459,7 +506,7 @@ public sealed class MainWindowViewModelTests
     [InlineData("Propertise")]
     public void AnUnknownPaneNameIsIgnored(string? name)
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.TogglePane(name);
 

@@ -28,7 +28,7 @@ public sealed class UndoRedoTests
     [Fact]
     public void ANewlyOpenedDocumentHasNothingToUndo()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         Assert.False(model.CanUndo);
         Assert.False(model.CanRedo);
@@ -39,7 +39,7 @@ public sealed class UndoRedoTests
     [Fact]
     public async Task PlacingANodeIsUndoneAndRedone()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
         int before = model.Graph.Nodes.Count;
 
         model.SelectedLibraryEntry =
@@ -76,7 +76,7 @@ public sealed class UndoRedoTests
     [Fact]
     public async Task UndoRestoresALiteralAndTheGeometryItProduced()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
         await model.EvaluateAsync();
 
         Assert.Equal(100 * 8, model.Scene.Snapshot().Single().TriangleCount);
@@ -107,7 +107,7 @@ public sealed class UndoRedoTests
     [Fact]
     public async Task UndoRestoresWhereANodeWas()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
         CanvasNode node = model.Graph.Nodes[0];
         Spark.Engine.NodeId id = node.Id;
         double x = node.X;
@@ -133,7 +133,7 @@ public sealed class UndoRedoTests
     [Fact]
     public void CommittingTheSameLiteralTwiceIsOneStep()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.ShowSelection([SlotOf(model, "Number.Range")]);
         PortLiteralViewModel end = model.Inspector.Single(port => port.Name == "end");
@@ -159,7 +159,7 @@ public sealed class UndoRedoTests
     [Fact]
     public void TheUndoAndRedoCommandsGateThemselves()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         Assert.False(model.UndoCommand.CanExecute(null));
         Assert.False(model.RedoCommand.CanExecute(null));
@@ -184,7 +184,7 @@ public sealed class UndoRedoTests
     [Fact]
     public void OpeningADocumentStartsANewHistory()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
 
         model.SelectedLibraryEntry =
             model.AllLibraryEntries.First(entry => entry.DisplayName == "Point.Origin");
@@ -212,7 +212,7 @@ public sealed class UndoRedoTests
     [Fact]
     public async Task TheRunAfterAnUndoRecomputesNothing()
     {
-        using MainWindowViewModel model = new();
+        using MainWindowViewModel model = new("demo");
         await model.EvaluateAsync();
 
         // How many nodes a run of this graph reaches at all, which is what "recomputed nothing"

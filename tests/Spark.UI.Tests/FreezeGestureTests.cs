@@ -16,7 +16,7 @@ public sealed class FreezeGestureTests
     [Fact]
     public void FreezingOneNodeFreezesThatNode()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         Assert.Equal(1, model.FreezeSelection([0], frozen: true));
         Assert.True(IsFrozen(model, 0));
@@ -27,7 +27,7 @@ public sealed class FreezeGestureTests
     [Fact]
     public void AnEmptySelectionFreezesNothing()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         Assert.Equal(0, model.FreezeSelection([], frozen: true));
         Assert.False(model.SelectionIsFrozen([]));
@@ -37,7 +37,7 @@ public sealed class FreezeGestureTests
     [Fact]
     public void UnfreezingSomethingUnfrozenChangesNothing()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         Assert.Equal(0, model.FreezeSelection([0], frozen: false));
     }
@@ -50,7 +50,7 @@ public sealed class FreezeGestureTests
     [Fact]
     public void ASelectionIsFrozenOnlyWhenAllOfItIs()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         model.FreezeSelection([0], frozen: true);
 
@@ -70,7 +70,7 @@ public sealed class FreezeGestureTests
     [Fact]
     public void FreezingOneNodeOfAGroupFreezesTheGroup()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         Assert.NotNull(model.Graph.AddGroup([0, 1, 2]));
 
@@ -86,7 +86,7 @@ public sealed class FreezeGestureTests
     [Fact]
     public void UnfreezingOneNodeOfAGroupThawsTheGroup()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         Assert.NotNull(model.Graph.AddGroup([0, 1, 2]));
         model.FreezeSelection([0], frozen: true);
@@ -101,7 +101,7 @@ public sealed class FreezeGestureTests
     [Fact]
     public void AnOutOfRangeSlotIsIgnored()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         Assert.Equal(0, model.FreezeSelection([-1, 9999], frozen: true));
         Assert.False(model.SelectionIsFrozen([-1, 9999]));
@@ -114,7 +114,7 @@ public sealed class FreezeGestureTests
     [Fact]
     public void TheFreezeSurvivesTheDocumentRoundTrip()
     {
-        MainWindowViewModel model = new();
+        MainWindowViewModel model = new("demo");
 
         model.FreezeSelection([0], frozen: true);
 

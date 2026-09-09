@@ -20,7 +20,10 @@ namespace Spark.UI;
 /// </param>
 /// <param name="Graph">
 /// Which seeded graph to open: <c>demo</c> for the point grid, <c>curves</c> for the curve demo,
-/// <c>surfaces</c> for the surface demo, <c>solids</c> for the exact solid demo.
+/// <c>surfaces</c> for the surface demo, <c>solids</c> for the exact solid demo. **Null, and
+/// anything else, opens an empty canvas** (`E8-T76`) — the demo used to be what a name nobody
+/// recognised fell through to, and it was therefore also what a fresh session got. All four are
+/// still one click away under the Graph menu.
 /// </param>
 /// <param name="OpenPath">
 /// A `.spark` file to open instead of a seeded graph, or null.

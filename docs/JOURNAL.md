@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-09 (completion can see another block's types)
+**Last updated:** 2026-09-09 (Spark opens on an empty canvas)
 **Protocol version:** 2
 
 ---
@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v2026.8.1` shipped on 2026-09-08** — published by `Release (win-x64)` run `34239709515` in 7m31s, with `spark-2026.8.1-setup.exe` (51.1 MB) and `spark-portable-win-x64.zip` (77.5 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v2026.8.1>. **Nothing is signed**, and the release notes say so rather than hiding it. **The scheme changed here**, at the client's instruction: `v0.4.0` was the last of the semantic run and this is the first calendar one. `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing.** `E6-T37` is committed, and both of the client's reports are answered. |
+| **Working on** | **Nothing.** `E8-T76` is committed. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Completion, signature help and quick info can see another block's types** - `E6-T37`. **Before it:** `E8-T75`, `E6-T36`, `E6-T35`, `E6-T34`, `E8-T74` and the `v2026.8.1` cut. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2815** tests green over nine executables with zero skips. **One of the failures on the way here was not `E11-T27` and was nearly filed as it**: `E6-T36`'s own seam test pinned an order `GraphDocument.Capture` decides with a `Guid`, and it is fixed ([N129](NOTES.md)). `E11-T27` itself still names ten victims across nine classes, and `E8-T75` is a plausible contributor to the tenth rather than a bystander. |
-| **Next action** | **Take `E11-T27`.** It is now the only thing on the list that this run has actively made worse: four steps today added six window-showing tests to an assembly whose flake this row is about, and the tenth victim arrived in the middle of them. It also cost this session real time twice - once losing a failure's name to a `tail`, once re-running a full suite to find out whether a failure was mine. `test-engineer` owns the choice between one xunit collection over every Avalonia-touching class and `DisableTestParallelization` for the assembly, which costs about 16 seconds. **Also open and cheap where the toolchain allows it**: `E13-T18`. |
+| **Last completed step** | **Spark opens on an empty canvas** - `E8-T76`. **Before it:** `E6-T37`, `E8-T75`, `E6-T36`, `E6-T35`, `E6-T34`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2818** tests green over nine executables with zero skips. `E11-T27` names ten victims across nine classes. |
+| **Next action** | **Take `E11-T27`.** Five client requests have been answered in a row and the queue is back to what the project owes itself. This run added six window-showing tests to the assembly the flake lives in, produced its tenth victim, and cost real time twice - once losing a failure's name to a `tail`, once re-running a full suite to find out whether a failure was mine (it was, and it was not this row: see [N129](NOTES.md)). `test-engineer` owns the choice between one xunit collection over every Avalonia-touching class and `DisableTestParallelization` for the assembly, about 16 seconds. **Also open and cheap where the toolchain allows it**: `E13-T18`. |
 | **Verify with** | Whatever the next row needs. Nothing is half-done. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -9226,3 +9226,43 @@ script before any create, and nothing about which block is named first — ten c
 ([N129](NOTES.md)).
 
 **Cost.** One session for `E6-T34`, `E6-T35`, `E6-T36`, `E8-T75` and this.
+
+### 2026-09-09 — Spark opens on an empty canvas (`E8-T76`)
+
+**What.** The client: *remove this default graph, keep the canvas clean.* A fresh window opened on
+nine wired nodes nobody had put there, so the first thing anybody did was delete somebody else's
+graph — and the demo's `Math.Divide` is deliberately divided by zero, so it also opened with a red
+error in the diagnostics panel. It now opens empty, and the panel reads *0 nodes evaluated, 0 served
+from cache. No diagnostics.*
+
+**Nothing was removed.** The four demos are unchanged and all still one click away under the Graph
+menu, and `--graph demo` still names this one — which needed a **new branch**, because the demo was
+what every unrecognised name *fell through to*, and was therefore also what a fresh session got.
+Making the fall-through empty and leaving the switch alone would have quietly deleted `--graph demo`
+as well.
+
+**The change is one expression; the work was in the tests, and they were wrong before it.** 32
+failed, every one because it called the parameterless `MainWindowViewModel` constructor and quietly
+relied on being handed nine nodes — freeze gestures, lacing, undo, node appearance, the
+missing-package banner, across eight files. Each now says what it needs, `new
+MainWindowViewModel("demo")`. **That a change this small reached eight files is the finding**: a
+test that depends on a populated graph without saying so is a test whose subject is not what it
+claims, and thirty-two of them had been quietly coupled to a default nobody had ever asserted.
+
+**Which is the other half: nothing tested the default at all.** Three tests now do — a fresh session
+has no nodes, no wires, nothing in the scene and no error in the diagnostics panel; `--graph demo`
+still yields the nine-node graph; and a name that means nothing opens an empty canvas rather than
+guessing at a demo.
+
+**One alarm that turned out to be nothing, checked rather than assumed.** The startup screenshot
+showed the viewport as a flat black rectangle where the demo had shown a grid and coloured axes,
+which would have been a worse first impression than the graph being removed. It is an artefact of
+how the picture is taken: the window grab does not composite the GL surface, and the GPU read-back
+written beside it shows the grid and the axes exactly as before. Worth the two minutes — the
+alternative was shipping a blank viewport or reverting a correct change on a bad photograph.
+
+**Verified.** The three gates — clean build with zero warnings, format clean, **2818** tests green
+over nine executables with zero skips. And the application, screenshotted on startup, which is a
+picture of precisely what was asked for.
+
+**Cost.** Minutes for the change, most of an hour for the tests it exposed.
