@@ -2,7 +2,7 @@
 
 For anyone changing this repository — human or AI. Read this before committing.
 
-**Last updated:** 2026-09-09 (the release is cut locally and published to Spark-Releases)
+**Last updated:** 2026-09-09 (`E11-T28`: the verification loop can run a project that no longer exists)
 
 ---
 
@@ -184,6 +184,21 @@ what did, and Actions is off (`E13-T19`). The per-project executables are the wh
 green suite out of a run that discovered nothing**: exit code 5 with a zero total is exactly what
 that looks like, and until this is diagnosed, a run of
 `tests/<project>/bin/Debug/net10.0/<project>.exe` is the fallback that actually executes tests.
+
+**And do not read a green suite out of a run that discovered too much.** The loop everybody uses
+is driven by what is on disk:
+
+```
+for p in tests/*/; do n=$(basename "$p"); (cd "$p/bin/Debug/net10.0" && ./"$n.exe"); done
+```
+
+`bin/` is gitignored, so a project deleted from git leaves an executable behind and the loop keeps
+running it. That happened for eleven days — twelve phantom passes from `Spark.Geometry.Io.Tests`,
+whose tests had been folded into `Spark.Geometry.Tests` ([N135](docs/NOTES.md)). **The expected
+total on 2026-09-09 is 2,956 across nine projects, with the native shim built and zero skipped**,
+and `SolutionMembershipTests` (`E11-T28`) now fails the build rather than leaving it to be noticed:
+every `.csproj` under `tests/` is in `Spark.slnx`, and no directory under `tests/` holds a `bin/`
+without a project beside it.
 
 Steps 1 through 3 are gates. A red docs harness is a broken build, including when the only
 thing broken is a dangling ADR citation in a build-file comment — that is precisely the point

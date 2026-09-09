@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-09 (N134: a platform-neutral target framework)
+**Last updated:** 2026-09-09 (N135: a deleted test project kept passing)
 
 ---
 
@@ -4033,3 +4033,48 @@ constructs the subject in the convenient shape hides every defect living in the 
 **The lesson, stated as a rule:** when a question has a correct answer from a package manager and a
 correct answer from the running process, work out which of the two you are actually asking. Both
 answers here were right; only one of them was to the question at hand.
+
+---
+
+## N135 — A deleted test project kept passing for eleven days
+
+`dotnet test Spark.slnx` does not work on this machine ([N30](#n30--a-test-that-disappears-is-invisible-to-all-three-gates)
+is the shape, and AGENTS.md carries the workaround), so the suite is verified by a loop:
+
+```
+for p in tests/*/; do n=$(basename "$p"); (cd "$p/bin/Debug/net10.0" && ./"$n.exe"); done
+```
+
+**The loop is driven by what is on disk, and `bin/` is gitignored.** `Spark.Geometry.Io.Tests`
+was folded into `Spark.Geometry.Tests` and its project deleted from git on some earlier day; the
+build output stayed. Every verification run since then executed an **eleven-day-old** binary,
+found twelve passing tests in it, and added them to the total. The register audit of 2026-09-09
+quoted 2,966 tests across ten projects. There were 2,954 across nine.
+
+**Nothing was actually broken by it**, which is the part worth sitting with. The twelve tests
+still exist, in `Spark.Geometry.Tests/ObjWriterTests.cs`, and they pass there. The damage was
+entirely to the evidence: a count that nobody could reproduce from the repository, and a green
+run that included a project no longer in it. **A number you cannot re-derive from the tree is not
+a measurement.**
+
+**Why neither gate saw it.** `dotnet build Spark.slnx` builds what the solution names, and the
+solution had already stopped naming it — so the build was correct to ignore it, and correct is
+exactly why it was silent. `dotnet format` reads the solution too. The one thing that read the
+*directory* was the verification loop, and a loop over `tests/*/` cannot tell a project from its
+own leftovers.
+
+**Found by looking for something else.** The audit went looking for a CLI test project, noticed
+`Spark.Geometry.Io.Tests` in the loop's output but not in `Spark.slnx`, and assumed the project
+had been left out of the solution. Adding it to `Spark.slnx` failed with `MSB3202: the project
+file was not found`, which is when it became clear the directory held no project at all. **The
+first hypothesis was the more alarming one and the truth was the more embarrassing one**, which
+is the usual direction.
+
+**The guard is `SolutionMembershipTests`, and it is two assertions rather than one** because the
+two failures are opposite. Every `.csproj` under `tests/` is in `Spark.slnx` — that catches a real
+project nothing builds. No directory under `tests/` holds a `bin/` without a `.csproj` beside it —
+that catches this. Both were written red: the first flagged `tests/corpus/`, which is data and has
+no project by design, and **membership was moved from *is a directory* to *holds a project* before
+the guard was a day old**, because a check that flags a legitimate thing is a check somebody
+suppresses.
+

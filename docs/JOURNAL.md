@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Preparing the first public release.** The register audit is done, so the register can be quoted in release notes without lying. What is next is the release itself, and the four small pieces of work the audit named. |
+| **Working on** | **Preparing the first public release.** The register is audited and the suite now counts only what the repository contains. Next are the four small pieces of work the audit named, then the release. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The register audit** — every `In progress` row in TASKS.md settled against the source tree, and TODO.md and EPICS.md brought level with it. **Before it:** `E11-T27` the suite is deterministic, the bookkeeping correction, `E8-T84`, `E8-T83`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2966** tests over ten executables with **zero skips**, and the docs harness green — it caught one thing in this step, a dangling ADR link written into a row, which is exactly what it is for. |
-| **Next action** | **Take `spark check`** — `E12-T5`, the sixth verb and the only one that needs nothing that does not exist. It is `spark run` without the printing: open, restore against the node library, evaluate with no window, report diagnostics, **exit non-zero if any node is in error**. It is a build gate somebody can put in a script the day it lands. After it, in order, the other three the audit named: the XML `<example>` blocks (`E11-T2`), surface and solid properties (`E2-T33`/`E11-T10`), and the four value-layer parity members (`E2-T40`). The release itself follows `AGENTS.md`'s nine steps and is gated on two things that are the client's, not ours: `Q13` items 1 and 3, and a code-signing identity (`E13-T17`). |
-| **Verify with** | For `spark check`: a graph with a deliberate error exits non-zero and names the node; a clean graph exits zero and prints nothing on stdout; and the diagnostics are the same text `spark run` produces, because both go through `Spark.Api.ValueText` and a second renderer is the failure `ValueRenderingTests` exists to prevent. |
+| **Last completed step** | **`E11-T28` — the solution and the working tree are made to agree**, after the audit found the verification loop running a deleted project. **Before it:** the register audit, `E11-T27`, the bookkeeping correction, `E8-T84`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2,956** tests over **nine** executables with zero skips. The total dropped by ten rather than rose: twelve phantom passes left, two real tests arrived. |
+| **Next action** | **Take `spark check`** — `E12-T5`, the sixth verb and the only one that needs nothing that does not exist. It is `spark run` without the printing: open, restore against the node library, evaluate with no window, report diagnostics, **exit non-zero if any node is in error**. Then, in order: the XML `<example>` blocks (`E11-T2`), surface and solid properties (`E2-T33`/`E11-T10`), and the four value-layer parity members (`E2-T40`). |
+| **Verify with** | For `spark check`: a graph with a deliberate error exits non-zero and names the node; a clean graph exits zero; the diagnostics are the same text `spark run` produces, because both go through `Spark.Api.ValueText`. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -87,8 +87,11 @@ Discovered the hard way, and each one costs an hour if rediscovered.
   ```
   for p in tests/*/; do n=$(basename "$p"); (cd "$p/bin/Debug/net10.0" && ./"$n.exe"); done
   ```
-  which should total **1,724 passing, 0 failed, 0 skipped** across eight projects, with the native
-  shim built. See [AGENTS.md](../AGENTS.md#before-you-commit).
+  which should total **2,956 passing, 0 failed, 0 skipped** across **nine** projects, with the
+  native shim built. **Check the project count as well as the total.** `bin/` is gitignored, so a
+  project deleted from git leaves its executable behind and this loop keeps running it — that
+  happened for eleven days and added twelve phantom passes ([N135](NOTES.md)). `E11-T28` now fails
+  the build instead. See [AGENTS.md](../AGENTS.md#before-you-commit).
 - **A C++ toolchain exists as of 2026-08-31, and it is half of what M1.6 needs.** Installed and
   **verified by compiling, not by looking**: CMake 4.4.3 and Ninja 1.13.2 on `PATH`, vcpkg at
   `C:\dev\vcpkg` with `VCPKG_ROOT` set, and MSVC 14.51.36231 inside Visual Studio Community 2026
@@ -10122,3 +10125,54 @@ where the parity rows are.
 **Cost.** About an hour, most of it reading rather than writing, and it is the last thing standing
 between here and a tag: **a release cut from a register that is wrong ships release notes that are
 wrong.**
+
+### 2026-09-09 — `E11-T28`: a deleted test project had been passing for eleven days
+
+**What.** `SolutionMembershipTests`, two assertions in `Spark.Architecture.Tests`, and the deletion
+of `tests/Spark.Geometry.Io.Tests/` — a directory holding a `bin/`, an `obj/` and no project.
+
+**How it was found, because the route matters.** The audit had just closed `E1-T12` on the claim
+that *ten test projects exist and are in the solution*. Looking for a CLI test project a minute
+later, `Spark.Geometry.Io.Tests` was in the verification loop's output and not in `Spark.slnx` —
+so the obvious reading was a project left out of the solution, and the obvious fix was to add it.
+`dotnet build` answered **`MSB3202: the project file was not found`**. The tests had been folded
+into `Spark.Geometry.Tests` and the project deleted from git on some earlier day; `bin/` is
+gitignored, so the executable stayed, and the loop — which iterates `tests/*/` on disk — had been
+running an **eleven-day-old binary** and adding its twelve passes to every total since.
+
+**So the audit's own headline number was wrong.** It said 2,966 across ten projects. It was 2,954
+across nine, and is now **2,956** with the two new assertions. Nothing was broken — the twelve
+tests still exist and still pass, in `Spark.Geometry.Tests/ObjWriterTests.cs`. What was broken was
+the evidence: **a number you cannot re-derive from the tree is not a measurement**, and this one
+had been quoted in a commit message four hours earlier.
+
+**Why no gate saw it.** `dotnet build Spark.slnx` and `dotnet format Spark.slnx` both read the
+solution, and the solution had correctly stopped naming the project — *correct* is exactly why
+they were silent. The only thing that read the directory was the loop, and a loop over `tests/*/`
+cannot tell a project from its leftovers.
+
+**The guard, and the shape of writing it.** Two assertions rather than one, because the two
+failures are opposite: every `.csproj` under `tests/` is in `Spark.slnx` (a real project nothing
+builds), and no directory under `tests/` holds a `bin/` without a `.csproj` beside it (this).
+**The second was red when written and green after the deletion**, which is AGENTS.md step 7 in the
+honest order — the fix was reverted-by-construction because the test came first.
+
+**The first version was wrong in an instructive way.** It asserted that every *directory* under
+`tests/` is a project, and went red on `tests/corpus/` — which is data the suites read and has no
+project by design. Membership moved from *is a directory* to *holds a project* before the guard was
+an hour old. **A check that flags a legitimate thing is a check somebody suppresses**, and it would
+have been suppressed by the next person rather than narrowed.
+
+**Half of a queue item that has been open since 2026-08-29.** *A guard that no test project reports
+zero tests* ([N30](NOTES.md)) is two failures wearing one description. This closes the file-system
+half. The other half — a project that builds, is in the solution, and discovers nothing — needs the
+run's own output and is still open.
+
+**Verified.** All three gates from clean: build over sixteen projects with zero warnings, format
+clean, **2,956 tests over nine executables, zero failures, zero skips**, docs harness green.
+`AGENTS.md`, `docs/JOURNAL.md`'s environment facts and `docs/TODO.md` all carried the old total and
+now carry the new one **with the project count beside it**, because the count is the half that
+would have caught this.
+
+**Cost.** Half an hour, and it is the second time in one day that a documentation step found a
+defect the test suite could not. The first was a dangling ADR link.

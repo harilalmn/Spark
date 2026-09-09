@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (the register audit: every `In progress` row settled against the source tree)
+**Last updated:** 2026-09-09 (`E11-T28`: the solution and the tree are made to agree)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -12,8 +12,8 @@ a second box and rounds every edge of a third. **F1 opens help for the selected 
 node outlines its geometry in the viewport. A graph naming a package you do not have still opens,
 keeps everything, and re-saves byte for byte. A user can define a node by drawing a graph.
 
-`dotnet build --no-incremental -warnaserror`, the per-project test executables (**2,966 tests over
-ten projects**) and `dotnet format` are all clean on Windows as of 2026-09-09, with the native
+`dotnet build --no-incremental -warnaserror`, the per-project test executables (**2,956 tests over
+nine projects**) and `dotnet format` are all clean on Windows as of 2026-09-09, with the native
 shim built and **nothing skipped** — the skip count is the part that matters, because
 `Spark.Geometry.Occt.Tests` skips itself when the shim is absent. **CI does not run at all any
 more**: Actions is switched off for this repository (`E13-T19`) since it went private and minutes
@@ -40,7 +40,7 @@ Three distinctions still do the work in what follows:
   **And the OpenCascade provider**: `native/spark_occt` and `Spark.Geometry.Occt`, with union,
   difference, intersection, extrude, revolve, loft, fillet, chamfer, shell, sew, heal and
   tessellate behind `IBrepKernel`. **141 node methods over 21 families** in `Spark.Nodes.Core`.
-  **2,966 tests over ten projects** as of 2026-09-09.
+  **2,956 tests over nine projects** as of 2026-09-09.
 - **What is not.** No split, trim, thicken, draft or offset on the kernel contract. No mesh
   booleans. Trimmed faces come *back* from the provider but cannot be authored. **Five of the
   seven `spark` verbs** — `check`, `render`, `pkg`, `docs`, `graph` — are unwritten; the CLI
@@ -207,6 +207,14 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 > to take immediately and are listed first**, because a register audit whose findings are not
 > scheduled is a register audit that gets redone.
 
+- [x] ~~**A guard that no test project reports zero tests.**~~ **Half of it landed 2026-09-09 as
+      `E11-T28`**, and it landed because the other half of the same hole opened first: the
+      verification loop had been running the leftover binary of a deleted project for eleven days
+      ([N135](NOTES.md)). `SolutionMembershipTests` now fails the build when a `.csproj` under
+      `tests/` is missing from `Spark.slnx`, or when a directory under `tests/` holds a `bin/` with
+      no project beside it. **The remaining half is still open**: a project that builds, is in the
+      solution, and discovers nothing — which is [N30](NOTES.md)'s original shape and needs the
+      run's own output rather than the file system.
 - [ ] **`spark check` — the sixth verb, and the one that needs nothing that does not exist.**
       `E12-T5`. It is `spark run` without the printing: open a graph, restore it against the node
       library, evaluate with no window, report the diagnostics, and **exit non-zero if any node is
