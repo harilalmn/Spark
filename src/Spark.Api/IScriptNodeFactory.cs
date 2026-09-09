@@ -62,6 +62,38 @@ public interface IScriptNodeFactory
     NodeDefinitionSource Create(
         string script,
         System.Collections.Generic.IReadOnlyDictionary<string, System.Type>? inputTypes = null);
+
+    /// <summary>
+    /// Tells the factory every code block the graph contains, so that a type one of them declares
+    /// is visible to the others (<c>E6-T35</c>).
+    /// </summary>
+    /// <param name="scripts">
+    /// Every block's source, in any order. The <b>complete</b> set: this is how a declaration that
+    /// has been deleted leaves as well as how a new one arrives, and a caller that passes only the
+    /// block it has just edited would leave the old copy of a renamed type behind to collide with
+    /// the new one.
+    /// </param>
+    /// <returns>
+    /// True when the set of declared types changed, which is the caller's signal that <b>every</b>
+    /// block needs rebuilding — not only the one that was edited. A block that used a type whose
+    /// declaration has just been deleted no longer compiles, and nothing else would tell it so.
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException"><paramref name="scripts"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Call this before <see cref="Create"/>, including for the block being compiled.</b> The
+    /// declarations of a script in the set are compiled into the shared assembly and <i>not</i>
+    /// into the block's own — one type, one assembly, one identity — so a block compiled before
+    /// the set caught up with its own text would be compiled against the previous version of its
+    /// own class.
+    /// </para>
+    /// <para>
+    /// <b>A graph with no declarations anywhere pays nothing.</b> The call is a hash of an empty
+    /// set, returns false, and every block compiles exactly as it did before this method existed —
+    /// which is also what a host that never calls it gets.
+    /// </para>
+    /// </remarks>
+    bool Share(System.Collections.Generic.IReadOnlyList<string> scripts);
 }
 
 /// <summary>

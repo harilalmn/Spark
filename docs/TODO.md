@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (E6-T34: a code block can declare a type)
+**Last updated:** 2026-09-09 (E6-T35: one shared assembly for a graph's declared types)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -192,15 +192,15 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 
 ## Now — what is next, in order
 
-- [ ] **`E6-T35` — a type declared in one code block should be visible to another.** Raised by the
-      client's own screenshot, and half of it is done: `E6-T34` made a block able to declare a
-      class, a record, a struct or an enum and use it *in that block*. The other block still says
-      *the name 'TestClass' does not exist in the current context*, because each block compiles to
-      its own assembly and references no other. It is three decisions rather than one — compile
-      **order**, what a name **collision** or a **cycle** between two blocks means, and what
-      **invalidates** a consumer when its definer is edited, since the compile cache keys on the
-      block's own text. **The answer in the meantime**: declare the type in the block that uses it,
-      or put shared code in a DLL and load it, which is what a type five blocks share wants to be.
+- [ ] **`E6-T36` — the graph has to tell the factory about its blocks.** `E6-T35` built the
+      shared-declaration assembly and proved it: a type declared in one block is visible in another,
+      an instance passes between them as the same type, and two types in different blocks may name
+      each other. **It has no callers yet, so a user sees none of it.** Five: `GraphDocument.Open`,
+      `PlaceCodeBlock`, `CommitScript` — which must rebuild *every* block when `Share` returns true,
+      not only the edited one — `CanvasGraph.Retype`, which should already be right because the key
+      now carries the fingerprint and therefore wants an assertion rather than a change, and the
+      editor's `Diagnose`, whose per-keystroke cost is the thing to measure before shipping.
+      **Until then**: declare the type in the block that uses it, or put shared code in a DLL.
 - [ ] **`E7-T12` — collapse selection to custom node.** The engine half is built and tested:
       `.sparkcustom` is the graph format plus an interface block, ports come from Input/Output
       nodes placed in the definition graph, and recursion is refused at build time with the

@@ -59,6 +59,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     private readonly GuardWeaver _guards;
     private readonly ScriptAssemblyCache _persistent;
     private ScriptLoadContext _context;
+    private ScriptDeclarations _declarations = ScriptDeclarations.None;
     private readonly ConcurrentDictionary<string, NodeDefinitionSource> _compiled = new(StringComparer.Ordinal);
 
     /// <summary>Creates a factory over a reference catalogue.</summary>
@@ -160,6 +161,32 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         return reference;
     }
 
+    /// <summary>
+    /// The declarations every block in the graph shares, as this factory last built them
+    /// (`E6-T35`).
+    /// </summary>
+    public ScriptDeclarations Declarations => _declarations;
+
+    /// <inheritdoc/>
+    public bool Share(IReadOnlyList<string> scripts)
+    {
+        ArgumentNullException.ThrowIfNull(scripts);
+
+        ScriptDeclarations built =
+            ScriptDeclarations.Build(scripts, _references, _guards, _context, _declarations);
+
+        if (ReferenceEquals(built, _declarations))
+        {
+            // The overwhelming majority of calls: a wire moved, a statement was edited, nobody
+            // touched a type. Nothing recompiles, and no cache key moves.
+            return false;
+        }
+
+        _declarations = built;
+
+        return true;
+    }
+
     /// <inheritdoc/>
     public NodeDefinitionSource Create(string script, IReadOnlyDictionary<string, Type>? inputTypes = null)
     {
@@ -214,7 +241,8 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             script + "\u0000" + _references.Version.ToString(CultureInfo.InvariantCulture)
             + "\u0000" + _guards.IterationLimit.ToString(CultureInfo.InvariantCulture)
             + "\u0000" + _guards.DepthLimit.ToString(CultureInfo.InvariantCulture)
-            + "\u0000" + Describe(inputTypes)));
+            + "\u0000" + Describe(inputTypes)
+            + "\u0000" + _declarations.Fingerprint));
 
         return Convert.ToHexString(hash);
     }
@@ -236,6 +264,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             _guards.IterationLimit.ToString(CultureInfo.InvariantCulture),
             _guards.DepthLimit.ToString(CultureInfo.InvariantCulture),
             _references.Fingerprint,
+            _declarations.Fingerprint,
             ScriptAssemblyCache.GeneratorVersion.ToString(CultureInfo.InvariantCulture));
 
     /// <summary>
@@ -278,7 +307,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         CSharpCompilation compilation = CSharpCompilation.Create(
             "SparkDiagnostics",
             [tree],
-            _references.References,
+            CompileAgainst(),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         List<ScriptDiagnostic> found = [];
@@ -350,6 +379,13 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
                     .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                     .Select(pair => pair.Key + "=" + (ScriptTypeName.Of(pair.Value) ?? "dynamic")));
 
+    /// <summary>
+    /// What a script compiles against: the catalogue, plus the shared declarations when there are
+    /// any (`E6-T35`).
+    /// </summary>
+    private IEnumerable<MetadataReference> CompileAgainst() =>
+        _declarations.Reference is { } shared ? [.. _references.References, shared] : _references.References;
+
     private NodeDefinitionSource Compile(string script, IReadOnlyDictionary<string, Type> inputTypes)
     {
         // `E6-T10`: a script compiled on a previous run is not compiled again, and neither of the
@@ -390,7 +426,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         CSharpCompilation compilation = CSharpCompilation.Create(
             "SparkScript_" + ContentHash(script, inputTypes),
             [tree],
-            _references.References,
+            CompileAgainst(),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Release));
 
         using MemoryStream assembly = new();
@@ -544,7 +580,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         CSharpCompilation probe = CSharpCompilation.Create(
             "SparkProbe",
             [CSharpSyntaxTree.ParseText(wrapped.Source)],
-            _references.References,
+            CompileAgainst(),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         List<string> found = [];
@@ -1281,7 +1317,17 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         // spaces where they stood rather than cut out, so every statement keeps the offset and the
         // line it had - which means `markers` needs no adjustment and the statements' half of the
         // map is still the subtraction it was.
-        (string statements, ImmutableArray<TextSpan> declarations) = WithoutDeclarations(blanked.Text);
+        (string statements, ImmutableArray<TextSpan> declarations) =
+            ScriptDeclarationSpans.Without(blanked.Text);
+
+        // `E6-T35`: A DECLARATION LIVES IN EXACTLY ONE ASSEMBLY, AND THAT IS FORCED RATHER THAN
+        // TIDY. When the shared set holds this script, its types are already compiled into the
+        // shared assembly and this compilation references them; emitting a second copy here would
+        // produce a *different* CLR type with the same name, and a block handing one down a wire
+        // to the block next to it would be told that `Helper` cannot be converted to `Helper`.
+        // With no shared set - which is every caller that has not called `Share` - this is false
+        // and the declarations are re-emitted below exactly as `E6-T34` left them.
+        bool elsewhere = _declarations.Holds(script);
 
         (string body, ImmutableArray<int> markers) = WithGeneratedReturns(blanked with { Text = statements });
         int offset = source.Length;
@@ -1301,7 +1347,9 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         // Before the source is read, and that is not a style choice: arguments are evaluated left to
         // right, so building the string first would have snapshotted the frame *without* the
         // declarations this appends - which compiles, and reports every one of them missing.
-        ImmutableArray<ScriptSourceSegment> hoisted = Hoisted(source, blanked.Text, declarations);
+        ImmutableArray<ScriptSourceSegment> hoisted = elsewhere
+            ? ImmutableArray<ScriptSourceSegment>.Empty
+            : Hoisted(source, blanked.Text, declarations);
 
         return new WrappedScript(
             source.ToString(),
@@ -1309,65 +1357,6 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
             markers.IsDefaultOrEmpty
                 ? ImmutableArray<int>.Empty
                 : [.. markers.Select(marker => marker + offset)]);
-    }
-
-    /// <summary>
-    /// The script with every top-level type declaration blanked out, and where each of them stood
-    /// (`E6-T34`).
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>C# has no local class, and a code block's text is a method body</b> — so
-    /// <c>public class TestClass { … }</c>, which is an ordinary thing to write, was answered with
-    /// <c>CS1022</c> <i>type or namespace definition, or end-of-file expected</i> and
-    /// <c>CS0161</c> <i>not all code paths return a value</i>, neither of which names what is wrong.
-    /// The declaration has to move, and this is the half that takes it out.
-    /// </para>
-    /// <para>
-    /// <b>Blanked to spaces rather than cut, and that is the whole trick.</b> Removing the text
-    /// would shorten every offset after it and join the line before it to the line after it, which
-    /// would move `E10-T15`'s range markers and turn `E6-T1`'s source map into a table for the
-    /// statements as well as for the declarations. Overwriting each character with a space and
-    /// leaving the newlines alone changes neither the length nor the line count, so nothing above,
-    /// below or beside a declaration notices that it left.
-    /// </para>
-    /// <para>
-    /// <b>Types and delegates only.</b> A <c>public static</c> method at the top level is not
-    /// hoisted: a method has nowhere legal to go at namespace scope, and the thing a block wants
-    /// there — a helper — is a local function, which has always worked and is guarded (`E6-T4`).
-    /// </para>
-    /// </remarks>
-    private static (string Statements, ImmutableArray<TextSpan> Declarations) WithoutDeclarations(
-        string blanked)
-    {
-        CompilationUnitSyntax root = CSharpSyntaxTree.ParseText(blanked).GetCompilationUnitRoot();
-
-        ImmutableArray<TextSpan> declarations =
-        [
-            .. root.Members
-                .Where(member => member is BaseTypeDeclarationSyntax or DelegateDeclarationSyntax)
-                .Select(member => member.Span),
-        ];
-
-        if (declarations.IsEmpty)
-        {
-            return (blanked, declarations);
-        }
-
-        char[] text = blanked.ToCharArray();
-
-        foreach (TextSpan span in declarations)
-        {
-            for (int i = span.Start; i < span.End; i++)
-            {
-                if (text[i] is not ('\n' or '\r'))
-                {
-                    text[i] = ' ';
-                }
-            }
-        }
-
-        return (new string(text), declarations);
     }
 
     /// <summary>
@@ -1408,42 +1397,14 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         {
             int start = Lines(source) + 1;
 
-            source.Append(' ', span.Start - StartOfLine(blanked, span.Start))
+            source.Append(' ', span.Start - ScriptDeclarationSpans.StartOfLine(blanked, span.Start))
                 .AppendLine(blanked[span.Start..span.End]);
 
-            segments.Add(new ScriptSourceSegment(start, LineAt(blanked, span.Start), Lines(source) - start + 1));
+            segments.Add(new ScriptSourceSegment(
+                start, ScriptDeclarationSpans.LineAt(blanked, span.Start), Lines(source) - start + 1));
         }
 
         return segments.MoveToImmutable();
-    }
-
-    /// <summary>The offset the line containing a position begins at.</summary>
-    private static int StartOfLine(string text, int position)
-    {
-        if (position <= 0)
-        {
-            return 0;
-        }
-
-        int start = text.LastIndexOf('\n', position - 1);
-
-        return start < 0 ? 0 : start + 1;
-    }
-
-    /// <summary>The one-based line a position is on.</summary>
-    private static int LineAt(string text, int position)
-    {
-        int line = 1;
-
-        for (int i = 0; i < position; i++)
-        {
-            if (text[i] == '\n')
-            {
-                line++;
-            }
-        }
-
-        return line;
     }
 
     /// <summary>

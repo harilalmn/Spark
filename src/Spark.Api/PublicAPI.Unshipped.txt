@@ -7,3 +7,4 @@ static Spark.Api.NumberRange.ByStep(double start, double end, double step) -> Sy
 Spark.Api.SparkNodeAliasAttribute
 Spark.Api.SparkNodeAliasAttribute.Name.get -> string!
 Spark.Api.SparkNodeAliasAttribute.SparkNodeAliasAttribute(string! name) -> void
+Spark.Api.IScriptNodeFactory.Share(System.Collections.Generic.IReadOnlyList<string!>! scripts) -> bool

@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (E6: a code block can declare a type)
+**Last updated:** 2026-09-09 (E6: one shared assembly for a graph's declared types)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -649,11 +649,20 @@ diverge most; rework is budgeted there specifically.
       and the type's methods, constructors, operators and accessors are depth-bounded like local
       functions, because a class whose method calls itself is the shortest route to `R11` anybody
       could write.
-- [ ] **A type declared in one block is visible to another** (**E6-T35**). The other half of the
-      screenshot `E6-T34` came from, and not a small one: each block compiles to its own assembly
-      referencing no other, so a graph-wide scope needs a compile **order**, a rule for **cycles**
-      and name collisions, and an **invalidation** rule for a consumer whose definer was edited.
-      Until then, declare the type in the block that uses it, or put shared code in a DLL.
+- [x] **Every type a graph's blocks declare is compiled into one shared assembly**
+      (**E6-T35**) — done 2026-09-09. `Share` gathers the declarations of every block and compiles
+      them once; each block then references the result and emits none of its own. **One
+      compilation rather than blocks referencing each other is what removes the compile-order and
+      cycle questions this criterion used to claim it had** — two types declared in different
+      blocks may name each other, and a test proves it. **One declaration, one assembly, one CLR
+      type**, so an instance made in one block is the same type in the next ([N127](NOTES.md));
+      that, and not whether both compile, is the assertion that catches the alternative design.
+      A shared compilation that does not build switches sharing off rather than stopping every
+      block in the graph.
+- [ ] **The graph tells the factory about its blocks** (**E6-T36**), which is what makes the row
+      above visible to a user: `GraphDocument.Open`, `PlaceCodeBlock`, `CommitScript`,
+      `CanvasGraph.Retype` and the editor's `Diagnose` each have to call `Share` before they
+      compile, and a `Share` that returns true means **every** block needs rebuilding.
 - [ ] A graph containing no script nodes never loads `Spark.Scripting` (**E6-T14**).
 
 **Status.** **Complete except the docked C# Script Node (E6-T14's second half), as of

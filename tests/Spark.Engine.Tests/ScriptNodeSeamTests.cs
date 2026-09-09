@@ -276,6 +276,22 @@ public sealed class ScriptNodeSeamTests
                 [new ScriptPort("result", typeof(double))],
                 invoke);
         }
+
+        /// <summary>
+        /// Nothing to share: this factory has no compiler and no declarations (<c>E6-T35</c>).
+        /// </summary>
+        /// <remarks>
+        /// <b>False rather than throwing</b>, because the seam's contract is that a host may call
+        /// this and a factory may have nothing to say. It is also the assertion these tests want:
+        /// a stub that answers false proves that nothing downstream depends on sharing having
+        /// happened.
+        /// </remarks>
+        public bool Share(System.Collections.Generic.IReadOnlyList<string> scripts)
+        {
+            ArgumentNullException.ThrowIfNull(scripts);
+
+            return false;
+        }
     }
 
     /// <summary>
@@ -369,6 +385,22 @@ public sealed class ScriptNodeSeamTests
 
                     return [Convert.ToDouble(arguments[0], System.Globalization.CultureInfo.InvariantCulture) * factor];
                 });
+        }
+
+        /// <summary>
+        /// Nothing to share: this factory has no compiler and no declarations (<c>E6-T35</c>).
+        /// </summary>
+        /// <remarks>
+        /// <b>False rather than throwing</b>, because the seam's contract is that a host may call
+        /// this and a factory may have nothing to say. It is also the assertion these tests want:
+        /// a stub that answers false proves that nothing downstream depends on sharing having
+        /// happened.
+        /// </remarks>
+        public bool Share(System.Collections.Generic.IReadOnlyList<string> scripts)
+        {
+            ArgumentNullException.ThrowIfNull(scripts);
+
+            return false;
         }
     }
 }

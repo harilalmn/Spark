@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-09 (N125, N126: blanking a declaration, and the semicolon that carried a diagnostic)
+**Last updated:** 2026-09-09 (N127: two assemblies, two types, one name)
 
 ---
 
@@ -3779,3 +3779,37 @@ weaving a guard into it: a member that does not parse never runs. The general fo
 worth keeping in mind whenever a syntax rewriter discards a token — *a token you delete takes its
 diagnostics with it*, and the parser attaches them to the token nearest the problem rather than to
 the node you are thinking about.
+
+---
+
+## N127 — Two assemblies holding the same type name hold two different types
+
+`E6-T35` gathers every code block's type declarations into one shared assembly so that a class
+declared in one block can be used in the next. The tempting simplification is to let each block go
+on emitting its own copy as well — it keeps `E6-T34`'s code path untouched, it keeps a block
+self-contained, and **every block still compiles**.
+
+It is wrong, and the way it is wrong is the expensive kind: nothing fails until an object moves.
+
+A CLR type's identity is its assembly plus its full name. Two assemblies that each contain
+`SparkGenerated.Helper` contain two unrelated types. A block that makes a `Helper` and hands it
+down a wire to a block that expects one is handing over an object of the wrong type, and the cast
+fails with a message that names `Helper` twice and explains nothing:
+
+> Unable to cast object of type 'SparkGenerated.Helper' to type 'SparkGenerated.Helper'.
+
+So the rule is **one declaration, one assembly**: `ScriptDeclarations.Holds` is what
+`ScriptNodeFactory.Wrap` asks before it re-emits anything, and a script in the shared set emits
+none of its own.
+
+**The test that catches this is not the obvious one.** Compiling both blocks passes under either
+design. Running both blocks passes too. What fails is making an instance in one block and reading a
+field off it in the other, which is the first thing a user would actually do — so that is the
+assertion `SharedDeclarationTests.AnInstanceMadeInOneBlockIsTheSameTypeInAnother` makes.
+
+**A second consequence, found the hard way.** The shared assembly's simple name carries the set's
+fingerprint. Without that, sharing a second set loads a second assembly with the same simple name
+into the same `AssemblyLoadContext`, and the binder resolves the name to whichever arrived first —
+so a block compiled against the *new* metadata binds to the *old* assembly and sees members that
+are not there. It surfaced immediately as `FileLoadException: Assembly with same name is already
+loaded`, which is the loud version; the quiet version is a block using a stale class.

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-09 (a code block can declare a type)
+**Last updated:** 2026-09-09 (one shared assembly for a graph's declared types)
 **Protocol version:** 2
 
 ---
@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v2026.8.1` shipped on 2026-09-08** — published by `Release (win-x64)` run `34239709515` in 7m31s, with `spark-2026.8.1-setup.exe` (51.1 MB) and `spark-portable-win-x64.zip` (77.5 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v2026.8.1>. **Nothing is signed**, and the release notes say so rather than hiding it. **The scheme changed here**, at the client's instruction: `v0.4.0` was the last of the semantic run and this is the first calendar one. `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing.** `E6-T34` is committed. |
+| **Working on** | **Nothing.** `E6-T35` is committed. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A code block can declare a type** - `E6-T34`. **Before it:** `E8-T74` and the `v2026.8.1` cut, `E8-T73`, `E8-T72`, `E8-T70` and `E8-T71`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2788** tests green over nine executables with zero skips - 12 more than the 2776 before this step, and **no flaky failure in this run**, which is one observation and not a fix. `E11-T27` is still open: nine known victims across eight classes, each passing alone. |
-| **Next action** | **Ask the client which half they want next**, because `E6-T34` answered one half of their screenshot and named the other. **`E6-T35`** makes a type declared in one block visible to another, which is what their two-block example was actually doing; it is three decisions rather than one - compile **order**, **cycles** and name collisions, and what **invalidates** a consumer when its definer is edited - and it is at the top of TODO. **`E11-T27`** is the flaky suite, unchanged and still worth taking. **`E13-T18`** is cheap where the toolchain allows it. |
+| **Last completed step** | **One shared assembly for every type a graph's blocks declare** - `E6-T35`. **Before it:** `E6-T34`, `E8-T74` and the `v2026.8.1` cut, `E8-T73`, `E8-T72`, `E8-T70` and `E8-T71`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2799** tests over nine executables with zero skips, **green on the run that counts and one short on the run before it**. The failure is not named here because the gate's output was piped through `tail -10` and the name scrolled past - a mistake worth not repeating - and the immediately following full run was 2799/2799 with nothing changed in between. That shape is `E11-T27`'s, which is still open: nine known victims across eight classes, a different one each time, each passing alone. |
+| **Next action** | **Take `E6-T36`, which is what makes `E6-T35` visible to the client.** `Share` is built, tested and has **no callers**, so the two-block screenshot still fails in the application. Five call sites: `GraphDocument.Open`, `PlaceCodeBlock`, `CommitScript` - which must rebuild **every** block when `Share` returns true, not only the edited one - `CanvasGraph.Retype`, which should already be correct because the definition key now carries the fingerprint and therefore wants an assertion rather than a change, and the editor's `Diagnose`, whose per-keystroke cost is the thing to measure before shipping it. **Two messages to improve while there**: `CS0101` for a name two blocks both declare says *the namespace 'SparkGenerated' already contains a definition*, and nothing yet shows `ScriptDeclarations.Diagnostics` to anybody. |
 | **Verify with** | Whatever the next row needs. Nothing is half-done. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -9001,3 +9001,59 @@ declare the type in the block that uses it, or put shared code in a DLL and load
 a type five blocks share wants to be anyway.
 
 **Cost.** One session. `GeneratorVersion` is 7, so every cached script assembly is a miss once.
+
+### 2026-09-09 — One shared assembly for every type a graph's blocks declare (`E6-T35`)
+
+**What.** `ScriptNodeFactory.Share(scripts)` takes every code block in a graph, gathers their
+top-level type declarations, compiles all of them into **one** assembly, and hands it to every
+block as a reference. A block whose script is in that set emits none of its own declarations and
+uses the shared ones instead. This is the scripting half of the client's two-block screenshot; the
+call sites are `E6-T36` and until they land a user sees nothing.
+
+**The row's first framing was wrong, and correcting it is most of what was learnt.** Written ahead,
+it claimed three problems: compile **order**, **cycles**, and **invalidation**. The first two are
+artefacts of a design nobody had committed to — one where each block keeps its own assembly and a
+consumer references its definers. **One compilation has neither question.** C# has resolved mutual
+references within a compilation since version 1, so `Odd` in one block and `Even` in another
+calling each other is not a cycle to be broken; it is two types in one file. There is no order to
+derive because nothing is compiled before anything else. Only invalidation was real, and it is paid
+by putting the set's fingerprint into the resident key, the disk key and the node's content hash.
+
+**The decision that is forced rather than chosen.** A declaration lives in exactly one assembly.
+Letting each block keep its own copy *as well* is tempting — it leaves `E6-T34`'s path untouched and
+every block still compiles — and it is wrong in the expensive way: a CLR type's identity is its
+assembly plus its name, so two `SparkGenerated.Helper`s are two unrelated types, and nothing fails
+until an object moves between blocks, at which point the cast fails with a message naming `Helper`
+twice ([N127](NOTES.md)). **The test that catches it is not the one that compiles both blocks** —
+it is the one that makes an instance in one and reads a field off it in the other.
+
+**Two things the work found rather than planned.** Sharing the same set twice threw
+*Assembly with same name is already loaded*: the assembly's name carries the fingerprint, which is
+what stops a stale copy shadowing a new one, and it also makes "have I built this?" and "is this the
+same set?" the same question — so the fingerprint is now computed and compared **before** anything
+is compiled. And a name collision between two blocks is reported **once**, against whichever
+declaration the compiler saw second, because that is what `CS0101` is; the remarks claimed both, and
+they are corrected.
+
+**What happens when the shared compilation does not build.** Sharing switches itself off and every
+block falls back to `E6-T34`'s behaviour — its own declarations, its own assembly, no cross-block
+visibility. One unclosed brace returns the product to where it stood an hour earlier rather than
+stopping nine blocks that are fine. The errors are kept on `ScriptDeclarations.Diagnostics`, placed
+on the lines of the block that wrote them, so `E6-T36` has something to show.
+
+**Verified.** The three gates: clean build with zero warnings, format clean, **2799** tests over
+nine executables with zero skips - green on the second full run, one short on the first. **The
+failing test's name was lost**, because the gate was run with its output piped through `tail -10`
+and the failure detail scrolled past the window; re-running the identical tree gave 2799/2799. The
+shape - one victim, unnamed, gone on the next run - is `E11-T27`'s, and saying so is a guess rather
+than a finding, which is why it is written this way. The lesson is cheaper than the flake: do not
+`tail` a test run. Ten new tests, and the ones that would fail under the
+alternative designs are named: an instance made in one block read in another (identity); `Odd` and
+`Even` in different blocks (no cycle rule needed); a factory nobody tells anything behaving exactly
+as `E6-T34` left it; the same set in a different order not moving the fingerprint; a broken
+declaration switching sharing off while the other block still compiles; a `while (true)` inside a
+shared declaration still being bounded, because the declaration moved assembly and the reason for
+guarding it did not.
+
+**Cost.** One session, on top of `E6-T34`'s. `GeneratorVersion` did not need a bump: a factory that
+is never told anything produces byte-for-byte the source it produced before.
