@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-09 (N127: two assemblies, two types, one name)
+**Last updated:** 2026-09-09 (N90 amended: the canvas pane does show headlessly)
 
 ---
 
@@ -2453,6 +2453,14 @@ headless dispatcher and was deleted rather than left in the suite, which fails A
 ---
 
 ## N90 — A wrapped, data-bound `TextBlock` inside a `Grid` hangs Avalonia's headless `Window.Show()`
+
+> **Amended 2026-09-09 (`E8-T75`), and the amendment is a narrowing.** This note had been read as
+> *panes cannot be shown headlessly*, and that is not what it says. `CanvasPane` shows, lays out and
+> hit-tests perfectly well in the headless session — it hosts the canvas, which draws its own text
+> and wraps nothing. `E8-T75`'s tests drive it end to end: place a block, commit source onto it,
+> open the in-node editor, type, and read the node's height back. What hangs is the wrapping,
+> data-bound `TextBlock`, wherever it appears; today that is `InspectorPane`. Assume the pane under
+> test works until it demonstrably does not.
 
 **The symptom.** A test that shows `InspectorPane` with a `MainWindowViewModel` as its data context
 hangs. It does not fail and it does not time out with a message: the run sits there until the

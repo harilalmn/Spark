@@ -97,6 +97,7 @@ public sealed partial class CanvasPane : UserControl
         // the same editor over the same block - a list that answered differently depending on
         // where you were typing would be worse than no list at all (`E6-T13`).
         ScriptEditor.Committed += OnScriptCommitted;
+        ScriptEditor.Changed += OnScriptEditorChanged;
 
         ScriptEditor.CompletionSource = (code, caret, token) =>
             Model is { } model
@@ -521,13 +522,7 @@ public sealed partial class CanvasPane : UserControl
         // spill over the port tabs either side of it. The pane says what the editor needs, in
         // screen pixels, because the editor's metrics are the pane's; the canvas decides where
         // that goes, because the node's geometry is the canvas's.
-        Measure(e.Text, out int lines, out int columns);
-
-        _editorWanted = new Size(
-            Math.Clamp((columns * EditorCharWidth) + EditorChrome, EditorMinimumWidth, EditorMaximumWidth),
-            (lines * EditorLineHeight) + EditorChromeHeight);
-
-        if (!Place(e.Slot))
+        if (!Wanted(e.Text) || !Place(e.Slot))
         {
             return;
         }
@@ -754,6 +749,59 @@ public sealed partial class CanvasPane : UserControl
 
         ScriptEditor.FocusEditor();
         ScriptEditor.TypeText(typed.Replace("\\n", "\n", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// Works out the size the editor wants for a piece of source, and says whether it moved
+    /// (`E8-T75`).
+    /// </summary>
+    /// <param name="source">The source, as the editor currently holds it.</param>
+    /// <returns>True when the wanted size is different from the one already reserved.</returns>
+    /// <remarks>
+    /// <b>The answer is what stops this being wired to every keystroke.</b> Re-placing the editor
+    /// goes through <c>ScriptEditorSpace</c>, which re-measures the node and rebuilds the canvas's
+    /// spatial index — worth doing when a line is added and pure waste when a character is typed
+    /// in the middle of a line that was not the longest one. Comparing the *measured* size rather
+    /// than the text is what makes the common keystroke free.
+    /// </remarks>
+    private bool Wanted(string source)
+    {
+        Measure(source, out int lines, out int columns);
+
+        Size wanted = new(
+            Math.Clamp((columns * EditorCharWidth) + EditorChrome, EditorMinimumWidth, EditorMaximumWidth),
+            (lines * EditorLineHeight) + EditorChromeHeight);
+
+        if (wanted == _editorWanted)
+        {
+            return false;
+        }
+
+        _editorWanted = wanted;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Grows or shrinks the open block as its text changes (`E8-T75`).
+    /// </summary>
+    /// <param name="sender">The editor.</param>
+    /// <param name="e">Nothing; the editor is asked what it now holds.</param>
+    /// <remarks>
+    /// <b>Reported by the client</b>: a block opened on one line stayed one line tall however much
+    /// was typed into it, while the block beside it was seven. `E8-T40` built the reservation that
+    /// makes a block grow around its editor and it was only ever asked for once — when the editor
+    /// opened, from the text as it stood then. <c>Place</c> was re-called on every pan and zoom and
+    /// always with that same stale size.
+    /// </remarks>
+    private void OnScriptEditorChanged(object? sender, EventArgs e)
+    {
+        if (_editingScript < 0 || !ScriptEditor.IsVisible || !Wanted(ScriptEditor.Text))
+        {
+            return;
+        }
+
+        _ = Place(_editingScript);
     }
 
     /// <summary>The line count and the longest line of a block's source.</summary>

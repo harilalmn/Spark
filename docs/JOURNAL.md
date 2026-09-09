@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-09 (a type declared in one block, used by another)
+**Last updated:** 2026-09-09 (a block grows as it is typed into)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v2026.8.1` shipped on 2026-09-08** — published by `Release (win-x64)` run `34239709515` in 7m31s, with `spark-2026.8.1-setup.exe` (51.1 MB) and `spark-portable-win-x64.zip` (77.5 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v2026.8.1>. **Nothing is signed**, and the release notes say so rather than hiding it. **The scheme changed here**, at the client's instruction: `v0.4.0` was the last of the semantic run and this is the first calendar one. `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing.** `E6-T36` is committed, and the client's screenshot works. |
+| **Working on** | **Nothing.** `E8-T75` is committed. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The graph tells the factory about its blocks** - `E6-T36`, which finishes what the client reported. **Before it:** `E6-T35`, `E6-T34`, `E8-T74` and the `v2026.8.1` cut, `E8-T73`, `E8-T72`, `E8-T70` and `E8-T71`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2805** tests green over nine executables with zero skips. `E11-T27` is still open: nine known victims across eight classes, a different one each full run, each passing alone. |
-| **Next action** | **Take `E11-T27`.** It is the oldest thing on the list that is purely ours, it has nine victims across eight classes, and a suite that fails a different test every full run is one people stop reading - this session hit it once and could not even name the test, because the gate had been piped through `tail`. `test-engineer` owns the choice between one xunit collection over every Avalonia-touching class and `DisableTestParallelization` for the assembly, which costs about 16 seconds. **Also open and cheap where the toolchain allows it**: `E13-T18`, promoting a closed shell to a solid in `spark_occt_import`. **And worth offering the client**: `CS0101` for a type two blocks both declare still names `SparkGenerated`, a namespace they have never heard of, and `ScriptDeclarations.Diagnostics` is not shown to anybody yet. |
-| **Verify with** | Whatever the next row needs. Nothing is half-done. |
+| **Last completed step** | **A code block grows while it is being typed into** - `E8-T75`. **Before it:** `E6-T36`, `E6-T35`, `E6-T34`, `E8-T74` and the `v2026.8.1` cut, `E8-T73`, `E8-T72`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2810** tests over nine executables with zero skips - green on the second full run, one short on the first. **`E11-T27` gained a tenth victim, and this step may have made it likelier**: `GraphCanvasAlignmentTests.AnUnselectedNodeStaysWhereItIs` failed one full run, then passed its class alone 7/7 and the next full run 2810/2810. `E8-T75` added three tests that **show windows**, which is precisely the family that row blames - so the count of Avalonia-touching classes went up in the same commit that saw a new victim. That is a coincidence worth naming rather than a measurement. |
+| **Next action** | **Take `E6-T37` - the completion list cannot see a type declared in another block.** Reported by the client in the same screenshot as `E8-T75`: typing `Test.` offers snippets and nothing else, because `ScriptCompletion` is built once from the `ReferenceCatalog` and **never sees the shared declarations assembly** `E6-T35` compiles. It is `E6-T13`'s forbidden state - the completion list and the compiler disagreeing - and it arrived as the gap in `E6-T35` rather than as a regression, because before that row there was nothing in another block to see. `SparkSession.Completion()` caches the service with `??=`, so the fix is to give `ScriptCompletion` the shared reference and update it when the fingerprint moves - an `AdhocWorkspace` project's metadata references can be replaced in place, which matters because rebuilding the service re-composes MEF and reloads two Roslyn assemblies. |
+| **Verify with** | The three gates, plus a completion test built from a `ScriptNodeFactory` that has been told about two blocks: `Helper.` in the second must list the members the first declares. **The test has to go through `ReferenceCatalog`**, not the assembly-list constructor, because that is the seam `E6-T32` records the last completion defect hiding in. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -9109,3 +9109,61 @@ the right block's lines, and nothing shows them to anybody yet: today such a gra
 back to each block on its own.
 
 **Cost.** One session for `E6-T34`, `E6-T35` and this together.
+
+### 2026-09-09 — A code block grows while it is being typed into (`E8-T75`)
+
+**What.** The client sent a screenshot: the block they were typing into was one line tall while the
+block beside it was seven. Typing into a block now grows it.
+
+**Nothing was missing. Something was asked for once and never again.** `E8-T40` had already built
+the reservation that makes a node grow around its editor rather than letting the editor spill over
+the port tabs either side. `CanvasPane` measured the size the editor wanted **once**, in
+`OnCanvasScriptEditRequested`, from the text as it stood at that moment — and `Place` was then
+re-called on every pan and every zoom, always with that same stale measurement. That is why a bug
+about the editor's size survived a row specifically about re-placing the editor: the re-placing
+worked perfectly, and it was re-placing a number nobody had recomputed.
+
+**`CodeBlockEditor` had `Committed` and nothing else**, so it gains `Changed`, raised from the
+`OnTextChanged` it already had and suppressed exactly where that one is — setting `Text` from code
+is a pose, a restore after a commit, or the editor opening, and none of those is somebody typing.
+It is raised **before** the analysis timer, and that order is deliberate: diagnostics are meant to
+run behind the typing, and the size has to be in front of it, or the editor spills over a node that
+has not grown yet.
+
+**The thing that had to be got right is not doing this on every keystroke.** Re-placing goes
+through `ScriptEditorSpace`, which re-measures the node and rebuilds the canvas's spatial index. So
+the pane compares the *measured* size rather than the text, and returns early when it has not
+moved: typing inside a line that is not the longest costs a measurement and nothing else.
+
+**Verified.** The three gates — clean build with zero warnings, format clean, **2810** tests over
+nine executables with zero skips: green on the second full run, one short on the first
+(`GraphCanvasAlignmentTests.AnUnselectedNodeStaysWhereItIs`, which then passed its class alone and
+the next full run). **That is `E11-T27`'s shape, and this step is a plausible contributor to it**
+rather than an innocent bystander: the three tests below show windows, which is exactly the family
+that row blames, so the number of Avalonia-touching test classes went up in the same commit that
+produced a tenth victim. Named here because the alternative is somebody later finding the
+correlation and having to guess whether anybody had noticed. Three tests that **drive the pane** rather than its pieces,
+which is the only place the defect existed: the editor raised its changes and the canvas honoured
+its reservations, and nothing joined them up, so a test of either half alone passes with the defect
+in place. Two of the three go red when the single wiring line is removed — *the block did not grow:
+76 then 76*, *the block did not widen: 298 then 298* — and the third is the control that would go
+red if this were wired to every keystroke instead. Reinstated and re-run green.
+
+**`CanvasPane` shows in the headless session, and that was not known.** [N90](NOTES.md) had been
+read as *panes cannot be shown headlessly*, which is not what it says: what hangs is a wrapping,
+data-bound `TextBlock`, and today that is `InspectorPane` alone. The canvas pane draws its own text
+and wraps nothing. The note is amended rather than left to be re-derived, because the belief was
+about to cost this row its real test — the first plan here was to test the editor's event and the
+canvas's reservation separately and verify the join by eye.
+
+**What did not work, recorded so the next session does not repeat it.** The `--code-block-typed`
+pose (`E11-T22`) does not survive to the shutter: `OnPoseLayoutUpdated` re-opens the editor on every
+view change, and opening it sets its text from the *node*, so anything typed is overwritten before
+the capture. Two screenshots were taken before that was clear. It is a pre-existing limitation of
+the pose harness rather than anything this row touched, and it is why this row is verified by tests
+against the pane rather than by a picture.
+
+**Also reported in the same screenshot, and not this step**: the completion list cannot see a type
+declared in another block. That is `E6-T37` and it is the *Next action*.
+
+**Cost.** One session, alongside `E6-T34`, `E6-T35` and `E6-T36`.

@@ -357,6 +357,26 @@ public sealed partial class CodeBlockEditor : UserControl
     /// <summary>Raised when the text has been changed and committed — on losing focus.</summary>
     public event EventHandler? Committed;
 
+    /// <summary>
+    /// Raised on every change to the text, before anything is committed (`E8-T75`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is how a block grows while somebody is typing into it.</b> The node's height comes
+    /// from the room the editor reserved on it, and that room was measured once, from the text as
+    /// it stood when the editor opened — so a block opened on one line stayed one line tall however
+    /// much was typed into it, which is what the client reported.
+    /// </para>
+    /// <para>
+    /// <b>Suppressed exactly where <c>Committed</c>'s own change handling is</b>, so that setting
+    /// <see cref="Text"/> from code — posing a block, restoring one after a commit — does not read
+    /// as somebody typing. A handler is told the text changed and is left to ask the editor what it
+    /// now says; passing the text would invite a handler to trust a snapshot that the next
+    /// keystroke has already moved past.
+    /// </para>
+    /// </remarks>
+    public event EventHandler? Changed;
+
     /// <summary>Where candidates come from: the text, the caret, and a token.</summary>
     /// <remarks>
     /// Null disables completion entirely, which is what an inspector with no scripting session
@@ -556,6 +576,12 @@ public sealed partial class CodeBlockEditor : UserControl
         {
             return;
         }
+
+        // `E8-T75`: BEFORE THE ANALYSIS TIMER, AND THAT ORDER IS THE POINT. Diagnostics are
+        // deliberately behind the typing; the block's *size* has to be in front of it, or the
+        // editor spills over a node that has not grown yet and the caret ends up outside the
+        // rectangle it is drawn in. Growing is cheap and is nothing to do with compiling.
+        Changed?.Invoke(this, EventArgs.Empty);
 
         // Diagnostics run behind the typing, not in front of it: the idle delay restarts here on
         // every keystroke, so a burst of typing costs one compile at the end rather than one each.

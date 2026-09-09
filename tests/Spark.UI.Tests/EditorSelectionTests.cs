@@ -534,6 +534,55 @@ public sealed class EditorSelectionTests
         window.Close();
     });
 
+    /// <summary>
+    /// <b>The editor says when its text changed, which is what makes a block grow while somebody
+    /// types into it</b> (`E8-T75`). Reported by the client: a block opened on one line stayed one
+    /// line tall however much went into it. `E8-T40` already had the reservation that grows a node
+    /// around its editor; nothing re-asked for it after the editor opened.
+    /// </summary>
+    [Fact]
+    public void TypingRaisesChangedOnEveryKeystroke() => HeadlessSession.Run(() =>
+    {
+        CodeBlockEditor editor = new();
+        Window window = new() { Width = 600, Height = 400, Content = editor };
+
+        window.Show();
+
+        int changes = 0;
+        editor.Changed += (_, _) => changes++;
+
+        editor.FocusEditor();
+        editor.TypeText("ab");
+
+        Assert.Equal(2, changes);
+
+        window.Close();
+    });
+
+    /// <summary>
+    /// <b>Setting the text from code is not somebody typing</b>, and the distinction matters
+    /// because every pose, every restore after a commit and every open of the editor writes the
+    /// document. A block that re-measured itself on those would fight the thing that had just
+    /// placed it.
+    /// </summary>
+    [Fact]
+    public void SettingTheTextFromCodeDoesNotRaiseChanged() => HeadlessSession.Run(() =>
+    {
+        CodeBlockEditor editor = new();
+        Window window = new() { Width = 600, Height = 400, Content = editor };
+
+        window.Show();
+
+        int changes = 0;
+        editor.Changed += (_, _) => changes++;
+
+        editor.Text = "var a = 1;\nvar b = 2;\n";
+
+        Assert.Equal(0, changes);
+
+        window.Close();
+    });
+
     private static string Text(CodeBlockEditor editor) =>
         editor.Text.Replace("\r\n", "\n", StringComparison.Ordinal);
 
