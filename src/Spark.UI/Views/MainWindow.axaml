@@ -235,7 +235,7 @@
           <MenuItem Header="_Properties" ToggleType="CheckBox" InputGesture="F4"
                     IsChecked="{Binding IsInspectorVisible, Mode=OneWay}"
                     Command="{Binding TogglePaneCommand}" CommandParameter="Inspector" />
-          <!-- E8-T80: hidden until asked for, which is why it is last and unticked. -->
+          <!-- E8-T80, E8-T82: under Properties in the right column, and shown by default. -->
           <MenuItem Header="_Console" ToggleType="CheckBox"
                     IsChecked="{Binding IsConsoleVisible, Mode=OneWay}"
                     Command="{Binding TogglePaneCommand}" CommandParameter="Console" />

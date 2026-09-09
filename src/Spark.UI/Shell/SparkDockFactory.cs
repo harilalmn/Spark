@@ -48,6 +48,7 @@ public sealed class SparkDockFactory : Factory
     private readonly Dictionary<WorkspacePane, ToolDock> _docks = [];
     private ProportionalDock? _columns;
     private ProportionalDock? _center;
+    private ProportionalDock? _right;
     private RootDock? _root;
 
     /// <summary>
@@ -83,13 +84,23 @@ public sealed class SparkDockFactory : Factory
 
         _center = Column(
             Pane(WorkspacePane.Canvas, "Canvas", content),
-            Pane(WorkspacePane.Viewport, "Viewport", content),
+            Pane(WorkspacePane.Viewport, "Viewport", content));
+
+        // `E8-T82`: THE CONSOLE SITS UNDER PROPERTIES, WHICH IS WHERE THE CLIENT PUT IT.
+        //
+        // It shipped under the canvas and the viewport, and the first thing they did was drag it
+        // to the right column and ask for that to be the default. It reads better there for a
+        // reason worth keeping: the centre column is the two views of the *graph*, and the right
+        // column is what the graph is *telling you* - what is selected, what went wrong, and now
+        // what it printed.
+        _right = Column(
+            Pane(WorkspacePane.Inspector, "Properties", content),
             Pane(WorkspacePane.Console, "Console", content));
 
         _columns = Row(
             Pane(WorkspacePane.Library, "Library", content),
             _center,
-            Pane(WorkspacePane.Inspector, "Properties", content));
+            _right);
 
         _root = new RootDock
         {
@@ -161,7 +172,19 @@ public sealed class SparkDockFactory : Factory
     private static HostWindow FloatingWindow() => new();
 
     /// <summary>
-    /// How much of the centre column the console takes when it is showing (<c>E8-T80</c>).
+    /// How wide the right column is, as a fraction of the window (<c>E8-T82</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Exposed because the nesting moved it.</b> Properties used to sit in the row directly, so
+    /// its own proportion <i>was</i> the column's width; now it shares a column with the console
+    /// and its proportion is its share of that. The width is still a property worth asserting —
+    /// it is what a user sees a reset restore — and it now lives here.
+    /// </remarks>
+    public double RightColumnProportion => _right?.Proportion ?? 0;
+
+    /// <summary>
+    /// How much of the right column the console takes when Properties is showing too
+    /// (<c>E8-T80</c>, <c>E8-T82</c>).
     /// </summary>
     /// <remarks>
     /// <b>A constant rather than a fourth number in <see cref="WorkspaceLayout"/>.</b> That type
@@ -169,7 +192,7 @@ public sealed class SparkDockFactory : Factory
     /// would read back a zero-height console and look broken. A user who wants it taller drags the
     /// splitter, which Dock already honours until the next <c>Apply</c>.
     /// </remarks>
-    public const double ConsoleFraction = 0.25;
+    public const double ConsoleFraction = 0.5;
 
     /// <summary>
     /// Brings the built layout into line with a workspace: the pane proportions, and which panes
@@ -186,7 +209,7 @@ public sealed class SparkDockFactory : Factory
     {
         ArgumentNullException.ThrowIfNull(layout);
 
-        if (_root is null || _center is null)
+        if (_root is null || _center is null || _right is null)
         {
             throw new InvalidOperationException("Build the layout before applying a workspace to it.");
         }
@@ -202,25 +225,36 @@ public sealed class SparkDockFactory : Factory
         double library = layout.IsVisible(WorkspacePane.Library) ? layout.LibraryFraction : 0;
         double inspector = layout.IsVisible(WorkspacePane.Inspector) ? layout.InspectorFraction : 0;
 
+        // `E8-T82`: the right column is as wide as `InspectorFraction` whenever *either* of the
+        // two panes in it is showing. Asking only about the inspector would collapse the column
+        // with a console in it, and the console would be a sliver nobody could read.
+        double right = layout.IsVisible(WorkspacePane.Inspector) || layout.IsVisible(WorkspacePane.Console)
+            ? layout.InspectorFraction
+            : 0;
+
         SetProportion(WorkspacePane.Library, library);
-        SetProportion(WorkspacePane.Inspector, inspector);
-        _center.Proportion = Math.Max(0, 1 - library - inspector);
+        _right.Proportion = right;
+        _center.Proportion = Math.Max(0, 1 - library - right);
 
         // Same again down the middle: with the viewport hidden, a canvas still asking for 0.55
         // would leave the bottom half of the column empty rather than give the canvas the room.
         bool canvas = layout.IsVisible(WorkspacePane.Canvas);
         bool viewport = layout.IsVisible(WorkspacePane.Viewport);
 
-        // `E8-T80`: the console takes a fixed slice off the bottom of the column and the other two
-        // split what is left in the proportion they already had. **When it is hidden this is
-        // arithmetically identical to what was here before** - `console` is zero and `rest` is one -
-        // which is what keeps the existing layout tests meaningful rather than merely passing.
-        double console = layout.IsVisible(WorkspacePane.Console) ? ConsoleFraction : 0;
-        double rest = 1 - console;
+        SetProportion(WorkspacePane.Canvas, canvas ? (viewport ? layout.CanvasFraction : 1) : 0);
+        SetProportion(WorkspacePane.Viewport, viewport ? (canvas ? 1 - layout.CanvasFraction : 1) : 0);
 
-        SetProportion(WorkspacePane.Canvas, canvas ? (viewport ? layout.CanvasFraction * rest : rest) : 0);
-        SetProportion(WorkspacePane.Viewport, viewport ? (canvas ? (1 - layout.CanvasFraction) * rest : rest) : 0);
-        SetProportion(WorkspacePane.Console, console);
+        // And down the right column, the same shape a third time: whichever of the two is alone
+        // takes all of it (`E8-T82`).
+        bool inspectorShown = layout.IsVisible(WorkspacePane.Inspector);
+        bool consoleShown = layout.IsVisible(WorkspacePane.Console);
+
+        SetProportion(
+            WorkspacePane.Inspector,
+            inspectorShown ? (consoleShown ? 1 - ConsoleFraction : 1) : 0);
+        SetProportion(
+            WorkspacePane.Console,
+            consoleShown ? (inspectorShown ? ConsoleFraction : 1) : 0);
     }
 
     /// <summary>

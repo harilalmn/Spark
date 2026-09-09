@@ -253,7 +253,8 @@ node. Use ordinary C# — `xs.Count` — for a list you made yourself.
 ## Printing to the console
 
 **`Console.WriteLine` works in a code block, with no `using` to type**, and the text appears in the
-Console pane — **View ▸ Console**, which is hidden until you ask for it.
+Console pane, under **Properties** on the right. It is there by default; **View ▸ Console** hides
+and shows it, and **View ▸ Reset layout** brings it back.
 
 ```csharp
 Console.WriteLine("starting");

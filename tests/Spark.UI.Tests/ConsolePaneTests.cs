@@ -24,16 +24,33 @@ public sealed class ConsolePaneTests : IDisposable
     public void Dispose() => SparkConsole.Clear();
 
     /// <summary>
-    /// <b>Hidden by default.</b> A pane nobody asked for taking room from the canvas is
-    /// <c>E8-T76</c>'s mistake again.
+    /// <b>Shown by default, in the right column under Properties</b> (`E8-T82`) — the arrangement
+    /// the client made by hand and then asked for as the default.
     /// </summary>
     [Fact]
-    public void TheConsoleIsHiddenUntilItIsAskedFor()
+    public void TheConsoleIsShownByDefault()
     {
         WorkspaceLayout layout = WorkspaceLayout.Default;
 
-        Assert.False(layout.IsVisible(WorkspacePane.Console));
+        Assert.True(layout.IsVisible(WorkspacePane.Console));
         Assert.True(layout.IsVisible(WorkspacePane.Canvas));
+    }
+
+    /// <summary>
+    /// <b><i>Reset layout</i> brings it back</b>, which is the second half of what was asked for:
+    /// hidden by hand, or dragged somewhere else, the reset restores it.
+    /// </summary>
+    [Fact]
+    public void ResettingTheLayoutRestoresTheConsole()
+    {
+        using MainWindowViewModel model = new();
+
+        model.TogglePane("Console");
+        Assert.False(model.IsConsoleVisible);
+
+        model.ResetLayout();
+
+        Assert.True(model.IsConsoleVisible);
     }
 
     /// <summary>The View menu's tick and the toggle behave as the other panes' do.</summary>
@@ -42,13 +59,13 @@ public sealed class ConsolePaneTests : IDisposable
     {
         using MainWindowViewModel model = new();
 
-        Assert.False(model.IsConsoleVisible);
-
-        model.TogglePane("Console");
         Assert.True(model.IsConsoleVisible);
 
         model.TogglePane("Console");
         Assert.False(model.IsConsoleVisible);
+
+        model.TogglePane("Console");
+        Assert.True(model.IsConsoleVisible);
     }
 
     /// <summary>
@@ -70,16 +87,16 @@ public sealed class ConsolePaneTests : IDisposable
     }
 
     /// <summary>
-    /// A layout written before the console existed reads back with the console hidden, rather than
-    /// with a pane the file never mentioned.
+    /// <b>A user who turned it off stays turned off across a restart</b>, which is what a saved
+    /// layout is for — the default is a starting point, not something reapplied behind them.
     /// </summary>
     [Fact]
-    public void ALayoutWithoutAConsoleReadsBackWithoutOne()
+    public void AHiddenConsoleStaysHiddenAcrossARoundTrip()
     {
-        WorkspaceLayout before = WorkspaceLayout.Default;
-        WorkspaceLayout after = WorkspaceLayout.FromJson(before.ToJson());
+        WorkspaceLayout hidden = WorkspaceLayout.Default;
+        hidden.SetVisible(WorkspacePane.Console, false);
 
-        Assert.False(after.IsVisible(WorkspacePane.Console));
+        Assert.False(WorkspaceLayout.FromJson(hidden.ToJson()).IsVisible(WorkspacePane.Console));
     }
 
     /// <summary>And a layout that was showing it says so when it comes back.</summary>
@@ -141,16 +158,19 @@ public sealed class ConsolePaneTests : IDisposable
     }
 
     /// <summary>
-    /// <b>No preset turns the console on</b>, including <i>Authoring</i>, which is written as
-    /// <i>all the panes</i> and so would have gained a fifth by definition. Switching it on there
-    /// would contradict its being hidden by default and would take room from the canvas for
-    /// somebody who chose a workspace rather than a console.
+    /// <b>The presets that are about the graph show it; the two that are not, do not</b>
+    /// (`E8-T82`). <i>Modelling</i> is for watching geometry and <i>Presenting</i> is for an
+    /// audience, and neither is a moment for reading printed output — so their leaving the console
+    /// out is a decision, asserted here so it stays one.
     /// </summary>
     [Fact]
-    public void NoPresetTurnsTheConsoleOn()
+    public void ThePresetsThatShowItAreTheOnesAboutTheGraph()
     {
-        Assert.All(
-            WorkspaceLayout.Presets().Values,
-            preset => Assert.False(preset.IsVisible(WorkspacePane.Console)));
+        var presets = WorkspaceLayout.Presets();
+
+        Assert.True(presets["Default"].IsVisible(WorkspacePane.Console));
+        Assert.True(presets["Authoring"].IsVisible(WorkspacePane.Console));
+        Assert.False(presets["Modelling"].IsVisible(WorkspacePane.Console));
+        Assert.False(presets["Presenting"].IsVisible(WorkspacePane.Console));
     }
 }

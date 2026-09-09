@@ -124,7 +124,11 @@ public sealed class SparkDockFactoryTests
         }
 
         Assert.Equal(0.16, Proportion(factory, WorkspacePane.Library), 3);
-        Assert.Equal(0.20, Proportion(factory, WorkspacePane.Inspector), 3);
+
+        // `E8-T82`: the right column's width, not Properties' own proportion - Properties shares
+        // that column with the console now, so its proportion is its share of the column and the
+        // width moved up a level.
+        Assert.Equal(0.20, factory.RightColumnProportion, 3);
     });
 
     /// <summary>

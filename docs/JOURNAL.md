@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — `E8-T80` is complete in all three steps and committed.** `Console.WriteLine("x")` in a code block puts `x` in the Console pane with no `using` typed; the same three exist as nodes under **Display**, passing their text through; **View ▸ Console** shows the pane, which is hidden until asked for. |
+| **Working on** | **Nothing — `E8-T82` is committed.** The console sits under **Properties** in the right column, shown by default, and *Reset layout* restores it there. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Console.WriteLine, from a block and from the canvas** — `E8-T80` step three, completing it. **Before it:** `E8-T80` steps two and one, `E8-T79`, `E7-T23`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2942** tests over ten executables — with `E8-T81`'s flakiness meaning the UI suite needs a re-run to be green about one time in three. |
-| **Next action** | **`E8-T81` — the headless flakiness, before any more feature work.** It surfaced during `E8-T80` and it is the one thing that devalues every other row: one to three `Spark.UI.Tests` failures per run, a different class each time, all inside `HeadlessSession.Run`, clean on a re-run. **A gate that needs a second run is not a gate.** Start by establishing whether it is per-test session setup or shared static state between them — `HeadlessSession.Run` creates and tears down a session per call, and the failures cluster in classes that create windows. **Otherwise the queue is `E7-T17`** (the package record in the file) and `E7-T19` (copy the folder on Save As). |
-| **Verify with** | For `E8-T81`: the UI suite run **ten times in a row, green every time**, which is the only evidence that means anything for an intermittent fault. Anything less is a sample too small to distinguish a fix from luck. |
+| **Last completed step** | **The console's home, as the client arranged it** — `E8-T82`. **Before it:** `E8-T80`'s three steps, `E8-T79`, `E7-T23`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2943** tests over ten executables — with `E8-T81`'s flakiness, which cost one failure on the recorded run. |
+| **Next action** | **`E13-T18` — the CI runs are failing and none of them is a test failure.** The client asked why. **Every job since 2026-09-09 06:17Z has refused to start**: *the job was not started because recent account payments have failed or your spending limit needs to be increased*. The cause is the repository **going private that morning** — Actions minutes are free for a public repository and metered for a private one — so `E12-T22` turned CI from free into billed and nothing in the tree can fix it. **What the tree can fix is the waste**, and the concurrency change is written and needs committing: a superseded push no longer runs a full six-job matrix to answer a question about a commit that has already been replaced. |
+| **Verify with** | The workflows parse, and the next two pushes in quick succession leave one run cancelled rather than two completed — **which cannot be observed until the billing is settled**, because no job starts at all. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -9807,3 +9807,40 @@ are each invisible until they are missing. Ten executables, **2942** tests.
 NodeSideEffect` reported one match and the file still had no attribute on it — the match was the
 `<see cref="NodeSideEffectAttribute"/>` in the doc comment. The suite caught it immediately, which
 is the argument for running the tests after a revert check rather than trusting the restore.
+
+### 2026-09-09 — The console's home, as the client arranged it (`E8-T82`)
+
+**They ran it, moved it, and sent a screenshot.** The console shipped under the canvas and the
+viewport; the client dragged it into the right column under **Properties** and asked for that to be
+the default, with *Reset layout* restoring it.
+
+**It is better there, and the reason generalises.** The centre column is the two views of the
+*graph* — the canvas and the viewport. The right column is what the graph is *telling you*: what is
+selected, what went wrong, and now what it printed. The console was in the wrong family.
+
+**`E8-T80`'s reasoning for hiding it was not wrong; it was about the wrong column.** *An
+unasked-for pane taking room from the canvas is `E8-T76`'s mistake again* — true, and in the right
+column it takes none of the canvas at all. The argument survived the reversal by being about
+something specific enough to check.
+
+**The nesting moved one thing, and a test caught it.** Properties used to sit in the row directly,
+so its own proportion **was** the column's width; sharing a column with the console makes its
+proportion a share of that column. `TheDefaultLayoutBringsBackWhatAPresetHid` failed asserting
+`0.20` on the pane — correctly, because the number it wanted had moved up a level. The factory now
+exposes `RightColumnProportion` and the test asserts the thing a user actually sees a reset restore.
+**A test that failed because the meaning changed rather than the behaviour** is worth reading
+carefully rather than adjusting until green.
+
+**Two doc comments and a help paragraph then said the opposite of the truth** — the enum member's
+*hidden by default*, the menu's *hidden until asked for*, and the topic's *which is hidden until you
+ask for it*. Reversing a decision means reversing what was written to explain it, or the next reader
+believes the comment.
+
+**`Modelling` and `Presenting` still do not show it**, and that is a decision rather than an
+oversight: one is for watching geometry and the other is for an audience. `PresetPanes()` gained the
+console so that *Authoring* — written as *all the panes* — means what it says again.
+
+**Verified.** The three gates. Ten executables, **2943** tests with one `Spark.UI.Tests` failure on
+the recorded run — `E8-T81`'s flakiness, in a class this step does not touch; the same suite ran
+1278/0 minutes earlier. **The layout itself is the client's to confirm against their own
+screenshot**, which is the only comparison that settles it.
