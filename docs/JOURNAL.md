@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-09 (a declared type is public whether or not it says so)
+**Last updated:** 2026-09-09 (the graph-local package folder, planned)
 **Protocol version:** 2
 
 ---
@@ -19,9 +19,9 @@ this file says what is happening.
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v2026.8.1` shipped on 2026-09-08** — published by `Release (win-x64)` run `34239709515` in 7m31s, with `spark-2026.8.1-setup.exe` (51.1 MB) and `spark-portable-win-x64.zip` (77.5 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v2026.8.1>. **Nothing is signed**, and the release notes say so rather than hiding it. **The scheme changed here**, at the client's instruction: `v0.4.0` was the last of the semantic run and this is the first calendar one. `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
 | **Working on** | **Nothing.** `E6-T38` is committed. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A type a block declares is public whether or not it says so** - `E6-T38`. **Before it:** `E8-T77`, `E8-T76`, `E6-T37`, `E8-T75`, `E6-T36`, `E6-T35`, `E6-T34`. |
+| **Last completed step** | **The graph-local package folder, planned** - `E7-T16` … `E7-T20` and [ADR-0024](adr/0024-graph-local-package-folder.md). **Before it:** `E6-T38`, `E8-T77`, `E8-T76`, `E6-T37`, `E8-T75`, `E6-T36`, `E6-T35`, `E6-T34`, and `v2026.9.0` published. |
 | **Working tree** | Clean. Build clean with zero warnings, format clean, **2832** tests green over nine executables with zero skips. `E11-T27` names ten victims across nine classes. |
-| **Next action** | **Take `E11-T27`**, unless the client reports something else - and they have reported something else seven times today, which is the run working as intended. The flake row is what the project owes itself: this session added eight window-showing tests to the assembly it lives in and was slowed by it twice. |
+| **Next action** | **`E7-T16` — the graph-local package folder and its trust gate, in one commit.** It is the top of TODO and the order matters: a loader without the gate is remote code execution and must not sit on `main` even briefly. Then `E7-T17` (the record in the file, format 5, and `E7-T7` re-proved), then the two small ones, then `E7-T20`'s nuget.org restore. **Also open**: `E11-T27`, the flaky suite, and `Q15`, the Autodesk licensing questions for counsel. |
 | **Verify with** | Whatever the next row needs. Nothing is half-done. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -9350,3 +9350,44 @@ client's own pair: both blocks clean, `test.GetCircle(2.0)` evaluated, one objec
 diagnostics.
 
 **Cost.** Half an hour, most of it on the seven-case theory.
+
+### 2026-09-09 — The graph-local package folder, planned (`E7-T16` … `E7-T20`)
+
+**What.** No code. Five task rows, a TODO entry, an epic criterion and
+[ADR-0024](adr/0024-graph-local-package-folder.md), for a feature the client asked for and drew:
+`<name>.packages` beside `<name>.spark`, one folder per NuGet package, loose `.dll` files for
+anything hand-added, loaded when the file opens.
+
+**What prompted it.** They searched the Packages window for `nice3point` and got *Nothing found on
+nuget.org. Spark packages carry the tag 'spark'.* — correct and useless. That package is an
+ordinary .NET library, not a Spark node package, and the honest answer today is: download the
+`.nupkg`, rename it to `.zip`, extract the assembly, add it through Local assemblies, and repeat
+for every dependency by hand.
+
+**The design costs less than it reads**, and that is worth recording before anybody starts.
+`PackageStore` already takes its root as a **constructor argument** — `Default()` is one factory
+among possible others — so a graph-local store is `new PackageStore(folder)` rather than a second
+subsystem. `E7-T3` already gives one collectible load context per package *version*, which is
+exactly what lets two graphs disagree about a library; the loader has been ready for this since
+before there was a reason for it.
+
+**The hazard is the reason `E7-T16` is one row and not two.** A folder of DLLs beside a downloaded
+`.spark`, loaded on open, is remote code execution — and loading is not passive: module
+initialisers and static constructors run, and the node importer reflects over types, which triggers
+them. `E6-T16` already refuses to auto-run a graph containing *readable* code blocks. A folder of
+opaque binaries may not be held to a lower standard, so the trust gate ships in the same commit as
+the loader rather than in a follow-up nobody schedules.
+
+**The client settled four questions and one of their answers moved the file format.** *Fail loudly
+with a named list* cannot be done by convention alone: a folder with less in it is not **missing**
+anything, and the user would get a compile error naming a *type* rather than a message naming the
+*package*. So the `.spark` records what it expects, the format goes to 5, and `E7-T7`'s
+byte-identical round trip has to be re-proved rather than inherited. That consequence was not
+visible when the question was asked and is written into `E7-T17` and the ADR rather than discovered
+during the work.
+
+**Their other three, each of which removes a question rather than answering it**: the Packages
+window does not open on an unsaved graph and says to save first, which avoids inventing a location
+and moving it later; Save As copies the folder, and a rename outside Spark is answered by the loud
+failure rather than by guessing which nearby folder was meant; trust is per content hash, so a
+rebuilt DLL asks again and an unchanged one never does.

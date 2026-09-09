@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (E6: a declared type is public whether or not it says so)
+**Last updated:** 2026-09-09 (E7: the graph-local package folder, planned)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -780,6 +780,15 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       error (**E7-T14**). *Built 2026-09-01. `Frozen` and `UpstreamFrozen` are states of their
       own rather than reuses of `NotEvaluated`, because one of them is something the user asked
       for and the other is not. Reported once, on the node that was frozen, as information.*
+- [ ] **A graph's packages live beside the graph** (**E7-T16** … **E7-T20**,
+      [ADR-0024](adr/0024-graph-local-package-folder.md)). `<name>.packages` beside `<name>.spark`,
+      one folder per NuGet package and loose `.dll` files for anything hand-added, loaded when the
+      file opens — so a graph and its libraries travel together and two graphs may disagree about a
+      version. **Nothing loads without consent, recorded per content hash**, and that gate ships in
+      the same commit as the loader: a folder of DLLs beside a downloaded graph is remote code
+      execution, and **E6-T16** already refuses to auto-run the *readable* version of the same
+      hazard. The file records what it expects, so a missing package is named rather than surfacing
+      later as an error about a type.
 - [x] Recursion is refused at save **and** at load, with the containment path reported
       (**E7-T13**). *Both sides done 2026-08-31. The load side catches a file that arrived
       recursive; the save side catches one being made recursive, which in practice means a

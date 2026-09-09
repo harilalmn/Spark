@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (E6-T38: a declared type is public whether or not it says so)
+**Last updated:** 2026-09-09 (E7-T16..T20: the graph-local package folder, planned)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -191,6 +191,37 @@ diagnostic reference pages are generated at runtime from the live library**, so 
 from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-T13`).
 
 ## Now — what is next, in order
+
+- [ ] **`E7-T16` … `E7-T20` — the graph-local package folder.** Asked for by the client, who drew
+      the layout: `<name>.packages` beside `<name>.spark`, one folder per NuGet package, loose
+      `.dll` files for anything hand-added, loaded when the file opens. It answers the question
+      that prompted it — *how do I use NuGet packages?* — for which the honest answer today is
+      "download the `.nupkg`, rename it to `.zip`, extract the DLL, and use the Local assemblies
+      tab". **Take them in this order, and the order is not arbitrary:**
+      1. **`E7-T16`, the folder and its trust gate, together.** A loader without the gate is
+         remote code execution — a `.spark` and a folder of DLLs arriving by email, opened, and
+         running before anybody reads anything. It must not exist on `main` even briefly, which is
+         why it is one row and not two. Consent is **per content hash** (the client's call), so a
+         rebuilt DLL asks again and an unchanged one never does.
+      2. **`E7-T17`, the record in the file.** *Fail loudly with a named list* (the client's call)
+         is impossible without it: a folder with less in it is not missing anything, and the user
+         would get a compile error naming a **type** rather than a message naming the **package**.
+         Format version 5, and **`E7-T7`'s byte-identical round-trip has to be re-proved**, not
+         assumed.
+      3. **`E7-T18` and `E7-T19`**, the two small ones — refuse the Packages window on an unsaved
+         graph and say why; copy the folder on Save As. Both are the client's calls and both remove
+         a question rather than answer it.
+      4. **`E7-T20`, install from nuget.org**, which is the Visual Studio half and the largest.
+         The download is easy and the **restore** is the work: transitive dependencies, target
+         framework against `net10.0`, and two packages wanting different versions of the same
+         dependency.
+      **What is already in place, so this is smaller than it reads**: `PackageStore` takes its root
+      as a constructor argument, `E7-T3` gives one collectible load context per package version,
+      `E7-T8` built the install disclosure, `E7-T9` did local DLLs with content hashing and hot
+      reload, and `PackageTrustStore` already records consent per package and version.
+      **An ADR is owed** — graph-local versus the global store is a decision that could have gone
+      the other way, and the reason it did not is portability: the graph and its dependencies
+      travel together, and two graphs may disagree about a version.
 
 - [ ] **`E7-T12` — collapse selection to custom node.** The engine half is built and tested:
       `.sparkcustom` is the graph format plus an interface block, ports come from Input/Output
