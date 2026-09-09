@@ -189,6 +189,12 @@ Steps 1 through 3 are gates. A red docs harness is a broken build, including whe
 thing broken is a dangling ADR citation in a build-file comment — that is precisely the point
 of it, and it has already caught exactly that (`E1-T29`).
 
+**`Spark.UI.Tests` runs one test at a time** (`E11-T27`), which costs about 25 seconds and buys a
+suite whose green means green. Avalonia's dispatcher is process-global state the one headless
+session owns, and a test that touches it *without* going through `HeadlessSession.Run` — a plain
+view-model test, say — races that session by construction. Ten consecutive green runs is the
+standard for calling a flake in this family fixed; anything smaller cannot tell a fix from luck.
+
 **Everything verified for the current tree was verified on Windows.** CI ran the same three
 gates on Windows and Linux and was green on **`53596ab`**, with 952 tests passing on each leg —
 which now contains the curve layer, save and load, undo, port types, the creation gesture and the

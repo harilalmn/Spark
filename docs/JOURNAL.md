@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — the register's own errors are corrected.** A duplicate `E13-T18` is renumbered to `E13-T20`, and `E8-T81` is withdrawn into `E11-T27`, which had already diagnosed the headless flakiness better than I did. |
+| **Working on** | **Preparing the first public release.** `E11-T27` is committed and the suite is deterministic, which was the precondition for everything else — with CI off, a green local run is now the only evidence there is and it now means what it says. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A duplicate id, and a row that already existed** — bookkeeping. **Before it:** `E8-T84`, `E8-T83`, `E13-T19`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2966** tests over ten executables. |
-| **Next action** | **`E11-T27` — the remaining headless flake, and now with the right diagnosis in hand.** `E11-T26` serialised everything that passes through `HeadlessSession.Run`; what is left fails **outside** that turnstile, because `MainWindowViewModel` posts to Avalonia's global `Dispatcher.UIThread` and a view-model test shows no window. **`E8-T80`'s console gave a worked example**: a view model that subscribed to a static event went on posting after its session had ended, and unrelated classes failed. The shape of the fix is the same — nothing global should outlive the session it was created for. **Acceptance stays ten consecutive green runs**, which is the standard `E11-T26` set for itself and met. |
-| **Verify with** | Ten consecutive green runs of `Spark.UI.Tests`. Nothing smaller distinguishes a fix from luck on an intermittent fault, and a smaller sample is how it would be declared fixed twice. |
+| **Last completed step** | **The suite is deterministic again** — `E11-T27`, with `E8-T81` withdrawn into it. **Before it:** the bookkeeping correction, `E8-T84`, `E8-T83`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2966** tests over ten executables, and `Spark.UI.Tests` green ten times consecutively. |
+| **Next action** | **Audit the register against reality before anything is tagged.** Twenty-six rows say `In progress` and several are plainly finished — `E1-T12` *create the tests projects* among them. **A release cut from a register that is wrong ships release notes that are wrong**, and the summary line's own comment admits it drifts. Then the release itself, following `AGENTS.md`'s nine steps. **Two blockers are the client's and have lead times measured in weeks**: `Q13` items 1 and 3, which the PRD says must be answered *before M6* and this is a public release; and a **code-signing identity** (`E13-T17`), without which every downloader meets SmartScreen on first run. |
+| **Verify with** | For the audit: every row that says `In progress` either has work left that can be named, or is moved to `Done` with what closed it. For the release: `AGENTS.md`'s nine steps, ending with the artefact downloaded **without credentials** from the public releases repository and the application launched from it. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -10034,3 +10034,35 @@ journal's earlier references finds where the work went.
 **The wider point, which is why this is a log entry and not a silent edit.** Three steps today cited
 `E8-T81` as the reason a recorded run was not green, and the citation was to a row that should never
 have been opened. The register is nearly four hundred rows and I searched it for none of them.
+
+### 2026-09-09 — The suite is deterministic again (`E11-T27`)
+
+**Taken first of the release work, and it is not a detour.** The client asked to finish the pending
+items and prepare **the first release that ships to the public**. `E13-T19` turned CI off this
+morning, so the local suite is the only evidence anything works — and it was failing roughly one
+full run in three. **A release verified by a suite that cries wolf is not verified.**
+
+**The row had already done the diagnosis and named both options.** `E11-T26` serialised everything
+passing through `HeadlessSession.Run` and fixed the common case; what remained were tests that touch
+Avalonia **without** going through it — a plain view-model test builds a `MainWindowViewModel`, which
+posts to the process-global `Dispatcher.UIThread` and lazily builds a `DispatcherTimer`. Racing a
+session test is then a race by construction, and nothing inside `HeadlessSession.Run` can see it.
+
+**The blunter option was chosen deliberately.** One xunit collection over every Avalonia-touching
+class is more surgical and is **a rule somebody has to keep**: it must gain each new class as it is
+written, forgetting is silent, and forgetting is precisely how this row reached ten victims across
+five classes over three days while people were doing something else. An assembly attribute cannot be
+forgotten. For a solo project about to ship publicly that is the trade to take.
+
+**The row's cost estimate was low and the measurement says so.** It said *about sixteen seconds*;
+the parallel run is 31.7s and the serialised runs are 52–60s, so it is **about twenty-five**. Worth
+correcting rather than quoting, because the number is the whole argument for the alternative.
+
+**Evidence, since a flake is only fixed by not recurring.** The run immediately before the change
+failed — which is a fair sample of one-in-three arriving on cue — and the runs after it were green,
+consecutively, to the standard `E11-T26` set for itself and met.
+
+**And a note that belongs here rather than in a task row.** This session raised `E8-T81` for this
+exact fault without finding `E11-T26` or `E11-T27` first, then cited it three times as the reason a
+recorded run was not green. The register is nearly four hundred rows; **searching it costs one
+command and was worth about a day**.
