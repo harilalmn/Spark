@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E8-T80` step three of three: the nodes and the code block alias.** Steps one and two are committed — the channel exists and the pane reads it, and **nothing writes to it yet**, which is exactly what step three is for. |
+| **Working on** | **Nothing — `E8-T80` is complete in all three steps and committed.** `Console.WriteLine("x")` in a code block puts `x` in the Console pane with no `using` typed; the same three exist as nodes under **Display**, passing their text through; **View ▸ Console** shows the pane, which is hidden until asked for. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The console pane** — `E8-T80` step two, with `E8-T81` raised for the headless flakiness it surfaced. **Before it:** `E8-T80` step one, `E8-T79`, `E7-T23`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2937** tests over ten executables — see `E8-T81`, the UI suite needs a re-run to be green about one time in three. |
-| **Next action** | **`Spark.Nodes.Core.Console` — three methods that are also three nodes.** **They must return something**, because a `void` method is not imported: *it produces no value a graph can carry*. Passing the text through is what a graph wants anyway, so `Write` and `WriteLine` return what they wrote and `Clear` returns how many lines it removed. **The type carries `[NodeSideEffect]`**, without which the second run of a graph prints nothing — the cache would serve the first run's answer. **Then the alias**: `Console` collides with `System.Console`, which every block imports, so `ReferenceCatalog.NodeLibraryImports` gains `Console = Spark.Nodes.Core.Console` beside the nine `E6-T30` already pins. **Pinned to Spark's rather than System's**, unlike `Math`: `System.Console.WriteLine` in a windowed application writes where nobody can see it, so the client's `Console.WriteLine` must mean the pane. |
-| **Verify with** | The three gates, plus: a code block writing `Console.WriteLine("x")` puts exactly `x` in the pane and compiles with no `using` typed; `Clear` empties it; the three nodes appear in the library and do the same from the canvas; **a graph run twice prints twice**, which is the assertion that proves `[NodeSideEffect]` is on; and a block that writes `System.Console.WriteLine` still compiles, because the alias must shadow rather than remove. Plus a run of the app, writing from a code block. |
+| **Last completed step** | **Console.WriteLine, from a block and from the canvas** — `E8-T80` step three, completing it. **Before it:** `E8-T80` steps two and one, `E8-T79`, `E7-T23`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2942** tests over ten executables — with `E8-T81`'s flakiness meaning the UI suite needs a re-run to be green about one time in three. |
+| **Next action** | **`E8-T81` — the headless flakiness, before any more feature work.** It surfaced during `E8-T80` and it is the one thing that devalues every other row: one to three `Spark.UI.Tests` failures per run, a different class each time, all inside `HeadlessSession.Run`, clean on a re-run. **A gate that needs a second run is not a gate.** Start by establishing whether it is per-test session setup or shared static state between them — `HeadlessSession.Run` creates and tears down a session per call, and the failures cluster in classes that create windows. **Otherwise the queue is `E7-T17`** (the package record in the file) and `E7-T19` (copy the folder on Save As). |
+| **Verify with** | For `E8-T81`: the UI suite run **ten times in a row, green every time**, which is the only evidence that means anything for an intermittent fault. Anything less is a sample too small to distinguish a fix from luck. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -9770,3 +9770,40 @@ appearing — hidden by default, and no preset turning it on. Ten executables, *
 and the reason that row exists rather than a footnote. The application was launched; **toggling the
 pane from the View menu is the client's to confirm**, since a headless test drives the layout model
 and not a menu.
+
+### 2026-09-09 — Console.WriteLine, from a block and from the canvas (`E8-T80`, step three of three)
+
+**One type is both halves.** `Spark.Nodes.Core.Console` holds `Write`, `WriteLine` and `Clear`; the
+importer turns them into three nodes and a code block calls the same three directly. The client
+asked for both and they were never two pieces of work.
+
+**Every method returns what it wrote, and the reason is not style.** A `void` method is not imported
+at all — the importer's own words are *it produces no value a graph can carry*. So the choice was
+between an output nobody wants and no nodes, and passing the text through turns out to be the better
+graph design anyway: a console node sits in the **middle** of a chain, reading a value on the way
+past, instead of ending it. `Clear` returns how many lines it removed, which is the one honest thing
+a clear knows.
+
+**`[NodeSideEffect]` is what makes it work twice**, and without it the failure would have been
+baffling: the graph runs, the console prints, the user runs it again and nothing happens — because
+the cache correctly served the first answer to a node whose inputs had not changed. The attribute
+mixes the run counter into the cache key. It already existed for exactly this, and finding it before
+writing the node saved discovering it as a bug report.
+
+**The alias points the opposite way to `Math`'s, and that is the interesting decision.** `E6-T30`
+pins `Math` to `System.Math`, because a block is C# and `Math.PI` meaning anything else would be a
+trap. `Console` is pinned to **Spark's**, because the trap is the other way round: Spark is a
+windowed application with no terminal, so `System.Console.WriteLine` writes where nobody can see it,
+and a user typing `Console.WriteLine` in a code block is asking for the pane. The rule is not *the
+BCL always wins* but *what would the user mean* — and the two names answer it differently.
+`System.Console` stays reachable in full, with a test that says so, because pinning shadows rather
+than removes.
+
+**Verified.** The three gates. Five new code-block tests, **all five watched going red** with the
+attribute and the alias taken out — which is the right shape here, since the alias and the attribute
+are each invisible until they are missing. Ten executables, **2942** tests.
+
+**And a note on how the revert check nearly lied.** Restoring the attribute afterwards, `grep -c
+NodeSideEffect` reported one match and the file still had no attribute on it — the match was the
+`<see cref="NodeSideEffectAttribute"/>` in the doc comment. The suite caught it immediately, which
+is the argument for running the tests after a revert check rather than trusting the restore.

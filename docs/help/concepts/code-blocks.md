@@ -250,6 +250,36 @@ expect. The library's own version is still there in full when you want it:
 is `1`, because rank is something the graph adds around a node and a code block is inside the
 node. Use ordinary C# — `xs.Count` — for a list you made yourself.
 
+## Printing to the console
+
+**`Console.WriteLine` works in a code block, with no `using` to type**, and the text appears in the
+Console pane — **View ▸ Console**, which is hidden until you ask for it.
+
+```csharp
+Console.WriteLine("starting");
+Console.Write("a");
+Console.Write("b");
+Console.WriteLine("c");        // one line: abc
+Console.Clear();               // and it is empty again
+```
+
+**`Console` means Spark's console here, not `System.Console`.** Spark is a windowed application with
+no terminal behind it, so `System.Console.WriteLine` writes where nobody can see it — the name is
+pinned to the one that puts the line where you can read it, exactly as `Circle` and the other eight
+are pinned. `System.Console` is still there under its full name if you have a reason to want it.
+
+**The same three are nodes**, under **Display** in the library: `Console.Write`, `Console.WriteLine`
+and `Console.Clear`. Each **passes its text through** as its output, so a console node sits in the
+middle of a chain rather than ending it — wire a value in, read it on the way past, and carry on.
+`Console.Clear` outputs how many lines it removed.
+
+**They run every time the graph runs**, unlike every other node. Spark normally serves a node whose
+inputs have not changed from its cache, which for these would mean printing once and never again;
+they are marked as having a side effect, so they re-evaluate on each run.
+
+**The console keeps the last 10,000 lines.** A loop that writes more drops the oldest, and the pane
+says how many it dropped rather than letting you read from the top of something incomplete.
+
 ## Using a library from nuget.org
 
 **File ▸ Packages…**, untick **Spark packages only**, search, select the row, and press **Add as a

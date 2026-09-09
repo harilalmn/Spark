@@ -91,6 +91,25 @@ public sealed class ReferenceCatalog
     [
         NodeLibrary,
 
+        // `E8-T80`: AND `Console`, PINNED THE OTHER WAY - TO SPARK'S, NOT SYSTEM'S.
+        //
+        // Every block imports `System`, so the node library's `Console` would be `CS0104` against
+        // `System.Console` without a pin. The direction is the opposite of `Math`'s and for the
+        // same reason `Math`'s goes the way it does: what would the user mean? A windowed
+        // application has no terminal, so `System.Console.WriteLine` writes where nobody can look -
+        // whereas Spark's puts the line in the Console pane, which is what somebody typing it in a
+        // code block is asking for. `System.Console` is still there under its full name.
+
+        // `E8-T80`: AND `Console`, PINNED THE OTHER WAY - TO SPARK'S, NOT SYSTEM'S.
+        //
+        // Every block imports `System`, so the node library's `Console` would be `CS0104` against
+        // `System.Console` without a pin. The direction is the opposite of `Math`'s and for the
+        // same reason `Math`'s goes the way it does: what would the user mean? A windowed
+        // application has no terminal, so `System.Console.WriteLine` writes where nobody can look -
+        // whereas Spark's puts the line in the Console pane, which is what somebody typing it in a
+        // code block is asking for. `System.Console` is still there under its full name.
+        "Console = Spark.Nodes.Core.Console",
+
         // The nine that collide with Spark.Geometry, pinned to the geometry type a block has always
         // meant by them, and `Math`, pinned to System's.
         "Math = System.Math",
