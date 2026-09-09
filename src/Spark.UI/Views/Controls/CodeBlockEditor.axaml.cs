@@ -749,11 +749,53 @@ public sealed partial class CodeBlockEditor : UserControl
         }
     }
 
+    /// <summary>
+    /// The user has clicked away, which is when the block is tidied and committed
+    /// (<c>E8-T84</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Formatting happens before the commit, not after</b>, so what is stored, what is compiled
+    /// and what is on screen are the same text. Formatting afterwards would leave the document
+    /// holding one version and the editor showing another until the next keystroke.
+    /// </para>
+    /// <para>
+    /// <b>The caret is deliberately not restored.</b> Focus has just left; there is no caret to
+    /// keep, and putting one back would be the editor asking for attention it was not given.
+    /// </para>
+    /// </remarks>
     private void OnEditorLostFocus(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         Close();
         CloseSignature();
+        Reformat();
         Committed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Tidies the block's text, if it parses (<c>E8-T84</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Asked for by the client</b>, who had typed two statements on one line: <i>add line breaks
+    /// automatically when one clicks out of a code block, or perform an auto-formatting.</i> The
+    /// text is only replaced when it actually changed, because assigning to
+    /// <c>TextEditor.Text</c> resets the undo history — a block tidied on every click away would
+    /// throw away the user's undo stack for doing nothing.
+    /// </remarks>
+    private void Reformat()
+    {
+        if (_editor is null)
+        {
+            return;
+        }
+
+        string current = _editor.Text ?? string.Empty;
+        string tidied = Spark.Scripting.ScriptFormatting.Format(current);
+
+        if (!string.Equals(current, tidied, StringComparison.Ordinal))
+        {
+            _editor.Text = tidied;
+        }
     }
 
     /// <summary>Shows the list under the caret, or closes it when there is nothing to show.</summary>

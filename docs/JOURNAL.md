@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E8-T83` is committed; the client's other report is next.** A slider's value is now clamped where the literal is written rather than only where the thumb is dragged. **The remaining half of their message is the code block**: *add line breaks automatically when one clicks out of a code block, or perform an auto-formatting.* |
+| **Working on** | **Nothing — both of the client's reports are committed.** A slider's value stays inside its range (`E8-T83`), and a code block is tidied when you click away from it (`E8-T84`). |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A slider's value never sits outside its own range** — `E8-T83`. **Before it:** `E13-T19`, `E13-T18`, `E8-T82`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2951** tests over ten executables. |
-| **Next action** | **`E8-T84` — format a code block when it loses focus.** The client's screenshot shows `3;20;` on one line, which is legal C# and unreadable, and the block's own message — *a call or new makes no port, assign it with `var`* — is answering a different question than the one the layout raises. **The check that makes this safe was done first**: a block's output ports come from `LocalDeclarationStatementSyntax`, not from lines, so whitespace-only formatting **cannot change a node's ports or break a wire**. Parse as a compilation unit rather than a statement list, because a block may carry `using` directives that `E6-T39` hoists and those are not statements. **Format only when the text parses cleanly** — reformatting a half-typed block would fight the person typing it. |
-| **Verify with** | The three gates, plus: `3;20;` becomes two lines; a block that does not parse is returned **byte for byte**; `using` directives survive and stay at the top; comments survive; the ports and their names are identical before and after, which is the assertion that protects existing graphs; and formatting an already-formatted block changes nothing, so it is idempotent and does not dirty a document by being looked at. |
+| **Last completed step** | **A code block is tidied when you click away from it** — `E8-T84`. **Before it:** `E8-T83`, `E13-T19`, `E13-T18`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2966** tests over ten executables. |
+| **Next action** | **`E8-T81` — the headless flakiness, and it has waited long enough.** With CI off (`E13-T19`) the local suite is the only evidence anything works, and it needs a re-run to be green roughly one time in three. **Two of this session's own steps had to report a recorded run with a failure in it**, which is the point at which the number stops meaning anything. Every failure seen has been inside `HeadlessSession.Run`, in a different class each time, clean on a re-run — start by asking whether the session is per-test or shared, and what each one leaves behind. |
+| **Verify with** | Ten consecutive green runs of `Spark.UI.Tests`. Nothing smaller distinguishes a fix from luck on an intermittent fault, and a smaller sample is how it would be declared fixed twice. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -9962,3 +9962,43 @@ comment apologising for it.
 which is what a one-line guard deserves, since the line is easy to delete and impossible to miss the
 absence of. One of them asserts that a node which is *not* a slider keeps whatever it is given,
 because every literal in the graph goes through this gate now.
+
+### 2026-09-09 — A code block is tidied when you click away from it (`E8-T84`)
+
+**Reported by the client with a screenshot** of `3;20;` sharing a line: *add line breaks
+automatically when one clicks out of a code block, or perform an auto-formatting.*
+
+**The question that had to be answered before writing anything was whether formatting can break a
+graph.** A code block's ports are its interface, and if they were derived from *lines* then adding
+line breaks would change a node's shape and disconnect whatever was wired to it — a tidy-up that
+silently rewires somebody's graph is a far worse bug than the one being fixed. **They are not**:
+outputs come from `LocalDeclarationStatementSyntax` — the `var` lines — and inputs from the
+identifiers a block uses without declaring. Neither is a fact about whitespace. That is now a test
+rather than a paragraph: `ThePortsAreIdenticalAfterFormatting` compiles the block before and after
+and compares the port names, and a second test checks it still computes the same answer.
+
+**Parsed as a compilation unit rather than as a list of statements**, because `E6-T39` lets a block
+open with `using` directives so it can reach a namespace that was refused for a collision — and a
+`using` directive is not a statement. Parsed as a method body it would be a syntax error and the
+block would never be formatted at all; parsed as a file it is exactly what it looks like.
+
+**Text that does not parse is returned byte for byte**, which is the rule that decides whether this
+feature is liked or hated. Focus is lost in the middle of half-finished work — clicking away to look
+at something is how people think — and an editor that rearranges broken code is fighting the person
+trying to fix it.
+
+**Two smaller decisions that would each have been felt.** The result is **idempotent**, so clicking
+into a block and out again does not mark a saved document modified for nothing — which matters more
+since `E8-T79` put a marker in the title bar. And the editor **only assigns the text when it
+actually changed**, because assigning to `TextEditor.Text` resets the undo history: a block tidied
+on every click away would quietly throw away the user's undos.
+
+**Verified.** The three gates. Fifteen tests, and the parse guard was watched going red — with it
+removed, `var a = ` and `if (x) {` came back rewritten instead of untouched. A probe printed the
+client's own block through the formatter: `3;20;` → `3;\n20;`, and `var a=1;var b=a*2;` →
+`var a = 1;\nvar b = a * 2;`.
+
+**What is not covered by a test, said rather than implied**: the *wiring* — that losing focus calls
+the formatter. `ScriptFormatting.Format` is tested thoroughly and the one line that calls it is not,
+because driving focus loss through the real editor lands in `HeadlessSession.Run`, which is `E8-T81`
+territory. It was checked by running the application.

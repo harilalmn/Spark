@@ -250,6 +250,26 @@ expect. The library's own version is still there in full when you want it:
 is `1`, because rank is something the graph adds around a node and a code block is inside the
 node. Use ordinary C# — `xs.Count` — for a list you made yourself.
 
+## It tidies itself when you click away
+
+**Click out of a block and it is formatted**: each statement gets its own line, spacing is
+normalised, and that is all. `3;20;` becomes
+
+```csharp
+3;
+20;
+```
+
+**Your ports do not change.** A block's inputs come from the names it uses without declaring, and
+its outputs from its `var` lines — neither is a fact about where the line breaks are, so tidying
+moves text and nothing else. Nothing you have wired can come loose.
+
+**A block that does not compile is left exactly as you typed it.** Half-finished work is the normal
+state of a block you are clicking away from, and an editor that rearranges broken code is fighting
+you. Fix the error and the next click away will tidy it.
+
+**Your `using` lines stay at the top and your comments stay where they are.**
+
 ## Printing to the console
 
 **`Console.WriteLine` works in a code block, with no `using` to type**, and the text appears in the
