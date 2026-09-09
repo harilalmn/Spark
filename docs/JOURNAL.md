@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — `E8-T82` is committed.** The console sits under **Properties** in the right column, shown by default, and *Reset layout* restores it there. |
+| **Working on** | **Nothing — `E13-T18`'s committable half is committed.** CI has not run since the repository went private; the refusal is a **billing** one and only the account owner can lift it. Superseded runs are now cancelled rather than run to completion. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The console's home, as the client arranged it** — `E8-T82`. **Before it:** `E8-T80`'s three steps, `E8-T79`, `E7-T23`. |
+| **Last completed step** | **CI has not run since the repository went private** — `E13-T18`. **Before it:** `E8-T82`, `E8-T80`'s three steps, `E8-T79`. |
 | **Working tree** | Clean. Build clean with zero warnings, format clean, **2943** tests over ten executables — with `E8-T81`'s flakiness, which cost one failure on the recorded run. |
-| **Next action** | **`E13-T18` — the CI runs are failing and none of them is a test failure.** The client asked why. **Every job since 2026-09-09 06:17Z has refused to start**: *the job was not started because recent account payments have failed or your spending limit needs to be increased*. The cause is the repository **going private that morning** — Actions minutes are free for a public repository and metered for a private one — so `E12-T22` turned CI from free into billed and nothing in the tree can fix it. **What the tree can fix is the waste**, and the concurrency change is written and needs committing: a superseded push no longer runs a full six-job matrix to answer a question about a commit that has already been replaced. |
-| **Verify with** | The workflows parse, and the next two pushes in quick succession leave one run cancelled rather than two completed — **which cannot be observed until the billing is settled**, because no job starts at all. |
+| **Next action** | **`E8-T81` — the headless flakiness**, which is now the only thing standing between this repository and a trustworthy green. It cost one failure on `E8-T82`'s own recorded run. **Acceptance is ten consecutive green runs of `Spark.UI.Tests`**, because anything less cannot tell a fix from luck. **And a decision for the client first**: three CI economies are written up in `E13-T18` and not taken, because each removes a guard — the nightly benchmarks, the ubuntu build leg, and the native and portable jobs on documentation-only pushes. |
+| **Verify with** | For `E8-T81`: ten consecutive green runs. Nothing smaller is evidence about an intermittent fault. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -9844,3 +9844,41 @@ console so that *Authoring* — written as *all the panes* — means what it say
 the recorded run — `E8-T81`'s flakiness, in a class this step does not touch; the same suite ran
 1278/0 minutes earlier. **The layout itself is the client's to confirm against their own
 screenshot**, which is the only comparison that settles it.
+
+### 2026-09-09 — CI has not run since the repository went private (`E13-T18`)
+
+**The client asked why every run was failing**, with a screenshot of nine red runs in a column. The
+answer is that **none of them is a test failure and no job ever started**:
+
+> The job was not started because recent account payments have failed or your spending limit needs
+> to be increased.
+
+Every job in every run, four to seven seconds each — the time it takes to be refused.
+
+**The cause is `E12-T22`, four steps earlier in this same journal.** Actions minutes are free for a
+public repository and metered for a private one, and the repository went private on the morning of
+2026-09-09. The last green run is `E7-T17` at 06:17Z; the first refusal is the release step that
+followed it. **Going private turned CI from free into billed and nothing in the tree can change
+that** — it is a payment method or a spending limit, and only the account owner can set one.
+
+**Worth saying plainly: for most of a day I read *pushed* as *checked*.** Nine commits went out
+today each claiming green gates, and the gates were green — locally, which is where they were run.
+CI was confirming nothing and nobody looked. The habit that would have caught it is checking the
+run after the **first** push of a session rather than the ninth.
+
+**What the tree can fix is the waste, and now it is worth fixing.** A `concurrency` group with
+`cancel-in-progress` on CI: nine pushes to `main` today, each starting a six-job matrix that ran to
+completion long after the next commit had made its answer irrelevant. Three of those six jobs are
+`windows-latest`, billed at twice the Linux rate, and one of the three builds the OpenCascade shim.
+`main` is deliberately not exempt — the argument for letting main runs finish is that each commit's
+result is a record, and a superseded commit's result is a record nobody reads.
+
+**Three more are proposed and not done, because each removes a guard.** The nightly benchmarks run
+every night with a 180-minute timeout on a doubly-billed runner whether or not anything changed. The
+ubuntu leg of the build matrix has had no requirement behind it since `D16`/`D17`. And the native
+and portable jobs run on documentation-only pushes. Each is defensible to cut and each costs
+something real, so they are the client's call rather than mine.
+
+**Verified.** Both workflows parse. **The behaviour cannot be verified until the billing is
+settled**, because no job starts — and saying so is better than implying a cancellation was watched
+working.

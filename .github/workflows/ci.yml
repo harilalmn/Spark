@@ -27,6 +27,23 @@ on:
 permissions:
   contents: read
 
+# ONE RUN PER BRANCH, AND A NEW PUSH CANCELS THE ONE IT SUPERSEDES (`E13-T18`).
+#
+# Without this every push starts a full six-job matrix that runs to completion even after the next
+# commit has made its answer irrelevant. On a public repository that was only slow; the repository
+# went private on 2026-09-09 and Actions minutes are metered for private repositories, so it is now
+# money spent to learn whether a commit that has already been replaced would have passed.
+#
+# Nine pushes to `main` on 2026-09-09 alone, three of the six jobs on `windows-latest` and billed at
+# twice the Linux rate, and one of those three building the OpenCascade shim.
+#
+# `main` is deliberately NOT excluded from cancellation. The argument for letting main runs finish
+# is that each commit's result is a historical record - but a superseded commit's result is a record
+# nobody reads, and the tip is tested either way.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
