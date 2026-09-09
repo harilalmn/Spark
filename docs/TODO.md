@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (`E11-T28`: the solution and the tree are made to agree)
+**Last updated:** 2026-09-09 (`E12-T5`: `spark check`, and the CLI's first test project)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -12,8 +12,8 @@ a second box and rounds every edge of a third. **F1 opens help for the selected 
 node outlines its geometry in the viewport. A graph naming a package you do not have still opens,
 keeps everything, and re-saves byte for byte. A user can define a node by drawing a graph.
 
-`dotnet build --no-incremental -warnaserror`, the per-project test executables (**2,956 tests over
-nine projects**) and `dotnet format` are all clean on Windows as of 2026-09-09, with the native
+`dotnet build --no-incremental -warnaserror`, the per-project test executables (**2,964 tests over
+ten projects**) and `dotnet format` are all clean on Windows as of 2026-09-09, with the native
 shim built and **nothing skipped** — the skip count is the part that matters, because
 `Spark.Geometry.Occt.Tests` skips itself when the shim is absent. **CI does not run at all any
 more**: Actions is switched off for this repository (`E13-T19`) since it went private and minutes
@@ -40,11 +40,11 @@ Three distinctions still do the work in what follows:
   **And the OpenCascade provider**: `native/spark_occt` and `Spark.Geometry.Occt`, with union,
   difference, intersection, extrude, revolve, loft, fillet, chamfer, shell, sew, heal and
   tessellate behind `IBrepKernel`. **141 node methods over 21 families** in `Spark.Nodes.Core`.
-  **2,956 tests over nine projects** as of 2026-09-09.
+  **2,964 tests over ten projects** as of 2026-09-09.
 - **What is not.** No split, trim, thicken, draft or offset on the kernel contract. No mesh
-  booleans. Trimmed faces come *back* from the provider but cannot be authored. **Five of the
-  seven `spark` verbs** — `check`, `render`, `pkg`, `docs`, `graph` — are unwritten; the CLI
-  dispatches `run`, `export` and `--version`. **No surface or solid property tests**: CsCheck
+  booleans. Trimmed faces come *back* from the provider but cannot be authored. **Four of the
+  seven `spark` verbs** — `render`, `pkg`, `docs`, `graph` — are unwritten; the CLI dispatches
+  `run`, `check`, `export` and `--version`. **No surface or solid property tests**: CsCheck
   covers the value layer and the curve layer and stops there. The software renderer and the CI
   visual-regression check are deliberately deferred past M6.
 - **M2 finished on 2026-08-30.** Real docking (`E8-T2`), group, note and align (`E8-T6`), watch
@@ -215,12 +215,14 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
       no project beside it. **The remaining half is still open**: a project that builds, is in the
       solution, and discovers nothing — which is [N30](NOTES.md)'s original shape and needs the
       run's own output rather than the file system.
-- [ ] **`spark check` — the sixth verb, and the one that needs nothing that does not exist.**
-      `E12-T5`. It is `spark run` without the printing: open a graph, restore it against the node
-      library, evaluate with no window, report the diagnostics, and **exit non-zero if any node is
-      in error**. That is a build gate somebody can put in a script the day it lands, which is more
-      than can be said for `render`, `pkg`, `docs` or `graph` — each of those waits on a milestone
-      that gives it something to do.
+- [x] ~~**`spark check` — the sixth verb, and the one that needs nothing that does not exist.**~~
+      **Landed 2026-09-09**, `E12-T5`, with [a help topic](help/concepts/command-line.md) and the
+      CLI's first test project (`E11-T29`). Silent on success, exit 1 on an error, the node named
+      in every message, one line per diagnostic. **Building it found a real asymmetry and it is now
+      a flag rather than a surprise:** a radius of zero on an unreplicated node is an error and
+      fails; the same radius fanned over eight points is *8 of 8 elements failed*, a **warning**,
+      and passed. `--strict` fails on any diagnostic at all. Both readings are defensible, so the
+      gate asks.
 - [ ] **Compile the XML `<example>` blocks.** `E11-T2`. Every ` ```csharp ` fence in `docs/help/`
       already compiles through the same `ReferenceCatalog` a real code block gets, and
       `AllowedSkips` is **0**. The `<example>` half was written when no contract project used one;

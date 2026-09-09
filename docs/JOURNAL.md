@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Preparing the first public release.** The register is audited and the suite now counts only what the repository contains. Next are the four small pieces of work the audit named, then the release. |
+| **Working on** | **Preparing the first public release.** The register is audited, the suite counts only what the repository contains, and `spark check` gives a build a way to say whether a graph still works. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E11-T28` — the solution and the working tree are made to agree**, after the audit found the verification loop running a deleted project. **Before it:** the register audit, `E11-T27`, the bookkeeping correction, `E8-T84`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2,956** tests over **nine** executables with zero skips. The total dropped by ten rather than rose: twelve phantom passes left, two real tests arrived. |
-| **Next action** | **Take `spark check`** — `E12-T5`, the sixth verb and the only one that needs nothing that does not exist. It is `spark run` without the printing: open, restore against the node library, evaluate with no window, report diagnostics, **exit non-zero if any node is in error**. Then, in order: the XML `<example>` blocks (`E11-T2`), surface and solid properties (`E2-T33`/`E11-T10`), and the four value-layer parity members (`E2-T40`). |
-| **Verify with** | For `spark check`: a graph with a deliberate error exits non-zero and names the node; a clean graph exits zero; the diagnostics are the same text `spark run` produces, because both go through `Spark.Api.ValueText`. |
+| **Last completed step** | **`E12-T5` — `spark check`**, with a help topic and the CLI's first test project (`E11-T29`). **Before it:** `E11-T28`, the register audit, `E11-T27`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2,964** tests over **ten** executables with zero skips, docs harness green. |
+| **Next action** | **Compile the XML `<example>` blocks** — `E11-T2`, the second of the four the audit named. Every ` ```csharp ` fence in `docs/help/` already compiles through the same `ReferenceCatalog` a real code block gets, with `AllowedSkips` at **0**; the `<example>` half was written when no contract project used one and there are now **four** in `src/`, compiled by nothing. Same harness, one more source of samples — `DocumentationSampleTests` in `Spark.UI.Tests` is where it goes. After it: surface and solid properties (`E2-T33`/`E11-T10`), then the four value-layer parity members (`E2-T40`). |
+| **Verify with** | The four `<example>` blocks compile, and a deliberately broken one fails the test — the check has to be seen failing, or it is the sample harness with an extra loop in it. `AllowedSkips` stays at 0. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -87,7 +87,7 @@ Discovered the hard way, and each one costs an hour if rediscovered.
   ```
   for p in tests/*/; do n=$(basename "$p"); (cd "$p/bin/Debug/net10.0" && ./"$n.exe"); done
   ```
-  which should total **2,956 passing, 0 failed, 0 skipped** across **nine** projects, with the
+  which should total **2,964 passing, 0 failed, 0 skipped** across **ten** projects, with the
   native shim built. **Check the project count as well as the total.** `bin/` is gitignored, so a
   project deleted from git leaves its executable behind and this loop keeps running it — that
   happened for eleven days and added twelve phantom passes ([N135](NOTES.md)). `E11-T28` now fails
@@ -10176,3 +10176,57 @@ would have caught this.
 
 **Cost.** Half an hour, and it is the second time in one day that a documentation step found a
 defect the test suite could not. The first was a dangling ADR link.
+
+### 2026-09-09 — `E12-T5`: `spark check`, and the asymmetry it uncovered
+
+**What.** The sixth of seven verbs — `spark check GRAPH.spark [--strict] [--no-script]` — plus
+[a help topic for the command line](help/concepts/command-line.md), which had none, and
+`tests/Spark.Cli.Tests`, which is the first test project over the CLI at all.
+
+**It is `spark run` with the printing taken away, and every decision follows from that.** Silent on
+success, because a gate that writes a line every time is a gate whose output stops being read.
+Diagnostics to stderr with **the node named**, which `run` does not do — a build log is read by
+somebody who was not watching, and `SPK1046` with no node attached costs an hour. **One line per
+diagnostic**, because `ArgumentOutOfRangeException` appends *Actual value was 0.* on a line of its
+own and half a diagnostic has lost its file, its node and its severity; the canvas keeps the break
+because it has the room.
+
+**The thing worth the whole step is `--strict`, and it was not in the plan.** Running the new verb
+against a deliberately broken graph — `curves.spark` with the circle radius set to zero — gave
+**exit 0**. Not a bug in `check`: the circle node is replicating over eight points, so eight
+failures out of eight is `SPK1042`, *8 of 8 elements failed*, which is a **warning** by
+`DiagnosticSeverity`'s own definition, because the node produced a list and everything downstream
+evaluated. The *same* radius on an unreplicated node is `SPK1046`, an **error**, and fails.
+
+**Both readings are defensible and that is exactly why the gate should not choose.** A gate that
+failed every warning is one somebody turns off; a gate that passes a graph where nothing worked is
+not a gate. `--strict` fails on any diagnostic at all, the default does not, and the help topic
+says which to use where: strict in a build you control, lenient over graphs other people wrote.
+**The asymmetry is asserted, not described** — `AWhollyFailedReplicationIsAWarningAndOnlyStrictFailsIt`
+pins both halves, so the day somebody changes the severity of `SPK1042` they find out here.
+
+**The test project is overdue rather than new scope.** `run` and `export` shipped with **no
+automated test of any kind** and were verified by eye. A verb whose contract is an **exit code** is
+the worst possible thing to check that way. `Check` takes a `TextWriter` instead of reaching for
+`Console.Error`, which is what makes the message and the code both assertable, and it is the shape
+the four remaining verbs will need. The project references `Spark.Cli` — an `Exe`, which is
+supported — rather than shelling out to the built `spark.exe`: shelling out makes the test depend
+on build ordering and on a path, and turns an assertion about a return value into an assertion
+about a process.
+
+**Two fixtures fought back, and both were the file format being right.** A list typed into a port
+cannot be written to a `.spark` file at all — `SparkFileException: has a value on input 0 of type
+Double[], which a .spark file cannot represent` — so the replication fixture produces its list with
+a `Number.Range` node instead of a literal. That is a property of the format, not of the test, and
+it is commented as such in the fixture so the next person does not try the shorter version.
+
+**Verified.** Three gates green — build clean over sixteen projects, format clean, **2,964 tests
+over ten executables** with zero failures and zero skips. And **run by hand from the built
+`spark.exe`**, because a CLI verb that has only ever been called in-process is not proven: `check`
+on `curves.spark` and `solids.spark` exits 0 silently, on a missing file exits 1 with one line, on
+the broken graph exits 0 and on the same graph with `--strict` exits 1. Every example in the help
+topic is **copied from a real run** rather than written from memory — the first draft had invented
+both the output of `spark run` and the diagnostic code, and both were wrong.
+
+**Cost.** Under two hours, most of it on `--strict` and its help topic, and it converts *the CLI
+exists* into *a build can use the CLI*.

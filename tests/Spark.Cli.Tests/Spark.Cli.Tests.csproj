@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The first test project over the command line. `spark run` and `spark export` shipped
+    without one and were verified by hand, which is why `spark check` arrives with this
+    beside it: a verb whose contract is an exit code is exactly the thing a person reading
+    console output is worst at checking.
+
+    Referencing an Exe project is deliberate and supported. The alternative - shelling out
+    to the built `spark.exe` - makes the test depend on build ordering and on a path, and
+    turns an assertion about a return value into an assertion about a process.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Spark.Cli\Spark.Cli.csproj" />
+  </ItemGroup>
+
+</Project>

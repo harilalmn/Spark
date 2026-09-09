@@ -298,7 +298,7 @@ previously invisible — **Q11** and **Q12** — and one new risk, **R14**.
 | FR-67 | Geometry reaches the viewport as immutable `RenderPackage { NodeId, PortIndex, ElementPath, Positions, Normals, Indices, EdgeIndices, Appearance }`, one GPU buffer set per `(NodeId, PortIndex)`, tessellated in parallel and streamed during a run. | Not started (E9) |
 | FR-68 | Selection is synchronised between canvas and viewport, falling out of node-keyed identity with no extra bookkeeping. | Not started (E9) |
 | FR-69 | Style is an explicit wrapper — `Appearance` and `Displayable(Geometry, Appearance)` in `Spark.Api`, applied by a `Display.ByGeometryColor` node. Unwrapped geometry renders with defaults. | Not started (E5, E9) |
-| FR-70 | `spark run`, `check`, `render`, `export`, `pkg`, `docs` and `graph`, as a `spark.exe` shipping beside the desktop application. | Not started (E12) |
+| FR-70 | `spark run`, `check`, `render`, `export`, `pkg`, `docs` and `graph`, as a `spark.exe` shipping beside the desktop application. | **Three of seven done** (E12-T5): `run` 2026-08-30, `export` 2026-08-29, `check` 2026-09-09, all evaluating with no window. `render`, `pkg`, `docs` and `graph` arrive with the milestones that give them something to do, and `spark --help` says so rather than accepting them and doing nothing |
 | FR-71 | `Spark.Host` runs inside a Revit or AutoCAD add-in through the host-thread scheduler and `IHostServices`. | Not started (E12) |
 | FR-72 | Aggressive autosave and crash recovery. | Not started (E8) |
 | FR-73 | A signed Inno Setup installer and a portable zip for Windows. | Not started (E12) |

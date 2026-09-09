@@ -31,8 +31,14 @@ namespace Spark.Cli;
 /// only way to keep a requirement like that true rather than merely asserted.
 /// </para>
 /// <para>
-/// <c>check</c>, <c>render</c>, <c>pkg</c>, <c>docs</c> and <c>graph</c> are `E12-T5` and arrive
-/// with the milestones that give them something to do.
+/// <c>spark check</c> is <c>run</c> with the printing taken away: it opens a graph, evaluates it
+/// with no window, and says nothing at all unless something is wrong. It exists to be put in a
+/// build script, which is why it is silent on success and why its exit code rather than its
+/// output is the answer.
+/// </para>
+/// <para>
+/// <c>render</c>, <c>pkg</c>, <c>docs</c> and <c>graph</c> are `E12-T5` and arrive with the
+/// milestones that give them something to do.
 /// </para>
 /// </remarks>
 internal static class Program
@@ -69,6 +75,7 @@ internal static class Program
             return args[0] switch
             {
                 "run" => Run(args.AsSpan(1)),
+                "check" => Check(args.AsSpan(1), Console.Error),
                 "export" => Export(args.AsSpan(1)),
                 "--version" => Version(),
                 _ => Unknown(args[0]),
@@ -214,6 +221,191 @@ internal static class Program
             + $"{result.Diagnostics.Count} diagnostic(s)"));
 
         return result.HasErrors ? 1 : 0;
+    }
+
+    /// <summary>
+    /// Opens a graph, evaluates it with no window, and reports only what is wrong with it.
+    /// </summary>
+    /// <param name="args">The arguments after the verb.</param>
+    /// <param name="error">Where diagnostics go. <see cref="Console.Error"/> in the product.</param>
+    /// <returns>Zero when nothing errored, one otherwise.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>It is <c>spark run</c> with the printing taken away, and the difference is the point.</b>
+    /// <c>run</c> answers <i>what did this graph produce</i> and prints values to standard output.
+    /// <c>check</c> answers <i>is this graph broken</i> and prints nothing at all when it is not —
+    /// a gate that writes a line on the happy path is a gate whose output stops being read, and
+    /// then the one run that had something to say scrolls past with the rest.
+    /// </para>
+    /// <para>
+    /// <b>Warnings print and do not fail, and <c>--strict</c> is there because that is not always
+    /// what a build wants.</b> A per-element replication failure is a warning by
+    /// <see cref="DiagnosticSeverity"/>'s own definition — the node produced a value and everything
+    /// downstream still evaluated — and a gate that refused every one of those by default is a gate
+    /// somebody turns off. But <b>the definition holds when one element of eight fails and also
+    /// when eight of eight do</b>: a circle node given a radius of zero for every input reports
+    /// <c>SPK1042</c> as a warning, produces a list of nothing, and would otherwise pass. That
+    /// asymmetry is real and surprising — the same failure on an unreplicated node is an error —
+    /// so <c>--strict</c> fails on any diagnostic at all, and the default is documented rather
+    /// than quietly relied upon.
+    /// </para>
+    /// <para>
+    /// Errors fail either way, and so does a graph that will not load at all, which is caught by
+    /// the same handler <c>run</c> and <c>export</c> use.
+    /// </para>
+    /// <para>
+    /// <b>The node is named, which <c>run</c> does not do.</b> A build log is read by somebody who
+    /// was not watching, and <c>SPK1043</c> without a node name is a message that costs an hour.
+    /// The name comes from the same <c>Definition.DisplayName</c> the canvas draws, so what the log
+    /// says and what the user sees when they open the file agree.
+    /// </para>
+    /// <para>
+    /// <b>Diagnostics carry a node id, not a node</b>, and a diagnostic can carry no id at all —
+    /// one raised while restoring the graph belongs to the file rather than to any node. Both
+    /// cases print; only the first gets a name.
+    /// </para>
+    /// </remarks>
+    internal static int Check(ReadOnlySpan<string> args, TextWriter error)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+
+        string? input = null;
+        bool scripting = true;
+        bool strict = false;
+
+        for (int i = 0; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--open" when i + 1 < args.Length:
+                    input = args[++i];
+                    break;
+
+                case "--no-script":
+                    scripting = false;
+                    break;
+
+                case "--strict":
+                    strict = true;
+                    break;
+
+                default:
+                    if (input is null && !args[i].StartsWith('-'))
+                    {
+                        input = args[i];
+                        break;
+                    }
+
+                    error.WriteLine($"spark: unrecognised option '{args[i]}'.");
+                    return 1;
+            }
+        }
+
+        if (input is null)
+        {
+            error.WriteLine("spark: check needs a graph to check. Try: spark check graph.spark");
+            return 1;
+        }
+
+        using SparkSession session = new();
+
+        GraphDocument document = SparkFile.Read(File.ReadAllText(input));
+
+        // `E6-T16`, and the same refusal `spark run` makes for the same reason. A graph is
+        // executable code; a build that declines to run somebody else's must be told that it
+        // contains some, rather than being handed a green result computed without it.
+        if (!scripting && document.HasScripts)
+        {
+            error.WriteLine(
+                "spark: this graph contains a code block and --no-script was given, so it was not checked.");
+
+            return 1;
+        }
+
+        IScriptNodeFactory? scripts = scripting && document.HasScripts
+            ? session.EnableScripting()
+            : null;
+
+        Graph graph = document.Restore(session.Library, scripts);
+
+        EvaluationContext context = new(default, new SequentialEvaluationScheduler());
+        EvaluationResult result = GraphEvaluator.Evaluate(graph, context, CancellationToken.None);
+
+        foreach (SparkDiagnostic diagnostic in result.Diagnostics)
+        {
+            error.WriteLine($"spark: {input}: {Describe(graph, diagnostic)}");
+        }
+
+        return result.HasErrors || (strict && result.Diagnostics.Count > 0) ? 1 : 0;
+    }
+
+    /// <summary>
+    /// Renders one diagnostic as a line, naming the node it belongs to when it has one.
+    /// </summary>
+    /// <param name="graph">The graph the diagnostic came from.</param>
+    /// <param name="diagnostic">The diagnostic.</param>
+    /// <returns>The line, without the leading <c>spark:</c> and the file name.</returns>
+    /// <remarks>
+    /// The lookup is defensive on purpose. A diagnostic's node id is a <c>Guid</c> and nothing in
+    /// the type system says it names a node in <i>this</i> graph — a diagnostic raised against a
+    /// node that was then removed would otherwise turn a helpful message into a crash inside the
+    /// thing whose whole job is reporting problems.
+    /// </remarks>
+    private static string Describe(Graph graph, SparkDiagnostic diagnostic)
+    {
+        string severity = diagnostic.Severity switch
+        {
+            DiagnosticSeverity.Error => "error",
+            DiagnosticSeverity.Warning => "warning",
+            _ => "info",
+        };
+
+        string? node = null;
+
+        if (diagnostic.NodeId is { } id)
+        {
+            try
+            {
+                node = graph.Node(new NodeId(id)).Definition.DisplayName;
+            }
+            catch (KeyNotFoundException)
+            {
+                node = null;
+            }
+        }
+
+        string message = OneLine(diagnostic.Message);
+
+        return node is null
+            ? $"{severity} {diagnostic.Code}: {message}"
+            : $"{severity} {diagnostic.Code}: {node}: {message}";
+    }
+
+    /// <summary>
+    /// Flattens a diagnostic message onto one line.
+    /// </summary>
+    /// <param name="message">The message.</param>
+    /// <returns>The same text with every run of whitespace reduced to a single space.</returns>
+    /// <remarks>
+    /// <b>A build log is read one line at a time, by <c>grep</c> as often as by a person.</b>
+    /// Several messages arrive with a newline in them without anybody choosing that — a
+    /// <see cref="ArgumentOutOfRangeException"/> appends <i>Actual value was 0.</i> on its own
+    /// line — and a diagnostic split across two lines is one whose second half has lost its file
+    /// name, its node and its severity. This is done here rather than at the source because the
+    /// canvas wants the line break: it has room, and the second line is genuinely useful there.
+    /// </remarks>
+    private static string OneLine(string message)
+    {
+        if (message.AsSpan().IndexOfAny('\r', '\n') < 0)
+        {
+            return message;
+        }
+
+        string[] parts = message.Split(
+            ['\r', '\n'],
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        return string.Join(' ', parts);
     }
 
     private static int Export(ReadOnlySpan<string> args)
@@ -655,6 +847,14 @@ internal static class Program
         Console.WriteLine("      --no-script refuses a graph containing a code block. A Spark graph is");
         Console.WriteLine("      executable code; this is how a build declines to run somebody else's.");
         Console.WriteLine();
+        Console.WriteLine("  spark check GRAPH.spark [--strict] [--no-script]");
+        Console.WriteLine("      Evaluate a graph with no window and say nothing unless something");
+        Console.WriteLine("      is wrong. Exit 1 if any node errored or the file would not open.");
+        Console.WriteLine("      Warnings print and do not fail, because a gate that refused every");
+        Console.WriteLine("      one is a gate somebody turns off. --strict fails on any of them,");
+        Console.WriteLine("      which is what you want when a replication can fail wholesale and");
+        Console.WriteLine("      still only be a warning. For build scripts.");
+        Console.WriteLine();
         Console.WriteLine("  spark export --open GRAPH.spark --out FILE.[obj|stl|ply|glb] [--tolerance T]");
         Console.WriteLine("      Evaluate a graph with no window and write its geometry.");
         Console.WriteLine("      The format comes from the extension: obj for curves and meshes,");
@@ -665,6 +865,6 @@ internal static class Program
         Console.WriteLine();
         Console.WriteLine("  spark --version");
         Console.WriteLine();
-        Console.WriteLine("  check, render, pkg, docs and graph arrive with later milestones.");
+        Console.WriteLine("  render, pkg, docs and graph arrive with later milestones.");
     }
 }

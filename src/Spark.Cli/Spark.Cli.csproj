@@ -8,6 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- `Program` is internal, and `spark check`'s contract is an exit code. -->
+    <InternalsVisibleTo Include="Spark.Cli.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Spark.Host\Spark.Host.csproj" />
 
     <!--

@@ -2,7 +2,7 @@
 
 For anyone changing this repository — human or AI. Read this before committing.
 
-**Last updated:** 2026-09-09 (`E11-T28`: the verification loop can run a project that no longer exists)
+**Last updated:** 2026-09-09 (`E12-T5`: `spark check`, and the CLI's first test project)
 
 ---
 
@@ -195,7 +195,7 @@ for p in tests/*/; do n=$(basename "$p"); (cd "$p/bin/Debug/net10.0" && ./"$n.ex
 `bin/` is gitignored, so a project deleted from git leaves an executable behind and the loop keeps
 running it. That happened for eleven days — twelve phantom passes from `Spark.Geometry.Io.Tests`,
 whose tests had been folded into `Spark.Geometry.Tests` ([N135](docs/NOTES.md)). **The expected
-total on 2026-09-09 is 2,956 across nine projects, with the native shim built and zero skipped**,
+total on 2026-09-09 is 2,964 across ten projects, with the native shim built and zero skipped**,
 and `SolutionMembershipTests` (`E11-T28`) now fails the build rather than leaving it to be noticed:
 every `.csproj` under `tests/` is in `Spark.slnx`, and no directory under `tests/` holds a `bin/`
 without a project beside it.

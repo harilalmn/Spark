@@ -1,0 +1,199 @@
+---
+id: concepts.command-line
+title: The command line
+nodes: []
+related: [concepts.files, concepts.evaluation, concepts.code-blocks]
+since: "2026.9"
+---
+
+**Status:** Current. Describes the three verbs that exist — `run`, `check` and `export` — and says
+plainly which of the seven do not.
+**Owner:** `graph-engine`
+**Last updated:** 2026-09-09
+
+> **Scope.** `spark.exe` ships beside the desktop application and does everything **without opening
+> a window**. It is the same engine, the same node library and the same value rendering; what it
+> does not have is a canvas. Four of the seven planned verbs — `render`, `pkg`, `docs` and `graph`
+> — are not written yet, and `spark --help` says so rather than pretending otherwise.
+
+---
+
+## Why there is a command line at all
+
+A graph is a document and an evaluation is a computation. Both of those claims are easy to make
+and easy to be wrong about, and the way they stop being claims is that something outside the
+application can open a file and get the same answer. That is what `spark` is for: a build that
+checks graphs, a script that exports a hundred of them, a diff between yesterday's answer and
+today's.
+
+Everything it prints is designed to be **redirected**. Values go to standard output and problems
+go to standard error, so `spark run graph.spark > values.txt` captures the answer and still shows
+you what went wrong on the way.
+
+---
+
+## `spark run` — what did this graph produce?
+
+```
+spark run GRAPH.spark [--all] [--no-script]
+```
+
+Opens the graph, evaluates it with no window, and prints **what its watch nodes saw**. A watch is
+the user saying *this one*; a graph of two thousand nodes has two thousand values and almost none
+of them is the one you wanted.
+
+```
+$ spark run docs/examples/curves.spark
+spark: no watch nodes in this graph. Add a Watch node, or run with --all.
+spark: 18 node(s) evaluated, 0 cache hit(s), 0 diagnostic(s)
+```
+
+That first line is on standard error, not standard output: a graph with no watches in it ran
+perfectly well and simply said nothing, which looks identical to a graph that did nothing. With
+`--all` the same file prints every node:
+
+```
+$ spark run docs/examples/curves.spark --all
+Point.FromCoordinates  rank 1 · 8 items  [(-7, 7, 0), (-5, 7, 0), (-3, 7, 0), …
+Circle.FromCenterRadius  rank 1 · 8 items  [Circle(center (-7, 7, 0), radius 0.9), …
+Plane.XY  rank 0 · one value  Plane(Origin=(0, 0, 0), Normal=(0, 0, 1))
+```
+
+Values print in the **document's** order rather than the graph's, so two runs of one file print the
+same values in the same order — which is the only reason to print them at all. The rendering is the
+same one the canvas and the properties pane use, from one shared implementation, so what the
+command line says and what the application shows cannot drift apart.
+
+`--no-script` refuses a graph containing a code block instead of running it. It **refuses rather
+than dropping the executable parts**, because a graph that silently ran with its code blocks
+missing would produce a wrong answer quietly, which is worse than an error. See
+[code blocks](code-blocks.md).
+
+---
+
+## `spark check` — is this graph broken?
+
+```
+spark check GRAPH.spark [--strict] [--no-script]
+```
+
+The same evaluation with the printing taken away. **It says nothing at all when nothing is wrong**,
+and its answer is the exit code:
+
+| Exit code | Meaning |
+|---|---|
+| `0` | Every node evaluated. Warnings may have been printed; none of them failed the run. |
+| `1` | A node errored, the file would not open, or the arguments were wrong. |
+
+```
+$ spark check docs/examples/solids.spark
+$ echo $?
+0
+```
+
+and when something is wrong:
+
+```
+$ spark check broken.spark
+spark: broken.spark: error SPK1046: Circle.FromCenterRadius: 'Circle.FromCenterRadius' failed: A circle's radius must be positive and finite. (Parameter 'radius') Actual value was 0.
+$ echo $?
+1
+```
+
+**Three things about that output are deliberate.**
+
+- **Silence on success.** A gate that writes a line every time is a gate whose output stops being
+  read, and then the one run that had something to say scrolls past with the rest.
+- **The node is named.** `spark run` prints the code and the message; `check` prints the node as
+  well, because a build log is read by somebody who was not watching and a diagnostic code with no
+  node attached is a message that costs an hour. The name is the same one the canvas draws.
+- **Every diagnostic is one line.** Several exceptions put a newline in their message —
+  `ArgumentOutOfRangeException` appends *Actual value was 0.* on a line of its own — and a
+  diagnostic split in two is one whose second half has lost its file name, its node and its
+  severity. The canvas keeps the break, because it has the room; the command line does not.
+- **Warnings print and do not fail.** A per-element replication failure is a warning by
+  definition — the node produced a value and everything downstream still evaluated — and a gate
+  that refused those is a gate somebody turns off. See [evaluation](evaluation.md).
+
+### `--strict`, and the case that makes it necessary
+
+**The warning rule holds when one element of eight fails and also when eight of eight do**, and the
+second is very nearly always a broken graph:
+
+```
+$ spark check broken.spark
+spark: broken.spark: warning SPK1042: Circle.FromCenterRadius: 8 of 8 elements failed; first at [0]: A circle's radius must be positive and finite. (Parameter 'radius') Actual value was 0.
+$ echo $?
+0
+```
+
+The *same* radius of zero on a node that is not replicating is an **error** and fails. That
+asymmetry is real, it follows from what a warning means rather than from an oversight, and it is
+exactly the kind of thing a gate should not decide on your behalf. So `--strict` fails on **any**
+diagnostic at all:
+
+```
+$ spark check broken.spark --strict
+spark: broken.spark: warning SPK1042: Circle.FromCenterRadius: 8 of 8 elements failed; …
+$ echo $?
+1
+```
+
+Use `--strict` in a build you control and the default when checking graphs other people wrote —
+a graph that legitimately warns is common, and a gate that has to be argued with gets removed.
+
+### Using it in a build
+
+```
+spark check --strict graphs/facade.spark || exit 1
+```
+
+or over a folder, where the shell's own exit code does the work:
+
+```
+for f in graphs/*.spark; do spark check "$f" || fail=1; done
+exit ${fail:-0}
+```
+
+---
+
+## `spark export` — write the geometry out
+
+```
+spark export --open GRAPH.spark --out FILE.[obj|stl|ply|glb|step|iges] [--tolerance T]
+```
+
+Evaluates with no window and writes what it produced. The format comes from the extension.
+
+```
+$ spark export --open docs/examples/curves.spark --out curves.obj --tolerance 0.001
+```
+
+Curves become polylines and surfaces are tessellated, at a tolerance written into the file's own
+header. **Solids are not tessellated on the way to STEP or IGES** — those carry the exact
+surfaces, which is the entire point of having them. See [solids](solids.md).
+
+---
+
+## `spark --version`
+
+Prints the version, and the third-party notice that the licence requires: which kernel is loaded,
+under what licence, and that it is dynamically linked and replaceable. The same text appears in the
+application's About box, from one source, because two copies of a licence notice is one copy that
+stops matching the build.
+
+---
+
+## What is not written yet
+
+`render`, `pkg`, `docs` and `graph` are planned and do not exist. `spark --help` lists them under
+*arrive with later milestones* rather than accepting them and doing nothing, which is the failure
+mode a build script cannot see.
+
+---
+
+## Related
+
+- [Saving and opening graphs](files.md) — what is in the file these verbs read.
+- [How a graph evaluates](evaluation.md) — what a diagnostic is, and why errors do not cascade.
+- [Code blocks](code-blocks.md) — and why `--no-script` refuses rather than skips.
