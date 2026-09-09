@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — `E13-T18`'s committable half is committed.** CI has not run since the repository went private; the refusal is a **billing** one and only the account owner can lift it. Superseded runs are now cancelled rather than run to completion. |
+| **Working on** | **Nothing — `E13-T19` is committed.** GitHub Actions is off at the repository, the three workflow files stay in the tree inert, and five documents stopped promising checks that no longer happen. **`dotnet test Spark.slnx` now has no authority behind it at all** and `AGENTS.md` says so. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **CI has not run since the repository went private** — `E13-T18`. **Before it:** `E8-T82`, `E8-T80`'s three steps, `E8-T79`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2943** tests over ten executables — with `E8-T81`'s flakiness, which cost one failure on the recorded run. |
-| **Next action** | **`E8-T81` — the headless flakiness**, which is now the only thing standing between this repository and a trustworthy green. It cost one failure on `E8-T82`'s own recorded run. **Acceptance is ten consecutive green runs of `Spark.UI.Tests`**, because anything less cannot tell a fix from luck. **And a decision for the client first**: three CI economies are written up in `E13-T18` and not taken, because each removes a guard — the nightly benchmarks, the ubuntu build leg, and the native and portable jobs on documentation-only pushes. |
-| **Verify with** | For `E8-T81`: ten consecutive green runs. Nothing smaller is evidence about an intermittent fault. |
+| **Last completed step** | **GitHub Actions turned off entirely** — `E13-T19`. **Before it:** `E13-T18`, `E8-T82`, `E8-T80`'s three steps. |
+| **Working tree** | Clean. Documentation and one repository setting this step; the last full run was **2943** tests over ten executables with one `E8-T81` flake. |
+| **Next action** | **`E8-T81` — the headless flakiness, and it matters more now than it did an hour ago.** With CI off, the local suite is the **only** evidence anything works, and it needs a re-run to be green about one time in three. A gate that is the sole authority cannot also be unreliable. **Acceptance is ten consecutive green runs of `Spark.UI.Tests`**; every failure so far has been inside `HeadlessSession.Run`, in a different class each time, which points at session setup or teardown rather than at any test's subject. |
+| **Verify with** | Ten consecutive green runs of `Spark.UI.Tests`. Nothing smaller distinguishes a fix from luck on an intermittent fault. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -9882,3 +9882,46 @@ something real, so they are the client's call rather than mine.
 **Verified.** Both workflows parse. **The behaviour cannot be verified until the billing is
 settled**, because no job starts — and saying so is better than implying a cancellation was watched
 working.
+
+### 2026-09-09 — GitHub Actions turned off entirely (`E13-T19`)
+
+**The client's instruction, and both halves of it are true**: *we are doing releases locally and do
+not need CI.* `E12-T22` cut `v2026.9.0` from a developer machine rather than a workflow, and every
+run since the repository went private has been refused for billing anyway (`E13-T18`). Paying for a
+service that has not run in nine attempts and would not be used if it did is not a decision that
+needs arguing with.
+
+**Switched off at the repository rather than by deleting files.** `actions/permissions` with
+`enabled: false` stops every trigger at once and is one setting to reverse; `ci.yml`, `nightly.yml`
+and `release.yml` stay where they are, correct and inert. Deleting three working files would throw
+away exactly the work that turning CI back on would need rewritten.
+
+**The documents were the larger half of this, and they were full of promises CI used to keep.**
+`AGENTS.md` told a contributor that *CI's `dotnet test` leg is what settles it* for the local
+`Zero tests ran` quirk — **nothing settles it now**, and a gate that names an absent authority is
+worse than one that admits there is none. It said `docs-freshness` fails an undocumented API change;
+that job cannot run, and its own *Known and deliberately accepted* entry already admitted it had
+**never run once**, being `pull_request`-only on a repository with no pull requests. It said the
+benchmarks *run nightly against committed budgets*, so they *guard* rather than merely measure —
+they are a manual guard now, and the sentence that drew the distinction had to be the sentence that
+withdrew it. `README.md` claimed a green Linux leg on `53596ab`: true, and now **the last word CI
+had**.
+
+**Two things are genuinely lost and are recorded rather than glossed.** `dotnet test Spark.slnx`
+does not work on this machine — it reports `Zero tests ran` and exit 5, which is why the gates run
+the per-project executables — so CI's was the only run of the command the documentation still
+recommends. And CI was the only build from a **clean clone**: a file that exists locally and was
+never committed now fails for the next person to clone rather than for the person who forgot it.
+`git status` before committing is the whole of the replacement.
+
+**A misattribution worth correcting in the record**, since a journal is read later by people who
+were not here: the client recalled being told *turn Actions off entirely and keep CI only for
+releases*. That was not proposed — the three candidates offered were the nightly benchmarks, the
+ubuntu build leg, and the native and portable jobs on documentation-only pushes. The decision to
+switch everything off is the client's own, and it is a reasonable one; the record should just say
+whose it was.
+
+**Verified.** `actions/permissions` reports `enabled: false`. The docs harness is green, which is
+the check that every relative link still resolves after five documents were edited. **The claim that
+no run starts on the next push cannot be verified from here** — it is the absence of a thing, and it
+will be visible on the Actions tab the next time anybody pushes.

@@ -62,10 +62,11 @@ enforces is a preference:
    sample, execute every example graph, and fail the build when a node has no help topic or a
    help topic names a node that no longer exists. Those checks are not stubbed in advance,
    deliberately: see [NOTES.md N13](docs/NOTES.md).
-3. **The `docs-freshness` CI job** fails a diff that changes a public-API baseline or
-   touches `src/Spark.Nodes.*` without touching `docs/`, `README.md` or `AGENTS.md`. It is
-   overridable only by an explicit `docs: none-needed` commit trailer, which is **visible in
-   review**. A silent exemption is worthless; a loud one is fine.
+3. **The `docs-freshness` job used to fail** a diff that changes a public-API baseline or
+   touches `src/Spark.Nodes.*` without touching `docs/`, `README.md` or `AGENTS.md`, overridable
+   only by an explicit `docs: none-needed` commit trailer. **It cannot run now** (`E13-T19`), so
+   the rule it enforced is a rule you keep yourself: **a change to a public API or a node without
+   a documentation change is a change you have not finished.**
 
 Mechanism 1 works, and has been exercised in anger repeatedly: every public member of
 `Spark.Geometry` and `Spark.Nodes.Core` carries an XML doc comment because the build refuses to
@@ -94,7 +95,7 @@ properly; a token edit to satisfy the rule is worse than none.
 | [docs/NOTES.md](docs/NOTES.md) | You discover a non-obvious implementation fact the next reader would get wrong. Take the next unused number. **Never renumber, never reuse, leave gaps on deletion** |
 | `docs/adr/` | A decision that **could have gone differently**. Name the alternative and why it lost. Never renumber an ADR |
 | `docs/help/` | Anything user-facing: a new node, a changed port, a new concept, a new `SPK####` code. **Every topic contains a worked example**, and every node family gets one. A node nobody can find is a node nobody uses |
-| `docs/examples/` | A concept is easier shown than told. These are real `.spark` files and CI executes them |
+| `docs/examples/` | A concept is easier shown than told. These are real `.spark` files, executed by `ExampleGraphTests` in the local suite — **CI no longer runs them, or anything** (`E13-T19`) |
 | XML doc comments | You add or change a public member on a contract project. This is not optional; the compiler enforces it |
 
 Every document carries a **Last updated** date. Change it when you change the document.
@@ -105,19 +106,34 @@ XML doc = what this member does.*
 
 ## Before you commit
 
+> **GitHub Actions is switched off for this repository, since 2026-09-09 (`E13-T19`).** Releases
+> are cut locally and CI was not paying for itself once the repository went private. **Nothing runs
+> anywhere except the machine you are sitting at**, so every mention of a CI job below describes a
+> check that used to happen and does not now. The workflow files are still in `.github/workflows/`
+> and are inert; turning them back on is one repository setting.
+>
+> **What this costs, stated once so nobody has to rediscover it.** `dotnet test Spark.slnx` does not
+> work on this machine — see below — and CI's was the only run of it. CI was also the only build
+> from a clean clone, so a file that is present locally and never committed now fails for the next
+> person rather than for you. **Run the per-project executables, and check `git status` before you
+> commit.**
+
+
 1. `dotnet build Spark.slnx --no-incremental -warnaserror` — clean, **zero warnings**. Use
    exactly this form. `--no-incremental` is not optional caution: without it the warning
    count can be a cached result from a compilation that never ran, and it will read as clean.
 2. `dotnet test Spark.slnx` — green. This runs the docs harness and the architecture tests;
    there is no separate command for either.
 3. `dotnet format Spark.slnx --verify-no-changes --severity warn` — clean. Use exactly this
-   form: it is what the `format` CI job runs, and a shorter one can pass locally where the
-   gate fails.
-   Two further checks are CI's and are runnable locally when you have touched what they guard:
-   `scripts/check-no-native-binaries.sh` (NFR-5, and it is in the build job), and the benchmarks
-   when you have changed marshalling, evaluation or the canvas spatial index. **The benchmarks now
-   run nightly against committed budgets** (`.github/workflows/nightly.yml`), so they guard rather
-   than merely measure. Run them the way the nightly does:
+   form: it is what the `format` job ran when there was CI, and a shorter one can pass locally
+   where the longer one fails. **It is now the only place that check happens** (`E13-T19`).
+   Two further checks were CI's, and are **yours now** — run them when you have touched what they
+   guard, because nothing else will (`E13-T19`):
+   `scripts/check-no-native-binaries.sh` (NFR-5), and the benchmarks when you have changed
+   marshalling, evaluation or the canvas spatial index. **The benchmarks were a nightly guard
+   against committed budgets and are now a manual one** (`E13-T19`): the budgets in
+   `bench/budgets.jsonc` still fail a run that breaks them, but only when somebody starts the run.
+   Run them the way the nightly did:
 
    ```
    dotnet run --project bench/Spark.Benchmarks --configuration Release -- --filter '*' --exporters json --artifacts artifacts/benchmarks
@@ -162,7 +178,9 @@ run and its budget check. **Command 2 did not run as written that day, and the r
 understood**: `dotnet test Spark.slnx` reported `Zero tests ran` and exit code 5 for every
 project — including projects the change did not touch — under SDK 10.0.400, while each project's
 own test executable ran green for a total of **952 tests, 0 failures**. That is a local tooling
-failure rather than a red suite, and CI's `dotnet test` leg is what settles it. **Do not read a
+failure rather than a red suite, and **nothing settles it any more**: CI's `dotnet test` leg was
+what did, and Actions is off (`E13-T19`). The per-project executables are the whole of the evidence.
+**Do not read a
 green suite out of a run that discovered nothing**: exit code 5 with a zero total is exactly what
 that looks like, and until this is diagnosed, a run of
 `tests/<project>/bin/Debug/net10.0/<project>.exe` is the fallback that actually executes tests.
@@ -201,8 +219,11 @@ to a different repository than the one the source lives in.** `harilalmn/Spark` 
 private repository's releases are private with it — GitHub gives them the repository's visibility
 and offers no setting that separates the two. So the binaries go to
 **`harilalmn/Spark-Releases`**, which is public and holds no source. `.github/workflows/release.yml`
-still exists and still builds, but it is `workflow_dispatch` only: it is a clean-room check, not
-the release path.
+still exists and is still correct, but **it cannot run at all**: GitHub Actions is switched off for
+this repository as of 2026-09-09 (`E13-T19`), at the client's instruction — the releases were
+already being cut here, and a private repository's minutes are billed rather than free. **The
+clean-room check it used to offer is gone with it**, so the local build is not merely the release
+path, it is the only one.
 
 1. **Read what has happened since the last tag.** `git log --oneline $(git describe --tags
    --abbrev=0)..HEAD` when there is a tag, the whole log when there is not.
@@ -677,8 +698,10 @@ enough *title* to clear the minimum width on its own, so the assertion "wider th
 true either way. The bound is now above what the title alone asks for, and the arithmetic is in the
 test. **An assertion that would also hold with the feature removed is not an assertion.**
 
-**Written, and not executed at all.** The `docs-freshness` CI job. It is `pull_request`-only
-and every commit so far has been a push to `main`, so it has never run once.
+**Written, and never executed once.** The `docs-freshness` CI job. It was `pull_request`-only and
+every commit was a push to `main`, so it never ran — and then Actions was switched off entirely
+(`E13-T19`), so it never will unless somebody turns it back on. **A guard that has never run is not
+a guard**, and this one was carried in the documents as though it were for weeks.
 
 **Not built at all.** No surfaces, meshes, BRep or solids; no `NurbsCurve`; no `Quaternion`.
 `Spark.Geometry.Io`, `Spark.Scripting`, `Spark.Packages` and `Spark.Cli` are empty

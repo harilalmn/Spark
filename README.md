@@ -96,8 +96,11 @@ Spark is like and what it does not require.*
 > `dotnet format Spark.slnx --verify-no-changes --severity warn` is clean; and the nightly's whole
 > pipeline — nineteen benchmark cases, the canvas benchmark and the budget check — is green.
 > **CI ran the build, the tests and the format check on Windows and Linux on commit `53596ab` and
-> was green**, 952 tests on each — so the Linux leg is no longer a claim, and it has now caught
-> something Windows could not.
+> was green**, 952 tests on each — so the Linux leg was not a claim, and it caught something Windows
+> could not. **That was the last word CI had.** GitHub Actions is switched off for this repository
+> as of 2026-09-09 (`E13-T19`): releases are cut locally, and a private repository's Actions minutes
+> are billed rather than free. **Everything verified after `53596ab` was verified on Windows, on one
+> developer machine, and nowhere else.**
 >
 > **Worth knowing about how this code is accepted.** The kernel's first slice passed all three
 > gates and was rejected on review, with three of its eight claims false — most visibly a
@@ -226,8 +229,8 @@ Naming these up front, because each is a decision rather than a gap. Full reason
   tolerance stays — that is numerical robustness, not units. (**D12**)
 - **No drafting or annotation** — no dimensions, hatches, text, arrows or grids. (**D13**)
 - **No telemetry**, of any kind, in v1.
-- **Windows-only releases for v1**, with Linux built and tested in CI as a rot-guard.
-  (**D14**)
+- **Windows-only releases for v1.** Linux was built and tested in CI as a rot-guard until
+  2026-09-09; **Actions is off now** (`E13-T19`), so nothing checks Linux at all. (**D14**)
 - **No pure-managed exact solid kernel of our own.** Exact booleans, fillet, chamfer, shell
   and trim are **in 1.0** and come from OpenCascade — see above. Writing them ourselves was a
   research-grade problem that might never have reached production robustness, and choosing not
@@ -299,7 +302,7 @@ cd Spark
 dotnet build Spark.slnx
 ```
 
-The way CI builds it:
+The way CI built it, and the way to build it now that Actions is off (`E13-T19`):
 
 ```bash
 dotnet build Spark.slnx --no-incremental -warnaserror
@@ -329,7 +332,8 @@ hosted runner are only good for catching a step change. [docs/NOTES.md N29](docs
 why, and why a benchmark with no budget fails the check.
 
 Everything targets `net10.0` with no `-windows` target framework, so it builds on Windows,
-Linux and macOS. Warnings are errors in CI only, never in the project files —
+Linux and macOS — though with Actions off (`E13-T19`) nothing but Windows is exercised. Warnings are
+errors on the command line above, never in the project files —
 [docs/NOTES.md N3](docs/NOTES.md) explains why. The solution file is `.slnx`, the XML
 solution format, which needs a recent SDK and a recent Visual Studio
 ([N1](docs/NOTES.md)).
@@ -526,7 +530,7 @@ tested, not yet run inside a CAD application**, and the proof is deferred past 1
 | [docs/help/concepts/design-language.md](docs/help/concepts/design-language.md) | Spark's visual design language — **written before any UI code exists, and the UI is written to match it** |
 
 Still to come: the rest of `docs/help/`, the generated API reference, and `docs/examples/`
-for worked example graphs that CI executes.
+for worked example graphs that the local suite executes.
 
 **Documentation here is a build gate, not a chore.** Undocumented public API on a contract
 project does not compile — that one works today. Every help topic must contain a worked
