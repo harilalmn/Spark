@@ -235,6 +235,10 @@
           <MenuItem Header="_Properties" ToggleType="CheckBox" InputGesture="F4"
                     IsChecked="{Binding IsInspectorVisible, Mode=OneWay}"
                     Command="{Binding TogglePaneCommand}" CommandParameter="Inspector" />
+          <!-- E8-T80: hidden until asked for, which is why it is last and unticked. -->
+          <MenuItem Header="_Console" ToggleType="CheckBox"
+                    IsChecked="{Binding IsConsoleVisible, Mode=OneWay}"
+                    Command="{Binding TogglePaneCommand}" CommandParameter="Console" />
           <Separator />
           <MenuItem Header="_Workspace">
             <MenuItem Header="Default" Command="{Binding ApplyWorkspaceCommand}" CommandParameter="Default" />

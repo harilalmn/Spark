@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Spark.UI.ViewModels"
+             x:Class="Spark.UI.Views.Panes.ConsolePane"
+             x:DataType="vm:MainWindowViewModel"
+             x:CompileBindings="True">
+
+  <!-- E8-T80. What a graph wrote, for a person to read: `Console.WriteLine` from a code block, and
+       the three console nodes. It is a reader, not a terminal - there is nothing to type into,
+       because the graph is what produces the text and the canvas is where you edit that.
+
+       The text is not bound. It comes from a static channel the code-behind subscribes to while
+       the pane is on screen, because a subscription that outlives the thing looking at it keeps
+       that thing alive - which is exactly what went wrong when the view model held it. -->
+  <Border Classes="pane">
+    <Grid RowDefinitions="Auto,*,Auto">
+      <TextBlock Grid.Row="0" Classes="paneTitle" Text="CONSOLE" />
+
+      <!-- Selectable and read-only rather than a TextBox: the text is for reading and copying out
+           of, and an editable box invites somebody to type into a window that cannot answer. -->
+      <ScrollViewer Grid.Row="1" Name="Scroller"
+                    Margin="10,0,10,0"
+                    HorizontalScrollBarVisibility="Auto"
+                    VerticalScrollBarVisibility="Auto">
+        <SelectableTextBlock Name="Output"
+                             FontFamily="{Binding CodeFontName}"
+                             FontSize="12"
+                             TextWrapping="NoWrap" />
+      </ScrollViewer>
+
+      <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="10,8,10,10" Spacing="8">
+        <Button Name="Clear" Content="Clear" />
+        <TextBlock Name="Dropped" VerticalAlignment="Center" Classes="caption" />
+      </StackPanel>
+    </Grid>
+  </Border>
+
+</UserControl>

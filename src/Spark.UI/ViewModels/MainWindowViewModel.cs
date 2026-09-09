@@ -2382,6 +2382,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <summary>Whether the properties pane is showing. Drives the tick beside <i>View → Properties</i>.</summary>
     public bool IsInspectorVisible => Layout.IsVisible(WorkspacePane.Inspector);
 
+    /// <summary>Whether the console is showing. Drives the tick beside <i>View → Console</i> (`E8-T80`).</summary>
+    public bool IsConsoleVisible => Layout.IsVisible(WorkspacePane.Console);
+
     /// <summary>
     /// Shows a pane if it is hidden and hides it if it is showing.
     /// </summary>
@@ -2426,6 +2429,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(Layout));
         OnPropertyChanged(nameof(IsLibraryVisible));
         OnPropertyChanged(nameof(IsInspectorVisible));
+        OnPropertyChanged(nameof(IsConsoleVisible));
         WorkspaceChanged?.Invoke(this, EventArgs.Empty);
     }
 

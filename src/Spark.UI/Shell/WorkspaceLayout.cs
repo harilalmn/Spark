@@ -22,6 +22,18 @@ public enum WorkspacePane
 
     /// <summary>The properties inspector.</summary>
     Inspector,
+
+    /// <summary>
+    /// What the graph has written with <c>Console.WriteLine</c> and the console nodes
+    /// (<c>E8-T80</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Hidden by default</b>, and that is the whole of its default behaviour. A pane nobody
+    /// asked for taking room from the canvas is <c>E8-T76</c>'s mistake again — Spark used to open
+    /// on nine wired nodes nobody had put there, and the first thing anybody did was delete
+    /// somebody else's graph.
+    /// </remarks>
+    Console,
 }
 
 /// <summary>
@@ -79,7 +91,10 @@ public sealed class WorkspaceLayout
         set => _canvasFraction = Math.Clamp(value, MinimumFraction, 1 - MinimumFraction);
     }
 
-    /// <summary>Which panes are visible.</summary>
+    /// <summary>
+    /// Which panes are visible. <b><see cref="WorkspacePane.Console"/> is deliberately absent</b>
+    /// (`E8-T80`): it appears when a user asks for it and not before.
+    /// </summary>
     public HashSet<WorkspacePane> VisiblePanes { get; } =
         [WorkspacePane.Library, WorkspacePane.Canvas, WorkspacePane.Viewport, WorkspacePane.Inspector];
 
@@ -95,7 +110,7 @@ public sealed class WorkspaceLayout
 
         // Authoring: the graph is the thing being edited, so the viewport shrinks to a check
         // rather than a subject.
-        ["Authoring"] = Configure(0.20, 0.22, 0.78, [.. AllPanes()]),
+        ["Authoring"] = Configure(0.20, 0.22, 0.78, [.. PresetPanes()]),
 
         // Presenting: nothing but the two things an audience needs to see.
         ["Presenting"] = Configure(0.10, 0.10, 0.45, [WorkspacePane.Canvas, WorkspacePane.Viewport]),
@@ -198,7 +213,17 @@ public sealed class WorkspaceLayout
         return layout;
     }
 
-    private static IEnumerable<WorkspacePane> AllPanes()
+    /// <summary>
+    /// The panes a preset may turn on: the four a user expects to be there.
+    /// </summary>
+    /// <remarks>
+    /// <b>Not every member of <see cref="WorkspacePane"/>, and the name says so since `E8-T80`.</b>
+    /// The console is asked for through <i>View → Console</i> and by nothing else — a preset that
+    /// switched it on would contradict its being hidden by default, and would take room from the
+    /// canvas for somebody who chose a workspace rather than a console. It was called
+    /// <c>AllPanes</c>, which stopped being true the moment there was a fifth.
+    /// </remarks>
+    private static IEnumerable<WorkspacePane> PresetPanes()
     {
         yield return WorkspacePane.Library;
         yield return WorkspacePane.Canvas;

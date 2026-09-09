@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E8-T80` step two of three: the console pane.** Step one is committed — `Spark.Api.SparkConsole` is the channel, bounded and thread-safe, and nothing writes to it or reads it yet. |
+| **Working on** | **`E8-T80` step three of three: the nodes and the code block alias.** Steps one and two are committed — the channel exists and the pane reads it, and **nothing writes to it yet**, which is exactly what step three is for. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The console's channel** — `E8-T80` step one. **Before it:** `E8-T79`, `E7-T23` and [N134](NOTES.md#n134--a-platform-neutral-target-framework-asks-the-wrong-question-at-run-time), `E8-T78`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2929** tests green over ten executables with zero skips. |
-| **Next action** | **The pane, and the member `WorkspacePane` gains.** That enum is the expensive part: every layout preset, the serialised layout and every layout test has to learn about a fifth pane, and `PackageWindow`'s own remarks say adding one is why the package manager is a window rather than a dock pane. **Default to hidden**, because a console nobody asked for taking room from the canvas is the `E8-T76` mistake again — Spark opened on nine wired nodes nobody had put there. The View menu gets a checkbox item beside **Library** and **Properties**, one-way `IsChecked` as the comment there insists. The pane subscribes to `SparkConsole.Changed` and **marshals to the UI thread**, because a graph evaluates on the thread pool. |
-| **Verify with** | The three gates, plus: the pane appears in the layout, toggles from the View menu, is **hidden by default**, survives a layout reset and every preset, and round-trips through the serialised layout; every existing layout test still passes; and a write from a background thread reaches the pane without touching the UI thread from the wrong one. |
+| **Last completed step** | **The console pane** — `E8-T80` step two, with `E8-T81` raised for the headless flakiness it surfaced. **Before it:** `E8-T80` step one, `E8-T79`, `E7-T23`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2937** tests over ten executables — see `E8-T81`, the UI suite needs a re-run to be green about one time in three. |
+| **Next action** | **`Spark.Nodes.Core.Console` — three methods that are also three nodes.** **They must return something**, because a `void` method is not imported: *it produces no value a graph can carry*. Passing the text through is what a graph wants anyway, so `Write` and `WriteLine` return what they wrote and `Clear` returns how many lines it removed. **The type carries `[NodeSideEffect]`**, without which the second run of a graph prints nothing — the cache would serve the first run's answer. **Then the alias**: `Console` collides with `System.Console`, which every block imports, so `ReferenceCatalog.NodeLibraryImports` gains `Console = Spark.Nodes.Core.Console` beside the nine `E6-T30` already pins. **Pinned to Spark's rather than System's**, unlike `Math`: `System.Console.WriteLine` in a windowed application writes where nobody can see it, so the client's `Console.WriteLine` must mean the pane. |
+| **Verify with** | The three gates, plus: a code block writing `Console.WriteLine("x")` puts exactly `x` in the pane and compiles with no `using` typed; `Clear` empties it; the three nodes appear in the library and do the same from the canvas; **a graph run twice prints twice**, which is the assertion that proves `[NodeSideEffect]` is on; and a block that writes `System.Console.WriteLine` still compiles, because the alias must shadow rather than remove. Plus a run of the app, writing from a code block. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -9725,3 +9725,48 @@ graph.
 project, each recorded in `PublicAPI.Unshipped.txt` or the build fails. Ten new tests; the suite is
 **2929** over ten executables. Nothing to run in the application yet, and the journal says so rather
 than claiming a screenshot.
+
+### 2026-09-09 — The console pane (`E8-T80`, step two of three)
+
+**A fifth pane, under the canvas and the viewport, hidden until somebody asks for it.**
+`WorkspacePane` gains a member, the centre column gains a third dock, and the View menu gains a
+checkbox beside **Library** and **Properties**.
+
+**Hidden by default and by every preset.** *Authoring* is written as *all the panes*, so a fifth
+would have joined it by definition — and a pane nobody asked for taking room from the canvas is
+`E8-T76`'s mistake again, the one where Spark opened on nine wired nodes nobody had put there. The
+method that spelled the four is renamed `PresetPanes()`, because `AllPanes()` stopped being true the
+moment there was a fifth and a name that lies is worse than no name.
+
+**When the console is hidden the proportion arithmetic is identical to what it was**, by
+construction: its share is zero and the remainder is one. That is what keeps the existing layout
+tests *meaningful* rather than merely passing — they assert the same numbers about the same
+geometry.
+
+**Its height is a constant, not a fourth number in `WorkspaceLayout`.** That type serialises, so a
+new field is a format question: a layout saved before it existed would read back a zero-height
+console and look broken. Dock honours a dragged splitter until the next apply, which is enough.
+
+**The subscription was got wrong first, and the suite is what said so.** The view model subscribed
+to `SparkConsole.Changed` — a **static** event — in its constructor. Every view model a test built
+therefore stayed subscribed and went on posting to a dispatcher whose headless session had ended,
+and unrelated tests began failing at random. **The pane owns it now**, attached to and detached from
+the visual tree, which bounds the subscription to a control that actually exists; the test asserts
+both halves, that a write reaches the pane and that one after it is detached does not.
+
+**That fix did not make the suite deterministic, and the honest reading is that it was a contributor
+rather than the cause.** Running `Spark.UI.Tests` repeatedly still turns up one to three failures in
+a different class each time — alignment, code blocks, docking, viewport export, canvas notes — with
+a clean re-run after. **It predates this work**: the first UI run of the session, at `E7-T18`,
+failed a `CodeBlockOnCanvasTests` case inside `AvaloniaHeadlessPlatform.Initialize` and passed on
+the re-run. Every failure so far is inside `HeadlessSession.Run`, which points at session setup or
+teardown rather than at any test's subject. It is now `E8-T81` and it deserves the attention: it
+makes *the suite is green* a claim that needs a second run to support, which is the one property a
+gate must not have.
+
+**Verified.** The three gates. Eight new tests, and the two that matter are the ones about *not*
+appearing — hidden by default, and no preset turning it on. Ten executables, **2937** tests, with one
+`Spark.UI.Tests` failure on this run — `E8-T81`'s flakiness, in a class this step does not touch,
+and the reason that row exists rather than a footnote. The application was launched; **toggling the
+pane from the View menu is the client's to confirm**, since a headless test drives the layout model
+and not a menu.

@@ -41,6 +41,7 @@ public sealed partial class MainWindow : Window
     private readonly CanvasPane _canvasPane = new();
     private readonly ViewportPane _viewportPane = new();
     private readonly InspectorPane _inspectorPane = new();
+    private readonly ConsolePane _consolePane = new();
     private readonly Stopwatch _wallClock = new();
     private int _benchmarkFrames;
     private int _framesRun;
@@ -134,7 +135,7 @@ public sealed partial class MainWindow : Window
     /// <summary>The viewport inside <c>ViewportPane</c>, for the same reason.</summary>
     private ViewportControl Viewport => _viewportPane.Viewport;
 
-    /// <summary>The four panes, by the position each one starts in.</summary>
+    /// <summary>The five panes, by the position each one starts in.</summary>
     /// <remarks>
     /// The controls are fields rather than being made here, because a rebuild has to put the
     /// <i>same</i> panes back: they hold the canvas, the viewport's scene and whatever the user
@@ -146,6 +147,7 @@ public sealed partial class MainWindow : Window
         [WorkspacePane.Canvas] = _canvasPane,
         [WorkspacePane.Viewport] = _viewportPane,
         [WorkspacePane.Inspector] = _inspectorPane,
+        [WorkspacePane.Console] = _consolePane,
     };
 
     /// <summary>

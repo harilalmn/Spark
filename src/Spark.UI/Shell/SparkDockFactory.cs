@@ -83,7 +83,8 @@ public sealed class SparkDockFactory : Factory
 
         _center = Column(
             Pane(WorkspacePane.Canvas, "Canvas", content),
-            Pane(WorkspacePane.Viewport, "Viewport", content));
+            Pane(WorkspacePane.Viewport, "Viewport", content),
+            Pane(WorkspacePane.Console, "Console", content));
 
         _columns = Row(
             Pane(WorkspacePane.Library, "Library", content),
@@ -160,6 +161,17 @@ public sealed class SparkDockFactory : Factory
     private static HostWindow FloatingWindow() => new();
 
     /// <summary>
+    /// How much of the centre column the console takes when it is showing (<c>E8-T80</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>A constant rather than a fourth number in <see cref="WorkspaceLayout"/>.</b> That type
+    /// serialises, so a new field is a format question — a saved layout written before it exists
+    /// would read back a zero-height console and look broken. A user who wants it taller drags the
+    /// splitter, which Dock already honours until the next <c>Apply</c>.
+    /// </remarks>
+    public const double ConsoleFraction = 0.25;
+
+    /// <summary>
     /// Brings the built layout into line with a workspace: the pane proportions, and which panes
     /// are showing at all.
     /// </summary>
@@ -199,8 +211,16 @@ public sealed class SparkDockFactory : Factory
         bool canvas = layout.IsVisible(WorkspacePane.Canvas);
         bool viewport = layout.IsVisible(WorkspacePane.Viewport);
 
-        SetProportion(WorkspacePane.Canvas, canvas ? (viewport ? layout.CanvasFraction : 1) : 0);
-        SetProportion(WorkspacePane.Viewport, viewport ? (canvas ? 1 - layout.CanvasFraction : 1) : 0);
+        // `E8-T80`: the console takes a fixed slice off the bottom of the column and the other two
+        // split what is left in the proportion they already had. **When it is hidden this is
+        // arithmetically identical to what was here before** - `console` is zero and `rest` is one -
+        // which is what keeps the existing layout tests meaningful rather than merely passing.
+        double console = layout.IsVisible(WorkspacePane.Console) ? ConsoleFraction : 0;
+        double rest = 1 - console;
+
+        SetProportion(WorkspacePane.Canvas, canvas ? (viewport ? layout.CanvasFraction * rest : rest) : 0);
+        SetProportion(WorkspacePane.Viewport, viewport ? (canvas ? (1 - layout.CanvasFraction) * rest : rest) : 0);
+        SetProportion(WorkspacePane.Console, console);
     }
 
     /// <summary>
