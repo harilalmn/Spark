@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (E6-T35: one shared assembly for a graph's declared types)
+**Last updated:** 2026-09-09 (E6-T36: a type declared in one block, used by another)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -192,15 +192,6 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 
 ## Now — what is next, in order
 
-- [ ] **`E6-T36` — the graph has to tell the factory about its blocks.** `E6-T35` built the
-      shared-declaration assembly and proved it: a type declared in one block is visible in another,
-      an instance passes between them as the same type, and two types in different blocks may name
-      each other. **It has no callers yet, so a user sees none of it.** Five: `GraphDocument.Open`,
-      `PlaceCodeBlock`, `CommitScript` — which must rebuild *every* block when `Share` returns true,
-      not only the edited one — `CanvasGraph.Retype`, which should already be right because the key
-      now carries the fingerprint and therefore wants an assertion rather than a change, and the
-      editor's `Diagnose`, whose per-keystroke cost is the thing to measure before shipping.
-      **Until then**: declare the type in the block that uses it, or put shared code in a DLL.
 - [ ] **`E7-T12` — collapse selection to custom node.** The engine half is built and tested:
       `.sparkcustom` is the graph format plus an interface block, ports come from Input/Output
       nodes placed in the definition graph, and recursion is refused at build time with the

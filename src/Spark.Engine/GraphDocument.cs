@@ -547,6 +547,13 @@ public sealed class GraphDocument
     {
         ArgumentNullException.ThrowIfNull(library);
 
+        // `E6-T36`: EVERY BLOCK IS DECLARED BEFORE ANY BLOCK IS COMPILED, AND THE ORDER IS THE
+        // POINT. A type declared in one block is compiled into an assembly every other block
+        // references, so a block built before the factory has been told about the document would
+        // be told that a class two nodes away does not exist - and it would be right, because at
+        // that instant nothing had said otherwise.
+        scripts?.Share(Scripts());
+
         Graph graph = new();
         foreach (GraphDocumentNode node in _nodes)
         {

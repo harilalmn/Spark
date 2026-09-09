@@ -886,6 +886,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         // or Periodic session has run up. RequestRun sets it; only an actual run may clear it.
         HasPendingRun = false;
 
+        // `E6-T36`: THE CATCH-ALL, AND IT IS HERE RATHER THAN ON EVERY GESTURE THAT CAN MOVE THE
+        // SET OF BLOCKS. Committing an edit shares its own text, because the editor has to be
+        // right immediately - but a block can also arrive or leave by being placed, deleted,
+        // pasted, undone, redone, collapsed into a custom node or replaced wholesale by opening a
+        // file, and enumerating those is a list that goes stale the next time somebody adds a
+        // gesture. Sharing once before the graph runs is the one place all of them have to pass
+        // through, and a set that has not moved costs a hash.
+        if (_graph.ShareDeclarations())
+        {
+            _ = _graph.RebuildScripts();
+        }
+
         long started = System.Diagnostics.Stopwatch.GetTimestamp();
         EvaluationResult? result = await _session.EvaluateAsync().ConfigureAwait(true);
 
@@ -1151,6 +1163,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             return false;
         }
 
+        // `E6-T36`: THE FACTORY IS TOLD ABOUT THE EDIT BEFORE THE EDIT IS COMPILED, AND WITH THE
+        // NEW TEXT SUBSTITUTED FOR THE OLD. A block's own declarations are compiled into the
+        // shared assembly rather than into its own, so compiling it against a set that still held
+        // the previous version of its own class would compile it against the class it used to
+        // have.
+        bool moved = _graph.ShareDeclarations(node.Id, ScriptText);
+
         // The types already wired in are carried across the edit, by port *name* — so a block that
         // was typed against a `Point3d` stays typed against it when another line is added, rather
         // than falling back to `dynamic` until the wire is redrawn.
@@ -1159,6 +1178,16 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         if (!_graph.ReplaceDefinition(node, NodeDefinition.FromScript(rebuilt, ScriptText)))
         {
             return false;
+        }
+
+        // **Every other block, and only when the declared set actually moved.** Renaming a class
+        // in this block breaks every block that used it, and not one of them has changed a
+        // character - so rebuilding the edited node alone leaves the rest holding definitions
+        // compiled against a type that no longer exists, still green, until something else
+        // happens to touch them.
+        if (moved)
+        {
+            _ = _graph.RebuildScripts();
         }
 
         RecordEdit("Edit code block");
@@ -1248,6 +1277,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 ports[port.Name] = port.ValueType;
             }
         }
+
+        // `E6-T36`: the text being typed, not the text the node still holds. Somebody halfway
+        // through writing `public class Helper` would otherwise be underlined for using a type
+        // they are looking at - and a squiggle that disagrees with the compiler is what `E6-T13`
+        // says is worse than no squiggle at all.
+        _ = _graph.ShareDeclarations(node.Id, code);
 
         IReadOnlyList<ScriptDiagnostic> found = await Task
             .Run(() => scripts.Diagnose(code, ports), cancellationToken)

@@ -29,6 +29,8 @@ public sealed class ScriptNodeSeamTests
 {
     private const string Doubling = "return a * 2;";
 
+    private const string Trebling = "return a * 3;";
+
     private static readonly NodeLibrary Library = BuildLibrary();
 
     /// <summary>A code block round-trips through a file, source and all.</summary>
@@ -254,6 +256,61 @@ public sealed class ScriptNodeSeamTests
         NodeLibrary library = new();
         library.Add(NodeImporter.Import(Assembly.Load("Spark.Nodes.Core")));
         return library;
+    }
+
+    /// <summary>
+    /// <b>Every block is declared before any block is compiled</b> (<c>E6-T36</c>). A type declared
+    /// in one block is compiled into an assembly the others reference, so a document that built its
+    /// blocks first and mentioned them afterwards would compile each of them against a world in
+    /// which the block beside it does not exist.
+    /// </summary>
+    [Fact]
+    public void RestoreSharesEveryScriptBeforeItBuildsAnyBlock()
+    {
+        Graph graph = new();
+        _ = graph.AddNode(NodeDefinition.FromScript(new StubFactory().Create(Doubling), Doubling));
+        _ = graph.AddNode(NodeDefinition.FromScript(new StubFactory().Create(Trebling), Trebling));
+
+        OrderedFactory factory = new();
+
+        _ = SparkFile.Read(SparkFile.Write(GraphDocument.Capture(graph))).Restore(Library, factory);
+
+        Assert.Equal(
+            ["share:" + Doubling + "|" + Trebling, "create:" + Doubling, "create:" + Trebling],
+            factory.Calls);
+    }
+
+    /// <summary>Records what it was asked, in the order it was asked.</summary>
+    private sealed class OrderedFactory : IScriptNodeFactory
+    {
+        private readonly List<string> _calls = [];
+
+        public IReadOnlyList<string> Calls => _calls;
+
+        public NodeDefinitionSource Create(
+            string script,
+            System.Collections.Generic.IReadOnlyDictionary<string, Type>? inputTypes = null)
+        {
+            ArgumentNullException.ThrowIfNull(script);
+
+            _calls.Add("create:" + script);
+
+            return new NodeDefinitionSource(
+                "CodeBlock",
+                script.GetHashCode(StringComparison.Ordinal).ToString("X8", System.Globalization.CultureInfo.InvariantCulture),
+                [new ScriptPort("a", typeof(double))],
+                [new ScriptPort("result", typeof(double))],
+                (_, _) => [0.0]);
+        }
+
+        public bool Share(System.Collections.Generic.IReadOnlyList<string> scripts)
+        {
+            ArgumentNullException.ThrowIfNull(scripts);
+
+            _calls.Add("share:" + string.Join('|', scripts));
+
+            return false;
+        }
     }
 
     /// <summary>

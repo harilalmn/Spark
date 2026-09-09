@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (E6: one shared assembly for a graph's declared types)
+**Last updated:** 2026-09-09 (E6: a type declared in one block, used by another)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -659,10 +659,13 @@ diverge most; rework is budgeted there specifically.
       that, and not whether both compile, is the assertion that catches the alternative design.
       A shared compilation that does not build switches sharing off rather than stopping every
       block in the graph.
-- [ ] **The graph tells the factory about its blocks** (**E6-T36**), which is what makes the row
-      above visible to a user: `GraphDocument.Open`, `PlaceCodeBlock`, `CommitScript`,
-      `CanvasGraph.Retype` and the editor's `Diagnose` each have to call `Share` before they
-      compile, and a `Share` that returns true means **every** block needs rebuilding.
+- [x] **The graph tells the factory about its blocks** (**E6-T36**) — done 2026-09-09, and it
+      is what makes the row above visible to a user. Three call sites rather than the five this
+      criterion first named: opening a document, committing an edit — on the **uncommitted** text,
+      and rebuilding every *other* block when the declared set moved — and once before a run, which
+      is the catch-all every other way of adding or removing a block has to pass through.
+      `CanvasGraph.Retype` needed no change and has a test saying why. **Verified in the
+      application** with the client's own two blocks: both clean, no diagnostics.
 - [ ] A graph containing no script nodes never loads `Spark.Scripting` (**E6-T14**).
 
 **Status.** **Complete except the docked C# Script Node (E6-T14's second half), as of

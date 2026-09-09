@@ -1852,6 +1852,100 @@ public sealed class CanvasGraph
         return removed;
     }
 
+    /// <summary>The source of every code block on the canvas (`E6-T36`).</summary>
+    /// <param name="edited">
+    /// A block whose source is being changed but has not been committed yet, or null. Its
+    /// uncommitted text is substituted for what the node currently holds.
+    /// </param>
+    /// <param name="source">The uncommitted text, when <paramref name="edited"/> is given.</param>
+    /// <returns>Every block's source, in canvas order.</returns>
+    /// <remarks>
+    /// <b>The <i>uncommitted</i> text is the whole reason this takes an override.</b> The editor
+    /// asks for diagnostics on every idle moment while somebody is typing a class, and a shared
+    /// set built from what the node still holds would tell them their own new type does not exist.
+    /// </remarks>
+    public IReadOnlyList<string> BlockSources(NodeId? edited = null, string? source = null)
+    {
+        List<string> found = [];
+
+        foreach (CanvasNode node in _nodes)
+        {
+            if (node.Script is null)
+            {
+                continue;
+            }
+
+            found.Add(edited is { } id && node.Id == id && source is not null ? source : node.Script);
+        }
+
+        return found;
+    }
+
+    /// <summary>
+    /// Tells the script factory about every block on the canvas, so a type one of them declares is
+    /// visible to the others (`E6-T35`, `E6-T36`).
+    /// </summary>
+    /// <param name="edited">A block being edited, or null. See <see cref="BlockSources"/>.</param>
+    /// <param name="source">Its uncommitted text.</param>
+    /// <returns>
+    /// True when the declared set moved, which is the caller's signal to call
+    /// <see cref="RebuildScripts"/>.
+    /// </returns>
+    public bool ShareDeclarations(NodeId? edited = null, string? source = null) =>
+        Scripts is { } factory && factory.Share(BlockSources(edited, source));
+
+    /// <summary>
+    /// Rebuilds every code block against the current shared declarations (`E6-T36`).
+    /// </summary>
+    /// <returns>How many nodes were replaced.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Every block, not the one that was edited.</b> Deleting <c>public class Helper</c> from
+    /// one block breaks every block that used it, and none of them has changed a character — so
+    /// rebuilding only the edited one leaves the rest holding definitions compiled against a type
+    /// that is gone, and they go on running until something else happens to touch them.
+    /// </para>
+    /// <para>
+    /// <b>A block whose key has not moved is left alone</b>, which is
+    /// <see cref="ReplaceDefinition"/>'s existing rule and matters here for the same reason: a
+    /// rebuild removes the node and puts it back, so its slot moves. The key carries the shared
+    /// set's fingerprint, so "did this block's meaning change" is exactly the question being asked.
+    /// </para>
+    /// </remarks>
+    public int RebuildScripts()
+    {
+        if (Scripts is not { } factory)
+        {
+            return 0;
+        }
+
+        int rebuilt = 0;
+
+        // Over a copy of the identifiers, because replacing a definition rebuilds `_nodes`.
+        foreach (NodeId id in _nodes.Where(node => node.Script is not null).Select(node => node.Id).ToList())
+        {
+            if (!Engine.TryGetNode(id, out NodeInstance? instance)
+                || instance!.Definition.Script is not { } script)
+            {
+                continue;
+            }
+
+            NodeDefinition definition = NodeDefinition.FromScript(
+                factory.Create(script, Engine.InputTypes(id)), script);
+
+            int slot = SlotOf(id);
+
+            if (definition.Key != instance.Definition.Key
+                && slot >= 0
+                && ReplaceDefinition(_nodes[slot], definition))
+            {
+                rebuilt++;
+            }
+        }
+
+        return rebuilt;
+    }
+
     /// <summary>
     /// Rebuilds a code block against the types now wired into it, if that changes anything
     /// (`E6-T6`).
@@ -1886,6 +1980,11 @@ public sealed class CanvasGraph
             return false;
         }
 
+        // `E6-T36`: NOTHING IS SHARED HERE, AND THAT IS CORRECT RATHER THAN AN OMISSION. This runs
+        // when a wire lands, which cannot change what any block *declares* - and the key already
+        // carries the shared set's fingerprint, so if the declarations had moved this comparison
+        // would already say so. Calling `Share` on every connect would re-parse every block's
+        // source to compute a fingerprint that cannot have changed.
         NodeDefinition rebuilt = NodeDefinition.FromScript(
             scripts.Create(script, Engine.InputTypes(id)), script);
 

@@ -354,12 +354,20 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// thing as the same source with a <c>Point3d</c> wired in - two nodes that hashed the same
     /// would serve each other's results.
     /// </remarks>
-    private static string ContentHash(string script, IReadOnlyDictionary<string, Type> inputTypes)
+    private string ContentHash(string script, IReadOnlyDictionary<string, Type> inputTypes)
     {
         // Normalised on line endings only. Whitespace inside a line is meaningful in verbatim
         // strings, so trimming it would make two scripts that behave differently hash the same.
+        //
+        // `E6-T35`: AND THE SHARED DECLARATIONS, WHICH IS WHY THIS IS NO LONGER STATIC. This hash
+        // is the node's *key*, and the key is what `CanvasGraph.Retype` and `RebuildScripts`
+        // compare to decide whether a block's meaning has moved. A block that uses `Helper` means
+        // something different once `Helper` has been renamed in the block next door, and its own
+        // text has not changed by one character - so without this the two keys compare equal, the
+        // rebuild is skipped, and the consumer goes on running against a class that is gone.
         byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(
-            script.ReplaceLineEndings("\n") + "\u0000" + Describe(inputTypes)));
+            script.ReplaceLineEndings("\n") + "\u0000" + Describe(inputTypes)
+            + "\u0000" + _declarations.Fingerprint));
 
         return Convert.ToHexString(hash)[..12];
     }
@@ -474,7 +482,7 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
     /// Shared by the compile path and the cache path on purpose: the two must produce the same
     /// definition, and the surest way to hold that is for there to be one place that builds it.
     /// </remarks>
-    private static NodeDefinitionSource Definition(
+    private NodeDefinitionSource Definition(
         string script,
         IReadOnlyDictionary<string, Type> inputTypes,
         IReadOnlyList<string> inputs,
