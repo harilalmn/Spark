@@ -219,15 +219,17 @@ the release path.
 4. **Tag and push** to the private repository: `git tag -a v2026.9.0 -m "..."` then
    `git push origin v2026.9.0`. The tag lives with the source; nothing is tagged in the releases
    repository.
-5. **Build and pack, locally:**
+5. **Build and pack, locally.** The two pack scripts take **no arguments** — they default to the
+   staged folder and `artifacts/`, and passing `-Output artifacts` makes `pack-portable.ps1` try to
+   delete that directory and fail. Run them bare:
    ```
-   pwsh scripts/publish.ps1 -Output artifacts/publish/win-x64
-   pwsh scripts/pack-portable.ps1  -Staged artifacts/publish/win-x64 -Output artifacts
-   pwsh scripts/pack-installer.ps1 -Staged artifacts/publish/win-x64 -Version <version> -Output artifacts
+   ./scripts/publish.ps1 -Output artifacts/publish/win-x64 -SkipNative
+   ./scripts/pack-portable.ps1
+   ./scripts/pack-installer.ps1
    ```
-   `publish.ps1` takes `-SkipNative` when `artifacts/native/win-x64/spark_occt.dll` is already
-   current, which it usually is — a cold OpenCascade build is about an hour and is the only slow
-   part of any of this.
+   `-SkipNative` is right whenever `artifacts/native/win-x64/spark_occt.dll` is current, which it
+   usually is — a cold OpenCascade build is about an hour and is the only slow part of any of this.
+   **Windows PowerShell, not `pwsh`**: this machine has no `pwsh` on `PATH`.
 6. **Check the artefact against the tag** — `pwsh scripts/check-version.ps1 -Tag <tag>` — before
    anything is uploaded. This is the gate that matters, and it exists because a build whose
    assemblies disagree with their tag installs, runs, and makes every bug report name a version
