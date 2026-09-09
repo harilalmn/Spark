@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — `E8-T79` is committed and the gates are green at 2919.** An asterisk in the title marks unsaved changes, and closing, *New*, *Open* and the four example graphs all ask before discarding them. The flag compares the document with what was last written, so **undoing back to the saved state clears the mark**. |
+| **Working on** | **`E8-T80` step two of three: the console pane.** Step one is committed — `Spark.Api.SparkConsole` is the channel, bounded and thread-safe, and nothing writes to it or reads it yet. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A modified document, marked and defended** — `E8-T79`. **Before it:** `E7-T23` and [N134](NOTES.md#n134--a-platform-neutral-target-framework-asks-the-wrong-question-at-run-time), `E8-T78`, `E7-T22`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2919** tests green over ten executables with zero skips, with the native shim built. |
-| **Next action** | **The client's console, which is the larger of their two asks and is three steps rather than one.** *Wanted*: `Console.Write`, `WriteLine` and `Clear` callable from a code block, **nodes for the same three**, and a dockable console pane with a View-menu toggle behaving like the others. **Take it in this order.** *One*: the sink — a static channel low enough for `Spark.Nodes.Core` to write to without naming the UI, buffered, bounded, and safe to write from an evaluation thread. *Two*: the pane — `WorkspacePane` gains a member, which every layout preset and every layout test has to learn about, plus the View menu item and the toggle. *Three*: the code block and the nodes. **The name is the decision to make first**: `Console` collides with `System.Console`, which every block already imports, and `E6-T30`'s alias mechanism is the precedent — pin `Console` to Spark's, so a block that writes `Console.WriteLine` reaches the pane rather than a stdout nobody can see. |
-| **Verify with** | The three gates, plus, per step: the sink keeps the last N lines and drops the oldest, and takes writes from several threads without losing or interleaving a line; the pane appears in the layout, toggles from the View menu, survives a layout reset and a preset, and every existing layout test still passes; and a code block writing `Console.WriteLine("x")` puts exactly `x` in the pane, `Clear` empties it, and the three nodes do the same from the canvas. Plus a run of the app. |
+| **Last completed step** | **The console's channel** — `E8-T80` step one. **Before it:** `E8-T79`, `E7-T23` and [N134](NOTES.md#n134--a-platform-neutral-target-framework-asks-the-wrong-question-at-run-time), `E8-T78`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2929** tests green over ten executables with zero skips. |
+| **Next action** | **The pane, and the member `WorkspacePane` gains.** That enum is the expensive part: every layout preset, the serialised layout and every layout test has to learn about a fifth pane, and `PackageWindow`'s own remarks say adding one is why the package manager is a window rather than a dock pane. **Default to hidden**, because a console nobody asked for taking room from the canvas is the `E8-T76` mistake again — Spark opened on nine wired nodes nobody had put there. The View menu gets a checkbox item beside **Library** and **Properties**, one-way `IsChecked` as the comment there insists. The pane subscribes to `SparkConsole.Changed` and **marshals to the UI thread**, because a graph evaluates on the thread pool. |
+| **Verify with** | The three gates, plus: the pane appears in the layout, toggles from the View menu, is **hidden by default**, survives a layout reset and every preset, and round-trips through the serialised layout; every existing layout test still passes; and a write from a background thread reaches the pane without touching the UI thread from the wrong one. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -9691,3 +9691,37 @@ miniature.
 `false`. Ten executables, **2919** tests, zero failures, zero skips, with the native shim built. The
 application was launched; the prompt itself is the client's to try, since a modal dialog over a real
 window is not something the headless tests drive.
+
+### 2026-09-09 — The console's channel (`E8-T80`, step one of three)
+
+**The client's ask is a console** — `Console.Write`, `WriteLine` and `Clear` from a code block,
+nodes for the same three, and a dockable pane with a View-menu toggle. This step is only the channel
+all of that writes to: **nothing a user can see yet**, which is what makes it a step worth
+committing on its own rather than the first third of a large one.
+
+**Two things the investigation settled before a line was written, and both were already in the
+codebase.** A `void` method is **not** imported as a node — *it produces no value a graph can
+carry* — so the node façade's methods have to return something, and passing the text through is what
+a graph wants anyway. And `[NodeSideEffect]` already exists: it mixes the run epoch into the cache
+key, so a console node re-evaluates every run instead of being served from cache and printing
+nothing the second time. Neither needed inventing, and both would have been discovered the hard way
+in step three.
+
+**`Spark.Api` is the home because it is the assembly both ends can name.** A code block already
+imports `Spark.Api`; a node library must be able to write here without reaching for `Spark.UI`,
+which is deliberately not a contract assembly.
+
+**Bounded, and honest about it.** Ten thousand lines, oldest dropped, and `Dropped` counts them — a
+console that quietly loses the beginning of the output is worse than one that says how much it lost.
+
+**The event is raised outside the lock, and the test is the argument.** A handler is somebody else's
+code: it may write to the console itself, or marshal to a UI thread that is at that moment blocked
+on this very lock. `AHandlerMayWriteToTheConsole` writes from inside a handler, so a future
+refactor that moves the raise inside the lock **deadlocks the suite rather than failing it** — which
+is louder, and the right kind of loud for a deadlock that would otherwise surface in somebody's
+graph.
+
+**Verified.** The three gates, with `RS0016` doing its job — eleven new public members on a contract
+project, each recorded in `PublicAPI.Unshipped.txt` or the build fails. Ten new tests; the suite is
+**2929** over ten executables. Nothing to run in the application yet, and the journal says so rather
+than claiming a screenshot.

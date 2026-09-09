@@ -8,3 +8,15 @@ Spark.Api.SparkNodeAliasAttribute
 Spark.Api.SparkNodeAliasAttribute.Name.get -> string!
 Spark.Api.SparkNodeAliasAttribute.SparkNodeAliasAttribute(string! name) -> void
 Spark.Api.IScriptNodeFactory.Share(System.Collections.Generic.IReadOnlyList<string!>! scripts) -> bool
+Spark.Api.SparkConsole
+const Spark.Api.SparkConsole.Capacity = 10000 -> int
+static Spark.Api.SparkConsole.Changed -> System.EventHandler?
+static Spark.Api.SparkConsole.Clear() -> void
+static Spark.Api.SparkConsole.Dropped.get -> int
+static Spark.Api.SparkConsole.Lines() -> System.Collections.Generic.IReadOnlyList<string!>!
+static Spark.Api.SparkConsole.Text() -> string!
+static Spark.Api.SparkConsole.Write(object? value) -> void
+static Spark.Api.SparkConsole.Write(string? text) -> void
+static Spark.Api.SparkConsole.WriteLine() -> void
+static Spark.Api.SparkConsole.WriteLine(object? value) -> void
+static Spark.Api.SparkConsole.WriteLine(string? text) -> void
