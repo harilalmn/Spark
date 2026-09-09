@@ -45,6 +45,7 @@ public sealed class PackageWindow : Window
     private readonly Button _searchButton = new();
     private readonly CheckBox _sparkOnly = new();
     private readonly Button _installButton = new();
+    private readonly Button _libraryButton = new();
     private readonly Button _confirmButton = new();
     private readonly Button _cancelButton = new();
     private readonly Button _removeButton = new();
@@ -53,6 +54,7 @@ public sealed class PackageWindow : Window
     private readonly TextBlock _status = new();
     private readonly SelectableTextBlock _disclosure = new();
     private readonly SelectableTextBlock _native = new();
+    private readonly SelectableTextBlock _imports = new();
     private readonly Border _disclosurePanel = new();
     private readonly LocalReferencesViewModel _local;
     private readonly ListBox _assemblies = new();
@@ -101,9 +103,12 @@ public sealed class PackageWindow : Window
         DockPanel.SetDock(search, Avalonia.Controls.Dock.Top);
         DockPanel.SetDock(disclosure, Avalonia.Controls.Dock.Bottom);
         DockPanel.SetDock(status, Avalonia.Controls.Dock.Bottom);
+        Control imports = BuildImportNotice();
+        DockPanel.SetDock(imports, Avalonia.Controls.Dock.Bottom);
         _packagesBody.Children.Add(search);
         _packagesBody.Children.Add(disclosure);
         _packagesBody.Children.Add(status);
+        _packagesBody.Children.Add(imports);
         _packagesBody.Children.Add(BuildLists());
 
         // The refusal stands *in place of* the tab's contents rather than beside them (`E7-T18`).
@@ -254,6 +259,23 @@ public sealed class PackageWindow : Window
     private void OnSparkOnlyChanged(object? sender, RoutedEventArgs e) =>
         _model.SparkPackagesOnly = _sparkOnly.IsChecked == true;
 
+    /// <summary>Whether the button that adds a library is available.</summary>
+    public bool CanAddAsLibrary => _libraryButton.IsEnabled;
+
+    /// <summary>The skipped-import notice as a user would read it, or empty.</summary>
+    public string ImportNoticeText => _imports.IsVisible ? _imports.Text ?? string.Empty : string.Empty;
+
+    /// <summary>What the disclosure's agreeing button says, which names what it will do.</summary>
+    public string ConfirmLabel => _confirmButton.Content as string ?? string.Empty;
+
+    private void OnAddAsLibrary(object? sender, RoutedEventArgs e)
+    {
+        if (_results.SelectedItem is PackageRow row)
+        {
+            _ = _model.AddAsLibraryAsync(row);
+        }
+    }
+
     private Control BuildLists()
     {
         _results.ItemsSource = _model.Results;
@@ -267,6 +289,19 @@ public sealed class PackageWindow : Window
         _installButton.Content = "Install...";
         _installButton.Click += OnPrepare;
 
+        // `E7-T21`: THE SECOND ANSWER THE WINDOW COULD NOT GIVE.
+        //
+        // Install means *add this package's nodes to the canvas*, and it needs a manifest saying
+        // which assemblies hold them. Add as a library means *let my code blocks use its types*,
+        // which needs no manifest at all - it was the thing the client wanted and the thing there
+        // was no button for, so the only answer the window could give them was a refusal
+        // explaining a convention they had not asked about.
+        _libraryButton.Content = "Add as a library...";
+        _libraryButton.Margin = new Thickness(8, 0, 0, 0);
+        _libraryButton.Click += OnAddAsLibrary;
+        Avalonia.Automation.AutomationProperties.SetName(
+            _libraryButton, "Add the selected package as a library for code blocks");
+
         _removeButton.Content = "Remove";
         _removeButton.Click += OnRemove;
 
@@ -276,7 +311,11 @@ public sealed class PackageWindow : Window
             Margin = new Thickness(12, 0, 12, 8),
         };
 
-        Control found = Column("Found", _results, _installButton);
+        StackPanel foundActions = new() { Orientation = Orientation.Horizontal };
+        foundActions.Children.Add(_installButton);
+        foundActions.Children.Add(_libraryButton);
+
+        Control found = Column("Found", _results, foundActions);
         Control here = Column("Installed", _installed, _removeButton);
         Grid.SetColumn(here, 1);
         grid.Children.Add(found);
@@ -442,6 +481,25 @@ public sealed class PackageWindow : Window
         }
     }
 
+    /// <summary>
+    /// The namespaces an added library did <b>not</b> get, and why (<c>E6-T39</c>, <c>E7-T21</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Under the status line rather than in the disclosure</b>, because it is the answer to a
+    /// question asked after the decision: the disclosure goes away when the user answers it, and
+    /// this is what they need once the library is in.
+    /// </remarks>
+    private Control BuildImportNotice()
+    {
+        _imports.TextWrapping = TextWrapping.Wrap;
+        _imports.FontSize = 12.5;
+        _imports.LineHeight = 19;
+        _imports.Margin = new Thickness(12, 0, 12, 8);
+        _imports.Foreground = SparkPalette.Frozen(SparkPalette.StateWarning);
+        _imports.IsVisible = false;
+        return _imports;
+    }
+
     private Control BuildStatus()
     {
         _status.TextWrapping = TextWrapping.Wrap;
@@ -552,7 +610,7 @@ public sealed class PackageWindow : Window
         return _disclosurePanel;
     }
 
-    private static Control Column(string heading, ListBox list, Button action)
+    private static Control Column(string heading, ListBox list, Control action)
     {
         DockPanel panel = new() { Margin = new Thickness(0, 0, 6, 0) };
 
@@ -667,6 +725,14 @@ public sealed class PackageWindow : Window
         _searchButton.IsEnabled = idle && saved;
         _installButton.IsEnabled =
             idle && saved && !_model.HasPendingInstall && _results.SelectedItem is PackageRow;
+        _libraryButton.IsEnabled = _installButton.IsEnabled;
+
+        _imports.Text = _model.ImportNotice;
+        _imports.IsVisible = _model.ImportNotice.Length > 0;
+
+        // The gate has one question and two possible answers, and the button says which was asked.
+        // "Install" over a library would promise nodes that are not coming (`E7-T21`).
+        _confirmButton.Content = _model.PendingIsLibrary ? "Add as a library" : "Install";
 
         // Remove is not gated on the file. Taking an installed package away needs no folder to put
         // anything in, and a user who cannot uninstall until they save is being refused a tidy-up.

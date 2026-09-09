@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes the code block in the running application.
 **Owner:** `scripting`
-**Last updated:** 2026-09-08
+**Last updated:** 2026-09-09
 
 > **Scope.** A code block is a node whose body is C# you type. Its input ports come from the
 > identifiers your code uses but does not declare; it gets one output port per line that makes
@@ -249,6 +249,69 @@ expect. The library's own version is still there in full when you want it:
 **And a list node counts a graph list, not a C# one.** `ListNodes.Count(new List<object> {1, 2, 3})`
 is `1`, because rank is something the graph adds around a node and a code block is inside the
 node. Use ordinary C# — `xs.Count` — for a list you made yourself.
+
+## Using a library from nuget.org
+
+**File ▸ Packages…**, untick **Spark packages only**, search, select the row, and press **Add as a
+library…**. You will see what the package is — publisher, licence, whether it is signed, what else
+it will install, and whether it carries native code — before anything lands on your disk. Agreeing
+puts it in the folder beside your graph, and code blocks can use its types straight away.
+
+**Two buttons, two different things.** **Install…** is for a *Spark package*: it carries a manifest
+saying which of its assemblies hold nodes, and installing it puts new nodes in the library panel.
+**Add as a library…** is for any ordinary .NET package — most of nuget.org — and it adds **types**
+you can write code against, not nodes. A library needs no manifest, which is why the two buttons
+exist rather than one that sometimes refuses.
+
+**It goes beside your graph**, in `<name>.packages`, not into a machine-wide folder — so the graph
+and what it needs travel together. That is also why the window asks you to save an untitled graph
+first: there is no file to name the folder after. See
+[Saving and opening graphs](files.md#the-folder-beside-the-file).
+
+**You do not have to write the `using`.** The namespaces of a library you added are imported for
+you, so this compiles the moment the package is in:
+
+<!-- spark:skip -->
+```csharp
+// After adding Humanizer as a library — no `using` typed anywhere.
+var words = 42.ToWords();
+```
+
+**Unless a name in it already means something else.** One clash is enough to keep the whole
+namespace out, because *why does `Sprocket` resolve and `Line` not* is a worse question than a
+namespace that plainly was not imported. When that happens the window says so and names the types
+that stopped it:
+
+> `Autodesk.Revit.DB` was not imported: it defines `Arc`, `Curve`, `Line`, `Mesh`, `Plane`,
+> `Point` and `Transform`, which already mean something in a code block. Write
+> `using Autodesk.Revit.DB;` in the block to use it there.
+
+**Write that `using` at the top of your block and it wins inside that block**, which is the way
+out. C# stops at the innermost scope that has an answer, so your directive shadows what Spark
+imported rather than colliding with it:
+
+<!-- spark:skip -->
+```csharp
+using Autodesk.Revit.DB;
+
+// `Line` means Revit's here, and only here.
+var line = Line.CreateBound(new XYZ(0, 0, 0), new XYZ(10, 0, 0));
+```
+
+And if you want both, alias the one you want to rename:
+
+<!-- spark:skip -->
+```csharp
+using RevitLine = Autodesk.Revit.DB.Line;
+
+// `Line` is still Spark's; `RevitLine` is Revit's.
+var spark = Line.FromPoints(Point3d.Origin, new Point3d(10, 0, 0));
+```
+
+**Nothing is loaded because it is there.** A folder of DLLs beside a graph that arrived by email is
+somebody else's code, so Spark asks before compiling against it and remembers your answer against
+the assembly's **contents** — rebuild it and it asks again, because it is not the file you agreed
+to.
 
 ## The editor
 

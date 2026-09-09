@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (`E7-T18`: the Packages window refuses an unsaved graph)
+**Last updated:** 2026-09-09 (`E7-T21`: add a NuGet package as a library)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -216,10 +216,15 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
          disk. The client settled it: **the window opens on Local assemblies and the Packages tab
          refuses in place**, with the reason and a **Save graph…** button where the search row
          would be. Saving lifts it on the open window.
-      4. **`E7-T20`, install from nuget.org**, which is the Visual Studio half and the largest.
+      4. **`E7-T20` and `E7-T21` are both done.** Install from nuget.org was the Visual Studio half
+         and the largest.
          The download is easy and the **restore** is the work: transitive dependencies, target
          framework against `net10.0`, and two packages wanting different versions of the same
-         dependency.
+         dependency. **`E7-T21` closed on top of it on 2026-09-09**: an ordinary .NET package can be
+         added as a **library**, beside the graph, and its namespaces are imported for the user
+         without a `using` - which is the thing the client asked for and the thing the window could
+         not do. **What is left of this group is `E7-T17` and `E7-T19`**: the record in the file,
+         and copying the folder on Save As.
       **What is already in place, so this is smaller than it reads**: `PackageStore` takes its root
       as a constructor argument, `E7-T3` gives one collectible load context per package version,
       `E7-T8` built the install disclosure, `E7-T9` did local DLLs with content hashing and hot

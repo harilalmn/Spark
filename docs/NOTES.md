@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-09 (N130: a did-it-change helper is not a should-I-do-it helper)
+**Last updated:** 2026-09-09 (N133: changing where a package installs)
 
 ---
 
@@ -3967,3 +3967,35 @@ characters costs one command:
 if b' ' in io.open(path, 'rb').read(): ...
 ```
 
+---
+
+## N133 — Changing where a package installs changes who else has to read that folder
+
+`E7-T21`'s **Add as a library** button reuses `PrepareLibraryAsync` unchanged and only points it at
+a different `PackageStore` — one rooted at the graph's own `<name>.packages` folder rather than the
+machine-wide store. That looked like a one-line difference. It exposed two defects, and both are the
+same shape: **a second reader of the folder now exists, and it did not know what the installer
+writes into it.**
+
+**One — the dependencies were downloaded and then not referenced.** `StageDependenciesAsync` puts a
+package's transitive dependencies in `<package>/.deps/<id>.<version>/lib/<tfm>/`, which is right and
+has been since `E7-T2`. `GraphPackages.Discover` looked at `<package>/lib/<tfm>/` and stopped. Under
+the global store nothing noticed, because the load context takes the package folder whole. Under the
+graph folder the assemblies are handed to the *compiler* one path at a time, so a dependency that is
+not in the list is not referenced — and the failure is `CS0012`, on the user's line, naming an
+assembly they have never heard of, the first time a dependency's type appears in one of the
+library's own signatures.
+
+**Two — a staged download looked like an installed package.** A pending install is written to
+`<id>.<version>.installing` *inside* the destination folder, which under the global store is
+invisible: `PackageStore.IsInstalled` requires a manifest, so a half-extract reads as absent. A
+graph-local library has no manifest by definition, so `Discover` would have offered the contents of
+a download **whose disclosure had not been answered yet** — and, after a crash, would have gone on
+offering it. The suffix is now a named constant that the finder skips, rather than a string spelled
+in one file and unknown to the other.
+
+**The lesson.** *Where* something is stored is not an implementation detail once a second component
+reads the same directory. Both defects were invisible to every existing test because both readers
+were correct about their own half; what was missing was the statement that they are reading the same
+layout. That is why the two tests added for this are about the **folder**, not about either
+component: what an install writes is what a graph opened on another machine finds.

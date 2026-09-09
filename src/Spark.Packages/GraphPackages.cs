@@ -127,9 +127,39 @@ public sealed class GraphPackages
         {
             string package = Path.GetFileName(directory);
 
+            // A download that was interrupted, or one nobody has agreed to yet, is staged here
+            // under its own name plus a suffix - and it is not a package. Offering its contents
+            // would hand a user half an extract, and would do it *before* the disclosure it is
+            // waiting on had been answered (`E7-T21`).
+            if (package.EndsWith(NuGetPackageClient.StagingSuffix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             foreach (string file in AssembliesIn(directory))
             {
                 found.Add(Read(file, package));
+            }
+
+            // A package installed from a feed brings its dependencies with it, in the `.deps`
+            // folder `NuGetPackageClient` stages them into (`E7-T21`). They are *this* package's
+            // copies - removing it removes them - so they are reported under its name rather than
+            // their own. Leaving them out would download a library's dependencies and then refuse
+            // to compile against them, which fails on the first type that appears in one of the
+            // library's own signatures.
+            string dependencies = Path.Combine(directory, NuGetPackageClient.DependencyFolder);
+
+            if (!Directory.Exists(dependencies))
+            {
+                continue;
+            }
+
+            foreach (string dependency in Directory.EnumerateDirectories(dependencies))
+            {
+                foreach (string file in AssembliesIn(dependency))
+                {
+                    found.Add(Read(file, package));
+                }
             }
         }
 
@@ -139,7 +169,8 @@ public sealed class GraphPackages
         return new GraphPackages(
             folder,
             [.. found.OrderBy(a => a.Package, StringComparer.OrdinalIgnoreCase)
-                     .ThenBy(a => a.Name, StringComparer.OrdinalIgnoreCase)]);
+                     .ThenBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
+                     .ThenBy(a => a.Path, StringComparer.OrdinalIgnoreCase)]);
     }
 
     /// <summary>The assemblies one package folder offers, preferring its best framework.</summary>

@@ -311,6 +311,56 @@ public sealed class GraphPackagesTests : IDisposable
         Assert.False(trust.Revoke(Hash));
     }
 
+    /// <summary>
+    /// <b>A package brings its dependencies, and they are as referenceable as it is</b>
+    /// (`E7-T21`). Downloading a library's dependencies and then refusing to compile against them
+    /// fails on the first type that appears in one of the library's own signatures — and it fails
+    /// as <c>CS0012</c>, naming an assembly the user has never heard of.
+    /// </summary>
+    [Fact]
+    public void ADependencyStagedWithAPackageIsFoundUnderThatPackage()
+    {
+        string graph = Graph("project1");
+        string package = Path.Combine(_root, "project1.packages", "acme.plain.1.0.0");
+
+        Write(Path.Combine(package, "lib", "net10.0", "Acme.Plain.dll"), "top");
+        Write(
+            Path.Combine(package, NuGetPackageClient.DependencyFolder, "some.helper.2.0.0", "lib", "net10.0", "Some.Helper.dll"),
+            "dependency");
+
+        GraphPackages found = GraphPackages.Discover(graph);
+
+        Assert.Equal(2, found.Assemblies.Length);
+
+        // Both are reported under the package that brought them, because that is the unit a user
+        // removes: taking the package away takes its copies with it.
+        Assert.All(found.Assemblies, assembly => Assert.Equal("acme.plain.1.0.0", assembly.Package));
+        Assert.Contains(found.Assemblies, assembly => assembly.Name == "Some.Helper.dll");
+    }
+
+    /// <summary>
+    /// <b>A staged download is not a package.</b> A library is staged inside the graph's own folder
+    /// while its disclosure is being read, so an interrupted download — or one nobody has answered
+    /// yet — leaves a directory that must not be offered as installed (`E7-T21`).
+    /// </summary>
+    [Fact]
+    public void AHalfStagedDownloadIsNotOffered()
+    {
+        string graph = Graph("project1");
+
+        Write(
+            Path.Combine(
+                _root,
+                "project1.packages",
+                "acme.plain.1.0.0" + NuGetPackageClient.StagingSuffix,
+                "lib",
+                "net10.0",
+                "Acme.Plain.dll"),
+            "half");
+
+        Assert.Empty(GraphPackages.Discover(graph).Assemblies);
+    }
+
     private string Graph(string name)
     {
         Directory.CreateDirectory(_root);

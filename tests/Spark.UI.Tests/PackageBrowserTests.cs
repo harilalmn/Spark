@@ -5,8 +5,11 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Spark.Engine;
 using Spark.Packages;
+using Spark.Scripting;
 using Spark.UI.ViewModels;
 using Spark.UI.Views;
 
@@ -511,6 +514,201 @@ public sealed class PackageBrowserTests : IDisposable
     });
 
     /// <summary>
+    /// <b>The button the client was missing</b> (`E7-T21`). A package with no Spark manifest is
+    /// refused as a node package and accepted as a library, and the library lands in the graph's
+    /// own folder rather than in the machine-wide store.
+    /// </summary>
+    [Fact]
+    public async Task APackageAddedAsALibraryLandsBesideTheGraph()
+    {
+        PackageIdentity identity = Publish("Acme.Plain", "1.0.0", manifest: false);
+        PackageBrowserViewModel browser = Browser(out _);
+
+        await browser.AddAsLibraryAsync(Row(identity), TestContext.Current.CancellationToken);
+
+        Assert.True(browser.HasPendingInstall);
+        Assert.True(browser.PendingIsLibrary);
+
+        // Nothing is *installed* until the disclosure is answered, which is `E7-T8`'s rule and is
+        // not relaxed because the destination changed. The staging folder is inside the graph's
+        // folder and is deliberately not a package: `GraphPackages` skips it by its suffix.
+        Assert.False(Directory.Exists(Path.Combine(GraphFolder(), identity.FolderName)));
+        Assert.Empty(GraphPackages.Discover(browser.GraphPath).Assemblies);
+
+        await browser.ConfirmAsync();
+
+        string landed = Path.Combine(GraphFolder(), identity.FolderName);
+
+        Assert.True(Directory.Exists(landed));
+        Assert.NotEmpty(Directory.GetFiles(landed, "*.dll", SearchOption.AllDirectories));
+
+        // And it is not a node package: it contributes nothing to the library and does not appear
+        // among the installed packages, because it carries no manifest to say what its nodes are.
+        Assert.Empty(browser.Installed);
+        Assert.Empty(new PackageStore(_store).Installed());
+    }
+
+    /// <summary>
+    /// <b>What a graph opened on another machine finds is what the install wrote.</b> The layout is
+    /// not a second convention: <see cref="GraphPackages"/> discovers exactly what was put there,
+    /// and hashes it (`E7-T16`, `E7-T21`).
+    /// </summary>
+    [Fact]
+    public async Task WhatWasAddedIsWhatTheGraphFolderThenOffers()
+    {
+        PackageIdentity identity = Publish("Acme.Plain", "1.0.0", manifest: false);
+        PackageBrowserViewModel browser = Browser(out _);
+
+        await browser.AddAsLibraryAsync(Row(identity), TestContext.Current.CancellationToken);
+        await browser.ConfirmAsync();
+
+        GraphPackages found = GraphPackages.Discover(browser.GraphPath);
+
+        Assert.True(found.Exists);
+        GraphAssembly assembly = Assert.Single(found.Assemblies);
+        Assert.Equal(identity.FolderName, assembly.Package);
+        Assert.Equal(64, assembly.Hash.Length);
+
+        // Consent was given by answering the disclosure, so reopening the graph must not ask again.
+        Assert.True(PackageTrustStore.For(new PackageStore(_store)).IsTrusted(assembly.Hash));
+    }
+
+    /// <summary>
+    /// <b>A library is referenced, and its namespaces arrive with it</b> (`E7-T21`) — which is the
+    /// half the client asked for in the same breath: <i>I hope the user does not have to declare
+    /// the using statement.</i>
+    /// </summary>
+    [Fact]
+    public async Task AnAddedLibraryIsReferencedAndItsNamespacesImported()
+    {
+        PackageIdentity identity = Publish(
+            "Gadgetry", "1.0.0", manifest: false, assemblyPath: Compile("Gadgetry", """
+                namespace Gadgetry
+                {
+                    public static class Sprockets
+                    {
+                        public static double Twice(double value) => value * 2.0;
+                    }
+                }
+                """));
+
+        ReferenceCatalog catalogue = new();
+        PackageBrowserViewModel browser = Browser(out _, catalogue);
+
+        await browser.AddAsLibraryAsync(Row(identity), TestContext.Current.CancellationToken);
+        await browser.ConfirmAsync();
+
+        Assert.Contains("Gadgetry", catalogue.Imports);
+        Assert.Contains("referenced", browser.Status, StringComparison.Ordinal);
+        Assert.Empty(browser.ImportNotice);
+    }
+
+    /// <summary>
+    /// <b>`ReferenceCatalog.SkippedImports` was written and nothing read it, so a refused namespace
+    /// was silent.</b> This is where it stops being silent: the sentence naming the types that
+    /// stopped the import reaches the window the user is standing in front of.
+    /// </summary>
+    [Fact]
+    public async Task ALibraryWhoseNamespaceCollidesSaysSoWhereTheInstallFinished()
+    {
+        PackageIdentity identity = Publish(
+            "Widgetry", "1.0.0", manifest: false, assemblyPath: Compile("Widgetry", """
+                namespace Widgetry
+                {
+                    public static class Mesh
+                    {
+                        public static string Name => "widget";
+                    }
+                }
+                """));
+
+        ReferenceCatalog catalogue = new();
+        PackageBrowserViewModel browser = Browser(out _, catalogue);
+
+        await browser.AddAsLibraryAsync(Row(identity), TestContext.Current.CancellationToken);
+        await browser.ConfirmAsync();
+
+        Assert.DoesNotContain("Widgetry", catalogue.Imports);
+        Assert.Contains("Widgetry", browser.ImportNotice, StringComparison.Ordinal);
+        Assert.Contains("Mesh", browser.ImportNotice, StringComparison.Ordinal);
+        Assert.Contains("using Widgetry;", browser.ImportNotice, StringComparison.Ordinal);
+
+        // The library is still referenced. Refusing the import is not refusing the library.
+        Assert.Contains("Not every namespace", browser.Status, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A library needs somewhere to go, so the unsaved graph refuses this the same way it refuses
+    /// an install (`E7-T18`, `E7-T21`), and downloads nothing.
+    /// </summary>
+    [Fact]
+    public async Task AddingALibraryOverAnUnsavedGraphDoesNothing()
+    {
+        PackageIdentity identity = Publish("Acme.Plain", "1.0.0", manifest: false);
+        PackageBrowserViewModel browser = Unsaved(out _);
+
+        await browser.AddAsLibraryAsync(Row(identity), TestContext.Current.CancellationToken);
+
+        Assert.False(browser.HasPendingInstall);
+        Assert.False(browser.PendingIsLibrary);
+        Assert.Contains("Save the graph first", browser.Status, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>The gate has one question and two answers, and the button says which was asked</b>
+    /// (`E7-T21`). <i>Install</i> over a library would promise nodes that are not coming.
+    /// </summary>
+    [Fact]
+    public async Task TheDisclosureNamesWhichOfTheTwoItWillDo()
+    {
+        PackageIdentity node = Publish("Acme.Nodes", "1.0.0");
+        PackageIdentity plain = Publish("Acme.Plain", "1.0.0", manifest: false);
+        PackageBrowserViewModel browser = Browser(out _);
+
+        await browser.PrepareAsync(Row(node), TestContext.Current.CancellationToken);
+
+        HeadlessSession.Run(() =>
+        {
+            PackageWindow window = new(browser);
+            Assert.Equal("Install", window.ConfirmLabel);
+            window.Close();
+        });
+
+        browser.Cancel();
+        await browser.AddAsLibraryAsync(Row(plain), TestContext.Current.CancellationToken);
+
+        HeadlessSession.Run(() =>
+        {
+            PackageWindow window = new(browser);
+            Assert.Equal("Add as a library", window.ConfirmLabel);
+            window.Close();
+        });
+
+        browser.Cancel();
+    }
+
+    /// <summary>
+    /// The button needs a row and a saved graph, exactly as <i>Install</i> does (`E7-T21`).
+    /// </summary>
+    [Fact]
+    public void TheLibraryButtonNeedsARowAndAFile() => HeadlessSession.Run(() =>
+    {
+        PackageBrowserViewModel browser = Unsaved(out _);
+        PackageWindow window = new(browser);
+
+        browser.Results.Add(Row(PackageIdentity.Create("Acme.Plain", "1.0.0")));
+        window.SelectFound(0);
+
+        Assert.False(window.CanAddAsLibrary);
+
+        browser.GraphPath = Path.Combine(_root, "graph.spark");
+
+        Assert.True(window.CanAddAsLibrary);
+
+        window.Close();
+    });
+
+    /// <summary>
     /// A browser over a graph that has been saved, which is the ordinary case (`E7-T18`).
     /// </summary>
     /// <remarks>
@@ -518,29 +716,61 @@ public sealed class PackageBrowserTests : IDisposable
     /// refusal is a rule worth its own tests below; every test that is about installing a package
     /// has to get past it first, and one that did so by accident would be testing the refusal.
     /// </remarks>
-    private PackageBrowserViewModel Browser(out NodeLibrary library)
+    private PackageBrowserViewModel Browser(out NodeLibrary library, ReferenceCatalog? catalogue = null)
     {
-        PackageBrowserViewModel browser = Unsaved(out library);
+        PackageBrowserViewModel browser = Unsaved(out library, catalogue);
         browser.GraphPath = Path.Combine(_root, "graph.spark");
         return browser;
     }
 
     /// <summary>A browser over a graph that has never been saved.</summary>
-    private PackageBrowserViewModel Unsaved(out NodeLibrary library)
+    private PackageBrowserViewModel Unsaved(out NodeLibrary library, ReferenceCatalog? catalogue = null)
     {
         library = new NodeLibrary();
-        return new PackageBrowserViewModel(library, new PackageStore(_store), _feed);
+        return new PackageBrowserViewModel(
+            library, new PackageStore(_store), _feed, catalogue is null ? null : () => catalogue);
+    }
+
+    /// <summary>Where <c>graph.spark</c>'s packages would live.</summary>
+    private string GraphFolder() => GraphPackages.FolderFor(Path.Combine(_root, "graph.spark"));
+
+    /// <summary>
+    /// Compiles a tiny assembly into the scratch folder, so a test can choose whether the library
+    /// it publishes collides with what a code block already means.
+    /// </summary>
+    private string Compile(string name, string source)
+    {
+        CSharpCompilation compilation = CSharpCompilation.Create(
+            name,
+            [Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseSyntaxTree(source)],
+            new ReferenceCatalog().References,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+        string path = Path.Combine(_root, name + ".dll");
+        Microsoft.CodeAnalysis.Emit.EmitResult emitted = compilation.Emit(path);
+
+        Assert.True(
+            emitted.Success,
+            "the test's own library did not compile: "
+            + string.Join("; ", emitted.Diagnostics.Select(diagnostic => diagnostic.ToString())));
+
+        return path;
     }
 
     private static PackageRow Row(PackageIdentity identity) =>
         new(identity.Id, identity.Version, identity.Id, string.Empty, IsInstalled: false);
 
     /// <summary>Puts a package carrying a real assembly on the folder feed.</summary>
-    private PackageIdentity Publish(string id, string version, string[]? manifestAssemblies = null)
+    private PackageIdentity Publish(
+        string id,
+        string version,
+        string[]? manifestAssemblies = null,
+        bool manifest = true,
+        string? assemblyPath = null)
     {
         PackageIdentity identity = PackageIdentity.Create(id, version);
-        System.Reflection.Assembly assembly = typeof(Spark.Nodes.Core.Point).Assembly;
-        string simpleName = assembly.GetName().Name!;
+        string carried = assemblyPath ?? typeof(Spark.Nodes.Core.Point).Assembly.Location;
+        string simpleName = Path.GetFileNameWithoutExtension(carried);
         string path = Path.Combine(_feed, $"{identity.Id}.{identity.Version}.nupkg");
 
         using (FileStream file = File.Create(path))
@@ -561,15 +791,20 @@ public sealed class PackageBrowserTests : IDisposable
                 </package>
                 """);
 
-            Write(
-                archive,
-                SparkPackageManifest.PathInPackage,
-                SparkPackageManifest.Write(manifestAssemblies ?? [simpleName]));
+            // A library carries no manifest, and that is the whole difference between the two
+            // operations this window offers (`E7-T21`).
+            if (manifest)
+            {
+                Write(
+                    archive,
+                    SparkPackageManifest.PathInPackage,
+                    SparkPackageManifest.Write(manifestAssemblies ?? [simpleName]));
+            }
 
             // The assembly's own dependencies are deliberately not shipped: Spark.Api and
             // Spark.Geometry are contract assemblies and must come from the host, or a Point3d
             // crossing the boundary would not be the Point3d a graph understands.
-            archive.CreateEntryFromFile(assembly.Location, simpleName + ".dll");
+            archive.CreateEntryFromFile(carried, simpleName + ".dll");
         }
 
         return identity;

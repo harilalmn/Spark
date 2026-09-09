@@ -45,7 +45,9 @@ public sealed partial class PackageBrowserViewModel : ObservableObject
     private readonly PackageTrustStore _trust;
     private readonly PackageManager _manager;
     private readonly NuGetPackageClient _client;
+    private readonly Func<Spark.Scripting.ReferenceCatalog?> _catalogue;
     private PendingInstall? _pending;
+    private bool _pendingIsLibrary;
 
     [ObservableProperty]
     private string _query = string.Empty;
@@ -72,10 +74,21 @@ public sealed partial class PackageBrowserViewModel : ObservableObject
     /// <param name="library">The library packages contribute their nodes to.</param>
     /// <param name="store">Where packages are installed, or null for the default.</param>
     /// <param name="source">The feed, or null for nuget.org.</param>
+    /// <param name="catalogue">
+    /// How to reach the code block reference catalogue, or null when there is none. <b>A delegate
+    /// rather than the catalogue itself</b>, for `E6-T14`'s reason: building this must not load
+    /// Roslyn, and it is called only when a user actually adds a library.
+    /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="library"/> is null.</exception>
-    public PackageBrowserViewModel(NodeLibrary library, PackageStore? store = null, string? source = null)
+    public PackageBrowserViewModel(
+        NodeLibrary library,
+        PackageStore? store = null,
+        string? source = null,
+        Func<Spark.Scripting.ReferenceCatalog?>? catalogue = null)
     {
         ArgumentNullException.ThrowIfNull(library);
+
+        _catalogue = catalogue ?? (() => null);
 
         _store = store ?? PackageStore.Default();
         _trust = PackageTrustStore.For(_store);
@@ -302,12 +315,202 @@ public sealed partial class PackageBrowserViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// The graph's own package folder, as a store, or null when the graph has no file (`E7-T21`).
+    /// </summary>
+    /// <remarks>
+    /// <b>A <see cref="PackageStore"/> rooted at <c>&lt;name&gt;.packages</c> rather than a second
+    /// kind of install.</b> It lays a package down as
+    /// <c>&lt;id&gt;.&lt;version&gt;/lib/&lt;tfm&gt;/</c>, which is exactly the layout
+    /// <see cref="GraphPackages"/> already reads - so what this writes is what a graph opened on
+    /// another machine finds beside it.
+    /// </remarks>
+    private PackageStore? GraphStore =>
+        IsGraphSaved ? new PackageStore(GraphPackages.FolderFor(GraphPath!)) : null;
+
+    /// <summary>
+    /// Downloads a package to <b>reference from a code block</b> rather than to take nodes from,
+    /// and reports what it is without installing it (`E7-T21`).
+    /// </summary>
+    /// <param name="row">The package to prepare.</param>
+    /// <param name="cancellationToken">Cancels the download.</param>
+    /// <returns>A task that completes when <see cref="Disclosure"/> has been filled in.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="row"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>The client asked why Spark insisted on a Spark package, and the rule was right while the
+    /// button was wrong.</b> A manifest names which assemblies hold <c>[SparkNode]</c> types, and
+    /// without one Spark would reflect over a package's whole <c>lib</c> folder and offer every
+    /// public static method of every dependency as a canvas node. But they did not want
+    /// Nice3point's nodes; they wanted its <b>types</b>, in a code block, which needs no manifest
+    /// at all. There was one Install button and it was wired to the node importer, so the only
+    /// answer it could give was <i>this is not that kind of package</i>.
+    /// </para>
+    /// <para>
+    /// <b>It goes beside the graph, not into the machine-wide store</b>, which is the client's call
+    /// and <c>ADR-0024</c>: the graph and the libraries it needs travel together, and two graphs
+    /// may disagree about a version without either breaking.
+    /// </para>
+    /// </remarks>
+    public async Task AddAsLibraryAsync(PackageRow row, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+
+        if (GraphStore is not { } target)
+        {
+            Status = "Save the graph first - there is no folder to install into yet.";
+            return;
+        }
+
+        Cancel();
+        IsBusy = true;
+        Status = string.Create(CultureInfo.InvariantCulture, $"Fetching {row.Id} {row.Version}...");
+
+        try
+        {
+            _pending = await _client
+                .PrepareLibraryAsync(row.Identity, target, cancellationToken).ConfigureAwait(true);
+
+            _pendingIsLibrary = true;
+            Disclosure = Present(_pending.Disclosure);
+            NativeNotice = NativeLine(_pending.Disclosure);
+            CarriesNativeCode = _pending.Disclosure.CarriesNativeBinaries;
+            HasPendingInstall = true;
+            Status = "Nothing has been added yet.";
+        }
+        catch (SparkPackageException failure)
+        {
+            Status = failure.Message;
+            ClearDisclosure();
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Whether the pending decision is about a library to write code against rather than a node
+    /// package to install (`E7-T21`).
+    /// </summary>
+    /// <remarks>
+    /// <b>The two answers are not interchangeable, and the button that offers them has to say
+    /// which.</b> One adds nodes to the canvas; the other adds types to a code block and puts a
+    /// folder beside the user's file.
+    /// </remarks>
+    public bool PendingIsLibrary => _pendingIsLibrary;
+
+    /// <summary>
+    /// What the last added library changed for code blocks: the namespaces that were refused, and
+    /// why (`E6-T39`, `E7-T21`).
+    /// </summary>
+    /// <remarks>
+    /// <b><c>ReferenceCatalog.SkippedImports</c> was written and nothing read it</b>, which made a
+    /// refused namespace silent - the worst of the three options, because a user then types a type
+    /// name that plainly exists and is told it does not. This is where it surfaces.
+    /// </remarks>
+    [ObservableProperty]
+    private string _importNotice = string.Empty;
+
+    /// <summary>Commits the prepared library into the graph's folder and references it.</summary>
+    private void CommitLibrary()
+    {
+        PackageIdentity identity = _pending!.Identity;
+
+        try
+        {
+            _pending.Commit();
+
+            // Consent is recorded per **content hash**, which is `E7-T16`'s rule and the client's:
+            // a path-keyed decision would agree once to a filename and then load whatever later
+            // occupied it. Agreeing here is what stops the graph asking again when it is reopened,
+            // and a rebuilt assembly still asks, because its bytes are not the ones agreed to.
+            GraphAssembly[] added =
+            [
+                .. GraphPackages.Discover(GraphPath).Assemblies.Where(assembly =>
+                    assembly.Package.Equals(identity.FolderName, StringComparison.OrdinalIgnoreCase)),
+            ];
+
+            foreach (GraphAssembly assembly in added)
+            {
+                if (assembly.Hash.Length > 0)
+                {
+                    _trust.Trust(assembly.Hash);
+                }
+            }
+
+            Status = Reference(identity, added);
+        }
+        catch (SparkPackageException failure)
+        {
+            Status = failure.Message;
+        }
+        finally
+        {
+            _pending = null;
+            _pendingIsLibrary = false;
+            ClearDisclosure();
+        }
+    }
+
+    /// <summary>
+    /// Hands an added library's assemblies to the code block catalogue, and says what changed.
+    /// </summary>
+    /// <remarks>
+    /// <b>Referenced, not loaded.</b> The catalogue takes a metadata reference, which reads the
+    /// file without running anything in it - no module initialiser, no static constructor, no
+    /// reflection over its types. That is the posture <c>E7-T9</c> takes with a local DLL, and the
+    /// reason this gate is about compiling against a library rather than executing one.
+    /// </remarks>
+    private string Reference(PackageIdentity identity, IReadOnlyList<GraphAssembly> added)
+    {
+        if (added.Count == 0)
+        {
+            return identity + " was added, but it carries no assembly this build can use. Its "
+                + "'lib' folder may target a framework Spark does not run on.";
+        }
+
+        Spark.Scripting.ReferenceCatalog? catalogue = _catalogue();
+
+        if (catalogue is null)
+        {
+            ImportNotice = string.Empty;
+
+            return identity + " was added to the graph's " + GraphPackages.FolderSuffix
+                + " folder. Scripting is off for this session, so nothing compiles against it yet.";
+        }
+
+        _ = catalogue.Add(added.Select(assembly => assembly.Path));
+
+        ImportNotice = catalogue.SkippedImports.IsEmpty
+            ? string.Empty
+            : string.Join(" ", catalogue.SkippedImports);
+
+        string done = string.Create(
+            CultureInfo.InvariantCulture,
+            $"{identity} was added beside the graph, and {added.Count} assembly(s) are now referenced.");
+
+        return catalogue.SkippedImports.IsEmpty
+            ? done + " Code blocks can use its types."
+            : done + " Not every namespace could be imported - see below.";
+    }
+
     /// <summary>Installs the prepared package, records the decision, and loads its nodes.</summary>
     /// <returns>A task that completes when the package is usable.</returns>
     public Task ConfirmAsync()
     {
         if (_pending is null)
         {
+            return Task.CompletedTask;
+        }
+
+        // `E7-T21`: the two answers do different things and must not be confused. A library is
+        // referenced so a code block can name its types; a node package is loaded and reflected
+        // over so the canvas gains nodes. The same disclosure asks for both, so which one was
+        // asked has to be remembered rather than inferred from the package.
+        if (_pendingIsLibrary)
+        {
+            CommitLibrary();
             return Task.CompletedTask;
         }
 
@@ -343,6 +546,7 @@ public sealed partial class PackageBrowserViewModel : ObservableObject
     {
         _pending?.Discard();
         _pending = null;
+        _pendingIsLibrary = false;
         HasPendingInstall = false;
         ClearDisclosure();
     }

@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (E7-T18: the Packages window refuses an unsaved graph)
+**Last updated:** 2026-09-09 (E7-T21: add a NuGet package as a library)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -793,7 +793,13 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       over a graph that has never been saved, and its **Packages** tab refuses in place, naming the
       folder it would have needed and offering the save that would create one. *Refusing the whole
       window, which the row first said, would have taken away the local-assemblies path, and that
-      path is the one that needs no graph on disk at all.*
+      path is the one that needs no graph on disk at all.* **`E7-T21` closed on 2026-09-09 and is
+      the one a user notices**: **Add as a library…** beside **Install…**, so an ordinary .NET
+      package - most of nuget.org - can be added for its **types** rather than its nodes. It lands
+      in `<name>.packages` beside the graph, its namespaces are imported with no `using` to type,
+      and a namespace refused for a colliding name says so instead of going quiet. **What is left
+      is `E7-T17`** - the record in the file, so a missing package is named rather than surfacing as
+      an error about a type - **and `E7-T19`**, copying the folder on Save As.
 - [x] Recursion is refused at save **and** at load, with the containment path reported
       (**E7-T13**). *Both sides done 2026-08-31. The load side catches a file that arrived
       recursive; the save side catches one being made recursive, which in practice means a

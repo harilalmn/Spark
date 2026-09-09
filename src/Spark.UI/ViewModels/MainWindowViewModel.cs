@@ -1668,7 +1668,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             return _packages;
         }
 
-        PackageBrowserViewModel browser = new(_session.Library, source: PackageSource);
+        // The catalogue reaches the browser the same way it reaches the local references list: as
+        // a delegate, so that opening the Packages window does not load Roslyn (`E6-T14`). It is
+        // called only when a user actually adds a library (`E7-T21`).
+        PackageBrowserViewModel browser = new(
+            _session.Library,
+            source: PackageSource,
+            catalogue: () => _session.ScriptReferences());
         browser.Installed.CollectionChanged += (_, _) => _help = null;
         browser.GraphPath = GraphPath;
 

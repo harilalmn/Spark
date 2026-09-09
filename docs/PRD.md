@@ -3,7 +3,7 @@
 **Status:** M0 — foundations, mostly landed. No product code is implemented; the repository
 is scaffolding, gates and specification.
 **Owner:** Nicety
-**Last updated:** 2026-09-07 (FR-27: the search's tie-break is Create/Action/Query, then alphabetical)
+**Last updated:** 2026-09-09 (FR-84: a package added as a library rather than as nodes)
 **Latest change:** the solid-modelling kernel decision — **D2 reverses**, **D15** is new, R1 and
 R12 retire, R15 … R22 arrive, and a new epic **E13** appears. [ADR-0020](adr/0020-occt-via-c-abi-shim.md),
 [ADR-0021](adr/0021-brep-kernel-residency.md). **Nothing of it is built.**
@@ -261,6 +261,7 @@ previously invisible — **Q11** and **Q12** — and one new risk, **R14**.
 | FR-44 | Install shows publisher, downloads, licence, signature status, transitive dependencies, node count and **whether the package contains native binaries**. | Not started (E7) |
 | FR-45 | A local DLL can be referenced directly; it prompts once and records a content hash, re-prompting when the hash changes. Auto-reload on file change is offered, and reading a referenced assembly never locks it. | Not started (E7) |
 | FR-46 | Opening a graph never auto-runs it. Manual mode plus a banner listing script nodes and required packages, with a content-hash per-origin trust allowlist. | Not started (E6, E7) |
+| FR-84 | An **ordinary** .NET package — one with no Spark manifest — can be added as a **library**: it is staged into the graph's own `<name>.packages` folder, referenced by code blocks, and its namespaces imported without the user writing a `using`. A namespace that would make an existing name ambiguous is **not** imported, and the refusal names the types that stopped it. | **Done** 2026-09-09 — `E7-T21`, `E6-T39`, [ADR-0024](adr/0024-graph-local-package-folder.md) |
 
 ### Geometry
 

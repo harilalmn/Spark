@@ -188,7 +188,7 @@ public sealed class NuGetPackageClient
     {
         ArgumentNullException.ThrowIfNull(store);
 
-        string staging = store.FolderFor(identity) + ".installing";
+        string staging = store.FolderFor(identity) + StagingSuffix;
 
         try
         {
@@ -254,6 +254,17 @@ public sealed class NuGetPackageClient
         // without one, and it is not reachable from here (`E7-T21`).
         return pending.Manifest!;
     }
+
+    /// <summary>
+    /// The suffix a download wears while it is being staged, before anybody has agreed to it.
+    /// </summary>
+    /// <remarks>
+    /// <b>Named rather than spelled twice, because something else has to recognise it.</b> A
+    /// library is staged inside the graph's own package folder, so an interrupted download leaves a
+    /// directory there that is not a package — and <see cref="GraphPackages"/> has to know not to
+    /// offer its contents (`E7-T21`).
+    /// </remarks>
+    public const string StagingSuffix = ".installing";
 
     /// <summary>The folder inside a package that holds the dependencies installed with it.</summary>
     /// <remarks>
@@ -448,7 +459,7 @@ public sealed class NuGetPackageClient
     {
         ArgumentNullException.ThrowIfNull(store);
 
-        string staging = store.FolderFor(identity) + ".installing";
+        string staging = store.FolderFor(identity) + StagingSuffix;
 
         try
         {

@@ -41,7 +41,15 @@ namespace Spark.UI.Tests;
 public sealed class DocumentationSampleTests
 {
     /// <summary>How many fences are allowed to opt out. Raising this is a decision, not a fix.</summary>
-    private const int AllowedSkips = 0;
+    /// <remarks>
+    /// <b>Raised from zero to three on 2026-09-09, and only for samples that cannot compile
+    /// here by construction</b> (`E7-T21`): <c>concepts/code-blocks.md</c> shows what using a
+    /// library added from nuget.org looks like, and the library is not installed on this machine or
+    /// on CI. Writing them against a package Spark ships would show the wrong thing — the whole
+    /// point of the section is a type that is <i>not</i> in the catalogue until a user adds it.
+    /// The count is still asserted, so a fourth skip is a decision somebody has to make on purpose.
+    /// </remarks>
+    private const int AllowedSkips = 3;
 
     /// <summary>Every C# sample in the help compiles against the real API.</summary>
     /// <remarks>

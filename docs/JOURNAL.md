@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-09 (the Packages window refuses an unsaved graph)
+**Last updated:** 2026-09-09 (the Add as a library button)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — `E7-T18` is committed and the gates are green at 2889.** The Packages window opens on **Local assemblies** over a graph that has never been saved, and its **Packages** tab refuses in place: it names the `.packages` folder it would have needed, names that local assemblies still work, and offers a **Save graph…** button. Saving lifts it on the window already open, because the path is pushed into the browser rather than read once at construction. **The row's *it does not open* lost to its own next sentence**, and the client settled it — that tab has no other door. |
+| **Working on** | **Nothing — `E7-T21` is committed and the gates are green at 2898.** The Packages window has an **Add as a library…** button: an ordinary .NET package is added for its **types** rather than its nodes, beside the graph in `<name>.packages`, with its namespaces imported and no `using` to type. A namespace refused for a colliding name now says so where the install finished, which `ReferenceCatalog.SkippedImports` had been unable to do because nothing read it. **Two defects came out of pointing the installer at a new folder** ([N133](NOTES.md#n133--changing-where-a-package-installs-changes-who-else-has-to-read-that-folder)): staged dependencies were never referenced, and a half-staged download looked like a package. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The Packages window refuses an unsaved graph, and says why** — `E7-T18`. **Before it:** `E6-T39` and [N131](NOTES.md#n131--an-inner-using-does-not-collide-with-an-outer-one-it-silently-wins), `E7-T21`'s first half, `E7-T20`, `E7-T16`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2889** tests green over ten executables with zero skips, with the native shim built. |
-| **Next action** | **`E7-T21`'s remaining half: the **Add as a library** button.** `PrepareLibraryAsync` still has no caller, so the improved refusal message names an action the window cannot take. Its precondition is now in place — `PackageBrowserViewModel.GraphPath` is live and the tab refuses without one — so the button stages into `GraphPackages.FolderFor(GraphPath)` and can assume a file exists. It belongs beside **Install…** on the Found list, enabled when a row is selected and the graph is saved, and it must **not** go through the node importer or the manifest. Then `ReferenceCatalog.SkippedImports` shown where the install finishes: it is written and nothing reads it yet, so a namespace refused for a collision is silent. |
-| **Verify with** | The three gates, plus: a library installed into `<name>.packages` beside a saved graph, its namespaces importable from a code block, the ones refused for a collision **named on screen** rather than only in the catalogue, and none of it reachable while the graph is unsaved. Plus a run of the app. |
+| **Last completed step** | **Add as a library, and the two defects the destination exposed** — `E7-T21` and [N133](NOTES.md#n133--changing-where-a-package-installs-changes-who-else-has-to-read-that-folder). **Before it:** `E7-T18`, `E6-T39` and [N131](NOTES.md#n131--an-inner-using-does-not-collide-with-an-outer-one-it-silently-wins), `E7-T20`, `E7-T16`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2898** tests green over ten executables with zero skips, with the native shim built. |
+| **Next action** | **`E7-T17` — the record in the file.** It is what makes *fail loudly with a named list* possible, which is the client's call: a graph whose `<name>.packages` folder has less in it than it did is not missing anything as far as the loader can tell, so the user gets a compile error naming a **type** rather than a message naming the **package**. It is a format change — version 5 — so `E7-T7`'s byte-identical round trip has to be **re-proved rather than assumed**. `E7-T19` (copy the folder on Save As) is the small one after it, and it needs `E7-T17` first so that a copy that fails is still describable. |
+| **Verify with** | The three gates, plus: a graph naming a package that is not beside it opens, says which package is missing **by name**, keeps every key, literal and wire, and **re-saves byte for byte**; a graph with its folder intact says nothing; and a file written by format 4 still opens. Plus a run of the app. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -9476,3 +9476,51 @@ watched going red with `_unsavedPanel.IsVisible` forced to `false` —
 executables, **2889** tests, zero failures, zero skips, with the native shim built. Help: the rule
 is a fact about the file, so it went into `concepts/files.md` beside the format rather than into a
 packages topic that does not exist yet.
+
+### 2026-09-09 — Add as a library, and the two defects the destination exposed (`E7-T21`)
+
+**What.** `PrepareLibraryAsync` had no caller, so the message the client's catch produced — *this is
+a NuGet package but not a Spark package; add it as a library instead* — named an action the window
+could not take. It has one now: **Add as a library…**, beside **Install…** on the Found list.
+
+**The two buttons are two different questions and the gate says which was asked.** *Install* means
+add this package's **nodes**, and needs a manifest saying which assemblies hold them. *Add as a
+library* means let my code blocks use its **types**, and needs no manifest at all — which is why
+there had to be two buttons rather than one that sometimes refuses. The disclosure is shared; its
+agreeing button now reads *Install* or *Add as a library*, because *Install* over a library would
+promise nodes that are not coming.
+
+**It installs beside the graph, which is the client's call and `ADR-0024`.** The whole mechanism is
+a `PackageStore` rooted at `GraphPackages.FolderFor(graph)` instead of the machine-wide one — no
+second kind of install, and the layout it writes, `<id>.<version>/lib/<tfm>/`, is exactly the one
+`E7-T16`'s finder already reads. That is why `E7-T18` came first: with no file there is no folder.
+
+**Pointing an existing installer at a different folder exposed two defects, and they are the same
+shape** — [N133](NOTES.md#n133--changing-where-a-package-installs-changes-who-else-has-to-read-that-folder).
+*One*: `StageDependenciesAsync` puts transitive dependencies in `<package>/.deps/…` and
+`GraphPackages.Discover` looked only at `<package>/lib/…`, so a library's dependencies were
+downloaded and never referenced. Invisible under the global store, where the load context takes the
+folder whole; fatal here, where assemblies are handed to the compiler one path at a time. It fails
+as `CS0012` naming an assembly the user has never heard of. *Two*: a pending install is staged as
+`<id>.<version>.installing` **inside** the destination, which the global store hides behind
+*a folder with no manifest is not installed*. A graph-local library has no manifest by definition,
+so `Discover` would have offered the contents of a download **whose disclosure had not been answered
+yet**. The suffix is a named constant now, and the finder skips it.
+
+**`ReferenceCatalog.SkippedImports` had been written and nothing read it.** `E6-T39` called silence
+the worst of the three options — the user types a type name that plainly exists and is told it does
+not — and silence is what shipped, because the property had no consumer. It surfaces now under the
+status line, in the warning colour, where the install finished.
+
+**Where the help went, and a decision inside it.** The section belongs in `concepts/code-blocks.md`,
+because *using a library* is a code block question. Three of its fences show a package that is not
+installed on this machine or on CI and cannot compile against the real API by construction, so
+`AllowedSkips` went from 0 to 3 with the reason written beside it. **Raising that number is a
+decision the harness deliberately forces somebody to make**, and this is the case it was left open
+for; the count is still asserted, so a fourth is another decision.
+
+**Verified.** The three gates. Nine new tests. `ALibraryWhoseNamespaceCollidesSaysSoWhereTheInstallFinished`
+was watched going red with `ImportNotice` forced empty. The collision is a real one, not a mocked
+sentence: the test compiles a `Widgetry` assembly with a type named `Mesh` and asserts the window
+carries the reason. Ten executables, **2898** tests, zero failures, zero skips, with the native shim
+built.
