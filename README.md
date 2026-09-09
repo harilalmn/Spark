@@ -2,14 +2,19 @@
 
 **Node-based visual programming for .NET, where the scripting language is C#.**
 
-Spark is an open-source, independent alternative to Autodesk Dynamo Sandbox: nodes, wires,
-ports, a graph canvas, a 3D viewport, a searchable node library and code blocks — with no
-Autodesk software required.
+Spark is an independent alternative to Autodesk® Dynamo® Sandbox: nodes, wires, ports, a graph
+canvas, a 3D viewport, a searchable node library and code blocks — with no Autodesk software
+required.
 
-MIT licensed. `net10.0`. Solid modelling by [OpenCascade](https://dev.opencascade.org/),
-which ships with Spark.
+**The source is closed** ([ADR-0025](docs/adr/0025-source-closed-releases-public.md)); the builds
+are public, at [Spark-Releases](https://github.com/harilalmn/Spark-Releases/releases). `net10.0`.
+Solid modelling by [OpenCascade](https://dev.opencascade.org/), which ships with Spark.
 
-**Last updated:** 2026-09-07
+*Autodesk, AutoCAD, Dynamo and Revit are trademarks of the Autodesk group of companies. Nicety is
+not affiliated with, endorsed by or sponsored by Autodesk. They are named here only to say what
+Spark is like and what it does not require.*
+
+**Last updated:** 2026-09-09 (the source is closed; ADR-0025)
 
 > ## Status: it runs, and it does exact solid modelling
 >
@@ -534,16 +539,22 @@ nothing is worse than no test. The reasoning, and the mechanisms, are in
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). MIT, DCO sign-off (`git commit -s`), no CLA, one
-maintainer.
+**Spark stopped taking outside contributions on 2026-09-09, when the source was closed**
+([ADR-0025](docs/adr/0025-source-closed-releases-public.md)). See
+[CONTRIBUTING.md](CONTRIBUTING.md) for what still applies to anyone working in this tree.
 
-At M0 the most valuable contribution is argument: if one of the decisions in the
-[decision log](docs/PRD.md#13-decision-log) is wrong, it is far cheaper to find out now.
+Reports of things that are wrong are still worth more than anything else, and the place for them
+is [Spark-Releases](https://github.com/harilalmn/Spark-Releases/issues).
 
 ## Licence
 
-[MIT](LICENSE). Copyright (c) 2026 Nicety. That covers everything in this repository,
-including the `native/spark_occt` shim when it is written.
+**All rights reserved** — see [LICENSE](LICENSE). Copyright (c) 2026 Nicety. That covers everything
+in this repository, including the `native/spark_occt` shim.
+
+Spark was MIT-licensed until 2026-09-09. **That grant is irrevocable for anybody who took a copy
+while it stood**, and closing the source changes the terms going forward rather than backwards.
+`LICENSE` is about this *source*; it is not an end-user licence for the builds, and that document
+does not exist yet.
 
 **Third-party notice — OpenCascade.** Spark's solid-modelling operations are provided by
 [Open CASCADE Technology](https://dev.opencascade.org/), which is licensed under **LGPL-2.1

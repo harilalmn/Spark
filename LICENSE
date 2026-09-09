@@ -1,21 +1,17 @@
-MIT License
+Copyright (c) 2026 Nicety. All rights reserved.
 
-Copyright (c) 2026 Nicety
+Spark's source code is not public and is not licensed for redistribution, modification or
+reuse. See docs/adr/0025-source-closed-releases-public.md.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+THIS IS NOT AN END-USER LICENCE. It says what may be done with this source, and says nothing
+about what somebody who downloads a Spark build may do with it. That is a different document
+and it has not been written yet; it needs a lawyer rather than a placeholder.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Versions of Spark published before 2026-09-09 were released under the MIT licence. That grant
+is irrevocable for anyone who took a copy, and nothing here reaches backwards to withdraw it.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Spark is built on third-party components, several of which carry obligations that are entirely
+unaffected by the above. THIRD-PARTY-NOTICES.md lists all of them. In particular Spark links
+OpenCascade under the LGPL-2.1 with the Open CASCADE exception, which obliges a standing offer
+of that library's source and the ability to relink against your own build of it; both are
+honoured at https://github.com/harilalmn/Spark-Releases.

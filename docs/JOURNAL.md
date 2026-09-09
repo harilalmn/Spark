@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-09 (v2026.9.0 published to Spark-Releases)
+**Last updated:** 2026-09-09 (Spark is not open source)
 **Protocol version:** 2
 
 ---
@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing.** `E6-T38` is committed. |
+| **Working on** | **Nothing.** `E12-T23` is committed; `E7-T16` is next. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E12-T22` - the release is cut locally and published to `Spark-Releases`**, and `v2026.9.0` with it. **Before it:** the graph-local package folder planned, `E6-T38`, `E8-T77`, `E8-T76`, `E6-T37`, `E8-T75`, `E6-T36`, `E6-T35`, `E6-T34`. |
+| **Last completed step** | **The documents caught up with the source going closed** - `E12-T23` and [ADR-0025](adr/0025-source-closed-releases-public.md). **Before it:** `E12-T22` and `v2026.9.0`, the graph-local package folder planned, `E6-T38`, `E8-T77`, `E8-T76`. |
 | **Working tree** | Clean. Build clean with zero warnings, format clean, **2832** tests green over nine executables with zero skips. `E11-T27` names ten victims across nine classes. |
-| **Next action** | **`E7-T16` - the graph-local package folder and its trust gate, in one commit.** Top of TODO. **Also open**: `E11-T27` the flaky suite, `Q15` the Autodesk licensing questions for counsel, and the trademark notice, which is a five-minute change that needs no legal advice. **And a loose end from the move to private**: `README.md` still opens *Spark is an open-source…* and `ADR-0006` still records MIT-plus-DCO as the decision. Neither is true now, and an ADR is superseded rather than edited. |
+| **Next action** | **`E7-T16` - the graph-local package folder and its trust gate, in one commit**, then the search half of `E7-T20`, which the client named: *make sure the nuget packages are populated in the packages window*. That is the symptom that started the whole line of work - a search for `nice3point` returns nothing because the query is hard-coded to `tags:spark`. |
 | **Verify with** | Whatever the next row needs. Nothing is half-done. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -9391,3 +9391,40 @@ window does not open on an unsaved graph and says to save first, which avoids in
 and moving it later; Save As copies the folder, and a rename outside Spark is answered by the loud
 failure rather than by guessing which nearby folder was meant; trust is per content hash, so a
 rebuilt DLL asks again and an unchanged one never does.
+
+### 2026-09-09 — The documents caught up with the source going closed (`E12-T23`)
+
+**What.** The client moved the repository to private and said *let us not keep it opensource*. The
+tree said the opposite in a dozen places. `LICENSE` was MIT, `README.md` opened *Spark is an
+open-source…*, `CONTRIBUTING.md` invited pull requests under it, and `ADR-0006` recorded
+MIT-plus-DCO as a deliberate decision.
+
+**An ADR is superseded, not edited.** `ADR-0006`'s reasoning was right when it was written and
+still reads correctly against the facts of the time; deleting it would destroy the record that this
+was ever the answer, which is the one thing an ADR exists to preserve. It keeps its text, gains a
+status line and a note, and [ADR-0025](adr/0025-source-closed-releases-public.md) says what changed.
+
+**Three things the new ADR is careful about, because each is easy to overstate.** The MIT grant
+already made is **irrevocable** for anybody who took a copy — this changes the terms going forward
+and no document may imply otherwise; whether anybody took one was *checked* rather than assumed,
+and at the moment of the change the repository had 0 forks and 0 stars. The **OpenCascade**
+obligations are untouched, because they come from somebody else's licence and do not care what
+Spark's own says — the source offer moved to `Spark-Releases`' README when the repository that used
+to satisfy it went dark. And there is **no contributor question**, because every commit is by one
+author; had there been one, this would have needed their agreement rather than a note.
+
+**`LICENSE` is honest about what it is not.** It says all rights are reserved, and then says
+plainly that it is *not an end-user licence* — it governs this source and says nothing about what
+somebody downloading an installer may do. Writing that is counsel's work, and drafting something
+lawyerly to fill the gap would be worse than an acknowledged placeholder.
+
+**The Autodesk trademark attribution went in the same pass**, because it is the same paragraphs.
+The README's positioning line was two claims — *open-source* and *independent alternative to
+Autodesk Dynamo Sandbox*. The first is now false and is gone; the second is accurate and stays,
+with the attribution and non-affiliation notice that Autodesk's own published guidelines ask for
+and that the project has never carried. It is the one item from the licensing review that needed no
+legal advice, and it took four lines.
+
+**Verified.** The docs harness, which is the gate that matters here: it checks that every relative
+link resolves and every cited `ADR-NNNN` exists, so a superseding ADR nothing points at — or a
+deleted one still cited — fails the build. Five checks, green.

@@ -1,8 +1,15 @@
 # ADR-0006 — MIT licence, DCO rather than a CLA
 
-**Status:** Accepted
+**Status:** **Superseded by [ADR-0025](0025-source-closed-releases-public.md), 2026-09-09.**
 **Date:** 2026-08-27
 **Deciders:** Nicety
+
+> **Superseded, and left standing on purpose.** The client closed the source on 2026-09-09, so
+> Spark is no longer MIT and no longer takes contributions. Everything below was the right answer
+> when it was written and the reasoning still reads correctly against the facts of the time —
+> deleting it would destroy the record that this was ever the decision, which is the one thing an
+> ADR exists to preserve. **The MIT grant made while this ADR was in force is irrevocable for
+> anybody who took a copy**; ADR-0025 changes the terms going forward and does not reach backwards.
 
 ## Context
 

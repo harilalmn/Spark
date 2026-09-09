@@ -1,6 +1,9 @@
 # Contributing to Spark
 
-Thank you for looking. Spark is MIT-licensed, open to contributions, and maintained by one
+Spark's source is closed and it is not taking outside contributions
+([ADR-0025](docs/adr/0025-source-closed-releases-public.md), 2026-09-09). What follows is the
+working agreement for anybody with access to this tree. It was written when Spark was
+MIT-licensed, open to contributions, and maintained by one
 person — which shapes most of what follows.
 
 **Last updated:** 2026-08-28
@@ -26,7 +29,9 @@ somewhere already depends on it.
 
 ## Licence and sign-off
 
-Spark is **MIT**. Contributions are accepted under the same licence.
+**Spark is closed source and not accepting contributions.** It was **MIT** until 2026-09-09;
+that grant stands for anybody who took a copy while it did. See
+[ADR-0025](docs/adr/0025-source-closed-releases-public.md).
 
 **We use DCO, not a CLA.** The [Developer Certificate of Origin](https://developercertificate.org/)
 is a statement that you wrote the patch or otherwise have the right to submit it under the
@@ -48,7 +53,9 @@ missing them.
 **Why DCO rather than a CLA.** A CLA asks a drive-by contributor to read and sign a legal
 document before a one-line typo fix. That loses more contributions than it protects, and
 the thing it protects — the ability to relicense later — is something Spark does not want.
-MIT is the licence, permanently. DCO is one line in a commit message, and it is what the
+MIT *was* the licence until 2026-09-09 and DCO was how contributions arrived. Both are
+history now and the paragraph is kept because the sign-off convention is still followed in
+this tree. DCO is one line in a commit message, and it is what the
 Linux kernel uses.
 
 **Why MIT rather than a copyleft licence.** Spark is designed to be embedded inside
