@@ -372,7 +372,161 @@ public sealed class PackageBrowserTests : IDisposable
         Assert.False(Directory.Exists(new PackageStore(_store).FolderFor(identity) + ".installing"));
     }
 
+    /// <summary>
+    /// <b>A graph with no file refuses, and the refusal names the folder it would have needed</b>
+    /// (`E7-T18`). Naming it is the difference between a rule a user can work with and a rule that
+    /// looks arbitrary.
+    /// </summary>
+    [Fact]
+    public void AGraphWithNoFileRefusesAndSaysWhy()
+    {
+        PackageBrowserViewModel browser = Unsaved(out _);
+
+        Assert.False(browser.IsGraphSaved);
+        Assert.Contains("Save the graph first", browser.UnsavedGraphRefusal, StringComparison.Ordinal);
+        Assert.Contains(GraphPackages.FolderSuffix, browser.UnsavedGraphRefusal, StringComparison.Ordinal);
+
+        // And it says what still works, so the user does not conclude the window is shut.
+        Assert.Contains("Local assemblies", browser.UnsavedGraphRefusal, StringComparison.Ordinal);
+    }
+
+    /// <summary>A graph with a file does not refuse, and says nothing at all about it.</summary>
+    [Fact]
+    public void AGraphWithAFileDoesNotRefuse()
+    {
+        PackageBrowserViewModel browser = Browser(out _);
+
+        Assert.True(browser.IsGraphSaved);
+        Assert.Empty(browser.UnsavedGraphRefusal);
+    }
+
+    /// <summary>
+    /// <b>Saving lifts the refusal on the browser that is already open</b> (`E7-T18`), and the
+    /// change is announced, because the window redraws on a property change and nothing else.
+    /// </summary>
+    [Fact]
+    public void SavingLiftsTheRefusalAndAnnouncesIt()
+    {
+        PackageBrowserViewModel browser = Unsaved(out _);
+        List<string> announced = [];
+        browser.PropertyChanged += (_, e) => announced.Add(e.PropertyName ?? string.Empty);
+
+        browser.GraphPath = Path.Combine(_root, "saved.spark");
+
+        Assert.True(browser.IsGraphSaved);
+        Assert.Empty(browser.UnsavedGraphRefusal);
+        Assert.Contains(nameof(PackageBrowserViewModel.IsGraphSaved), announced, StringComparer.Ordinal);
+        Assert.Contains(nameof(PackageBrowserViewModel.UnsavedGraphRefusal), announced, StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>The refusal is not only a disabled button</b> (`E7-T18`): preparing an install over a
+    /// graph with no file refuses at the point where a folder would have had to be invented, and
+    /// downloads nothing.
+    /// </summary>
+    [Fact]
+    public async Task PreparingOverAnUnsavedGraphInstallsNothing()
+    {
+        PackageIdentity identity = Publish("Acme.Nodes", "1.0.0");
+        PackageBrowserViewModel browser = Unsaved(out _);
+
+        await browser.PrepareAsync(Row(identity), TestContext.Current.CancellationToken);
+
+        Assert.False(browser.HasPendingInstall);
+        Assert.Empty(browser.Disclosure);
+        Assert.Contains("Save the graph first", browser.Status, StringComparison.Ordinal);
+        Assert.False(new PackageStore(_store).IsInstalled(identity));
+    }
+
+    /// <summary>
+    /// The window opened over an unsaved graph shows the refusal, lands on the tab that still
+    /// works, and offers neither search nor install (`E7-T18`).
+    /// </summary>
+    [Fact]
+    public void TheWindowRefusesTheUnsavedGraphAndOpensOnLocalAssemblies() => HeadlessSession.Run(() =>
+    {
+        PackageBrowserViewModel browser = Unsaved(out _);
+        PackageWindow window = new(browser);
+
+        Assert.True(window.IsRefusingUnsavedGraph);
+        Assert.Equal(1, window.SelectedTab);
+        Assert.Contains("Save the graph first", window.UnsavedGraphText, StringComparison.Ordinal);
+
+        // The Install button stays unavailable even with a row selected, because the row is not
+        // what is missing.
+        browser.Results.Add(Row(PackageIdentity.Create("Acme.Nodes", "1.0.0")));
+        window.SelectFound(0);
+        Assert.False(window.CanInstall);
+
+        window.Close();
+    });
+
+    /// <summary>
+    /// <b>Saving while the window is open lifts the refusal there and then</b> (`E7-T18`), rather
+    /// than on the next window. That is the whole reason the path is pushed in rather than read
+    /// once at construction.
+    /// </summary>
+    [Fact]
+    public void SavingWhileTheWindowIsOpenLiftsItsRefusal() => HeadlessSession.Run(() =>
+    {
+        PackageBrowserViewModel browser = Unsaved(out _);
+        PackageWindow window = new(browser);
+
+        Assert.True(window.IsRefusingUnsavedGraph);
+
+        browser.GraphPath = Path.Combine(_root, "saved.spark");
+
+        Assert.False(window.IsRefusingUnsavedGraph);
+        Assert.Empty(window.UnsavedGraphText);
+
+        browser.Results.Add(Row(PackageIdentity.Create("Acme.Nodes", "1.0.0")));
+        window.SelectFound(0);
+        Assert.True(window.CanInstall);
+
+        window.Close();
+    });
+
+    /// <summary>
+    /// <b>The local assemblies tab is untouched by the refusal</b> (`E7-T18`). It adds a DLL by its
+    /// full path and needs no graph on disk, which is exactly what an unsaved scratch graph has.
+    /// </summary>
+    [Fact]
+    public void TheLocalAssembliesTabWorksWithNoGraphOnDisk() => HeadlessSession.Run(() =>
+    {
+        PackageBrowserViewModel browser = Unsaved(out _);
+        PackageWindow window = new(browser);
+
+        Assert.True(window.IsRefusingUnsavedGraph);
+
+        window.ShowLocalAssemblies();
+        Assert.Equal(1, window.SelectedTab);
+
+        string assembly = typeof(Spark.Nodes.Core.Point).Assembly.Location;
+        window.Local.Choose(assembly);
+
+        Assert.True(window.IsShowingPrompt);
+        Assert.Contains(Path.GetFileName(assembly), window.PromptText, StringComparison.Ordinal);
+
+        window.Close();
+    });
+
+    /// <summary>
+    /// A browser over a graph that has been saved, which is the ordinary case (`E7-T18`).
+    /// </summary>
+    /// <remarks>
+    /// <b>The path is set rather than left null, because a browser with no graph refuses.</b> That
+    /// refusal is a rule worth its own tests below; every test that is about installing a package
+    /// has to get past it first, and one that did so by accident would be testing the refusal.
+    /// </remarks>
     private PackageBrowserViewModel Browser(out NodeLibrary library)
+    {
+        PackageBrowserViewModel browser = Unsaved(out library);
+        browser.GraphPath = Path.Combine(_root, "graph.spark");
+        return browser;
+    }
+
+    /// <summary>A browser over a graph that has never been saved.</summary>
+    private PackageBrowserViewModel Unsaved(out NodeLibrary library)
     {
         library = new NodeLibrary();
         return new PackageBrowserViewModel(library, new PackageStore(_store), _feed);

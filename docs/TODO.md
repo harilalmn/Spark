@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (E7-T16..T20: the graph-local package folder, planned)
+**Last updated:** 2026-09-09 (`E7-T18`: the Packages window refuses an unsaved graph)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -208,9 +208,14 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
          would get a compile error naming a **type** rather than a message naming the **package**.
          Format version 5, and **`E7-T7`'s byte-identical round-trip has to be re-proved**, not
          assumed.
-      3. **`E7-T18` and `E7-T19`**, the two small ones — refuse the Packages window on an unsaved
+      3. **`E7-T18` is done and `E7-T19` is not** — refuse the Packages window on an unsaved
          graph and say why; copy the folder on Save As. Both are the client's calls and both remove
-         a question rather than answer it.
+         a question rather than answer it. **`E7-T18`'s row held two sentences that pulled apart**
+         — *it does not open*, and *the local-assemblies tab is unaffected* — and the local tab has
+         no other door, so the first would have taken away the one path that needs no graph on
+         disk. The client settled it: **the window opens on Local assemblies and the Packages tab
+         refuses in place**, with the reason and a **Save graph…** button where the search row
+         would be. Saving lifts it on the open window.
       4. **`E7-T20`, install from nuget.org**, which is the Visual Studio half and the largest.
          The download is easy and the **restore** is the work: transitive dependencies, target
          framework against `net10.0`, and two packages wanting different versions of the same

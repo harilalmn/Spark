@@ -415,6 +415,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             try
             {
                 opened = CanvasDocument.Open(File.ReadAllText(startupDocumentPath), _session.Library, _session.Scripts);
+
+                // A document named on the command line is a saved graph like any other, and the
+                // startup path does not go through TryOpenDocument (`E7-T18`).
+                GraphPath = startupDocumentPath;
             }
             catch (SparkFileException error)
             {
@@ -832,6 +836,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 : _session.Scripts;
 
             AdoptGraph(CanvasDocument.Open(text, _session.Library, factory), evaluate: run);
+
+            // The origin *is* the path, so this is the one place both halves are known (`E7-T18`).
+            // A document opened with no origin - a demo graph, a paste - correctly clears it: it
+            // is a graph with no file, and a package has nowhere to go beside it.
+            NoteGraphPath(origin);
 
             PendingScripts = run ? 0 : scripts.Count;
             PendingOrigin = run ? null : origin;
@@ -1661,9 +1670,39 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         PackageBrowserViewModel browser = new(_session.Library, source: PackageSource);
         browser.Installed.CollectionChanged += (_, _) => _help = null;
+        browser.GraphPath = GraphPath;
 
         _packages = browser;
         return _packages;
+    }
+
+    /// <summary>
+    /// Where the document on the canvas lives on disk, or null when it has never been saved
+    /// (`E7-T18`).
+    /// </summary>
+    /// <remarks>
+    /// <b>The view owns the file dialogs and the view model owns the consequences.</b> A package
+    /// installed for this graph goes into a folder named after the file, so the browser has to
+    /// know whether there is one — and it must not learn it by being handed a path once at
+    /// construction, because the browser outlives every document opened in the session.
+    /// </remarks>
+    public string? GraphPath { get; private set; }
+
+    /// <summary>Records where the document now lives, and tells anything that cares.</summary>
+    /// <param name="path">The <c>.spark</c> file's full path, or null for a graph with no file.</param>
+    /// <remarks>
+    /// Called wherever the view learns a path: a startup document, an open, a save. <b>It is the
+    /// save that matters</b> — that is the moment a refusal has to lift, and it lifts on a window
+    /// that is already open rather than on the next one.
+    /// </remarks>
+    public void NoteGraphPath(string? path)
+    {
+        GraphPath = string.IsNullOrWhiteSpace(path) ? null : path;
+
+        if (_packages is not null)
+        {
+            _packages.GraphPath = GraphPath;
+        }
     }
 
     /// <summary>The key handed out by the last call to <see cref="NextCustomNodeIdentity"/>.</summary>

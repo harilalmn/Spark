@@ -65,6 +65,10 @@ public sealed class PackageWindow : Window
     private readonly SelectableTextBlock _promptText = new();
     private readonly Border _promptPanel = new();
     private readonly TabControl _tabs = new();
+    private readonly Border _unsavedPanel = new();
+    private readonly SelectableTextBlock _unsavedText = new();
+    private readonly Button _saveGraphButton = new();
+    private readonly DockPanel _packagesBody = new();
 
     /// <summary>Creates the window over a browser and a reference list.</summary>
     /// <param name="model">The browser's state and operations.</param>
@@ -94,17 +98,29 @@ public sealed class PackageWindow : Window
         Control disclosure = BuildDisclosurePanel();
         Control status = BuildStatus();
 
-        DockPanel packages = new();
         DockPanel.SetDock(search, Avalonia.Controls.Dock.Top);
         DockPanel.SetDock(disclosure, Avalonia.Controls.Dock.Bottom);
         DockPanel.SetDock(status, Avalonia.Controls.Dock.Bottom);
-        packages.Children.Add(search);
-        packages.Children.Add(disclosure);
-        packages.Children.Add(status);
-        packages.Children.Add(BuildLists());
+        _packagesBody.Children.Add(search);
+        _packagesBody.Children.Add(disclosure);
+        _packagesBody.Children.Add(status);
+        _packagesBody.Children.Add(BuildLists());
+
+        // The refusal stands *in place of* the tab's contents rather than beside them (`E7-T18`).
+        // A search box that is present but dead invites the question the panel is there to answer.
+        Panel packages = new();
+        packages.Children.Add(_packagesBody);
+        packages.Children.Add(BuildUnsavedPanel());
 
         _tabs.Items.Add(new TabItem { Header = "Packages", Content = packages });
         _tabs.Items.Add(new TabItem { Header = "Local assemblies", Content = BuildLocalTab() });
+
+        // A window opened over a graph with no file opens on the tab that still works. The
+        // Packages tab is still reachable, and reaching it is how the user reads the reason.
+        if (!_model.IsGraphSaved)
+        {
+            _tabs.SelectedIndex = 1;
+        }
 
         Content = _tabs;
         Sync();
@@ -434,6 +450,60 @@ public sealed class PackageWindow : Window
         return _status;
     }
 
+    /// <summary>
+    /// Asks the owner to save the graph, because this window has no file dialog of its own
+    /// (`E7-T18`).
+    /// </summary>
+    /// <remarks>
+    /// <b>A refusal that names an action should offer it.</b> Telling a user to save and leaving
+    /// them to find the menu themselves is the shape of refusal this project keeps removing.
+    /// </remarks>
+    public event EventHandler? SaveRequested;
+
+    /// <summary>Whether the Packages tab is refusing because the graph has no file.</summary>
+    public bool IsRefusingUnsavedGraph => _unsavedPanel.IsVisible;
+
+    /// <summary>The refusal as a user would read it, or empty.</summary>
+    public string UnsavedGraphText => _unsavedText.Text ?? string.Empty;
+
+    /// <summary>Brings the packages tab to the front.</summary>
+    public void ShowPackages() => _tabs.SelectedIndex = 0;
+
+    /// <summary>
+    /// The panel that stands in for the Packages tab when the graph has never been saved.
+    /// </summary>
+    private Control BuildUnsavedPanel()
+    {
+        _unsavedText.TextWrapping = TextWrapping.Wrap;
+        _unsavedText.FontSize = 12.5;
+        _unsavedText.LineHeight = 19;
+        _unsavedText.Foreground = SparkPalette.TextPrimaryBrush;
+
+        _saveGraphButton.Content = "Save graph...";
+        _saveGraphButton.Margin = new Thickness(0, 14, 0, 0);
+        _saveGraphButton.HorizontalAlignment = HorizontalAlignment.Left;
+        _saveGraphButton.Click += (_, _) => SaveRequested?.Invoke(this, EventArgs.Empty);
+
+        StackPanel body = new();
+        body.Children.Add(new TextBlock
+        {
+            Text = "This graph has not been saved",
+            FontWeight = FontWeight.SemiBold,
+            Margin = new Thickness(0, 0, 0, 8),
+            Foreground = SparkPalette.TextPrimaryBrush,
+        });
+        body.Children.Add(_unsavedText);
+        body.Children.Add(_saveGraphButton);
+
+        _unsavedPanel.Child = body;
+        _unsavedPanel.Padding = new Thickness(14);
+        _unsavedPanel.Margin = new Thickness(12);
+        _unsavedPanel.VerticalAlignment = VerticalAlignment.Top;
+        _unsavedPanel.Background = SparkPalette.Frozen(SparkPalette.SurfaceRaised);
+        _unsavedPanel.IsVisible = false;
+        return _unsavedPanel;
+    }
+
     private Control BuildDisclosurePanel()
     {
         _disclosure.TextWrapping = TextWrapping.Wrap;
@@ -570,6 +640,13 @@ public sealed class PackageWindow : Window
     /// <summary>Pulls the whole of the view model's state onto the controls.</summary>
     private void Sync()
     {
+        // `E7-T18`. Read first, because everything below it in the packages half is conditional on
+        // there being a file to install beside.
+        bool saved = _model.IsGraphSaved;
+        _unsavedText.Text = _model.UnsavedGraphRefusal;
+        _unsavedPanel.IsVisible = !saved;
+        _packagesBody.IsVisible = saved;
+
         _status.Text = _model.Status;
         _disclosure.Text = _model.Disclosure;
         _native.Text = _model.NativeNotice;
@@ -587,8 +664,12 @@ public sealed class PackageWindow : Window
         _addButton.IsEnabled = !_local.HasPendingTrust;
 
         bool idle = !_model.IsBusy;
-        _searchButton.IsEnabled = idle;
-        _installButton.IsEnabled = idle && !_model.HasPendingInstall && _results.SelectedItem is PackageRow;
+        _searchButton.IsEnabled = idle && saved;
+        _installButton.IsEnabled =
+            idle && saved && !_model.HasPendingInstall && _results.SelectedItem is PackageRow;
+
+        // Remove is not gated on the file. Taking an installed package away needs no folder to put
+        // anything in, and a user who cannot uninstall until they save is being refused a tidy-up.
         _removeButton.IsEnabled = idle && _installed.SelectedItem is PackageRow;
         _confirmButton.IsEnabled = idle;
         _cancelButton.IsEnabled = idle;

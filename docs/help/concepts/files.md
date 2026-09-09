@@ -8,12 +8,13 @@ since: "0.1"
 
 **Status:** Current. Describes the `.spark` reader and writer, which exist and are tested.
 **Owner:** `graph-engine`
-**Last updated:** 2026-08-28
+**Last updated:** 2026-09-09
 
 > **Scope.** A `.spark` file holds nodes, wires, lacing, canvas positions and the values typed
 > into unwired ports. It holds **no geometry** — geometry exists only after evaluation. Assets,
-> the `.sparkz` bundle, custom node definitions and package requirements are later milestones
-> and are not in the file yet.
+> the `.sparkz` bundle and custom node definitions are later milestones and are not in the file
+> yet. **Libraries a graph needs live beside it**, in a folder named after the file, rather than
+> inside it.
 
 ---
 
@@ -140,6 +141,44 @@ every release a format question.
 A file from an older format version is migrated forward when it is opened. A file from a *newer*
 one is refused, because the alternative is a build guessing at a shape it has never seen and
 silently dropping whatever it did not recognise.
+
+---
+
+## The folder beside the file
+
+A graph that needs a library carries it in a folder named after the file, beside the file:
+
+```
+proposals/
+  tower.spark
+  tower.packages/
+    Nice3point.Revit.Api.RevitAPI/
+      lib/net8.0/RevitAPI.dll
+    Helpers.dll
+```
+
+Zip the pair, send it, and it opens with its libraries. Under a machine-wide install folder alone
+a `.spark` is a graph plus verbal instructions about what to install first, and the instructions
+are not in the file.
+
+**This is why the Packages window asks you to save first.** A graph you have never saved has no
+file name, so there is no folder to name after it — Spark would have to invent a location and then
+move it the moment you saved. The window opens, but its **Packages** tab says so and offers a
+**Save graph…** button rather than guessing:
+
+> Save the graph first. A package added here is installed into the graph's own `.packages` folder,
+> which sits beside the file and is named after it — and this graph has no file yet, so there is
+> nowhere to put it.
+
+Save the graph and the tab comes back to life without your reopening anything.
+
+**The Local assemblies tab is not affected**, because it does not need a folder: it adds a `.dll`
+by its full path wherever that path is, which is exactly what a scratch graph you have not saved
+still has.
+
+Nothing in `tower.packages` is loaded because it is there. Spark asks first, and it remembers
+your answer against the assembly's **contents** rather than its name — rebuild the DLL and it
+asks again, because it is not the file it was when you agreed to it.
 
 ---
 

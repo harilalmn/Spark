@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-09 (the graph-local package folder)
+**Last updated:** 2026-09-09 (the Packages window refuses an unsaved graph)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — `E6-T39` is committed and the gates are green at 2870.** The client's catch on `E7-T21` is answered in both halves: a library's namespace is imported only when nothing in it is already spoken for, and it says which types stopped it when it is not; and a `using` written at the top of a block is hoisted to namespace scope, so `using RevitLine = Autodesk.Revit.DB.Line;` — the line they said could not be written — now can be. **The placement paid more than it cost** ([N131](NOTES.md#n131--an-inner-using-does-not-collide-with-an-outer-one-it-silently-wins)): emitted *inside* `namespace SparkGenerated` rather than beside the prelude, a block's own directive shadows Spark's rather than colliding with it, so `using Autodesk.Revit.DB;` simply makes `Line` mean Revit's in that block. Two tests asserting an ambiguity that never happens were rewritten around the real rule. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **The documents caught up with the source going closed** - `E12-T23` and [ADR-0025](adr/0025-source-closed-releases-public.md). **Before it:** `E12-T22` and `v2026.9.0`, the graph-local package folder planned, `E6-T38`, `E8-T77`, `E8-T76`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2855** tests green over nine executables with zero skips. |
-| **Next action** | **`E7-T21`'s remaining half: the **Add as a library** button.** `PrepareLibraryAsync` still has no caller, so the refusal message names an action the window cannot take. The client settled where it installs — *yes, go with the graph folder* — so it stages into `GraphPackages.FolderFor(graph)`, which makes it depend on `E7-T18`'s rule that the window refuses an unsaved graph: with no file there is no folder to install into. Build `E7-T18` first, then the button, then `ReferenceCatalog.SkippedImports` shown where the install finishes — it is written and nothing reads it yet. |
-| **Verify with** | The three gates, plus: a library whose namespace collides is **not** imported and the reason names the colliding types; one that does not collide still is; a block that writes `using X = Some.Type;` compiles and uses `X`; a block that writes `using Some.Namespace;` compiles; and a diagnostic below a hoisted `using` still lands on the user's own line. |
+| **Working on** | **Nothing — `E7-T18` is committed and the gates are green at 2889.** The Packages window opens on **Local assemblies** over a graph that has never been saved, and its **Packages** tab refuses in place: it names the `.packages` folder it would have needed, names that local assemblies still work, and offers a **Save graph…** button. Saving lifts it on the window already open, because the path is pushed into the browser rather than read once at construction. **The row's *it does not open* lost to its own next sentence**, and the client settled it — that tab has no other door. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **The Packages window refuses an unsaved graph, and says why** — `E7-T18`. **Before it:** `E6-T39` and [N131](NOTES.md#n131--an-inner-using-does-not-collide-with-an-outer-one-it-silently-wins), `E7-T21`'s first half, `E7-T20`, `E7-T16`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2889** tests green over ten executables with zero skips, with the native shim built. |
+| **Next action** | **`E7-T21`'s remaining half: the **Add as a library** button.** `PrepareLibraryAsync` still has no caller, so the improved refusal message names an action the window cannot take. Its precondition is now in place — `PackageBrowserViewModel.GraphPath` is live and the tab refuses without one — so the button stages into `GraphPackages.FolderFor(GraphPath)` and can assume a file exists. It belongs beside **Install…** on the Found list, enabled when a row is selected and the graph is saved, and it must **not** go through the node importer or the manifest. Then `ReferenceCatalog.SkippedImports` shown where the install finishes: it is written and nothing reads it yet, so a namespace refused for a collision is silent. |
+| **Verify with** | The three gates, plus: a library installed into `<name>.packages` beside a saved graph, its namespaces importable from a code block, the ones refused for a collision **named on screen** rather than only in the catalogue, and none of it reachable while the graph is unsaved. Plus a run of the app. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -9428,3 +9428,51 @@ legal advice, and it took four lines.
 **Verified.** The docs harness, which is the gate that matters here: it checks that every relative
 link resolves and every cited `ADR-NNNN` exists, so a superseding ADR nothing points at — or a
 deleted one still cited — fails the build. Five checks, green.
+
+### 2026-09-09 — The Packages window refuses an unsaved graph, and says why (`E7-T18`)
+
+**Why this before the button.** `E7-T21`'s remaining half — the **Add as a library** button — stages
+into `GraphPackages.FolderFor(graph)`, and a graph with no file has no folder to stage into. The
+refusal is not a nicety in front of it; it is the case the button would otherwise have to invent an
+answer for.
+
+**The row contained two sentences that could not both be honoured, and the client settled it.**
+*Instead it does not open: save the file first* and *the existing local-assemblies tab is
+unaffected — that path adds a DLL by absolute path and needs no graph on disk*. The Packages window
+is the only door to that tab, so refusing to open it would have taken away the one path that
+genuinely needs no file, from exactly the scratch graph most likely to want it. Asked, the client
+chose: **the window opens on Local assemblies, and the Packages tab refuses in place.**
+
+**The refusal stands where the tab's contents would be, not beside them.** A search box that is
+present but dead invites the question the panel exists to answer. It names the folder it would have
+needed, names what still works — so nobody concludes the whole window is shut — and offers the way
+out as a **Save graph…** button, raised as an event because the window owns no file dialog and a
+second one would be a second thing to keep in step with where the graph lives.
+
+**The path is pushed in, not read once.** `PackageBrowserViewModel` is built once per session and
+outlives every document opened in it, so a path captured at construction would be wrong by the
+first *Open*. `MainWindowViewModel` learns a `GraphPath` — set from the origin inside
+`TryOpenDocument`, which is the one place both halves are already known, from the startup document
+path, and from the view after a save — and pushes it into the browser. That is what makes saving
+lift the refusal on the window that is **already open**, which is the only version of this that is
+not annoying.
+
+**The rule is not only a disabled button.** `PrepareAsync` refuses at the point a folder would have
+had to be invented, because a window can be driven from a startup switch and a button can be
+enabled by a state nobody thought about. **Remove is deliberately not gated**: taking an installed
+package away needs no folder to put anything in, and a user who cannot tidy up until they save is
+being refused for no reason.
+
+**A consequence worth naming.** Preparing an install now requires a saved graph, which is a real
+change to the node-package path as well — those go to the machine-wide store and need no folder of
+their own. It follows from the client's rule that the *tab* refuses rather than one button on it,
+and it is the reason seven existing tests now hand the browser a path: a test that got past the
+refusal by accident would have been testing the refusal.
+
+**Verified.** The three gates. Seven new tests, and the three that go through the window were
+watched going red with `_unsavedPanel.IsVisible` forced to `false` —
+`TheWindowRefusesTheUnsavedGraphAndOpensOnLocalAssemblies`,
+`SavingWhileTheWindowIsOpenLiftsItsRefusal` and `TheLocalAssembliesTabWorksWithNoGraphOnDisk`. Ten
+executables, **2889** tests, zero failures, zero skips, with the native shim built. Help: the rule
+is a fact about the file, so it went into `concepts/files.md` beside the format rather than into a
+packages topic that does not exist yet.

@@ -414,11 +414,33 @@ public sealed partial class MainWindow : Window
         {
             _packages = new PackageWindow(model.Packages(), model.LocalReferences());
             _packages.Closed += (_, _) => _packages = null;
+
+            // `E7-T18`: the refusal offers the save, and the save dialog lives here. The window
+            // shows the Packages tab again afterwards, because saving was the thing standing
+            // between the user and what they opened it to do.
+            _packages.SaveRequested += OnSaveRequestedFromPackages;
             _packages.Show(this);
         }
         else
         {
             _packages.Activate();
+        }
+    }
+
+    /// <summary>
+    /// Saves the graph on behalf of the Packages window's refusal (<c>E7-T18</c>).
+    /// </summary>
+    /// <remarks>
+    /// It reuses the ordinary save, so there is one save dialog and one place that records where
+    /// the graph now lives — a second one would be a second thing to keep in step.
+    /// </remarks>
+    private async void OnSaveRequestedFromPackages(object? sender, EventArgs e)
+    {
+        await SaveGraphAsync().ConfigureAwait(true);
+
+        if (_packages is { } window && Model is { GraphPath: not null })
+        {
+            window.ShowPackages();
         }
     }
 
@@ -916,6 +938,8 @@ public sealed partial class MainWindow : Window
             // anywhere, which is exactly how a malicious one would travel.
             if (model.TryOpenDocument(text, chosen[0].TryGetLocalPath()))
             {
+                // The view model was told the origin above and records the path itself; this field
+                // is the dialog's memory of what to suggest next time.
                 _documentPath = chosen[0].TryGetLocalPath();
                 Canvas.ZoomToFit();
                 Viewport.ZoomToFit();
@@ -930,7 +954,14 @@ public sealed partial class MainWindow : Window
         UpdateMissingBanner();
     }
 
-    private async void OnSaveGraph(object? sender, RoutedEventArgs e)
+    private async void OnSaveGraph(object? sender, RoutedEventArgs e) =>
+        await SaveGraphAsync().ConfigureAwait(true);
+
+    /// <summary>
+    /// The save itself, awaitable, so the Packages window's refusal can wait for it
+    /// (<c>E7-T18</c>).
+    /// </summary>
+    private async Task SaveGraphAsync()
     {
         if (Model is not { } model)
         {
@@ -962,6 +993,10 @@ public sealed partial class MainWindow : Window
             await using StreamWriter writer = new(stream);
             await writer.WriteAsync(text).ConfigureAwait(true);
             _documentPath = target.TryGetLocalPath();
+
+            // The graph has a file now, so a Packages window that was refusing stops refusing
+            // (`E7-T18`) - on the window already open, rather than on the next one.
+            model.NoteGraphPath(_documentPath);
         }
         catch (IOException error)
         {

@@ -160,6 +160,48 @@ public sealed partial class PackageBrowserViewModel : ObservableObject
     [ObservableProperty]
     private bool _sparkPackagesOnly = true;
 
+    /// <summary>
+    /// The <c>.spark</c> file this browser is installing beside, or null when the graph has never
+    /// been saved (`E7-T18`).
+    /// </summary>
+    /// <remarks>
+    /// <b>Pushed in rather than read out</b>, because the browser is built once per session and
+    /// the path changes underneath it — a user saves a scratch graph while the window is open, and
+    /// the refusal has to lift without them closing and reopening anything.
+    /// </remarks>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsGraphSaved))]
+    [NotifyPropertyChangedFor(nameof(UnsavedGraphRefusal))]
+    private string? _graphPath;
+
+    /// <summary>Whether there is a file to install beside.</summary>
+    public bool IsGraphSaved => !string.IsNullOrWhiteSpace(GraphPath);
+
+    /// <summary>
+    /// Why the package half of the window is refusing, or empty when it is not (`E7-T18`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The client's call, and it removes a whole class of question.</b> A package added here is
+    /// staged into the graph's own <c>&lt;name&gt;.packages</c> folder, which is named after the
+    /// file; with no file the window would have to invent a location, move it on first save, and
+    /// explain both. Refusing costs the user one save and costs Spark nothing it has to remember.
+    /// </para>
+    /// <para>
+    /// <b>It names the way out and it names what still works</b>, which is the half a refusal
+    /// usually leaves off. Adding a local assembly by its full path needs no file on disk, so that
+    /// tab is untouched and the sentence says so rather than letting a user conclude the whole
+    /// window is shut.
+    /// </para>
+    /// </remarks>
+    public string UnsavedGraphRefusal => IsGraphSaved
+        ? string.Empty
+        : "Save the graph first. A package added here is installed into the graph's own '"
+            + GraphPackages.FolderSuffix
+            + "' folder, which sits beside the file and is named after it — and this graph has "
+            + "no file yet, so there is nowhere to put it.\n\nLocal assemblies are unaffected: "
+            + "that tab adds a DLL by its full path and needs no graph on disk.";
+
     /// <summary>Searches the feed.</summary>
     /// <param name="cancellationToken">Cancels the search.</param>
     /// <returns>A task that completes when the results have been replaced.</returns>
@@ -223,6 +265,16 @@ public sealed partial class PackageBrowserViewModel : ObservableObject
     public async Task PrepareAsync(PackageRow row, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(row);
+
+        // The rule lives here rather than only on the disabled button (`E7-T18`). A window can be
+        // driven from a startup switch and a button can be enabled by a state nobody thought
+        // about; an install that would have to invent a folder refuses at the point it would have
+        // invented one.
+        if (!IsGraphSaved)
+        {
+            Status = "Save the graph first — there is no folder to install into yet.";
+            return;
+        }
 
         Cancel();
         IsBusy = true;

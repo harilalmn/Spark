@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (E7: the graph-local package folder, planned)
+**Last updated:** 2026-09-09 (E7-T18: the Packages window refuses an unsaved graph)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -788,7 +788,12 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       the same commit as the loader: a folder of DLLs beside a downloaded graph is remote code
       execution, and **E6-T16** already refuses to auto-run the *readable* version of the same
       hazard. The file records what it expects, so a missing package is named rather than surfacing
-      later as an error about a type.
+      later as an error about a type. **Two of the five are in**: `E7-T16` finds and hashes the
+      folder, and `E7-T18` closed 2026-09-09 — the Packages window opens on **Local assemblies**
+      over a graph that has never been saved, and its **Packages** tab refuses in place, naming the
+      folder it would have needed and offering the save that would create one. *Refusing the whole
+      window, which the row first said, would have taken away the local-assemblies path, and that
+      path is the one that needs no graph on disk at all.*
 - [x] Recursion is refused at save **and** at load, with the containment path reported
       (**E7-T13**). *Both sides done 2026-08-31. The load side catches a file that arrived
       recursive; the save side catches one being made recursive, which in practice means a
