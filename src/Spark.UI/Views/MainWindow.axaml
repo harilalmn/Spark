@@ -6,6 +6,7 @@
         x:DataType="vm:MainWindowViewModel"
         x:CompileBindings="True"
         Title="Spark"
+        Closing="OnClosingWindow"
         Icon="/Assets/spark-logo.png"
         Width="1480"
         Height="900"

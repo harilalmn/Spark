@@ -191,6 +191,16 @@ public sealed partial class MainWindow : Window
         _dock.Apply(model.Layout);
 
         Viewport.Scene = model.Scene;
+        model.PropertyChanged += (_, changed) =>
+        {
+            // `E8-T79`: the marker in the title follows the flag rather than being pushed from
+            // every place that could have changed it.
+            if (changed.PropertyName == nameof(MainWindowViewModel.IsModified))
+            {
+                UpdateTitle();
+            }
+        };
+
         model.GraphReplaced += (_, _) =>
         {
             // `E8-T78`: the view's copy of the path follows the model's, which the model clears
@@ -919,6 +929,13 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        // `E8-T79`: the file being opened replaces the one on the canvas, so the one on the canvas
+        // gets the same question closing would ask.
+        if (!await ConfirmDiscardAsync("opening another graph").ConfigureAwait(true))
+        {
+            return;
+        }
+
         IReadOnlyList<IStorageFile> chosen = await StorageProvider.OpenFilePickerAsync(
             new FilePickerOpenOptions
             {
@@ -1031,6 +1048,9 @@ public sealed partial class MainWindow : Window
             // The graph has a file now, so a Packages window that was refusing stops refusing
             // (`E7-T18`) - on the window already open, rather than on the next one.
             model.NoteGraphPath(_documentPath);
+
+            // `E8-T79`: what is on the canvas is now what is on disk.
+            model.MarkSaved();
             model.StatusText = "Saved to " + Path.GetFileName(target) + ".";
             UpdateTitle();
         }
@@ -1067,10 +1087,88 @@ public sealed partial class MainWindow : Window
     /// document has unsaved changes, and a title that showed a dot without something to drive it
     /// would be a lie in one direction or the other.
     /// </remarks>
-    private void UpdateTitle() =>
+    private void UpdateTitle()
+    {
+        // `E8-T79`: THE MARKER HAS SOMETHING DRIVING IT NOW.
+        //
+        // `E8-T78` shipped the file name with no modified marker on purpose, because nothing
+        // tracked modification and a dot with nothing behind it is a lie in one direction or the
+        // other. `MainWindowViewModel.IsModified` is that something.
+        string marked = Model is { IsModified: true } ? "*" : string.Empty;
+
         Title = string.IsNullOrWhiteSpace(_documentPath)
-            ? "Spark"
-            : Path.GetFileName(_documentPath) + " — Spark";
+            ? (marked.Length > 0 ? "Untitled* — Spark" : "Spark")
+            : Path.GetFileName(_documentPath) + marked + " — Spark";
+    }
+
+    /// <summary>
+    /// Asks about unsaved changes, and says whether to carry on (<c>E8-T79</c>).
+    /// </summary>
+    /// <param name="what">What is about to happen, such as <c>closing Spark</c>.</param>
+    /// <returns>
+    /// True when the caller may proceed — the document was saved, or the user chose to discard it,
+    /// or there was nothing to ask about.
+    /// </returns>
+    /// <remarks>
+    /// <b>Saving through here reuses <see cref="SaveGraphAsync"/></b>, so an untitled graph still
+    /// gets the file picker — and <b>abandoning that picker cancels the whole thing</b> rather than
+    /// carrying on and losing the document, which is the trap in every dialog of this shape. The
+    /// test for it is that the document is still modified afterwards.
+    /// </remarks>
+    private async Task<bool> ConfirmDiscardAsync(string what)
+    {
+        if (Model is not { IsModified: true })
+        {
+            return true;
+        }
+
+        UnsavedChangesWindow prompt = new(Path.GetFileName(_documentPath), what);
+        await prompt.ShowDialog(this).ConfigureAwait(true);
+
+        switch (prompt.Choice)
+        {
+            case UnsavedChoice.Discard:
+                return true;
+
+            case UnsavedChoice.Save:
+                await SaveGraphAsync().ConfigureAwait(true);
+
+                // Still modified means the save did not happen - the picker was abandoned, or the
+                // write failed and said so. Either way this is not the moment to throw the document
+                // away.
+                return Model is not { IsModified: true };
+
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// Whether the window is already closing for good, so the confirmation is not asked twice.
+    /// </summary>
+    /// <remarks>
+    /// <b>A <c>Closing</c> handler cannot await and then let the close continue</b> — by the time
+    /// the answer arrives the window has already gone or already stayed. So the first close is
+    /// always cancelled, the question is asked, and the window is closed again with this set. It is
+    /// the standard shape for this and it is worth naming rather than rediscovering.
+    /// </remarks>
+    private bool _closeConfirmed;
+
+    private async void OnClosingWindow(object? sender, WindowClosingEventArgs e)
+    {
+        if (_closeConfirmed || Model is not { IsModified: true })
+        {
+            return;
+        }
+
+        e.Cancel = true;
+
+        if (await ConfirmDiscardAsync("closing Spark").ConfigureAwait(true))
+        {
+            _closeConfirmed = true;
+            Close();
+        }
+    }
 
     /// <summary>
     /// The file type the image exports offer (<c>E8-T69</c>).
@@ -1983,15 +2081,45 @@ public sealed partial class MainWindow : Window
 
     private void OnLoadSynthetic(object? sender, RoutedEventArgs e) => LoadSynthetic(2000);
 
-    private void OnNewGraph(object? sender, RoutedEventArgs e) => Model?.NewGraph();
+    /// <summary>
+    /// The commands that throw the document away, each behind the same question (<c>E8-T79</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Guarding only the exit would have left the same hole in five other doors.</b> <i>New</i>
+    /// and the four demo graphs replace the document exactly as closing does — <c>E8-T37</c>'s own
+    /// doc comment for <c>NewGraph</c> said <i>nothing is asked and nothing is saved</i>, and gave
+    /// the reason: there was no dirty flag to ask about. There is one now, so they all ask.
+    /// </remarks>
+    private async void OnNewGraph(object? sender, RoutedEventArgs e) =>
+        await ReplaceDocumentAsync("starting a new graph", model => model.NewGraph())
+            .ConfigureAwait(true);
 
-    private void OnLoadDemo(object? sender, RoutedEventArgs e) => Model?.LoadDemo();
+    /// <summary>Replaces the document, once the user has answered for the one being replaced.</summary>
+    private async Task ReplaceDocumentAsync(string what, Action<MainWindowViewModel> replace)
+    {
+        if (Model is not { } model || !await ConfirmDiscardAsync(what).ConfigureAwait(true))
+        {
+            return;
+        }
 
-    private void OnLoadCurves(object? sender, RoutedEventArgs e) => Model?.LoadCurves();
+        replace(model);
+    }
 
-    private void OnLoadSurfaces(object? sender, RoutedEventArgs e) => Model?.LoadSurfaces();
+    private async void OnLoadDemo(object? sender, RoutedEventArgs e) =>
+        await ReplaceDocumentAsync("opening the demo graph", model => model.LoadDemo())
+            .ConfigureAwait(true);
 
-    private void OnLoadSolids(object? sender, RoutedEventArgs e) => Model?.LoadSolids();
+    private async void OnLoadCurves(object? sender, RoutedEventArgs e) =>
+        await ReplaceDocumentAsync("opening the curves example", model => model.LoadCurves())
+            .ConfigureAwait(true);
+
+    private async void OnLoadSurfaces(object? sender, RoutedEventArgs e) =>
+        await ReplaceDocumentAsync("opening the surfaces example", model => model.LoadSurfaces())
+            .ConfigureAwait(true);
+
+    private async void OnLoadSolids(object? sender, RoutedEventArgs e) =>
+        await ReplaceDocumentAsync("opening the solids example", model => model.LoadSolids())
+            .ConfigureAwait(true);
 
     private void LoadSynthetic(int nodeCount) => Model?.LoadSynthetic(nodeCount);
 

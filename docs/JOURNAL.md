@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — `E7-T23` is committed and the gates are green at 2908.** The client's Revit package is found: `ref/` is read as well as `lib/`, the hand-written framework ranking is gone in favour of NuGet's own resolver shared with `PackageLoadContext`, and the framework we resolve against now carries the platform the process is running on ([N134](NOTES.md#n134--a-platform-neutral-target-framework-asks-the-wrong-question-at-run-time)). **Verified against the client's own folder on disk**, not only fixtures. |
+| **Working on** | **Nothing — `E8-T79` is committed and the gates are green at 2919.** An asterisk in the title marks unsaved changes, and closing, *New*, *Open* and the four example graphs all ask before discarding them. The flag compares the document with what was last written, so **undoing back to the saved state clears the mark**. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A package in `ref/`, and a framework with a platform on it** — `E7-T23` and [N134](NOTES.md#n134--a-platform-neutral-target-framework-asks-the-wrong-question-at-run-time). **Before it:** `E8-T78`, `E7-T22`, `E7-T21`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2908** tests green over ten executables with zero skips, with the native shim built. |
-| **Next action** | **Ask the client what they are doing with the Revit API before building more for it.** They can now add it and write code against Revit types — and **a code block cannot call Revit**, because Spark is not running inside it: `RevitAPI.dll` is shipped in `ref/` precisely because Revit supplies the implementation, and anything needing a `Document` has no host to get one from. Referencing it is genuinely useful for authoring types and signatures; expecting it to run is the embedding story, `E12-T2`/`E12-T4`, moved past 1.0 by [D20](PRD.md#13-decision-log). **Telling them before they find out is the whole of the next action.** Otherwise the queue is `E7-T17`, the record in the file, and `E8-T79`, the modified marker. |
-| **Verify with** | For whatever is taken next. For `E7-T17`: a graph naming a package that is not beside it opens, says which package is missing **by name**, keeps every key, literal and wire, and **re-saves byte for byte**. For `E8-T79`: the title marks a modified document, the mark clears on save, and *New* over unsaved work asks first. |
+| **Last completed step** | **A modified document, marked and defended** — `E8-T79`. **Before it:** `E7-T23` and [N134](NOTES.md#n134--a-platform-neutral-target-framework-asks-the-wrong-question-at-run-time), `E8-T78`, `E7-T22`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2919** tests green over ten executables with zero skips, with the native shim built. |
+| **Next action** | **The client's console, which is the larger of their two asks and is three steps rather than one.** *Wanted*: `Console.Write`, `WriteLine` and `Clear` callable from a code block, **nodes for the same three**, and a dockable console pane with a View-menu toggle behaving like the others. **Take it in this order.** *One*: the sink — a static channel low enough for `Spark.Nodes.Core` to write to without naming the UI, buffered, bounded, and safe to write from an evaluation thread. *Two*: the pane — `WorkspacePane` gains a member, which every layout preset and every layout test has to learn about, plus the View menu item and the toggle. *Three*: the code block and the nodes. **The name is the decision to make first**: `Console` collides with `System.Console`, which every block already imports, and `E6-T30`'s alias mechanism is the precedent — pin `Console` to Spark's, so a block that writes `Console.WriteLine` reaches the pane rather than a stdout nobody can see. |
+| **Verify with** | The three gates, plus, per step: the sink keeps the last N lines and drops the oldest, and takes writes from several threads without losing or interleaving a line; the pane appears in the layout, toggles from the View menu, survives a layout reset and a preset, and every existing layout test still passes; and a code block writing `Console.WriteLine("x")` puts exactly `x` in the pane, `Clear` empties it, and the three nodes do the same from the canvas. Plus a run of the app. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -9648,3 +9648,46 @@ failures, zero skips.
 
 **And the message now names what it saw** — the folders the package offers and the framework Spark
 is — instead of naming a folder the package does not have.
+
+### 2026-09-09 — A modified document, marked and defended (`E8-T79`)
+
+**Asked for by the client**: *confirm with user to save unsaved changes on exit.* It was already on
+the register — `E8-T78` split it out an hour earlier, when it shipped a title bar with the file name
+and deliberately no modified marker, because nothing tracked modification and a dot with nothing
+driving it is a lie in one direction or the other.
+
+**The flag is content, not a counter, and that is the whole design.** `DocumentHistory.Present` is
+the document as it stands and is already maintained by every record, undo and redo, so `IsModified`
+is *Present differs from what was last written*. **Editing and then undoing back to the saved state
+therefore reads as clean** — which is true, and which a counter would have called modified. A prompt
+about a document byte-identical to the one on disk is exactly how people learn to dismiss prompts
+without reading them. It also leaves **one thing to keep in step** instead of a flag set at every
+mutation site, where the one somebody forgets is the one that loses work.
+
+**Three answers, not two.** *Cancel* is the one a two-button dialog cannot offer and the one that
+matters: somebody who hit close by accident needs a way back that is not *save the thing I did not
+mean to save*. It is the standing answer, so Escape, the close button and the window manager all
+keep the document — the safe answer is the one you get by flinching.
+
+**Two traps, both known and both avoided rather than discovered.** A `Closing` handler cannot await
+and then let the close continue, so the first close is always cancelled and the window re-closed
+once the answer is known; the field that says so is named and commented rather than left to be
+rediscovered. And **Save inside the prompt reuses `SaveGraphAsync`**, so an untitled graph still
+gets the picker — and **abandoning that picker cancels the exit**, checked by asking whether the
+document is still modified rather than by trusting that the save happened.
+
+**Guarding only the exit would have left the same hole in five other doors**, so *New*, *Open* and
+the four example graphs ask the same question through the same helper. `E8-T37`'s `NewGraph` doc
+comment had said *nothing is asked and nothing is saved*, and gave the reason — there was no dirty
+flag — which stopped being true this step.
+
+**The first tests were wrong and the code was right, which is worth recording.** They called
+`RecordEdit("Move a node")` with no change behind it and expected the document to be modified. It
+was not, correctly: recording an edit that changed nothing leaves the document identical to the one
+on disk. The tests now make a real edit, and the episode is the argument for comparing content in
+miniature.
+
+**Verified.** The three gates. Eleven new tests, four watched going red with `IsModified` forced to
+`false`. Ten executables, **2919** tests, zero failures, zero skips, with the native shim built. The
+application was launched; the prompt itself is the client's to try, since a modal dialog over a real
+window is not something the headless tests drive.

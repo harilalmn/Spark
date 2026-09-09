@@ -1698,6 +1698,43 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// </remarks>
     public string? GraphPath { get; private set; }
 
+    /// <summary>
+    /// Whether the document has changes that have not been written to a file (`E8-T79`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Content, not a counter.</b> <see cref="DocumentHistory.Present"/> is the document as it
+    /// stands, maintained by every record, undo and redo, and this compares it with what was last
+    /// written. So editing and then <b>undoing back to the saved state reads as clean</b>, which is
+    /// true and which a flag set by every mutation site would have got wrong — it would say
+    /// <i>modified</i> for a document identical to the one on disk.
+    /// </para>
+    /// <para>
+    /// <b>A flag would also have to be set in every place that edits</b>, and the one place
+    /// somebody forgets is the one that loses work. There is exactly one thing to keep in step
+    /// here: the snapshot, updated where the document is written or replaced.
+    /// </para>
+    /// </remarks>
+    public bool IsModified =>
+        !string.Equals(_history.Present, _savedSnapshot, StringComparison.Ordinal);
+
+    /// <summary>The document as it was when last written or opened.</summary>
+    private string? _savedSnapshot;
+
+    /// <summary>
+    /// Records that the document on the canvas is now what is on disk (`E8-T79`).
+    /// </summary>
+    /// <remarks>
+    /// Called after a save, and wherever a document arrives from or becomes a fresh one. <b>A new
+    /// empty graph is not modified</b> — it has nothing in it that anybody would mind losing, and
+    /// prompting on the way out of one would train people to dismiss the prompt.
+    /// </remarks>
+    public void MarkSaved()
+    {
+        _savedSnapshot = _history.Present;
+        OnPropertyChanged(nameof(IsModified));
+    }
+
     /// <summary>Records where the document now lives, and tells anything that cares.</summary>
     /// <param name="path">The <c>.spark</c> file's full path, or null for a graph with no file.</param>
     /// <remarks>
@@ -2601,6 +2638,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         if (resetHistory)
         {
             _history.Reset(TrySaveDocument());
+
+            // `E8-T79`: a document that has just arrived - opened, new, or a demo - has nothing
+            // unsaved in it yet. Only what the user does next makes it modified.
+            MarkSaved();
         }
 
         RefreshHistory();
@@ -2656,6 +2697,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         CanUndo = _history.CanUndo;
         CanRedo = _history.CanRedo;
+
+        // `E8-T79`: every edit, undo and redo passes through here, so this is where a document
+        // that has come back to its saved state stops being modified — and where one that has just
+        // moved away from it starts.
+        OnPropertyChanged(nameof(IsModified));
         UndoDescription = _history.UndoLabel is { } undo ? "Undo " + undo : "Nothing to undo";
         RedoDescription = _history.RedoLabel is { } redo ? "Redo " + redo : "Nothing to redo";
     }

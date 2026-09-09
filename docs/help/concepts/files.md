@@ -158,9 +158,18 @@ graph belongs to.
 the graph you were just editing. Undo and redo are not new documents and keep the file, so a save
 after undoing goes where it always did.
 
-**There is no unsaved-changes marker and nothing warns you before discarding work.** New and Open
-replace the document without asking. That is a known gap rather than an intention — Spark does not
-track whether a document has been modified yet.
+**An asterisk in the title bar means unsaved changes.** `tower.spark* — Spark` has edits that are
+not on disk; `tower.spark — Spark` does not.
+
+**Anything that would discard those changes asks first** — closing Spark, **File ▸ New**, **Open**,
+and the four example graphs. You get three answers, and *Cancel* is the safe one: it is what you get
+from Escape, from the window's close button, and from dismissing the prompt any other way.
+
+**Choosing Save inside that prompt saves properly**, which for a graph with no file yet means the
+file picker. If you close that picker without choosing, nothing is discarded and Spark stays open.
+
+**Undoing back to where you last saved clears the mark.** The document is compared with what was
+written, not counted in edits, so a change you made and undid is not a change.
 
 ---
 
