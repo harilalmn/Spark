@@ -522,7 +522,15 @@ public sealed partial class CanvasPane : UserControl
         // spill over the port tabs either side of it. The pane says what the editor needs, in
         // screen pixels, because the editor's metrics are the pane's; the canvas decides where
         // that goes, because the node's geometry is the canvas's.
-        if (!Wanted(e.Text) || !Place(e.Slot))
+        // THE RESULT OF `Wanted` IS DELIBERATELY IGNORED HERE, AND `E8-T77` IS WHAT HAPPENS WHEN
+        // IT IS NOT. It answers *did the size move*, which is the right question on a keystroke and
+        // the wrong one on an open: a block whose editor wants exactly the size the last one wanted
+        // - the overwhelmingly common case, since most blocks are one line - would answer false,
+        // and using that to guard the open left the editor invisible and unfocused. Opening always
+        // measures and always places.
+        _ = Wanted(e.Text);
+
+        if (!Place(e.Slot))
         {
             return;
         }

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-09 (Spark opens on an empty canvas)
+**Last updated:** 2026-09-09 (the editor opens every time, not only the first)
 **Protocol version:** 2
 
 ---
@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v2026.8.1` shipped on 2026-09-08** — published by `Release (win-x64)` run `34239709515` in 7m31s, with `spark-2026.8.1-setup.exe` (51.1 MB) and `spark-portable-win-x64.zip` (77.5 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v2026.8.1>. **Nothing is signed**, and the release notes say so rather than hiding it. **The scheme changed here**, at the client's instruction: `v0.4.0` was the last of the semantic run and this is the first calendar one. `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing.** `E8-T76` is committed. |
+| **Working on** | **Nothing.** `E8-T77` is committed. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Spark opens on an empty canvas** - `E8-T76`. **Before it:** `E6-T37`, `E8-T75`, `E6-T36`, `E6-T35`, `E6-T34`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2818** tests green over nine executables with zero skips. `E11-T27` names ten victims across nine classes. |
-| **Next action** | **Take `E11-T27`.** Five client requests have been answered in a row and the queue is back to what the project owes itself. This run added six window-showing tests to the assembly the flake lives in, produced its tenth victim, and cost real time twice - once losing a failure's name to a `tail`, once re-running a full suite to find out whether a failure was mine (it was, and it was not this row: see [N129](NOTES.md)). `test-engineer` owns the choice between one xunit collection over every Avalonia-touching class and `DisableTestParallelization` for the assembly, about 16 seconds. **Also open and cheap where the toolchain allows it**: `E13-T18`. |
+| **Last completed step** | **A code block's editor opens every time, not only the first** - `E8-T77`, a regression from `E8-T75` caught by the client one commit later. **Before it:** `E8-T76`, `E6-T37`, `E8-T75`, `E6-T36`, `E6-T35`, `E6-T34`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2820** tests green over nine executables with zero skips. `E11-T27` names ten victims across nine classes. |
+| **Next action** | **Take `E11-T27`**, unless the client reports something else. It is what the project owes itself after six client requests in a row, and this run has both fed it - six new window-showing tests in the assembly the flake lives in - and been slowed by it twice. |
 | **Verify with** | Whatever the next row needs. Nothing is half-done. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -9266,3 +9266,42 @@ over nine executables with zero skips. And the application, screenshotted on sta
 picture of precisely what was asked for.
 
 **Cost.** Minutes for the change, most of an hour for the tests it exposed.
+
+### 2026-09-09 — The editor opens every time, not only the first (`E8-T77`)
+
+**What.** The client: *cannot type anything in CodeBlock.* A regression from `E8-T75`, one commit
+earlier, reported within minutes of the build reaching them.
+
+**The mistake, stated plainly.** `E8-T75` gave the pane a helper that measures the size the editor
+wants, remembers it, and returns **whether it moved** — so that a keystroke inside a line costs
+nothing, which was the one thing that row had to get right. It then used the same helper on the
+*open* path, as a guard:
+
+```csharp
+if (!Wanted(e.Text) || !Place(e.Slot)) { return; }
+```
+
+Opening a block whose editor wants the size the previous editor wanted — one line, which is most
+blocks — answers false. The editor was never placed, never shown, never focused, and every keystroke
+went to the canvas. A "did it change" answer is the right question on a keystroke and the wrong one
+on an open ([N130](NOTES.md)).
+
+**Why `E8-T75`'s own tests did not catch it, which is the part worth keeping.** All three opened one
+editor, once, in a fresh session — and the remembered size starts at zero, so the first open of the
+first block always answers true. **The defect lives entirely in the second open.** A
+remembered-state optimisation has no first-time behaviour worth testing; its behaviour *is* the
+repeat, and a test that never repeats cannot see it. The two tests added here are both about the
+second time: closing and reopening the same block, and editing a second block of the same shape.
+Both go red with the defect reinstated, naming what failed.
+
+**How it was found, and how it was nearly not.** The first repro — place a block, open the editor,
+type — **passed**, because it opened one editor once. Reading the diff rather than trusting that
+pass is what found it. The screenshot showed an editor that was drawn but empty, which reads as a
+focus problem and sent the first two guesses at input handling and the guard weaver; the actual
+cause is three lines above, in code written an hour earlier.
+
+**Verified.** The three gates — clean build with zero warnings, format clean, **2820** tests green
+over nine executables with zero skips.
+
+**Cost.** Twenty minutes, and it should have been zero: `E8-T75` changed a call from *always do
+this* to *do this if something moved* and nothing asked what the other caller wanted.

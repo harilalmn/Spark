@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-09 (N129: a document's node order is a Guid order)
+**Last updated:** 2026-09-09 (N130: a did-it-change helper is not a should-I-do-it helper)
 
 ---
 
@@ -3882,3 +3882,38 @@ company is usually blamed on parallelism — this repository has a whole open ro
 (`E11-T27`) and it made a convenient explanation. It was not that. A test whose expectation depends
 on a random identity fails at its own rate no matter what else is running, and "passes in isolation"
 does not distinguish the two.
+
+---
+
+## N130 — A "did it change?" helper is not a "should I do it?" helper
+
+`E8-T75` made a code block grow while it is typed into. Re-placing the editor is not free — it
+re-measures the node and rebuilds the canvas's spatial index — so the pane got a helper that
+measures the size the editor wants, stores it, and returns **whether it moved**. On a keystroke that
+is exactly right: typing inside a line that is not the longest changes nothing and must cost
+nothing.
+
+The same helper was then used on the **open** path, which needs the measurement but not the
+verdict:
+
+```csharp
+if (!Wanted(e.Text) || !Place(e.Slot))   // wrong
+{
+    return;
+}
+```
+
+Opening a block whose editor wants the size the *previous* editor wanted — one line, which is most
+blocks — answers false. The editor is never placed, never shown, never focused, and every keystroke
+goes to the canvas. The client reported it as *cannot type anything in CodeBlock*.
+
+**Why the tests missed it, which is the part worth keeping.** `E8-T75`'s three tests each opened one
+editor, once, in a fresh session — and the remembered size starts at zero, so the first open of the
+first block always answers true. The defect lives entirely in the *second* open. A remembered-state
+optimisation has no first-time behaviour worth testing; its behaviour is what happens on the
+repeat, and a test that never repeats cannot see it.
+
+**The general rule**: when a method both computes something and reports whether it differs, the
+report belongs only to callers that are optimising. Any caller that needs the computation must
+ignore it — and the ones that ignore it should say so, because `_ = Wanted(...)` invites the
+question and a bare call does not.

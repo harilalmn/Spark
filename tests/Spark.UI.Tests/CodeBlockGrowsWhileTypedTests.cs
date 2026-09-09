@@ -1,5 +1,6 @@
 using System;
 using Avalonia.Controls;
+using Spark.Engine;
 using Spark.UI.Graph;
 using Spark.UI.ViewModels;
 using Spark.UI.Views.Panes;
@@ -88,6 +89,60 @@ public sealed class CodeBlockGrowsWhileTypedTests
 
         Assert.Equal(width, graph.Nodes[slot].Width);
         Assert.Equal(height, graph.Nodes[slot].Height);
+
+        window.Close();
+    });
+
+    /// <summary>
+    /// <b>The editor opens every time, not only the first</b> (`E8-T77`). Reported by the client as
+    /// <i>cannot type anything in CodeBlock</i>, and it was a regression from `E8-T75`: the open
+    /// path was made to call the same helper the keystroke path uses, and that helper answers
+    /// <i>did the size move</i>. For the second open of a block the size has not moved — most
+    /// blocks are one line, so most opens want exactly what the last one wanted — so the guard said
+    /// no, the editor was never placed, never shown and never focused, and every keystroke went to
+    /// the canvas.
+    /// </summary>
+    [Fact]
+    public void ClosingAndReopeningAnEditorOpensItAgain() => HeadlessSession.Run(() =>
+    {
+        (Window window, CanvasPane pane, CanvasGraph graph, int slot) = Editing("var a = 1;");
+
+        Assert.True(pane.ScriptEditor.IsVisible);
+
+        pane.CanvasControl.EndScriptEdit(slot);
+        pane.ScriptEditor.IsVisible = false;
+
+        // Exactly the same block, so exactly the same wanted size - which is the case that failed.
+        pane.CanvasControl.RequestScriptEdit(slot);
+
+        Assert.True(pane.ScriptEditor.IsVisible, "The editor did not reopen on a block of unchanged size.");
+
+        pane.TypeIntoScriptEditor("2");
+
+        Assert.Contains("2", pane.ScriptEditor.Text, StringComparison.Ordinal);
+        _ = graph;
+
+        window.Close();
+    });
+
+    /// <summary>
+    /// <b>A second block of the same shape opens too</b>, which is the same defect reached the way
+    /// a user would actually reach it: place two one-line blocks and edit them in turn.
+    /// </summary>
+    [Fact]
+    public void ASecondBlockOfTheSameShapeAlsoOpens() => HeadlessSession.Run(() =>
+    {
+        (Window window, CanvasPane pane, CanvasGraph graph, int first) = Editing("var a = 1;");
+
+        int second = graph.Add(
+            NodeDefinition.FromScript(graph.Scripts!.Create("var b = 2;"), "var b = 2;"), 300, 0);
+
+        pane.CanvasControl.EndScriptEdit(first);
+        pane.ScriptEditor.IsVisible = false;
+
+        pane.CanvasControl.RequestScriptEdit(second);
+
+        Assert.True(pane.ScriptEditor.IsVisible, "The second block's editor did not open.");
 
         window.Close();
     });
