@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-09 (N90 amended: the canvas pane does show headlessly)
+**Last updated:** 2026-09-09 (N129: a document's node order is a Guid order)
 
 ---
 
@@ -3821,3 +3821,64 @@ into the same `AssemblyLoadContext`, and the binder resolves the name to whichev
 so a block compiled against the *new* metadata binds to the *old* assembly and sees members that
 are not there. It surfaced immediately as `FileLoadException: Assembly with same name is already
 loaded`, which is the loud version; the quiet version is a block using a stale class.
+
+---
+
+## N128 — Referencing the assembly is half of it; the namespace is the other half
+
+`E6-T35` compiles every code block's type declarations into one shared assembly, in
+`namespace SparkGenerated`. `E6-T37` had to make the editor's language service see them, and the
+obvious fix — add the assembly to the completion workspace's metadata references — applied cleanly,
+reported success, and changed nothing. The completion list for `Helper.` stayed empty.
+
+**The two worlds are not shaped the same, and only one of them is inside the namespace.**
+
+- What the compiler sees is `ScriptNodeFactory.Wrap`'s output: the prelude, then
+  `namespace SparkGenerated;`, then the block's statements inside a method inside a class inside
+  that namespace. A user's `Helper` is a sibling, so `Helper` resolves unqualified.
+- What `ScriptCompletion` sees is the block's text as a Roslyn **script document** in the global
+  namespace, with the catalogue's imports supplied as *global usings*. Referencing the assembly
+  makes the type exist there and leaves it reachable only as `SparkGenerated.Helper` — which is not
+  what the user typed, and not what the compiler will require of them.
+
+So the namespace goes into the project's usings at the same moment the reference does, and the two
+are updated together or not at all. **The general shape**: when a language service is configured to
+imitate a compilation, every scope the real compilation puts the user's code inside has to be
+reproduced — a reference makes a type *available*, and only an import makes it *nameable*.
+
+It is worth noticing how this failed. Nothing threw, `TryApplyChanges` returned true, and the method
+reported that it had updated the references, which it had. The only signal was an empty list, which
+is also what "no candidates here" looks like. The completion layer answers a great many things with
+silence, which is why every claim about it in this repository is written as a test that names the
+member it expects rather than as a count.
+
+---
+
+## N129 — A document's node order is a Guid order, so no test may assert it
+
+`GraphDocument.Capture` orders nodes by `node.Id.Value.ToString("D")`, and a `NodeId` is a `Guid`.
+That ordering is deliberate and it is what makes a `.spark` file round-trip byte for byte: it is
+*stable for a given graph*, because the identities do not change. It is not *predictable*, because
+the identities are random.
+
+`E6-T36`'s first test asserted the exact sequence of calls a restore makes:
+
+```
+["share:A|B", "create:A", "create:B"]
+```
+
+which pins the order two blocks appear in the document. It passed when it was written, passed the
+step's own gate run, and failed a full run two steps later for a reason that had nothing to do with
+anything that had changed in between — roughly a coin flip per run, and the coin had come up heads
+four times.
+
+**The rule this leaves**: assert what a restore *does* — one share, holding every script, before any
+create — and never which of two nodes is named first. Where an order genuinely matters, sort before
+asserting; `E6-T35` already sorts declarations before hashing them precisely so that node order
+cannot reach a compile-cache key.
+
+**The tell to recognise next time**: a test that passes alone, passes ten times alone, and fails in
+company is usually blamed on parallelism — this repository has a whole open row about that
+(`E11-T27`) and it made a convenient explanation. It was not that. A test whose expectation depends
+on a random identity fails at its own rate no matter what else is running, and "passes in isolation"
+does not distinguish the two.

@@ -113,7 +113,16 @@ public sealed class SparkSession : IDisposable
             return null;
         }
 
-        return _completion ??= new Spark.Scripting.ScriptCompletion(factory.References);
+        Spark.Scripting.ScriptCompletion completion =
+            _completion ??= new Spark.Scripting.ScriptCompletion(factory.References);
+
+        // `E6-T37`: HERE BECAUSE IT IS THE ONE PLACE ALL THREE CONSUMERS PASS THROUGH - the
+        // completion list, signature help and quick info each ask for this service and each would
+        // otherwise have to remember to do it. A set of declarations that has not moved costs a
+        // string comparison.
+        _ = completion.Reference(factory.Declarations);
+
+        return completion;
     }
 
     /// <summary>

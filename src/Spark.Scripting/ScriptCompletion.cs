@@ -51,7 +51,10 @@ public sealed class ScriptCompletion : IDisposable
     private readonly AdhocWorkspace _workspace;
     private readonly ProjectId _projectId;
     private readonly string _aliasPrelude;
+    private readonly ImmutableArray<MetadataReference> _catalogue;
+    private readonly ImmutableArray<string> _namespaces;
     private DocumentId? _documentId;
+    private string _declared = string.Empty;
 
     /// <summary>
     /// Creates a completion service over a set of referenced assemblies.
@@ -88,7 +91,17 @@ public sealed class ScriptCompletion : IDisposable
 
     private ScriptCompletion(ImmutableArray<MetadataReference> metadata, IEnumerable<string> usings)
     {
+        // Kept, because `E6-T37`'s update has to rebuild the reference list rather than append to
+        // it: the shared assembly is *replaced* on every change, and a list that only ever grew
+        // would leave every previous version of a user's `Helper` in the workspace to be offered
+        // beside the current one.
+        _catalogue = metadata;
+
         string[] imports = [.. usings];
+
+        // The namespace half of the imports, kept for the same reason the references are: `E6-T37`
+        // has to rebuild the list rather than add to it.
+        _namespaces = [.. imports.Where(import => !IsAlias(import))];
 
         // AN ALIAS IS NOT A NAMESPACE, AND THIS OPTION TAKES NAMESPACES (`E6-T32`).
         //
@@ -129,6 +142,82 @@ public sealed class ScriptCompletion : IDisposable
             .WithParseOptions(new CSharpParseOptions(kind: SourceCodeKind.Script));
 
         _projectId = _workspace.AddProject(project).Id;
+    }
+
+    /// <summary>
+    /// Puts the types a graph's blocks declare in front of the completion service (`E6-T37`).
+    /// </summary>
+    /// <param name="declarations">The shared declarations, as the factory last built them.</param>
+    /// <returns>True when the workspace's references changed.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="declarations"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Reported by the client, and it is `E6-T13`'s forbidden state rather than a missing
+    /// nicety.</b> `E6-T35` compiles every block's type declarations into one assembly that every
+    /// block then references — and this workspace was built from the <see cref="ReferenceCatalog"/>
+    /// alone, so a class declared in the block next door bound perfectly in the compiler that runs
+    /// the script and did not exist at all in the service that answers the editor. Typing
+    /// <c>Test.</c> offered snippets, which is the shape "no completion" takes here.
+    /// </para>
+    /// <para>
+    /// <b>The references are swapped in place rather than the service being rebuilt.</b> Roslyn
+    /// composes its host services through MEF on first use and that is the most expensive thing in
+    /// this application to touch; rebuilding on every change to a declaration would pay for it
+    /// again, and would also throw away the document identity that lets Roslyn reuse what it has
+    /// already parsed.
+    /// </para>
+    /// <para>
+    /// <b>Keyed on the fingerprint, so the common call does nothing.</b> This is asked on every
+    /// completion, every signature and every hover; a graph whose declarations have not moved must
+    /// not pay a solution update for it.
+    /// </para>
+    /// </remarks>
+    public bool Reference(ScriptDeclarations declarations)
+    {
+        ArgumentNullException.ThrowIfNull(declarations);
+
+        if (declarations.Fingerprint == _declared)
+        {
+            return false;
+        }
+
+        _declared = declarations.Fingerprint;
+
+        bool shared = declarations.Reference is not null;
+
+        ImmutableArray<MetadataReference> references = shared
+            ? [.. _catalogue, declarations.Reference!]
+            : _catalogue;
+
+        // THE NAMESPACE GOES IN WITH THE REFERENCE, AND WITHOUT IT THE REFERENCE BUYS NOTHING.
+        //
+        // The generated source a block actually compiles as is *inside* `namespace SparkGenerated`,
+        // so a class the user declared is nameable there as `Helper`. This workspace's document is
+        // a script in the global namespace: referencing the assembly makes the type exist and
+        // leaves it reachable only as `SparkGenerated.Helper`, which is not what anybody types.
+        // Found by the first run of these tests - the reference applied, `Reference` returned true,
+        // and the completion list was still empty.
+        ImmutableArray<string> namespaces = shared
+            ? [.. _namespaces, ScriptDeclarations.Namespace]
+            : _namespaces;
+
+        Solution updated = _workspace.CurrentSolution
+            .WithProjectMetadataReferences(_projectId, references)
+            .WithProjectCompilationOptions(
+                _projectId,
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, usings: namespaces));
+
+        // A refused apply leaves the workspace on the previous references, which is a completion
+        // list that disagrees with the compiler - the one thing this type exists to prevent. It is
+        // reported by leaving the fingerprint unrecorded, so the next request tries again.
+        if (!_workspace.TryApplyChanges(updated))
+        {
+            _declared = string.Empty;
+
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>

@@ -264,6 +264,15 @@ public sealed class ScriptNodeSeamTests
     /// blocks first and mentioned them afterwards would compile each of them against a world in
     /// which the block beside it does not exist.
     /// </summary>
+    /// <remarks>
+    /// <b>The order of the two blocks is deliberately not asserted, and the first draft of this got
+    /// that wrong.</b> <see cref="GraphDocument.Capture"/> orders nodes by their identity, which is
+    /// a <see cref="Guid"/> — so which of two blocks comes first in a document is random per run.
+    /// The draft pinned one order, passed several times, and failed a full run for a reason that
+    /// had nothing to do with what it was testing. What matters here is <i>one share, holding
+    /// everything, before any create</i>; which block is named first inside it cannot matter,
+    /// because <c>E6-T35</c> sorts the declarations before it hashes or compiles them.
+    /// </remarks>
     [Fact]
     public void RestoreSharesEveryScriptBeforeItBuildsAnyBlock()
     {
@@ -275,9 +284,17 @@ public sealed class ScriptNodeSeamTests
 
         _ = SparkFile.Read(SparkFile.Write(GraphDocument.Capture(graph))).Restore(Library, factory);
 
+        // One share, and it is the first thing that happens.
+        string shared = Assert.Single(factory.Calls, call => call.StartsWith("share:", StringComparison.Ordinal));
+
+        Assert.Equal(shared, factory.Calls[0]);
+        Assert.Contains(Doubling, shared, StringComparison.Ordinal);
+        Assert.Contains(Trebling, shared, StringComparison.Ordinal);
+
+        // Then both blocks, in whichever order the document happens to hold them.
         Assert.Equal(
-            ["share:" + Doubling + "|" + Trebling, "create:" + Doubling, "create:" + Trebling],
-            factory.Calls);
+            ["create:" + Doubling, "create:" + Trebling],
+            factory.Calls.Skip(1).Order(StringComparer.Ordinal));
     }
 
     /// <summary>Records what it was asked, in the order it was asked.</summary>

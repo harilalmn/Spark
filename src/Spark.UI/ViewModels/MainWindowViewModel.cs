@@ -1210,7 +1210,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public async Task<IReadOnlyList<CodeCompletionCandidate>> CompleteScriptAsync(
         string code, int caret, CancellationToken cancellationToken)
     {
-        if (SelectedCodeBlock is not { } node || _session.Completion() is not { } completion)
+        if (SelectedCodeBlock is not { } node || Language(node, code) is not { } completion)
         {
             return [];
         }
@@ -1301,6 +1301,34 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
+    /// The language service, with the graph's declared types up to date first (`E6-T37`).
+    /// </summary>
+    /// <param name="node">The block being edited.</param>
+    /// <param name="code">The source <b>as the editor holds it</b>, which may not be committed.</param>
+    /// <returns>The service, or null when scripting is off.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The three language-service paths go through here so that they cannot drift apart.</b>
+    /// Completion, signature help and quick info are three answers to the same question — what does
+    /// this code mean — and `E6-T13` is that an answer which disagrees with the compiler is worse
+    /// than no answer. Sharing in one of them and not the others is exactly how they would come to
+    /// disagree with each other as well.
+    /// </para>
+    /// <para>
+    /// <b>The uncommitted text, for the reason <c>DiagnoseScriptAsync</c> uses it.</b> Somebody
+    /// halfway through typing <c>public class Helper</c> has not committed anything, and a service
+    /// answering against the last committed set would tell them the type they are looking at does
+    /// not exist.
+    /// </para>
+    /// </remarks>
+    private Spark.Scripting.ScriptCompletion? Language(CanvasNode node, string code)
+    {
+        _ = _graph.ShareDeclarations(node.Id, code);
+
+        return _session.Completion();
+    }
+
+    /// <summary>
     /// Describes the symbol under an offset, for the editor's hover tooltip.
     /// </summary>
     /// <param name="code">The source as the editor holds it.</param>
@@ -1310,7 +1338,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public async Task<CodeQuickInfo?> DescribeScriptAsync(
         string code, int offset, CancellationToken cancellationToken)
     {
-        if (SelectedCodeBlock is not { } node || _session.Completion() is not { } completion)
+        if (SelectedCodeBlock is not { } node || Language(node, code) is not { } completion)
         {
             return null;
         }
@@ -1346,7 +1374,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public async Task<CodeSignatureInfo?> SignatureScriptAsync(
         string code, int caret, CancellationToken cancellationToken)
     {
-        if (SelectedCodeBlock is not { } node || _session.Completion() is not { } completion)
+        if (SelectedCodeBlock is not { } node || Language(node, code) is not { } completion)
         {
             return null;
         }

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-09 (a block grows as it is typed into)
+**Last updated:** 2026-09-09 (completion can see another block's types)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v2026.8.1` shipped on 2026-09-08** — published by `Release (win-x64)` run `34239709515` in 7m31s, with `spark-2026.8.1-setup.exe` (51.1 MB) and `spark-portable-win-x64.zip` (77.5 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v2026.8.1>. **Nothing is signed**, and the release notes say so rather than hiding it. **The scheme changed here**, at the client's instruction: `v0.4.0` was the last of the semantic run and this is the first calendar one. `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing.** `E8-T75` is committed. |
+| **Working on** | **Nothing.** `E6-T37` is committed, and both of the client's reports are answered. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A code block grows while it is being typed into** - `E8-T75`. **Before it:** `E6-T36`, `E6-T35`, `E6-T34`, `E8-T74` and the `v2026.8.1` cut, `E8-T73`, `E8-T72`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2810** tests over nine executables with zero skips - green on the second full run, one short on the first. **`E11-T27` gained a tenth victim, and this step may have made it likelier**: `GraphCanvasAlignmentTests.AnUnselectedNodeStaysWhereItIs` failed one full run, then passed its class alone 7/7 and the next full run 2810/2810. `E8-T75` added three tests that **show windows**, which is precisely the family that row blames - so the count of Avalonia-touching classes went up in the same commit that saw a new victim. That is a coincidence worth naming rather than a measurement. |
-| **Next action** | **Take `E6-T37` - the completion list cannot see a type declared in another block.** Reported by the client in the same screenshot as `E8-T75`: typing `Test.` offers snippets and nothing else, because `ScriptCompletion` is built once from the `ReferenceCatalog` and **never sees the shared declarations assembly** `E6-T35` compiles. It is `E6-T13`'s forbidden state - the completion list and the compiler disagreeing - and it arrived as the gap in `E6-T35` rather than as a regression, because before that row there was nothing in another block to see. `SparkSession.Completion()` caches the service with `??=`, so the fix is to give `ScriptCompletion` the shared reference and update it when the fingerprint moves - an `AdhocWorkspace` project's metadata references can be replaced in place, which matters because rebuilding the service re-composes MEF and reloads two Roslyn assemblies. |
-| **Verify with** | The three gates, plus a completion test built from a `ScriptNodeFactory` that has been told about two blocks: `Helper.` in the second must list the members the first declares. **The test has to go through `ReferenceCatalog`**, not the assembly-list constructor, because that is the seam `E6-T32` records the last completion defect hiding in. |
+| **Last completed step** | **Completion, signature help and quick info can see another block's types** - `E6-T37`. **Before it:** `E8-T75`, `E6-T36`, `E6-T35`, `E6-T34`, `E8-T74` and the `v2026.8.1` cut. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2815** tests green over nine executables with zero skips. **One of the failures on the way here was not `E11-T27` and was nearly filed as it**: `E6-T36`'s own seam test pinned an order `GraphDocument.Capture` decides with a `Guid`, and it is fixed ([N129](NOTES.md)). `E11-T27` itself still names ten victims across nine classes, and `E8-T75` is a plausible contributor to the tenth rather than a bystander. |
+| **Next action** | **Take `E11-T27`.** It is now the only thing on the list that this run has actively made worse: four steps today added six window-showing tests to an assembly whose flake this row is about, and the tenth victim arrived in the middle of them. It also cost this session real time twice - once losing a failure's name to a `tail`, once re-running a full suite to find out whether a failure was mine. `test-engineer` owns the choice between one xunit collection over every Avalonia-touching class and `DisableTestParallelization` for the assembly, which costs about 16 seconds. **Also open and cheap where the toolchain allows it**: `E13-T18`. |
+| **Verify with** | Whatever the next row needs. Nothing is half-done. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -9167,3 +9167,62 @@ against the pane rather than by a picture.
 declared in another block. That is `E6-T37` and it is the *Next action*.
 
 **Cost.** One session, alongside `E6-T34`, `E6-T35` and `E6-T36`.
+
+### 2026-09-09 — Completion can see another block's types (`E6-T37`)
+
+**What.** The client's second report from the `E8-T75` screenshot: typing `Test.` in one block, with
+`class Test` declared in the block beside it, offered snippets and nothing else. It now offers the
+members, and so do signature help and quick info.
+
+**The cause is the gap in `E6-T35`, not a regression.** `ScriptCompletion` is built once from the
+`ReferenceCatalog` and never saw the shared declarations assembly — so a class in the block next
+door bound perfectly in the compiler that runs the script and did not exist at all in the workspace
+that answers the editor. That is `E6-T13`'s forbidden state stated exactly: a list that disagrees
+with the compiler is worse than no list. Before `E6-T35` there was nothing in another block to see,
+so the defect arrived with the feature.
+
+**The reference alone bought nothing, and that is the thing worth keeping** ([N128](NOTES.md)). The
+assembly was added to the workspace's metadata references, `TryApplyChanges` returned true, the
+method reported it had updated them — and the list stayed empty. A block's real source is compiled
+*inside* `namespace SparkGenerated`, so the user's `Helper` is a sibling and resolves unqualified;
+the completion document is a Roslyn script in the global namespace, where referencing the assembly
+makes the type exist and leaves it reachable only as `SparkGenerated.Helper`, which is not what
+anybody types. The namespace goes into the project's usings at the same moment the reference does.
+**A reference makes a type available; only an import makes it nameable.**
+
+**Three smaller decisions.** The references are swapped in place rather than the service rebuilt,
+because Roslyn composes its host services through MEF on first use and that is the most expensive
+thing in the application to touch. The update is keyed on the fingerprint, because it is asked on
+every completion, every signature and every hover. And it lives in `SparkSession.Completion()`,
+which is the one place all three consumers pass through, so none of them can forget it — the three
+view-model paths gained a shared helper that shares the *uncommitted* text first, the way
+`DiagnoseScriptAsync` already did.
+
+**Verified.** The three gates — clean build with zero warnings, format clean, **2815** tests green
+over nine executables with zero skips. Five tests, built through `ReferenceCatalog` rather than the
+assembly-list constructor, because `E6-T32` is the record of a completion defect that lived in
+exactly the gap between those two: `Helper.` lists `Twice` and `Halve`; the same call without the
+reference lists neither, which is what makes the first assertion mean something; signature help
+finds `Twice`; a repeat of the same declarations returns false; and renaming the class takes the
+old members away, which is what the references being *replaced* rather than appended buys.
+
+**Not verified in the application, and the reason is worth writing down rather than glossing.** A
+caret sitting after a trailing `.` cannot be posed: `E6-T33` puts the missing semicolon back when a
+block is committed, and the pose harness commits — so `var circle = TestClass.` becomes
+`var circle = TestClass.;` with the caret past the semicolon, which is not a member-access position
+and produces the ordinary global list. Two screenshots were taken before that was clear. Together
+with the `--code-block-typed` limitation recorded under `E8-T75`, the pose harness now has two known
+gaps around *unfinished* text, which is a fair share of what a code editor is for.
+
+**One of `E6-T36`'s own tests was wrong, and this step is where it surfaced.**
+`RestoreSharesEveryScriptBeforeItBuildsAnyBlock` asserted the exact sequence of calls a restore
+makes, which pins the order two blocks appear in the document — and `GraphDocument.Capture` orders
+nodes by their `Guid`. It was a coin flip that had come up heads four times: written green, green
+through its own step's gate, green through `E8-T75`'s, and red here for a reason with nothing to do
+with anything that had changed. **It was nearly blamed on `E11-T27`**, which had produced a victim
+two steps earlier and was a convenient explanation; what ruled that out is that the test lives in
+the engine assembly, which touches no Avalonia at all. It now asserts one share holding every
+script before any create, and nothing about which block is named first — ten consecutive runs green
+([N129](NOTES.md)).
+
+**Cost.** One session for `E6-T34`, `E6-T35`, `E6-T36`, `E8-T75` and this.

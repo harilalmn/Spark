@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (E6: a type declared in one block, used by another)
+**Last updated:** 2026-09-09 (E6: completion can see another block's types)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -666,6 +666,13 @@ diverge most; rework is budgeted there specifically.
       is the catch-all every other way of adding or removing a block has to pass through.
       `CanvasGraph.Retype` needed no change and has a test saying why. **Verified in the
       application** with the client's own two blocks: both clean, no diagnostics.
+- [x] **The editor's language service sees the types other blocks declare** (**E6-T37**) —
+      done 2026-09-09. Completion, signature help and quick info all reference the shared assembly
+      and are updated whenever its fingerprint moves. **The reference alone was not enough**: a
+      block compiles inside `namespace SparkGenerated`, so the namespace has to go into the
+      completion project's usings with it, or the type exists and is reachable only by a name
+      nobody types. Without this the list disagreed with the compiler, which **E6-T13** says is
+      worse than having no list.
 - [ ] A graph containing no script nodes never loads `Spark.Scripting` (**E6-T14**).
 
 **Status.** **Complete except the docked C# Script Node (E6-T14's second half), as of
