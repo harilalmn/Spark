@@ -158,9 +158,25 @@ public sealed class ScriptDeclarations
     {
         List<Declaration> declarations = [];
 
+        // `E6-T39`: THE GRAPH'S OWN `using` LINES COME IN HERE AS WELL, MERGED AND DEDUPLICATED.
+        //
+        // A block that writes `using Autodesk.Revit.DB;` and then declares a type in terms of it
+        // has moved half of what that type needs into this assembly and left the other half behind.
+        // Without this the shared compile fails, sharing switches itself off, and the graph
+        // silently loses cross-block types for a reason nothing states. Merging is consistent with
+        // what this type already does to the declarations themselves - one namespace, one
+        // compilation - and a merge that introduces an ambiguity reports it as `CS0104` on the
+        // declaration that used the name.
+        SortedSet<string> usings = new(StringComparer.Ordinal);
+
         foreach (string script in scripts)
         {
             string blanked = ScriptRanges.Blank(script).Text;
+
+            foreach (TextSpan span in ScriptDeclarationSpans.Usings(blanked))
+            {
+                usings.Add(blanked[span.Start..span.End].Trim());
+            }
 
             foreach (TextSpan span in ScriptDeclarationSpans.Of(blanked))
             {
@@ -185,7 +201,7 @@ public sealed class ScriptDeclarations
                 ? byText
                 : string.CompareOrdinal(left.Script, right.Script));
 
-        string fingerprint = FingerprintOf(declarations);
+        string fingerprint = FingerprintOf(declarations, usings);
 
         // BEFORE ANYTHING IS COMPILED, AND THAT ORDERING IS NOT AN OPTIMISATION. Emitting an
         // assembly whose name already exists in the load context throws - *assembly with the same
@@ -201,6 +217,14 @@ public sealed class ScriptDeclarations
         StringBuilder source = new();
         source.AppendLine(references.Prelude());
         source.Append("namespace ").Append(Namespace).AppendLine(";");
+
+        // Inside the namespace rather than above it, for the reason `ScriptNodeFactory.Imported`
+        // records: an alias here shadows one of the same name in the prelude instead of colliding
+        // with it, which is what lets a user overrule `E6-T30`'s pinning.
+        foreach (string import in usings)
+        {
+            source.AppendLine(import);
+        }
 
         List<Placed> placed = [];
 
@@ -323,13 +347,22 @@ public sealed class ScriptDeclarations
         return null;
     }
 
-    private static string FingerprintOf(List<Declaration> declarations)
+    private static string FingerprintOf(List<Declaration> declarations, SortedSet<string> usings)
     {
         StringBuilder all = new();
 
         foreach (Declaration declaration in declarations)
         {
-            all.Append(declaration.Text.ReplaceLineEndings("\n")).Append(' ');
+            all.Append(declaration.Text.ReplaceLineEndings("\n")).Append(' ');
+        }
+
+        // The imports are part of what was compiled, so they are part of what identifies it. A set
+        // of declarations that hashed the same under two different preludes would be handed back
+        // unbuilt by the check below, and the second graph would bind against the first one's
+        // meaning of a name.
+        foreach (string import in usings)
+        {
+            all.Append(import.ReplaceLineEndings("\n")).Append(' ');
         }
 
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(all.ToString())))[..16];
@@ -401,19 +434,57 @@ internal static class ScriptDeclarationSpans
         ];
     }
 
-    /// <summary>The script with every top-level type declaration overwritten with spaces.</summary>
-    internal static (string Statements, ImmutableArray<TextSpan> Declarations) Without(string blanked)
+    /// <summary>
+    /// The spans of every <c>using</c> directive written at the top of an already-blanked script
+    /// (`E6-T39`).
+    /// </summary>
+    /// <param name="blanked">The script, with `E10-T15`'s range markers already blanked.</param>
+    /// <returns>The directives' spans, in the order they were written.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Roslyn's own answer, not a text scan, and that is what keeps <c>using</c> the
+    /// <i>statement</i> out of it.</b> <c>using var file = File.OpenRead(path);</c> and
+    /// <c>using (var scope = …) { }</c> both begin with the same keyword and both belong exactly
+    /// where the user put them; the parser has already decided which is which, and
+    /// <see cref="CompilationUnitSyntax.Usings"/> holds only the directives. Hoisting a
+    /// <c>using</c> statement out of the method body would move a disposal to namespace scope,
+    /// which does not compile — and it is the kind of thing a regular expression would do.
+    /// </para>
+    /// </remarks>
+    internal static ImmutableArray<TextSpan> Usings(string blanked)
+    {
+        CompilationUnitSyntax root = CSharpSyntaxTree.ParseText(blanked).GetCompilationUnitRoot();
+
+        return [.. root.Usings.Select(directive => directive.Span)];
+    }
+
+    /// <summary>
+    /// The script with every top-level type declaration and <c>using</c> directive overwritten with
+    /// spaces.
+    /// </summary>
+    internal static (string Statements, ImmutableArray<TextSpan> Declarations, ImmutableArray<TextSpan> Usings)
+        Without(string blanked)
     {
         ImmutableArray<TextSpan> declarations = Of(blanked);
+        ImmutableArray<TextSpan> usings = Usings(blanked);
 
-        if (declarations.IsEmpty)
+        if (declarations.IsEmpty && usings.IsEmpty)
         {
-            return (blanked, declarations);
+            return (blanked, declarations, usings);
         }
 
         char[] text = blanked.ToCharArray();
 
-        foreach (TextSpan span in declarations)
+        Blank(text, declarations);
+        Blank(text, usings);
+
+        return (new string(text), declarations, usings);
+    }
+
+    /// <summary>Overwrites spans with spaces, leaving the line endings where they were.</summary>
+    private static void Blank(char[] text, ImmutableArray<TextSpan> spans)
+    {
+        foreach (TextSpan span in spans)
         {
             for (int i = span.Start; i < span.End; i++)
             {
@@ -423,8 +494,6 @@ internal static class ScriptDeclarationSpans
                 }
             }
         }
-
-        return (new string(text), declarations);
     }
 
     /// <summary>

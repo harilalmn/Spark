@@ -122,6 +122,18 @@ public sealed class ReferenceCatalog
     public ImmutableArray<string> Imports => _current.Imports;
 
     /// <summary>
+    /// A sentence for each namespace of an added library that was <b>not</b> imported, because a
+    /// name in it already means something else (`E6-T39`).
+    /// </summary>
+    /// <remarks>
+    /// <b>Silence would be the worst of the three options.</b> Importing a colliding namespace
+    /// breaks blocks that worked yesterday; skipping it without saying so leaves a user typing a
+    /// type name that plainly exists and being told it does not. Each sentence names the types that
+    /// stopped it and the <c>using</c> to write instead.
+    /// </remarks>
+    public ImmutableArray<string> SkippedImports => _current.Skipped;
+
+    /// <summary>
     /// How many times the catalogue has changed. Part of every compile-cache key.
     /// </summary>
     /// <remarks>
@@ -401,76 +413,185 @@ public sealed class ReferenceCatalog
 
         string[] imports = nodes ? [.. DefaultImports, .. NodeLibraryImports] : [.. DefaultImports];
 
+        (ImmutableArray<string> libraries, ImmutableArray<string> skipped) =
+            LibraryImports(imports, byPath.Keys);
+
         return new Snapshot(
             [.. byPath.Values],
-            [.. imports, .. NamespacesOfLibraries(imports)],
+            [.. imports, .. libraries],
+            skipped,
             _current?.Version ?? 0);
     }
 
     /// <summary>
-    /// The namespaces of the libraries a user added, so a code block needs no <c>using</c>
-    /// (`E7-T21`).
+    /// The namespaces of the libraries a user added that can be imported without changing what a
+    /// name already means, and a sentence about each one that cannot (`E7-T21`, `E6-T39`).
     /// </summary>
-    /// <param name="already">What is imported anyway, so nothing is offered twice.</param>
-    /// <returns>The namespaces, sorted, each appearing once.</returns>
+    /// <param name="already">What every block imports anyway, aliases included.</param>
+    /// <param name="referencePaths">Every assembly in the snapshot, to read those names from.</param>
+    /// <returns>The namespaces to add to the prelude, and the refusals to show the user.</returns>
     /// <remarks>
     /// <para>
     /// <b>Asked for by the client</b>: <i>I hope the user does not have to declare the using
     /// statement to use the classes from the NuGet libraries installed.</i> Adding a library and
     /// then being told its types do not exist is the ceremony the whole feature was meant to
-    /// remove.
+    /// remove — so a library's namespaces go into the prelude, and a block names its types the way
+    /// it names <c>Point3d</c>.
     /// </para>
     /// <para>
-    /// <b>`E6-T30` is the reason this is not obviously safe, and the reason it is done anyway.</b>
-    /// That row found that importing <c>Spark.Nodes.Core</c> wholesale broke nine names against
-    /// <c>Spark.Geometry</c> — <c>Circle</c>, <c>Line</c>, <c>Plane</c> — and every block anybody
-    /// had written with them, so the fix was explicit aliases rather than a namespace import.
-    /// **Two things make this case different.** That import was automatic, for a library shipped
-    /// with Spark that nobody asked for; this one is a library the user went and fetched. And a
-    /// <c>using</c> is only an error where an ambiguous name is <i>actually used</i> — <c>CS0104</c>
-    /// lands on the line that uses it, in the block that uses it, which is ordinary C# and is what
-    /// a person adding a library to a project already expects.
+    /// <b>And the client found the hole in that an hour after it shipped, which is why the import
+    /// is conditional rather than wholesale.</b> Their words: <i>take care of the possible
+    /// ambiguity, as the user cannot specify</i> <c>using Circle = SomeNameSpace.Circle;</c>. Both
+    /// halves of that are right. <c>Autodesk.Revit.DB</c> — the library they actually want — defines
+    /// <c>Arc</c>, <c>Curve</c>, <c>Line</c>, <c>Mesh</c>, <c>Plane</c>, <c>Point</c> and
+    /// <c>Transform</c>, and so does <c>Spark.Geometry</c>; importing it would answer every
+    /// geometry block anybody has written with <c>CS0104</c>. `E6-T30` learnt exactly this against
+    /// <c>Spark.Nodes.Core</c>, and the second telling is not cheaper than the first.
     /// </para>
     /// <para>
-    /// <b>Public top-level types only.</b> A namespace whose types a block cannot name is a
-    /// namespace worth nothing in the prelude, and importing it only widens the surface a
-    /// collision can come from.
+    /// <b>A namespace is imported only when <i>none</i> of its public type names is already spoken
+    /// for, and that is coarse on purpose.</b> Importing the harmless half of a namespace is not
+    /// something a <c>using</c> can express, and the finer rule anybody would reach for — alias
+    /// each colliding name to what it means today, as `E6-T30` did — does not survive contact with
+    /// a real library: <c>RevitAPI</c> has some ten thousand public types, and a prelude with ten
+    /// thousand lines in it is not a prelude. <i>Why does <c>Foo</c> resolve and <c>Bar</c> not</i>
+    /// is a worse question to leave a user holding than <i>this namespace was not imported, and
+    /// here are the names that stopped it</i>.
+    /// </para>
+    /// <para>
+    /// <b>Which leaves the user needing a way in, and `E6-T39` is the half that gives them one</b>:
+    /// a <c>using</c> written at the top of a code block is now hoisted out of the method body to
+    /// namespace scope, so <c>using Autodesk.Revit.DB;</c> works in the block that wants it. It is
+    /// emitted one scope inside the prelude, so it does not merely add to the prelude — it
+    /// <i>beats</i> it, and <c>Line</c> in that block is Revit's without any ambiguity to resolve.
+    /// Where a user does import two namespaces that clash, <c>using RevitLine =
+    /// Autodesk.Revit.DB.Line;</c> — the exact line the client said could not be written — settles
+    /// it the ordinary C# way. Refusing an import that a user could not then ask for by hand would
+    /// have been half an answer.
+    /// </para>
+    /// <para>
+    /// <b>Public top-level types only.</b> A nested type is not nameable through a namespace
+    /// import, so it can neither be gained by one nor collide with one, and counting it would
+    /// refuse imports over a clash that cannot happen.
     /// </para>
     /// </remarks>
-    private IEnumerable<string> NamespacesOfLibraries(IEnumerable<string> already)
+    private (ImmutableArray<string> Imports, ImmutableArray<string> Skipped) LibraryImports(
+        IReadOnlyList<string> already, IEnumerable<string> referencePaths)
     {
         if (_libraries.Count == 0)
         {
-            return [];
+            return ([], []);
         }
 
-        HashSet<string> seen = new(already, StringComparer.Ordinal);
-        SortedSet<string> found = new(StringComparer.Ordinal);
+        HashSet<string> spaces = new(StringComparer.Ordinal);
+        HashSet<string> taken = new(StringComparer.Ordinal);
 
-        foreach (string path in _libraries)
+        foreach (string import in already)
         {
-            foreach (string space in PublicNamespacesIn(path))
+            int equals = import.IndexOf('=', StringComparison.Ordinal);
+
+            // `E6-T30`'s aliases are in this list too, and an alias occupies exactly the one name
+            // it defines - reading `Circle = Spark.Geometry.Circle` as a namespace would send this
+            // looking for the types of a namespace nobody has.
+            if (equals < 0)
             {
-                if (seen.Add(space))
+                spaces.Add(import);
+            }
+            else
+            {
+                taken.Add(import[..equals].Trim());
+            }
+        }
+
+        foreach (string path in referencePaths)
+        {
+            foreach ((string space, SortedSet<string> types) in PublicTypesIn(path))
+            {
+                if (spaces.Contains(space))
                 {
-                    found.Add(space);
+                    taken.UnionWith(types);
                 }
             }
         }
 
-        return found;
+        // Merged across the library's assemblies before anything is decided, because a namespace
+        // split over two DLLs - which is most packages of any size - has to be judged on all of its
+        // names at once rather than accepted on the first DLL and re-judged on the second.
+        Dictionary<string, SortedSet<string>> offered = new(StringComparer.Ordinal);
+
+        foreach (string path in _libraries)
+        {
+            foreach ((string space, SortedSet<string> types) in PublicTypesIn(path))
+            {
+                if (!offered.TryGetValue(space, out SortedSet<string>? all))
+                {
+                    all = new SortedSet<string>(StringComparer.Ordinal);
+                    offered[space] = all;
+                }
+
+                all.UnionWith(types);
+            }
+        }
+
+        List<string> imports = [];
+        List<string> skipped = [];
+
+        // Ordinal, so that two libraries whose namespaces collide with *each other* resolve the
+        // same way on every machine and every run rather than by whatever order the files came in.
+        foreach (string space in offered.Keys.Order(StringComparer.Ordinal))
+        {
+            if (spaces.Contains(space))
+            {
+                continue;
+            }
+
+            string[] clashes = [.. offered[space].Where(taken.Contains)];
+
+            if (clashes.Length > 0)
+            {
+                skipped.Add(Clash(space, clashes));
+                continue;
+            }
+
+            imports.Add(space);
+            taken.UnionWith(offered[space]);
+        }
+
+        return ([.. imports], [.. skipped]);
     }
 
-    /// <summary>Reads the namespaces of an assembly's public types, without loading it.</summary>
+    /// <summary>Why one namespace was left out, and what to write instead.</summary>
+    /// <remarks>
+    /// <b>It names the types rather than saying <i>some names collided</i></b>, because the list is
+    /// most of the information: it is how a user tells whether the collision touches anything they
+    /// were going to use, and the alias in the last sentence is the part they can act on.
+    /// </remarks>
+    private static string Clash(string space, IReadOnlyList<string> names)
+    {
+        const int Most = 6;
+
+        string listed = string.Join(", ", names.Take(Most))
+            + (names.Count > Most
+                ? FormattableString.Invariant($" and {names.Count - Most} more")
+                : string.Empty);
+
+        return $"'{space}' is referenced but not imported for you: {listed} would become "
+            + $"ambiguous. Write 'using {space};' at the top of the block that needs it, and "
+            + $"'using My{names[0]} = {space}.{names[0]};' to say which '{names[0]}' you mean.";
+    }
+
+    /// <summary>
+    /// The public top-level type names an assembly declares, by namespace, without loading it.
+    /// </summary>
     /// <remarks>
     /// <b>Metadata rather than reflection, because loading is the thing to avoid.</b>
     /// <c>Assembly.Load</c> to ask a question about names would run module initialisers, pin the
     /// file, and put a user's library in this process before anybody agreed to it. A metadata read
     /// answers the same question and does none of that.
     /// </remarks>
-    private static IEnumerable<string> PublicNamespacesIn(string path)
+    private static Dictionary<string, SortedSet<string>> PublicTypesIn(string path)
     {
-        SortedSet<string> spaces = new(StringComparer.Ordinal);
+        Dictionary<string, SortedSet<string>> found = new(StringComparer.Ordinal);
 
         try
         {
@@ -482,27 +603,40 @@ public sealed class ReferenceCatalog
             {
                 // A native DLL beside a managed one, which every package with a runtime component
                 // has. It is a reference to nothing and has no namespaces to offer.
-                return spaces;
+                return found;
             }
 
-            System.Reflection.Metadata.MetadataReader metadata = reader.GetMetadataReader();
+            MetadataReader metadata = reader.GetMetadataReader();
 
-            foreach (System.Reflection.Metadata.TypeDefinitionHandle handle in metadata.TypeDefinitions)
+            foreach (TypeDefinitionHandle handle in metadata.TypeDefinitions)
             {
-                System.Reflection.Metadata.TypeDefinition type = metadata.GetTypeDefinition(handle);
+                TypeDefinition type = metadata.GetTypeDefinition(handle);
 
-                if ((type.Attributes & System.Reflection.TypeAttributes.VisibilityMask)
-                    != System.Reflection.TypeAttributes.Public)
+                // `Public`, and deliberately not `NestedPublic`: see the remarks on LibraryImports.
+                if ((type.Attributes & TypeAttributes.VisibilityMask) != TypeAttributes.Public)
                 {
                     continue;
                 }
 
                 string space = metadata.GetString(type.Namespace);
 
-                if (space.Length > 0)
+                if (space.Length == 0)
                 {
-                    spaces.Add(space);
+                    continue;
                 }
+
+                if (!found.TryGetValue(space, out SortedSet<string>? names))
+                {
+                    names = new SortedSet<string>(StringComparer.Ordinal);
+                    found[space] = names;
+                }
+
+                // The arity goes with the backtick: `List` and `List<T>` are one name as far as
+                // `CS0104` is concerned, and a check that kept the metadata spelling would miss it.
+                string name = metadata.GetString(type.Name);
+                int arity = name.IndexOf('`', StringComparison.Ordinal);
+
+                names.Add(arity < 0 ? name : name[..arity]);
             }
         }
         catch (Exception failure) when (failure is IOException
@@ -514,7 +648,7 @@ public sealed class ReferenceCatalog
             // will report itself there, on the user's own line.
         }
 
-        return spaces;
+        return found;
     }
 
     private static string Full(string path)
@@ -548,5 +682,8 @@ public sealed class ReferenceCatalog
     }
 
     private sealed record Snapshot(
-        ImmutableArray<MetadataReference> References, ImmutableArray<string> Imports, int Version);
+        ImmutableArray<MetadataReference> References,
+        ImmutableArray<string> Imports,
+        ImmutableArray<string> Skipped,
+        int Version);
 }

@@ -1279,6 +1279,25 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         StringBuilder source = new();
         source.AppendLine(_references.Prelude());
         source.AppendLine("namespace SparkGenerated;");
+
+        // `E10-T15`: Dynamo's `#` breaks the lexer, so it is blanked before the parse rather than
+        // rewritten after it. Blanking is length-preserving, so `offset` is all it takes to move a
+        // marker into the generated source's coordinates - no table, for the same reason the map is
+        // a subtraction.
+        BlankedScript blanked = ScriptRanges.Blank(script);
+
+        // `E6-T34`: and the declarations come out the same way, for the same reason. Blanked to
+        // spaces where they stood rather than cut out, so every statement keeps the offset and the
+        // line it had - which means `markers` needs no adjustment and the statements' half of the
+        // map is still the subtraction it was. `E6-T39` adds the `using` directives to that, on the
+        // same terms.
+        (string statements, ImmutableArray<TextSpan> declarations, ImmutableArray<TextSpan> usings) =
+            ScriptDeclarationSpans.Without(blanked.Text);
+
+        // Before the class opens, because that is where a `using` is legal - and before `frame` is
+        // counted, so the statements' half of the map stays a subtraction.
+        ImmutableArray<ScriptSourceSegment> imported = Imported(source, blanked.Text, usings);
+
         source.AppendLine("public static class " + EntryPointType + " {");
         source.AppendLine("public static object Run(object[] __in, System.Threading.CancellationToken __token) {");
 
@@ -1315,19 +1334,6 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         // lines at all, which is what keeps it one.
         int frame = Lines(source);
 
-        // `E10-T15`: Dynamo's `#` breaks the lexer, so it is blanked before the parse rather than
-        // rewritten after it. Blanking is length-preserving, so `offset` is all it takes to move a
-        // marker into the generated source's coordinates - no table, for the same reason the map is
-        // a subtraction.
-        BlankedScript blanked = ScriptRanges.Blank(script);
-
-        // `E6-T34`: and the declarations come out the same way, for the same reason. Blanked to
-        // spaces where they stood rather than cut out, so every statement keeps the offset and the
-        // line it had - which means `markers` needs no adjustment and the statements' half of the
-        // map is still the subtraction it was.
-        (string statements, ImmutableArray<TextSpan> declarations) =
-            ScriptDeclarationSpans.Without(blanked.Text);
-
         // `E6-T35`: A DECLARATION LIVES IN EXACTLY ONE ASSEMBLY, AND THAT IS FORCED RATHER THAN
         // TIDY. When the shared set holds this script, its types are already compiled into the
         // shared assembly and this compilation references them; emitting a second copy here would
@@ -1361,10 +1367,81 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
 
         return new WrappedScript(
             source.ToString(),
-            new ScriptSourceMap(frame, hoisted),
+            new ScriptSourceMap(frame, [.. imported, .. hoisted]),
             markers.IsDefaultOrEmpty
                 ? ImmutableArray<int>.Empty
                 : [.. markers.Select(marker => marker + offset)]);
+    }
+
+    /// <summary>
+    /// Re-emits the block's own <c>using</c> directives at namespace scope, and says where each of
+    /// them landed (`E6-T39`).
+    /// </summary>
+    /// <param name="source">The generated source so far, ending at the namespace declaration.</param>
+    /// <param name="blanked">The script with `E10-T15`'s markers blanked.</param>
+    /// <param name="usings">Where the directives were, from <c>ScriptDeclarationSpans.Without</c>.</param>
+    /// <returns>One segment per directive, so a diagnostic on one lands on the user's line.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Asked for by the client, and they had already worked out why it was needed</b>: <i>take
+    /// care of the possible ambiguity, as the user cannot specify like</i>
+    /// <c>using Circle = SomeNameSpace.Circle;</c>. They are exactly right — a using-alias
+    /// directive is legal at compilation-unit or namespace scope and nowhere else, and a code
+    /// block's text is emitted inside <c>__Block.Run</c>'s method body. So before this, a user
+    /// facing two libraries that both spell a type <c>Circle</c> had no way to say which they
+    /// meant short of fully qualifying every single use.
+    /// </para>
+    /// <para>
+    /// <b>It is `E6-T34`'s machinery pointed at a second construct</b>, and it is worth saying that
+    /// plainly: blank the directive to spaces where it stood so no offset, length or line number
+    /// below it moves, and re-emit it somewhere it is legal. The only difference is the direction —
+    /// a type declaration goes <i>after</i> the generated class, a <c>using</c> has to go
+    /// <i>before</i> it.
+    /// </para>
+    /// <para>
+    /// <b>Inside <c>namespace SparkGenerated</c> rather than above it, and that placement is the
+    /// feature rather than an accident.</b> The prelude sits at compilation-unit scope and these
+    /// sit one scope in, so C#'s own lookup rule — innermost declaration space first — gives the
+    /// block's own directives the last word. Two things follow, and both are what a user would
+    /// want. An alias of a name the prelude already aliases <i>shadows</i> it rather than colliding
+    /// with it (<c>CS1537</c>), so <c>using Circle = Autodesk.Revit.DB.Circle;</c> means what it
+    /// says over the top of `E6-T30`'s pinning. And a plain <c>using Autodesk.Revit.DB;</c> shadows
+    /// the prelude's <c>using Spark.Geometry;</c> for every name the two share, so it resolves
+    /// rather than turning <c>Line</c> ambiguous. <b>The rule that comes out of it is one sentence
+    /// long</b>: what the block writes beats what Spark imported for it, in that block and nowhere
+    /// else. An ambiguity is then only possible between two directives the user wrote themselves,
+    /// which is where an alias is the ordinary C# answer and is now available.
+    /// </para>
+    /// <para>
+    /// <b>A <c>global using</c> is emitted verbatim and will be refused by the compiler</b>, which
+    /// is the honest outcome: the message says a global using directive cannot be used in a
+    /// namespace declaration, and the segment puts it on the user's own line. There is nothing a
+    /// <c>global</c> could mean in a block that compiles alone anyway.
+    /// </para>
+    /// </remarks>
+    private static ImmutableArray<ScriptSourceSegment> Imported(
+        StringBuilder source, string blanked, ImmutableArray<TextSpan> usings)
+    {
+        if (usings.IsEmpty)
+        {
+            return ImmutableArray<ScriptSourceSegment>.Empty;
+        }
+
+        ImmutableArray<ScriptSourceSegment>.Builder segments =
+            ImmutableArray.CreateBuilder<ScriptSourceSegment>(usings.Length);
+
+        foreach (TextSpan span in usings)
+        {
+            int start = Lines(source) + 1;
+
+            source.Append(' ', span.Start - ScriptDeclarationSpans.StartOfLine(blanked, span.Start))
+                .AppendLine(blanked[span.Start..span.End]);
+
+            segments.Add(new ScriptSourceSegment(
+                start, ScriptDeclarationSpans.LineAt(blanked, span.Start), Lines(source) - start + 1));
+        }
+
+        return segments.MoveToImmutable();
     }
 
     /// <summary>

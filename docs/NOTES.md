@@ -3917,3 +3917,53 @@ repeat, and a test that never repeats cannot see it.
 report belongs only to callers that are optimising. Any caller that needs the computation must
 ignore it — and the ones that ignore it should say so, because `_ = Wanted(...)` invites the
 question and a bare call does not.
+
+
+## N131 — An inner `using` does not collide with an outer one; it silently wins
+
+`E6-T39` hoists a code block's own `using` directives out of the method body, and the question was
+where to put them: above `namespace SparkGenerated;`, beside the prelude, or below it, inside the
+namespace. Inside looked like the timid choice. It is the one that works, and for a reason worth
+writing down.
+
+C# resolves a simple name by walking scopes from the inside out, and **it stops at the first scope
+that has an answer**. The prelude sits at compilation-unit scope; a directive emitted after
+`namespace SparkGenerated;` sits one scope in. So a block that writes `using Autodesk.Revit.DB;`
+does not *add* Revit to what Spark already imported — it **shadows** it, for every name the two
+share. `Line` in that block is Revit's `Line`, and there is no `CS0104` to resolve because lookup
+never reaches `Spark.Geometry`.
+
+The same rule makes `using Circle = Autodesk.Revit.DB.Circle;` legal beside the prelude's own
+`using Circle = Spark.Geometry.Circle;`, which at one scope would be **`CS1537`: the using alias
+'Circle' appeared previously in this namespace**.
+
+**Two tests had to be rewritten because of this**, both of which had asserted an ambiguity that
+never happens. The rule they were replaced with is one sentence and a user can hold it: *what the
+block writes beats what Spark imported for it, in that block and nowhere else.* An ambiguity is only
+possible between two directives **the user wrote themselves** — and that is exactly the case an
+alias is for, which is what the client asked to be made possible.
+
+**The general shape**: when placing generated code around a user's, scope nesting is a tool and not
+just a container. The same two directives are a conflict at one level and an override at two.
+
+
+## N132 — A NUL byte in a source file compiles, and greps as binary
+
+`ScriptDeclarations.cs` carried a literal `U+0000` inside a `char` literal — `all.Append(' ')`
+where `all.Append(' ')` was meant — written by a shell heredoc whose escaping had mangled a space.
+It survived for a day and through several full gate runs.
+
+**Nothing catches this.** It is a valid `char` literal, so the build is clean; the value only fed a
+fingerprint separator, so no test could see it; and `dotnet format` has no opinion about it. What
+*did* show it was `grep` refusing the file with **Binary file … matches**, which reads like a tool
+being unhelpful rather than a finding.
+
+**The lesson is about the tooling, not the byte**: text written to a file through a shell heredoc is
+not necessarily the text that was intended, and the failure is silent in both directions. Editing
+source through a script now means reading back what landed — and a repository-wide scan for control
+characters costs one command:
+
+```python
+if b' ' in io.open(path, 'rb').read(): ...
+```
+
