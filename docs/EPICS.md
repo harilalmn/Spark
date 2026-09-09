@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (E6: completion can see another block's types)
+**Last updated:** 2026-09-09 (E6: a declared type is public whether or not it says so)
 
 No product code has yet been reviewed as landed, though the first M1 kernel value types
 began appearing in `src/Spark.Geometry` as this revision was written and are not reflected
@@ -673,6 +673,10 @@ diverge most; rework is budgeted there specifically.
       completion project's usings with it, or the type exists and is reachable only by a name
       nobody types. Without this the list disagreed with the compiler, which **E6-T13** says is
       worse than having no list.
+- [x] **A declared type is public whether or not it says so** (**E6-T38**) — done 2026-09-09.
+      `class Foo` at namespace scope is *internal*, and the shared assembly is not the block's own —
+      so the commonest spelling of a class worked inside one block and not across two. `internal`
+      names a boundary a code block cannot see or choose, so it is not one this layer honours.
 - [ ] A graph containing no script nodes never loads `Spark.Scripting` (**E6-T14**).
 
 **Status.** **Complete except the docked C# Script Node (E6-T14's second half), as of

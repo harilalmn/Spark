@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-09 (the editor opens every time, not only the first)
+**Last updated:** 2026-09-09 (a declared type is public whether or not it says so)
 **Protocol version:** 2
 
 ---
@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1, M1.5, M2, M3, M4, M5, M6 and M7 are done, and `v2026.8.1` shipped on 2026-09-08** — published by `Release (win-x64)` run `34239709515` in 7m31s, with `spark-2026.8.1-setup.exe` (51.1 MB) and `spark-portable-win-x64.zip` (77.5 MB) attached, not a draft and not a prerelease: <https://github.com/harilalmn/Spark/releases/tag/v2026.8.1>. **Nothing is signed**, and the release notes say so rather than hiding it. **The scheme changed here**, at the client's instruction: `v0.4.0` was the last of the semantic run and this is the first calendar one. `v0.1.0` was the first tag in the repository's history. M1.6 is taken: all nine criteria answered, `C2` passed, ADR-0020 stands. |
-| **Working on** | **Nothing.** `E8-T77` is committed. |
+| **Working on** | **Nothing.** `E6-T38` is committed. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A code block's editor opens every time, not only the first** - `E8-T77`, a regression from `E8-T75` caught by the client one commit later. **Before it:** `E8-T76`, `E6-T37`, `E8-T75`, `E6-T36`, `E6-T35`, `E6-T34`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2820** tests green over nine executables with zero skips. `E11-T27` names ten victims across nine classes. |
-| **Next action** | **Take `E11-T27`**, unless the client reports something else. It is what the project owes itself after six client requests in a row, and this run has both fed it - six new window-showing tests in the assembly the flake lives in - and been slowed by it twice. |
+| **Last completed step** | **A type a block declares is public whether or not it says so** - `E6-T38`. **Before it:** `E8-T77`, `E8-T76`, `E6-T37`, `E8-T75`, `E6-T36`, `E6-T35`, `E6-T34`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2832** tests green over nine executables with zero skips. `E11-T27` names ten victims across nine classes. |
+| **Next action** | **Take `E11-T27`**, unless the client reports something else - and they have reported something else seven times today, which is the run working as intended. The flake row is what the project owes itself: this session added eight window-showing tests to the assembly it lives in and was slowed by it twice. |
 | **Verify with** | Whatever the next row needs. Nothing is half-done. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -9305,3 +9305,48 @@ over nine executables with zero skips.
 
 **Cost.** Twenty minutes, and it should have been zero: `E8-T75` changed a call from *always do
 this* to *do this if something moved* and nothing asked what the other caller wanted.
+
+### 2026-09-09 — A declared type is public whether or not it says so (`E6-T38`)
+
+**What.** The client wrote `class Test{ … }` in one block and `Test test = new Test();` in the next,
+and was told **`CS0122: 'Test' is inaccessible due to its protection level`**.
+
+**Why, and why it is the worst possible shape.** A type with no access modifier at namespace scope
+is *internal*. `E6-T35` compiles declarations into a **different assembly** from the block that uses
+them — so `class Test` worked perfectly *inside* one block and failed *across* two. A rule that
+holds in the small case and breaks in the large one is harder to learn than a rule that never works,
+because the first thing it teaches is wrong. And `class Foo` is not an exotic spelling; it is the
+one most people reach for.
+
+**`internal` names a boundary a code block cannot see.** There is no assembly here that a user
+chose, or could look at, or would want to draw a line around — the assemblies are an implementation
+detail of how a graph gets compiled. So a declared type is emitted `public`, and a block that
+writes `internal` gets what it plainly meant rather than a lecture about a wall it did not know
+existed.
+
+**A text edit rather than a syntax rewrite**, so the line count cannot move: the declaration is
+re-emitted verbatim into a file whose map is a line map, and only the columns on the one line the
+word sits on shift — the trade `N122` already records, and a test asserts that a diagnostic inside a
+promoted class still lands on the user's own line.
+
+**The insertion point is the part that fails quietly.** `public` at offset zero turns
+`[Obsolete] class C` into `public [Obsolete] class C`, which does not compile at all — so it goes
+before the first modifier when there is one and before the type *keyword* when there is not, and an
+enum is not a `TypeDeclarationSyntax` so its keyword is fetched differently. Both are covered.
+
+**Both emitters share the helper** — the shared assembly and `E6-T34`'s per-block fallback — because
+a graph drops to the second whenever the shared compile fails, and two emitters disagreeing about
+what a block's own types are called would make that fallback change *behaviour* rather than only
+scope.
+
+**Verified.** The three gates — clean build with zero warnings, format clean, **2832** tests green
+over nine executables with zero skips. Eleven new cases: every spelling (`class`, `internal class`,
+`public class`, `static class`, `internal static class`, `sealed partial class`,
+`[Obsolete] class`), every kind (`record`, `struct`, `enum`), and the line-preservation assertion.
+**One of them failed for the right reason and was the test's fault**: `[Obsolete] class Helper`
+produces `CS0612: 'Helper' is obsolete` at the use site, which is the compiler agreeing it found the
+type — the assertion now reads errors rather than everything. **And in the application**, with the
+client's own pair: both blocks clean, `test.GetCircle(2.0)` evaluated, one object in the scene, no
+diagnostics.
+
+**Cost.** Half an hour, most of it on the seven-case theory.

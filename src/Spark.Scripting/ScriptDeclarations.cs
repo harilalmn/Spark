@@ -168,7 +168,7 @@ public sealed class ScriptDeclarations
                     Normalise(script),
                     ScriptDeclarationSpans.LineAt(blanked, span.Start),
                     span.Start - ScriptDeclarationSpans.StartOfLine(blanked, span.Start),
-                    blanked[span.Start..span.End]));
+                    ScriptDeclarationSpans.Published(blanked[span.Start..span.End])));
             }
         }
 
@@ -426,6 +426,84 @@ internal static class ScriptDeclarationSpans
 
         return (new string(text), declarations);
     }
+
+    /// <summary>
+    /// A declaration's text with its accessibility promoted to <c>public</c> (`E6-T38`).
+    /// </summary>
+    /// <param name="declaration">The declaration, exactly as the user wrote it.</param>
+    /// <returns>The same text, reachable from another block.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Reported by the client</b>: <c>class Test{ … }</c> in one block and
+    /// <c>new Test()</c> in the next gave <c>CS0122: 'Test' is inaccessible due to its protection
+    /// level</c>. A type with no access modifier at namespace scope is <b>internal</b>, and
+    /// `E6-T35` compiles declarations into a different assembly from the block that uses them — so
+    /// it worked inside one block and not across two, which is the worst shape a rule can have.
+    /// And <c>class Foo</c> is not an edge case; it is how most people spell it.
+    /// </para>
+    /// <para>
+    /// <b><c>internal</c> has no meaning a code block can express.</b> There is no assembly here
+    /// that a user chose, or could see, or would want to draw a line around — the assemblies are an
+    /// implementation detail of how a graph is compiled. So a type a block declares is public,
+    /// whether or not it says so, and a block that writes <c>internal</c> gets what it plainly
+    /// meant rather than a lecture about a boundary it did not know existed.
+    /// </para>
+    /// <para>
+    /// <b>A text edit rather than a syntax rewrite</b>, so that the line count cannot move: the
+    /// declaration is re-emitted verbatim and `E6-T34`'s map is a line map. Only the columns on the
+    /// one line the word sits on shift, which is the trade
+    /// [N122](../../docs/NOTES.md) already records.
+    /// </para>
+    /// <para>
+    /// <b>The insertion point is not offset zero</b>, and that is the part that would fail quietly:
+    /// <c>[Obsolete] class C</c> would become <c>public [Obsolete] class C</c>, which does not
+    /// compile. It goes before the first modifier when there is one, and before the type keyword
+    /// when there is not.
+    /// </para>
+    /// </remarks>
+    internal static string Published(string declaration)
+    {
+        MemberDeclarationSyntax? member = CSharpSyntaxTree
+            .ParseText(declaration)
+            .GetCompilationUnitRoot()
+            .Members
+            .FirstOrDefault();
+
+        if (member is null)
+        {
+            return declaration;
+        }
+
+        SyntaxTokenList modifiers = member.Modifiers;
+
+        if (modifiers.Any(SyntaxKind.PublicKeyword))
+        {
+            return declaration;
+        }
+
+        // `internal` and `file` are replaced where they stand; anything else - `static`, `sealed`,
+        // `abstract`, `partial`, or nothing at all - gains a `public` in front of it.
+        foreach (SyntaxToken modifier in modifiers)
+        {
+            if (modifier.IsKind(SyntaxKind.InternalKeyword) || modifier.IsKind(SyntaxKind.FileKeyword))
+            {
+                return declaration[..modifier.SpanStart] + "public" + declaration[modifier.Span.End..];
+            }
+        }
+
+        int at = modifiers.Count > 0 ? modifiers[0].SpanStart : Keyword(member);
+
+        return declaration[..at] + "public " + declaration[at..];
+    }
+
+    /// <summary>Where a declaration's own keyword starts, past any attribute lists.</summary>
+    private static int Keyword(MemberDeclarationSyntax member) => member switch
+    {
+        TypeDeclarationSyntax type => type.Keyword.SpanStart,
+        EnumDeclarationSyntax @enum => @enum.EnumKeyword.SpanStart,
+        DelegateDeclarationSyntax @delegate => @delegate.DelegateKeyword.SpanStart,
+        _ => member.SpanStart,
+    };
 
     /// <summary>The offset the line containing a position begins at.</summary>
     internal static int StartOfLine(string text, int position)

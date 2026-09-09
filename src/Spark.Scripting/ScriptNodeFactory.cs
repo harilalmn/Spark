@@ -1405,8 +1405,12 @@ public sealed class ScriptNodeFactory : IScriptNodeFactory
         {
             int start = Lines(source) + 1;
 
+            // `E6-T38`: public here as well as in the shared assembly. A graph falls back to this
+            // path whenever the shared compile fails, and two emitters that disagreed about what a
+            // block's own types are called would make that fallback change behaviour rather than
+            // only change scope.
             source.Append(' ', span.Start - ScriptDeclarationSpans.StartOfLine(blanked, span.Start))
-                .AppendLine(blanked[span.Start..span.End]);
+                .AppendLine(ScriptDeclarationSpans.Published(blanked[span.Start..span.End]));
 
             segments.Add(new ScriptSourceSegment(
                 start, ScriptDeclarationSpans.LineAt(blanked, span.Start), Lines(source) - start + 1));

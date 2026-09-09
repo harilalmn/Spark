@@ -274,6 +274,109 @@ public sealed class SharedDeclarationTests
             () => factory.Create(caller).Invoke([], CancellationToken.None));
     }
 
+    /// <summary>
+    /// <b>The client's report</b>: <c>class Test{ … }</c> with no access modifier, used from the
+    /// block beside it, answered <c>CS0122: 'Test' is inaccessible due to its protection level</c>.
+    /// A type with no modifier at namespace scope is <b>internal</b>, and the shared assembly is a
+    /// different assembly from the block using it — so it worked inside one block and not across
+    /// two, which is the worst shape a rule can have. `class Foo` is not an edge case; it is how
+    /// most people spell it.
+    /// </summary>
+    [Fact]
+    public void ATypeDeclaredWithoutPublicIsStillVisibleToOtherBlocks()
+    {
+        ScriptNodeFactory factory = Factory();
+
+        const string declares = """
+            class Test
+            {
+                public double Twice(double r) => r * 2;
+            }
+            var placed = 1;
+            """;
+
+        const string uses = "var doubled = new Test().Twice(21);";
+
+        Assert.True(factory.Share([declares, uses]));
+
+        Assert.Empty(factory.Diagnose(uses));
+        Assert.Equal(42.0, Assert.Single(factory.Create(uses).Invoke([], CancellationToken.None)));
+    }
+
+    /// <summary>
+    /// <b>Every spelling reaches the other block</b>, and the shapes here are the ones where the
+    /// promotion could go wrong quietly. <c>[Obsolete] class C</c> is the one that matters most: a
+    /// <c>public</c> inserted at offset zero would produce <c>public [Obsolete] class C</c>, which
+    /// does not compile at all.
+    /// </summary>
+    [Theory]
+    [InlineData("class Helper { public static double Twice(double x) => x * 2; }")]
+    [InlineData("internal class Helper { public static double Twice(double x) => x * 2; }")]
+    [InlineData("public class Helper { public static double Twice(double x) => x * 2; }")]
+    [InlineData("static class Helper { public static double Twice(double x) => x * 2; }")]
+    [InlineData("internal static class Helper { public static double Twice(double x) => x * 2; }")]
+    [InlineData("sealed partial class Helper { public static double Twice(double x) => x * 2; }")]
+    [InlineData("[System.Obsolete] class Helper { public static double Twice(double x) => x * 2; }")]
+    public void EverySpellingOfADeclarationReachesTheOtherBlock(string declaration)
+    {
+        ScriptNodeFactory factory = Factory();
+
+        const string uses = "var doubled = Helper.Twice(21);";
+
+        _ = factory.Share([declaration + "\nvar placed = 1;", uses]);
+
+        Assert.True(factory.Declarations.IsShared, "The shared assembly did not build.");
+
+        // Errors only: `[Obsolete] class Helper` is reachable *and* warns about being obsolete,
+        // and the warning is the compiler agreeing that it found the type.
+        Assert.DoesNotContain(factory.Diagnose(uses), diagnostic => diagnostic.IsError);
+        Assert.Equal(42.0, Assert.Single(factory.Create(uses).Invoke([], CancellationToken.None)));
+    }
+
+    /// <summary>
+    /// <b>A record, a struct and an enum are promoted too</b> — the keyword the insertion goes in
+    /// front of is different for each, and an enum is not a <c>TypeDeclarationSyntax</c> at all.
+    /// </summary>
+    [Theory]
+    [InlineData("record Pair(double A, double B);", "var got = new Pair(42, 0).A;")]
+    [InlineData("struct Pair { public double A; }", "var got = new Pair { A = 42 }.A;")]
+    [InlineData("enum Side { Left = 42 }", "var got = (double)Side.Left;")]
+    public void EveryKindOfDeclarationIsPromoted(string declaration, string uses)
+    {
+        ScriptNodeFactory factory = Factory();
+
+        _ = factory.Share([declaration + "\nvar placed = 1;", uses]);
+
+        Assert.True(factory.Declarations.IsShared, "The shared assembly did not build.");
+        Assert.Equal(42.0, Assert.Single(factory.Create(uses).Invoke([], CancellationToken.None)));
+    }
+
+    /// <summary>
+    /// <b>The promotion does not move a line</b>, which is what lets it be a text edit at all: the
+    /// declaration is re-emitted verbatim into a file whose map is a line map, so a diagnostic
+    /// inside a promoted class must still land where the user wrote it.
+    /// </summary>
+    [Fact]
+    public void PromotingADeclarationDoesNotMoveItsLines()
+    {
+        ScriptNodeFactory factory = Factory();
+
+        const string broken = """
+            var a = 1;
+            internal class Helper
+            {
+                public static double Twice(double x) => nope;
+            }
+            """;
+
+        _ = factory.Share(["var b = 2;", broken]);
+
+        ScriptDiagnostic error = Assert.Single(
+            factory.Declarations.Diagnostics(broken), diagnostic => diagnostic.IsError);
+
+        Assert.Equal(4, error.Line);
+    }
+
     /// <summary>Reads the one public field off whatever the block returned.</summary>
     private static object? Field(object? made) =>
         made?.GetType().GetField("Value")?.GetValue(made);
