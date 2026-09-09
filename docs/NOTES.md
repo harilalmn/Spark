@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-09 (N133: changing where a package installs)
+**Last updated:** 2026-09-09 (N134: a platform-neutral target framework)
 
 ---
 
@@ -3999,3 +3999,37 @@ reads the same directory. Both defects were invisible to every existing test bec
 were correct about their own half; what was missing was the statement that they are reading the same
 layout. That is why the two tests added for this are about the **folder**, not about either
 component: what an install writes is what a graph opened on another machine finds.
+
+---
+
+## N134 — A platform-neutral target framework asks the wrong question at run time
+
+`Nice3point.Revit.Api.RevitAPI` ships its assembly in `ref/net10.0-windows7.0/`. Spark's own target
+framework is `net10.0`, with no platform. NuGet's answer to *may a `net10.0` project use a
+`net10.0-windows` asset* is **no**, and NuGet is right: that project might be built for Linux, and
+the asset would not work there.
+
+**But that is a question about a compilation, and this is not one.** Spark is not deciding what a
+portable project may reference; it is a process that has already started, on an operating system
+that is already known. A Windows-specific assembly loads and works in it. Asking NuGet with the
+platform-neutral framework was asking about a hypothetical future build rather than about the
+running program.
+
+So `PackageFrameworks.Current` is the build's framework **plus the platform the process is on** —
+`net10.0-windows` on Windows, unchanged elsewhere. It stays a real constraint rather than a bypass:
+a `-windows` asset is still refused on Linux, and `-android` and `-ios` are refused everywhere.
+
+**Two more things this cost, and both are the same mistake as [N77](#n77--every-package-test-passed-and-no-real-package-could-be-installed).**
+`GraphPackages` had its own hand-written framework ranking, parsing everything after `net` as a
+number — which reads `10.0-windows7.0` as nothing and refuses the package. Its own doc comment said
+the ranking was crude and that real compatibility is NuGet's resolver; it is deleted now, and both
+callers share one rule. And nothing looked in `ref/` at all, though a compile-time-only folder is
+exactly what a CAD API package is and exactly what a code block needs.
+
+**Every fixture in the layer built `lib/` with a bare `netN.0` moniker**, so all three defects were
+invisible to a green suite — the third time this repository has learned that a helper which
+constructs the subject in the convenient shape hides every defect living in the difference.
+
+**The lesson, stated as a rule:** when a question has a correct answer from a package manager and a
+correct answer from the running process, work out which of the two you are actually asking. Both
+answers here were right; only one of them was to the question at hand.

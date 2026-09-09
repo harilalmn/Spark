@@ -1,6 +1,6 @@
 # Writing and publishing a Spark package
 
-**Owner:** `scripting` · **Last updated:** 2026-09-09 · `E7-T1`, `E7-T2`, `E7-T22`
+**Owner:** `scripting` · **Last updated:** 2026-09-09 · `E7-T1`, `E7-T2`, `E7-T22`, `E7-T23`
 
 This is the guide for anyone building a node library and putting it on nuget.org. It lives here
 rather than under `docs/help/` for the same reason [HELP-AUTHORING.md](HELP-AUTHORING.md) does:
@@ -129,6 +129,14 @@ Target `net10.0`, which is what Spark runs on. Older targets down to `net5.0` an
 `netstandard2.0`/`2.1` are accepted; `net472` and other .NET Framework monikers are **not** — a
 `net472` assembly may load on .NET 10 and may not, and guessing wrong is a type-load failure at run
 time rather than a message.
+
+**Platform-specific monikers work**: `net10.0-windows` and `net8.0-windows` are accepted on Windows,
+because the process resolving them is already running there. `-android` and `-ios` are not.
+
+**`ref/` counts as well as `lib/`.** NuGet's `lib` is compile-and-run; `ref` is compile-only, which
+is what a package whose implementation comes from a host at run time ships — every CAD API package
+is this shape. Spark reads `lib` when it is there and falls back to `ref`, so a reference-only
+package is usable for writing code against.
 
 ---
 

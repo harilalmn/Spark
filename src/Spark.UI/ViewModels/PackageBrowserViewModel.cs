@@ -466,8 +466,20 @@ public sealed partial class PackageBrowserViewModel : ObservableObject
     {
         if (added.Count == 0)
         {
-            return identity + " was added, but it carries no assembly this build can use. Its "
-                + "'lib' folder may target a framework Spark does not run on.";
+            // `E7-T23`: NAME WHAT THE PACKAGE HAS, NOT WHAT IT WAS GUESSED TO HAVE.
+            //
+            // This used to say "its 'lib' folder may target a framework Spark does not run on",
+            // which was wrong twice over for the package the client tried: it has no 'lib' folder,
+            // and its target is the framework Spark does run on. A refusal that guesses sends
+            // somebody looking in the wrong place.
+            IReadOnlyList<string> offered = GraphPackages.FrameworksOffered(GraphPath!, identity);
+
+            return offered.Count == 0
+                ? identity + " was added, but it carries no assembly at all - no 'lib' or 'ref' "
+                    + "folder and no .dll beside them. It may be a metadata-only package."
+                : identity + " was added, but none of its assemblies are for this build. It offers "
+                    + string.Join(", ", offered) + ", and Spark is "
+                    + PackageFrameworks.Current.GetShortFolderName() + ".";
         }
 
         Spark.Scripting.ReferenceCatalog? catalogue = _catalogue();

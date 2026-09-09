@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — `E8-T78` is committed and the gates are green at 2903.** `Ctrl+S` saves to the file the document already has, with no dialog and the status bar naming what it wrote; `Ctrl+Shift+S` is **Save as…** and always asks. **The fix uncovered a worse bug than the one reported**: *New* and the four demo graphs replaced the document without clearing its path, so a silent `Ctrl+S` after *New* would have written a blank canvas over the file open a moment earlier. Cleared in `AdoptGraph` now, with undo and redo deliberately keeping the path. |
+| **Working on** | **Nothing — `E7-T23` is committed and the gates are green at 2908.** The client's Revit package is found: `ref/` is read as well as `lib/`, the hand-written framework ranking is gone in favour of NuGet's own resolver shared with `PackageLoadContext`, and the framework we resolve against now carries the platform the process is running on ([N134](NOTES.md#n134--a-platform-neutral-target-framework-asks-the-wrong-question-at-run-time)). **Verified against the client's own folder on disk**, not only fixtures. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **Save and Save as… are two commands** — `E8-T78`, with `E8-T79` raised for the modified marker it deliberately does not have. **Before it:** `E7-T22`, `E7-T21` and [N133](NOTES.md#n133--changing-where-a-package-installs-changes-who-else-has-to-read-that-folder), `E7-T18`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2903** tests green over ten executables with zero skips, with the native shim built. |
-| **Next action** | **`E7-T17` — the record in the file**, which is where the queue was before the client's two reports interrupted it. It is what makes *fail loudly with a named list* possible: a graph whose `<name>.packages` folder has less in it than it did is not missing anything as far as the loader can tell, so the user gets a compile error naming a **type** rather than a message naming the **package**. Format version 5, so `E7-T7`'s byte-identical round trip has to be **re-proved rather than assumed**. **`E8-T79` is the other candidate** and is worth taking first if the client would rather have a modified marker and a warning before *New* discards work than the package record — it is the smaller of the two and it closes a gap a user meets daily. |
-| **Verify with** | The three gates, plus — for `E7-T17` — a graph naming a package that is not beside it opens, says which package is missing **by name**, keeps every key, literal and wire, and **re-saves byte for byte**; a graph with its folder intact says nothing; and a file written by format 4 still opens. Plus a run of the app. |
+| **Last completed step** | **A package in `ref/`, and a framework with a platform on it** — `E7-T23` and [N134](NOTES.md#n134--a-platform-neutral-target-framework-asks-the-wrong-question-at-run-time). **Before it:** `E8-T78`, `E7-T22`, `E7-T21`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2908** tests green over ten executables with zero skips, with the native shim built. |
+| **Next action** | **Ask the client what they are doing with the Revit API before building more for it.** They can now add it and write code against Revit types — and **a code block cannot call Revit**, because Spark is not running inside it: `RevitAPI.dll` is shipped in `ref/` precisely because Revit supplies the implementation, and anything needing a `Document` has no host to get one from. Referencing it is genuinely useful for authoring types and signatures; expecting it to run is the embedding story, `E12-T2`/`E12-T4`, moved past 1.0 by [D20](PRD.md#13-decision-log). **Telling them before they find out is the whole of the next action.** Otherwise the queue is `E7-T17`, the record in the file, and `E8-T79`, the modified marker. |
+| **Verify with** | For whatever is taken next. For `E7-T17`: a graph naming a package that is not beside it opens, says which package is missing **by name**, keeps every key, literal and wire, and **re-saves byte for byte**. For `E8-T79`: the title marks a modified document, the mark clears on save, and *New* over unsaved work asks first. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -9605,3 +9605,46 @@ tests, zero failures, zero skips, with the native shim built.
 real storage provider, so *no dialog appeared* is not asserted anywhere — the tests assert the
 question that decides it, which is whether the document knows its file. The application was launched
 and the menu checked, but pressing `Ctrl+S` over a real file is the client's confirmation to give.
+
+### 2026-09-09 — A package in `ref/`, and a framework with a platform on it (`E7-T23`)
+
+**Reported by the client with a screenshot**, in the middle of a conversation about supporting
+.NET 8 — and .NET 8 had nothing to do with it. Adding `Nice3point.Revit.Api.RevitAPI 2027.2.0` said
+*it carries no assembly this build can use. Its 'lib' folder may target a framework Spark does not
+run on.* **Wrong on both counts.** The package has no `lib` folder, and its target is `net10.0`,
+which is exactly what Spark runs on.
+
+**What the package actually is**, read off the client's own disk rather than guessed:
+`ref/net10.0-windows7.0/RevitAPI.dll`, 34 MB, no `lib` anywhere, no `ReferenceAssemblyAttribute`.
+
+**Three defects, and the third is the interesting one.** *One*: `ref` is NuGet's compile-time-only
+folder and nothing looked in it — but a graph library exists to **compile** code blocks against, and
+a package whose implementation comes from a host at run time is exactly the shape of every CAD API
+package. `lib` still wins when both are present, because it is the copy that also runs. *Two*:
+`GraphPackages.Rank` parsed everything after `net` as a number, so `10.0-windows7.0` read as nothing.
+**Deleted rather than patched** — its own doc comment said real compatibility is NuGet's resolver and
+not worth reimplementing, `PackageLoadContext` already used `FrameworkReducer`, and two rules for one
+question is how they drift.
+
+**Three: the platform, which is the part worth remembering** —
+[N134](NOTES.md#n134--a-platform-neutral-target-framework-asks-the-wrong-question-at-run-time).
+Fixing the first two is not enough, because NuGet still refuses: a `net10.0-windows` asset is **not**
+compatible with a platform-neutral `net10.0` project, and NuGet is right — that project might be
+built for Linux. **But that is a question about a compilation and this is not one.** Spark is a
+process that has already started, on an operating system that is already known. So the framework we
+resolve against is the build's plus the platform it is running on. It stays a constraint rather than
+a bypass: `-windows` is still refused on Linux and `-android` everywhere. Both answers were right;
+only one was to the question being asked.
+
+**The fixtures hid all three, and this is the third time.** Every test in the layer built `lib/` with
+a bare `netN.0` moniker — the shape that already worked. [N77](NOTES.md) said this in the same layer
+about `dotnet pack`, `N133` said it about the graph folder, and the new tests are written from the
+real package's shape instead.
+
+**Verified against the client's own folder**, not only against fixtures: a throwaway probe pointed at
+`cylinder.packages` and reported `nice3point.revit.api.revitapi.2027.2.0 / RevitAPI.dll` with its
+hash, then was deleted. Five new tests, the three gates, ten executables, **2908** tests, zero
+failures, zero skips.
+
+**And the message now names what it saw** — the folders the package offers and the framework Spark
+is — instead of naming a folder the package does not have.

@@ -173,77 +173,46 @@ public sealed class GraphPackages
                      .ThenBy(a => a.Path, StringComparer.OrdinalIgnoreCase)]);
     }
 
-    /// <summary>The assemblies one package folder offers, preferring its best framework.</summary>
+    /// <summary>
+    /// The framework folders one installed package carries, for a message to a user who got
+    /// nothing usable out of it (`E7-T23`).
+    /// </summary>
+    /// <param name="graphPath">The <c>.spark</c> file's path.</param>
+    /// <param name="identity">The package that was installed beside it.</param>
+    /// <returns>Folders such as <c>lib/net472</c>, or an empty list when it carries none.</returns>
+    /// <exception cref="ArgumentException"><paramref name="graphPath"/> is null or blank.</exception>
+    public static IReadOnlyList<string> FrameworksOffered(string graphPath, PackageIdentity identity)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(graphPath);
+
+        return PackageFrameworks.FrameworksOffered(
+            Path.Combine(FolderFor(graphPath), identity.FolderName));
+    }
+
+    /// <summary>The assemblies one package folder offers, for the framework this build is.</summary>
     /// <remarks>
     /// <para>
     /// <b>A NuGet package carries one copy per target framework and only one of them may be
-    /// loaded.</b> Taking every <c>.dll</c> under <c>lib/</c> would offer the same type several
-    /// times over and pick whichever the loader saw first.
+    /// used.</b> Taking every <c>.dll</c> under <c>lib/</c> would offer the same type several times
+    /// over and pick whichever the loader saw first.
     /// </para>
     /// <para>
-    /// <b>The ranking is deliberately crude, and says so.</b> Real framework compatibility is
-    /// NuGet's own resolver and it is not worth reimplementing here: this prefers the highest
-    /// <c>netN.0</c> that is not newer than what Spark runs on, then <c>netstandard</c>, and a
-    /// package that offers neither falls back to whatever <c>.dll</c> files it has at its root —
-    /// which is exactly the hand-assembled folder this also has to support.
+    /// <b>The choice is <see cref="PackageFrameworks"/>'s, which is NuGet's own resolver</b>
+    /// (`E7-T23`). This method used to rank framework folders by hand, with a comment admitting the
+    /// ranking was crude and that real compatibility is NuGet's job. It then met
+    /// <c>ref/net10.0-windows7.0</c> — a package targeting the exact framework Spark runs on — and
+    /// refused it, because the hand-written parse read everything after <c>net</c> as a number.
     /// </para>
     /// </remarks>
     private static IEnumerable<string> AssembliesIn(string package)
     {
-        string lib = Path.Combine(package, "lib");
-
-        if (Directory.Exists(lib))
+        foreach (string folder in PackageFrameworks.AssemblyFoldersIn(package))
         {
-            string? best = Directory.EnumerateDirectories(lib)
-                .Select(directory => (Directory: directory, Rank: Rank(Path.GetFileName(directory))))
-                .Where(candidate => candidate.Rank > 0)
-                .OrderByDescending(candidate => candidate.Rank)
-                .Select(candidate => candidate.Directory)
-                .FirstOrDefault();
-
-            if (best is not null)
+            foreach (string file in Directory.EnumerateFiles(folder, "*.dll", SearchOption.TopDirectoryOnly))
             {
-                return Directory.EnumerateFiles(best, "*.dll", SearchOption.TopDirectoryOnly);
+                yield return file;
             }
         }
-
-        return Directory.EnumerateFiles(package, "*.dll", SearchOption.TopDirectoryOnly);
-    }
-
-    /// <summary>How much this build would rather have one target framework than another.</summary>
-    private static int Rank(string? moniker)
-    {
-        if (string.IsNullOrEmpty(moniker))
-        {
-            return 0;
-        }
-
-        string tfm = moniker.ToLowerInvariant();
-
-        // `net10.0` down to `net5.0`: newer is better, and anything newer than this build runs on
-        // is refused rather than ranked, because it may use runtime features that are not here.
-        if (tfm.StartsWith("net", StringComparison.Ordinal)
-            && double.TryParse(
-                tfm.AsSpan(3),
-                System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out double version)
-            && version is >= 5 and <= 10)
-        {
-            return 1000 + (int)(version * 10);
-        }
-
-        return tfm switch
-        {
-            "netstandard2.1" => 500,
-            "netstandard2.0" => 400,
-
-            // .NET Framework monikers and anything unrecognised. A `net472` assembly may load on
-            // .NET 10 and may not, and guessing wrong is a type load failure at run time rather
-            // than a message; it is left out so the fallback below finds nothing rather than
-            // something broken.
-            _ => 0,
-        };
     }
 
     private static GraphAssembly Read(string path, string package)

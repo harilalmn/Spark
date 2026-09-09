@@ -251,35 +251,18 @@ public sealed class PackageLoadContext : AssemblyLoadContext
     /// </remarks>
     private static IEnumerable<string> FoldersOfOnePackage(string folder)
     {
-        string lib = Path.Combine(folder, "lib");
+        // `E7-T23`: the choice is `PackageFrameworks`', shared with `GraphPackages`, because two
+        // rules for one question is how they drift - and they had. The package folder itself stays
+        // on the list behind the chosen one, so a package that also puts a `.dll` beside its `lib`
+        // still resolves.
+        List<string> folders = [.. PackageFrameworks.AssemblyFoldersIn(folder)];
 
-        if (!Directory.Exists(lib))
+        if (!folders.Contains(folder, StringComparer.OrdinalIgnoreCase))
         {
-            return [folder];
+            folders.Add(folder);
         }
 
-        Dictionary<NuGetFramework, string> byFramework = [];
-
-        foreach (string candidate in SafeDirectories(lib))
-        {
-            NuGetFramework parsed = NuGetFramework.ParseFolder(Path.GetFileName(candidate));
-
-            if (!parsed.IsUnsupported)
-            {
-                byFramework[parsed] = candidate;
-            }
-        }
-
-        if (byFramework.Count == 0)
-        {
-            return [folder];
-        }
-
-        NuGetFramework? nearest = new FrameworkReducer().GetNearest(Current, byFramework.Keys);
-
-        return nearest is not null && byFramework.TryGetValue(nearest, out string? chosen)
-            ? [chosen, folder]
-            : [folder];
+        return folders;
     }
 
     private static IEnumerable<string> SafeDirectories(string folder)
@@ -294,16 +277,4 @@ public sealed class PackageLoadContext : AssemblyLoadContext
         }
     }
 
-    /// <summary>
-    /// The framework this build of Spark is, as NuGet names it.
-    /// </summary>
-    /// <remarks>
-    /// Read from <see cref="AppContext.TargetFrameworkName"/> rather than hardcoded, so a Spark
-    /// retargeted to a later framework starts preferring that package folder without anybody
-    /// remembering to come back here.
-    /// </remarks>
-    private static NuGetFramework Current { get; } =
-        AppContext.TargetFrameworkName is { Length: > 0 } name
-            ? NuGetFramework.Parse(name)
-            : NuGetFramework.Parse("net10.0");
 }
