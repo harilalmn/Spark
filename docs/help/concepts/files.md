@@ -144,6 +144,26 @@ silently dropping whatever it did not recognise.
 
 ---
 
+## Saving
+
+**`Ctrl+S` saves.** If the graph came from a file, it writes straight back to that file — no dialog,
+and the status bar names what it wrote. If the graph has never been saved, `Ctrl+S` asks where to
+put it, because that is a question with no answer yet.
+
+**`Ctrl+Shift+S` is Save as…**, which always asks and then makes the file you chose the one the
+graph belongs to.
+
+**New and the demo graphs are different documents**, so they forget the file you had open. A
+`Ctrl+S` straight after **File ▸ New** asks where to save rather than writing an empty canvas over
+the graph you were just editing. Undo and redo are not new documents and keep the file, so a save
+after undoing goes where it always did.
+
+**There is no unsaved-changes marker and nothing warns you before discarding work.** New and Open
+replace the document without asking. That is a known gap rather than an intention — Spark does not
+track whether a document has been modified yet.
+
+---
+
 ## The folder beside the file
 
 A graph that needs a library carries it in a folder named after the file, beside the file:

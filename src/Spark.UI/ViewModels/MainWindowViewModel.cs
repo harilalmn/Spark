@@ -415,10 +415,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             try
             {
                 opened = CanvasDocument.Open(File.ReadAllText(startupDocumentPath), _session.Library, _session.Scripts);
-
-                // A document named on the command line is a saved graph like any other, and the
-                // startup path does not go through TryOpenDocument (`E7-T18`).
-                GraphPath = startupDocumentPath;
             }
             catch (SparkFileException error)
             {
@@ -457,6 +453,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         AdoptGraph(_graph);
+
+        // A document named on the command line is a saved graph like any other, and the startup
+        // path does not go through TryOpenDocument (`E7-T18`). It is set *after* the adopt above,
+        // which clears it — a document being replaced forgets its file (`E8-T78`).
+        if (opened is not null)
+        {
+            NoteGraphPath(startupDocumentPath);
+        }
 
         if (failure is not null)
         {
@@ -2561,6 +2565,20 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private void AdoptGraph(CanvasGraph graph, bool evaluate = true, bool resetHistory = true)
     {
         _graph = graph;
+
+        // `E8-T78`: A DIFFERENT DOCUMENT IS NOT SAVED WHERE THE LAST ONE WAS.
+        //
+        // Every caller that passes `resetHistory: true` is replacing the document - New, the four
+        // demos, a file being opened, the benchmark graph - and the path has to go with it.
+        // `TryOpenDocument` sets the new one immediately after this returns. **Undo and redo pass
+        // `false` and keep the path**, because undoing an edit does not change which file you are
+        // editing. Without this, Save became silent (`E8-T78`) and New-then-Ctrl+S would have
+        // written a blank canvas over the file the user had open a moment earlier, with no dialog
+        // and nothing to notice.
+        if (resetHistory)
+        {
+            NoteGraphPath(null);
+        }
 
         // `E6-T6`: the canvas re-types a code block as it is wired up, and it needs the factory to
         // do it. Null when scripting is off, which is exactly when it must not reach for Roslyn.

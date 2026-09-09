@@ -143,7 +143,9 @@
         <MenuItem Header="_File">
           <MenuItem Header="_New" InputGesture="Ctrl+N" Click="OnNewGraph" />
           <MenuItem Header="_Open…" InputGesture="Ctrl+O" Click="OnOpenGraph" />
-          <MenuItem Header="_Save as…" InputGesture="Ctrl+S" Click="OnSaveGraph" />
+          <!-- E8-T78: Save writes where the file already is; Save as… is the one that asks. -->
+          <MenuItem Header="_Save" InputGesture="Ctrl+S" Click="OnSaveGraph" />
+          <MenuItem Header="Save _as…" InputGesture="Ctrl+Shift+S" Click="OnSaveGraphAs" />
           <Separator />
           <!-- E8-T69, E9-T15: a picture and a solid, each at a resolution or a format the user
                chooses. -->

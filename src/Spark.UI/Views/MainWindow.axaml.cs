@@ -191,7 +191,15 @@ public sealed partial class MainWindow : Window
         _dock.Apply(model.Layout);
 
         Viewport.Scene = model.Scene;
-        model.GraphReplaced += (_, _) => BindGraph(frame: true);
+        model.GraphReplaced += (_, _) =>
+        {
+            // `E8-T78`: the view's copy of the path follows the model's, which the model clears
+            // whenever the document is replaced. A stale copy here would send a silent Save to the
+            // file the *previous* document came from.
+            _documentPath = model.GraphPath;
+            UpdateTitle();
+            BindGraph(frame: true);
+        };
 
         // Undo rebinds without reframing. A canvas that re-zooms on every Ctrl+Z makes a step
         // backwards feel like a document load, and the user loses their place in their own graph.
@@ -941,6 +949,7 @@ public sealed partial class MainWindow : Window
                 // The view model was told the origin above and records the path itself; this field
                 // is the dialog's memory of what to suggest next time.
                 _documentPath = chosen[0].TryGetLocalPath();
+                UpdateTitle();
                 Canvas.ZoomToFit();
                 Viewport.ZoomToFit();
             }
@@ -957,11 +966,38 @@ public sealed partial class MainWindow : Window
     private async void OnSaveGraph(object? sender, RoutedEventArgs e) =>
         await SaveGraphAsync().ConfigureAwait(true);
 
+    private async void OnSaveGraphAs(object? sender, RoutedEventArgs e) =>
+        await SaveGraphAsync(askWhere: true).ConfigureAwait(true);
+
     /// <summary>
-    /// The save itself, awaitable, so the Packages window's refusal can wait for it
-    /// (<c>E7-T18</c>).
+    /// Saves the document, awaitable so the Packages window's refusal can wait for it
+    /// (<c>E7-T18</c>, <c>E8-T78</c>).
     /// </summary>
-    private async Task SaveGraphAsync()
+    /// <param name="askWhere">
+    /// True for <b>Save as…</b>, which always asks. False for <b>Save</b>, which asks only when the
+    /// document has no file yet.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// <b>Reported by the client: there was no Save at all.</b> One menu item, <i>Save as…</i>, was
+    /// bound to <c>Ctrl+S</c> and always opened the picker — so saving a file you opened five
+    /// seconds ago meant a dialog, a path to re-confirm, and a chance to put the file somewhere
+    /// else by accident. That is the opposite of what <c>Ctrl+S</c> means in every other
+    /// application, and it got worse with <c>E7-T18</c>, which tells a user to save before the
+    /// Packages tab will work.
+    /// </para>
+    /// <para>
+    /// <b>One write, two commands.</b> The difference between them is a single question — <i>do we
+    /// already know where this goes</i> — and duplicating the write to answer it twice would be two
+    /// places to keep in step with where the graph lives.
+    /// </para>
+    /// <para>
+    /// <b>A silent save still says something.</b> A save that shows no dialog and reports nothing is
+    /// indistinguishable from a save that did not happen, so the status bar names the file that was
+    /// written.
+    /// </para>
+    /// </remarks>
+    private async Task SaveGraphAsync(bool askWhere = false)
     {
         if (Model is not { } model)
         {
@@ -973,7 +1009,43 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        IStorageFile? target = await StorageProvider.SaveFilePickerAsync(
+        string? target = askWhere || string.IsNullOrWhiteSpace(_documentPath)
+            ? await AskWhereToSaveAsync().ConfigureAwait(true)
+            : _documentPath;
+
+        if (string.IsNullOrWhiteSpace(target))
+        {
+            return;
+        }
+
+        try
+        {
+            // Written through the file system rather than through the picker's stream, because
+            // Save has no picker to get a stream from. `WriteAllTextAsync` truncates, which is what
+            // saving over a longer previous version needs - an opened stream that is not truncated
+            // leaves the tail of the old file behind it.
+            await File.WriteAllTextAsync(target, text).ConfigureAwait(true);
+
+            _documentPath = target;
+
+            // The graph has a file now, so a Packages window that was refusing stops refusing
+            // (`E7-T18`) - on the window already open, rather than on the next one.
+            model.NoteGraphPath(_documentPath);
+            model.StatusText = "Saved to " + Path.GetFileName(target) + ".";
+            UpdateTitle();
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            model.ReportFailure($"That file could not be written: {error.Message}");
+        }
+
+        UpdateStatus();
+    }
+
+    /// <summary>Asks where the graph should go, and returns the path or null.</summary>
+    private async Task<string?> AskWhereToSaveAsync()
+    {
+        IStorageFile? chosen = await StorageProvider.SaveFilePickerAsync(
             new FilePickerSaveOptions
             {
                 Title = "Save graph",
@@ -982,29 +1054,23 @@ public sealed partial class MainWindow : Window
                 FileTypeChoices = [GraphFileType],
             }).ConfigureAwait(true);
 
-        if (target is null)
-        {
-            return;
-        }
-
-        try
-        {
-            await using Stream stream = await target.OpenWriteAsync().ConfigureAwait(true);
-            await using StreamWriter writer = new(stream);
-            await writer.WriteAsync(text).ConfigureAwait(true);
-            _documentPath = target.TryGetLocalPath();
-
-            // The graph has a file now, so a Packages window that was refusing stops refusing
-            // (`E7-T18`) - on the window already open, rather than on the next one.
-            model.NoteGraphPath(_documentPath);
-        }
-        catch (IOException error)
-        {
-            model.ReportFailure($"That file could not be written: {error.Message}");
-        }
-
-        UpdateStatus();
+        return chosen?.TryGetLocalPath();
     }
+
+    /// <summary>
+    /// Puts the open document's file name in the title bar (<c>E8-T78</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>The file name, not the full path.</b> A title is read at a glance and a path pushes the
+    /// only word that identifies the document off the end of a taskbar button. <b>There is no
+    /// modified marker</b>, and there deliberately is not one yet: nothing tracks whether the
+    /// document has unsaved changes, and a title that showed a dot without something to drive it
+    /// would be a lie in one direction or the other.
+    /// </remarks>
+    private void UpdateTitle() =>
+        Title = string.IsNullOrWhiteSpace(_documentPath)
+            ? "Spark"
+            : Path.GetFileName(_documentPath) + " — Spark";
 
     /// <summary>
     /// The file type the image exports offer (<c>E8-T69</c>).
@@ -1200,6 +1266,15 @@ public sealed partial class MainWindow : Window
 
     private void OnOpened(object? sender, EventArgs e)
     {
+        // A document named on the command line is already open by the time the window is, and no
+        // `GraphReplaced` was raised for it (`E8-T78`).
+        if (Model is { GraphPath: { } startup })
+        {
+            _documentPath = startup;
+        }
+
+        UpdateTitle();
+
         // Before anything asks for a frame: the switch has to be in place before the first GL
         // callback, or a context is created and then abandoned.
         Viewport.ForceSoftwareRenderer = Options.ForceSoftwareRenderer;

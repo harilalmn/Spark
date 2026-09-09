@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — `E7-T22` is committed.** [PACKAGE-AUTHORING.md](PACKAGE-AUTHORING.md) is the answer to the client's question and it says what does not exist as loudly as what does: no template, no `spark pack`, and **no fixture that packs a real project and installs it**, so the round trip works and is not guarded. |
+| **Working on** | **Nothing — `E8-T78` is committed and the gates are green at 2903.** `Ctrl+S` saves to the file the document already has, with no dialog and the status bar naming what it wrote; `Ctrl+Shift+S` is **Save as…** and always asks. **The fix uncovered a worse bug than the one reported**: *New* and the four demo graphs replaced the document without clearing its path, so a silent `Ctrl+S` after *New* would have written a blank canvas over the file open a moment earlier. Cleared in `AdoptGraph` now, with undo and redo deliberately keeping the path. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The package-authoring guide** — `E7-T22`. **Before it:** `E7-T21` and [N133](NOTES.md#n133--changing-where-a-package-installs-changes-who-else-has-to-read-that-folder), `E7-T18`, `E6-T39`. |
-| **Working tree** | Clean. Documentation only this step; the last full run was **2898** tests green over ten executables with zero skips. |
-| **Next action** | **The client reported a bug and it takes priority over `E7-T17`: there is no *Save*, only *Save as…*, and `Ctrl+S` on an already-opened file asks where to put it.** The menu has one item wired to `OnSaveGraph`, which always opens a `SaveFilePicker` — so the ordinary act of saving a file you opened five seconds ago is a dialog and a chance to put it somewhere else by accident. **`_documentPath` is already tracked** and `E7-T18` just made `MainWindowViewModel.GraphPath` authoritative, so the fix is: `Ctrl+S` writes to the known path when there is one and falls back to the picker when there is not, plus a separate **Save as…** on `Ctrl+Shift+S`. **The title bar should say which file and whether it is dirty**, or a silent save gives no feedback at all. Then `E7-T17`. |
-| **Verify with** | The three gates, plus: a graph opened from a file and saved with `Ctrl+S` shows **no dialog** and overwrites that file; a graph that has never been saved shows the picker; `Ctrl+Shift+S` always shows the picker and re-points the document at the new file; and a save through either path still lifts the Packages tab's refusal. Plus a run of the app. |
+| **Last completed step** | **Save and Save as… are two commands** — `E8-T78`, with `E8-T79` raised for the modified marker it deliberately does not have. **Before it:** `E7-T22`, `E7-T21` and [N133](NOTES.md#n133--changing-where-a-package-installs-changes-who-else-has-to-read-that-folder), `E7-T18`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2903** tests green over ten executables with zero skips, with the native shim built. |
+| **Next action** | **`E7-T17` — the record in the file**, which is where the queue was before the client's two reports interrupted it. It is what makes *fail loudly with a named list* possible: a graph whose `<name>.packages` folder has less in it than it did is not missing anything as far as the loader can tell, so the user gets a compile error naming a **type** rather than a message naming the **package**. Format version 5, so `E7-T7`'s byte-identical round trip has to be **re-proved rather than assumed**. **`E8-T79` is the other candidate** and is worth taking first if the client would rather have a modified marker and a warning before *New* discards work than the package record — it is the smaller of the two and it closes a gap a user meets daily. |
+| **Verify with** | The three gates, plus — for `E7-T17` — a graph naming a package that is not beside it opens, says which package is missing **by name**, keeps every key, literal and wire, and **re-saves byte for byte**; a graph with its folder intact says nothing; and a file written by format 4 still opens. Plus a run of the app. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -9556,3 +9556,52 @@ letting a reader find out three steps in.
 **Verified.** Every relative link resolves, checked against the filesystem as well as by the docs
 harness. No `csharp` fence was added anywhere the harness compiles them — the guide's fences are
 `json`, `xml` and `bash` — so `AllowedSkips` stays at three.
+
+### 2026-09-09 — Save and Save as… are two commands (`E8-T78`)
+
+**Reported by the client**, and the menu admitted it in one line: *there is no Save option in Spark,
+we have Save As only; a file opened, on pressing `Ctrl+S`, shows the dialog for Save As instead of
+saving.* One item, `_Save as…`, bound to `Ctrl+S`, wired to a handler that always opened a
+`SaveFilePicker`. Saving a file you opened five seconds ago meant a dialog, a path to re-confirm and
+a chance to put the file somewhere else by accident.
+
+**It had got worse three steps earlier without anybody noticing.** `E7-T18` makes the Packages tab
+tell a user to save before it will do anything, so the fix for one refusal was leaning on a gesture
+that was needlessly heavy.
+
+**One write, two commands.** The whole difference is *do we already know where this goes*, and
+duplicating the write to answer it twice would be two places to keep in step with where the graph
+lives. `Ctrl+S` writes to the known path silently; with no path it falls through to the picker,
+because a first save has a real question. `Ctrl+Shift+S` always asks.
+
+**The fix uncovered a worse bug than the one reported — and it was one the fix would have created.**
+`NewGraph` and the four demo loaders replace the document and **do not clear the path**, because
+nothing needed them to while every save asked where to go. Make `Ctrl+S` silent and *New* followed by
+`Ctrl+S` writes a blank canvas over the file that was open a moment earlier, with no dialog and
+nothing to notice. The path is now cleared in `AdoptGraph`, which is the one place every replacement
+passes through, and **undo and redo keep it** — they pass `resetHistory: false`, and undoing an edit
+does not change which file you are editing. `TryOpenDocument` sets the new path immediately after
+its own adopt, so the ordering does the right thing without a second rule.
+
+**That is the test that matters**, and it was watched going red with the clearing disabled:
+`ReplacingTheDocumentForgetsWhichFileItCameFrom`. The reported bug is a wiring change and the
+regression it invites is data loss, so the suite guards the second one hardest.
+
+**A silent save still says something**, or it is indistinguishable from a save that did not happen:
+the status bar names the file written, and the title bar carries the file name so a user can see
+which document they are in.
+
+**No modified marker, deliberately.** Nothing in Spark tracks whether a document has unsaved changes
+— `NewGraph`'s own doc comment has said so since `E8-T37`, and it is why *New* asks nothing before
+discarding work. A dot in the title with nothing driving it would be a lie in one direction or the
+other, so the title shows the file name and no marker, and `E8-T79` is on the register for the flag
+itself. The honest source is the undo history depth at each save rather than a flag set from every
+mutation site, because the flag is the version you forget to set somewhere.
+
+**Verified.** The three gates. Five new tests, one watched going red. Ten executables, **2903**
+tests, zero failures, zero skips, with the native shim built.
+
+**What the tests do not cover, stated rather than implied.** The picker lives in the view and needs a
+real storage provider, so *no dialog appeared* is not asserted anywhere — the tests assert the
+question that decides it, which is whether the document knows its file. The application was launched
+and the menu checked, but pressing `Ctrl+S` over a real file is the client's confirmation to give.
