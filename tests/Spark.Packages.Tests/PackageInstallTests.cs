@@ -69,8 +69,11 @@ public sealed class PackageInstallTests : IDisposable
     }
 
     /// <summary>
-    /// <b>A NuGet package that is not a Spark package is refused, and the message says what is
-    /// missing.</b> "It did not work" is not something a user can act on.
+    /// <b>A NuGet package with no manifest cannot be installed as a node package, and the message
+    /// says what to do instead.</b> "It did not work" is not something a user can act on — and
+    /// neither, `E7-T21` found, is a message that explains the convention which has just refused
+    /// you. The client read the old one and asked *why do we insist?*, which is the right reaction
+    /// to a rule stated with no way past it.
     /// </summary>
     [Fact]
     public async Task ANuGetPackageWithNoManifestIsRefusedWithAReason()
@@ -83,9 +86,30 @@ public sealed class PackageInstallTests : IDisposable
         SparkPackageException thrown = await Assert.ThrowsAsync<SparkPackageException>(
             () => Client().InstallAsync(identity, store, TestContext.Current.CancellationToken));
 
-        Assert.Contains("not a Spark package", thrown.Message, StringComparison.Ordinal);
+        // What is missing, and - the half the message used to lack - the way out.
         Assert.Contains(SparkPackageManifest.PathInPackage, thrown.Message, StringComparison.Ordinal);
+        Assert.Contains("Add as a library", thrown.Message, StringComparison.Ordinal);
         Assert.False(store.IsInstalled(identity));
+    }
+
+    /// <summary>
+    /// <b>The same package, added as a library, is not refused at all</b> (`E7-T21`). This is the
+    /// pair that matters: one package, two operations, and only one of them ever needed a manifest.
+    /// </summary>
+    [Fact]
+    public async Task TheSamePackageIsAcceptedAsALibrary()
+    {
+        PackageIdentity identity = PackageIdentity.Create("Acme.Plain", "1.0.0");
+        BuildPackage(identity, manifest: null);
+
+        PackageStore store = new(_store);
+
+        using PendingInstall pending = await Client()
+            .PrepareLibraryAsync(identity, store, TestContext.Current.CancellationToken);
+
+        Assert.True(pending.IsLibrary);
+        Assert.Null(pending.Manifest);
+        Assert.Equal(identity, pending.Identity);
     }
 
     /// <summary>A package built for a newer Spark is refused, naming both schema versions.</summary>

@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Metadata;
 using Microsoft.CodeAnalysis;
 
 namespace Spark.Scripting;
@@ -106,6 +107,11 @@ public sealed class ReferenceCatalog
 
     private Snapshot _current;
 
+    /// <summary>
+    /// The assemblies a user added by choice, whose namespaces are imported for them (`E7-T21`).
+    /// </summary>
+    private readonly HashSet<string> _libraries = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Creates a catalogue over the assemblies this process already has loaded.</summary>
     public ReferenceCatalog() => _current = Build([]);
 
@@ -145,7 +151,24 @@ public sealed class ReferenceCatalog
     {
         ArgumentNullException.ThrowIfNull(paths);
 
-        Snapshot replacement = Build(paths);
+        string[] extra = [.. paths];
+
+        // `E7-T21`: REMEMBERED SEPARATELY FROM THE SWEEP, BECAUSE ONLY THESE ARE IMPORTED.
+        //
+        // Everything else in the catalogue is whatever the process happens to have loaded - the
+        // whole of the framework included - and importing the namespaces of *that* would put every
+        // BCL namespace in front of every code block and make half the names in .NET ambiguous.
+        // A library the user chose is a different thing, and choosing it is the consent that makes
+        // importing it reasonable.
+        foreach (string path in extra)
+        {
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                _libraries.Add(Full(path));
+            }
+        }
+
+        Snapshot replacement = Build(extra);
         int added = replacement.References.Length - _current.References.Length;
 
         // One assignment of an immutable snapshot. A reader mid-compile keeps the one it started
@@ -376,10 +399,122 @@ public sealed class ReferenceCatalog
         bool nodes = byPath.Keys.Any(path =>
             string.Equals(Path.GetFileNameWithoutExtension(path), NodeLibrary, StringComparison.OrdinalIgnoreCase));
 
+        string[] imports = nodes ? [.. DefaultImports, .. NodeLibraryImports] : [.. DefaultImports];
+
         return new Snapshot(
             [.. byPath.Values],
-            nodes ? [.. DefaultImports, .. NodeLibraryImports] : [.. DefaultImports],
+            [.. imports, .. NamespacesOfLibraries(imports)],
             _current?.Version ?? 0);
+    }
+
+    /// <summary>
+    /// The namespaces of the libraries a user added, so a code block needs no <c>using</c>
+    /// (`E7-T21`).
+    /// </summary>
+    /// <param name="already">What is imported anyway, so nothing is offered twice.</param>
+    /// <returns>The namespaces, sorted, each appearing once.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Asked for by the client</b>: <i>I hope the user does not have to declare the using
+    /// statement to use the classes from the NuGet libraries installed.</i> Adding a library and
+    /// then being told its types do not exist is the ceremony the whole feature was meant to
+    /// remove.
+    /// </para>
+    /// <para>
+    /// <b>`E6-T30` is the reason this is not obviously safe, and the reason it is done anyway.</b>
+    /// That row found that importing <c>Spark.Nodes.Core</c> wholesale broke nine names against
+    /// <c>Spark.Geometry</c> — <c>Circle</c>, <c>Line</c>, <c>Plane</c> — and every block anybody
+    /// had written with them, so the fix was explicit aliases rather than a namespace import.
+    /// **Two things make this case different.** That import was automatic, for a library shipped
+    /// with Spark that nobody asked for; this one is a library the user went and fetched. And a
+    /// <c>using</c> is only an error where an ambiguous name is <i>actually used</i> — <c>CS0104</c>
+    /// lands on the line that uses it, in the block that uses it, which is ordinary C# and is what
+    /// a person adding a library to a project already expects.
+    /// </para>
+    /// <para>
+    /// <b>Public top-level types only.</b> A namespace whose types a block cannot name is a
+    /// namespace worth nothing in the prelude, and importing it only widens the surface a
+    /// collision can come from.
+    /// </para>
+    /// </remarks>
+    private IEnumerable<string> NamespacesOfLibraries(IEnumerable<string> already)
+    {
+        if (_libraries.Count == 0)
+        {
+            return [];
+        }
+
+        HashSet<string> seen = new(already, StringComparer.Ordinal);
+        SortedSet<string> found = new(StringComparer.Ordinal);
+
+        foreach (string path in _libraries)
+        {
+            foreach (string space in PublicNamespacesIn(path))
+            {
+                if (seen.Add(space))
+                {
+                    found.Add(space);
+                }
+            }
+        }
+
+        return found;
+    }
+
+    /// <summary>Reads the namespaces of an assembly's public types, without loading it.</summary>
+    /// <remarks>
+    /// <b>Metadata rather than reflection, because loading is the thing to avoid.</b>
+    /// <c>Assembly.Load</c> to ask a question about names would run module initialisers, pin the
+    /// file, and put a user's library in this process before anybody agreed to it. A metadata read
+    /// answers the same question and does none of that.
+    /// </remarks>
+    private static IEnumerable<string> PublicNamespacesIn(string path)
+    {
+        SortedSet<string> spaces = new(StringComparer.Ordinal);
+
+        try
+        {
+            using FileStream file = new(
+                path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            using System.Reflection.PortableExecutable.PEReader reader = new(file);
+
+            if (!reader.HasMetadata)
+            {
+                // A native DLL beside a managed one, which every package with a runtime component
+                // has. It is a reference to nothing and has no namespaces to offer.
+                return spaces;
+            }
+
+            System.Reflection.Metadata.MetadataReader metadata = reader.GetMetadataReader();
+
+            foreach (System.Reflection.Metadata.TypeDefinitionHandle handle in metadata.TypeDefinitions)
+            {
+                System.Reflection.Metadata.TypeDefinition type = metadata.GetTypeDefinition(handle);
+
+                if ((type.Attributes & System.Reflection.TypeAttributes.VisibilityMask)
+                    != System.Reflection.TypeAttributes.Public)
+                {
+                    continue;
+                }
+
+                string space = metadata.GetString(type.Namespace);
+
+                if (space.Length > 0)
+                {
+                    spaces.Add(space);
+                }
+            }
+        }
+        catch (Exception failure) when (failure is IOException
+            or UnauthorizedAccessException
+            or BadImageFormatException)
+        {
+            // Unreadable, mid-rebuild, or not a managed assembly at all. No namespaces rather than
+            // a failure: the reference itself is handled elsewhere and one that cannot be read
+            // will report itself there, on the user's own line.
+        }
+
+        return spaces;
     }
 
     private static string Full(string path)

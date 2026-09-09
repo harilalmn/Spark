@@ -29,7 +29,7 @@ public sealed class PendingInstall : IDisposable
         PackageIdentity identity,
         string staging,
         string destination,
-        SparkPackageManifest manifest,
+        SparkPackageManifest? manifest,
         PackageDisclosure disclosure)
     {
         Identity = identity;
@@ -45,8 +45,20 @@ public sealed class PendingInstall : IDisposable
     /// <summary>Where the files are while the decision is being made.</summary>
     public string StagingFolder { get; }
 
-    /// <summary>Its Spark manifest, already validated.</summary>
-    public SparkPackageManifest Manifest { get; }
+    /// <summary>
+    /// Its Spark manifest, already validated, or <see langword="null"/> when this is a library
+    /// rather than a node package (`E7-T21`).
+    /// </summary>
+    /// <remarks>
+    /// <b>Null is the whole difference between the two kinds of install.</b> A manifest names the
+    /// assemblies to reflect over for <c>[SparkNode]</c> types; a library is not being asked for
+    /// nodes, so there is nothing for one to say. <see cref="IsLibrary"/> is the question to ask
+    /// rather than testing this for null at each site.
+    /// </remarks>
+    public SparkPackageManifest? Manifest { get; }
+
+    /// <summary>Whether this is an ordinary .NET library rather than a Spark node package.</summary>
+    public bool IsLibrary => Manifest is null;
 
     /// <summary>What to tell the user before they agree.</summary>
     public PackageDisclosure Disclosure { get; }

@@ -248,7 +248,11 @@ public sealed class NuGetPackageClient
         PendingInstall pending = await PrepareAsync(identity, store, cancellationToken).ConfigureAwait(false);
 
         pending.Commit();
-        return pending.Manifest;
+
+        // Not null on this path: `PrepareAsync` throws when the manifest is absent, which is what
+        // makes this the *node package* install. `PrepareLibraryAsync` is the one that returns
+        // without one, and it is not reachable from here (`E7-T21`).
+        return pending.Manifest!;
     }
 
     /// <summary>The folder inside a package that holds the dependencies installed with it.</summary>
@@ -415,6 +419,73 @@ public sealed class NuGetPackageClient
     }
 
     /// <summary>
+    /// Downloads a package and its dependencies to reference from a code block, with no manifest
+    /// required (`E7-T21`).
+    /// </summary>
+    /// <param name="identity">The package and version.</param>
+    /// <param name="store">Where to stage it.</param>
+    /// <param name="cancellationToken">Cancels the download.</param>
+    /// <returns>The staged install, awaiting a decision, with no manifest.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="store"/> is null.</exception>
+    /// <exception cref="SparkPackageException">The package could not be staged.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>This is <see cref="PrepareAsync"/> without the manifest check, and that is the entire
+    /// difference.</b> A Spark package's manifest exists to name which assemblies hold
+    /// <c>[SparkNode]</c> types, because reflecting over a package's whole <c>lib</c> folder would
+    /// turn every public static method of every dependency into a node. A library is not being
+    /// asked for nodes, so there is nothing for a manifest to say and no reason to demand one.
+    /// </para>
+    /// <para>
+    /// <b>The dependencies come too, and that was already built.</b>
+    /// <see cref="StageDependenciesAsync"/> walks them breadth-first with a <c>seen</c> set, and it
+    /// was written for node packages — the transitive restore that `E7-T20`'s row called *the work*
+    /// only ever needed asking for without the manifest.
+    /// </para>
+    /// </remarks>
+    public async Task<PendingInstall> PrepareLibraryAsync(
+        PackageIdentity identity, PackageStore store, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(store);
+
+        string staging = store.FolderFor(identity) + ".installing";
+
+        try
+        {
+            if (Directory.Exists(staging))
+            {
+                Directory.Delete(staging, recursive: true);
+            }
+
+            Directory.CreateDirectory(staging);
+
+            await DownloadIntoAsync(identity, staging, cancellationToken).ConfigureAwait(false);
+
+            IReadOnlyList<PackageIdentity> dependencies =
+                await StageDependenciesAsync(staging, cancellationToken).ConfigureAwait(false);
+
+            PackageDisclosure disclosure = PackageInspector.Inspect(staging, identity) with
+            {
+                Dependencies = [.. dependencies.Select(dependency => dependency.ToString())],
+            };
+
+            return new PendingInstall(
+                identity, staging, store.FolderFor(identity), manifest: null, disclosure);
+        }
+        catch (Exception failure)
+        {
+            // Same rule as the install path above: nothing survives a failure, or the next attempt
+            // finds a folder that looks half-done.
+            Sweep(staging);
+
+            throw failure is SparkPackageException or OperationCanceledException
+                ? failure
+                : new SparkPackageException(
+                    $"'{identity}' could not be added as a library: {failure.Message}", failure);
+        }
+    }
+
+    /// <summary>
     /// Extracts a <c>.nupkg</c>, which is a zip.
     /// </summary>
     /// <remarks>
@@ -457,10 +528,17 @@ public sealed class NuGetPackageClient
 
         if (!File.Exists(path))
         {
+            // `E7-T21`: THE MESSAGE NAMES WHAT CAN BE DONE, WHICH IS THE HALF IT WAS MISSING.
+            //
+            // It used to explain the convention that had just refused the package - true, and no
+            // use to somebody who wanted the library's *types* rather than its *nodes*. The client
+            // read it and asked "why do we insist?", which is the right reaction to a message that
+            // states a rule and offers no way past it.
             throw new SparkPackageException(
-                $"'{identity}' is a NuGet package but not a Spark package: it has no "
-                + $"{SparkPackageManifest.PathInPackage}. Spark packages carry one, and are tagged "
-                + $"'{SparkPackageManifest.Tag}' so they can be found.");
+                $"'{identity}' has no nodes for the library panel: it carries no "
+                + $"{SparkPackageManifest.PathInPackage}, so it is an ordinary .NET library rather "
+                + $"than a Spark package. Use **Add as a library** to reference it from a code "
+                + $"block instead — that needs no manifest.");
         }
 
         SparkPackageManifest manifest = SparkPackageManifest.Parse(File.ReadAllText(path));
