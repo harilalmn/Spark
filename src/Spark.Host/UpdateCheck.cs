@@ -53,11 +53,22 @@ public sealed class UpdateCheck : IDisposable
 {
     /// <summary>Where the check asks, when nothing else is said.</summary>
     /// <remarks>
-    /// Hard-coded to Spark's own repository on purpose. A configurable update endpoint is a
+    /// <para>
+    /// Hard-coded to Spark's release repository on purpose. A configurable update endpoint is a
     /// mechanism for pointing somebody's installation at a build that is not Spark, and this
     /// application has no need for one.
+    /// </para>
+    /// <para>
+    /// <b>It is <c>Spark-Releases</c> and not <c>Spark</c>, and the reason is the whole of
+    /// `E12-T22`.</b> The source repository went private on 2026-09-09, and <b>a private
+    /// repository's releases are private with it</b> — GitHub gives them the repository's
+    /// visibility and offers no setting that separates the two, so every unauthenticated request
+    /// for a release on <c>harilalmn/Spark</c> answers <c>404</c>. The binaries are published to a
+    /// second, public repository holding no source, and this points there.
+    /// </para>
     /// </remarks>
-    public const string DefaultEndpoint = "https://api.github.com/repos/harilalmn/Spark/releases/latest";
+    public const string DefaultEndpoint =
+        "https://api.github.com/repos/harilalmn/Spark-Releases/releases/latest";
 
     private readonly HttpClient _client;
     private readonly bool _ownsClient;
@@ -184,7 +195,7 @@ public sealed class UpdateCheck : IDisposable
                 && page.ValueKind == JsonValueKind.String
                 && page.GetString() is { Length: > 0 } address
                     ? address
-                    : "https://github.com/harilalmn/Spark/releases/latest";
+                    : "https://github.com/harilalmn/Spark-Releases/releases/latest";
 
             return new UpdateAvailable(released, url);
         }

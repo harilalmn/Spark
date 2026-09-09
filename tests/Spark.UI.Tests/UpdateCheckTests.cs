@@ -141,14 +141,22 @@ public sealed class UpdateCheckTests
     }
 
     /// <summary>
-    /// <b>The endpoint is Spark's own repository and is not configurable.</b> A settable update
+    /// <b>The endpoint is Spark's release repository and is not configurable.</b> A settable update
     /// endpoint is a mechanism for pointing an installation at a build that is not Spark.
     /// </summary>
+    /// <remarks>
+    /// <b>It is <c>Spark-Releases</c> rather than <c>Spark</c> since `E12-T22`</b>, and this test
+    /// earned its place by failing the moment the constant moved. The source repository went
+    /// private, and a private repository's releases are private with it — GitHub gives them the
+    /// repository's visibility and offers no setting that separates the two, so every
+    /// unauthenticated request to the old URL answers <c>404</c>. Pinning the string is the point:
+    /// an update endpoint that drifts is one that quietly stops telling anybody about a release.
+    /// </remarks>
     [Fact]
     public void TheDefaultEndpointIsSparksOwnRelease()
     {
         Assert.Equal(
-            "https://api.github.com/repos/harilalmn/Spark/releases/latest",
+            "https://api.github.com/repos/harilalmn/Spark-Releases/releases/latest",
             UpdateCheck.DefaultEndpoint);
     }
 

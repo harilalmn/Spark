@@ -2,7 +2,7 @@
 
 For anyone changing this repository — human or AI. Read this before committing.
 
-**Last updated:** 2026-08-31
+**Last updated:** 2026-09-09 (the release is cut locally and published to Spark-Releases)
 
 ---
 
@@ -196,38 +196,73 @@ the rule has to live here or the next session will invent a different one.
 
 ### What "release" means, in order
 
+**Since 2026-09-09 the release is cut from this machine, not from a workflow, and it is published
+to a different repository than the one the source lives in.** `harilalmn/Spark` is private, and a
+private repository's releases are private with it — GitHub gives them the repository's visibility
+and offers no setting that separates the two. So the binaries go to
+**`harilalmn/Spark-Releases`**, which is public and holds no source. `.github/workflows/release.yml`
+still exists and still builds, but it is `workflow_dispatch` only: it is a clean-room check, not
+the release path.
+
 1. **Read what has happened since the last tag.** `git log --oneline $(git describe --tags
    --abbrev=0)..HEAD` when there is a tag, the whole log when there is not.
-2. **Choose the number, and say why in one sentence** before pushing anything. The rule is SemVer
+2. **Choose the number, and say why in one sentence** before tagging anything. The rule is SemVer
    read against Spark's own public surface — `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io`
    and `Spark.Nodes.Core`, whose `PublicAPI.Shipped.txt` files are the record of what was promised:
    - **Major** — a shipped public member changed or vanished, a node key changed, or a `.spark`
      file written by this version cannot be read by the last one.
    - **Minor** — new nodes, new public API, new user-visible capability. Nothing broke.
    - **Patch** — fixes, documentation, internals. A user's graphs and code carry on unchanged.
-   Before 1.0, a breaking change is a **minor** bump: `0.x` promises nothing, and pretending
-   otherwise by burning major numbers makes the first stable release meaningless.
-3. **Run the gates first.** A tag is permanent in a way a commit is not — moving one is worse than
-   the mistake it fixes, because a machine that already fetched it keeps the old commit forever.
-4. **Tag and push:** `git tag -a v0.2.0 -m "..."` then `git push origin v0.2.0`.
-5. **The workflow does the rest** — builds, tests, formats, builds the native shim, stages,
-   checks the artefact's version against the tag, packs the portable zip and the installer, and
-   **publishes**. It does not draft. A tag with a hyphen in it is published as a prerelease.
-6. **Report the release URL**, and say plainly that the build is unsigned.
+   The numbers have been calendar-flavoured since `v2026.8.1`; the *increments* are still these.
+3. **Run the gates first**, and commit everything. The version comes from the tag via MinVer, so
+   anything uncommitted is not in the build.
+4. **Tag and push** to the private repository: `git tag -a v2026.9.0 -m "..."` then
+   `git push origin v2026.9.0`. The tag lives with the source; nothing is tagged in the releases
+   repository.
+5. **Build and pack, locally:**
+   ```
+   pwsh scripts/publish.ps1 -Output artifacts/publish/win-x64
+   pwsh scripts/pack-portable.ps1  -Staged artifacts/publish/win-x64 -Output artifacts
+   pwsh scripts/pack-installer.ps1 -Staged artifacts/publish/win-x64 -Version <version> -Output artifacts
+   ```
+   `publish.ps1` takes `-SkipNative` when `artifacts/native/win-x64/spark_occt.dll` is already
+   current, which it usually is — a cold OpenCascade build is about an hour and is the only slow
+   part of any of this.
+6. **Check the artefact against the tag** — `pwsh scripts/check-version.ps1 -Tag <tag>` — before
+   anything is uploaded. This is the gate that matters, and it exists because a build whose
+   assemblies disagree with their tag installs, runs, and makes every bug report name a version
+   that does not exist.
+7. **Publish to the releases repository:**
+   ```
+   gh release create <tag> --repo harilalmn/Spark-Releases --title <tag> --notes-file notes.md \
+       artifacts/spark-<version>-setup.exe artifacts/spark-<version>-setup.exe.sha256 \
+       artifacts/spark-portable-win-x64.zip artifacts/spark-portable-win-x64.zip.sha256
+   ```
+   A hyphen in the tag means a prerelease and needs `--prerelease`; GitHub does not work that out
+   on its own, and getting it wrong points *Latest release* — and the update check inside the
+   application — at a beta.
+8. **Verify it is reachable without credentials**, which is the whole point of the second
+   repository: `curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/harilalmn/Spark-Releases/releases/latest`
+   must answer `200`. Authenticated `gh` will happily show you a release nobody else can see.
+9. **Report the release URL**, say plainly that the build is unsigned, and **launch the app**.
 
 ### The things that are easy to get wrong here
 
-- **`scripts/check-version.ps1` is the gate that matters** and it exists because of one specific
-  failure: a shallow checkout has no tags, MinVer stamps `0.0.0-alpha.0`, and the workflow
-  publishes it as `v1.0.0`. `fetch-depth: 0` in the workflow is load-bearing, not tidiness.
+- **Assets are release assets, never committed files.** The installer and the zip are about 128 MB
+  together. Committed, that is 128 MB per release in git history forever, and it cannot be removed
+  without rewriting it. `Spark-Releases` stays a few kilobytes of README and notices.
+- **`scripts/check-version.ps1` is the gate that matters**, for the reason step 6 gives.
 - **The installer's `AppId` may never change.** It is Windows' identity for the product; changing
   it means no future installer removes any current installation. `InstallerTests` fails the build
   if it moves, and the GUID is written out a second time there deliberately.
 - **Nothing is signed.** Say so when reporting a release rather than letting the user discover
   SmartScreen on their own. Fixing it needs a certificate issued to a verified identity
   (`E13-T17`), which is not something a session can produce.
-- **The update check inside the application reads the published release**, so a wrong tag or a
-  release marked prerelease by accident is visible to every user, not only to whoever tagged it.
+- **The update check reads `Spark-Releases`**, so a release that lands in the wrong repository, or
+  is marked prerelease by accident, is invisible to every user rather than only to whoever cut it.
+- **The OpenCascade source offer lives in `Spark-Releases`' README.** Linking LGPL code obliges it
+  whatever licence Spark's own source carries, and going private removed the public repository
+  that used to satisfy it. If the pinned OpenCascade version changes, that README changes with it.
 
 ## Things that will bite you
 

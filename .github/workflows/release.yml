@@ -28,9 +28,13 @@ name: Release
 # on the repository front page and the update check inside the application both keep pointing at
 # the last stable one.
 
+# E12-T22. NO LONGER THE RELEASE PATH, AND THE PUSH TRIGGER IS GONE DELIBERATELY. The release is
+# cut from a developer machine and published to `harilalmn/Spark-Releases` - see AGENTS.md,
+# "Cutting a release". This workflow survives as a clean-room check: it builds the native provider
+# from source on a runner that has never seen this tree, which is worth having and is the one thing
+# a local build cannot prove. Publishing from here needs a RELEASES_TOKEN secret that does not
+# exist, and the publish step says so rather than failing obscurely.
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
     inputs:
       tag:
@@ -44,6 +48,11 @@ env:
   # Named here so the release notes and installer/spark.iss cannot disagree about which runtime a
   # user is being asked to install.
   SPARK_DOTNET: '10'
+
+  # E12-T22. Where the binaries go. Not where this workflow runs: the source repository is private
+  # and a private repository's releases are private with it, so the downloadable artefacts live in
+  # a public repository that holds no source.
+  SPARK_RELEASE_REPO: 'harilalmn/Spark-Releases'
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
@@ -206,12 +215,28 @@ jobs:
       # The installer is what a user runs, so it is named first in the notes and attached first.
       # The portable zip stays, and stays documented, because "unzip it anywhere" is the only
       # option on a machine where nothing may be installed.
+      # E12-T22. PUBLISHED TO A DIFFERENT REPOSITORY THAN THE ONE THIS RUNS IN, AND THAT IS THE
+      # WHOLE POINT OF THIS STEP NOW. `harilalmn/Spark` went private on 2026-09-09, and a private
+      # repository's releases are private with it - GitHub gives them the repository's visibility
+      # and offers no setting that separates the two. So the source stays closed here and the
+      # binaries are published to `harilalmn/Spark-Releases`, which holds no source and is public.
+      #
+      # THE BUILT-IN TOKEN CANNOT DO THIS. `github.token` is scoped to the repository the workflow
+      # runs in, so it can read this one and write nothing to the other. RELEASES_TOKEN is a
+      # fine-grained PAT with Contents: write on `Spark-Releases` and on nothing else - the
+      # narrowest grant that publishes a release.
       - name: Publish the release
         if: github.event_name == 'push'
         shell: pwsh
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
+          if (-not $env:GH_TOKEN) {
+              throw 'RELEASES_TOKEN is not set, so the release cannot be published to Spark-Releases. ' +
+                    'Add a fine-grained PAT with Contents: write on harilalmn/Spark-Releases as a ' +
+                    'repository secret named RELEASES_TOKEN.'
+          }
+
           $tag = '${{ github.ref_name }}'
           $installer = Get-ChildItem artifacts/spark-*-setup.exe | Select-Object -First 1
 
@@ -225,11 +250,16 @@ jobs:
 
           Set-Content -LiteralPath notes.md -Value $notes -Encoding utf8
 
+          # `--generate-notes` is gone deliberately (E12-T22). It builds a changelog from the
+          # commits and pull requests of the repository it is pointed at: aimed at Spark-Releases it
+          # describes an empty repository, and aimed at this one it would publish the private
+          # history of a closed source tree into a public changelog. The hand-written template is
+          # what a reader gets, and it is the only thing that was ever worth reading anyway.
           $arguments = @(
               'release', 'create', $tag,
+              '--repo', $env:SPARK_RELEASE_REPO,
               '--title', $tag,
-              '--notes-file', 'notes.md',
-              '--generate-notes'
+              '--notes-file', 'notes.md'
           )
 
           # A hyphen in a SemVer tag is what makes it a prerelease, and GitHub will not work that

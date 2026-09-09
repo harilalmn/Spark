@@ -1320,7 +1320,7 @@ public sealed partial class MainWindow : Window
         {
             // The screenshot path. No request is made: this is the badge being posed, which is the
             // only way to photograph a control that appears solely when a real release is newer.
-            badgeModel.UpdateUrl = "https://github.com/harilalmn/Spark/releases/latest";
+            badgeModel.UpdateUrl = "https://github.com/harilalmn/Spark-Releases/releases/latest";
             badgeModel.UpdateLabel = "Update available: " + pretend;
             badgeModel.IsUpdateAvailable = true;
         }
