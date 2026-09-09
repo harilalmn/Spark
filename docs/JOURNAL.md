@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — both of the client's reports are committed.** A slider's value stays inside its range (`E8-T83`), and a code block is tidied when you click away from it (`E8-T84`). |
+| **Working on** | **Nothing — the register's own errors are corrected.** A duplicate `E13-T18` is renumbered to `E13-T20`, and `E8-T81` is withdrawn into `E11-T27`, which had already diagnosed the headless flakiness better than I did. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **A code block is tidied when you click away from it** — `E8-T84`. **Before it:** `E8-T83`, `E13-T19`, `E13-T18`. |
+| **Last completed step** | **A duplicate id, and a row that already existed** — bookkeeping. **Before it:** `E8-T84`, `E8-T83`, `E13-T19`. |
 | **Working tree** | Clean. Build clean with zero warnings, format clean, **2966** tests over ten executables. |
-| **Next action** | **`E8-T81` — the headless flakiness, and it has waited long enough.** With CI off (`E13-T19`) the local suite is the only evidence anything works, and it needs a re-run to be green roughly one time in three. **Two of this session's own steps had to report a recorded run with a failure in it**, which is the point at which the number stops meaning anything. Every failure seen has been inside `HeadlessSession.Run`, in a different class each time, clean on a re-run — start by asking whether the session is per-test or shared, and what each one leaves behind. |
+| **Next action** | **`E11-T27` — the remaining headless flake, and now with the right diagnosis in hand.** `E11-T26` serialised everything that passes through `HeadlessSession.Run`; what is left fails **outside** that turnstile, because `MainWindowViewModel` posts to Avalonia's global `Dispatcher.UIThread` and a view-model test shows no window. **`E8-T80`'s console gave a worked example**: a view model that subscribed to a static event went on posting after its session had ended, and unrelated classes failed. The shape of the fix is the same — nothing global should outlive the session it was created for. **Acceptance stays ten consecutive green runs**, which is the standard `E11-T26` set for itself and met. |
 | **Verify with** | Ten consecutive green runs of `Spark.UI.Tests`. Nothing smaller distinguishes a fix from luck on an intermittent fault, and a smaller sample is how it would be declared fixed twice. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -8717,7 +8717,7 @@ promotes a closed one to a solid. It is **pre-existing** — equally true of `Br
 and of anything read back from a file — and joining makes it visible, because joining
 materialises. Most applications stitch a closed shell back into a solid on import. The fix is five
 lines that already exist inside `spark_occt_sew`, moved into the import path, and needs the C++
-toolchain: `E13-T18`, open. `InterchangeTests.AResidentSolidIsWrittenAsASolidAndAJoinedOneAsShells`
+toolchain: `E13-T20`, open. `InterchangeTests.AResidentSolidIsWrittenAsASolidAndAJoinedOneAsShells`
 records today's behaviour and goes red the day it changes.
 
 **Verified.** Build clean, format clean, **2,754 tests, 0 failures, 0 skips**. And looked at:
@@ -9845,7 +9845,7 @@ the recorded run — `E8-T81`'s flakiness, in a class this step does not touch; 
 1278/0 minutes earlier. **The layout itself is the client's to confirm against their own
 screenshot**, which is the only comparison that settles it.
 
-### 2026-09-09 — CI has not run since the repository went private (`E13-T18`)
+### 2026-09-09 — CI has not run since the repository went private (`E13-T20`)
 
 **The client asked why every run was failing**, with a screenshot of nine red runs in a column. The
 answer is that **none of them is a test failure and no job ever started**:
@@ -9887,7 +9887,7 @@ working.
 
 **The client's instruction, and both halves of it are true**: *we are doing releases locally and do
 not need CI.* `E12-T22` cut `v2026.9.0` from a developer machine rather than a workflow, and every
-run since the repository went private has been refused for billing anyway (`E13-T18`). Paying for a
+run since the repository went private has been refused for billing anyway (`E13-T20`). Paying for a
 service that has not run in nine attempts and would not be used if it did is not a decision that
 needs arguing with.
 
@@ -10002,3 +10002,35 @@ client's own block through the formatter: `3;20;` → `3;\n20;`, and `var a=1;va
 the formatter. `ScriptFormatting.Format` is tested thoroughly and the one line that calls it is not,
 because driving focus loss through the real editor lands in `HeadlessSession.Run`, which is `E8-T81`
 territory. It was checked by running the application.
+
+### 2026-09-09 — A duplicate id, and a row that already existed (bookkeeping)
+
+**Asked *are there pending items*, the register answered with two of my own mistakes**, and both are
+the kind that only surface when somebody reads the whole list rather than the end of it.
+
+**`E13-T18` was assigned twice.** It already belonged to *an imported model's closed shells should
+come back as solids*, found by `E9-T15`; I gave the same number to the CI billing row this morning
+without checking. The CI row is renumbered **`E13-T20`** — the existing row keeps its id, because it
+was there first and because a row's id is how the journal and the commit messages already refer to
+it. The lesson is one command long: **read the ids in use before taking the next one**, rather than
+assuming the highest one seen recently is the highest one there is.
+
+**`E8-T81` duplicated `E11-T27`, and the existing row is better.** I raised it as a new finding.
+`E11-T26` had already diagnosed the family — two threads racing `ServerCompositor`'s lazy
+construction, fixed with a semaphore in `HeadlessSession.Run`, evidenced as 2 failures in 16 runs
+before against 0 in 26 after — and `E11-T27` records exactly the remainder I was seeing.
+
+**And `E8-T81` said something false.** It claimed *every failure so far is inside
+`HeadlessSession.Run`, which points at session setup or teardown*. `E11-T27` exists because one is
+**not**: a pure view-model test that shows no window never passes through that semaphore at all,
+because `MainWindowViewModel` posts to Avalonia's **global** dispatcher. My own console pane
+reproduced that mechanism precisely — a view model subscribing to a static event and posting after
+its session had ended — which I wrote up as a mistake of mine without noticing it was a worked
+example of an open row. It is corroboration for `E11-T27`, not a new fault.
+
+**`E8-T81` is withdrawn into `E11-T27`** rather than deleted, so that a reader who follows the
+journal's earlier references finds where the work went.
+
+**The wider point, which is why this is a log entry and not a silent edit.** Three steps today cited
+`E8-T81` as the reason a recorded run was not green, and the citation was to a row that should never
+have been opened. The register is nearly four hundred rows and I searched it for none of them.
