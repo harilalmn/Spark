@@ -41,14 +41,26 @@ public sealed class RunModeTests
     /// Under Manual an edit is recorded and does not run, and the status bar says so.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>The message is not decoration.</b> A graph that quietly stops updating is the most
     /// confusing thing an editor can do, and a user who set the mode ten minutes ago will not
     /// connect the two on their own.
+    /// </para>
+    /// <para>
+    /// <b>The <c>await</c> is the same drain <c>ViewportExportTests</c> needed</b>
+    /// ([N141](../../docs/NOTES.md)). The constructor starts an Automatic run and does not wait
+    /// for it; when it lands it rewrites <see cref="MainWindowViewModel.StatusText"/> with a run
+    /// summary, which is precisely the observable this test reads. Draining it first is not
+    /// "winning the race" in the sense this suite's remarks warn against — it removes the race,
+    /// so what is left to assert really is the decision.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void ManualRecordsTheEditAndWaits()
+    public async Task ManualRecordsTheEditAndWaits()
     {
         using MainWindowViewModel model = new();
+        await model.EvaluateAsync();
+
         model.SelectedRunMode = "Manual";
 
         model.SelectedLibraryEntry =

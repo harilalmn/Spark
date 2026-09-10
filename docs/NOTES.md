@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-10 (N140: a rectangle that grew for one reason and was read for another)
+**Last updated:** 2026-09-10 (N141: a fire-and-forget run in a constructor)
 
 ---
 
@@ -4294,3 +4294,41 @@ tests for the editor's placement. Every one of them asks about the node *being e
 what happened to **the canvas around it**, and the defect lived entirely in the space the node was
 not. The four new tests are all about the neighbourhood: empty canvas beside an open editor, and a
 neighbour under where the phantom used to be.
+
+## N141 — A fire-and-forget run in a constructor is a race every reader of the diagnostics inherits
+
+**Found by the gate run at the start of a session, not by the session that wrote the code.** The
+journal said the tree was clean at 3,015 tests with no failures. It was 3,015 with **one** failure
+— `ViewportExportTests.ExportingSolidsFromAnEmptySceneRefusesWithAReason` — and the difference is
+entirely load: the test passes alone, passes as a class, and fails inside the full suite. That
+combination is the signature of a race, and it is also the reason the failure survived: every
+natural way to investigate a failing test makes it stop failing.
+
+**The mechanism is three hops from anything the test mentions.** `new MainWindowViewModel()` ends
+in `AdoptGraph`, `AdoptGraph` ends in `RequestRun()`, and `RequestRun` under the default Automatic
+mode is `_ = EvaluateGraphAsync()` — a run nobody awaits. When it lands it writes
+`DiagnosticsText = Summarise(result)`. The test's `TryExportSolids` had already written *There are
+no solids in the viewport to export* into the same property; on a loaded machine the constructor's
+run landed in the gap between that write and the assertion that reads it, and the assertion saw
+`0 nodes evaluated, 0 served from cache. No diagnostics.` instead.
+
+**The fix is a drain, and it is deterministic rather than a sleep.** `await model.EvaluateAsync()`
+straight after the constructor. `EvaluateAsync` runs synchronously up to `await
+_session.EvaluateAsync()`, so the constructor's run is *already inside* the session by the time
+the constructor returns — which means a later call always supersedes it, and a superseded run
+returns null and exits before it can touch anything. There is no window in which both apply.
+Thirteen tests in `MainWindowViewModelTests` already open this way; what was missing was the
+reason, so a fourteenth was written without it.
+
+**A second test had the same defect and had not failed yet.** `RunModeTests.ManualRecordsTheEditAndWaits`
+asserts that `StatusText` contains *Manual*, and the constructor's run overwrites `StatusText` with
+its own summary on exactly the same path. It was fixed in the same change rather than waiting for
+the day it decided to fail. **A flake that has not fired is not a different defect from one that
+has** — it is the same defect with better luck, and luck is what a loaded machine takes away.
+
+**What to take from it.** Any test that reads a `MainWindowViewModel` property the evaluation
+pipeline also writes — `DiagnosticsText`, `StatusText`, `Inspector`, `Scene` — must drain the
+constructor's run first, whether or not it currently passes. And the wider lesson is about the
+gates rather than the code: **step 3 of the session protocol exists for this.** Running the suite
+before adding anything is what separated *I inherited this* from *I broke this*, and it cost one
+run to find out.

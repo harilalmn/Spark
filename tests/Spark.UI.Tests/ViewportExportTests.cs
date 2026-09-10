@@ -1,6 +1,7 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Spark.UI;
@@ -118,10 +119,21 @@ public sealed class ViewportExportTests
     /// would be the worse answer: the user would find out at the other end, in somebody else's
     /// application.
     /// </summary>
+    /// <remarks>
+    /// <b>The <c>await</c> is load-bearing and is not a formality</b> ([N141](../../docs/NOTES.md)).
+    /// The constructor ends in <c>AdoptGraph</c>, which calls <c>RequestRun</c>, which is a
+    /// fire-and-forget <c>EvaluateGraphAsync</c>; when that run lands it writes
+    /// <c>DiagnosticsText</c>, and under a loaded machine it landed <i>between</i> the refusal
+    /// below and the assertion that reads it. Awaiting a run of our own drains it deterministically
+    /// rather than by sleeping: the constructor's run is already inside
+    /// <c>SparkSession.EvaluateAsync</c> by the time the constructor returns, so this call
+    /// supersedes it and the superseded one returns null without touching the text.
+    /// </remarks>
     [Fact]
-    public void ExportingSolidsFromAnEmptySceneRefusesWithAReason()
+    public async Task ExportingSolidsFromAnEmptySceneRefusesWithAReason()
     {
         MainWindowViewModel model = new();
+        await model.EvaluateAsync();
 
         string path = Path.Combine(Path.GetTempPath(), $"spark-solids-{Guid.NewGuid():N}.step");
 

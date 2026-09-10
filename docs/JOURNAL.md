@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-10 (`E8-T40`: the code block's phantom hit rectangle)
+**Last updated:** 2026-09-10 (a red tree found by the gates, before `E2-T40`)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** The last step was `E8-T40`, taken on a client report and **without a write-ahead**, which the log entry says plainly. Before it, `E2-T33` and `E11-T10` were both closed: the surface properties exist and found four defects in `Surface.ClosestPoint` on their first run. *Before them, two steps were taken out of the queue's order, on requests made while the marathon was running: `E8-T84` (tidying on a line break, the checkbox, and <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) and before it `E8-T25`, taken out of the queue's order on a report from a running graph; **`E2-T33` / `E11-T10` step A is parked in a git stash**, described in *Next action*. Before it, `E11-T2` was closed: the fences and the XML `<example>` blocks are both compiled against the real API, and the first `<example>` run caught a published sample that had never been C#. |
+| **Working on** | **Nothing — between steps.** The last step was not a queue item: the step-3 gate run found the tree **red**, at 3,015 with one failure where the journal claimed zero, and fixing it came first ([N141](NOTES.md)). **`E2-T40`'s reconciliation is done and holds** — `grep` for `Cylindrical`, `Spherical`, `ByBestFit` and `ByLineAndPoint` across `src/Spark.Geometry` finds only the *surface* types of those names, so all four of the row's named gaps are still absent and none of the 2026-08-29 work overlaps them. It is split in two because the halves share nothing: step A is four arithmetic factories, step B is a symmetric 3×3 eigen problem and a one-liner. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E8-T40` — the code block's phantom hit rectangle**, an invisible 584×305 target where a 287×70 node was drawn ([N140](NOTES.md)). **Before it:** **`E2-T33` / `E11-T10` — `SurfaceProperties.cs`**, and the four kernel defects it uncovered ([N139](NOTES.md)). **Before it:** **`E8-T84` — a code block tidies itself on a line break**, with the checkbox that governs it and <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> for the manual command. **Before it:** **`E8-T25` — the slider's track and its value port**, reported from a running graph. **And before that:** **`E11-T2` — the XML `<example>` half**, which closed the row and found `SparkNodeAliasAttribute`'s example ending in a literal `…` ([N136](NOTES.md)). **Before it:** `E12-T5` (`spark check`, with `E11-T29`), `E11-T28`, the register audit. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3,015** tests over **ten** executables with zero skips, docs harness green. No stashes. |
-| **Next action** | **The four value-layer parity members — `E2-T40`**, still the next row in [TODO.md](TODO.md#now--what-is-next-in-order). **Read the row before starting**: it names the specific members and the parity gap each one fills, and three of its four were already closed on 2026-08-29, so the first job is to reconcile the row against `src/` and say in the log which of them still exist. **After it:** `E2-T62`, the 8.5e-5 residual on `RevolutionSurface` — the next thing to look at there is why a Newton step of about 1.75e-6 fails to improve a distance of 1.5e-5, since the residuals are already at 1e-7 and the budget is not the constraint. **Union volume is the one clause of `E2-T33`'s criterion still open** and waits on solids. |
-| **Verify with** | Whatever `E2-T40` actually turns out to need once the row is reconciled — a rename is proved by the compiler, a new member by a test that goes red without it. The suite total rises from **3,011**. |
+| **Last completed step** | **A flake in `MainWindowViewModel`'s constructor, found by the gates rather than by a report** — a fire-and-forget run overwriting the very diagnostics two tests read ([N141](NOTES.md)). **Before it:** **`E8-T40` — the code block's phantom hit rectangle**, an invisible 584×305 target where a 287×70 node was drawn ([N140](NOTES.md)). **Before it:** **`E2-T33` / `E11-T10` — `SurfaceProperties.cs`**, and the four kernel defects it uncovered ([N139](NOTES.md)). **Before it:** **`E8-T84` — a code block tidies itself on a line break**. **Before it:** **`E8-T25` — the slider's track and its value port**. **And before that:** **`E11-T2` — the XML `<example>` half** ([N136](NOTES.md)). |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3,015** tests over **ten** executables with zero failures and zero skips, docs harness green. No stashes. |
+| **Next action** | **`E2-T40` step A — `FromCylindrical` and `FromSpherical` on `Point3d` and `Vector3d`**, with the convention documented on each (`x = r·sin φ·cos θ`, `y = r·sin φ·sin θ`, `z = r·cos φ`, φ measured from `+Z`), taking `Angle` by value as `Arc` and `ConicalSurface` already do. **Then step B:** `Plane.FromBestFit(points)` and `Plane.FromLineAndPoint(line, point)`, which close the row. Spark names factories `From…`, not Dynamo's `By…`, so `DYNAMO-COVERAGE` needs the mapping spelled out rather than the Dynamo name copied. **After the row:** `E2-T62`, the 8.5e-5 residual on `RevolutionSurface` — the next thing to look at there is why a Newton step of about 1.75e-6 fails to improve a distance of 1.5e-5, since the residuals are already at 1e-7 and the budget is not the constraint. **Union volume is the one clause of `E2-T33`'s criterion still open** and waits on solids. |
+| **Verify with** | Round-trip tests against the Cartesian constructors at known angles (a cylindrical point at θ = 90° is on `+Y`; a spherical point at φ = 0 is on `+Z`), a non-finite input reported by `IsValid` rather than thrown on — that is `Point3d`'s own convention, unlike `Plane`'s — and the `ConstructorParityTests` sweep. The suite total rises from **3,015**. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -10502,3 +10502,47 @@ the neighbour case, which is the client's symptom exactly.
 **Cost.** About an hour, most of it reproducing rather than fixing: the probe that clicks a grid of
 points and prints which node answers is what turned "selection is odd" into a rectangle with two
 numbers wrong in it.
+
+### 2026-09-10 — The gate run found a red tree, and the flake was in the constructor ([N141](NOTES.md))
+
+**What.** Nothing was built this step. `E2-T40` was reconciled, the step-3 gate run was made
+*before* touching code, and it came back **3,015 tests with one failure** where the journal said
+zero: `Spark.UI.Tests.ViewportExportTests.ExportingSolidsFromAnEmptySceneRefusesWithAReason`. It
+was fixed, and so was a second test with the same defect that had not fired yet.
+
+**It is a race, not a regression, and every natural way to investigate it makes it stop failing.**
+The test passes alone. It passes as a class. It fails inside the full suite, twice out of two.
+`new MainWindowViewModel()` ends in `AdoptGraph`, which ends in `RequestRun()`, which under the
+default Automatic mode is `_ = EvaluateGraphAsync()` — a run nobody awaits. When it lands it sets
+`DiagnosticsText = Summarise(result)`, and on a loaded machine it landed in the gap between
+`TryExportSolids` writing *There are no solids in the viewport to export* and the assertion that
+reads it. The assertion saw `0 nodes evaluated, 0 served from cache. No diagnostics.`
+
+**The fix is a drain and it is deterministic, not a sleep.** `await model.EvaluateAsync()` after
+the constructor. `EvaluateAsync` runs synchronously as far as `await _session.EvaluateAsync()`, so
+the constructor's run is already inside the session before the constructor returns — a later call
+therefore always supersedes it, and a superseded run returns null and exits before touching
+anything. Thirteen tests in `MainWindowViewModelTests` already open exactly this way; what was
+missing was the *reason*, so a fourteenth was written without it, and both fixed tests now carry it
+in their remarks.
+
+**The second test is the part worth arguing about.** `RunModeTests.ManualRecordsTheEditAndWaits`
+asserts `StatusText` contains *Manual*, and the constructor's run overwrites `StatusText` on the
+identical path. It has never failed. It was fixed anyway, because **a flake that has not fired is
+the same defect with better luck**, and a loaded machine is what takes the luck away. Its suite's
+own remarks say *what is asserted is the decision, not the timing* — draining the run is not
+winning that race, it is deleting it, which is what makes the remark true rather than aspirational.
+
+**Verified.** Build clean with zero warnings, format clean, and **3,015 tests over ten executables
+with zero failures and zero skips** — the same total, which is right: no test was added, one was
+made honest. The red half was observed twice before the change and the green half twice after, in
+full-suite runs both times; that is the reverted-state evidence AGENTS.md step 7 asks for, gathered
+in the only condition that produces it.
+
+**Cost.** About twenty-five minutes, nearly all of it in the three hops from `MainWindowViewModel`'s
+constructor to a fire-and-forget task — the test mentions none of them.
+
+**And the reason it was found at all.** Protocol step 3 says run the gates before adding anything.
+That is what separated *I inherited this* from *I broke this*, and it cost one suite run to know.
+`E2-T40` is unchanged and next: its reconciliation against `src/` is done and all four named gaps
+are still real.
