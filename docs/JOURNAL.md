@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-10 (`E8-T84`: tidying on a line break, and Alt+Shift+F)
+**Last updated:** 2026-09-10 (`E2-T33`/`E11-T10`: the surface properties)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** The last two steps were both taken out of the queue's order, on requests made while the marathon was running: `E8-T84` (tidying on a line break, the checkbox, and <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) and before it `E8-T25`, taken out of the queue's order on a report from a running graph; **`E2-T33` / `E11-T10` step A is parked in a git stash**, described in *Next action*. Before it, `E11-T2` was closed: the fences and the XML `<example>` blocks are both compiled against the real API, and the first `<example>` run caught a published sample that had never been C#. |
+| **Working on** | **Nothing — between steps.** `E2-T33` and `E11-T10` are both closed: the surface properties exist and found four defects in `Surface.ClosestPoint` on their first run. *Before them, two steps were taken out of the queue's order, on requests made while the marathon was running: `E8-T84` (tidying on a line break, the checkbox, and <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) and before it `E8-T25`, taken out of the queue's order on a report from a running graph; **`E2-T33` / `E11-T10` step A is parked in a git stash**, described in *Next action*. Before it, `E11-T2` was closed: the fences and the XML `<example>` blocks are both compiled against the real API, and the first `<example>` run caught a published sample that had never been C#. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E8-T84` — a code block tidies itself on a line break**, with the checkbox that governs it and <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> for the manual command. **Before it:** **`E8-T25` — the slider's track and its value port**, reported from a running graph. **And before that:** **`E11-T2` — the XML `<example>` half**, which closed the row and found `SparkNodeAliasAttribute`'s example ending in a literal `…` ([N136](NOTES.md)). **Before it:** `E12-T5` (`spark check`, with `E11-T29`), `E11-T28`, the register audit. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2,992** tests over **ten** executables with zero skips, docs harness green. **One stash**, `E2-T33 step A parked`, holding the `ClosestPoint` work described in *Next action*. |
-| **Next action** | **`git stash pop`, then finish `E2-T33` / `E11-T10` step A.** The stash holds a real defect fix that is verified by hand and has no test yet: **`Surface.ClosestPoint` returned a sphere's pole for a point that was on the surface a hair away from it**, out by 1.6e−2 on a unit sphere. The seed grid's best node *is* the pole for any query within half a cell of it; at a pole the Jacobian is singular, so Newton cannot move and the pole is returned. The stash adds `ReseedOffDegeneracy` — step half a cell off the degeneracy, re-sweep the other direction — and keeps the best point ever seen rather than wherever the iteration stopped. **One further change was designed and not written**, and it is what the residual needs: make the iteration monotone by halving a Newton step that does not reduce the distance, keeping the point that does; after the reseed the error at 0.9999 of the way to the pole is still 1.6e−4, because the Jacobian there is ill-conditioned and a full step overshoots and clamps back onto the pole. Then write `SurfaceProperties.cs`. **The invariants that were measured to hold** across all nine surface types at 1e−6, 1 and 1e6: `TransformedBy` commutes with `PointAt` to ~5e−16 relative; `ClosestPoint` of a point on the surface returns it to ~2e−16 away from degeneracies; `NormalAt` is unit to 2e−16; `ClosestPoint` always beats a 41×41 sampling. **Two traps found and worth keeping:** `NormalAt` *throws* at a pole or an apex rather than returning anything, so a property must sample the interior; and `ToMesh` with the default absolute tolerance collapses a surface of size 1e−6 to two vertices and no faces, which then reports `Topology.IsClosed` — an empty mesh is vacuously watertight, so a watertightness property must assert a face count first. **A uniform grid of test points misses the pole defect entirely**; only a walk *towards* the pole finds it, which is `E2-T33`'s own lesson about generators arriving on schedule. |
-| **Verify with** | A named test in `Spark.Geometry.Tests` that goes red against the old `ClosestPoint` — the near-pole walk, not a uniform grid, which is the whole point — and then the properties. The suite total rises from **2,992**. |
+| **Last completed step** | **`E2-T33` / `E11-T10` — `SurfaceProperties.cs`**, and the four kernel defects it uncovered ([N139](NOTES.md)). **Before it:** **`E8-T84` — a code block tidies itself on a line break**, with the checkbox that governs it and <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> for the manual command. **Before it:** **`E8-T25` — the slider's track and its value port**, reported from a running graph. **And before that:** **`E11-T2` — the XML `<example>` half**, which closed the row and found `SparkNodeAliasAttribute`'s example ending in a literal `…` ([N136](NOTES.md)). **Before it:** `E12-T5` (`spark check`, with `E11-T29`), `E11-T28`, the register audit. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3,011** tests over **ten** executables with zero skips, docs harness green. **No stashes**: the parked `E2-T33` work was resumed and committed. |
+| **Next action** | **The four value-layer parity members — `E2-T40`**, which is the next row in [TODO.md](TODO.md#now--what-is-next-in-order) now that the surface properties are closed. **Read the row before starting**: it names the specific members and the parity gap each one fills, and three of its four were already closed on 2026-08-29, so the first job is to reconcile the row against `src/` and say in the log which of them still exist. **After it:** `E2-T62`, the 8.5e-5 residual this step recorded on `RevolutionSurface` — the next thing to look at there is why a Newton step of about 1.75e-6 fails to improve a distance of 1.5e-5, since the residuals are already at 1e-7 and the budget is not the constraint. **Union volume is the one clause of `E2-T33`'s criterion still open** and it waits on solids, so it belongs with the OCCT provider rather than here. |
+| **Verify with** | Whatever `E2-T40` actually turns out to need once the row is reconciled — a rename is proved by the compiler, a new member by a test that goes red without it. The suite total rises from **3,011**. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -10381,3 +10381,70 @@ WATCH panel below it and no overlap.
 
 **Cost.** About an hour and a half, of which the pane's rows were the last twenty minutes and the
 only part that was not planned.
+
+### 2026-09-10 — `E2-T33` / `E11-T10`: the surface properties, and four defects under one symptom
+
+**Resumed from the stash the slider and the code-block steps were parked around.** It popped
+cleanly except for this file, whose conflict was resolved by keeping the committed version — the
+*Next action* written for this step was already the better of the two.
+
+**What landed.** `SurfaceProperties.cs`: eight properties over all eight surface types, at every
+scale from 1e-9 to 1e9. `TransformedBy` commutes with `PointAt`; a point on a surface is its own
+closest point; the answer is never worse than the grid the search seeds itself from; normals are
+unit and perpendicular to both finite-difference tangents; bounding boxes contain what they bound;
+declared closedness matches the seam; tessellations land on their surface; a torus tessellates
+watertight. With them, `Spark.Geometry.Properties` goes from 43 to **51**, and both rows close.
+
+**Four defects in `Surface.ClosestPoint`, and they presented as one number being slightly
+wrong.** [N139](NOTES.md) has the anatomy. In the order they were found:
+
+1. **A seed landing on a pole.** The seed grid's nearest node *is* the pole for any query within
+   half a cell of it; at a pole one derivative vanishes, the Jacobian is singular, the first step
+   is refused, and the search returns the point it started from. A point already on a sphere, a
+   hair from its pole, came back as the pole — out by 1.6e-2 on a unit sphere. `ReseedOffDegeneracy`
+   steps half a cell off it and re-sweeps the other direction; the pole stays a candidate.
+2. **The iteration returned wherever it stopped**, not the best point it had seen. Newton is not
+   monotone; the answer depended on where the budget ran out.
+3. **Numeric derivatives were wrong at every open boundary.** `Sample` clamps, so both arms of a
+   central difference landed on the same side while the denominator still said `2h` — **every
+   first derivative on an open edge was exactly half its true value**, and the second derivative,
+   with one arm collapsed onto the centre, was `f′/h`: about **a million times too large**. It fed
+   Newton's Jacobian and `PrincipalCurvatures`. Dividing by the span actually taken fixes the
+   first; shifting the stencil inwards fixes the second.
+4. **An iteration budget of eight**, sized for a method taking full Newton steps, and no longer
+   right once the backtracking line search from (2) could halve them. A run needing a few halvings
+   converges linearly for a while. Twenty-four, and the loop still exits the moment the step falls
+   below the noise floor, so a well-behaved query pays nothing.
+
+**The generator lesson arrived exactly on schedule, which is the part worth keeping.** The
+closest-point property was written first with evenly-spaced interior fractions — and **it passed
+against the pole defect it was written to catch**, because that defect lives inside half a seed
+cell of the domain edge and a uniform grid steps straight over it. `E2-T33`'s own row has said for
+weeks that a property whose generator never straddles the interesting case cannot fail and looks
+exactly like a passing test. Its fractions now crowd towards both ends, and it goes red against the
+old behaviour.
+
+**One residual is recorded rather than hidden.** `RevolutionSurface`, asked for the closest point
+to a point on itself at the seam and a hundredth of the way along `v`, still stops **8.5e-5 of its
+reach** away where the other seven types answer to 1e-12 of theirs. It is systematic — the same
+relative figure at every scale, run after run — and it is **not** the budget, because 64 iterations
+change nothing. The property asserts 1e-3 with a comment naming `E2-T62`, which owns it; that is
+still three orders tighter than the 7.9e-3 pole defect, so it remains a guard rather than a
+tolerance chosen to turn a test green.
+
+**Two traps found by scouting before a line of the file was written**, both now in its remarks.
+`NormalAt` *throws* at a degeneracy rather than returning anything, so every property that asks for
+a normal samples the interior. And `ToMesh` at the default tolerance collapses a surface of size
+1e-6 to two vertices and no faces — which then reports `Topology.IsClosed`, because a mesh with no
+faces has no naked edges. **An empty mesh is vacuously watertight**, so the watertightness property
+asserts a face count first; without that it would have been strongest exactly where it tested
+nothing.
+
+**Verified.** Build clean with zero warnings, format clean, docs harness green, **3,011 tests over
+ten executables** with zero failures and zero skips — nineteen more than the code-block step's
+2,992. The kernel fixes were **watched failing**: with the reseed and the fallback disabled, three
+of the new example-based tests go red, including both near-pole cases. The properties were run
+three times over to confirm the remaining tolerance is stable rather than lucky.
+
+**Cost.** Around three hours, most of it chasing the fourth defect, which was worth it: the
+derivative bug affects every curve-backed surface and nothing else would have found it.

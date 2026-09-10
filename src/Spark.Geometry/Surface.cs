@@ -284,22 +284,271 @@ public abstract class Surface
     /// exact on the analytic surfaces at the size a graph uses, and the grid is the parameter to
     /// widen if that ever stops being true.
     /// </para>
+    /// <para>
+    /// <b>A degenerate seed is a dead end, and it used to be returned as the answer.</b> Where the
+    /// grid's best node is a pole or an apex, every derivative in one direction vanishes, the
+    /// Jacobian below is singular, and the iteration stops before it has moved — so a point
+    /// *already on the sphere* a hair from its pole came back as the pole itself, out by a
+    /// sixtieth of the radius. The seed is now stepped half a cell off the degeneracy and re-swept
+    /// along the other direction; the degenerate node stays a candidate, because sometimes it
+    /// really is the closest point ([N137](../../docs/NOTES.md)).
+    /// </para>
+    /// <para>
+    /// <b>The best point seen is kept, rather than wherever the iteration happened to stop.</b>
+    /// Newton is not monotone, and returning the last step rather than the best one made the
+    /// answer depend on where the budget ran out. This can only improve on the grid seed.
+    /// </para>
     /// </remarks>
     public Point3d ClosestPoint(in Point3d point, out double u, out double v)
     {
         Seed(point, out u, out v);
 
-        // Six iterations is comfortably past convergence for a quadratically-converging method
-        // that starts inside the right cell; more would only cost evaluations.
-        for (int iteration = 0; iteration < 8; iteration++)
+        double best = Evaluate(u, v).DistanceSquaredTo(point);
+        double bestU = u;
+        double bestV = v;
+
+        // The degenerate node stays the answer of record until something beats it, which is what
+        // makes trying to escape it free.
+        ReseedOffDegeneracy(point, ref u, ref v);
+
+        // TWENTY-FOUR, RAISED FROM EIGHT WHEN THE LINE SEARCH ARRIVED, AND IT COSTS NOTHING.
+        //
+        // Eight was sized for a quadratically-converging method taking full steps, and that is
+        // what this was until `Descend` began halving a step that does not improve. A halved step
+        // is real progress and is not a Newton step, so a run that needs a few of them converges
+        // *linearly* for a while and eight is no longer enough: a revolution surface asked for the
+        // closest point to a point on its own inner rim stopped 1.5e-5 away, with the orthogonality
+        // residuals already down at 1e-7 — converging, and simply out of road. At twenty-four the
+        // same query lands at 3.7e-11.
+        //
+        // The loop exits the moment the step falls below the noise floor, so a well-behaved query
+        // still finishes in three or four passes and pays nothing for the larger budget.
+        bool settled = false;
+
+        for (int iteration = 0; iteration < 24; iteration++)
         {
-            if (!NewtonStep(point, ref u, ref v))
+            NewtonOutcome outcome = NewtonStep(point, u, v, out double stepU, out double stepV);
+
+            if (outcome == NewtonOutcome.Converged)
+            {
+                settled = true;
+                break;
+            }
+
+            if (outcome == NewtonOutcome.Singular
+                || !Descend(point, ref u, ref v, stepU, stepV, ref best))
             {
                 break;
             }
+
+            bestU = u;
+            bestV = v;
         }
 
+        // NEWTON STOPPED WITHOUT CONVERGING, so what it left is wherever it ran out of road.
+        //
+        // Three ways to get here and they all have the same answer. The Jacobian was singular, so
+        // it never moved. The line search ran out of halvings, so the last step it wanted was not
+        // an improvement at any length. Or it used its eighth iteration still moving. In each case
+        // the point in hand is a grid node or a partial refinement of one, and a derivative-free
+        // search can improve on it where a derivative-based one has just admitted it cannot.
+        if (!settled)
+        {
+            Contract(point, ref bestU, ref bestV, ref best);
+        }
+
+        u = bestU;
+        v = bestV;
+
         return Evaluate(u, v);
+    }
+
+    /// <summary>
+    /// Searches around a parameter pair by halving a box, for when Newton cannot move at all.
+    /// </summary>
+    /// <param name="point">The point being measured to.</param>
+    /// <param name="u">The best <c>u</c> so far, improved in place.</param>
+    /// <param name="v">Its <c>v</c>, likewise.</param>
+    /// <param name="best">The best squared distance so far, lowered as the box shrinks.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>Newton solves the orthogonality conditions, and there are points in space where those
+    /// conditions cannot pick an answer.</b> Ask a torus for the closest point to somewhere on its
+    /// own axis and every <c>u</c> is equally correct — the derivative along <c>u</c> contributes
+    /// nothing, the Jacobian is singular, and the very first step is refused. The search then
+    /// returns its seed, which is a node of a 17×17 grid and is out by a fraction of a cell. Unlike
+    /// a pole, nothing is degenerate about the <i>surface</i> here; it is the <i>question</i> that
+    /// has no unique answer, so <see cref="ReseedOffDegeneracy"/> does not apply and cannot.
+    /// </para>
+    /// <para>
+    /// <b>A compass search needs no derivatives, which is exactly why it is the fallback.</b> Try
+    /// the eight neighbours a step away; move to the best of them if any improves; halve the step
+    /// when none does. Ten halvings take a cell of the seed grid down by a factor of a thousand,
+    /// which is past the resolution of any sampling somebody would compare against.
+    /// </para>
+    /// <para>
+    /// <b>It runs only when Newton made no progress whatsoever</b>, so the ordinary case — where
+    /// Newton converges to machine precision in three or four steps — pays nothing for it.
+    /// </para>
+    /// </remarks>
+    private void Contract(in Point3d point, ref double u, ref double v, ref double best)
+    {
+        double stepU = DomainU.Length / SampleCount;
+        double stepV = DomainV.Length / SampleCount;
+
+        for (int round = 0; round < 40; round++)
+        {
+            bool improved = false;
+
+            for (int i = -1; i <= 1; i++)
+            {
+                for (int j = -1; j <= 1; j++)
+                {
+                    if (i == 0 && j == 0)
+                    {
+                        continue;
+                    }
+
+                    double tryU = u + (i * stepU);
+                    double tryV = v + (j * stepV);
+
+                    tryU = IsClosedU ? Wrap(tryU, DomainU) : DomainU.Clamp(tryU);
+                    tryV = IsClosedV ? Wrap(tryV, DomainV) : DomainV.Clamp(tryV);
+
+                    double distance = Evaluate(tryU, tryV).DistanceSquaredTo(point);
+
+                    if (distance < best)
+                    {
+                        best = distance;
+                        u = tryU;
+                        v = tryV;
+                        improved = true;
+                    }
+                }
+            }
+
+            if (improved)
+            {
+                continue;
+            }
+
+            stepU *= 0.5;
+            stepV *= 0.5;
+
+            if (stepU <= DomainU.Length * 1e-12 && stepV <= DomainV.Length * 1e-12)
+            {
+                return;
+            }
+        }
+    }
+
+    /// <summary>Brings a parameter back into a closed direction's domain by wrapping it.</summary>
+    /// <param name="value">The parameter, possibly outside.</param>
+    /// <param name="domain">The direction's domain.</param>
+    /// <returns>The equivalent parameter inside it.</returns>
+    /// <remarks>
+    /// <b>Wrapped rather than clamped, because a closed direction has no ends.</b> Clamping a
+    /// cylinder's <c>u</c> at <c>2π</c> would stop the search crossing the seam, and the seam is
+    /// an artefact of how the surface is written down rather than anything on the surface itself.
+    /// </remarks>
+    private static double Wrap(double value, in Interval domain)
+    {
+        double span = domain.Length;
+
+        if (span <= 0.0)
+        {
+            return domain.Min;
+        }
+
+        double offset = (value - domain.Min) % span;
+
+        return domain.Min + (offset < 0.0 ? offset + span : offset);
+    }
+
+    /// <summary>
+    /// Steps a seed off a degenerate parameter, so that <see cref="NewtonStep"/> has a Jacobian
+    /// it can invert.
+    /// </summary>
+    /// <param name="point">The point being measured to.</param>
+    /// <param name="u">The seed's <c>u</c>, moved when it sits on a degeneracy.</param>
+    /// <param name="v">Its <c>v</c>, likewise.</param>
+    /// <remarks>
+    /// <para>
+    /// The collapsed direction is the one whose derivative vanishes — <c>u</c> at a sphere's pole
+    /// or a cone's apex. Stepping along <i>that</i> direction changes nothing, so the step is
+    /// along the other one, half a grid cell towards the interior, and then the collapsed
+    /// direction is swept to pick the meridian nearest the point. Half a cell rather than a whole
+    /// one because the answer is known to lie within a cell of the seed, and the sweep costs one
+    /// row of evaluations rather than a second grid.
+    /// </para>
+    /// <para>
+    /// <b>Nothing is lost by trying.</b> The caller keeps the degenerate node's distance as a
+    /// candidate, so a pole that really is the closest point is still returned as one.
+    /// </para>
+    /// </remarks>
+    private void ReseedOffDegeneracy(in Point3d point, ref double u, ref double v)
+    {
+        EvaluateDerivatives(u, v, out Vector3d du, out Vector3d dv);
+
+        if (!IsDegenerate(du, dv, out _))
+        {
+            return;
+        }
+
+        if (du.LengthSquared <= dv.LengthSquared)
+        {
+            double step = DomainV.Length / (2.0 * SampleCount);
+            v = DomainV.Clamp(v + (v >= DomainV.Mid ? -step : step));
+            u = SweepU(point, v);
+        }
+        else
+        {
+            double step = DomainU.Length / (2.0 * SampleCount);
+            u = DomainU.Clamp(u + (u >= DomainU.Mid ? -step : step));
+            v = SweepV(point, u);
+        }
+    }
+
+    /// <summary>The <c>u</c> on a fixed <c>v</c> whose point is nearest, over the seed grid.</summary>
+    private double SweepU(in Point3d point, double v)
+    {
+        double best = double.PositiveInfinity;
+        double found = DomainU.Mid;
+
+        for (int i = 0; i <= SampleCount; i++)
+        {
+            double sample = DomainU.Denormalise(i / (double)SampleCount);
+            double distance = Evaluate(sample, v).DistanceSquaredTo(point);
+
+            if (distance < best)
+            {
+                best = distance;
+                found = sample;
+            }
+        }
+
+        return found;
+    }
+
+    /// <summary>The <c>v</c> on a fixed <c>u</c> whose point is nearest, over the seed grid.</summary>
+    private double SweepV(in Point3d point, double u)
+    {
+        double best = double.PositiveInfinity;
+        double found = DomainV.Mid;
+
+        for (int j = 0; j <= SampleCount; j++)
+        {
+            double sample = DomainV.Denormalise(j / (double)SampleCount);
+            double distance = Evaluate(u, sample).DistanceSquaredTo(point);
+
+            if (distance < best)
+            {
+                best = distance;
+                found = sample;
+            }
+        }
+
+        return found;
     }
 
     /// <summary>
@@ -413,11 +662,64 @@ public abstract class Surface
     protected virtual void EvaluateDerivatives(
         double u, double v, out Vector3d derivativeU, out Vector3d derivativeV)
     {
-        double stepU = Step(DomainU);
-        double stepV = Step(DomainV);
+        Span(u, Step(DomainU), DomainU, IsClosedU, out double lowU, out double highU);
+        Span(v, Step(DomainV), DomainV, IsClosedV, out double lowV, out double highV);
 
-        derivativeU = (Sample(u + stepU, v) - Sample(u - stepU, v)) / (2.0 * stepU);
-        derivativeV = (Sample(u, v + stepV) - Sample(u, v - stepV)) / (2.0 * stepV);
+        derivativeU = (Sample(highU, v) - Sample(lowU, v)) / (highU - lowU);
+        derivativeV = (Sample(u, highV) - Sample(u, lowV)) / (highV - lowV);
+    }
+
+    /// <summary>
+    /// The two parameters a central difference should straddle a point with, narrowed to what the
+    /// domain actually holds.
+    /// </summary>
+    /// <param name="at">The parameter being differentiated at.</param>
+    /// <param name="step">The step the difference would like to take.</param>
+    /// <param name="domain">The direction's domain.</param>
+    /// <param name="closed">Whether the direction wraps, in which case there is no edge.</param>
+    /// <param name="low">The parameter below.</param>
+    /// <param name="high">The parameter above.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>This exists because clamping the samples and dividing by the step you asked for is not
+    /// the same as dividing by the step you got</b> — and getting that wrong is not a rounding
+    /// error. <c>Sample</c> clamps an open direction, so a difference taken *at* a domain edge used
+    /// to evaluate the same point twice on one side: the numerator spanned <c>h</c> and the
+    /// denominator said <c>2h</c>, and **every derivative on every open boundary came back exactly
+    /// half its true value**. It was found by a property asking a revolution surface for the
+    /// closest point to a point on its own inner rim, which came back 1.5e-5 away from itself
+    /// because Newton's Jacobian was wrong by a factor of two ([N139](../../docs/NOTES.md)).
+    /// </para>
+    /// <para>
+    /// <b>Dividing by the real span fixes it and costs nothing.</b> In the interior the span is
+    /// <c>2h</c> and this is the central difference it always was; at an edge it is <c>h</c> and
+    /// this is a one-sided difference, first-order rather than second-order accurate — which, at a
+    /// step of a millionth of the domain, is a far smaller error than the one it replaces.
+    /// </para>
+    /// </remarks>
+    private static void Span(
+        double at, double step, in Interval domain, bool closed, out double low, out double high)
+    {
+        low = at - step;
+        high = at + step;
+
+        if (closed)
+        {
+            // A closed direction has no edge to fall off: `Sample` wraps, so the span is honest.
+            return;
+        }
+
+        low = Math.Max(low, domain.Min);
+        high = Math.Min(high, domain.Max);
+
+        // A domain narrower than one step leaves nothing to straddle. Answering with the domain
+        // itself keeps the denominator positive; a zero span would divide by zero and hand back
+        // infinities that look like geometry.
+        if (high <= low)
+        {
+            low = domain.Min;
+            high = domain.Max > domain.Min ? domain.Max : domain.Min + 1e-300;
+        }
     }
 
     /// <summary>
@@ -434,15 +736,74 @@ public abstract class Surface
         double stepU = Step(DomainU);
         double stepV = Step(DomainV);
 
-        Point3d center = Sample(u, v);
+        // THE SECOND DERIVATIVE AT AN EDGE WAS NOT MERELY WRONG, IT WAS UNBOUNDED.
+        //
+        // With the samples clamped, one arm of the stencil collapsed onto the centre and the
+        // numerator became a *first* difference — still divided by `h²`. That is `f′/h`, which at
+        // a step of a millionth of the domain is about a million times too large, and it went
+        // straight into Newton's Jacobian and into `PrincipalCurvatures`. A symmetric stencil
+        // shifted inwards evaluates the second derivative a step inside the boundary instead,
+        // which is an error of order `h` in *where* it is measured rather than an error of order
+        // `1/h` in *what* is measured.
+        Triple(u, stepU, DomainU, IsClosedU, out double lowU, out double midU, out double highU);
+        Triple(v, stepV, DomainV, IsClosedV, out double lowV, out double midV, out double highV);
 
-        secondU = ((Sample(u + stepU, v) - center) - (center - Sample(u - stepU, v))) / (stepU * stepU);
-        secondV = ((Sample(u, v + stepV) - center) - (center - Sample(u, v - stepV))) / (stepV * stepV);
+        double spanU = highU - midU;
+        double spanV = highV - midV;
 
-        Vector3d plus = Sample(u + stepU, v + stepV) - Sample(u + stepU, v - stepV);
-        Vector3d minus = Sample(u - stepU, v + stepV) - Sample(u - stepU, v - stepV);
+        Point3d centre = Sample(midU, midV);
 
-        mixed = (plus - minus) / (4.0 * stepU * stepV);
+        secondU = ((Sample(highU, midV) - centre) - (centre - Sample(lowU, midV))) / (spanU * spanU);
+        secondV = ((Sample(midU, highV) - centre) - (centre - Sample(midU, lowV))) / (spanV * spanV);
+
+        Vector3d plus = Sample(highU, highV) - Sample(highU, lowV);
+        Vector3d minus = Sample(lowU, highV) - Sample(lowU, lowV);
+
+        mixed = (plus - minus) / ((highU - lowU) * (highV - lowV));
+    }
+
+    /// <summary>
+    /// Three parameters for a second-difference stencil, shifted inwards where the domain ends.
+    /// </summary>
+    /// <param name="at">The parameter being differentiated at.</param>
+    /// <param name="step">The step between neighbouring samples.</param>
+    /// <param name="domain">The direction's domain.</param>
+    /// <param name="closed">Whether the direction wraps, in which case there is no edge.</param>
+    /// <param name="low">The lowest of the three.</param>
+    /// <param name="middle">The middle one, which is where the answer actually applies.</param>
+    /// <param name="high">The highest.</param>
+    /// <remarks>
+    /// <b>Shifted rather than narrowed</b>, because a second difference needs three evenly spaced
+    /// samples and there is no such thing as a one-sided version that keeps the spacing even. The
+    /// answer then belongs to <paramref name="middle"/> rather than to <paramref name="at"/>, which
+    /// is a step's worth of displacement — a millionth of the domain — and is the smallest lie
+    /// available here.
+    /// </remarks>
+    private static void Triple(
+        double at,
+        double step,
+        in Interval domain,
+        bool closed,
+        out double low,
+        out double middle,
+        out double high)
+    {
+        middle = at;
+
+        if (!closed)
+        {
+            double room = domain.Length;
+
+            // Nothing to shift within: a domain narrower than the stencil gets the whole of it.
+            middle = room >= 2.0 * step
+                ? Math.Clamp(at, domain.Min + step, domain.Max - step)
+                : domain.Mid;
+
+            step = Math.Min(step, Math.Max(room * 0.5, 1e-300));
+        }
+
+        low = middle - step;
+        high = middle + step;
     }
 
     /// <summary>Checks a <c>u</c> parameter and wraps it if the surface is closed in <c>u</c>.</summary>
@@ -670,8 +1031,12 @@ public abstract class Surface
     /// needs the second derivatives, which is why they are part of this contract rather than an
     /// extra a curvature query alone would justify.
     /// </remarks>
-    private bool NewtonStep(in Point3d point, ref double u, ref double v)
+    private NewtonOutcome NewtonStep(
+        in Point3d point, double u, double v, out double stepU, out double stepV)
     {
+        stepU = 0.0;
+        stepV = 0.0;
+
         EvaluateDerivatives(u, v, out Vector3d du, out Vector3d dv);
         EvaluateSecondDerivatives(u, v, out Vector3d duu, out Vector3d duv, out Vector3d dvv);
 
@@ -689,21 +1054,93 @@ public abstract class Surface
 
         if (Math.Abs(determinant) < 1e-300 || !double.IsFinite(determinant))
         {
-            return false;
+            return NewtonOutcome.Singular;
         }
 
-        double stepU = ((f * gv) - (g * fv)) / determinant;
-        double stepV = ((g * fu) - (f * gu)) / determinant;
+        stepU = ((f * gv) - (g * fv)) / determinant;
+        stepV = ((g * fu) - (f * gu)) / determinant;
 
         if (!double.IsFinite(stepU) || !double.IsFinite(stepV))
         {
-            return false;
+            stepU = 0.0;
+            stepV = 0.0;
+
+            return NewtonOutcome.Singular;
         }
 
-        u = IsClosedU ? Check(u - stepU, DomainU, closed: true, nameof(u)) : DomainU.Clamp(u - stepU);
-        v = IsClosedV ? Check(v - stepV, DomainV, closed: true, nameof(v)) : DomainV.Clamp(v - stepV);
+        // A step this small has nothing left to give, which is convergence rather than failure —
+        // and the caller has to be able to tell the two apart, because one of them means "stop,
+        // this is the answer" and the other means "stop, and try something else".
+        return Math.Abs(stepU) > DomainU.Length * 1e-14 || Math.Abs(stepV) > DomainV.Length * 1e-14
+            ? NewtonOutcome.Stepped
+            : NewtonOutcome.Converged;
+    }
 
-        return Math.Abs(stepU) > DomainU.Length * 1e-14 || Math.Abs(stepV) > DomainV.Length * 1e-14;
+    /// <summary>Why a Newton iteration stopped, which decides what happens next.</summary>
+    private enum NewtonOutcome
+    {
+        /// <summary>There is a step worth taking.</summary>
+        Stepped,
+
+        /// <summary>The step is below the noise floor: this is the answer.</summary>
+        Converged,
+
+        /// <summary>The Jacobian cannot be inverted here, so Newton has nothing to say.</summary>
+        Singular,
+    }
+
+    /// <summary>
+    /// Applies a Newton step, halving it until it actually reduces the distance.
+    /// </summary>
+    /// <param name="point">The point being measured to.</param>
+    /// <param name="u">The current <c>u</c>, advanced when a step improves on it.</param>
+    /// <param name="v">Its <c>v</c>, likewise.</param>
+    /// <param name="stepU">The full Newton step in <c>u</c>.</param>
+    /// <param name="stepV">The full Newton step in <c>v</c>.</param>
+    /// <param name="best">The best squared distance so far, lowered when a step improves it.</param>
+    /// <returns>Whether any fraction of the step improved on where it started.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Newton solves the orthogonality conditions; it does not minimise the distance</b>, and
+    /// the two part company where the Jacobian is nearly singular — beside a pole, where the
+    /// derivative along one direction has almost vanished, a full step in the other overshoots the
+    /// surface's whole domain and clamps onto the degeneracy it was trying to leave. Halving until
+    /// the distance falls is the standard remedy and it makes the iteration monotone: the answer
+    /// can then never be worse than the seed, whatever the surface does.
+    /// </para>
+    /// <para>
+    /// <b>Five halvings, not more.</b> A step needing a thirty-second of its length is a step in a
+    /// direction that is not helping, and the caller stops rather than creeping.
+    /// </para>
+    /// </remarks>
+    private bool Descend(
+        in Point3d point, ref double u, ref double v, double stepU, double stepV, ref double best)
+    {
+        double fraction = 1.0;
+
+        for (int halving = 0; halving < 6; halving++)
+        {
+            double nextU = u - (stepU * fraction);
+            double nextV = v - (stepV * fraction);
+
+            nextU = IsClosedU ? Check(nextU, DomainU, closed: true, nameof(u)) : DomainU.Clamp(nextU);
+            nextV = IsClosedV ? Check(nextV, DomainV, closed: true, nameof(v)) : DomainV.Clamp(nextV);
+
+            double distance = Evaluate(nextU, nextV).DistanceSquaredTo(point);
+
+            if (distance < best)
+            {
+                best = distance;
+                u = nextU;
+                v = nextV;
+
+                return true;
+            }
+
+            fraction *= 0.5;
+        }
+
+        return false;
     }
 
     /// <summary>

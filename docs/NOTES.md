@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-10 (N138: formatting on a line break deletes the line break)
+**Last updated:** 2026-09-10 (N139: a clamped sample and an unclamped denominator)
 
 ---
 
@@ -4210,3 +4210,49 @@ already doing that before this step**; adding a third control made it impossible
 Settings are fixed-height chrome and the editor is the elastic part, so the settings moved to an
 `Auto` row of their own. That is `E8-T71`'s comment in this same file, earned a second
 time: *its own row, because the two are not mutually exclusive.*
+
+## N139 — A clamped sample and an unclamped denominator
+
+**Date:** 2026-09-10 · **Rows:** `E2-T33`, `E11-T10`
+
+`Surface`'s default numeric derivatives took a central difference:
+
+```
+derivativeU = (Sample(u + h, v) - Sample(u - h, v)) / (2h)
+```
+
+and `Sample` **clamps** an open direction into its domain. So at a domain edge both arms of the
+stencil landed on the same side, the numerator spanned `h`, the denominator said `2h`, and **every
+first derivative on every open boundary came back at exactly half its true value.**
+
+**The second derivative was much worse than half.** With one arm collapsed onto the centre, the
+second difference `(P(u+h) − P(u)) − (P(u) − P(u−h))` became `P(u+h) − P(u)` — still divided by
+`h²`. That is `f′/h`, and with `h` a millionth of the domain it is about **a million times too
+large**. It fed Newton's Jacobian inside `ClosestPoint` and it fed `PrincipalCurvatures`.
+
+**Neither was found by a test of derivatives.** They were found by a property asking a revolution
+surface for the closest point to a point *on its own inner rim*, which came back 1.5e−5 away from
+itself. The chain from *this number is slightly wrong* to *the denominator is a lie at the edges*
+is four steps long, and no test asserting a derivative directly existed to shorten it — which is
+the argument for properties that assert something a person cares about rather than something the
+implementation happens to compute.
+
+**The fix divides by the span it actually took.** `Span` narrows the two parameters to what the
+domain holds and the difference divides by `high − low`: `2h` in the interior, `h` at an edge. That
+turns a second-order central difference into a first-order one-sided difference exactly where the
+domain ends — an error of order `h`, replacing an error of a factor of two. For the second
+derivative a one-sided version cannot keep its spacing even, so `Triple` **shifts the whole stencil
+inwards** instead: the answer then belongs to a point one step inside the boundary, which is a
+millionth of the domain away and is the smallest lie on offer.
+
+**A closed direction has no edge and must not be narrowed.** `Sample` wraps there, so the full `2h`
+span is real; narrowing it would put a seam into the derivative of a cylinder, which has none.
+
+**What this did not fix, and it is worth separating.** Three further things were wrong with
+`ClosestPoint` and each needed its own change: a seed landing *on* a pole, where the Jacobian is
+singular and Newton cannot move at all; an iteration that returned wherever it stopped rather than
+the best point it had seen; and an iteration budget of eight that was sized for full Newton steps
+and became too small once a backtracking line search could halve them. **Four defects, one
+symptom.** The reason they were all found at once is that the property compared against something
+a reader can check by hand — *a point on a surface is its own closest point* — rather than against
+the routine's own idea of success.

@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-10 (`E8-T84`: tidying on a line break, and Alt+Shift+F)
+**Last updated:** 2026-09-10 (`E2-T33`/`E11-T10`: the surface properties)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -199,6 +199,15 @@ diagnostic reference pages are generated at runtime from the live library**, so 
 from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-T13`).
 
 ## Now — what is next, in order
+
+- [x] ~~**Surface and solid properties.**~~ **The surface half is done 2026-09-10**, `E2-T33` and
+      `E11-T10`, closing both rows. Eight properties over all eight surface types, and **four
+      defects in `Surface.ClosestPoint` on the first run** ([N139](NOTES.md)) — derivatives half
+      their true value at every open boundary, second derivatives a million times too large, a seed
+      landing on a pole that Newton could not move off, and an iteration budget sized for a line
+      search that did not exist yet. **Union volume still waits on solids**, which is the one clause
+      of the criterion still open, and `E2-T62` records an 8.5e-5 residual on `RevolutionSurface`
+      rather than hiding it in a tolerance.
 
 - [x] ~~**Tidy a code block on a line break, behind a checkbox, and on
       <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>.**~~ **Done 2026-09-10**, `E8-T84`, asked for

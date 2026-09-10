@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-10 (`E11-T2`: the XML `<example>` blocks are compiled)
+**Last updated:** 2026-09-10 (`E2-T33`/`E11-T10`: the surface properties)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -245,8 +245,12 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       watertight**; `ClosestPoint` never farther than any sampled point (**E2-T33**).
       *The `ClosestPoint` property holds as of 2026-08-30, asserted over all eight curve types
       against two thousand samples apiece — and it is the whole test, because it fails for every
-      way the search can go wrong. `Split(t)` rejoined is proved for NURBS by two abutting trims;
-      the volume and watertightness properties wait on solids.*
+      way the search can go wrong. `Split(t)` rejoined is proved for NURBS by two abutting trims.
+      **The surface half landed 2026-09-10** (`SurfaceProperties.cs`): eight properties over all
+      eight surface types, including **a torus tessellating watertight** and closest-point never
+      worse than its own seed grid. It found four defects in `Surface.ClosestPoint` on its first
+      run ([N139](NOTES.md)). **Union volume still waits on solids**, which is the one clause of
+      this criterion that is not yet met.*
 - [ ] The C2VGeometry test harvest is **timeboxed to one week with a hard stop**; anything
       needing a `Shape` is discarded without argument (**E2-T32**).
 - [ ] Clipper2 stays isolated behind a single internal file, and CI asserts no native
@@ -1303,12 +1307,14 @@ nothing.
 - [ ] A reflection-driven geometry serialization round-trip test enumerates every concrete
       type (**E11-T9**).
 - [ ] Property-based tests on the kernel with CsCheck **from M1 — non-negotiable**
-      (**E11-T10**). *`tests/Spark.Geometry.Properties` exists and its 28 properties pass over
-      the value layer, with generators spanning 1e-9 to 1e9 log-uniform per **ADR-0018** and a
-      whole scene generated at one shared scale. Unticked because the criterion is about the
-      kernel and most of the kernel does not exist. **The lesson from the review belongs
-      here:** judge a property by its generator, not its assertion — one that cannot reach the
-      boundary it tests cannot fail, and reports identically to one that can.*
+      (**E11-T10**). *Met 2026-09-10 with **51 properties** over the value, curve and surface
+      layers, generators spanning 1e-9 to 1e9 log-uniform per **ADR-0018** and a whole scene
+      generated at one shared scale. **The lesson from the review is now a scar rather than a
+      warning:** judge a property by its generator, not its assertion — one that cannot reach the
+      boundary it tests cannot fail, and reports identically to one that can. The surface
+      closest-point property was written with evenly-spaced interior fractions and **passed against
+      the very defect it was written to catch**, which lives inside half a seed cell of the domain
+      edge; its fractions now crowd towards both ends and it goes red against the old behaviour.*
 - [ ] Golden-file geometry tests print readable diff tables on failure (**E11-T11**).
 - [ ] The lacing case table asserts value and rank separately (**E11-T12**).
 - [ ] The node↔member two-way diff passes in both directions (**E11-T13**).
