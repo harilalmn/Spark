@@ -3616,7 +3616,12 @@ public sealed class GraphCanvas : Control
         _index.Query(rect.MinX, rect.MinY, rect.MaxX, rect.MaxY);
         foreach (int slot in _index.Visible)
         {
-            if (crossing || rect.Contains(_graph.Nodes[slot].Bounds))
+            // `SelectionBounds` for both halves of the pair, so a block whose editor is open is
+            // caught by the box that looks like it catches it rather than by the one that would
+            // have to enclose a rectangle nobody can see.
+            CanvasBounds bounds = _graph.Nodes[slot].SelectionBounds;
+
+            if (crossing ? rect.Intersects(bounds) : rect.Contains(bounds))
             {
                 _selection.Add(slot);
             }
@@ -4279,7 +4284,24 @@ public sealed class GraphCanvas : Control
         // before its first render answers "nothing here", and that failure is invisible until
         // something automates the click.
         EnsureIndex();
-        return _index.HitTest(world.X, world.Y);
+
+        // NOT `_index.HitTest`, AND THE INDEX IS NOT THE THING THAT IS WRONG.
+        //
+        // The index is built from `Bounds`, which is what a node is drawn as — and a code block
+        // hosting an open editor is drawn much larger than it will be a moment later. Its clicks
+        // belong to the editor, which is a control on top of this one, so the canvas must not
+        // claim them. The index still narrows the candidates; `SelectionBounds` decides.
+        _index.Query(world.X, world.Y, world.X, world.Y);
+
+        foreach (int slot in _index.VisibleTopDown)
+        {
+            if (_graph.Nodes[slot].SelectionBounds.Contains(world.X, world.Y))
+            {
+                return slot;
+            }
+        }
+
+        return -1;
     }
 
     private CanvasPort? HitTestPort(Point world)

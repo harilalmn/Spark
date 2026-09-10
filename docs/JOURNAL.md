@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-10 (`E2-T33`/`E11-T10`: the surface properties)
+**Last updated:** 2026-09-10 (`E8-T40`: the code block's phantom hit rectangle)
 **Protocol version:** 2
 
 ---
@@ -17,11 +17,11 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** `E2-T33` and `E11-T10` are both closed: the surface properties exist and found four defects in `Surface.ClosestPoint` on their first run. *Before them, two steps were taken out of the queue's order, on requests made while the marathon was running: `E8-T84` (tidying on a line break, the checkbox, and <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) and before it `E8-T25`, taken out of the queue's order on a report from a running graph; **`E2-T33` / `E11-T10` step A is parked in a git stash**, described in *Next action*. Before it, `E11-T2` was closed: the fences and the XML `<example>` blocks are both compiled against the real API, and the first `<example>` run caught a published sample that had never been C#. |
+| **Working on** | **Nothing — between steps.** The last step was `E8-T40`, taken on a client report and **without a write-ahead**, which the log entry says plainly. Before it, `E2-T33` and `E11-T10` were both closed: the surface properties exist and found four defects in `Surface.ClosestPoint` on their first run. *Before them, two steps were taken out of the queue's order, on requests made while the marathon was running: `E8-T84` (tidying on a line break, the checkbox, and <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) and before it `E8-T25`, taken out of the queue's order on a report from a running graph; **`E2-T33` / `E11-T10` step A is parked in a git stash**, described in *Next action*. Before it, `E11-T2` was closed: the fences and the XML `<example>` blocks are both compiled against the real API, and the first `<example>` run caught a published sample that had never been C#. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E2-T33` / `E11-T10` — `SurfaceProperties.cs`**, and the four kernel defects it uncovered ([N139](NOTES.md)). **Before it:** **`E8-T84` — a code block tidies itself on a line break**, with the checkbox that governs it and <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> for the manual command. **Before it:** **`E8-T25` — the slider's track and its value port**, reported from a running graph. **And before that:** **`E11-T2` — the XML `<example>` half**, which closed the row and found `SparkNodeAliasAttribute`'s example ending in a literal `…` ([N136](NOTES.md)). **Before it:** `E12-T5` (`spark check`, with `E11-T29`), `E11-T28`, the register audit. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3,011** tests over **ten** executables with zero skips, docs harness green. **No stashes**: the parked `E2-T33` work was resumed and committed. |
-| **Next action** | **The four value-layer parity members — `E2-T40`**, which is the next row in [TODO.md](TODO.md#now--what-is-next-in-order) now that the surface properties are closed. **Read the row before starting**: it names the specific members and the parity gap each one fills, and three of its four were already closed on 2026-08-29, so the first job is to reconcile the row against `src/` and say in the log which of them still exist. **After it:** `E2-T62`, the 8.5e-5 residual this step recorded on `RevolutionSurface` — the next thing to look at there is why a Newton step of about 1.75e-6 fails to improve a distance of 1.5e-5, since the residuals are already at 1e-7 and the budget is not the constraint. **Union volume is the one clause of `E2-T33`'s criterion still open** and it waits on solids, so it belongs with the OCCT provider rather than here. |
+| **Last completed step** | **`E8-T40` — the code block's phantom hit rectangle**, an invisible 584×305 target where a 287×70 node was drawn ([N140](NOTES.md)). **Before it:** **`E2-T33` / `E11-T10` — `SurfaceProperties.cs`**, and the four kernel defects it uncovered ([N139](NOTES.md)). **Before it:** **`E8-T84` — a code block tidies itself on a line break**, with the checkbox that governs it and <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> for the manual command. **Before it:** **`E8-T25` — the slider's track and its value port**, reported from a running graph. **And before that:** **`E11-T2` — the XML `<example>` half**, which closed the row and found `SparkNodeAliasAttribute`'s example ending in a literal `…` ([N136](NOTES.md)). **Before it:** `E12-T5` (`spark check`, with `E11-T29`), `E11-T28`, the register audit. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3,015** tests over **ten** executables with zero skips, docs harness green. No stashes. |
+| **Next action** | **The four value-layer parity members — `E2-T40`**, still the next row in [TODO.md](TODO.md#now--what-is-next-in-order). **Read the row before starting**: it names the specific members and the parity gap each one fills, and three of its four were already closed on 2026-08-29, so the first job is to reconcile the row against `src/` and say in the log which of them still exist. **After it:** `E2-T62`, the 8.5e-5 residual on `RevolutionSurface` — the next thing to look at there is why a Newton step of about 1.75e-6 fails to improve a distance of 1.5e-5, since the residuals are already at 1e-7 and the budget is not the constraint. **Union volume is the one clause of `E2-T33`'s criterion still open** and waits on solids. |
 | **Verify with** | Whatever `E2-T40` actually turns out to need once the row is reconciled — a rename is proved by the compiler, a new member by a test that goes red without it. The suite total rises from **3,011**. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
@@ -10448,3 +10448,57 @@ three times over to confirm the remaining tolerance is stable rather than lucky.
 
 **Cost.** Around three hours, most of it chasing the fourth defect, which was worth it: the
 derivative bug affects every curve-backed surface and nothing else would have found it.
+
+### 2026-09-10 — `E8-T40`: a rectangle that grew for one reason and was read for another
+
+**Reported by the client with two screenshots**, mid-marathon: *trying to select the codeblock,
+but the number slider below is getting selected*, and *node selection has some issues when
+codeblocks are present*.
+
+**The write-ahead was skipped and it should not have been.** This began as an investigation of a
+report rather than as a chosen step, and by the time it was obviously a step there was a fix in
+the tree. Recorded here rather than tidied away, because the protocol's whole claim is that the
+write-ahead is cheap and this is the case it was written for.
+
+**What it was.** `E8-T40` grows a code block while its in-place editor is open, so the editor is
+not drawn over the port tabs either side. That is right. What nobody had noticed is that the growth
+landed in `CanvasNode.Bounds`, and `Bounds` is what the spatial index is built from — which is what
+hit-testing and marquee selection read. A block of **287×70 became 584×305 while its editor was
+open, and the extra was invisible.** Empty canvas below and to the right answered every click with
+the block, and a node standing in that stretch could not be clicked at all. Only a code block
+reserves anything, which is exactly why the report named them.
+
+**One rectangle was doing two jobs.** *How big is this node drawn* and *where may it be clicked*
+had been the same question for every node in the application, and stayed the same question right up
+until one node could be drawn bigger than it really is. `SelectionBounds` splits them: `Bounds`
+still grows, because the cull has to keep the drawn node on screen, and hit-testing and the marquee
+read the node without its reservation.
+
+**The enlarged target was never reachable on purpose**, which is the part worth carrying. While the
+editor is open it is a real Avalonia control sitting on top of the canvas, so every click inside it
+goes to the editor and the canvas never sees it. Nobody could hit the phantom deliberately — it
+could only be hit from outside, by somebody aiming at something else. A hit region no intended
+gesture can reach is not a feature with a bug in it.
+
+**Found by a person, not by the suite, and the suite was not thin here.** There are gesture tests
+that press real buttons on the canvas ([N88](NOTES.md)), tests for the reservation's geometry, and
+tests for the editor's placement. Every one of them asks about the node *being edited*; none asked
+what happened to the canvas *around* it, and the defect lived entirely in the space the node was
+not. The four new tests are all about the neighbourhood.
+
+**Two things checked and deliberately not changed.** Plain hit-testing with no editor open is
+exact — a probe clicking a grid of points over four nodes found every rectangle correct to the
+unit. And the marquee's **window/crossing** pair is working as designed: dragging right selects
+only what is wholly enclosed, dragging left selects what the box touches, which is what every CAD
+application has meant for forty years. The first screenshot shows a rightward drag partly covering
+the block and selecting nothing, which is that convention behaving correctly — worth saying
+plainly, because it looks identical to the real defect from the outside.
+
+**Verified.** Build clean with zero warnings, format clean, docs harness green, **3,015 tests over
+ten executables** with zero failures and zero skips — four more than the surface-properties step's
+3,011. **Three of the four new tests were watched failing** against the old rectangle, including
+the neighbour case, which is the client's symptom exactly.
+
+**Cost.** About an hour, most of it reproducing rather than fixing: the probe that clicks a grid of
+points and prints which node answers is what turned "selection is odd" into a rectangle with two
+numbers wrong in it.

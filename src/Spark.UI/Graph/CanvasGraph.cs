@@ -411,6 +411,8 @@ public sealed class CanvasNode
     private readonly int _longestScriptLine;
     private double _reservedScriptWidth;
     private double _reservedScriptHeight;
+    private double _naturalWidth;
+    private double _naturalHeight;
 
     /// <summary>The engine identity of the node instance this draws.</summary>
     public NodeId Id { get; }
@@ -740,6 +742,36 @@ public sealed class CanvasNode
     public CanvasBounds Bounds => CanvasBounds.FromSize(X, Y, Width, Height);
 
     /// <summary>
+    /// The rectangle a click or a marquee is judged against: the node without the room its script
+    /// editor reserved (`E8-T40`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Reported by the client as "node selection has some issues when codeblocks are
+    /// present".</b> Opening a block's in-place editor reserves room on the node so the editor is
+    /// not drawn over the port tabs either side — and that reservation went into
+    /// <see cref="Bounds"/>, which is what the spatial index is built from. A block of 287×70 grew
+    /// to 584×305 and **the extra was invisible**: an empty stretch of canvas below and to the
+    /// right of the block answered every click with the block, and a node sitting in that stretch
+    /// could not be clicked at all.
+    /// </para>
+    /// <para>
+    /// <b>The reservation is right and putting it in the hit rectangle was not.</b> While the
+    /// editor is open it is a real control on top of the canvas, so a click inside it never
+    /// reaches the canvas to be hit-tested — extending the canvas's own target bought nothing and
+    /// cost a phantom. <see cref="Bounds"/> still grows, because that is what the node is *drawn*
+    /// as and what the cull has to keep on screen.
+    /// </para>
+    /// <para>
+    /// <b>The same rectangle for both</b> when nothing is reserved, which is every node but a code
+    /// block being edited — so this costs one comparison on the common path.
+    /// </para>
+    /// </remarks>
+    public CanvasBounds SelectionBounds => _naturalWidth > 0 || _naturalHeight > 0
+        ? CanvasBounds.FromSize(X, Y, _naturalWidth, _naturalHeight)
+        : Bounds;
+
+    /// <summary>
     /// How wide the widest port row wants to be: two names, up to two types, and a gutter.
     /// </summary>
     /// <remarks>
@@ -956,12 +988,30 @@ public sealed class CanvasNode
             return;
         }
 
+        // THE SIZE THE NODE ASKS FOR ON ITS OWN, REMEMBERED BEFORE THE RESERVATION HIDES IT.
+        //
+        // `SelectionBounds` needs the unreserved rectangle, and every input to it — the title, the
+        // port names, the source — is already folded into `Width` by the time anyone could ask.
+        // Captured on the way *in*, while it is still the honest answer, rather than recomputed
+        // later from parts that would have to be kept in step with `Remeasure`.
+        if (_reservedScriptWidth <= 0 && _reservedScriptHeight <= 0)
+        {
+            _naturalWidth = Width;
+            _naturalHeight = Height;
+        }
+
         _reservedScriptWidth = System.Math.Max(0, width);
         _reservedScriptHeight = System.Math.Max(0, height);
 
         // The width is a measured field rather than a property, so a reservation that did not
         // re-measure would be a number nothing ever read.
         Remeasure();
+
+        if (_reservedScriptWidth <= 0 && _reservedScriptHeight <= 0)
+        {
+            _naturalWidth = 0;
+            _naturalHeight = 0;
+        }
     }
 
     /// <summary>

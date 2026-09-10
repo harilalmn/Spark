@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-10 (N139: a clamped sample and an unclamped denominator)
+**Last updated:** 2026-09-10 (N140: a rectangle that grew for one reason and was read for another)
 
 ---
 
@@ -4256,3 +4256,41 @@ and became too small once a backtracking line search could halve them. **Four de
 symptom.** The reason they were all found at once is that the property compared against something
 a reader can check by hand — *a point on a surface is its own closest point* — rather than against
 the routine's own idea of success.
+
+## N140 — A rectangle that grew for one reason and was read for another
+
+**Date:** 2026-09-10 · **Rows:** `E8-T40`
+
+Reported with two screenshots: *"trying to select the codeblock, but the number slider below is
+getting selected"*, and *"node selection has some issues when codeblocks are present"*.
+
+**`E8-T40` grows a code block while its in-place editor is open**, so the editor is not drawn over
+the port tabs either side. That is right, and the row explains why at length. What nobody noticed
+is that the growth landed in `CanvasNode.Bounds` — and `Bounds` is what the spatial index is built
+from, which is what hit-testing and marquee selection read.
+
+**So a block of 287×70 became 584×305, and the extra 130,000 square units were invisible.** An
+empty stretch of canvas below and to the right of the block answered every click with the block,
+and any node sitting in that stretch could not be clicked at all. It only happens with a code
+block, because a code block is the only node that reserves anything — which is exactly the shape
+the report described.
+
+**One rectangle was doing two jobs.** *How big is this node drawn* and *where may it be clicked*
+had been the same question for every node in the application, and stayed the same question right
+up until one node could be drawn bigger than it really is. `SelectionBounds` splits them:
+`Bounds` still grows, because the cull has to keep the drawn node on screen; `SelectionBounds` is
+the node without its reservation, and hit-testing and the marquee use that.
+
+**The reservation never needed to be clickable at all, and that is the part worth remembering.**
+While the editor is open it is a **real Avalonia control on top of the canvas** — every click
+inside it is delivered to the editor and the canvas never sees it. So the enlarged target could
+not be hit deliberately by anybody; it could only be hit by accident, from outside, by somebody
+aiming at something else. **A hit region that no intended gesture can reach is not a feature with
+a bug in it; it is entirely a bug.**
+
+**Found by the client and not by the tests, and the tests were not thin.** There are gesture tests
+that press buttons on the canvas ([N88](NOTES.md)), tests for the reservation's geometry, and
+tests for the editor's placement. Every one of them asks about the node *being edited*. None asked
+what happened to **the canvas around it**, and the defect lived entirely in the space the node was
+not. The four new tests are all about the neighbourhood: empty canvas beside an open editor, and a
+neighbour under where the phantom used to be.
