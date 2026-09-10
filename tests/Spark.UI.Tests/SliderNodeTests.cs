@@ -134,9 +134,17 @@ public sealed class SliderNodeTests
         Assert.True(graph.Nodes[slider].HasSlider);
         Assert.False(graph.Nodes[plain].HasSlider);
 
-        // Four ports against one, so compare against what the ports alone would give.
+        // THREE ROWS, NOT FOUR, AND THAT IS THE POINT OF `E8-T25`'S LAST CHANGE.
+        //
+        // A slider declares four inputs — value, min, max, step — but the value takes no wire
+        // ([NodeUnwired]) because the thumb is its editor, so no row is drawn for it. The node is
+        // therefore one row shorter than its port count suggests, and this is the assertion that
+        // notices if the hidden row ever comes back.
+        Assert.Equal(4, graph.Nodes[slider].Inputs.Count);
+        Assert.Equal(3, graph.Nodes[slider].VisibleInputCount);
+
         double portsOnly = CanvasNode.HeaderHeight
-            + (4 * CanvasNode.PortPitch)
+            + (3 * CanvasNode.PortPitch)
             + CanvasNode.BodyPadding;
 
         Assert.Equal(portsOnly + CanvasNode.SliderHeight, graph.Nodes[slider].Height);
@@ -242,6 +250,176 @@ public sealed class SliderNodeTests
 
         Assert.True(malformed.HasSlider, "the definition should carry what it was told");
         Assert.False(graph.Nodes[slot].HasSlider, "the canvas should refuse the wrong shape");
+    }
+
+    /// <summary>
+    /// <b>A slider's value takes no wire, and the canvas draws no row for it (`E8-T25`).</b>
+    /// </summary>
+    /// <remarks>
+    /// Asked for directly, and the reason is that a widget and a wire are two authorities over one
+    /// number. The port is still there — it holds the literal the thumb writes and it is saved with
+    /// the graph — but nothing may connect to it, so the thumb is the only thing that sets it.
+    /// </remarks>
+    [Fact]
+    public void ASlidersValuePortTakesNoWire()
+    {
+        NodeDefinition slider = Library.ByName("Number.Slider");
+
+        Assert.Equal(4, slider.Inputs.Count);
+        Assert.False(slider.Inputs[0].Connectable, "the value takes no wire");
+        Assert.True(slider.Inputs[1].Connectable, "the minimum does");
+        Assert.True(slider.Inputs[2].Connectable, "and the maximum");
+        Assert.True(slider.Inputs[3].Connectable, "and the step");
+
+        NodeDefinition integer = Library.ByName("Integer.Slider");
+        Assert.False(integer.Inputs[0].Connectable, "the integer slider is the same shape");
+    }
+
+    /// <summary>
+    /// <b>The engine refuses the wire rather than the canvas merely hiding the target.</b> A port
+    /// that cannot be wired has to be unwirable everywhere — a graph file, the CLI, a future
+    /// scripting API — or hiding the connector is decoration.
+    /// </summary>
+    [Fact]
+    public void AWireIntoASlidersValueIsRefused()
+    {
+        Spark.Engine.Graph graph = new();
+        NodeInstance source = graph.AddNode(Library.ByName("Number.Value"));
+        NodeInstance slider = graph.AddNode(Library.ByName("Number.Slider"));
+
+        ConnectionResult refused = graph.TryConnect(source.Id, 0, slider.Id, 0);
+
+        Assert.False(refused.Accepted, "a wire into the value must be refused");
+        Assert.Equal(DiagnosticCodes.PortTakesNoWire, refused.Diagnostic?.Code);
+
+        // And the range ports are still ordinary ports, which is the half that must not break.
+        Assert.True(graph.TryConnect(source.Id, 0, slider.Id, 1).Accepted, "the minimum is wirable");
+    }
+
+    /// <summary>
+    /// <b>The row the value used to occupy is gone, and the rows below it moved up.</b>
+    /// </summary>
+    /// <remarks>
+    /// The port index and the drawn row stopped being the same number here, and this is the
+    /// assertion that says so in both directions. A mapping that is right in one direction and
+    /// wrong in the other draws the tab for <c>min</c> on the row belonging to <c>max</c>.
+    /// </remarks>
+    [Fact]
+    public void TheRowsBelowTheValueMoveUp()
+    {
+        CanvasGraph graph = new();
+        int slot = graph.Add(Library.ByName("Number.Slider"), 0, 0);
+        CanvasNode node = graph.Nodes[slot];
+
+        Assert.Equal(-1, node.InputRow(0));
+        Assert.Equal(0, node.InputRow(1));
+        Assert.Equal(1, node.InputRow(2));
+        Assert.Equal(2, node.InputRow(3));
+
+        Assert.Equal(1, node.InputAtRow(0));
+        Assert.Equal(2, node.InputAtRow(1));
+        Assert.Equal(3, node.InputAtRow(2));
+        Assert.Equal(-1, node.InputAtRow(3));
+
+        // The minimum's tab is drawn on the first row, where the value's used to be.
+        node.PortTab(1, isOutput: false, out _, out double top, out _, out double bottom);
+        double firstRow = node.Y + CanvasNode.HeaderHeight + (CanvasNode.PortPitch * 0.5);
+
+        Assert.True(top < firstRow && firstRow < bottom, "min should sit on the first drawn row");
+
+        // And the hidden one is an empty rectangle, so no containment test can land on it.
+        node.PortTab(0, isOutput: false, out double left, out double hiddenTop, out double right, out double hiddenBottom);
+        Assert.Equal(0, left);
+        Assert.Equal(0, right);
+        Assert.Equal(0, hiddenTop);
+        Assert.Equal(0, hiddenBottom);
+    }
+
+    /// <summary>
+    /// <b>A wired range drives the track, which is the bug the client reported.</b>
+    /// </summary>
+    /// <remarks>
+    /// The reported symptom was a thumb reading <c>89.69</c> on a slider whose minimum and maximum
+    /// were wired to −10 and 50. The range was being read from the node's literals, which a wire
+    /// never writes to, so the track was still the default 0 to 100 while the node computed
+    /// against the wired numbers. This asserts the track and the node now agree.
+    /// </remarks>
+    [Fact]
+    public void AWiredRangeDrivesTheTrack()
+    {
+        CanvasGraph graph = new();
+
+        int slider = graph.Add(Library.ByName("Number.Slider"), 0, 0);
+        int low = graph.Add(Library.ByName("Number.Value"), 0, 200);
+        int high = graph.Add(Library.ByName("Number.Value"), 0, 300);
+
+        graph.Engine.SetLiteral(graph.Nodes[low].Id, 0, -10.0);
+        graph.Engine.SetLiteral(graph.Nodes[high].Id, 0, 50.0);
+
+        // The value the client's node was left holding, from when the track really did end at 100.
+        graph.Engine.SetLiteral(graph.Nodes[slider].Id, 0, 89.69);
+
+        Assert.True(graph.TryConnect(new CanvasPort(low, 0, IsOutput: true), new CanvasPort(slider, 1, IsOutput: false)));
+        Assert.True(graph.TryConnect(new CanvasPort(high, 0, IsOutput: true), new CanvasPort(slider, 2, IsOutput: false)));
+
+        // Before a run there is nothing to read and the literals are all there is.
+        graph.ApplyResult(GraphEvaluator.Evaluate(
+            graph.Engine, new EvaluationContext(), TestContext.Current.CancellationToken));
+
+        Assert.True(graph.SliderRange(slider, out double value, out double minimum, out double maximum, out _));
+
+        Assert.Equal(-10.0, minimum, 1e-9);
+        Assert.Equal(50.0, maximum, 1e-9);
+
+        // And the drawn value is inside the drawn track, which is what "89.69" violated.
+        Assert.Equal(50.0, value, 1e-9);
+        Assert.True(value >= minimum && value <= maximum, $"{value} is outside [{minimum}, {maximum}]");
+    }
+
+    /// <summary>
+    /// <b>Dragging cannot leave the track.</b> The clamp is applied against the range that is
+    /// actually in force, wired or typed, which is the other half of the same report.
+    /// </summary>
+    [Fact]
+    public void DraggingCannotLeaveAWiredRange()
+    {
+        CanvasGraph graph = new();
+
+        int slider = graph.Add(Library.ByName("Number.Slider"), 0, 0);
+        int low = graph.Add(Library.ByName("Number.Value"), 0, 200);
+        int high = graph.Add(Library.ByName("Number.Value"), 0, 300);
+
+        graph.Engine.SetLiteral(graph.Nodes[low].Id, 0, -10.0);
+        graph.Engine.SetLiteral(graph.Nodes[high].Id, 0, 50.0);
+
+        Assert.True(graph.TryConnect(new CanvasPort(low, 0, IsOutput: true), new CanvasPort(slider, 1, IsOutput: false)));
+        Assert.True(graph.TryConnect(new CanvasPort(high, 0, IsOutput: true), new CanvasPort(slider, 2, IsOutput: false)));
+        graph.ApplyResult(GraphEvaluator.Evaluate(
+            graph.Engine, new EvaluationContext(), TestContext.Current.CancellationToken));
+
+        graph.Nodes[slider].SliderTrack(out double left, out double right, out double y);
+
+        // Well past both ends of the track, which is what a pointer does when it keeps moving.
+        Assert.True(graph.SetSliderValue(slider, ValueAt(graph, slider, right + 400)));
+        Assert.True(graph.SliderRange(slider, out double atMaximum, out _, out double maximum, out _));
+        Assert.Equal(maximum, atMaximum, 1e-9);
+
+        Assert.True(graph.SetSliderValue(slider, ValueAt(graph, slider, left - 400)));
+        Assert.True(graph.SliderRange(slider, out double atMinimum, out double minimum, out _, out _));
+        Assert.Equal(minimum, atMinimum, 1e-9);
+
+        _ = y;
+    }
+
+    /// <summary>Where the canvas would put the value for a pointer at this x, clamped as it drags.</summary>
+    private static double ValueAt(CanvasGraph graph, int slot, double x)
+    {
+        graph.SliderRange(slot, out _, out double minimum, out double maximum, out _);
+        graph.Nodes[slot].SliderTrack(out double left, out double right, out _);
+
+        double fraction = System.Math.Clamp((x - left) / (right - left), 0.0, 1.0);
+
+        return System.Math.Clamp(minimum + (fraction * (maximum - minimum)), minimum, maximum);
     }
 
     private static NodeLibrary Library { get; } = BuildLibrary();

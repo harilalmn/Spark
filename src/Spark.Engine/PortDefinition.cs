@@ -41,6 +41,10 @@ public sealed class PortDefinition
     /// The port's Cross Product dimension order, or <see langword="null"/> to use the port index.
     /// </param>
     /// <param name="defaultValue">The value used when nothing is wired and no literal is set.</param>
+    /// <param name="connectable">
+    /// Whether a wire may be drawn into this port. False for a port whose value comes from a widget
+    /// the node draws itself, such as a slider's thumb.
+    /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="name"/> or <paramref name="valueType"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="declaredRank"/> is negative.</exception>
     public PortDefinition(
@@ -51,7 +55,8 @@ public sealed class PortDefinition
         bool keepStructure = false,
         bool noReplication = false,
         int? replicationGuide = null,
-        object? defaultValue = null)
+        object? defaultValue = null,
+        bool connectable = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(valueType);
@@ -68,6 +73,7 @@ public sealed class PortDefinition
         NoReplication = noReplication || keepStructure;
         ReplicationGuide = replicationGuide;
         DefaultValue = defaultValue;
+        Connectable = connectable;
     }
 
     /// <summary>
@@ -84,6 +90,16 @@ public sealed class PortDefinition
 
     /// <summary>The port's display name.</summary>
     public string Name { get; }
+
+    /// <summary>
+    /// Whether a wire may be drawn into this port (<see cref="Spark.Api.NodeUnwiredAttribute"/>).
+    /// </summary>
+    /// <remarks>
+    /// <b>An input port, in every respect but one.</b> It holds a literal, it is serialised, and
+    /// the node reads it when it runs; it simply has no second source. Outputs are always
+    /// connectable — the flag is about who may write a value, and nobody writes into an output.
+    /// </remarks>
+    public bool Connectable { get; }
 
     /// <summary>One line describing the port, or <see langword="null"/>.</summary>
     public string? Description { get; }

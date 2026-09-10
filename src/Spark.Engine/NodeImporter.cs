@@ -489,7 +489,8 @@ public static class NodeImporter
             parameter.GetCustomAttribute<KeepStructureAttribute>() is not null,
             parameter.GetCustomAttribute<NoReplicationAttribute>() is not null,
             guide?.Guide,
-            DefaultValueOf(parameter, type));
+            DefaultValueOf(parameter, type),
+            parameter.GetCustomAttribute<NodeUnwiredAttribute>() is null);
     }
 
     /// <summary>

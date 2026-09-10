@@ -77,8 +77,12 @@ public readonly record struct CanvasWire(CanvasPort From, CanvasPort To);
 /// <c>Point</c>. Null when the port's own name already says it, which is why an output called
 /// <c>circle</c> is not drawn as "circle Circle" (<see cref="PortTypeName.Beside"/>).
 /// </param>
+/// <param name="Connectable">
+/// Whether a wire may be drawn into this port. An input that takes no wire is not drawn as a row
+/// at all, so it occupies no row and reserves no width. Always true for an output.
+/// </param>
 public readonly record struct CanvasPortInfo(
-    string Name, int DeclaredRank, string? Description, string? TypeName);
+    string Name, int DeclaredRank, string? Description, string? TypeName, bool Connectable = true);
 
 /// <summary>
 /// One node as the canvas draws it: a position, a size derived from its ports, a category colour
@@ -236,6 +240,14 @@ public sealed class CanvasNode
         Y = y;
         Inputs = inputs;
         Outputs = outputs;
+
+        // `E8-T25`: THE ROWS THAT ARE DRAWN, SEPARATED FROM THE PORTS THAT EXIST, ONCE.
+        //
+        // A port that takes no wire is not drawn, so it occupies no row and reserves no width -
+        // and every measurement below would otherwise leave a gap where it used to be. Computed
+        // here rather than filtered at each use, because `Remeasure` runs on every rename and the
+        // list never changes after construction.
+        VisibleInputs = AllConnectable(inputs) ? inputs : [.. inputs.Where(port => port.Connectable)];
         Description = description;
         ShowsValue = showsValue;
 
@@ -290,7 +302,7 @@ public sealed class CanvasNode
         Width = System.Math.Max(
             System.Math.Max(
                 System.Math.Max(MinimumWidth, 34 + (DisplayTitle.Length * 6.8)),
-                WidestRow(Inputs, Outputs)),
+                WidestRow(VisibleInputs, Outputs)),
             ScriptWidth());
 
     /// <summary>
@@ -314,7 +326,7 @@ public sealed class CanvasNode
     private double ScriptWidth() =>
         Script is null
             ? 0
-            : TabAllowance(Inputs) + TabAllowance(Outputs) + (2 * ScriptGap)
+            : TabAllowance(VisibleInputs) + TabAllowance(Outputs) + (2 * ScriptGap)
                 + System.Math.Max(
                     System.Math.Max(
                         ScriptMinimumWidth,
@@ -559,6 +571,93 @@ public sealed class CanvasNode
         + BodyPadding;
 
     /// <summary>
+    /// The input ports that are drawn: the ones that take a wire (`E8-T25`).
+    /// </summary>
+    /// <remarks>
+    /// <b>A port nobody may wire into is not drawn as a port</b>, because the whole of what a port
+    /// row offers a reader is somewhere to aim a wire. A slider's value is the case this exists
+    /// for: the thumb is its editor, and a row saying <c>value</c> beside it is a second, dead
+    /// control for the same number. <b>The same list object when nothing is hidden</b>, which is
+    /// every node but two, so the ordinary case allocates nothing.
+    /// </remarks>
+    public IReadOnlyList<CanvasPortInfo> VisibleInputs { get; }
+
+    /// <summary>How many input rows are drawn.</summary>
+    public int VisibleInputCount => VisibleInputs.Count;
+
+    private static bool AllConnectable(IReadOnlyList<CanvasPortInfo> ports)
+    {
+        foreach (CanvasPortInfo port in ports)
+        {
+            if (!port.Connectable)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// The row an input port is drawn on, counting only the ports that are drawn.
+    /// </summary>
+    /// <param name="index">The port's index in <see cref="Inputs"/>.</param>
+    /// <returns>The zero-based row, or −1 when the port is not drawn at all.</returns>
+    /// <remarks>
+    /// <b>Port index and row index stopped being the same number</b> the moment a port could be
+    /// hidden, and every geometry method below goes through this rather than through the index. A
+    /// wire still refers to the port by its definition index — that is what is saved — so this is
+    /// the only place the two vocabularies meet.
+    /// </remarks>
+    public int InputRow(int index)
+    {
+        if (index < 0 || index >= Inputs.Count || !Inputs[index].Connectable)
+        {
+            return -1;
+        }
+
+        int row = 0;
+        for (int i = 0; i < index; i++)
+        {
+            if (Inputs[i].Connectable)
+            {
+                row++;
+            }
+        }
+
+        return row;
+    }
+
+    /// <summary>The input port drawn on a row, or −1 when the row has no input on it.</summary>
+    /// <param name="row">The zero-based drawn row.</param>
+    /// <returns>The port's index in <see cref="Inputs"/>.</returns>
+    public int InputAtRow(int row)
+    {
+        if (row < 0)
+        {
+            return -1;
+        }
+
+        int seen = 0;
+        for (int i = 0; i < Inputs.Count; i++)
+        {
+            if (!Inputs[i].Connectable)
+            {
+                continue;
+            }
+
+            if (seen == row)
+            {
+                return i;
+            }
+
+            seen++;
+        }
+
+        return -1;
+    }
+
+    /// <summary>
     /// The band below the header: the port rows, or the source if it needs more room (`E8-T39`).
     /// </summary>
     /// <remarks>
@@ -569,7 +668,7 @@ public sealed class CanvasNode
     /// of six is as tall as its ports.
     /// </remarks>
     private double ContentHeight => System.Math.Max(
-        System.Math.Max(Inputs.Count, Outputs.Count) * PortPitch,
+        System.Math.Max(VisibleInputCount, Outputs.Count) * PortPitch,
         Script is null
             ? 0
             // The note is added to whichever of the two wins rather than being one of them, so
@@ -711,8 +810,14 @@ public sealed class CanvasNode
     /// <param name="y">The y coordinate.</param>
     public void InputPortCenter(int index, out double x, out double y)
     {
+        int row = InputRow(index);
+
         x = X;
-        y = Y + HeaderHeight + (PortPitch * (index + 0.5));
+
+        // A hidden port has no centre. Answering with the header's own line rather than with a
+        // row keeps the number finite — callers skip it on the row test — and it is never a
+        // position anything is drawn at.
+        y = row < 0 ? Y : Y + HeaderHeight + (PortPitch * (row + 0.5));
     }
 
     /// <summary>
@@ -744,11 +849,21 @@ public sealed class CanvasNode
         // side, never wider than two fifths of the node - the two tabs plus the type labels
         // between them have to fit on one row.
         double width = System.Math.Clamp(
-            TabAllowance(isOutput ? Outputs : Inputs),
+            TabAllowance(isOutput ? Outputs : VisibleInputs),
             PortTabMinimumWidth,
             System.Math.Max(PortTabMinimumWidth, Width * 0.4));
 
-        double center = Y + HeaderHeight + (PortPitch * (index + 0.5));
+        int row = isOutput ? index : InputRow(index);
+
+        if (row < 0)
+        {
+            // An empty rectangle, so every containment test against it is false and no caller has
+            // to know that this port is not drawn.
+            left = top = right = bottom = 0;
+            return;
+        }
+
+        double center = Y + HeaderHeight + (PortPitch * (row + 0.5));
 
         top = center - (PortTabHeight / 2);
         bottom = center + (PortTabHeight / 2);
@@ -775,9 +890,9 @@ public sealed class CanvasNode
         leftEnd = X + PortInset;
         rightStart = X + Width - PortInset;
 
-        if (row < Inputs.Count)
+        if (InputAtRow(row) is int input && input >= 0)
         {
-            PortTab(row, isOutput: false, out _, out _, out double tabRight, out _);
+            PortTab(input, isOutput: false, out _, out _, out double tabRight, out _);
             leftEnd = System.Math.Max(leftEnd, tabRight + PortInset);
         }
 
@@ -868,7 +983,7 @@ public sealed class CanvasNode
         // The SAME allowance ScriptWidth reserved. If these two ever disagree the node is the
         // wrong width for what is drawn in it, which is why they name one method rather than each
         // computing the port side for themselves.
-        double left = X + TabAllowance(Inputs) + ScriptGap;
+        double left = X + TabAllowance(VisibleInputs) + ScriptGap;
         double right = X + Width - TabAllowance(Outputs) - ScriptGap;
 
         x = left;
@@ -887,7 +1002,7 @@ public sealed class CanvasNode
     /// <param name="height">Its height, <see cref="ScriptHintHeight"/>.</param>
     public void ScriptHintBox(out double x, out double y, out double width, out double height)
     {
-        double left = X + TabAllowance(Inputs) + ScriptGap;
+        double left = X + TabAllowance(VisibleInputs) + ScriptGap;
         double right = X + Width - TabAllowance(Outputs) - ScriptGap;
 
         x = left;
@@ -1198,6 +1313,9 @@ public sealed class CanvasGraph
     private readonly List<CanvasNote> _notes = [];
     private readonly List<CanvasGroup> _groups = [];
     private readonly TypeCompatibility _compatibility = TypeCompatibility.Default;
+    /// <summary>The last run applied, which is where a wired slider range is read from.</summary>
+    private EvaluationResult? _lastResult;
+
     private bool _wiresDirty = true;
 
     /// <summary>Creates a canvas view over an empty graph.</summary>
@@ -2172,20 +2290,72 @@ public sealed class CanvasGraph
         }
 
         if (!TryNumber(Literal(slot, 0), out value)
-            || !TryNumber(Literal(slot, 1), out minimum)
-            || !TryNumber(Literal(slot, 2), out maximum))
+            || !TryNumber(RangeInput(slot, 1), out minimum)
+            || !TryNumber(RangeInput(slot, 2), out maximum))
         {
             return false;
         }
 
-        _ = TryNumber(Literal(slot, 3), out step);
+        _ = TryNumber(RangeInput(slot, 3), out step);
 
         if (minimum > maximum)
         {
             (minimum, maximum) = (maximum, minimum);
         }
 
+        // `E8-T25`: THE DRAWN VALUE IS CLAMPED, AND IT IS THE SAME CLAMP THE NODE APPLIES.
+        //
+        // The stored value outlives the range that was around it: wire a new minimum and maximum
+        // in, or type them, and the number last dragged to can be outside the track it is drawn
+        // on. `Number.Slider` clamps before it returns, so the node's own output is already inside
+        // the range - and a thumb off the end of its track showing a number the node never
+        // produced is the canvas disagreeing with the graph. This is the same clamp, so they agree.
+        value = System.Math.Clamp(value, minimum, maximum);
+
         return maximum > minimum;
+    }
+
+    /// <summary>
+    /// What one of a slider's three range inputs is really worth: the value that came down the
+    /// wire, or the literal when nothing is wired (<c>E8-T25</c>).
+    /// </summary>
+    /// <param name="slot">The slider node's slot.</param>
+    /// <param name="portIndex">The input port: 1 for the minimum, 2 the maximum, 3 the step.</param>
+    /// <returns>The value, or <see langword="null"/> when there is nothing to read.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the fix for a thumb that read 89.69 on a track ending at 50.</b> The range used
+    /// to be read from the literals alone, which are whatever was last typed into the node — so
+    /// wiring a minimum and a maximum in changed what the node computed and left the track it was
+    /// drawn on at the defaults, 0 to 100. The thumb then moved over a range that did not exist,
+    /// and the number under it was one the node would never produce.
+    /// </para>
+    /// <para>
+    /// <b>The literal is the fallback, not the other way round.</b> A wired port's literal is stale
+    /// by definition — nothing has written to it since the wire was drawn — so it is consulted only
+    /// when there is no wire. Between a graph being opened and its first run there is no value to
+    /// read either, and the literal is what the track is drawn from until the run lands; that is a
+    /// moment long, and it is the same answer the node itself would give.
+    /// </para>
+    /// </remarks>
+    private object? RangeInput(int slot, int portIndex)
+    {
+        NodeId id = _nodes[slot].Id;
+
+        foreach (Wire wire in Engine.IncomingWires(id))
+        {
+            if (wire.TargetPort != portIndex)
+            {
+                continue;
+            }
+
+            // A list arriving at a range port is not a range, and `TryNumber` refuses it — at
+            // which point the caller falls back to the literal, which is the honest answer for a
+            // track that cannot be drawn from what is wired.
+            return _lastResult?.Value(wire.Source, wire.SourcePort);
+        }
+
+        return Literal(slot, portIndex);
     }
 
     /// <summary>
@@ -2512,6 +2682,13 @@ public sealed class CanvasGraph
     /// <param name="result">The run, or null to clear every evaluated state.</param>
     public void ApplyResult(EvaluationResult? result)
     {
+        // `E8-T25`: KEPT, BECAUSE A SLIDER'S TRACK IS DRAWN FROM IT.
+        //
+        // A wired minimum is not in any literal - it is the output of whatever node is wired in -
+        // so the only place the drawn track can learn it is the run that just finished. Holding
+        // the result costs a reference and makes `SliderRange` able to answer honestly.
+        _lastResult = result;
+
         foreach (CanvasNode node in _nodes)
         {
             CanvasNodeState kept = node.State & (CanvasNodeState.Selected | CanvasNodeState.Anchor);
@@ -2657,7 +2834,8 @@ public sealed class CanvasGraph
                 ports[index].Name,
                 ports[index].KeepStructure ? -1 : ports[index].DeclaredRank,
                 ports[index].Description,
-                PortTypeName.Beside(ports[index].Name, ports[index].ValueType));
+                PortTypeName.Beside(ports[index].Name, ports[index].ValueType),
+                ports[index].Connectable);
         }
 
         return described;

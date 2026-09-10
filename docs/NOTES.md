@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-10 (N136: a sample that ends in an ellipsis)
+**Last updated:** 2026-09-10 (N137: a widget and a wire over one number)
 
 ---
 
@@ -4118,3 +4118,48 @@ one outcome this harness must never produce. **On the element rather than as a m
 the sample**, so that what a reader copies is the declaration and nothing else — the marker is
 metadata about the sample, and putting metadata inside the sample makes the sample a lie in a
 second, smaller way.
+
+## N137 — A widget and a wire are two authorities over one number
+
+**Date:** 2026-09-10 · **Rows:** `E8-T25`
+
+Reported from a running graph, with a screenshot: a `Number.Slider` whose `min` and `max` were
+wired from a code block to −10 and 50, **reading 89.69**.
+
+**Both halves of the bug are the same mistake seen from two sides.** The slider had four wirable
+inputs and a widget, and the widget was drawn from the *literals* — the numbers last typed into
+the node. A wire never writes to a literal. So wiring a range changed what the node **computed**
+and left the track it was **drawn** on at the defaults, 0 to 100. The thumb then swept a range
+that did not exist, and the number under it was one the node would never return, because
+`Number.Slider` clamps before it returns. The canvas and the graph were both internally consistent
+and were describing different graphs.
+
+**The old behaviour was written down, which is why it survived.** `NodeSliderAttribute` said it
+plainly: *the track on the canvas is drawn from the typed-in literals; wiring a range drives
+evaluation but not the drawing, because the canvas paints before anything has run and has no value
+to paint from.* Every clause of that is true and the conclusion is still wrong. **The canvas paints
+before the first run exactly once**, and paints after every run thereafter — so *nothing to paint
+from* describes a moment, and it had been treated as a permanent condition. The fix is to keep the
+last `EvaluationResult` and read the wired ports from it, falling back to the literal. The
+fallback covers the one moment the original reasoning was about.
+
+**The second ask removed the question rather than answering it.** *Remove the value input port.*
+With `value` wirable, there is no good answer to what the thumb should do when a wire drives it
+past the end of the track: follow it and the thumb leaves its track, ignore it and an input is
+silently discarded, clamp it and the node reports a number nobody asked for. **A value with two
+authorities has to arbitrate, and every arbitration is a surprise to somebody.** One authority has
+no such question. `[NodeUnwired]` is the general form — the port keeps its literal, its
+serialisation and its place in the signature, and loses only the ability to be a wire's
+destination.
+
+**Refuse it in the engine, not by hiding the connector.** `Graph.TryConnect` returns `SPK1015`.
+Hiding the target in the canvas would leave the wire creatable from a file, from `spark`, or from
+anything added later — a rule enforced only by the thing that draws it is a rule about drawing.
+
+**The cost that was not obvious: port index and drawn row stop being the same number.** Every
+geometry method on `CanvasNode` had `index` and `row` as one concept, correctly, for as long as
+every port was drawn. Hiding one splits them, and a mapping right in one direction and wrong in
+the other draws `min`'s tab on `max`'s row. It is `InputRow` and `InputAtRow`, they are asserted
+in both directions, and **the node is now one row shorter than its port count** — which is what an
+existing height test caught immediately, and it was the good kind of failure: a test that knew the
+old number told the truth about the new one.

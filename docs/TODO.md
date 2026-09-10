@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-10 (`E11-T2`: the XML `<example>` blocks are compiled)
+**Last updated:** 2026-09-10 (`E8-T25`: the slider's track, and its value port)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -199,6 +199,15 @@ diagnostic reference pages are generated at runtime from the live library**, so 
 from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-T13`).
 
 ## Now — what is next, in order
+
+- [x] ~~**The slider's track ignored a wired range, and its value took a wire.**~~ **Fixed
+      2026-09-10**, `E8-T25`, on a report from a running graph: a slider with `min` and `max` wired
+      to −10 and 50 read **89.69**. Two changes, and the second removes the question the first
+      would otherwise have to answer. The track is drawn from the range **in force** — the wired
+      value, from the last run, falling back to the literal — rather than from the literals alone.
+      And the `value` input takes no wire (`[NodeUnwired]`, refused by the engine as `SPK1015`), so
+      the thumb is the only thing that sets it; the canvas draws no row for it, which is where port
+      index and drawn row stopped being the same number ([N137](NOTES.md)).
 
 > **The register was audited on 2026-09-09 and this list is its output.** Every `In progress` row
 > in [TASKS.md](TASKS.md) was settled against the source tree: two closed (`E1-T12`, `E10-T8`,

@@ -150,6 +150,18 @@ public sealed class Graph
         ArgumentOutOfRangeException.ThrowIfNegative(targetPort);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(targetPort, targetNode.Definition.Inputs.Count);
 
+        // Refuse an unwirable port before anything else. It is not a judgement about these two
+        // ports, it is a statement that this one is not a wire's destination at all, so reporting a
+        // type mismatch or a cycle for it would name the wrong problem.
+        if (!targetNode.Definition.Inputs[targetPort].Connectable)
+        {
+            return new ConnectionResult(null, PortCompatibility.Incompatible, DiagnosticCodes.Create(
+                DiagnosticSeverity.Error,
+                DiagnosticCodes.PortTakesNoWire,
+                $"'{targetNode.Definition.DisplayName}' sets '{targetNode.Definition.Inputs[targetPort].Name}' from the widget on the node itself, so it takes no wire. A value with two sources has to answer which one wins, and there is no answer that is not a surprise.",
+                portIndex: targetPort));
+        }
+
         // Refuse the cycle before checking types: a self-referential wire whose types happen not to
         // match should report the cycle, which is the more fundamental problem.
         if (source == target || Reaches(target, source))

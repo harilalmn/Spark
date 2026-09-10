@@ -123,6 +123,34 @@ public sealed class NodeIgnoreAttribute : Attribute
 }
 
 /// <summary>
+/// Declares that a parameter is a port the graph fills in but nobody may wire into (<c>E8-T25</c>).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>The port still exists.</b> It holds a literal, it is saved with the graph, and the node
+/// reads it when it runs — everything a port does except accept a wire. What changes is that the
+/// canvas draws no connector for it and <c>Graph.TryConnect</c> refuses one, so the value has
+/// exactly one source: whatever widget the node itself draws.
+/// </para>
+/// <para>
+/// <b>It exists because a widget and a wire are two authorities over one value.</b> A slider whose
+/// value can also be wired has to answer what the thumb should do when a wire drives it past the
+/// end of the track, and there is no good answer — every option is either a thumb that lies or an
+/// input that is silently ignored. Removing the wire removes the question. <b>This was asked for
+/// directly</b>, and the alternative — leaving the port wirable and having the widget follow it —
+/// was tried first and is what produced a thumb reading 89.69 on a track ending at 50.
+/// </para>
+/// </remarks>
+[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
+public sealed class NodeUnwiredAttribute : Attribute
+{
+    /// <summary>Creates the attribute.</summary>
+    public NodeUnwiredAttribute()
+    {
+    }
+}
+
+/// <summary>
 /// Excludes a port from replication: it never iterates, never contributes to the iteration count,
 /// and broadcasts whole into every leaf call.
 /// </summary>
@@ -250,9 +278,19 @@ public sealed class NodeFieldAttribute : Attribute
 /// <para>
 /// <b>The three range inputs are ordinary ports</b>, so they are saved, they appear in the
 /// properties panel, and they can be wired — which is more than Dynamo's equivalent allows, and
-/// costs nothing. The track on the canvas is drawn from the typed-in literals; wiring a range
-/// drives evaluation but not the drawing, because the canvas paints before anything has run and
-/// has no value to paint from.
+/// costs nothing. <b>The track is drawn from the range in force</b>: the value that came down the
+/// wire when one is wired, and the typed-in literal otherwise. It used to be drawn from the
+/// literals alone, which meant a wired range drove what the node computed and left the track at
+/// whatever had last been typed — a thumb reading 89.69 on a slider whose maximum was wired to 50
+/// ([N137](../../docs/NOTES.md)). Between opening a graph and its first run there is still nothing
+/// but the literal to draw from, which is a moment long and is the same answer the node would give.
+/// </para>
+/// <para>
+/// <b>The value input is <see cref="NodeUnwiredAttribute"/> and the canvas draws no row for it.</b>
+/// The thumb is that port's editor, so a wire into it would be a second authority over one number
+/// — and the question of what the thumb should show when a wire drives it past the end of the
+/// track has no good answer. The port is still a port: it holds the literal the thumb writes, and
+/// it is saved with the graph.
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]

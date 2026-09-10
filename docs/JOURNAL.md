@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-10 (`E11-T2`: the XML `<example>` blocks are compiled)
+**Last updated:** 2026-09-10 (`E8-T25`: the slider's track, and its value port)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** `E11-T2` is closed: the fences and the XML `<example>` blocks are both compiled against the real API, and the first `<example>` run caught a published sample that had never been C#. |
+| **Working on** | **Nothing — between steps.** The last step was `E8-T25`, taken out of the queue's order on a report from a running graph; **`E2-T33` / `E11-T10` step A is parked in a git stash**, described in *Next action*. Before it, `E11-T2` was closed: the fences and the XML `<example>` blocks are both compiled against the real API, and the first `<example>` run caught a published sample that had never been C#. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E11-T2` — the XML `<example>` half**, which closed the row and found `SparkNodeAliasAttribute`'s example ending in a literal `…` ([N136](NOTES.md)). **Before it:** `E12-T5` (`spark check`, with `E11-T29`), `E11-T28`, the register audit. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2,968** tests over **ten** executables with zero skips, docs harness green. |
-| **Next action** | **Surface and solid properties — `E2-T33` and `E11-T10`**, the next row in [TODO.md](TODO.md#now--what-is-next-in-order). `tests/Spark.Geometry.Properties` holds `ValueLayerProperties.cs` and `CurveProperties.cs` and nothing else, so the criteria naming **union volume**, **watertight tessellation** and **surface `ClosestPoint`** have no property behind them — and every type they need exists now. **Mind the generator**: the lesson that file keeps repeating is that a property whose generator never straddles the interesting case passes without ever testing it, so write the generator before the assertion and check what it actually produces. After it: the four value-layer parity members (`E2-T40`). |
-| **Verify with** | New properties in `tests/Spark.Geometry.Properties` that go red when the invariant is broken by hand, and a printed sample of each generator's output showing it reaches the degenerate cases rather than only the comfortable ones. |
+| **Last completed step** | **`E8-T25` — the slider's track and its value port**, reported from a running graph and taken ahead of the queue. **Before it:** **`E11-T2` — the XML `<example>` half**, which closed the row and found `SparkNodeAliasAttribute`'s example ending in a literal `…` ([N136](NOTES.md)). **Before it:** `E12-T5` (`spark check`, with `E11-T29`), `E11-T28`, the register audit. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2,973** tests over **ten** executables with zero skips, docs harness green. **One stash**, `E2-T33 step A parked`, holding the `ClosestPoint` work described in *Next action*. |
+| **Next action** | **`git stash pop`, then finish `E2-T33` / `E11-T10` step A.** The stash holds a real defect fix that is already verified by hand and has no test yet: **`Surface.ClosestPoint` returned a sphere's pole for a point that was on the surface a hair away from it**, out by 1.6e−2 on a unit sphere. The seed grid's best node *is* the pole for any query within half a cell of it; at a pole the Jacobian is singular, so Newton cannot move and the pole is returned. The stash adds `ReseedOffDegeneracy` (step half a cell off the degeneracy, re-sweep the other direction) and keeps the best point ever seen rather than wherever the iteration stopped. **One further change was designed and not written**, and it is what the residual needs: make the iteration monotone by halving a Newton step that does not reduce the distance, keeping the point that does. After the reseed the error at 0.9999 of the way to the pole is still 1.6e−4, because the Jacobian there is ill-conditioned and a full step overshoots and clamps back onto the pole. Then write `SurfaceProperties.cs`. **The invariants that were measured to hold** across all nine surface types at 1e−6, 1 and 1e6: `TransformedBy` commutes with `PointAt` to ~5e−16 relative; `ClosestPoint` of a point on the surface returns it to ~2e−16 away from degeneracies; `NormalAt` is unit to 2e−16; `ClosestPoint` always beats a 41×41 sampling. **Two traps found and worth keeping:** `NormalAt` *throws* at a pole or an apex rather than returning anything, so a property must sample the interior; and `ToMesh` with the default absolute tolerance collapses a surface of size 1e−6 to two vertices and no faces, which then reports `Topology.IsClosed` — an empty mesh is vacuously watertight, so a watertightness property must assert a face count first. **A uniform grid of test points misses this defect entirely**; only a walk *towards* the pole finds it, which is `E2-T33`'s own lesson about generators arriving on schedule. |
+| **Verify with** | A named test in `Spark.Geometry.Tests` that goes red against the old `ClosestPoint` — the near-pole walk, not a uniform grid, which is the whole point — and then the properties. The suite total rises from **2,973**. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -10278,3 +10278,47 @@ a source file broken to do it.
 
 **Cost.** About an hour. The harness was already there; this is one more source of samples and one
 assertion that the source is not empty.
+
+### 2026-09-10 — `E8-T25` reopened: the slider's track, and its value port
+
+**Reported from a running graph, with a screenshot**, in the middle of `E2-T33`: a
+`Number.Slider` with `min` and `max` wired from a code block to −10 and 50, **reading 89.69**. Two
+asks — *the slider should not let the user slide beyond the min and max*, and *remove the value
+input port* — and they turn out to be one problem seen from two sides.
+
+**The in-flight geometry step was parked in a stash rather than committed half-done or swept into
+this commit.** `git stash list` names it; *Next action* below picks it up.
+
+**What was wrong.** The track was drawn from the node's **literals**, and a wire never writes to a
+literal. So wiring a range drove what the node *computed* and left what was *drawn* at the
+defaults, 0 to 100 — the thumb sweeping a range that did not exist and showing a number
+`Number.Slider` would never return, since it clamps before returning. **The old behaviour was
+written down in `NodeSliderAttribute`'s own remarks**, which is why it lasted: *the canvas paints
+before anything has run and has no value to paint from*. Every clause true, the conclusion wrong —
+the canvas paints before the first run exactly once and after every run thereafter, so *nothing to
+paint from* is a moment, not a condition. It now keeps the last `EvaluationResult` and reads a
+wired port from it, with the literal as the fallback that covers that one moment.
+
+**The second ask removes a question rather than answering it, and that is why it is the better
+half.** With `value` wirable there is no good answer to what the thumb does when a wire drives it
+past the end of the track: follow it and the thumb leaves the track, ignore it and an input is
+discarded silently, clamp it and the node reports a number nobody asked for. `[NodeUnwired]` is
+the general form — the port keeps its literal, its serialisation and its place in the signature,
+and loses only the ability to be a wire's destination. **Refused in the engine (`SPK1015`), not by
+hiding the connector**, because a rule enforced by the thing that draws it is a rule about drawing:
+a file, the CLI or anything added later would still be able to make the wire.
+
+**The cost that was not obvious.** Port index and drawn row had been one concept for as long as
+every port was drawn. Hiding one splits them, and a mapping right in one direction and wrong in
+the other puts `min`'s tab on `max`'s row — so `InputRow` and `InputAtRow` are asserted in both
+directions. **An existing height test caught it within a minute**: a slider node is now one row
+shorter than its port count, and the test that knew the old number was the thing that told the
+truth about the new one.
+
+**Verified.** Build clean with zero warnings, format clean, docs harness green, **2,973 tests over
+ten executables** with zero failures and zero skips — five more than this morning's 2,968. **Each
+of the five was watched failing**: reverting both fixes turns exactly them red, including the
+height test, and restoring turns them green. And **run in the app**, because a canvas change that
+has only ever been asserted is not proven — the screenshot is in the report.
+
+**Cost.** Around two hours, most of it in the row mapping rather than in either fix.

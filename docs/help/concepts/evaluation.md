@@ -69,6 +69,13 @@ Two consequences you will notice:
 A wire that would make a node depend on itself, directly or through others, is **refused as you
 draw it** — that is `SPK1012`. You cannot build a cycle by hand.
 
+**Some ports take no wire at all, and that is `SPK1015`.** A slider's *value* is the one that
+exists today. The thumb on the node is that port's editor, so wiring a second source into it would
+leave two things setting one number and no answer to which of them the thumb should show. The port
+is otherwise ordinary — it holds a value, it is saved with the graph, and the node reads it when it
+runs. The canvas draws no connector for such a port, so in practice you meet the diagnostic only
+by opening a file that has one in it.
+
 You can still *open* one, because a `.spark` file is a file and a file can be edited or produced by
 something else. When that happens the graph opens rather than being refused, every node on the
 cycle reports `SPK1014`, and everything downstream of the cycle is left un-evaluated. **The rest of

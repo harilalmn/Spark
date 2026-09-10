@@ -2718,6 +2718,13 @@ public sealed class GraphCanvas : Control
 
         for (int i = 0; i < node.Inputs.Count; i++)
         {
+            // `E8-T25`: a port that takes no wire has no disc and no tab, because both of them are
+            // an invitation to aim a wire at it.
+            if (node.InputRow(i) < 0)
+            {
+                continue;
+            }
+
             node.InputPortCenter(i, out double x, out double y);
             CanvasPort port = new(slot, i, IsOutput: false);
 
@@ -2841,7 +2848,7 @@ public sealed class GraphCanvas : Control
     /// <param name="types">Whether the zoom is high enough for the type labels.</param>
     private void DrawPortLabels(DrawingContext context, CanvasNode node, bool types)
     {
-        int rows = Math.Max(node.Inputs.Count, node.Outputs.Count);
+        int rows = Math.Max(node.VisibleInputCount, node.Outputs.Count);
 
         for (int row = 0; row < rows; row++)
         {
@@ -2888,7 +2895,8 @@ public sealed class GraphCanvas : Control
             // the node was sized from (N24), and it drops a label rather than crossing the line.
             node.PortTypeRoom(row, out double inputRoom, out double outputRoom);
 
-            if (row < node.Inputs.Count && node.Inputs[row].TypeName is { } inputType)
+            if (node.InputAtRow(row) is int input and >= 0
+                && node.Inputs[input].TypeName is { } inputType)
             {
                 FormattedText run = TypeRun(inputType);
                 if (inputRoom >= TypeGap + run.Width + MinimumRowGap)
@@ -4288,6 +4296,13 @@ public sealed class GraphCanvas : Control
 
             for (int i = 0; i < node.Inputs.Count; i++)
             {
+                // Nothing is drawn for it, so nothing may be clicked on it. Without this the
+                // header would answer for a hidden port whose centre `InputPortCenter` puts there.
+                if (node.InputRow(i) < 0)
+                {
+                    continue;
+                }
+
                 node.InputPortCenter(i, out double x, out double y);
 
                 if ((Math.Abs(x - world.X) <= reach && Math.Abs(y - world.Y) <= reach)

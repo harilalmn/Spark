@@ -42,6 +42,12 @@ public static class DiagnosticCodes
     /// <summary>Error. The node is part of a cycle found when the graph was loaded, so it cannot evaluate.</summary>
     public const string NodeInCycle = "SPK1014";
 
+    /// <summary>
+    /// Error. The wire was refused because the target port takes no wire — its value comes from a
+    /// widget the node draws itself, such as a slider's thumb.
+    /// </summary>
+    public const string PortTakesNoWire = "SPK1015";
+
     /// <summary>Error. A value could not be promoted to the port's declared rank and type.</summary>
     public const string PromotionFailed = "SPK1040";
 
@@ -82,6 +88,7 @@ public static class DiagnosticCodes
         [WireWouldCloseCycle] = EvaluationTopic,
         [LossyConversion] = EvaluationTopic,
         [NodeInCycle] = EvaluationTopic,
+        [PortTakesNoWire] = EvaluationTopic,
         [PromotionFailed] = LacingTopic,
         [MarshallingFailed] = LacingTopic,
         [ElementsFailed] = LacingTopic,

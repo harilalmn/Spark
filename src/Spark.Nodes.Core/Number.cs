@@ -59,7 +59,8 @@ public static class Number
     [NodeSlider]
     [SparkNode(Kind = NodeMemberKind.Create)]
     [return: NodePort("value")]
-    public static double Slider(double value = 0, double min = 0, double max = 100, double step = 0)
+    public static double Slider(
+        [NodeUnwired] double value = 0, double min = 0, double max = 100, double step = 0)
     {
         (double low, double high) = min <= max ? (min, max) : (max, min);
 
@@ -91,7 +92,8 @@ public static class Number
     [SparkNode(Name = "Integer.Slider", Kind = NodeMemberKind.Create)]
     [NodeSlider]
     [return: NodePort("value")]
-    public static int IntegerSlider(int value = 0, int min = 0, int max = 100, int step = 1)
+    public static int IntegerSlider(
+        [NodeUnwired] int value = 0, int min = 0, int max = 100, int step = 1)
     {
         (int low, int high) = min <= max ? (min, max) : (max, min);
 
