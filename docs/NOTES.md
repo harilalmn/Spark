@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-09 (N135: a deleted test project kept passing)
+**Last updated:** 2026-09-10 (N136: a sample that ends in an ellipsis)
 
 ---
 
@@ -4078,3 +4078,43 @@ no project by design, and **membership was moved from *is a directory* to *holds
 the guard was a day old**, because a check that flags a legitimate thing is a check somebody
 suppresses.
 
+## N136 — A sample that ends in `…` is a sample nobody ever tried to compile
+
+**Date:** 2026-09-10 · **Rows:** `E11-T2`
+
+`SparkNodeAliasAttribute`'s `<example>` had read
+
+```
+[SparkNodeAlias("Circle.ByCentreRadius")]
+public static Circle FromCentreRadius(Point3d centre, double radius) => …
+```
+
+since the attribute was written. It is the first thing a reader of the public API sees about how
+to spell an alias, and **it is not C#** — `…` is a single character `U+2026`, not an elision the
+compiler forgives. Pasting it gets `Invalid expression term ''`.
+
+**Nothing was wrong with the check that existed; it was pointed at the other half.** Every
+` ```csharp ` fence in `docs/help/` has compiled against the real API since `DocumentationSampleTests`
+was written. The XML `<example>` blocks were exempt for a reason that expired quietly: when the
+harness was built, no contract project used one. By the time there were four, the harness had
+stopped being told.
+
+**The general shape, and it is worth more than the fix.** A verification gate is scoped to a
+*source* of the thing it checks, and the scope is written down once, at a moment when it happens
+to be complete. Sources get added afterwards by people who are not thinking about the gate. So the
+question to ask of any harness is not *does it pass* but **what does it not look at, and was that
+list ever true?** — and the answer belongs in an assertion, not in a comment. Here that assertion
+is `EveryExampleElementInTheSourceYieldsACheckedSample`: the number of `<example>` elements in
+`src/` must equal the number of samples the parser handed to the compiler. A parser that quietly
+recognises none of them is otherwise green, which is the failure mode a coverage harness has and
+an ordinary test does not.
+
+**One sample genuinely could not be a statement, and the fix is a declaration, not a skip.** An
+attribute sits on a member, so the alias example has to compile at class scope. The scope is
+declared by the author on the element — `<code spark-scope="class">` — rather than guessed from
+the text, for exactly the reason `IsCodeBlockTopic` is a topic id and not a heuristic: a guess
+that reads a *broken statement* as a *declaration* compiles it and reports success, which is the
+one outcome this harness must never produce. **On the element rather than as a marker line inside
+the sample**, so that what a reader copies is the declaration and nothing else — the marker is
+metadata about the sample, and putting metadata inside the sample makes the sample a lie in a
+second, smaller way.

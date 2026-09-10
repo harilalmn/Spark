@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-09 (the register audit)
+**Last updated:** 2026-09-10 (`E11-T2`: the XML `<example>` blocks are compiled)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Preparing the first public release.** The register is audited, the suite counts only what the repository contains, and `spark check` gives a build a way to say whether a graph still works. |
+| **Working on** | **Nothing — between steps.** `E11-T2` is closed: the fences and the XML `<example>` blocks are both compiled against the real API, and the first `<example>` run caught a published sample that had never been C#. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E12-T5` — `spark check`**, with a help topic and the CLI's first test project (`E11-T29`). **Before it:** `E11-T28`, the register audit, `E11-T27`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2,964** tests over **ten** executables with zero skips, docs harness green. |
-| **Next action** | **Compile the XML `<example>` blocks** — `E11-T2`, the second of the four the audit named. Every ` ```csharp ` fence in `docs/help/` already compiles through the same `ReferenceCatalog` a real code block gets, with `AllowedSkips` at **0**; the `<example>` half was written when no contract project used one and there are now **four** in `src/`, compiled by nothing. Same harness, one more source of samples — `DocumentationSampleTests` in `Spark.UI.Tests` is where it goes. After it: surface and solid properties (`E2-T33`/`E11-T10`), then the four value-layer parity members (`E2-T40`). |
-| **Verify with** | The four `<example>` blocks compile, and a deliberately broken one fails the test — the check has to be seen failing, or it is the sample harness with an extra loop in it. `AllowedSkips` stays at 0. |
+| **Last completed step** | **`E11-T2` — the XML `<example>` half**, which closed the row and found `SparkNodeAliasAttribute`'s example ending in a literal `…` ([N136](NOTES.md)). **Before it:** `E12-T5` (`spark check`, with `E11-T29`), `E11-T28`, the register audit. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2,968** tests over **ten** executables with zero skips, docs harness green. |
+| **Next action** | **Surface and solid properties — `E2-T33` and `E11-T10`**, the next row in [TODO.md](TODO.md#now--what-is-next-in-order). `tests/Spark.Geometry.Properties` holds `ValueLayerProperties.cs` and `CurveProperties.cs` and nothing else, so the criteria naming **union volume**, **watertight tessellation** and **surface `ClosestPoint`** have no property behind them — and every type they need exists now. **Mind the generator**: the lesson that file keeps repeating is that a property whose generator never straddles the interesting case passes without ever testing it, so write the generator before the assertion and check what it actually produces. After it: the four value-layer parity members (`E2-T40`). |
+| **Verify with** | New properties in `tests/Spark.Geometry.Properties` that go red when the invariant is broken by hand, and a printed sample of each generator's output showing it reaches the degenerate cases rather than only the comfortable ones. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -10230,3 +10230,51 @@ both the output of `spark run` and the diagnostic code, and both were wrong.
 
 **Cost.** Under two hours, most of it on `--strict` and its help topic, and it converts *the CLI
 exists* into *a build can use the CLI*.
+
+### 2026-09-10 — `E11-T2`: the `<example>` half, and the sample that was never C#
+
+**What.** `DocumentationSampleTests` gained a second source of samples. Every
+`<example><code>` block in `src/**/*.cs` is now compiled through the same `ReferenceCatalog` a
+real code block gets, alongside the ` ```csharp ` fences that have been compiled since
+2026-08-31. Four blocks, in two files. The row is closed.
+
+**The sources are read, not the generated XML.** A test reading
+`bin/Debug/net10.0/Spark.Api.xml` would depend on the configuration, the target framework and on
+`GenerateDocumentationFile` staying on — three separate ways to pass by finding nothing. The
+`.cs` file is what the author edits and it is always there.
+
+**It caught the defect it was built for, first run.** `SparkNodeAliasAttribute`'s example ended
+in a literal `…` — `U+2026`, not an elision the compiler forgives — and had never been C#. It is
+the first thing a reader of the public API sees about how to spell an alias, and pasting it gets
+`Invalid expression term ''`. It had been there since the attribute was written. [N136](NOTES.md)
+has the general shape, which is the part worth keeping: a gate is scoped to a *source* at a moment
+when that scope happens to be complete, and sources get added later by people not thinking about
+the gate. The question to ask a harness is not *does it pass* but **what does it not look at, and
+was that list ever true?**
+
+**Deviated from the write-ahead on one detail, deliberately.** The previous session's *Next
+action* specified a `// spark:class` marker line as the first line of a sample that has to compile
+at class scope. It is now `<code spark-scope="class">` — an attribute on the element rather than a
+line inside the sample. Same principle exactly: the author declares the scope, and nothing guesses
+it from the text, because a guess that reads a *broken statement* as a *declaration* would compile
+it and report success. The change is that the marker is metadata about the sample instead of a
+line in it, so what a reader copies is the declaration and nothing else — and nothing renders
+`<example>` into the help pages *yet*, so a stray comment would have become visible the day
+something did.
+
+**The coverage assertion is the part that is not obvious.** `AllowedSkips` governs fences and
+stays at 3; no `<example>` may opt out at all, so there is no counterpart number.
+`EveryExampleElementInTheSourceYieldsACheckedSample` instead asserts that the count of
+`<example>` elements in `src/` equals the count of samples the parser handed to the compiler. A
+coverage harness has a failure mode an ordinary test does not: recognising nothing is green.
+
+**Verified.** Build clean with zero warnings over sixteen projects, format clean, docs harness
+green, **2,968 tests over ten executables** with zero failures and zero skips — four more than
+2026-09-09's 2,964, which is the four tests this step adds. And **the check was watched failing**:
+restoring the `…` to the attribute turns `EveryXmlExampleInTheSourceCompiles` red with
+`SparkNodeAliasAttribute.cs example 0: Invalid expression term ''`, naming the file and the block.
+`AnXmlExampleNamingSomethingThatDoesNotExistFails` asserts the same at both scopes without needing
+a source file broken to do it.
+
+**Cost.** About an hour. The harness was already there; this is one more source of samples and one
+assertion that the source is not empty.

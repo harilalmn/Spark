@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (`E12-T5`: `spark check`, and the CLI's first test project)
+**Last updated:** 2026-09-10 (`E11-T2`: the XML `<example>` blocks are compiled)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -191,7 +191,8 @@ broken every step.
 
 **D19 said the Help harness had to exist before any bulk writing, and it now does** — which
 is why several `E10` and `E11` rows are closed ahead of the pass they belong to. Every C# fence in
-the help compiles against the real API (`E11-T2`); every example graph is opened, evaluated and
+the help compiles against the real API, and so does every XML `<example>` (`E11-T2`); every
+example graph is opened, evaluated and
 re-saved on every test run (`E11-T3`); every node resolves to a topic and every node named in a
 topic still exists (`E11-T4`, `E11-T5`); every `SPK####` code has a page (`E11-T6`). **The node and
 diagnostic reference pages are generated at runtime from the live library**, so they cannot drift
@@ -223,11 +224,15 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
       fails; the same radius fanned over eight points is *8 of 8 elements failed*, a **warning**,
       and passed. `--strict` fails on any diagnostic at all. Both readings are defensible, so the
       gate asks.
-- [ ] **Compile the XML `<example>` blocks.** `E11-T2`. Every ` ```csharp ` fence in `docs/help/`
-      already compiles through the same `ReferenceCatalog` a real code block gets, and
-      `AllowedSkips` is **0**. The `<example>` half was written when no contract project used one;
-      there are now **four** in `src/`, and nothing compiles them. Same harness, one more source of
-      samples.
+- [x] ~~**Compile the XML `<example>` blocks.**~~ **Landed 2026-09-10**, `E11-T2`, which closes
+      the row. The `<example>` half was written when no contract project used one; there were four
+      in `src/` by then and nothing compiled them. Same harness, one more source of samples — read
+      from the `.cs` sources, not from `bin/`, so the check cannot pass by finding nothing.
+      **It caught the defect it was built for on its first run**: `SparkNodeAliasAttribute`'s
+      example ended in a literal `…` and had never been C# ([N136](NOTES.md)). One example is a
+      declaration rather than statements, and says so with `<code spark-scope="class">` — written
+      by the author, because a heuristic that read a broken statement as a declaration would
+      compile it and report success.
 - [ ] **Surface and solid properties.** `E2-T33`, `E11-T10`. `tests/Spark.Geometry.Properties`
       holds `ValueLayerProperties.cs` and `CurveProperties.cs` and nothing else, so the criteria
       naming **union volume**, **watertight tessellation** and **surface `ClosestPoint`** have no
@@ -374,9 +379,10 @@ document that does not exist.
 Deferring guarantees the Help is written **in bulk**, and a bulk write with nothing checking it is
 `DocGenerator` again. So the harness comes first:
 
-- [ ] **`E11-T2`** — compile every ` ```csharp ` fence and every XML `<example>`, with the exact
-      references a real code-block node gets. Two samples in `geometry-basics.md` were already
-      caught wrong by hand, and both read as perfectly plausible.
+- [x] ~~**`E11-T2`** — compile every ` ```csharp ` fence and every XML `<example>`, with the
+      exact references a real code-block node gets.~~ **Done**: the fences 2026-08-31, the
+      `<example>` blocks 2026-09-10. Two samples in `geometry-basics.md` were already caught wrong
+      by hand, and both read as perfectly plausible; the first `<example>` run caught a third.
 - [ ] **`E11-T3`** — execute every example graph headlessly, asserting no node errors.
 - [ ] **`E11-T4`** — forward coverage: a node with no help topic fails the build.
 - [ ] **`E11-T5`** — reverse coverage: a `nodes:` entry naming a node that no longer exists fails

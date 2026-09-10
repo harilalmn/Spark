@@ -34,9 +34,10 @@ namespace Spark.Api;
 /// </para>
 /// </remarks>
 /// <example>
-/// <code>
+/// <code spark-scope="class">
 /// [SparkNodeAlias("Circle.ByCentreRadius")]
-/// public static Circle FromCentreRadius(Point3d centre, double radius) => …
+/// public static Circle FromCentreRadius(Point3d centre, double radius) =>
+///     Circle.FromCenterRadius(centre, radius);
 /// </code>
 /// </example>
 [AttributeUsage(

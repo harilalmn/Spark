@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-09 (`E12-T5`: `spark check`, and the CLI's first test project)
+**Last updated:** 2026-09-10 (`E11-T2`: the XML `<example>` blocks are compiled)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1268,9 +1268,13 @@ nothing.
       that need compiled assemblies are deliberately **not stubbed**: a test that passes by
       doing nothing is worse than no test, so they arrive with the milestones that create
       the things they check.*
-- [ ] Every ` ```csharp ` fence and every XML `<example>` compiles **using the exact
+- [x] Every ` ```csharp ` fence and every XML `<example>` compiles **using the exact
       references and imports a real code-block node gets**, with `<!-- spark:skip -->` as a
-      sparing opt-out (**E11-T2**).
+      sparing opt-out (**E11-T2**). *Fences 2026-08-31; `<example>` blocks 2026-09-10, read from
+      the `.cs` sources rather than from generated XML in `bin/`. Three fences opt out and no
+      `<example>` may; the count of `<example>` elements is asserted equal to the count compiled,
+      because a parser that recognises none of them is otherwise green. The first run caught a
+      published example that ended in a literal `…` and had never been C# ([N136](NOTES.md)).*
 - [ ] Every example graph runs headlessly with no node errors and matches its declared
       expected outputs (**E11-T3**).
 - [ ] **Forward node coverage**: every built-in node resolves to a help topic, or is listed

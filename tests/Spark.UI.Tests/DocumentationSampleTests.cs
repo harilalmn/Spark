@@ -190,7 +190,15 @@ public sealed class DocumentationSampleTests
     /// imports, wrapped in a method body.
     /// </summary>
     /// <returns>Null when it compiles, or the first error.</returns>
-    private static string? Compile(ReferenceCatalog catalog, string code)
+    private static string? Compile(ReferenceCatalog catalog, string code) =>
+        Compile(catalog, code, SampleScope.Statements);
+
+    /// <summary>Compiles one sample at the scope its author says it belongs at.</summary>
+    /// <param name="catalog">The references and imports a real code block gets.</param>
+    /// <param name="code">The sample, with its own <c>using</c> lines still on it.</param>
+    /// <param name="scope">Whether the sample is statements or a member declaration.</param>
+    /// <returns>Null when it compiles, or the first error.</returns>
+    private static string? Compile(ReferenceCatalog catalog, string code, SampleScope scope)
     {
         // A sample carries its own `using` lines, and it should: a reader looking at a help topic
         // wants code they could paste into a file, not a fragment that only works inside Spark's
@@ -203,9 +211,18 @@ public sealed class DocumentationSampleTests
         source.AppendLine(catalog.Prelude());
         source.AppendLine(usings);
         source.AppendLine("public static class HelpSample {");
-        source.AppendLine("  public static void Run() {");
-        source.AppendLine(body);
-        source.AppendLine("  }");
+
+        if (scope == SampleScope.Statements)
+        {
+            source.AppendLine("  public static void Run() {");
+            source.AppendLine(body);
+            source.AppendLine("  }");
+        }
+        else
+        {
+            source.AppendLine(body);
+        }
+
         source.AppendLine("}");
 
         CSharpCompilation compilation = CSharpCompilation.Create(
@@ -342,5 +359,250 @@ public sealed class DocumentationSampleTests
         return directory!.FullName;
     }
 
+    /// <summary>
+    /// Every <c>&lt;example&gt;&lt;code&gt;</c> block in <c>src/</c> compiles against the real API
+    /// (<c>E11-T2</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The other half of the same check, and it was doing nothing until now.</b> Every
+    /// <c>csharp</c> fence in <c>docs/help/</c> has compiled since this class was written; the
+    /// <c>&lt;example&gt;</c> blocks in the XML documentation were compiled by nothing, because
+    /// when the harness was built no contract project used one. There are four now, and one of
+    /// them ended in a literal <c>…</c> — a sample no reader could paste, sitting in the public
+    /// API for as long as the attribute has existed.
+    /// </para>
+    /// <para>
+    /// <b>The sources are read, not the generated XML.</b> A test that read
+    /// <c>bin/Debug/net10.0/Spark.Api.xml</c> would depend on the configuration, the target
+    /// framework and on <c>GenerateDocumentationFile</c> staying on — three ways to turn green by
+    /// finding nothing. The <c>.cs</c> file is the thing the author edits and it is always there.
+    /// </para>
+    /// <para>
+    /// <b>Not every example is a statement.</b> <see cref="Spark.Api.SparkNodeAliasAttribute"/>'s
+    /// is an attribute on a <i>declaration</i>, which cannot compile inside a method body.
+    /// <c>&lt;code spark-scope="class"&gt;</c> says so, and the author writes it — a heuristic
+    /// that guessed the scope from the text would quietly reclassify a broken statement as a
+    /// declaration and compile it. It is an attribute on the element rather than a marker line
+    /// inside the sample so that what a reader copies is the declaration and nothing else.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void EveryXmlExampleInTheSourceCompiles()
+    {
+        IReadOnlyList<XmlExample> examples = XmlExamples();
+
+        Assert.True(
+            examples.Count >= 4,
+            $"expected the <example> blocks in src/, found {examples.Count} — the parser is broken, "
+            + "not the sources");
+
+        ReferenceCatalog catalog = Catalog();
+        List<string> failures = [];
+
+        foreach (XmlExample example in examples)
+        {
+            string? error = Compile(catalog, example.Code, example.Scope);
+            if (error is not null)
+            {
+                failures.Add($"{example.Origin}: {error}");
+            }
+        }
+
+        Assert.True(
+            failures.Count == 0,
+            "These <example> blocks do not compile against the current API:\n"
+            + string.Join("\n", failures));
+    }
+
+    /// <summary>
+    /// <b>The same demand made of the fences.</b> A broken <c>&lt;example&gt;</c> has to go red, at
+    /// both scopes, or the loop above is decoration.
+    /// </summary>
+    [Fact]
+    public void AnXmlExampleNamingSomethingThatDoesNotExistFails()
+    {
+        ReferenceCatalog catalog = Catalog();
+
+        string? statements = Compile(
+            catalog, "Console.NoSuchNodeExists(\"a\");", SampleScope.Statements);
+        string? declaration = Compile(
+            catalog,
+            "public static Circle Broken() => Circle.NoSuchFactoryExists();",
+            SampleScope.Declarations);
+
+        Assert.NotNull(statements);
+        Assert.Contains("NoSuchNodeExists", statements!, StringComparison.Ordinal);
+        Assert.NotNull(declaration);
+        Assert.Contains("NoSuchFactoryExists", declaration!, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// And a declaration that is fine compiles, so <see cref="SampleScope.Declarations"/> is not
+    /// simply always red.
+    /// </summary>
+    [Fact]
+    public void AValidDeclarationExampleCompiles() =>
+        Assert.Null(
+            Compile(
+                Catalog(),
+                "public static Point3d Origin() => new Point3d(0, 0, 0);",
+                SampleScope.Declarations));
+
+    /// <summary>
+    /// Every <c>&lt;example&gt;</c> element in the sources yields a sample the loop above checked.
+    /// </summary>
+    /// <remarks>
+    /// There is no opt-out to grant here, and this is what stands in for the fences'
+    /// <c>AllowedSkips</c>: an <c>&lt;example&gt;</c> whose <c>&lt;code&gt;</c> the parser fails to
+    /// recognise would otherwise vanish silently, and a check that finds nothing is green.
+    /// </remarks>
+    [Fact]
+    public void EveryExampleElementInTheSourceYieldsACheckedSample()
+    {
+        int declared = 0;
+        foreach (string file in SourceFiles())
+        {
+            declared += File.ReadAllText(file).Split("<example>").Length - 1;
+        }
+
+        Assert.Equal(declared, XmlExamples().Count);
+    }
+
+    /// <summary>
+    /// Every <c>&lt;code&gt;</c> block inside an <c>&lt;example&gt;</c> in <c>src/</c>.
+    /// </summary>
+    /// <returns>The samples, with where each came from and what scope it belongs at.</returns>
+    private static IReadOnlyList<XmlExample> XmlExamples()
+    {
+        List<XmlExample> examples = [];
+
+        foreach (string file in SourceFiles())
+        {
+            string name = Path.GetFileName(file);
+            bool inExample = false;
+            bool inCode = false;
+            SampleScope scope = SampleScope.Statements;
+            List<string> code = [];
+            int index = 0;
+
+            foreach (string line in File.ReadLines(file))
+            {
+                string? doc = DocComment(line);
+                if (doc is null)
+                {
+                    continue;
+                }
+
+                string tag = doc.Trim();
+
+                if (string.Equals(tag, "<example>", StringComparison.Ordinal))
+                {
+                    inExample = true;
+                    continue;
+                }
+
+                if (string.Equals(tag, "</example>", StringComparison.Ordinal))
+                {
+                    inExample = false;
+                    continue;
+                }
+
+                if (!inExample)
+                {
+                    continue;
+                }
+
+                if (!inCode && tag.StartsWith("<code", StringComparison.Ordinal))
+                {
+                    inCode = true;
+                    scope = tag.Contains("spark-scope=\"class\"", StringComparison.Ordinal)
+                        ? SampleScope.Declarations
+                        : SampleScope.Statements;
+                    code.Clear();
+                    continue;
+                }
+
+                if (inCode && string.Equals(tag, "</code>", StringComparison.Ordinal))
+                {
+                    inCode = false;
+                    examples.Add(
+                        new XmlExample($"{name} example {index++}", scope, string.Join("\n", code)));
+                    continue;
+                }
+
+                if (inCode)
+                {
+                    code.Add(Decode(doc));
+                }
+            }
+        }
+
+        return examples;
+    }
+
+    /// <summary>The text of a documentation comment line, without its slashes.</summary>
+    /// <param name="line">A line of C# source.</param>
+    /// <returns>The text after the slashes, or <see langword="null"/> when the line is not one.</returns>
+    /// <remarks>
+    /// One space after the slashes is the separator and is removed; anything beyond it is the
+    /// sample's own indentation and is kept, because a continuation line that loses its indent
+    /// still compiles but stops reading like the code it documents.
+    /// </remarks>
+    private static string? DocComment(string line)
+    {
+        string trimmed = line.TrimStart();
+        if (!trimmed.StartsWith("///", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        string rest = trimmed[3..];
+        return rest.StartsWith(' ') ? rest[1..] : rest;
+    }
+
+    /// <summary>Turns the three XML entities a sample can contain back into characters.</summary>
+    /// <param name="text">A line from inside a <c>&lt;code&gt;</c> block.</param>
+    /// <returns>The line as the author wrote it.</returns>
+    /// <remarks>
+    /// The ampersand is undone last, or an author writing about the entity itself would have
+    /// their <c>&amp;amp;lt;</c> come back as a bare <c>&lt;</c> and the sample would say
+    /// something else.
+    /// </remarks>
+    private static string Decode(string text) =>
+        text.Replace("&lt;", "<", StringComparison.Ordinal)
+            .Replace("&gt;", ">", StringComparison.Ordinal)
+            .Replace("&amp;", "&", StringComparison.Ordinal);
+
+    /// <summary>Every C# source file in <c>src/</c>, excluding build output.</summary>
+    private static IEnumerable<string> SourceFiles() =>
+        Directory.EnumerateFiles(
+                Path.Combine(RepositoryRoot(), "src"), "*.cs", SearchOption.AllDirectories)
+            .Where(file => !IsBuildOutput(file))
+            .OrderBy(file => file, StringComparer.Ordinal);
+
+    /// <summary>Whether a path lies under a <c>bin</c> or <c>obj</c> directory.</summary>
+    private static bool IsBuildOutput(string file)
+    {
+        char separator = Path.DirectorySeparatorChar;
+        return file.Contains($"{separator}bin{separator}", StringComparison.Ordinal)
+            || file.Contains($"{separator}obj{separator}", StringComparison.Ordinal);
+    }
+
+    /// <summary>What a sample is, and therefore where it has to be wrapped to compile.</summary>
+    private enum SampleScope
+    {
+        /// <summary>Statements, wrapped in a method body. What almost every sample is.</summary>
+        Statements,
+
+        /// <summary>
+        /// Member declarations, wrapped at class scope. An attribute on a method cannot be a
+        /// statement, so the sample that shows one has to say so.
+        /// </summary>
+        Declarations,
+    }
+
     private sealed record Sample(string Topic, int Index, string Code);
+
+    private sealed record XmlExample(string Origin, SampleScope Scope, string Code);
 }
