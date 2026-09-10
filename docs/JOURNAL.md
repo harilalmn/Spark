@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-10 (`E2-T40` step A: polar construction, and N141 firing again)
+**Last updated:** 2026-09-10 (`E2-T40` closed: the plane fit, and `Plane` at 16 of 16)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** `E2-T40` step A is closed: polar construction exists on `Point3d` and `Vector3d`, as factories, as constructors and as nodes. **Step B is what remains of the row** — `Plane.ByBestFitThroughPoints` and `Plane.ByLineAndPoint`, neither of which `src/Spark.Geometry` declares today. Earlier the same day the step-3 gate run found the tree **red**, and that flake was fixed first ([N141](NOTES.md)); its prediction then fired again during this step's own verification and took four more tests with it. |
+| **Working on** | **Nothing — between steps, and `E2-T40` is closed.** Both halves landed today: polar construction on `Point3d` and `Vector3d`, then `Plane.FromBestFit` and `Plane.FromLineAndPoint`. **`Plane` is 16 of 16 — the first ProtoGeometry type Spark covers completely** — and FR-81 stands at **99 of 837**. Earlier the same day the step-3 gate run found the tree **red** and that flake was fixed first ([N141](NOTES.md)); its prediction fired again mid-verification and took four more tests with it, six in all. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E2-T40` step A — polar construction on `Point3d` and `Vector3d`**: four factories, four constructors, four nodes carrying the Dynamo names as aliases, and the spherical **polar angle measured from `+Z`**. FR-81 moves **95 to 97 of 837**. **Before it:** the constructor flake ([N141](NOTES.md)), six tests in the end. **Before it:** **`E8-T40` — the code block's phantom hit rectangle** ([N140](NOTES.md)). **Before it:** **`E2-T33` / `E11-T10` — `SurfaceProperties.cs`** and the four kernel defects it uncovered ([N139](NOTES.md)). **Before them:** `E8-T84`, `E8-T25` and `E11-T2` ([N136](NOTES.md)). |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3,026** tests over **ten** executables with zero failures and zero skips — **run twice**, because a single green run after fixing a race proves nothing. Docs harness green. No stashes. |
-| **Next action** | **`E2-T40` step B, which closes the row: `Plane.FromBestFit(points)` and `Plane.FromLineAndPoint(line, point)`.** Take them together, and mind two things the register already says. **(1)** DYNAMO-COVERAGE 3.1 says the least-squares fit is the same machinery `Circle.ByBestFitThroughPoints` and `Line.ByBestFitThroughPoints` want, so **write it once**, somewhere all three can reach, rather than three times — it is a symmetric 3x3 covariance matrix and its smallest eigenvector. **(2)** `FromLineAndPoint` is a short forward to `FromThreePoints` and is only interesting when the point lies **on** the line, which is the degenerate case that must be refused rather than answered with an arbitrary plane. Expect `ConstructorParityTests` to demand constructors for both, as it did for all four of step A. **After the row:** `E2-T62`, the 8.5e-5 residual on `RevolutionSurface` — the next thing to look at is why a Newton step of about 1.75e-6 fails to improve a distance of 1.5e-5, since the residuals are already at 1e-7 and the budget is not the constraint. **Union volume is the one clause of `E2-T33`'s criterion still open**, and it waits on solids. |
-| **Verify with** | For the fit: a plane recovered from points sampled *on* a known plane to within tolerance, the same points with noise still recovering it, collinear points refused because they span no plane, and fewer than three points refused. For `FromLineAndPoint`: agreement with `FromThreePoints` on two points of the line plus the third, and a refusal when the point lies on the line. Both proved by a named test watched going red. The suite total rises from **3,026**. |
+| **Last completed step** | **`E2-T40` step B — the least-squares plane fit, and the row closes.** An internal `LeastSquares` helper rather than a method on `Plane`, because `Circle` and `Line` want the same arithmetic; closed form, so no eigensolver and no convergence tolerance; a **relative** degeneracy threshold ([N143](NOTES.md)); and a normal whose sign follows the winding of the points. **Before it:** step A, polar construction ([N142](NOTES.md) is the rule the two halves put side by side). **Before them:** the constructor flake ([N141](NOTES.md)), `E8-T40` ([N140](NOTES.md)), `E2-T33` / `E11-T10` ([N139](NOTES.md)). |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3,041** tests over **ten** executables with zero failures and zero skips, docs harness green. No stashes. |
+| **Next action** | **The top of [TODO.md](TODO.md#now--what-is-next-in-order) is now `E7-T16` … `E7-T20`, the graph-local package folder**, and the row spells out an order that is not arbitrary — **`E7-T16`, the folder and its trust gate, must be one commit**, because a loader without the gate is remote code execution: a `.spark` and a folder of DLLs arriving by email, opened, and running before anybody reads anything. It must not exist on `main` even briefly. Consent is **per content hash**, the client's call, so a rebuilt DLL asks again and an unchanged one never does. Then `E7-T17`, the record in the file, which needs **format version 5** and a **re-proof of `E7-T7`'s byte-identical round trip** rather than an assumption. **Alternatives, if a shorter step is wanted:** `E2-T62`, the 8.5e-5 residual on `RevolutionSurface` — the thing to look at is why a Newton step of about 1.75e-6 fails to improve a distance of 1.5e-5, since the residuals are already at 1e-7 and the budget is not the constraint. **Union volume is the one clause of `E2-T33`'s criterion still open** and waits on solids. |
+| **Verify with** | Whatever the chosen row needs. For `E7-T16` the load-bearing test is the **refusal**: a folder of DLLs beside a graph that has never been consented to must not be loaded, and the test has to prove nothing was loaded rather than that a prompt appeared. The suite total rises from **3,041**. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -10616,3 +10616,73 @@ above, and a single green run after a race is not evidence of anything.
 
 **Cost.** About an hour and a half, of which the polar arithmetic was twenty minutes. The rest was
 the node half, the coverage discrepancy, and the four extra flakes.
+
+### 2026-09-10 — `E2-T40` step B: the plane fit, and `Plane` becomes the first type covered completely
+
+**What.** `Plane.FromBestFit(points)` and `Plane.FromLineAndPoint(line, point)`, their two
+constructors, their two nodes, and an internal `LeastSquares` helper. Fifteen new tests; the suite
+is **3,041** over ten executables, from 3,026. **`E2-T40` is closed.** `Plane` goes to **16 of 16 —
+the first ProtoGeometry type Spark covers completely** — and FR-81 to **99 of 837**.
+
+**The fit was written once, somewhere three callers can reach, because the register said to.**
+DYNAMO-COVERAGE 3.1 has said since it was written that `Circle.ByBestFitThroughPoints` and
+`Line.ByBestFitThroughPoints` want the same arithmetic. Putting it inside `Plane` would have made
+the second and third caller copy it, and three copies of a fit disagree about a **degenerate**
+input long before they disagree about a clean one — which is the only case any of the three is
+interesting in. `LeastSquares` is internal on purpose: a public fitting API would have to decide
+what it offers beyond a normal — residuals, a condition number, weights — and none of those has a
+caller yet.
+
+**No eigensolver, and therefore nothing to tune.** The normal is the covariance matrix's smallest
+eigenvector, taken in closed form as a row of the matrix's adjugate, choosing whichever of the
+three principal minors is largest for conditioning. There is no iteration, no cap and no
+convergence tolerance to argue about — which leaves exactly one threshold in the whole method, the
+one deciding a set of points is really a line.
+
+**That threshold is a ratio, and [N143](NOTES.md) is why.** The minors are sums of *fourth* powers
+of coordinates. An absolute cut would move by 10¹² between a model in metres and the same model in
+millimetres: it would reject a good plane in a site plan and accept a wobbly line in a detail, and
+nothing in either failure would point at units. The cut is the largest minor against the square of
+the covariance trace, both sides scaling identically, and `TheFitIsScaleIndependent` fits the same
+triangle at 1e-3 and at 1e6 to prove it rather than assert it. **Spark's coordinates are unitless by
+design, which makes any absolute geometric constant in the kernel a suspect** — that is the general
+form of the note.
+
+**The normal's sign is settled against the winding of the points.** An eigenvector is a direction,
+not an orientation; it is equally valid negated, and a factory that just returned whichever one the
+arithmetic produced would be handing the caller an implementation detail. Newell's normal for the
+points in the order given fixes it, so a ring fits a plane whose normal obeys the right-hand rule
+for the ring — the same promise `FromThreePoints` already makes for three points, which is why
+`ThreePointsFitTheirOwnPlaneWithTheSameNormal` can compare them directly. Where the order carries no
+winding the sign is deterministic and meaningless, and the documentation says so instead of
+pretending otherwise. The tests assert the sign only where the factory promises it.
+
+**`FromLineAndPoint` is four lines and one of them is the interesting one.** It forwards to
+`FromThreePoints` — two implementations of *the plane through three positions* would disagree about
+the collinear case first — and then **translates the exception on the way out**. Forwarding it
+unchanged would report `ParamName` as `third`, a parameter no caller of this method has ever seen.
+`FromThreePoints`'s own documentation records having made exactly that mistake once already, which
+is the register working: the trap was written down, and this time it was read before it was sprung.
+
+**[N142](NOTES.md): two types, two opposite answers to a bad argument, and both are right.** This
+step and step A landed the same afternoon and put the rule side by side with its opposite —
+`Point3d.FromSpherical(NaN, …)` returns a point that answers `false` to `IsValid`, and
+`Plane.FromBestFit(collinear)` throws. The rule is about the **type**, not the argument: `Point3d`
+has a representable invalid state and it is load-bearing (`Unset` *is* three NaNs), so refusing
+would make the factories the only members that cannot express *no position*; `Plane` has none, so a
+factory handing one back would break what the rest of the type rests on. Both members now point at
+the other.
+
+**One document defect fixed on the way past.** `TODO.md`'s *Now* section carried `E2-T33` /
+`E11-T10` **twice** — once ticked and once open — while `TASKS.md` had both rows `Done`. The open
+copy was the stale one and was removed; the register is the authority and the queue was lying about
+what is next.
+
+**Verified.** Build clean with zero warnings, format clean, docs harness green, the help topic's two
+new fences compiled against the real API, and **3,041 tests over ten executables with zero failures
+and zero skips**. **Two mutations were watched:** dropping the relative degeneracy cut to a bare
+`<= 0` turns `NearlyCollinearPointsAreRefused` red, and removing the Newell sign correction turns
+`ReversingTheOrderReversesTheNormal` red. Both were restored.
+
+**Cost.** About an hour. The arithmetic was twenty minutes of it; the rest was deciding where the
+fit lives, what the threshold is measured against, and what the sign is allowed to promise.

@@ -3,7 +3,7 @@
 **Status:** M0 — foundations, mostly landed. No product code is implemented; the repository
 is scaffolding, gates and specification.
 **Owner:** Nicety
-**Last updated:** 2026-09-10 (FR-81: 97 of 837, and the count §3.1 cannot settle)
+**Last updated:** 2026-09-10 (FR-81: 99 of 837, and `Plane` complete at 16 of 16)
 **Latest change:** the solid-modelling kernel decision — **D2 reverses**, **D15** is new, R1 and
 R12 retire, R15 … R22 arrive, and a new epic **E13** appears. [ADR-0020](adr/0020-occt-via-c-abi-shim.md),
 [ADR-0021](adr/0021-brep-kernel-residency.md). **Nothing of it is built.**
@@ -183,7 +183,7 @@ Each of these was chosen over a plausible alternative; the reasoning is preserve
 ## 6. Functional requirements
 
 Everything is `Not started` except the three geometry rows that say otherwise — FR-47, in part,
-FR-56 in full, and FR-81, at 11.6%. M0 produced scaffolding, not behaviour; M1's first slice
+FR-56 in full, and FR-81, at 11.8%. M0 produced scaffolding, not behaviour; M1's first slice
 produced the value layer of the kernel and nothing above it.
 
 **FR-81 is new and it is the client's instruction written down as a requirement**, along with
@@ -283,7 +283,7 @@ previously invisible — **Q11** and **Q12** — and one new risk, **R14**.
 | FR-58 | Interchange: OBJ, STL and PLY read and write; glTF write. **These stay ours and are not delegated to OCCT**, because they must work in a build with no native component at all — M1's demoable is `spark` writing an OBJ polyline, which lands long before anything native exists. | **OBJ write done** (E2-T34, E12-T5): `ObjWriter`, curves as polylines at a tolerance written into the file's header, plus `spark export`. STL, PLY, glTF and any reader are still to come |
 | FR-59 | STEP read and write. **Widened and de-risked by ADR-0020**: OCCT gives AP203, AP214 and **AP242** with assemblies, names, colours and units, plus IGES, so the *documented subset* qualifier is gone and **R12 retires**. What survives is the validation discipline — a public corpus and a **third-party viewer, never our own reader** — because *OCCT wrote it* is not evidence that our use of it is correct. | Not started (E13-T12) |
 | FR-60 | `Spark.Geometry.Planar`: `Point2d`/`Curve2d`, `Region`, and the Clipper2-backed boolean, offset and simplify pipeline, bridged by `Plane.To2d`/`To3d`. Not a peer 2D API. | Not started (E2) |
-| FR-81 | **Capability parity with Dynamo's geometry.** A person who knows Dynamo must never reach for a geometric capability in Spark and find it absent. Parity is of **capability**, not of type names, method names, parameter order, degenerate-case behaviour or tolerances — those are ours to choose, and **D8** removes any obligation to match them. The reference surface is `ProtoGeometry.dll` as installed with Revit 2026: **51 public types, 837 public members**. Progress is tracked member by member in [DYNAMO-COVERAGE.md](DYNAMO-COVERAGE.md) and held true by a two-way diff test against a checked-in manifest, so the register cannot drift from the code (E11-T23). | **97 of 837 reachable — 11.6%** (E2-T40 … E2-T46). 16.9% of the 575 members committed to, once §5's refusals and the undecided T-Spline surface are excluded. All 97 are in the value layer; there are no curves, surfaces, solids, meshes or topology counted here — **the curve layer exists but has not been walked against this register**, which is what E11-T23's two-way diff would stop happening. **Q11 is answered**: the parity promise moves exact solid booleans into 1.0, and they come from OpenCascade (**D2**, **D15**, [ADR-0020](adr/0020-occt-via-c-abi-shim.md)). **Q12 is still open**, and ADR-0020 does not touch it — OCCT has no subdivision modeller either |
+| FR-81 | **Capability parity with Dynamo's geometry.** A person who knows Dynamo must never reach for a geometric capability in Spark and find it absent. Parity is of **capability**, not of type names, method names, parameter order, degenerate-case behaviour or tolerances — those are ours to choose, and **D8** removes any obligation to match them. The reference surface is `ProtoGeometry.dll` as installed with Revit 2026: **51 public types, 837 public members**. Progress is tracked member by member in [DYNAMO-COVERAGE.md](DYNAMO-COVERAGE.md) and held true by a two-way diff test against a checked-in manifest, so the register cannot drift from the code (E11-T23). | **99 of 837 reachable — 11.8%** (E2-T40 … E2-T46). 17.2% of the 575 members committed to, once §5's refusals and the undecided T-Spline surface are excluded. All 99 are in the value layer; there are no curves, surfaces, solids, meshes or topology counted here — **the curve layer exists but has not been walked against this register**, which is what E11-T23's two-way diff would stop happening. **Q11 is answered**: the parity promise moves exact solid booleans into 1.0, and they come from OpenCascade (**D2**, **D15**, [ADR-0020](adr/0020-occt-via-c-abi-shim.md)). **Q12 is still open**, and ADR-0020 does not touch it — OCCT has no subdivision modeller either |
 
 ### UI, viewport and tools
 

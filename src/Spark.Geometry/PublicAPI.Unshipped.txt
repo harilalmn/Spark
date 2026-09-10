@@ -16,6 +16,8 @@ Spark.Geometry.KnotVector.KnotVector(int degree, int controlPoints) -> void
 Spark.Geometry.Line.Line(in Spark.Geometry.Point3d start, in Spark.Geometry.Vector3d direction, double length) -> void
 Spark.Geometry.NurbsCurve.NurbsCurve(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> void
 Spark.Geometry.NurbsSurface.NurbsSurface(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! corners) -> void
+Spark.Geometry.Plane.Plane(Spark.Geometry.Line! line, in Spark.Geometry.Point3d point) -> void
+Spark.Geometry.Plane.Plane(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> void
 Spark.Geometry.Plane.Plane(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> void
 Spark.Geometry.PlaneSurface.PlaneSurface(in Spark.Geometry.Plane plane, double width, double height) -> void
 Spark.Geometry.PlaneSurface.PlaneSurface(in Spark.Geometry.Plane plane, in Spark.Geometry.Point2d corner, in Spark.Geometry.Point2d oppositeCorner) -> void
@@ -30,6 +32,8 @@ Spark.Geometry.Ray.Ray(in Spark.Geometry.Point3d from, in Spark.Geometry.Point3d
 Spark.Geometry.Vector3d.Vector3d(double radius, Spark.Geometry.Angle azimuth, Spark.Geometry.Angle polar) -> void
 Spark.Geometry.Vector3d.Vector3d(double radius, Spark.Geometry.Angle azimuth, double height) -> void
 static Spark.Geometry.Brep.Join(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>! parts) -> Spark.Geometry.Brep!
+static Spark.Geometry.Plane.FromBestFit(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.Plane
+static Spark.Geometry.Plane.FromLineAndPoint(Spark.Geometry.Line! line, in Spark.Geometry.Point3d point) -> Spark.Geometry.Plane
 static Spark.Geometry.Point3d.FromCylindrical(double radius, Spark.Geometry.Angle azimuth, double height) -> Spark.Geometry.Point3d
 static Spark.Geometry.Point3d.FromSpherical(double radius, Spark.Geometry.Angle azimuth, Spark.Geometry.Angle polar) -> Spark.Geometry.Point3d
 static Spark.Geometry.Vector3d.FromCylindrical(double radius, Spark.Geometry.Angle azimuth, double height) -> Spark.Geometry.Vector3d

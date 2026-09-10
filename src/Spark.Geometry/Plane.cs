@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace Spark.Geometry;
@@ -47,6 +48,21 @@ public readonly struct Plane : IEquatable<Plane>
     /// </remarks>
     public Plane(in Point3d first, in Point3d second, in Point3d third) =>
         this = FromThreePoints(first, second, third);
+
+    /// <summary>Creates the plane best fitting a set of points (`E2-T59`).</summary>
+    /// <param name="points">The points to fit through, in order.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="points"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when the points do not span a plane.</exception>
+    /// <remarks>Forwards to <see cref="FromBestFit(IReadOnlyList{Point3d})"/>, which documents the fit.</remarks>
+    public Plane(IReadOnlyList<Point3d> points) => this = FromBestFit(points);
+
+    /// <summary>Creates the plane containing a line and a point off it (`E2-T59`).</summary>
+    /// <param name="line">The line that lies in the plane.</param>
+    /// <param name="point">A point off the line.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="line"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="point"/> lies on the line.</exception>
+    /// <remarks>Forwards to <see cref="FromLineAndPoint(Line, in Point3d)"/>.</remarks>
+    public Plane(Line line, in Point3d point) => this = FromLineAndPoint(line, point);
 
     /// <summary>
     /// Creates a plane through a point with a given normal. The in-plane axes are chosen
@@ -313,6 +329,126 @@ public readonly struct Plane : IEquatable<Plane>
         }
 
         return new Plane(first, x, normal.Cross(x), normal);
+    }
+
+    /// <summary>
+    /// Creates the plane that best fits a set of points, in the least-squares sense.
+    /// </summary>
+    /// <param name="points">
+    /// The points to fit through, in order. Three or more, and not all on one line. The order
+    /// matters only to the normal's sign — see below.
+    /// </param>
+    /// <returns>
+    /// The plane minimising the sum of squared distances to the points. Its
+    /// <see cref="Origin"/> is their centroid, which is the one point every least-squares plane
+    /// through them passes through.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="points"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when there are fewer than three points, when any of them is not finite, or when
+    /// they are collinear or coincident and so define no unique plane. <b>A near-degenerate set
+    /// is refused rather than fitted</b>: a plane through points that are almost on a line has a
+    /// normal decided by rounding error, and returning it would be worse than saying no. It throws
+    /// where <see cref="Point3d.FromSpherical"/> returns an invalid value, and the two are right for
+    /// opposite reasons — <see cref="Point3d"/> can represent <i>no position</i> and
+    /// <see cref="Plane"/> cannot represent <i>no plane</i> ([N142](../../docs/NOTES.md)).
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>The normal follows the winding of the points, where the order means anything.</b> A ring
+    /// of points fits a plane whose normal obeys the right-hand rule for the ring, which is the
+    /// same promise <see cref="FromThreePoints"/> makes for three points and the reason the two
+    /// agree when handed the same three. For an order that carries no winding — points laid out
+    /// symmetrically about their centroid, or a self-crossing sequence — the sign is deterministic
+    /// for a given input but carries no meaning; use <see cref="Flipped"/> if a particular side
+    /// matters to you.
+    /// </para>
+    /// <para>
+    /// <b>The in-plane rotation is arbitrary.</b> Nothing in a set of points picks an X axis, so
+    /// this behaves like <see cref="FromOriginNormal(in Point3d, in Vector3d)"/>: the same normal
+    /// always yields the same frame, but which direction becomes <see cref="XAxis"/> is not
+    /// something to depend on. Use <see cref="FromOriginNormalXAxis"/> on the result if you need
+    /// the rotation pinned.
+    /// </para>
+    /// <para>
+    /// The fit itself is a closed-form eigenvector of the points' covariance matrix, with no
+    /// iteration and therefore no convergence tolerance; the only threshold is the one that
+    /// decides a set is degenerate, and it is relative to the spread of the points so that it
+    /// means the same thing at every scale.
+    /// </para>
+    /// </remarks>
+    public static Plane FromBestFit(IReadOnlyList<Point3d> points)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+
+        if (points.Count < 3)
+        {
+            throw new ArgumentException(
+                "A plane needs at least three points to be fitted through; "
+                + $"{points.Count} were given.",
+                nameof(points));
+        }
+
+        if (!LeastSquares.TryFitPlane(points, out Point3d centroid, out Vector3d normal))
+        {
+            throw new ArgumentException(
+                "Those points do not span a plane. They are collinear, coincident, or too nearly "
+                + "so for a normal to mean anything, or one of them is not finite.",
+                nameof(points));
+        }
+
+        return new Plane(centroid, normal);
+    }
+
+    /// <summary>
+    /// Creates the plane containing a line and a point off it.
+    /// </summary>
+    /// <param name="line">
+    /// The line that lies in the plane. Its start becomes the plane's <see cref="Origin"/> and
+    /// its direction becomes the <see cref="XAxis"/>.
+    /// </param>
+    /// <param name="point">
+    /// A point off the line, which fixes which of the infinitely many planes through the line is
+    /// meant, and which side <see cref="YAxis"/> lies on.
+    /// </param>
+    /// <returns>
+    /// The plane through both. Its normal follows the right-hand rule for the line's direction
+    /// crossed with the direction to the point.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="line"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="point"/> lies <b>on</b> the line, because a line and a point on
+    /// it are contained by infinitely many planes and no one of them is the answer; and when
+    /// <paramref name="point"/> is not finite.
+    /// </exception>
+    /// <remarks>
+    /// <b>It forwards to <see cref="FromThreePoints"/>, and translates the exception on the way
+    /// out.</b> The forward is the point — two implementations of <i>the plane through three
+    /// positions</i> would disagree about the collinear case first. What cannot be forwarded is
+    /// the <c>ParamName</c>: <see cref="FromThreePoints"/> would report <c>third</c>, which is a
+    /// parameter no caller of this method has ever seen. That exact mistake is recorded in
+    /// <see cref="FromThreePoints"/>'s own documentation, having been made once already.
+    /// </remarks>
+    public static Plane FromLineAndPoint(Line line, in Point3d point)
+    {
+        ArgumentNullException.ThrowIfNull(line);
+
+        try
+        {
+            return FromThreePoints(line.StartPoint, line.EndPoint, point);
+        }
+        catch (ArgumentException error)
+        {
+            throw new ArgumentException(
+                "That point lies on the line, so the two are contained by infinitely many planes "
+                + "and none of them is the answer. Give a point off the line.",
+                nameof(point),
+                error);
+        }
     }
 
     /// <summary>

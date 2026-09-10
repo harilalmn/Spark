@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-10 (N141: a fire-and-forget run in a constructor)
+**Last updated:** 2026-09-10 (N142, N143: two answers to a bad argument, and relative thresholds)
 
 ---
 
@@ -4346,3 +4346,50 @@ a false positive where *Inspector* was a pane's name rather than the collection.
 fixing a flake by its *shape* rather than by its symptom: the shape found four more, and the
 alternative was meeting them one at a time, months apart, each time in the middle of unrelated
 work — which is exactly how this one was met.
+
+## N142 — Two types, two opposite answers to a bad argument, and both are right
+
+`E2-T40` closed on the same afternoon it added polar construction to `Point3d` and a least-squares
+fit to `Plane`, which put the two rules side by side where the difference is impossible to miss:
+
+- `Point3d.FromSpherical(double.NaN, …)` returns a point. It answers `false` to `IsValid`.
+- `Plane.FromBestFit(collinearPoints)` throws.
+
+**That is not an inconsistency, and writing it down is cheaper than having the argument again.**
+`Point3d` has a representable invalid state and it is load-bearing — `Unset` *is* three `NaN`s, and
+the whole type is built so that a missing position can travel through arithmetic and be tested for
+at the end, where the caller is already looking. Throwing would make the factories the only members
+of the type that cannot express *no position*. `Plane` has no such state: `default(Plane)` has a
+zero normal, every geometric member throws on it, and the type's design rests on a `Plane` you are
+holding being a real one. A factory that handed back an invalid `Plane` would break the guarantee
+the rest of the type is built on.
+
+**So the rule is about the type, not about the argument.** *Does an invalid value of this type mean
+something?* If yes, return one. If no, refuse. Both are documented on the members themselves, each
+pointing at the other, because the next reader will meet one of them first and wonder.
+
+## N143 — A relative threshold is the only kind that survives a change of units
+
+`Plane.FromBestFit` refuses points that are collinear — and, more usefully, points that are *nearly*
+collinear, where a plane exists arithmetically and its normal is decided by rounding error. The cut
+has to be somewhere, and the tempting version is a small absolute number.
+
+**An absolute cut is wrong here, and it is wrong in a way that only shows up in somebody else's
+model.** The quantities being compared are the principal minors of a covariance matrix: sums of
+*fourth* powers of coordinates. Change from metres to millimetres and every one of them moves by
+10¹². A threshold that correctly rejects a wobbly line in a building model would accept it in a
+model of the same building drawn in millimetres, and reject a perfectly good plane in a site plan
+drawn in kilometres. The same design in three unit systems would get three different answers, and
+nothing in the failure would point at units.
+
+**The cut is therefore a ratio: the largest minor against the square of the covariance trace.** Both
+sides scale identically, so the test means the same thing at every size — and Spark's coordinates are
+unitless by design, which makes *any* absolute geometric constant in the kernel a suspect. Exactly
+collinear points in double arithmetic produce a ratio around `1e-16`; the cut is `1e-12`, four orders
+of magnitude of margin, and a named test fits both a millimetre-scale triangle and a
+thousand-kilometre one to prove the invariance rather than assert it.
+
+**The general form.** Any comparison in the kernel between two quantities derived from coordinates
+should be a ratio of like things, or should take a `Tolerance` and let the caller say what scale they
+are working at. A bare constant compared against a length, an area or a moment is a units bug waiting
+for a user who works in different ones.

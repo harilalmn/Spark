@@ -241,6 +241,53 @@ double drop = ceiling.DistanceTo(Point3d.Origin); // −2.7
 planes and only `DistanceTo` shifts. It refuses a non-finite distance: a plane whose origin is
 `NaN` is not a plane, and no factory will hand you one.
 
+### Fitting one through points you already have
+
+Two more factories exist for the case where the plane is not something you choose but something
+your data already implies:
+
+```csharp
+using System.Collections.Generic;
+using Spark.Geometry;
+
+// Survey points, a scan, the corners of something almost-flat: fit a plane through them.
+List<Point3d> readings =
+[
+    new(0.0, 0.0, 2.001),
+    new(1.0, 0.0, 1.999),
+    new(1.0, 1.0, 2.002),
+    new(0.0, 1.0, 1.998),
+];
+
+Plane fitted = Plane.FromBestFit(readings);   // origin at the centroid, normal near +Z
+double worst = 0.0;
+foreach (Point3d reading in readings)
+{
+    worst = System.Math.Max(worst, System.Math.Abs(fitted.DistanceTo(reading)));
+}
+
+// A line and a point off it pick out one plane from the infinitely many through the line.
+Line edge = new(new Point3d(0.0, 0.0, 0.0), new Point3d(4.0, 0.0, 0.0));
+Plane through = Plane.FromLineAndPoint(edge, new Point3d(0.0, 3.0, 0.0));
+```
+
+`FromBestFit` minimises the sum of squared distances, so the points need not lie on the result —
+that is the point of it. Its origin is the centroid, and **its normal follows the winding of the
+points**: hand it a ring going one way and the normal obeys the right-hand rule for that ring,
+which is the same promise `FromThreePoints` makes. Reverse the list and you get the other side.
+
+**Both refuse the degenerate case rather than answering it**, and this is where `Plane` behaves the
+opposite way to `Point3d`. Points that are on a line — or *nearly* on a line — do not determine a
+plane, so `FromBestFit` throws instead of returning one whose normal was decided by rounding error.
+A point that lies *on* the line throws out of `FromLineAndPoint` for the same reason. A `Plane` has
+no representable invalid state, so refusing is the only honest answer available to it; a `Point3d`
+does have one, which is why its factories hand back something that answers `false` to `IsValid`
+instead of throwing.
+
+Both are nodes too — **Plane.FromBestFit** and **Plane.FromLineAndPoint**, aliased to
+`Plane.ByBestFitThroughPoints` and `Plane.ByLineAndPoint` — and the fit's points port takes the
+whole list rather than running once per point.
+
 ### `default(Plane)` is not a plane
 
 `Plane` is a struct, which is the right choice for something that appears once per element

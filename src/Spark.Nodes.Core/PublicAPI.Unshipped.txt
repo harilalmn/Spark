@@ -5,6 +5,8 @@ static Spark.Nodes.Core.Console.Write(string! text) -> string!
 static Spark.Nodes.Core.Console.WriteLine(string! text) -> string!
 static Spark.Nodes.Core.Number.RangeByCount(double start = 0, double end = 10, int count = 11) -> System.Collections.Generic.IReadOnlyList<double>!
 static Spark.Nodes.Core.Number.RangeByCountAndStep(double start = 0, int count = 11, double step = 1) -> System.Collections.Generic.IReadOnlyList<double>!
+static Spark.Nodes.Core.Plane.FromBestFit(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.Plane
+static Spark.Nodes.Core.Plane.FromLineAndPoint(Spark.Geometry.Line! line, Spark.Geometry.Point3d point) -> Spark.Geometry.Plane
 static Spark.Nodes.Core.Point.FromCylindrical(double radius = 1, Spark.Geometry.Angle azimuth = default(Spark.Geometry.Angle), double height = 0) -> Spark.Geometry.Point3d
 static Spark.Nodes.Core.Point.FromSpherical(double radius = 1, Spark.Geometry.Angle azimuth = default(Spark.Geometry.Angle), Spark.Geometry.Angle polar = default(Spark.Geometry.Angle)) -> Spark.Geometry.Point3d
 static Spark.Nodes.Core.Vector.FromCylindrical(double radius = 1, Spark.Geometry.Angle azimuth = default(Spark.Geometry.Angle), double height = 0) -> Spark.Geometry.Vector3d

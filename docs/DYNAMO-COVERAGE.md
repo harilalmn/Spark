@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-10 (`E2-T40`: polar construction, and a count §3.1 cannot settle)
+**Last updated:** 2026-09-10 (`E2-T40` closed: the plane fit, and a count §3.1 cannot settle)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -52,15 +52,15 @@ or from this repository; none is an estimate.
 | | Types | Members | Share of 837 |
 |---|---:|---:|---:|
 | ProtoGeometry public surface | 51 | 837 | 100% |
-| Reachable in Spark today | 6 | **97** | **11.6%** |
+| Reachable in Spark today | 6 | **99** | **11.8%** |
 | Deliberately not replicated (§5) | 7 + parts of 2 | 93 | 11.1% |
 | Awaiting a decision — T-Splines (§6.2) | 8 | 169 | 20.2% |
 | **Committed and still to build** | **30** | **480** | **57.3%** |
 
 Against the scope we have actually committed to — 837 less the 93 we refuse and the 169 that
-need their own decision, so **575 members** — Spark stands at **97 of 575, or 16.9%**.
+need their own decision, so **575 members** — Spark stands at **99 of 575, or 17.2%**.
 
-### What the 97 counts, exactly
+### What the 99 counts, exactly
 
 A ProtoGeometry member counts as **reachable** when a Spark user can obtain the same result
 today through a documented member of `Spark.Geometry`. It does **not** require the same name
@@ -69,7 +69,7 @@ and `Transform.OfVector` between them do the job, and `CoordinateSystem.Translat
 because `Transform.Translation` does. Members that are pure serialisation, native-session
 plumbing, or that operate on types Spark does not yet have, are counted as not reachable.
 
-All 97 sit in one subsystem — values and frames — because that is the only subsystem that
+All 99 sit in one subsystem — values and frames — because that is the only subsystem that
 exists. **There are no curves, surfaces, solids, meshes or topology in `Spark.Geometry`**, and
 nothing in this document should be read as implying otherwise.
 
@@ -77,8 +77,8 @@ nothing in this document should be read as implying otherwise.
 
 Two warnings, both of which matter for reading the table above honestly.
 
-**A percentage of members is not a percentage of work.** The 97 reachable members are the
-easiest 97 in the whole inventory: arithmetic on six-double structs, decided by algebra and
+**A percentage of members is not a percentage of work.** The 99 reachable members are the
+easiest 99 in the whole inventory: arithmetic on six-double structs, decided by algebra and
 verified by property tests. `Solid.Difference` is one row of one table and is a multi-year
 research problem (§6.1). Any schedule derived from 16% is wrong by an order of magnitude.
 
@@ -98,14 +98,14 @@ Eight sections in dependency order. Each carries one row per ProtoGeometry type,
 count from the inventory, our equivalent, its status and the milestone from
 [PRD §11](PRD.md#11-release-plan) at which we expect it.
 
-### 3.1 Values and frames — 6 types, 133 members, 97 reachable
+### 3.1 Values and frames — 6 types, 133 members, 99 reachable
 
 | Dynamo type | Members | Spark equivalent | Status | Milestone |
 |---|---:|---|---|---|
 | `Point` | 15 | `Point3d` | Done (13/15) | M1 |
 | `Vector` | 31 | `Vector3d` | Done (29/31) | M1 |
 | `UV` | 6 | `UV` | Done (6/6) | M1 |
-| `Plane` | 16 | `Plane` | Done (14/16) | M1 |
+| `Plane` | 16 | `Plane` | **Done (16/16)** | M1 |
 | `CoordinateSystem` | 46 | `CoordinateSystem` + `Transform` | Done (27/46) | M1 |
 | `BoundingBox` | 19 | `BoundingBox` | Done (8/19) | M1 |
 
@@ -181,10 +181,17 @@ asked for constantly and there is nothing to decide about it. Neither turned out
 trivial: `FromOriginNormalXAxis` projects the requested X axis into the plane rather than
 demanding one that already lies in it, and `Offset` refuses a non-finite distance rather than
 producing a plane whose origin is `NaN`, which would be the only way to obtain an invalid
-`Plane` from a factory. What remains is `ByBestFitThroughPoints` (planned — least-squares
-fitting, and it is the same machinery `Circle.ByBestFitThroughPoints` and
-`Line.ByBestFitThroughPoints` want, so it should be written once) and `ByLineAndPoint`
-(planned, M1, now that `Line` exists).
+`Plane` from a factory. **`ByBestFitThroughPoints` and `ByLineAndPoint` were added 2026-09-10**
+(`E2-T40`) as `FromBestFit` and `FromLineAndPoint`, and `Plane` is now **16 of 16 — the first
+ProtoGeometry type Spark covers completely**. The fit was written **once**, as an internal
+`LeastSquares` helper rather than inside `Plane`, because this section already said
+`Circle.ByBestFitThroughPoints` and `Line.ByBestFitThroughPoints` want the same arithmetic and
+three copies would disagree about a degenerate input first. It is closed-form — the covariance
+matrix's smallest eigenvector via its adjugate — so there is no iteration, no convergence
+tolerance and no eigensolver; the only threshold is the relative one that decides a set of points
+is really a line, and near-collinear input is **refused rather than fitted**, because a normal
+decided by rounding error is worse than a message. The normal's sign follows the winding of the
+points, matching what `FromThreePoints` promises for three.
 
 **Two Dynamo members on these types have no Spark equivalent and should not get one.**
 `Point.ByCartesianCoordinates(cs, x, y, z)` is counted as reachable through
