@@ -24,6 +24,32 @@ public static class Point
     [SparkNodeAlias("Point.ByCoordinates")]
     public static Point3d FromCoordinates(double x = 0, double y = 0, double z = 0) => new(x, y, z);
 
+    /// <summary>
+    /// Makes a point from cylindrical coordinates: a distance from the world z axis, an angle
+    /// round it, and a height.
+    /// </summary>
+    /// <param name="radius">The distance from the z axis, measured in the xy plane. Negative reflects through the axis.</param>
+    /// <param name="azimuth">The angle in the xy plane, measured from the x axis towards y, in degrees.</param>
+    /// <param name="height">The z coordinate.</param>
+    /// <returns>The point.</returns>
+    [return: NodePort("point")]
+    [SparkNodeAlias("Point.ByCylindricalCoordinates")]
+    public static Point3d FromCylindrical(double radius = 1.0, Angle azimuth = default, double height = 0.0) =>
+        Point3d.FromCylindrical(radius, azimuth, height);
+
+    /// <summary>
+    /// Makes a point from spherical coordinates. <b>The polar angle is measured from the z axis</b>,
+    /// not up from the xy plane: zero is straight up and ninety degrees is the xy plane.
+    /// </summary>
+    /// <param name="radius">The distance from the origin. Negative reflects through the origin.</param>
+    /// <param name="azimuth">The angle in the xy plane, measured from the x axis towards y, in degrees.</param>
+    /// <param name="polar">The angle away from the z axis, in degrees. Zero is the north pole.</param>
+    /// <returns>The point.</returns>
+    [return: NodePort("point")]
+    [SparkNodeAlias("Point.BySphericalCoordinates")]
+    public static Point3d FromSpherical(double radius = 1.0, Angle azimuth = default, Angle polar = default) =>
+        Point3d.FromSpherical(radius, azimuth, polar);
+
     /// <summary>The world origin.</summary>
     /// <returns>The point at (0, 0, 0).</returns>
     [return: NodePort("point")]

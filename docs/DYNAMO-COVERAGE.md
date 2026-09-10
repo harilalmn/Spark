@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-02 (§5 corrected: a code block does not host `using` directives)
+**Last updated:** 2026-09-10 (`E2-T40`: polar construction, and a count §3.1 cannot settle)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -52,15 +52,15 @@ or from this repository; none is an estimate.
 | | Types | Members | Share of 837 |
 |---|---:|---:|---:|
 | ProtoGeometry public surface | 51 | 837 | 100% |
-| Reachable in Spark today | 6 | **95** | **11.4%** |
+| Reachable in Spark today | 6 | **97** | **11.6%** |
 | Deliberately not replicated (§5) | 7 + parts of 2 | 93 | 11.1% |
 | Awaiting a decision — T-Splines (§6.2) | 8 | 169 | 20.2% |
 | **Committed and still to build** | **30** | **480** | **57.3%** |
 
 Against the scope we have actually committed to — 837 less the 93 we refuse and the 169 that
-need their own decision, so **575 members** — Spark stands at **95 of 575, or 16.5%**.
+need their own decision, so **575 members** — Spark stands at **97 of 575, or 16.9%**.
 
-### What the 95 counts, exactly
+### What the 97 counts, exactly
 
 A ProtoGeometry member counts as **reachable** when a Spark user can obtain the same result
 today through a documented member of `Spark.Geometry`. It does **not** require the same name
@@ -69,7 +69,7 @@ and `Transform.OfVector` between them do the job, and `CoordinateSystem.Translat
 because `Transform.Translation` does. Members that are pure serialisation, native-session
 plumbing, or that operate on types Spark does not yet have, are counted as not reachable.
 
-All 95 sit in one subsystem — values and frames — because that is the only subsystem that
+All 97 sit in one subsystem — values and frames — because that is the only subsystem that
 exists. **There are no curves, surfaces, solids, meshes or topology in `Spark.Geometry`**, and
 nothing in this document should be read as implying otherwise.
 
@@ -77,8 +77,8 @@ nothing in this document should be read as implying otherwise.
 
 Two warnings, both of which matter for reading the table above honestly.
 
-**A percentage of members is not a percentage of work.** The 92 reachable members are the
-easiest 92 in the whole inventory: arithmetic on six-double structs, decided by algebra and
+**A percentage of members is not a percentage of work.** The 97 reachable members are the
+easiest 97 in the whole inventory: arithmetic on six-double structs, decided by algebra and
 verified by property tests. `Solid.Difference` is one row of one table and is a multi-year
 research problem (§6.1). Any schedule derived from 16% is wrong by an order of magnitude.
 
@@ -98,11 +98,11 @@ Eight sections in dependency order. Each carries one row per ProtoGeometry type,
 count from the inventory, our equivalent, its status and the milestone from
 [PRD §11](PRD.md#11-release-plan) at which we expect it.
 
-### 3.1 Values and frames — 6 types, 133 members, 95 reachable
+### 3.1 Values and frames — 6 types, 133 members, 97 reachable
 
 | Dynamo type | Members | Spark equivalent | Status | Milestone |
 |---|---:|---|---|---|
-| `Point` | 15 | `Point3d` | Done (11/15) | M1 |
+| `Point` | 15 | `Point3d` | Done (13/15) | M1 |
 | `Vector` | 31 | `Vector3d` | Done (29/31) | M1 |
 | `UV` | 6 | `UV` | Done (6/6) | M1 |
 | `Plane` | 16 | `Plane` | Done (14/16) | M1 |
@@ -150,12 +150,29 @@ shipped, and they are the useful finding of this section:
   `OrientedBox` type. `Geometry.OrientedBoundingBox` and `BoundingBox.ByMinimumVolume` push
   the same way. Recorded as an open question rather than silently absorbed.
 
-**`Point` and `Vector` are nearly complete.** The six uncovered members are
-`ByCylindricalCoordinates` and `BySphericalCoordinates` on both types (planned — polar
-construction is a small, real convenience), `Point.PruneDuplicates` (planned, and it wants the
-`KDTree` of E2-T16 rather than an O(n²) loop), `Point.Project` onto geometry (planned, M5 —
-it needs surfaces), and `Vector.FromJson`/`ToJson` (planned under FR-57). Nothing here is a
-design difference.
+**`Point` and `Vector` are nearly complete.** `ByCylindricalCoordinates` and
+`BySphericalCoordinates` were **added 2026-09-10** (`E2-T40`) as `FromCylindrical` and
+`FromSpherical` — Spark names factories `From…`, so the Dynamo name is the *mapping* rather than
+the member. They are on **both** `Point3d` and `Vector3d`, and each is also a constructor, because
+`E2-T59` says every factory is, **and all four are nodes** carrying the Dynamo names as aliases —
+because a member of `Spark.Geometry` is reachable from a code block and nowhere else, and FR-81's
+promise is about the person at the library panel. The one decision in four arithmetic members is the
+spherical convention: the second angle is the **polar** angle from `+Z`, not an elevation from the XY plane,
+and the two differ by a quarter turn with nothing in a result to say which was meant. It is stated
+on every one of the four and pinned by a named test. What remains on `Point` is
+`Point.PruneDuplicates` (planned, and it wants the `KDTree` of E2-T16 rather than an O(n²) loop)
+and `Point.Project` onto geometry (planned, M5 — it needs surfaces). Nothing here is a design
+difference.
+
+**`Vector`'s row was not moved, and the reason is a discrepancy this document cannot settle on its
+own.** The table gives `Vector` 29 of 31, so **two** uncovered; the paragraph above it used to name
+**four** — `ByCylindricalCoordinates`, `BySphericalCoordinates`, `FromJson` and `ToJson` — and both
+cannot be true. Spark now has the first two either way, so the honest answer depends on whether
+ProtoGeometry's `Vector` declares them at all, and **the inventory those counts came from is not in
+this repository**; every other number here is a count rather than an estimate, and guessing this one
+to make a table tidy would be the first exception. `Vector` therefore stays at 29/31 and the headline
+moves by two rather than four. Settling it needs somebody with `ProtoGeometry.dll` in front of them,
+and §7's *check the inventory in* row is now doing real work rather than hypothetical.
 
 **`Plane` had four gaps and has two.** `FromOriginNormalXAxis` and `Offset(distance)` were
 **added 2026-08-29** (`E2-T40`) — the first because it is the only factory that pins the

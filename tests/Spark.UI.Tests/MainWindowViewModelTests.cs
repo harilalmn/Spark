@@ -162,9 +162,10 @@ public sealed class MainWindowViewModelTests
     /// ask. The words come from the same place the canvas gets them, so the two cannot drift.
     /// </remarks>
     [Fact]
-    public void EveryInspectorRowNamesTheTypeItWants()
+    public async Task EveryInspectorRowNamesTheTypeItWants()
     {
         using MainWindowViewModel model = new("demo");
+        await model.EvaluateAsync();
 
         model.ShowSelection([SlotOf(model, "Number.Range")]);
 
@@ -175,9 +176,10 @@ public sealed class MainWindowViewModelTests
 
     /// <summary>A port fed by a wire is not editable, because the wire wins.</summary>
     [Fact]
-    public void AWiredPortIsNotEditable()
+    public async Task AWiredPortIsNotEditable()
     {
         using MainWindowViewModel model = new("demo");
+        await model.EvaluateAsync();
 
         model.ShowSelection([SlotOf(model, "Point.FromCoordinates")]);
 

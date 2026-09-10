@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-10 (`E8-T40`: the code block's phantom hit rectangle)
+**Last updated:** 2026-09-10 (`E2-T40`: polar construction on `Point3d` and `Vector3d`)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -276,9 +276,18 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
       property behind them — and the types they need all exist now. **Mind the generator**: the
       lesson this file keeps repeating is that a property whose generator never straddles the
       boundary it tests cannot fail and looks exactly like a passing test.
-- [ ] **The four named value-layer parity gaps.** `E2-T40`. Cylindrical and spherical construction
-      on `Point3d` and `Vector3d`, `Plane.ByBestFitThroughPoints`, `Plane.ByLineAndPoint` — checked
-      against the source on 2026-09-09 and absent from it. Four members, and then the row closes.
+- [ ] **The last two value-layer parity gaps.** `E2-T40`. **Cylindrical and spherical construction
+      closed 2026-09-10** — `FromCylindrical` and `FromSpherical` on both `Point3d` and `Vector3d`,
+      each with a constructor beside it because `E2-T59` says every factory has one, four nodes
+      carrying the Dynamo names as aliases, and the spherical **polar angle measured from `+Z`**
+      rather than up from the XY plane. What is left is
+      `Plane.ByBestFitThroughPoints` and `Plane.ByLineAndPoint`, and then the row closes.
+      **Take them together**: the first is a least-squares fit through a symmetric 3×3 covariance
+      matrix, and DYNAMO-COVERAGE §3.1 says it is the same machinery `Circle.ByBestFitThroughPoints`
+      and `Line.ByBestFitThroughPoints` want — so it wants writing **once**, somewhere both can
+      reach, rather than three times. The second is a short forward to `FromThreePoints` and is
+      only interesting when the point lies **on** the line, which is the degenerate case that has
+      to be refused rather than returned as an arbitrary plane.
 
 - [ ] **`E7-T16` … `E7-T20` — the graph-local package folder.** Asked for by the client, who drew
       the layout: `<name>.packages` beside `<name>.spark`, one folder per NuGet package, loose

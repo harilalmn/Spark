@@ -18,6 +18,32 @@ public static class Vector
     [SparkNodeAlias("Vector.ByCoordinates")]
     public static Vector3d FromCoordinates(double x = 0, double y = 0, double z = 0) => new(x, y, z);
 
+    /// <summary>
+    /// Makes a vector from cylindrical coordinates: a distance from the world z axis, an angle
+    /// round it, and a height.
+    /// </summary>
+    /// <param name="radius">The distance from the z axis, measured in the xy plane. Negative reflects through the axis.</param>
+    /// <param name="azimuth">The angle in the xy plane, measured from the x axis towards y, in degrees.</param>
+    /// <param name="height">The z component.</param>
+    /// <returns>The vector.</returns>
+    [return: NodePort("vector")]
+    [SparkNodeAlias("Vector.ByCylindricalCoordinates")]
+    public static Vector3d FromCylindrical(double radius = 1.0, Angle azimuth = default, double height = 0.0) =>
+        Vector3d.FromCylindrical(radius, azimuth, height);
+
+    /// <summary>
+    /// Makes a vector from spherical coordinates. <b>The polar angle is measured from the z axis</b>,
+    /// not up from the xy plane: zero is straight up and ninety degrees is the xy plane.
+    /// </summary>
+    /// <param name="radius">The length. Negative reverses the direction.</param>
+    /// <param name="azimuth">The angle in the xy plane, measured from the x axis towards y, in degrees.</param>
+    /// <param name="polar">The angle away from the z axis, in degrees. Zero is straight up.</param>
+    /// <returns>The vector.</returns>
+    [return: NodePort("vector")]
+    [SparkNodeAlias("Vector.BySphericalCoordinates")]
+    public static Vector3d FromSpherical(double radius = 1.0, Angle azimuth = default, Angle polar = default) =>
+        Vector3d.FromSpherical(radius, azimuth, polar);
+
     /// <summary>The world x axis, (1, 0, 0).</summary>
     /// <returns>The unit vector.</returns>
     [return: NodePort("vector")]

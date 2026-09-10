@@ -37,6 +37,44 @@ public readonly struct Vector3d : IEquatable<Vector3d>
         Z = z;
     }
 
+    /// <summary>
+    /// Creates a vector from cylindrical coordinates. Forwards to
+    /// <see cref="FromCylindrical(double, Angle, double)"/>, which documents the convention.
+    /// </summary>
+    /// <param name="radius">The distance from the Z axis, measured in the XY plane.</param>
+    /// <param name="azimuth">The angle in the XY plane, measured from <c>+X</c> towards <c>+Y</c>.</param>
+    /// <param name="height">The Z component, used unchanged.</param>
+    /// <remarks>
+    /// <b>It exists because <c>E2-T59</c> says every factory is also a constructor</b> — a code
+    /// block is C#, and in C# one asks for a vector with <c>new</c>. It forwards rather than
+    /// repeating the arithmetic so the two cannot drift apart.
+    /// </remarks>
+    public Vector3d(double radius, Angle azimuth, double height)
+        : this(FromCylindrical(radius, azimuth, height))
+    {
+    }
+
+    /// <summary>
+    /// Creates a vector from spherical coordinates. Forwards to
+    /// <see cref="FromSpherical(double, Angle, Angle)"/>, which documents the convention —
+    /// in particular that <paramref name="polar"/> is measured <b>from <c>+Z</c></b> and is not
+    /// an elevation above the XY plane.
+    /// </summary>
+    /// <param name="radius">The distance from the origin.</param>
+    /// <param name="azimuth">The angle in the XY plane, measured from <c>+X</c> towards <c>+Y</c>.</param>
+    /// <param name="polar">The angle away from the <c>+Z</c> axis.</param>
+    public Vector3d(double radius, Angle azimuth, Angle polar)
+        : this(FromSpherical(radius, azimuth, polar))
+    {
+    }
+
+    private Vector3d(in Vector3d other)
+    {
+        X = other.X;
+        Y = other.Y;
+        Z = other.Z;
+    }
+
     /// <summary>The X component.</summary>
     public double X { get; }
 
@@ -64,6 +102,68 @@ public readonly struct Vector3d : IEquatable<Vector3d>
     /// system this is <see cref="XAxis"/> crossed with <see cref="YAxis"/>.
     /// </summary>
     public static Vector3d ZAxis => new(0.0, 0.0, 1.0);
+
+    /// <summary>
+    /// Creates a vector from cylindrical coordinates about the world Z axis.
+    /// </summary>
+    /// <param name="radius">
+    /// The distance from the Z axis, measured in the XY plane. A negative value is <b>not</b> an
+    /// error: it reflects through the axis, exactly as <paramref name="azimuth"/> plus half a turn
+    /// would, and refusing it would make the two spellings of the same vector disagree.
+    /// </param>
+    /// <param name="azimuth">
+    /// The angle in the XY plane, measured from the <c>+X</c> axis towards <c>+Y</c>. Zero is
+    /// <c>+X</c> and a quarter turn is <c>+Y</c>.
+    /// </param>
+    /// <param name="height">The Z coordinate, used unchanged.</param>
+    /// <returns>
+    /// <c>(radius·cos azimuth, radius·sin azimuth, height)</c>.
+    /// </returns>
+    /// <remarks>
+    /// <b>A non-finite argument is not refused, and that is this type's convention rather than an
+    /// oversight.</b> <see cref="Vector3d"/>'s constructor accepts any three doubles, so a non-finite
+    /// input yields a vector that answers <see langword="false"/> to <see cref="IsValid"/>, which is
+    /// where the caller checks. A factory on <see cref="Plane"/> throws in the same situation because
+    /// an invalid <see cref="Plane"/> is not representable at all; here it is.
+    /// </remarks>
+    public static Vector3d FromCylindrical(double radius, Angle azimuth, double height) => new(
+        radius * Math.Cos(azimuth.Radians),
+        radius * Math.Sin(azimuth.Radians),
+        height);
+
+    /// <summary>
+    /// Creates a vector from spherical coordinates about the world Z axis.
+    /// </summary>
+    /// <param name="radius">
+    /// The distance from the origin. Negative reflects through the origin rather than being an
+    /// error, for the same reason it does in
+    /// <see cref="FromCylindrical(double, Angle, double)"/>.
+    /// </param>
+    /// <param name="azimuth">
+    /// The angle in the XY plane, measured from the <c>+X</c> axis towards <c>+Y</c>.
+    /// </param>
+    /// <param name="polar">
+    /// The angle away from the <c>+Z</c> axis — the <i>polar</i> or <i>zenith</i> angle, <b>not</b>
+    /// an elevation measured up from the XY plane. Zero is <c>+Z</c>, a quarter turn is the XY
+    /// plane, and half a turn is <c>-Z</c>. The two conventions differ by a quarter turn and
+    /// nothing in the arithmetic reveals which one was meant, so it is stated here.
+    /// </param>
+    /// <returns>
+    /// <c>(radius·sin polar·cos azimuth, radius·sin polar·sin azimuth, radius·cos polar)</c>.
+    /// </returns>
+    /// <remarks>
+    /// A non-finite argument is reported by <see cref="IsValid"/> rather than thrown on — see
+    /// <see cref="FromCylindrical(double, Angle, double)"/> for why.
+    /// </remarks>
+    public static Vector3d FromSpherical(double radius, Angle azimuth, Angle polar)
+    {
+        double sinPolar = Math.Sin(polar.Radians);
+
+        return new Vector3d(
+            radius * sinPolar * Math.Cos(azimuth.Radians),
+            radius * sinPolar * Math.Sin(azimuth.Radians),
+            radius * Math.Cos(polar.Radians));
+    }
 
     /// <summary>
     /// The Euclidean length of this vector. Computed with a square root; prefer

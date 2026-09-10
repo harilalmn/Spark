@@ -4332,3 +4332,17 @@ constructor's run first, whether or not it currently passes. And the wider lesso
 gates rather than the code: **step 3 of the session protocol exists for this.** Running the suite
 before adding anything is what separated *I inherited this* from *I broke this*, and it cost one
 run to find out.
+
+**The prediction was tested the same afternoon, and it held.** The next full-suite run — the one
+verifying `E2-T40`'s polar construction, a change that touches no UI code at all — failed
+`UndoRedoTests.CommittingTheSameLiteralTwiceIsOneStep`, which reads `model.Inspector` after
+`ShowSelection`. The constructor's run ends in `RefreshInspector()`, so the row the test is holding
+is replaced underneath it and the commit lands on a discarded view model. A grep for the pattern
+this note describes — a `MainWindowViewModel` constructed, one of those four properties read, no
+`EvaluateAsync` anywhere — found **five** candidates; four were real and were drained, and one was
+a false positive where *Inspector* was a pane's name rather than the collection.
+
+**So the count is six tests, and only two of them had ever failed.** That is the argument for
+fixing a flake by its *shape* rather than by its symptom: the shape found four more, and the
+alternative was meeting them one at a time, months apart, each time in the middle of unrelated
+work — which is exactly how this one was met.

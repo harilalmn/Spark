@@ -131,9 +131,10 @@ public sealed class UndoRedoTests
 
     /// <summary>An edit that changed nothing does not become a step.</summary>
     [Fact]
-    public void CommittingTheSameLiteralTwiceIsOneStep()
+    public async Task CommittingTheSameLiteralTwiceIsOneStep()
     {
         using MainWindowViewModel model = new("demo");
+        await model.EvaluateAsync();
 
         model.ShowSelection([SlotOf(model, "Number.Range")]);
         PortLiteralViewModel end = model.Inspector.Single(port => port.Name == "end");

@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes `Spark.Geometry`'s value layer, which exists and is tested.
 **Owner:** `geometry-kernel`
-**Last updated:** 2026-08-29
+**Last updated:** 2026-09-10
 
 > **Scope.** This page covers `Spark.Geometry`'s **value layer** — points, vectors, planes,
 > transforms, intervals, boxes, angles and tolerances. Curves now exist too and have a page of
@@ -88,6 +88,57 @@ a `NaN` is equal to nothing at all, itself included. `Equals` follows `double.Eq
 and treats `NaN` as equal to `NaN`, so hashing and dictionary lookup behave sensibly. If you
 want a geometric comparison, that is neither of them — it is `EqualsWithin`, covered in
 [section 5](#5-tolerance-and-why-you-have-to-pass-it).
+
+### Building one from angles
+
+Not every position arrives as three coordinates. A bolt on a flange, a mullion around a drum, a
+point on a dome — those are naturally described by *an angle and a distance*, and writing the sine
+and cosine out by hand is where the sign errors live. `Point3d` and `Vector3d` both build
+themselves from **cylindrical** and **spherical** coordinates:
+
+```csharp
+using Spark.Geometry;
+
+// Cylindrical: a distance from the Z axis, an angle round it, and a height.
+Point3d bolt = Point3d.FromCylindrical(2.0, Angle.FromDegrees(45.0), 0.5);
+
+// Twelve bolts on a 2-unit circle, half a unit up.
+Point3d[] flange = new Point3d[12];
+for (int i = 0; i < flange.Length; i++)
+{
+    flange[i] = Point3d.FromCylindrical(2.0, Angle.FromDegrees(i * 30.0), 0.5);
+}
+
+// Spherical: a distance from the origin, an angle round Z, and an angle down from +Z.
+Point3d pole = Point3d.FromSpherical(3.0, Angle.Zero, Angle.Zero);              // (0, 0, 3)
+Point3d equator = Point3d.FromSpherical(3.0, Angle.Zero, Angle.QuarterTurn);    // (3, 0, 0)
+
+// The same two on Vector3d, when what you want is a direction rather than a place.
+Vector3d up = Vector3d.FromSpherical(1.0, Angle.Zero, Angle.Zero);              // (0, 0, 1)
+```
+
+**The second angle of `FromSpherical` is measured from `+Z`, not up from the XY plane.** That is
+the *polar* convention rather than the *elevation* convention, and the two differ by a quarter
+turn. Nothing in a result reveals which one a library meant — both give plausible-looking points —
+so read it off the names: `Angle.Zero` is the north pole and `Angle.QuarterTurn` is the equator,
+exactly as the two lines above say.
+
+Two things are deliberately **not** errors. A **negative radius** reflects through the axis, so
+`FromCylindrical(-3, θ, h)` is the same point as `FromCylindrical(3, θ + 180°, h)` — refusing it
+would make two spellings of one point disagree. And a **non-finite argument** gives you a point
+that answers `false` to `IsValid` rather than throwing, because that is how every `Point3d` behaves
+(`Unset` is three `NaN`s); the check belongs at `IsValid`, where you are already making it. This is
+the opposite of `Plane`'s rule, and [section 3](#3-planes) explains why the two differ.
+
+Each of the four is also a constructor — `new Point3d(2.0, Angle.FromDegrees(45.0), 0.5)` — because
+a code block is C# and every factory in the kernel has one. The constructor forwards to the factory
+rather than repeating it.
+
+All four are nodes as well, so none of this needs a code block: **Point.FromCylindrical**,
+**Point.FromSpherical**, **Vector.FromCylindrical** and **Vector.FromSpherical**, in the *Point*
+category. Their angle ports are in **degrees**, like every angle port. If you know them by their
+Dynamo names, type `Point.ByCylindricalCoordinates` or `Point.BySphericalCoordinates` into the
+library search and the same nodes come back.
 
 ---
 

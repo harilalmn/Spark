@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Spark.Api;
 using Spark.Engine;
 using Spark.Geometry;
@@ -46,9 +47,10 @@ public sealed class InputTypeDropdownTests
     /// nothing or breaks the node.
     /// </summary>
     [Fact]
-    public void AnOrdinaryNodePortDoesNotOfferTheDropdown()
+    public async Task AnOrdinaryNodePortDoesNotOfferTheDropdown()
     {
         MainWindowViewModel model = new();
+        await model.EvaluateAsync();
 
         int slot = model.Graph.Add(TestGraphs.Library.ByName("Point.FromCoordinates"), 0, 0);
         model.ShowSelection([slot]);
