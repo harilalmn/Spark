@@ -711,6 +711,33 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public static IReadOnlyList<string> CodeFontNames => CodeFont.Available();
 
     /// <summary>
+    /// Whether a code block tidies its finished lines when <kbd>Enter</kbd> is pressed
+    /// (`E8-T84`).
+    /// </summary>
+    /// <remarks>
+    /// <b>The pane binds to this; the editors read the static behind it.</b> An editor is created
+    /// and destroyed as the selection moves, so it cannot be the thing that remembers - and the
+    /// pane drawing the checkbox holds no reference to whichever editor is open. The static in
+    /// <see cref="Spark.UI.Theming.CodeFormatting"/> is what the two share, and writing to it is
+    /// what persists the answer.
+    /// </remarks>
+    public bool FormatsOnLineBreak
+    {
+        get => Spark.UI.Theming.CodeFormatting.OnLineBreak;
+
+        set
+        {
+            if (Spark.UI.Theming.CodeFormatting.OnLineBreak == value)
+            {
+                return;
+            }
+
+            Spark.UI.Theming.CodeFormatting.OnLineBreak = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
     /// The face code blocks are drawn and edited in, for the whole application (`E8-T59`).
     /// </summary>
     /// <remarks>

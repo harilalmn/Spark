@@ -641,6 +641,20 @@ public sealed partial class CodeBlockEditor : UserControl
             return;
         }
 
+        // `E8-T84`: Alt+Shift+F, VS Code's Format Document. Asked for by name, and it is the
+        // gesture anybody who opens this editor will try first — so it is bound whether or not the
+        // automatic tidying is switched on, because a manual command is the answer for somebody
+        // who turned the automatic one off.
+        if (e.Key == Key.F
+            && e.KeyModifiers.HasFlag(KeyModifiers.Alt)
+            && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            FormatWholeBlock();
+            e.Handled = true;
+
+            return;
+        }
+
         if (e.Key == Key.Space && e.KeyModifiers.HasFlag(KeyModifiers.Control))
         {
             e.Handled = true;
@@ -719,6 +733,17 @@ public sealed partial class CodeBlockEditor : UserControl
 
             e.Handled = HandleSelectionKey(e);
 
+            // `E8-T84`: TIDY AFTER THE NEWLINE LANDS, NOT INSTEAD OF IT.
+            //
+            // This is a TUNNEL handler, so it runs before AvaloniaEdit has inserted anything -
+            // formatting here would tidy the text as it was a keystroke ago and then have the
+            // newline appended to the result. Posting puts the work after the editor's own
+            // handling, which is the only point at which the document says what the typist sees.
+            if (!e.Handled && e.Key == Key.Enter && e.KeyModifiers == KeyModifiers.None)
+            {
+                Dispatcher.UIThread.Post(FormatFinishedLines, DispatcherPriority.Background);
+            }
+
             return;
         }
 
@@ -796,6 +821,76 @@ public sealed partial class CodeBlockEditor : UserControl
         {
             _editor.Text = tidied;
         }
+    }
+
+    /// <summary>
+    /// Tidies the lines above the caret after a line break, when the preference allows
+    /// (<c>E8-T84</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Not <see cref="Reformat"/>, and the difference is the whole feature.</b> That one runs
+    /// when focus leaves, tidies everything, and assigns <c>TextEditor.Text</c> — which resets the
+    /// undo history, acceptable once at the end of an edit and unthinkable on every line.
+    /// This one edits the document through <c>Replace</c>, so the change joins the undo stack
+    /// instead of erasing it, and it leaves the line being typed alone
+    /// (<see cref="Spark.Scripting.ScriptFormatting.FormatAbove"/>).
+    /// </para>
+    /// <para>
+    /// <b>The caret is put back explicitly.</b> Replacing a range moves the caret to the end of
+    /// what was inserted, so a typist who pressed <kbd>Enter</kbd> in the middle of a block would
+    /// be thrown to the top of it. <c>FormatAbove</c> reports where the caret went, and it is
+    /// exact rather than a guess, because everything from the caret onwards is the same text at a
+    /// new offset.
+    /// </para>
+    /// </remarks>
+    private void FormatFinishedLines()
+    {
+        if (_editor?.Document is not { } document || !Spark.UI.Theming.CodeFormatting.OnLineBreak)
+        {
+            return;
+        }
+
+        string current = document.Text;
+        string tidied = Spark.Scripting.ScriptFormatting.FormatAbove(current, _editor.CaretOffset, out int caret);
+
+        if (string.Equals(current, tidied, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        document.Replace(0, document.TextLength, tidied);
+        _editor.CaretOffset = Math.Clamp(caret, 0, document.TextLength);
+    }
+
+    /// <summary>
+    /// Tidies the whole block on demand — <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>
+    /// (<c>E8-T84</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Not governed by the checkbox, deliberately.</b> The setting says whether the editor
+    /// tidies <i>without being asked</i>; this is being asked. Somebody who turned the automatic
+    /// tidying off is precisely the person who wants a manual command, so gating this on the same
+    /// flag would take the feature away from the people most likely to use it.
+    /// </remarks>
+    private void FormatWholeBlock()
+    {
+        if (_editor?.Document is not { } document)
+        {
+            return;
+        }
+
+        string current = document.Text;
+        string tidied = Spark.Scripting.ScriptFormatting.FormatDocument(
+            current, _editor.CaretOffset, out int caret);
+
+        if (string.Equals(current, tidied, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        document.Replace(0, document.TextLength, tidied);
+        _editor.CaretOffset = Math.Clamp(caret, 0, document.TextLength);
     }
 
     /// <summary>Shows the list under the caret, or closes it when there is nothing to show.</summary>

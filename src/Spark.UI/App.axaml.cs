@@ -45,6 +45,7 @@ public sealed class App : Application
             // every time one was built, which is a hundred times an hour under a test run and
             // raced the tests that read it. Global state deserves exactly one writer at startup.
             MainWindowViewModel.ApplyRememberedCodeFont();
+            Spark.UI.Theming.CodeFormatting.ApplyRemembered();
 
             desktop.MainWindow = new MainWindow
             {

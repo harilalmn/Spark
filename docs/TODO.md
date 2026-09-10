@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-10 (`E8-T25`: the slider's track, and its value port)
+**Last updated:** 2026-09-10 (`E8-T84`: tidying on a line break, and Alt+Shift+F)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -199,6 +199,17 @@ diagnostic reference pages are generated at runtime from the live library**, so 
 from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-T13`).
 
 ## Now — what is next, in order
+
+- [x] ~~**Tidy a code block on a line break, behind a checkbox, and on
+      <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>.**~~ **Done 2026-09-10**, `E8-T84`, asked for
+      directly. On by default, remembered between sessions, and application-wide like the code
+      font. **The trap, recorded because it would have shipped:** `Format` trims trailing newlines,
+      so tidying the whole document when <kbd>Enter</kbd> lands deletes the newline that triggered
+      it — the feature undoing its own keystroke, on every line, while still visibly tidying the
+      code. The caret's line is now the boundary. Two exact caret mappings, one per path
+      ([N138](NOTES.md)). The checkbox also uncovered a pane-layout defect that predated it: the
+      Properties pane's only `*` row was being squeezed to nothing and painting over the WATCH
+      panel below.
 
 - [x] ~~**The slider's track ignored a wired range, and its value took a wire.**~~ **Fixed
       2026-09-10**, `E8-T25`, on a report from a running graph: a slider with `min` and `max` wired

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-10 (`E8-T25`: the slider's track, and its value port)
+**Last updated:** 2026-09-10 (`E8-T84`: tidying on a line break, and Alt+Shift+F)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** The last step was `E8-T25`, taken out of the queue's order on a report from a running graph; **`E2-T33` / `E11-T10` step A is parked in a git stash**, described in *Next action*. Before it, `E11-T2` was closed: the fences and the XML `<example>` blocks are both compiled against the real API, and the first `<example>` run caught a published sample that had never been C#. |
+| **Working on** | **Nothing — between steps.** The last two steps were both taken out of the queue's order, on requests made while the marathon was running: `E8-T84` (tidying on a line break, the checkbox, and <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) and before it `E8-T25`, taken out of the queue's order on a report from a running graph; **`E2-T33` / `E11-T10` step A is parked in a git stash**, described in *Next action*. Before it, `E11-T2` was closed: the fences and the XML `<example>` blocks are both compiled against the real API, and the first `<example>` run caught a published sample that had never been C#. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E8-T25` — the slider's track and its value port**, reported from a running graph and taken ahead of the queue. **Before it:** **`E11-T2` — the XML `<example>` half**, which closed the row and found `SparkNodeAliasAttribute`'s example ending in a literal `…` ([N136](NOTES.md)). **Before it:** `E12-T5` (`spark check`, with `E11-T29`), `E11-T28`, the register audit. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **2,973** tests over **ten** executables with zero skips, docs harness green. **One stash**, `E2-T33 step A parked`, holding the `ClosestPoint` work described in *Next action*. |
-| **Next action** | **`git stash pop`, then finish `E2-T33` / `E11-T10` step A.** The stash holds a real defect fix that is already verified by hand and has no test yet: **`Surface.ClosestPoint` returned a sphere's pole for a point that was on the surface a hair away from it**, out by 1.6e−2 on a unit sphere. The seed grid's best node *is* the pole for any query within half a cell of it; at a pole the Jacobian is singular, so Newton cannot move and the pole is returned. The stash adds `ReseedOffDegeneracy` (step half a cell off the degeneracy, re-sweep the other direction) and keeps the best point ever seen rather than wherever the iteration stopped. **One further change was designed and not written**, and it is what the residual needs: make the iteration monotone by halving a Newton step that does not reduce the distance, keeping the point that does. After the reseed the error at 0.9999 of the way to the pole is still 1.6e−4, because the Jacobian there is ill-conditioned and a full step overshoots and clamps back onto the pole. Then write `SurfaceProperties.cs`. **The invariants that were measured to hold** across all nine surface types at 1e−6, 1 and 1e6: `TransformedBy` commutes with `PointAt` to ~5e−16 relative; `ClosestPoint` of a point on the surface returns it to ~2e−16 away from degeneracies; `NormalAt` is unit to 2e−16; `ClosestPoint` always beats a 41×41 sampling. **Two traps found and worth keeping:** `NormalAt` *throws* at a pole or an apex rather than returning anything, so a property must sample the interior; and `ToMesh` with the default absolute tolerance collapses a surface of size 1e−6 to two vertices and no faces, which then reports `Topology.IsClosed` — an empty mesh is vacuously watertight, so a watertightness property must assert a face count first. **A uniform grid of test points misses this defect entirely**; only a walk *towards* the pole finds it, which is `E2-T33`'s own lesson about generators arriving on schedule. |
-| **Verify with** | A named test in `Spark.Geometry.Tests` that goes red against the old `ClosestPoint` — the near-pole walk, not a uniform grid, which is the whole point — and then the properties. The suite total rises from **2,973**. |
+| **Last completed step** | **`E8-T84` — a code block tidies itself on a line break**, with the checkbox that governs it and <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> for the manual command. **Before it:** **`E8-T25` — the slider's track and its value port**, reported from a running graph. **And before that:** **`E11-T2` — the XML `<example>` half**, which closed the row and found `SparkNodeAliasAttribute`'s example ending in a literal `…` ([N136](NOTES.md)). **Before it:** `E12-T5` (`spark check`, with `E11-T29`), `E11-T28`, the register audit. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **2,992** tests over **ten** executables with zero skips, docs harness green. **One stash**, `E2-T33 step A parked`, holding the `ClosestPoint` work described in *Next action*. |
+| **Next action** | **`git stash pop`, then finish `E2-T33` / `E11-T10` step A.** The stash holds a real defect fix that is verified by hand and has no test yet: **`Surface.ClosestPoint` returned a sphere's pole for a point that was on the surface a hair away from it**, out by 1.6e−2 on a unit sphere. The seed grid's best node *is* the pole for any query within half a cell of it; at a pole the Jacobian is singular, so Newton cannot move and the pole is returned. The stash adds `ReseedOffDegeneracy` — step half a cell off the degeneracy, re-sweep the other direction — and keeps the best point ever seen rather than wherever the iteration stopped. **One further change was designed and not written**, and it is what the residual needs: make the iteration monotone by halving a Newton step that does not reduce the distance, keeping the point that does; after the reseed the error at 0.9999 of the way to the pole is still 1.6e−4, because the Jacobian there is ill-conditioned and a full step overshoots and clamps back onto the pole. Then write `SurfaceProperties.cs`. **The invariants that were measured to hold** across all nine surface types at 1e−6, 1 and 1e6: `TransformedBy` commutes with `PointAt` to ~5e−16 relative; `ClosestPoint` of a point on the surface returns it to ~2e−16 away from degeneracies; `NormalAt` is unit to 2e−16; `ClosestPoint` always beats a 41×41 sampling. **Two traps found and worth keeping:** `NormalAt` *throws* at a pole or an apex rather than returning anything, so a property must sample the interior; and `ToMesh` with the default absolute tolerance collapses a surface of size 1e−6 to two vertices and no faces, which then reports `Topology.IsClosed` — an empty mesh is vacuously watertight, so a watertightness property must assert a face count first. **A uniform grid of test points misses the pole defect entirely**; only a walk *towards* the pole finds it, which is `E2-T33`'s own lesson about generators arriving on schedule. |
+| **Verify with** | A named test in `Spark.Geometry.Tests` that goes red against the old `ClosestPoint` — the near-pole walk, not a uniform grid, which is the whole point — and then the properties. The suite total rises from **2,992**. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -10322,3 +10322,62 @@ height test, and restoring turns them green. And **run in the app**, because a c
 has only ever been asserted is not proven — the screenshot is in the report.
 
 **Cost.** Around two hours, most of it in the row mapping rather than in either fix.
+
+### 2026-09-10 — `E8-T84` extended: tidying on a line break, and the shortcut
+
+**Asked for directly, in two messages.** *Introduce a checkbox for codeblock to 'auto format the
+code on linebreak', and keep it on by default*, then, mid-step, *also keep a shortcut Alt+Shift+F
+for manual formatting*. Both landed in this one step because they are the same feature seen from
+either end: the editor tidying without being asked, and the user asking.
+
+**The trap, and it would have shipped.** `ScriptFormatting.Format` trims trailing newlines — it is
+right to, and `E8-T84` added that trim on purpose. So the obvious implementation of *format on
+line break* hands the whole document to the formatter the instant <kbd>Enter</kbd> lands, and gets
+back text with the newline removed: **the feature undoes the keystroke that triggered it**, on
+every line. What makes it dangerous is that the tidying visibly *works* at the same time —
+`var a=1;` really does become `var a = 1;` — so a test asserting the tidying passes. The test that
+catches it is written about the newline instead, and it was written before the implementation.
+[N138](NOTES.md) has the general shape.
+
+**The fix is a boundary rather than a special case.** `FormatAbove` treats the caret's own line as
+the edge: above it is finished work and is fair game, the line being typed is not touched, and the
+newline between the halves is re-inserted explicitly rather than left to survive. **The guard
+against mangling a half-written `if (x) {` needed no code** — the text above the caret does not
+parse, and `Format` already returns unparseable text untouched, a property written for a different
+reason that turned out to cover this one exactly.
+
+**Two caret mappings, and both are exact rather than approximate.** On a line break only the text
+above the caret's line changed, so everything from the caret onwards is the same string at a new
+offset: add the length difference. On <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> the caret's own
+line changes too, so instead count the non-whitespace characters before it and walk that many into
+the formatted text — `NormalizeWhitespace` rewrites whitespace and nothing else, so that count is
+invariant. Clamping the old offset into the new length, which is what one reaches for, puts the
+caret out by however much the indentation above it changed.
+
+**`Document.Replace`, not `TextEditor.Text`.** Assigning `Text` resets the undo history. The
+existing click-away `Reformat` does exactly that and says why it is acceptable — once, at the end
+of an edit. On every line it would be unthinkable, so both new paths edit the document instead and
+the change joins the undo stack rather than erasing it.
+
+**The shortcut is deliberately not governed by the checkbox.** The setting says whether the editor
+tidies *without being asked*; the shortcut is being asked. Somebody who switched the automatic
+tidying off is precisely the person who wants a manual command.
+
+**And the checkbox found a layout defect that predated it.** The Properties pane has one `*` row,
+holding a code block's editor *and* the font picker. A `*` row gets what the `Auto` rows leave
+behind, and with a block selected and a watch holding a value there was nothing left — so the row
+was squeezed to nothing and painted *Font* straight over *WATCH*. **A screenshot taken with the
+checkbox reverted shows the overlap already there**, which is how it was established that this step
+did not cause it; adding a third control is what made it impossible to keep missing. Settings are
+fixed-height chrome and the editor is the elastic part, so the settings moved to an `Auto` row of
+their own — `E8-T71`'s comment in this same file, earned a second time.
+
+**Verified.** Build clean with zero warnings, format clean, docs harness green, **2,992 tests over
+ten executables** with zero failures and zero skips — nineteen more than the slider step's 2,973.
+**The trap test was watched failing**: against the naive whole-document implementation, six go red
+and `FormattingOnALineBreakKeepsTheLineBreak` names the actual defect while the other five report
+caret positions. And **run in the app**: the checkbox is drawn under the font, ticked, with the
+WATCH panel below it and no overlap.
+
+**Cost.** About an hour and a half, of which the pane's rows were the last twenty minutes and the
+only part that was not planned.

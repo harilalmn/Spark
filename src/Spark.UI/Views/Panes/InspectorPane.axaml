@@ -19,7 +19,7 @@
       A code block wants BOTH at once - the ports are how you see what your identifiers turned
       into - so the fix is two rows rather than hiding one of them.
     -->
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto,Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,Auto">
       <TextBlock Grid.Row="0" Classes="paneTitle" Text="PROPERTIES" />
 
       <StackPanel Grid.Row="1" Margin="10,0,10,8" Spacing="2">
@@ -177,9 +177,28 @@
            built from the types the wires carry (E6-T11, E6-T12, E6-T7). The text is pushed in and
            read back by the pane rather than bound, because a two-way binding onto a document the
            user is typing into buys nothing and invites a feedback loop. -->
-      <Grid Grid.Row="6" Margin="10,0,10,10" RowDefinitions="*,Auto"
+      <Grid Grid.Row="6" Margin="10,0,10,10"
             IsVisible="{Binding SelectedCodeBlock, Converter={x:Static ObjectConverters.IsNotNull}}">
-        <controls:CodeBlockEditor Name="ScriptEditor" Grid.Row="0" VerticalAlignment="Stretch" />
+        <controls:CodeBlockEditor Name="ScriptEditor" VerticalAlignment="Stretch" />
+      </Grid>
+
+      <!--
+        E8-T71'S LESSON AGAIN, AND THIS TIME IT WAS A SCREENSHOT THAT SHOWED IT (`E8-T84`).
+
+        These two controls used to live inside the editor's grid, which is the pane's ONE `*` row.
+        A `*` row gets what the `Auto` rows leave behind, and with a code block selected and a
+        watch holding a value there was nothing left - so the row was squeezed to nothing and its
+        contents were painted straight over the WATCH panel below. The overlap is visible in a
+        screenshot taken before this step, so it is not something this step introduced; adding a
+        third control to that row is what made it impossible to keep ignoring.
+
+        Settings are fixed-height chrome and the editor is the elastic part. In an `Auto` row of
+        their own they are always laid out first and always fit, and the editor absorbs the
+        squeeze - which is the right way round, because an editor two lines shorter is usable and
+        a checkbox drawn over a text box is not.
+      -->
+      <Grid Grid.Row="7" Margin="10,0,10,10" RowDefinitions="Auto,Auto"
+            IsVisible="{Binding SelectedCodeBlock, Converter={x:Static ObjectConverters.IsNotNull}}">
         <!--
           E8-T59: the code font, asked for by the client.
 
@@ -194,10 +213,13 @@
           proportional face would draw a block's source over its own port tabs, because node width
           is characters times one character's width.
 
-          Inside the editor's row rather than beside it, because the editor stretches to fill that
-          row - a sibling on the same row is drawn on top of the text.
+          It was inside the editor's row until `E8-T84`, on the reasoning that the editor
+          stretches to fill that row and a sibling on the same row is drawn on top of the text.
+          True, and it moved anyway: the row it was sharing is the pane's only `*` row, so the
+          whole of it got squeezed to nothing when the panels below wanted the space. See the
+          comment on this grid.
         -->
-        <Grid Grid.Row="1" Margin="0,6,0,0" ColumnDefinitions="92,*">
+        <Grid Grid.Row="0" ColumnDefinitions="92,*">
           <TextBlock Grid.Column="0" Classes="muted" VerticalAlignment="Center" Text="Font"
                      ToolTip.Tip="The face code is written in, for every block in the application. Remembered between sessions." />
           <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" FontSize="11"
@@ -205,6 +227,26 @@
                     ItemsSource="{Binding CodeFontNames}"
                     SelectedItem="{Binding CodeFontName, Mode=TwoWay}" />
         </Grid>
+
+        <!--
+          E8-T84: asked for by the client, and on by default.
+
+          THE SECOND CONTROL HERE THAT IS NOT ABOUT THE SELECTED NODE, on the Font row's reasoning
+          exactly: how somebody likes to type is a fact about the person, not about the document,
+          so it applies to every block and reaches no `.spark` field - which is what leaves E7-T7's
+          byte-for-byte round trip alone.
+
+          TWO-WAY, unlike the View menu's pane toggles. Those are one-way because a checkable
+          MenuItem flips its own IsChecked before the command runs; a CheckBox bound to a plain
+          property has no such race, and two-way is what lets the box show a remembered `off` when
+          the pane is first drawn.
+        -->
+        <CheckBox Grid.Row="1" Margin="0,6,0,0" FontSize="11"
+                  AutomationProperties.Name="Auto-format on line break"
+                  IsChecked="{Binding FormatsOnLineBreak, Mode=TwoWay}"
+                  ToolTip.Tip="When you press Enter, tidy the lines above the caret - spacing, indentation and one statement per line. The line you are typing is never touched, and a block that does not parse yet is left alone. Applies to every block, and is remembered between sessions.">
+          <TextBlock Text="Auto-format on line break" TextWrapping="Wrap" />
+        </CheckBox>
       </Grid>
 
       <!-- A group's title, on the same principle as a note's text. -->
@@ -216,7 +258,7 @@
       <!-- The watch panel. A bubble on the canvas is a glance and is cut at sixty characters;
            this is where somebody goes to read the value. Read-only and selectable, because the
            thing people do with a watched value next is copy part of it. -->
-      <StackPanel x:Name="WatchPanel" Grid.Row="7" Margin="10,0,10,10" Spacing="3"
+      <StackPanel x:Name="WatchPanel" Grid.Row="8" Margin="10,0,10,10" Spacing="3"
                   IsVisible="{Binding WatchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
         <Border Height="1" Margin="0,0,0,3" Background="{DynamicResource SparkBorderHairlineBrush}" />
         <TextBlock Classes="paneTitle" Text="WATCH" Margin="0,0,0,2" />
@@ -237,7 +279,7 @@
            both, on top of each other. That is the same mistake the comment at the top of this file
            describes about the port list and the code editor, one row later, and the fix is the same
            one: two rows rather than a hope that only one of them appears. -->
-      <Border x:Name="TrustBanner" Grid.Row="8" Margin="10,0,10,10" Padding="8" CornerRadius="3"
+      <Border x:Name="TrustBanner" Grid.Row="9" Margin="10,0,10,10" Padding="8" CornerRadius="3"
               IsVisible="{Binding ScriptBanner, Converter={x:Static ObjectConverters.IsNotNull}}"
               Background="{DynamicResource ThemeAccentBrush4}"
               BorderBrush="{DynamicResource ThemeBorderMidBrush}"
@@ -253,9 +295,9 @@
         </StackPanel>
       </Border>
 
-      <Border Grid.Row="9" Height="1" Margin="10,0,10,6"
+      <Border Grid.Row="10" Height="1" Margin="10,0,10,6"
               Background="{DynamicResource SparkBorderHairlineBrush}" />
-      <StackPanel Grid.Row="10" Margin="0,0,0,4">
+      <StackPanel Grid.Row="11" Margin="0,0,0,4">
         <TextBlock Classes="paneTitle" Text="DIAGNOSTICS" />
         <TextBlock Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
                    Text="{Binding DiagnosticsText}" />

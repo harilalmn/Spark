@@ -250,7 +250,22 @@ expect. The library's own version is still there in full when you want it:
 is `1`, because rank is something the graph adds around a node and a code block is inside the
 node. Use ordinary C# — `xs.Count` — for a list you made yourself.
 
-## It tidies itself when you click away
+## It tidies itself as you type
+
+**Press <kbd>Enter</kbd> and the lines above the caret are tidied**: each statement gets its own
+line, spacing is normalised, and that is all. **The line you are typing is never touched** — it is
+not finished yet, and an editor that rearranges the words under your hands is fighting you.
+
+**Switch it off with the *Auto-format on line break* checkbox** under the editor in the Properties
+pane, beside the font. It is on to begin with, it applies to every block, and it is remembered
+between sessions. Like the font, it is a setting about you rather than about the document, so it
+changes nothing in the `.spark` file.
+
+**<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> formats the whole block**, including the line you
+are on. It is VS Code's gesture, and it works whether or not the checkbox is ticked — turning the
+automatic tidying off is a reason to want the manual command, not a reason to lose it.
+
+## And when you click away
 
 **Click out of a block and it is formatted**: each statement gets its own line, spacing is
 normalised, and that is all. `3;20;` becomes
@@ -266,7 +281,12 @@ moves text and nothing else. Nothing you have wired can come loose.
 
 **A block that does not compile is left exactly as you typed it.** Half-finished work is the normal
 state of a block you are clicking away from, and an editor that rearranges broken code is fighting
-you. Fix the error and the next click away will tidy it.
+you. Fix the error and the next tidy — on a line break, on a click away, or on
+<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> — will sort it out.
+
+This is what makes the tidying safe to run on every line break rather than only on a finished
+block: while an `if` is still missing its closing brace, the text does not parse, and text that
+does not parse is returned untouched.
 
 **Your `using` lines stay at the top and your comments stay where they are.**
 

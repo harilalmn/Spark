@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-10 (N137: a widget and a wire over one number)
+**Last updated:** 2026-09-10 (N138: formatting on a line break deletes the line break)
 
 ---
 
@@ -4163,3 +4163,50 @@ the other draws `min`'s tab on `max`'s row. It is `InputRow` and `InputAtRow`, t
 in both directions, and **the node is now one row shorter than its port count** — which is what an
 existing height test caught immediately, and it was the good kind of failure: a test that knew the
 old number told the truth about the new one.
+
+## N138 — Formatting on a line break deletes the line break
+
+**Date:** 2026-09-10 · **Rows:** `E8-T84`
+
+`ScriptFormatting.Format` trims trailing newlines. It is right to: a block does not want one, and
+`E8-T84` added the trim on purpose so that clicking away did not leave a blank line behind.
+
+**So the obvious implementation of *format on line break* undoes the keystroke that triggered
+it.** Press <kbd>Enter</kbd> at the end of a block, the document becomes `var a=1;` plus a newline, the
+formatter is handed the whole of it, and it returns `var a = 1;` — newline gone. The caret jumps
+back to the end of the previous line. Every line, on every block. **A feature that fights the
+person using it on its own trigger** is worse than not having it, and it would have shipped,
+because the tidying *does* visibly work: `var a=1;` really does become `var a = 1;`, and a test
+asserting the tidying would have passed.
+
+**The test that catches it is written about the newline, not about the tidying.**
+`FormattingOnALineBreakKeepsTheLineBreak` asserts that the result still ends in a newline first, and the tidied text
+second. Six tests go red against the naive version and that one names the actual defect; the other
+five report caret positions, which is a symptom.
+
+**The fix is a boundary, not a special case.** `FormatAbove` treats the caret's own line as the
+edge: everything above it is finished work and is formatted, the line the caret is on is being
+typed and is not touched, and the newline between them is re-inserted explicitly rather than left
+to survive the round trip. The guard against mangling a half-written `if (x) {` needed no code at
+all — the text above the caret does not parse, and `Format` already returns unparseable text
+untouched.
+
+**Two ways to move a caret, and only one of them is exact.**
+
+- *On a line break*, only the text above the caret's line changed, so everything from the caret
+  onwards is the same string at a new offset: **add the length difference.** Exact.
+- *On <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>*, the caret's own line changes too, so that
+  does not work. **Count the non-whitespace characters before the caret and walk that many into
+  the formatted text.** Also exact, and for a reason worth stating: `NormalizeWhitespace` rewrites
+  whitespace and nothing else, so the sequence of non-whitespace characters is invariant. Clamping
+  the old offset into the new length — the obvious thing — puts the caret out by however much the
+  indentation above it changed.
+
+**And an aside that a screenshot found rather than a test.** The Properties pane has one `*` row,
+which held the code block's editor *and* the font picker. A `*` row gets what the `Auto` rows
+leave behind, and with a block selected and a watch holding a value there was nothing left — so
+the row was squeezed to nothing and painted its contents over the WATCH panel below. **It was
+already doing that before this step**; adding a third control made it impossible to keep missing.
+Settings are fixed-height chrome and the editor is the elastic part, so the settings moved to an
+`Auto` row of their own. That is `E8-T71`'s comment in this same file, earned a second
+time: *its own row, because the two are not mutually exclusive.*
