@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-11 (N144–N149: a removed reference kept its import; two stores over one file; a key the file owns; Save asks first; a screenshot is not consent; the command line holds a DLL to a stricter rule than a code block)
+**Last updated:** 2026-09-11 (N144–N150: a removed reference kept its import; two stores over one file; a key the file owns; Save asks first; a screenshot is not consent; the command line holds a DLL to a stricter rule than a code block; no encoder writes an emoji literally)
 
 ---
 
@@ -4518,3 +4518,20 @@ well. It references for one run and writes nothing — `GraphPackageGate.AgreeOn
 **And do not "fix" the asymmetry by gating code blocks on the command line** as a side effect of
 something else. It would break every build script that runs its own graphs today, and whether it
 should is `E6-T16`'s decision to revisit on its own terms.
+
+## N150 — No encoder setting writes an emoji literally, and the relaxed one is the only one that leaves `+` alone
+
+Two facts about `System.Text.Encodings.Web` that `E3-T24` ([ADR-0026](adr/0026-spark-file-text-is-written-as-typed.md))
+turned on, and that the next person to touch `SparkFile`'s encoder will otherwise rediscover.
+
+**A character beyond the Basic Multilingual Plane is always escaped.** `TextEncoderSettings` and
+`UnicodeRanges` describe the BMP only, so no allowed range can include a surrogate pair, and even
+`UnsafeRelaxedJsonEscaping` writes `🔥` as `\uD83D\uDD25`. It reads back exactly and re-saves byte
+for byte — `ACharacterBeyondTheBasicPlaneRoundTripsAndIsByteStable` asserts all three, the spelling
+included, so this note fails a test when it stops being true. Writing one literally would mean
+writing JSON strings by hand, which ADR-0026 declined.
+
+**`JavaScriptEncoder.Create(UnicodeRanges.All)` is not the relaxed encoder.** It lets non-ASCII
+through, and it still escapes `+`, `<`, `>`, `&`, `'` and the quotation mark, because the built-in
+encoders treat the HTML-sensitive characters as forbidden whatever ranges they are given. It looks
+like the conservative choice and does half the job; the code block's `+` is the half it misses.

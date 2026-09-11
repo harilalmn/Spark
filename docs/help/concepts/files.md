@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes the `.spark` reader and writer, which exist and are tested.
 **Owner:** `graph-engine`
-**Last updated:** 2026-09-11
+**Last updated:** 2026-09-11 (`E3-T24`: text is written as typed)
 
 > **Scope.** A `.spark` file holds nodes, wires, lacing, canvas positions and the values typed
 > into unwired ports. It holds **no geometry** — geometry exists only after evaluation. Assets,
@@ -72,9 +72,9 @@ Cross Product. That legibility is the whole point of the format.
 
 ---
 
-## The four things that keep a diff quiet
+## The five things that keep a diff quiet
 
-A file that re-formats itself on every save produces a diff nobody reads, so four rules are
+A file that re-formats itself on every save produces a diff nobody reads, so five rules are
 fixed rather than left to the writer:
 
 1. **Keys appear in a fixed order** — `id`, `key`, `lacing`, `x`, `y`, `literals` — written out
@@ -86,6 +86,19 @@ fixed rather than left to the writer:
 3. **Numbers are written in the shortest form that reads back exactly.** One third is not
    rounded to fifteen places, because that is not one third any more.
 4. **Two-space indentation, and a trailing newline.**
+5. **Text is written as you typed it.** A code block, a node's title and a note keep their `+`,
+   their `<` and `&`, and their accented letters, so a code block reads in a diff the way it reads
+   in the editor:
+
+   ```json
+   "script": "return \"Façade \" + level;"
+   ```
+
+   The quotation marks are escaped because JSON requires it, and nothing else is. Graphs saved by
+   builds before 2026-09-11 spelled these characters as escape codes; they open exactly the same,
+   and the first time you save one it is rewritten the new way — a diff of spelling only, once
+   ([ADR-0026](../../adr/0026-spark-file-text-is-written-as-typed.md)). An emoji is the one
+   exception: it is still written as an escape code, and still comes back exactly.
 
 Together these make **opening a graph and saving it produce no diff at all**, which is asserted
 by a test rather than hoped for.

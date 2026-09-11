@@ -39,6 +39,9 @@ withdrawn, and the gap stays.
 | [0021](0021-brep-kernel-residency.md) | Kernel residency is canonical, not cached | Accepted | 2026-08-27 |
 | [0022](0022-undo-by-document-snapshot.md) | Undo is a stack of document snapshots, not a stack of inverse commands | Accepted | 2026-08-28 |
 | [0023](0023-performance-budgets-not-a-benchmark-time-series.md) | Performance is guarded by committed budgets, not by a benchmark time series | Accepted | 2026-08-29 |
+| [0024](0024-graph-local-package-folder.md) | A graph's packages live beside the graph | Accepted | 2026-09-09 |
+| [0025](0025-source-closed-releases-public.md) | The source is closed; the builds stay public | Accepted | 2026-09-09 |
+| [0026](0026-spark-file-text-is-written-as-typed.md) | A `.spark` file's text is written as typed | Accepted | 2026-09-11 |
 
 Statuses are *Proposed*, *Accepted*, *Superseded by ADR-NNNN*, *Amended by ADR-NNNN* or
 *Withdrawn*. Every record numbered 0001 to 0019 was accepted at M0, before implementation,

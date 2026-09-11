@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Spark.Api;
 using Spark.Geometry;
@@ -115,6 +116,14 @@ public static class SparkFile
             // diff of every line in the file while nothing about the graph had changed. Found by
             // git warning that the first committed example would be normalised on checkout.
             NewLine = "\n",
+
+            // `E3-T24`, ADR-0026: TEXT IS WRITTEN AS TYPED. The default encoder escapes `+`, `<`,
+            // `>`, `&`, `'`, quotation marks and every non-ASCII character, which is right for JSON
+            // embedded in a web page and wrong for a file whose premise is that it reviews like code
+            // (ADR-0017) - a code block is where `+` and `"` are commonest. "Unsafe" means unsafe to
+            // paste into HTML unencoded, which a `.spark` file never is. JSON's own escapes remain:
+            // a quotation mark is `\"`, a backslash `\\`, a control character escaped.
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         };
 
         using (Utf8JsonWriter writer = new(stream, options))
