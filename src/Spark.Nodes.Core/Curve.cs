@@ -149,4 +149,49 @@ public static class Curve
     public static IReadOnlyList<Point3d> Tessellate(
         Spark.Geometry.Curve curve, double tolerance = 0.001) =>
         curve.Tessellate(new Tolerance(tolerance, Angle.FromDegrees(0.001), 1e-12));
+
+    /// <summary>The points where two curves cross or touch (<c>E2-T11</c>).</summary>
+    /// <param name="curve">The first curve.</param>
+    /// <param name="other">The second curve.</param>
+    /// <returns>
+    /// The points, in order along the first curve. A stretch where the two run together is not a
+    /// point; that is what <see cref="OverlapWith"/> returns.
+    /// </returns>
+    /// <remarks>
+    /// Lines, circles and arcs are answered exactly; any other pair by sampling and refining, which
+    /// reports an overlap too short to sample as a point.
+    /// </remarks>
+    [return: NodePort("points")]
+    public static IReadOnlyList<Point3d> IntersectWith(Spark.Geometry.Curve curve, Spark.Geometry.Curve other)
+    {
+        CurveIntersections found = curve.IntersectWith(other);
+        List<Point3d> points = new(found.Points.Count);
+
+        foreach (CurveIntersectionPoint point in found.Points)
+        {
+            points.Add(point.Point);
+        }
+
+        return points;
+    }
+
+    /// <summary>
+    /// The stretches where two curves run together, as pieces of the first (<c>E2-T11</c>).
+    /// </summary>
+    /// <param name="curve">The first curve, which the pieces are cut from.</param>
+    /// <param name="other">The second curve.</param>
+    /// <returns>One curve per shared stretch, each a piece of <paramref name="curve"/>.</returns>
+    [return: NodePort("curves")]
+    public static IReadOnlyList<Spark.Geometry.Curve> OverlapWith(Spark.Geometry.Curve curve, Spark.Geometry.Curve other)
+    {
+        CurveIntersections found = curve.IntersectWith(other);
+        List<Spark.Geometry.Curve> pieces = new(found.Overlaps.Count);
+
+        foreach (CurveOverlap overlap in found.Overlaps)
+        {
+            pieces.Add(curve.Trimmed(overlap.OnA));
+        }
+
+        return pieces;
+    }
 }
