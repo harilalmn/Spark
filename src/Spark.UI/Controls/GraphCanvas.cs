@@ -185,9 +185,9 @@ public sealed class CanvasCreateRequestedEventArgs(
 /// <para>
 /// <b>What is not here yet.</b> The hybrid overlay — a real Avalonia control positioned over the
 /// node currently being edited — is not implemented; nothing on the canvas is editable in place
-/// yet. Keyboard navigation between nodes is the M8 accessibility pass. Groups, notes, the
-/// evaluating animation and the frozen and not-evaluated states are specified in the design
-/// language and are not drawn.
+/// yet. Keyboard navigation between nodes is the M8 accessibility pass. Groups, notes, the frozen
+/// and not-evaluated states and the evaluating animation (<c>E3-T14</c>), once listed here as
+/// specified and not drawn, are all drawn now.
 /// </para>
 /// </remarks>
 public sealed class GraphCanvas : Control
@@ -237,6 +237,18 @@ public sealed class GraphCanvas : Control
     private const double TypeGap = 6;
     private const double MinimumRowGap = 8;
     private const int MaximumCachedTextRuns = 4096;
+
+    /// <summary>How much of a node's outline the travelling evaluating stroke covers (<c>E3-T14</c>).</summary>
+    private const double EvaluatingStrokeShare = 0.25;
+
+    /// <summary>
+    /// One lap of the evaluating stroke: <c>motion.ambient</c>, the only repeating animation in the
+    /// product (design language §7.4, <c>E3-T14</c>).
+    /// </summary>
+    internal static readonly TimeSpan EvaluatingLap = TimeSpan.FromMilliseconds(900);
+
+    // Where every stroke's lap is measured from, so two nodes evaluating at once travel together.
+    private static readonly long AnimationEpoch = Stopwatch.GetTimestamp();
 
     private static readonly Typeface HeaderTypeface =
         new("Inter", FontStyle.Normal, FontWeight.SemiBold, FontStretch.Normal);
@@ -297,6 +309,11 @@ public sealed class GraphCanvas : Control
     private CanvasGraph _graph = new();
     private bool _indexDirty = true;
     private bool _fitPending;
+
+    // `E3-T14`: whether the frame being drawn is on screen - an export is a still - and whether a
+    // stroke travelled in it, which is what asks for the next frame.
+    private bool _liveFrame;
+    private bool _evaluatingTravelled;
     private (double Zoom, double OffsetX, double OffsetY) _fitDeferredFrom;
 
     private InteractionMode _mode;
@@ -686,6 +703,12 @@ public sealed class GraphCanvas : Control
 
     /// <summary>The number of nodes the last frame's cull had to test.</summary>
     public int LastConsideredNodeCount { get; private set; }
+
+    /// <summary>
+    /// Whether the last frame drew an evaluating stroke travelling, and so asked for the next frame
+    /// (<c>E3-T14</c>).
+    /// </summary>
+    public bool LastFrameAnimatedEvaluation { get; private set; }
 
     /// <summary>The graph being drawn.</summary>
     /// <remarks>
@@ -1660,7 +1683,19 @@ public sealed class GraphCanvas : Control
     {
         long started = Stopwatch.GetTimestamp();
 
+        _liveFrame = true;
+        _evaluatingTravelled = false;
         RenderScene(context, new Rect(Bounds.Size), ShowFrameStatistics);
+        _liveFrame = false;
+
+        // `E3-T14`: THE ONLY REPEATING ANIMATION, AND IT ASKS FOR FRAMES ONLY WHILE IT RUNS. A canvas
+        // with nothing evaluating, or zoomed out past the animation budget, draws once and rests.
+        LastFrameAnimatedEvaluation = _evaluatingTravelled;
+
+        if (_evaluatingTravelled)
+        {
+            TopLevel.GetTopLevel(this)?.RequestAnimationFrame(_ => InvalidateVisual());
+        }
 
         Frames.Record(Stopwatch.GetElapsedTime(started).TotalMilliseconds);
     }
@@ -3283,7 +3318,19 @@ public sealed class GraphCanvas : Control
             // `E3-T14`: first, because a node being worked on has no settled state yet - an error
             // ring left by the run before would be news about a result this run is replacing.
             RoundedRect ring = new(nodeRect.Inflate(4 / zoom), CornerRadius + (4 / zoom));
-            context.DrawRectangle(null, pens.EvaluatingRing, ring);
+
+            // Travelling on screen and inside §10.2's animation budget; everywhere else - an export,
+            // a zoomed-out survey, a crowded view - the static ring §7.4 gives for exactly those cases.
+            if (_liveFrame && CanvasLevelOfDetail.AllowsAnimation(zoom, _index.VisibleCount))
+            {
+                double phase = EvaluatingPhase(Stopwatch.GetElapsedTime(AnimationEpoch));
+                context.DrawRectangle(null, TravellingStroke(ring.Rect, CornerRadius + (4 / zoom), zoom, phase), ring);
+                _evaluatingTravelled = true;
+            }
+            else
+            {
+                context.DrawRectangle(null, pens.EvaluatingRing, ring);
+            }
         }
         else if (node.State.HasFlag(CanvasNodeState.Error))
         {
@@ -4395,6 +4442,35 @@ public sealed class GraphCanvas : Control
 
     private static bool NullablePortEquals(CanvasPort? left, CanvasPort? right) =>
         left is null ? right is null : right is not null && left.Value == right.Value;
+
+    /// <summary>Where the evaluating stroke is on its lap, from 0 to 1, after a time (<c>E3-T14</c>).</summary>
+    /// <param name="elapsed">Time since the animation epoch.</param>
+    /// <returns>The fraction of a lap travelled.</returns>
+    internal static double EvaluatingPhase(TimeSpan elapsed) =>
+        (elapsed.Ticks % EvaluatingLap.Ticks) / (double)EvaluatingLap.Ticks;
+
+    /// <summary>
+    /// The travelling stroke for one outline: a single 2 px <c>accent</c> dash a quarter of the way
+    /// round, started where the phase says (<c>E3-T14</c>).
+    /// </summary>
+    /// <remarks>
+    /// Dash lengths are multiples of the stroke width, so the outline's perimeter is measured in
+    /// widths: the straight runs, less the corners, plus the corners' arcs.
+    /// </remarks>
+    private static ImmutablePen TravellingStroke(Rect outline, double radius, double zoom, double phase)
+    {
+        double width = 2 / zoom;
+        double perimeter = (2 * (outline.Width + outline.Height)) - ((8 - (2 * Math.PI)) * radius);
+        double lap = perimeter / width;
+        double dash = lap * EvaluatingStrokeShare;
+
+        return new ImmutablePen(
+            new ImmutableSolidColorBrush(SparkPalette.Accent),
+            width,
+            new ImmutableDashStyle([dash, lap - dash], -phase * lap),
+            PenLineCap.Flat,
+            PenLineJoin.Round);
+    }
 
     /// <summary>
     /// The header glyph for a state, from §7.4. Error wins over warning, and both win over

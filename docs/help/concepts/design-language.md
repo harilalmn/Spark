@@ -1049,9 +1049,11 @@ that did not run, because reading it is how they work out what should have run.
 **Evaluating** is the only animated state: a 2 px `accent` stroke travelling around the node
 outline on a 900 ms linear loop, plus a progress glyph in the header. Under reduced motion the
 stroke becomes a static, complete `accent` ring and the glyph becomes `…`. The information is
-retained; only the movement is removed. Below 55% zoom the travelling stroke is replaced by the
-static ring for every user, because animating hundreds of outlines is not affordable inside the
-60 fps target ADR-0013 sets.
+retained; only the movement is removed. Outside the canvas's animation budget - below 60% zoom, or
+with more than 400 nodes visible (§10.2) - the travelling stroke is replaced by the static ring for
+every user, because animating hundreds of outlines is not affordable inside the 60 fps target
+ADR-0013 sets. This paragraph said 55% until the stroke was built (`E3-T14`); §10.2's budget is the
+stricter of the two and the one the canvas already enforced, so it is the one that holds.
 
 ### 7.8 Groups and notes
 
