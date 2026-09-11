@@ -38,6 +38,10 @@ namespace Spark.Cli;
 /// output is the answer.
 /// </para>
 /// <para>
+/// <c>spark pack</c> zips a graph and the package folder beside it into a <c>.sparkz</c> for sharing
+/// (`E3-T20`), and <c>run</c>, <c>check</c> and <c>export</c> open one wherever they take a graph.
+/// </para>
+/// <para>
 /// <c>render</c>, <c>pkg</c>, <c>docs</c> and <c>graph</c> are `E12-T5` and arrive with the
 /// milestones that give them something to do.
 /// </para>
@@ -78,6 +82,7 @@ internal static class Program
                 "run" => Run(args.AsSpan(1), Console.Out, Console.Error),
                 "check" => Check(args.AsSpan(1), Console.Error),
                 "export" => Export(args.AsSpan(1), Console.Out, Console.Error),
+                "pack" => Pack(args.AsSpan(1), Console.Out, Console.Error),
                 "--version" => Version(),
                 _ => Unknown(args[0]),
             };
@@ -172,7 +177,9 @@ internal static class Program
 
         using SparkSession session = new();
 
-        GraphDocument document = SparkFile.Read(File.ReadAllText(input));
+        // `E3-T20`: a bundle is opened into a temporary folder, and the graph inside it is what is read.
+        using OpenedInput opened = OpenedInput.From(input);
+        GraphDocument document = SparkFile.Read(File.ReadAllText(opened.Graph));
 
         // `E6-T16`. **A graph is executable code, and `spark run` is the one place that runs it
         // without a person watching** - in a build, on a schedule, from a hook. So the flag is
@@ -194,7 +201,7 @@ internal static class Program
 
         // `E7-T25`: what the blocks may compile against is settled before they are built.
         if (scripts is not null
-            && !AdmitPackages(input, document, session, trust, once, "spark: ", "run", error, out _))
+            && !AdmitPackages(opened.Graph, document, session, trust, once, "spark: ", "run", error, out _))
         {
             return 1;
         }
@@ -347,7 +354,9 @@ internal static class Program
 
         using SparkSession session = new();
 
-        GraphDocument document = SparkFile.Read(File.ReadAllText(input));
+        // `E3-T20`: a bundle is opened into a temporary folder, and the graph inside it is what is read.
+        using OpenedInput opened = OpenedInput.From(input);
+        GraphDocument document = SparkFile.Read(File.ReadAllText(opened.Graph));
 
         // `E6-T16`, and the same refusal `spark run` makes for the same reason. A graph is
         // executable code; a build that declines to run somebody else's must be told that it
@@ -367,7 +376,7 @@ internal static class Program
         int warned = 0;
 
         if (scripts is not null
-            && !AdmitPackages(input, document, session, trust, once, $"spark: {input}: ", "checked", error, out warned))
+            && !AdmitPackages(opened.Graph, document, session, trust, once, $"spark: {input}: ", "checked", error, out warned))
         {
             return 1;
         }
@@ -646,7 +655,9 @@ internal static class Program
 
         using SparkSession session = new();
 
-        GraphDocument document = SparkFile.Read(File.ReadAllText(input));
+        // `E3-T20`: a bundle is opened into a temporary folder, and the graph inside it is what is read.
+        using OpenedInput opened = OpenedInput.From(input);
+        GraphDocument document = SparkFile.Read(File.ReadAllText(opened.Graph));
 
         if (!scripting && document.HasScripts)
         {
@@ -661,7 +672,7 @@ internal static class Program
             : null;
 
         if (scripts is not null
-            && !AdmitPackages(input, document, session, trust, once, "spark: ", "exported", error, out _))
+            && !AdmitPackages(opened.Graph, document, session, trust, once, "spark: ", "exported", error, out _))
         {
             return 1;
         }
@@ -1047,6 +1058,62 @@ internal static class Program
         return 1;
     }
 
+    /// <summary>
+    /// Zips a graph and the package folder beside it into one <c>.sparkz</c> file for sharing
+    /// (<c>E3-T20</c>, ADR-0017).
+    /// </summary>
+    /// <remarks>
+    /// <b>The bundle defaults to the graph's own name, beside it</b>, and where it went is printed,
+    /// because that is the question a person packing a graph has next. A bad path or an unreadable
+    /// file is an <see cref="IOException"/>, which <c>Main</c> reports in one line.
+    /// </remarks>
+    /// <param name="args">The arguments after the verb.</param>
+    /// <param name="output">Where the report goes. <see cref="Console.Out"/> in the product.</param>
+    /// <param name="error">Where problems go. <see cref="Console.Error"/> in the product.</param>
+    /// <returns>Zero when the bundle was written, one otherwise.</returns>
+    internal static int Pack(ReadOnlySpan<string> args, TextWriter output, TextWriter error)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(error);
+
+        string? input = null;
+        string? bundle = null;
+
+        for (int i = 0; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--out" when i + 1 < args.Length:
+                    bundle = args[++i];
+                    break;
+
+                default:
+                    if (input is null && !args[i].StartsWith('-'))
+                    {
+                        input = args[i];
+                        break;
+                    }
+
+                    error.WriteLine($"spark: unrecognised option '{args[i]}'.");
+                    return 1;
+            }
+        }
+
+        if (input is null)
+        {
+            error.WriteLine("spark: pack needs a graph to pack. Try: spark pack graph.spark");
+            return 1;
+        }
+
+        SparkBundleContents packed = SparkBundle.Pack(input, bundle ?? Path.ChangeExtension(input, SparkBundle.Extension));
+
+        output.WriteLine(packed.PackageFiles == 0
+            ? $"spark: packed {packed.GraphName} into {packed.BundlePath}."
+            : $"spark: packed {packed.GraphName} and {packed.PackageFiles} package file(s) into {packed.BundlePath}.");
+
+        return 0;
+    }
+
     private static void Usage()
     {
         Console.WriteLine("spark — the Spark command line");
@@ -1079,8 +1146,88 @@ internal static class Program
         Console.WriteLine("      file carries the exact surfaces, which is the point of having them.");
         Console.WriteLine("      Curves become polylines; the tolerance used is in the file's header.");
         Console.WriteLine();
+        Console.WriteLine("  spark pack GRAPH.spark [--out FILE.sparkz]");
+        Console.WriteLine("      Zip a graph and the GRAPH.packages folder beside it into one .sparkz");
+        Console.WriteLine("      file for sharing; by default GRAPH.sparkz, beside the graph. run, check");
+        Console.WriteLine("      and export open a .sparkz wherever they take a .spark, into a");
+        Console.WriteLine("      temporary folder that is removed afterwards.");
+        Console.WriteLine();
         Console.WriteLine("  spark --version");
         Console.WriteLine();
         Console.WriteLine("  render, pkg, docs and graph arrive with later milestones.");
+    }
+
+    /// <summary>
+    /// The graph a verb was pointed at: the path itself, or for a <c>.sparkz</c> the graph inside it,
+    /// opened into a temporary folder that is deleted when the verb is done (<c>E3-T20</c>).
+    /// </summary>
+    /// <remarks>
+    /// The package folder comes out beside the graph, so the package gate finds it exactly as it finds
+    /// one beside a <c>.spark</c>, and nothing downstream knows a bundle was involved. Messages keep the
+    /// path the user typed, which is the name they know.
+    /// </remarks>
+    private sealed class OpenedInput : IDisposable
+    {
+        private readonly string? _folder;
+
+        private OpenedInput(string graph, string? folder)
+        {
+            Graph = graph;
+            _folder = folder;
+        }
+
+        /// <summary>The <c>.spark</c> file to read.</summary>
+        public string Graph { get; }
+
+        /// <summary>Opens a bundle, or passes a graph's path straight through.</summary>
+        /// <param name="input">What the verb was given.</param>
+        /// <returns>The graph to read.</returns>
+        public static OpenedInput From(string input)
+        {
+            if (!input.EndsWith(SparkBundle.Extension, StringComparison.OrdinalIgnoreCase))
+            {
+                return new OpenedInput(input, null);
+            }
+
+            string folder = Path.Combine(Path.GetTempPath(), "spark-bundles", Guid.NewGuid().ToString("n"));
+
+            try
+            {
+                return new OpenedInput(SparkBundle.Unpack(input, folder), folder);
+            }
+            catch
+            {
+                Remove(folder);
+                throw;
+            }
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            if (_folder is not null)
+            {
+                Remove(_folder);
+            }
+        }
+
+        private static void Remove(string folder)
+        {
+            try
+            {
+                if (Directory.Exists(folder))
+                {
+                    Directory.Delete(folder, recursive: true);
+                }
+            }
+            catch (IOException)
+            {
+                // A temporary folder left behind is the operating system's to clear, not a failed run.
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // A file still held open - a loaded package - is not a reason to fail a verb that worked.
+            }
+        }
     }
 }
