@@ -1820,6 +1820,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
+    /// The canvas slot of the node that drew a piece of viewport geometry (<c>E9-T8</c>).
+    /// </summary>
+    /// <param name="key">The geometry's key, as a pick in the viewport returns it.</param>
+    /// <returns>The slot, or -1 when no node on the canvas drew it.</returns>
+    /// <remarks>
+    /// The inverse of the keying in <c>PublishGeometry</c>, which writes a node's identity as its
+    /// string form. It lives here because the window may not name the engine's types
+    /// (<c>E8-T11</c>), and a click in the viewport has to become a canvas selection somewhere.
+    /// </remarks>
+    public int SlotDrawing(GeometryKey key) =>
+        Guid.TryParse(key.NodeId, out Guid id) ? _graph.SlotOf(new NodeId(id)) : -1;
+
+    /// <summary>
     /// The session's custom node library, over the same node library the canvas resolves against.
     /// </summary>
     /// <returns>The library, built once and reused.</returns>

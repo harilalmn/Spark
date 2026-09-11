@@ -67,6 +67,8 @@ public sealed class ViewportControl : OpenGlControlBase
     private ViewportScene _scene = new();
     private Point _pointerAnchor;
     private CameraDrag _drag;
+    private Point _clickOrigin;
+    private bool _clickArmed;
     private string? _status;
     private byte[]? _capture;
     private int _captureWidth;
@@ -96,6 +98,45 @@ public sealed class ViewportControl : OpenGlControlBase
 
     /// <summary>The camera. Right-handed and +Z up, matching the kernel.</summary>
     public Camera Camera => _camera;
+
+    /// <summary>
+    /// Raised when a plain left click lands on geometry, with what it hit (<c>E9-T8</c>).
+    /// </summary>
+    /// <remarks>
+    /// A click on nothing raises nothing, so the selection is left alone: clearing it because the
+    /// pointer missed a thin line is the kind of punishment that makes people stop clicking.
+    /// </remarks>
+    public event EventHandler<ViewportHit>? GeometryPicked;
+
+    /// <summary>How far, in layout units, a press may travel and still be a click.</summary>
+    private const double ClickSlop = 4.0;
+
+    /// <summary>The geometry under a point of this control, or null (<c>E9-T8</c>).</summary>
+    /// <param name="point">A position in this control's coordinates.</param>
+    /// <returns>The nearest hit, or null when the point shows nothing.</returns>
+    /// <remarks>
+    /// <b>Scaled by the camera's own size, not by the display's.</b> The camera is sized in device
+    /// pixels on the GPU path and in layout units on the software one, so the ratio of its size to
+    /// the control's bounds is the conversion that is right on both. The tolerance is scaled the same
+    /// way, which keeps it five layout units either way.
+    /// </remarks>
+    public ViewportHit? PickAt(Point point)
+    {
+        if (Bounds.Width <= 0 || Bounds.Height <= 0)
+        {
+            return null;
+        }
+
+        double scaleX = _camera.ViewportWidth / Bounds.Width;
+        double scaleY = _camera.ViewportHeight / Bounds.Height;
+
+        return ViewportPicker.Pick(
+            _camera,
+            _scene.Snapshot(),
+            point.X * scaleX,
+            point.Y * scaleY,
+            ViewportPicker.DefaultPixelTolerance * scaleY);
+    }
 
     /// <summary>
     /// When true, no OpenGL context is ever requested and every frame is rasterised on the CPU.
@@ -646,6 +687,13 @@ public sealed class ViewportControl : OpenGlControlBase
                 ? CameraDrag.Orbit
                 : CameraDrag.None;
 
+        // `E9-T8`: a plain left press is a click until it is released, and released near where it
+        // started it picks. Any modifier is a camera gesture, so it never selects.
+        _clickArmed = _drag is CameraDrag.None
+            && properties.IsLeftButtonPressed
+            && e.KeyModifiers == KeyModifiers.None;
+        _clickOrigin = e.GetPosition(this);
+
         if (_drag is CameraDrag.None)
         {
             return;
@@ -690,6 +738,22 @@ public sealed class ViewportControl : OpenGlControlBase
         base.OnPointerReleased(e);
         _drag = CameraDrag.None;
         e.Pointer.Capture(null);
+
+        if (!_clickArmed || e.InitialPressMouseButton != MouseButton.Left)
+        {
+            return;
+        }
+
+        _clickArmed = false;
+        Point position = e.GetPosition(this);
+
+        if (Math.Abs(position.X - _clickOrigin.X) <= ClickSlop
+            && Math.Abs(position.Y - _clickOrigin.Y) <= ClickSlop
+            && PickAt(position) is { } hit)
+        {
+            GeometryPicked?.Invoke(this, hit);
+            e.Handled = true;
+        }
     }
 
     /// <inheritdoc/>

@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E3-T9` criterion ticked: the evaluation epic has no half-built row left)
+**Last updated:** 2026-09-11 (`E9-T8` criterion ticked: the viewport picks)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1092,7 +1092,8 @@ unmaintained since around 2023 — a poor bet on a multi-year horizon.
       asserted rather than glossed: a joined model writes as closed shells rather than as solids
       (**E13-T18**).
 - [ ] Tessellation is parallel and streams during a run (**E9-T7**).
-- [ ] Picking uses the kernel's BVH ray caster (**E9-T8**).
+- [x] Picking uses the kernel's BVH ray caster (**E9-T8**). *Done 2026-09-11: a click on
+      geometry selects the node that drew it, through `ViewportPicker` over the BVH.*
 - [x] **Selection sync falls out of node-keyed identity with no extra bookkeeping** — the
       `(NodeId, PortIndex, ElementPath)` tuple keys viewport buffers, selection, diagnostics
       and the watch panel alike, and survives recomputation in a way an object ID would not
@@ -1114,9 +1115,10 @@ The seam, the scene, the camera, `RenderPackage`, the GL backend and one buffer 
 tolerance derived from the curve's size rather than from the kernel's 1e-6 default.
 
 **The software renderer, headless thumbnails and CI visual regression all landed on 2026-08-31**,
-which is what M5 was owed. Still open: parallel streamed tessellation (`E9-T7`) and picking
-through the ray caster (`E9-T8`). **Selection sync is `Open` with its mechanism already present** — `RenderPackage` carries `IsSelected` and the renderer honours it;
-nothing sets it from the canvas (`E9-T9`).
+which is what M5 was owed. Still open: parallel streamed tessellation (`E9-T7`). **Picking
+through the ray caster landed on 2026-09-11** (`E9-T8`): a click on geometry selects the node
+that drew it, through the same canvas selection that selection sync (`E9-T9`, done) follows
+into the viewport.
 
 ---
 

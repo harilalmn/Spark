@@ -21,6 +21,7 @@ using Spark.UI.Shell;
 using Spark.UI.ViewModels;
 using Spark.UI.Views;
 using Spark.UI.Views.Panes;
+using Spark.Viewport;
 
 namespace Spark.UI.Views;
 
@@ -69,6 +70,10 @@ public sealed partial class MainWindow : Window
         // evaluation would be doing it on the thread it draws on (ADR-0005).
         Canvas.GraphChanged += OnCanvasGraphChanged;
         Canvas.SelectionChanged += OnCanvasSelectionChanged;
+
+        // `E9-T8`: a click on geometry selects the node that drew it. The pane is built once and
+        // never replaced, so this is subscribed once, beside the canvas's own selection.
+        Viewport.GeometryPicked += OnGeometryPicked;
 
         // Nothing is selected yet, so Align starts disabled. Left to the first SelectionChanged
         // it would start enabled over an empty selection and do nothing when pressed.
@@ -770,6 +775,24 @@ public sealed partial class MainWindow : Window
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// A click on geometry selects the node that drew it (<c>E9-T8</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Through the canvas, so the one selection event does the rest</b>: the inspector shows the
+    /// node and the viewport outlines what it drew, exactly as if it had been clicked on the canvas.
+    /// A key no node on the canvas drew selects nothing, and leaves the selection as it was.
+    /// </remarks>
+    private void OnGeometryPicked(object? sender, ViewportHit hit)
+    {
+        int slot = Model?.SlotDrawing(hit.Key) ?? -1;
+
+        if (slot >= 0)
+        {
+            Canvas.SelectOnly(slot);
+        }
     }
 
     private void OnCanvasSelectionChanged(object? sender, EventArgs e)

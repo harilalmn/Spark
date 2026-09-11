@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E3-T9` done; `E13-T18` blocked on the toolchain; `E3-T12` before it)
+**Last updated:** 2026-09-11 (`E9-T8` done; `E9-T7` next)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -223,7 +223,8 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >    2026-08-31, and the managed half is now a third ceiling.
 > 6. **`E13-T18`** — an imported model's closed shells come back as solids, in the native shim.
 >    **Blocked 2026-09-11 on the toolchain**, with `E13-T21`: the OpenCascade install is gone.
-> 7. **`E9-T8`** and **`E9-T7`** — picking through the BVH, and tessellation streamed during a run.
+> 7. ~~**`E9-T8`**~~ **done 2026-09-11**: a click on geometry selects its node. **`E9-T7`** —
+>    tessellation streamed during a run - is next.
 > 8. **`E8-T12`** — Settings.
 > 9. Geometry breadth — **`E2-T11`**, **`E2-T16`**, **`E2-T21`**, **`E2-T13`**, **`E2-T14`** — then
 >    the importer's **`E5-T9`** and **`E5-T10`**, then **`E3-T21`**, **`E3-T14`** and **`E3-T20`**.
@@ -366,8 +367,8 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
       versions demonstrated (`E7-T3`, `E7-T4`).
 - [x] ~~**`E7-T5`'s purge half.**~~ **Done with `E7-T10`**, and this bullet was never ticked. The unload mechanism is built and proven by weak reference; the
       registries it has to empty do not exist until `E7-T2`.
-- [ ] **`E9-T7` and `E9-T8`** — parallel streamed tessellation, and picking through the
-      kernel's BVH ray caster. Both are M2-era viewport work rather than anything M5 owed.
+- [ ] **`E9-T7`** — parallel streamed tessellation. ~~Picking through the kernel's BVH ray
+      caster (`E9-T8`)~~ done 2026-09-11. M2-era viewport work rather than anything M5 owed.
 - [ ] **`E13-T18` — an imported model's closed shells should come back as solids.** Found by
       `E9-T15` and asserted rather than assumed: a kernel-held solid writes to STEP as
       `MANIFOLD_SOLID_BREP`, and anything rebuilt from managed arrays writes as closed shells. The
