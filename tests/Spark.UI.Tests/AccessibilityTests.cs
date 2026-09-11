@@ -125,14 +125,15 @@ public sealed class AccessibilityTests
     [Fact]
     public void TheRibbonKeepsOnlyTheRunControls()
     {
-        // The banner's two buttons are not the ribbon - they belong to a message that is collapsed
-        // unless a package is missing - so they are excluded by name rather than by position. The
-        // badge is excluded by its x:Name instead, because its content is bound rather than
-        // literal and there is no text to match on.
+        // The banners' buttons are not the ribbon - each belongs to a message that is collapsed
+        // unless it has something to say: a package is missing, or (`E8-T13`) a crashed session
+        // left work behind to Restore or Discard - so they are excluded by name rather than by
+        // position. The badge is excluded by its x:Name instead, because its content is bound
+        // rather than literal and there is no text to match on.
         List<string> ribbon = [.. Regex.Matches(Markup, @"<Button\b[^>]*?/>|<Button\b[^>]*?>", RegexOptions.Singleline)
             .Where(button => !button.Value.Contains("x:Name=\"UpdateBadge\"", StringComparison.Ordinal))
             .Select(button => Content(button.Value))
-            .Where(content => content is not ("Dismiss" or "Find it" or "Run once" or "Always trust this file"))];
+            .Where(content => content is not ("Dismiss" or "Find it" or "Run once" or "Always trust this file" or "Restore" or "Discard"))];
 
         Assert.Equal(["Run"], ribbon);
     }

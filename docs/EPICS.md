@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (three criteria ticked by a register reconciliation - `E8-T16`, `E11-T12`, `E11-T13`; `E7-T25` before it)
+**Last updated:** 2026-09-11 (`E8-T13`: autosave and crash recovery; three criteria ticked by a reconciliation before it)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -977,8 +977,11 @@ another.
       unchanged, and a pin that keeps it after deselection. Every rectangle in it comes from
       `CanvasNode` rather than from measured text, so the toggle and the pin are targets a test can
       find with no window.
-- [ ] Aggressive autosave and crash recovery, because
-      [R11](PRD.md#12-risks) means the process can die without warning (**E8-T13**).
+- [x] Aggressive autosave and crash recovery, because
+      [R11](PRD.md#12-risks) means the process can die without warning (**E8-T13**). *Done
+      2026-09-11: `RecoveryStore` in `Spark.Host` keeps a working copy after every unsaved change,
+      deletes it on a clean save or close, and the next start offers a crashed session's graph
+      back in a banner with **Restore** and **Discard** - never silently.*
 - [x] Banners for a missing package and for a graph containing script nodes (**E8-T16**).
       *Both built by the rows that needed them - `E6-T16`'s code-block banner and `E7-T17`'s
       missing-package banner - and ticked by the 2026-09-11 reconciliation.*

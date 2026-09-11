@@ -294,6 +294,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private string? _scriptBanner;
 
     /// <summary>
+    /// What a session that ended without a clean close left behind, or null when nothing is waiting
+    /// (`E8-T13`).
+    /// </summary>
+    [ObservableProperty]
+    private string? _recoveryBanner;
+
+    /// <summary>
     /// What the graph's package folder is waiting on, or null when it is waiting on nothing
     /// (`E7-T16`).
     /// </summary>
@@ -2060,6 +2067,161 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         _savedSnapshot = _history.Present;
         OnPropertyChanged(nameof(IsModified));
+        KeepRecovery();
+    }
+
+    /// <summary>
+    /// Where working copies of this window's document are kept (`E8-T13`), and nowhere until
+    /// <see cref="EnableRecovery"/> is called.
+    /// </summary>
+    /// <remarks>
+    /// <b>Off by default, on purpose.</b> Every headless test builds one of these and edits it, and a
+    /// default that wrote to the user's own folder would leave a test run's graphs behind to be
+    /// offered to them as their lost work. The window switches it on; a test that wants it points it
+    /// at a scratch folder.
+    /// </remarks>
+    internal RecoveryStore Recovery { get; set; } = RecoveryStore.At(null);
+
+    /// <summary>This window's session, which names its working copy.</summary>
+    private readonly Guid _recoverySession = Guid.NewGuid();
+
+    /// <summary>The leftover the banner is offering, or null.</summary>
+    private RecoveredGraph? _offered;
+
+    /// <summary>Starts keeping working copies in the standard place (`E8-T13`).</summary>
+    /// <remarks>Called by the window once it is open. Nothing else should.</remarks>
+    public void EnableRecovery() => Recovery = RecoveryStore.Default();
+
+    /// <summary>
+    /// Offers the newest graph a session left behind when it ended without a clean close (`E8-T13`).
+    /// </summary>
+    /// <returns>How many are waiting, counting the one on offer.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Offered, never restored silently.</b> A graph brought back without asking would replace
+    /// whatever the user opened this time, and would do it on the strength of a file they may not
+    /// know exists.
+    /// </para>
+    /// <para>
+    /// <b>A copy identical to its file has nothing to recover</b> and is removed without a word —
+    /// the session crashed after a save, or somebody saved the same graph since. Compared after
+    /// reading the file through the same writer, because an older file may spell the same graph
+    /// differently (`E3-T24`).
+    /// </para>
+    /// </remarks>
+    public int OfferRecovery()
+    {
+        List<RecoveredGraph> waiting = [];
+
+        foreach (RecoveredGraph graph in Recovery.Leftovers(_recoverySession))
+        {
+            if (NothingToRecover(graph))
+            {
+                Recovery.Discard(graph);
+                continue;
+            }
+
+            waiting.Add(graph);
+        }
+
+        _offered = waiting.Count > 0 ? waiting[0] : null;
+        RecoveryBanner = _offered is { } offered ? DescribeRecovery(offered, waiting.Count) : null;
+
+        return waiting.Count;
+    }
+
+    /// <summary>Opens the graph on offer, as an unsaved document belonging to its file (`E8-T13`).</summary>
+    /// <returns>Whether it opened.</returns>
+    /// <remarks>
+    /// <b>Through the ordinary open, so nothing about trust is skipped.</b> A recovered graph with
+    /// code blocks is held back like any other, because the content the user agreed to run was the
+    /// saved file's and this is not that. It opens <i>modified</i>: the file on disk does not hold it,
+    /// and a user who closed it without being asked would lose it a second time.
+    /// </remarks>
+    public bool RestoreRecovery()
+    {
+        if (_offered is not { } graph || !TryOpenDocument(graph.Text, graph.Origin))
+        {
+            return false;
+        }
+
+        _savedSnapshot = null;
+        OnPropertyChanged(nameof(IsModified));
+        KeepRecovery();
+
+        Recovery.Discard(graph);
+        _ = OfferRecovery();
+
+        return true;
+    }
+
+    /// <summary>Turns down the graph on offer and deletes it, then offers the next (`E8-T13`).</summary>
+    public void DiscardRecovery()
+    {
+        if (_offered is { } graph)
+        {
+            Recovery.Discard(graph);
+        }
+
+        _ = OfferRecovery();
+    }
+
+    /// <summary>Ends this window's session cleanly, deleting its working copy (`E8-T13`).</summary>
+    public void EndRecovery() => Recovery.Forget(_recoverySession);
+
+    /// <summary>
+    /// Writes the working copy when there is unsaved work, and deletes it when there is not.
+    /// </summary>
+    /// <remarks>
+    /// Called wherever <see cref="IsModified"/> can change — every edit, undo and redo, and every
+    /// save — so the copy is never older than the last change. An edit is recorded once per gesture,
+    /// not per pointer movement, so a drag is one write.
+    /// </remarks>
+    private void KeepRecovery()
+    {
+        if (IsModified && _history.Present is { } text)
+        {
+            Recovery.Keep(_recoverySession, text, GraphPath);
+        }
+        else
+        {
+            Recovery.Forget(_recoverySession);
+        }
+    }
+
+    private static bool NothingToRecover(RecoveredGraph graph)
+    {
+        if (graph.Origin is null || !File.Exists(graph.Origin))
+        {
+            return false;
+        }
+
+        try
+        {
+            return string.Equals(
+                SparkFile.Write(SparkFile.Read(File.ReadAllText(graph.Origin))), graph.Text, StringComparison.Ordinal);
+        }
+        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException or SparkFileException)
+        {
+            // A file that cannot be read cannot be what the copy holds, so the copy is offered.
+            return false;
+        }
+    }
+
+    private static string DescribeRecovery(RecoveredGraph graph, int waiting)
+    {
+        string when = graph.WrittenUtc.ToLocalTime().ToString("d MMM, HH:mm", CultureInfo.InvariantCulture);
+
+        // Two sentences rather than one with a hole in it: a graph that never had a file has no
+        // name to give and no "changes" either - all of it is unsaved - and filling the hole with a
+        // description read "a graph that was never saved had changes that were never saved".
+        string text = graph.Origin is null
+            ? $"Spark did not close properly last time, and an unsaved graph was left behind (kept {when}). Restore it, or discard it."
+            : $"Spark did not close properly last time, and '{Path.GetFileName(graph.Origin)}' had changes that were never saved (kept {when}). Restore them, or discard them.";
+
+        return waiting > 1
+            ? text + string.Create(CultureInfo.InvariantCulture, $" {waiting - 1} more after this one.")
+            : text;
     }
 
     /// <summary>Records where the document now lives, and tells anything that cares.</summary>
@@ -2873,6 +3035,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         _disposed = true;
         _session.Dispose();
 
+        // A disposed window ended cleanly, and its working copy goes with it (`E8-T13`).
+        EndRecovery();
+
         // _applying is deliberately not disposed. A run may still be waiting on it or about to
         // release it when the window closes, and disposing a SemaphoreSlim out from under that
         // turns an orderly shutdown into an ObjectDisposedException on a thread pool thread.
@@ -3144,6 +3309,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         // that has come back to its saved state stops being modified — and where one that has just
         // moved away from it starts.
         OnPropertyChanged(nameof(IsModified));
+        KeepRecovery();
         UndoDescription = _history.UndoLabel is { } undo ? "Undo " + undo : "Nothing to undo";
         RedoDescription = _history.RedoLabel is { } redo ? "Redo " + redo : "Nothing to redo";
     }

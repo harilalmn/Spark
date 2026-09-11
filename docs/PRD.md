@@ -3,7 +3,7 @@
 **Status:** M0 — foundations, mostly landed. No product code is implemented; the repository
 is scaffolding, gates and specification.
 **Owner:** Nicety
-**Last updated:** 2026-09-11 (D23: a `.spark` file's text is written as typed, `E3-T24`)
+**Last updated:** 2026-09-11 (FR-72 done: autosave and crash recovery, `E8-T13`)
 **Latest change:** the solid-modelling kernel decision — **D2 reverses**, **D15** is new, R1 and
 R12 retire, R15 … R22 arrive, and a new epic **E13** appears. [ADR-0020](adr/0020-occt-via-c-abi-shim.md),
 [ADR-0021](adr/0021-brep-kernel-residency.md). **Nothing of it is built.**
@@ -301,7 +301,7 @@ previously invisible — **Q11** and **Q12** — and one new risk, **R14**.
 | FR-69 | Style is an explicit wrapper — `Appearance` and `Displayable(Geometry, Appearance)` in `Spark.Api`, applied by a `Display.ByGeometryColor` node. Unwrapped geometry renders with defaults. | Not started (E5, E9) |
 | FR-70 | `spark run`, `check`, `render`, `export`, `pkg`, `docs` and `graph`, as a `spark.exe` shipping beside the desktop application. | **Three of seven done** (E12-T5): `run` 2026-08-30, `export` 2026-08-29, `check` 2026-09-09, all evaluating with no window. `render`, `pkg`, `docs` and `graph` arrive with the milestones that give them something to do, and `spark --help` says so rather than accepting them and doing nothing |
 | FR-71 | `Spark.Host` runs inside a Revit or AutoCAD add-in through the host-thread scheduler and `IHostServices`. | Not started (E12) |
-| FR-72 | Aggressive autosave and crash recovery. | Not started (E8) |
+| FR-72 | Aggressive autosave and crash recovery. | **Done** (E8-T13, 2026-09-11): a working copy after every unsaved change, offered back after a crash, never restored without asking |
 | FR-73 | A signed Inno Setup installer and a portable zip for Windows. | Not started (E12) |
 
 ### Diagnostics and help

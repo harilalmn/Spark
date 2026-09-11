@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-11 (N144–N152: … assigning a `TopoDS_Shape` is not a copy; converged is not closest)
+**Last updated:** 2026-09-11 (N144–N153: … converged is not closest; recovery is off until the window turns it on)
 
 ---
 
@@ -4604,3 +4604,28 @@ and made a point just past the seam's other end worse by eight orders of magnitu
 the property was measured at a tighter bound than it asserts. So a rim point stops about 1e-10 of the
 reach away, which is where the property's bound comes from. **Measure a bound one order tighter than
 you assert**: that is where the next defect is.
+
+## N153 — Crash recovery is off in the view model until the window turns it on
+
+`E8-T13` keeps a working copy of every unsaved document so that a process killed by user C# (R11)
+loses nothing. The copies live in `Spark/recovery` under the user's local application data, and the
+next start offers any left by a session that died. **`MainWindowViewModel.Recovery` defaults to a
+store with no folder, which keeps nothing**, and only `MainWindow.OnOpened` calls `EnableRecovery`.
+
+**Why the obvious default is wrong.** Well over a thousand headless tests build a
+`MainWindowViewModel` and edit it. Had the default been the real folder, every test run would have
+written working copies there, many from models never disposed — and since the test process is gone
+by the time Spark next starts, **the real application would have offered the user a test run's graphs
+as their own lost work**. A test that wants recovery points `Recovery` at a scratch folder.
+
+**Two more facts that look like choices and are not.**
+
+- **A copy records the process that wrote it, and a live process's copy is never offered**, because
+  a second Spark started beside the first must not present the first one's open work as lost. The
+  check compares the process *name* as well as its id: ids are reused, and a crashed Spark's id
+  belonging to some other program by the next start would otherwise hide the user's work for as long
+  as that program ran. A test fakes a crash through `RecoveryStore.At(folder, isRunning: _ => false)`,
+  because in a test the process that wrote a copy is the test itself.
+- **The copy follows `IsModified`, not the edit count** — `KeepRecovery` runs from `RefreshHistory`
+  and `MarkSaved` — so undoing back to the saved state deletes it, and a restored graph opens
+  *modified*, because the file on disk does not hold it.

@@ -99,6 +99,7 @@ public sealed partial class MainWindow : Window
 
         DataContextChanged += OnDataContextChanged;
         Opened += OnOpened;
+        Closed += OnClosedWindow;
     }
 
     /// <summary>The block whose editor <see cref="PoseScriptEditor"/> opens, if any.</summary>
@@ -406,6 +407,43 @@ public sealed partial class MainWindow : Window
 
         MissingBannerText.Text = string.Join(" ", sentences);
     }
+
+    /// <summary>Brings back the graph a crashed session left behind (`E8-T13`).</summary>
+    /// <remarks>
+    /// <b>It asks first when the canvas has changes of its own</b>, because restoring replaces the
+    /// document, and trading the user's current work for their previous work without a word would be
+    /// the loss this feature exists to prevent, caused by the feature.
+    /// </remarks>
+    private async void OnRestoreRecovery(object? sender, RoutedEventArgs e)
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        if (model.IsModified && !await ConfirmDiscardAsync("restoring the recovered graph").ConfigureAwait(true))
+        {
+            return;
+        }
+
+        if (model.RestoreRecovery())
+        {
+            _documentPath = model.GraphPath;
+            UpdateTitle();
+        }
+    }
+
+    private void OnDiscardRecovery(object? sender, RoutedEventArgs e) => Model?.DiscardRecovery();
+
+    /// <summary>
+    /// A window that has closed ended cleanly, so its working copy goes with it (`E8-T13`).
+    /// </summary>
+    /// <remarks>
+    /// <b>After <c>Closing</c> has had its say</b>, not in it: a close the user cancelled at the
+    /// unsaved-changes prompt is not an end, and deleting the copy there would leave a window full
+    /// of work with no protection.
+    /// </remarks>
+    private void OnClosedWindow(object? sender, EventArgs e) => Model?.EndRecovery();
 
 
     /// <summary>
@@ -1405,6 +1443,16 @@ public sealed partial class MainWindow : Window
         }
 
         UpdateTitle();
+
+        // `E8-T13`: RECOVERY IS SWITCHED ON HERE, BY THE WINDOW, AND NOWHERE ELSE. The view model
+        // keeps nothing by default, because well over a thousand headless tests build one and edit
+        // it, and a default that wrote to the user's own folder would leave a test run's graphs
+        // behind to be offered to them as their own lost work.
+        if (Model is { } recovering)
+        {
+            recovering.EnableRecovery();
+            _ = recovering.OfferRecovery();
+        }
 
         // Before anything asks for a frame: the switch has to be in place before the first GL
         // callback, or a context is created and then abandoned.

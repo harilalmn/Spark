@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes the `.spark` reader and writer, which exist and are tested.
 **Owner:** `graph-engine`
-**Last updated:** 2026-09-11 (`E3-T24`: text is written as typed)
+**Last updated:** 2026-09-11 (`E8-T13`: a working copy of unsaved changes, and what a crash leaves you)
 
 > **Scope.** A `.spark` file holds nodes, wires, lacing, canvas positions and the values typed
 > into unwired ports. It holds **no geometry** — geometry exists only after evaluation. Assets,
@@ -187,6 +187,22 @@ file picker. If you close that picker without choosing, nothing is discarded and
 
 **Undoing back to where you last saved clears the mark.** The document is compared with what was
 written, not counted in edits, so a change you made and undid is not a change.
+
+**Spark keeps a working copy of unsaved changes, so a crash takes nothing with it.** After every
+change that leaves the graph different from its file, the whole graph is written to a recovery
+folder in your user profile; saving, undoing back to what you saved, or closing Spark normally
+deletes it again. If Spark stops without closing — a code block that recurses for ever is the usual
+cause, and nothing can stop that from ending the program — the next start says so, under the menu:
+
+> ⚠ Spark did not close properly last time, and 'tower.spark' had changes that were never saved
+> (kept 11 Sep, 14:02). Restore them, or discard them.
+
+**Restore** opens the graph as it was, marked unsaved and still belonging to `tower.spark`, so
+`Ctrl+S` writes it back there. **Discard** deletes the copy. Nothing is restored without asking, a
+copy identical to the file on disk is not offered at all, and a graph with code blocks comes back
+*not run*, exactly as if you had opened it from someone else — what you agreed to run was the saved
+file, and this is not that file. A second Spark you start while the first is still open does not
+offer the first one's work: it is not lost, only somewhere else.
 
 ---
 

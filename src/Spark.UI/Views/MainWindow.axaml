@@ -286,7 +286,27 @@
       diagnostics pane because the pane can be hidden, and this is the one message a user needs
       before they start wondering why their graph does nothing.
     -->
-    <Border Grid.Row="2" x:Name="MissingBanner" IsVisible="False"
+    <!--
+      E8-T13: work a crashed session left behind. Above the missing-package banner, in the same row,
+      because the two are not exclusive and the recovered graph is the more urgent question: it is
+      the user's own work, and it is only here until they answer. Never restored without asking.
+    -->
+    <StackPanel Grid.Row="2">
+    <Border x:Name="RecoveryBanner"
+            IsVisible="{Binding RecoveryBanner, Converter={x:Static ObjectConverters.IsNotNull}}"
+            Background="{DynamicResource SparkSurfaceRaisedBrush}" Padding="12,8">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Classes="toolbar" Content="Discard"
+                AutomationProperties.Name="Discard the recovered graph" Click="OnDiscardRecovery" />
+        <Button DockPanel.Dock="Right" Classes="toolbar" Content="Restore" Margin="0,0,8,0"
+                AutomationProperties.Name="Restore the recovered graph" Click="OnRestoreRecovery" />
+        <!-- The warning triangle before the message: the client's rule for every warning. -->
+        <PathIcon x:Name="RecoveryBannerGlyph" Classes="warning" DockPanel.Dock="Left" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding RecoveryBanner}" VerticalAlignment="Center" TextWrapping="Wrap"
+                   Foreground="{DynamicResource SparkTextPrimaryBrush}" />
+      </DockPanel>
+    </Border>
+    <Border x:Name="MissingBanner" IsVisible="False"
             Background="{DynamicResource SparkSurfaceRaisedBrush}" Padding="12,8">
       <DockPanel>
         <Button DockPanel.Dock="Right" Classes="toolbar" Content="Dismiss" AutomationProperties.Name="Dismiss this message" Click="OnDismissMissing" />
@@ -299,6 +319,7 @@
                    Foreground="{DynamicResource SparkTextPrimaryBrush}" />
       </DockPanel>
     </Border>
+    </StackPanel>
 
     <dock:DockControl Grid.Row="3" x:Name="Shell" />
 
