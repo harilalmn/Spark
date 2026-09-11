@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
+using System.Runtime.ExceptionServices;
+using System.Threading.Tasks;
 using Spark.Api;
 using Spark.Geometry;
 
@@ -39,7 +42,9 @@ public sealed class SceneBuilder
 
     private readonly Dictionary<GeometryKey, Group> _groups = [];
     private readonly List<GeometryKey> _order = [];
+    private readonly List<Drawable> _unprepared = [];
     private Bounds3 _bounds = Bounds3.Empty;
+    private int _maximumParallelism = Environment.ProcessorCount;
 
     /// <summary>How many renderable values have been collected across every key.</summary>
     public int RenderableCount { get; private set; }
@@ -47,9 +52,40 @@ public sealed class SceneBuilder
     /// <summary>How many values were seen that no rule here knows how to draw.</summary>
     public int UnrenderableCount { get; private set; }
 
+    /// <summary>
+    /// How many values may be tessellated at once (<c>E9-T7</c>). Defaults to the processor count.
+    /// </summary>
+    /// <remarks>
+    /// <b>The packages do not depend on it.</b> Each value is tessellated on its own and emitted
+    /// afterwards in the order its key arrived, so one thread and sixteen build the same buffers;
+    /// this decides only how long it takes. One is the answer for a caller that must stay off the
+    /// thread pool.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">The value is less than one.</exception>
+    public int MaximumParallelism
+    {
+        get => _maximumParallelism;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
+            _maximumParallelism = value;
+        }
+    }
+
+    /// <summary>
+    /// Called on the worker thread as each value starts tessellating. For tests, which cannot
+    /// otherwise see that two tessellations overlap without timing them.
+    /// </summary>
+    internal Action? Preparing { get; set; }
+
     /// <summary>The keys that produced at least one renderable value, in the order they arrived.</summary>
     /// <returns>A snapshot.</returns>
-    public IReadOnlyList<GeometryKey> Keys() => [.. _order];
+    /// <remarks>
+    /// A key whose only values were solids the kernel could not tessellate drew nothing, and is left
+    /// out once <see cref="Build"/> has found that out.
+    /// </remarks>
+    public IReadOnlyList<GeometryKey> Keys() =>
+        [.. _order.Where(key => _groups[key].Drawables.Exists(drawable => !drawable.Failed))];
 
     /// <summary>
     /// Collects a graph value under a key, walking lists to any depth.
@@ -67,6 +103,8 @@ public sealed class SceneBuilder
     /// <returns>The packages, in the order their keys first arrived.</returns>
     public IReadOnlyList<RenderPackage> Build()
     {
+        Prepare();
+
         float marker = MarkerRadius();
         List<RenderPackage> packages = new(_order.Count);
 
@@ -168,7 +206,7 @@ public sealed class SceneBuilder
                 return;
 
             case Surface surface:
-                Record(key, new MeshDrawable(surface.ToMesh(DisplayTolerance(surface.BoundingBox))), colour, wrapped);
+                Record(key, new SurfaceDrawable(surface), colour, wrapped);
                 return;
 
             case Spark.Geometry.Mesh drawn:
@@ -176,23 +214,8 @@ public sealed class SceneBuilder
                 return;
 
             case Brep solid:
-                // **Through the kernel, not around it.** Tessellating a trimmed face is behind the
-                // seam (ADR-0021), so the viewport asks whichever provider is installed - and with
-                // none, the no-provider kernel still draws an untrimmed shape, because that is a
-                // surface and surfaces are in front of the seam. A shape it cannot draw is counted
-                // unrenderable rather than drawn wrongly.
-                KernelResult<Spark.Geometry.Mesh> tessellated =
-                    BrepKernel.Current.Tessellate(solid, DisplayTolerance(solid.BoundingBox));
-
-                if (tessellated.TryGetValue(out Spark.Geometry.Mesh? fromSolid))
-                {
-                    Record(key, new MeshDrawable(fromSolid), colour, wrapped);
-                }
-                else
-                {
-                    UnrenderableCount++;
-                }
-
+                // Through the kernel, and alongside everything else in the build: see SolidDrawable.
+                Record(key, new SolidDrawable(solid), colour, wrapped);
                 return;
 
             default:
@@ -227,7 +250,69 @@ public sealed class SceneBuilder
 
         group.Drawables.Add(drawable);
         RenderableCount++;
+
+        if (drawable.NeedsPreparing)
+        {
+            _unprepared.Add(drawable);
+        }
         _bounds = drawable.Extend(_bounds);
+    }
+
+    /// <summary>
+    /// Tessellates every value collected since the last build, in parallel (<c>E9-T7</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Only the expensive half is parallel.</b> Tessellating a surface, a solid or a curve is the
+    /// cost, and each is independent of every other; emitting into the accumulator is cheap and stays
+    /// serial, in key order, which is what keeps the packages identical to a one-thread build.
+    /// </para>
+    /// <para>
+    /// <b>Safe for the kernel.</b> Nothing serialises tessellation globally, and the one place two
+    /// threads could meet - the same resident solid twice in a list - is the case `E12-T20` made safe:
+    /// one call meshes the native shape in place and the others mesh a copy.
+    /// </para>
+    /// <para>
+    /// A solid the kernel cannot tessellate moves from the renderable count to the unrenderable one
+    /// here, where it is first known. The first failure a value throws is rethrown as itself, not
+    /// wrapped, so a caller sees what it would have seen from a serial build.
+    /// </para>
+    /// </remarks>
+    private void Prepare()
+    {
+        if (_unprepared.Count == 0)
+        {
+            return;
+        }
+
+        Drawable[] work = [.. _unprepared];
+        _unprepared.Clear();
+
+        try
+        {
+            Parallel.For(
+                0,
+                work.Length,
+                new ParallelOptions { MaxDegreeOfParallelism = _maximumParallelism },
+                index =>
+                {
+                    Preparing?.Invoke();
+                    work[index].Prepare();
+                });
+        }
+        catch (AggregateException failure) when (failure.InnerExceptions.Count > 0)
+        {
+            ExceptionDispatchInfo.Capture(failure.InnerExceptions[0]).Throw();
+        }
+
+        foreach (Drawable drawable in work)
+        {
+            if (drawable.Failed)
+            {
+                RenderableCount--;
+                UnrenderableCount++;
+            }
+        }
     }
 
     private float MarkerRadius()
@@ -264,7 +349,19 @@ public sealed class SceneBuilder
 
     private abstract class Drawable
     {
+        /// <summary>Whether <see cref="Prepare"/> has expensive work to do; false for markers and boxes.</summary>
+        internal virtual bool NeedsPreparing => false;
+
+        /// <summary>Whether preparing found nothing to draw, which only a solid can.</summary>
+        internal virtual bool Failed => false;
+
+        /// <summary>Grows the scene's bounds by this value's, known before anything is tessellated.</summary>
         internal abstract Bounds3 Extend(Bounds3 bounds);
+
+        /// <summary>The expensive half, run alongside every other value's (<c>E9-T7</c>).</summary>
+        internal virtual void Prepare()
+        {
+        }
 
         internal abstract void Emit(MeshAccumulator mesh, float marker);
     }
@@ -308,18 +405,26 @@ public sealed class SceneBuilder
     /// </remarks>
     private sealed class CurveDrawable : Drawable
     {
-        private readonly Point3d[] _points;
+        private readonly Curve _curve;
         private readonly Spark.Geometry.BoundingBox _bounds;
+        private Point3d[] _points = [];
 
         internal CurveDrawable(Curve curve)
         {
-            double sag = Math.Max(curve.Length * 0.001, 1e-12);
-            _points = curve.Tessellate(new Tolerance(sag, Angle.FromDegrees(0.001), 1e-12));
+            _curve = curve;
             _bounds = curve.BoundingBox;
         }
 
+        internal override bool NeedsPreparing => true;
+
         internal override Bounds3 Extend(Bounds3 bounds) =>
             bounds.Union(ToVector(_bounds.Min)).Union(ToVector(_bounds.Max));
+
+        internal override void Prepare()
+        {
+            double sag = Math.Max(_curve.Length * 0.001, 1e-12);
+            _points = _curve.Tessellate(new Tolerance(sag, Angle.FromDegrees(0.001), 1e-12));
+        }
 
         internal override void Emit(MeshAccumulator mesh, float marker)
         {
@@ -349,33 +454,151 @@ public sealed class SceneBuilder
     /// </remarks>
     private sealed class MeshDrawable(Spark.Geometry.Mesh mesh) : Drawable
     {
+        private Spark.Geometry.Mesh? _triangles;
+        private Vector3d[]? _normals;
+
+        internal override bool NeedsPreparing => true;
+
         internal override Bounds3 Extend(Bounds3 bounds) =>
             bounds.Union(ToVector(mesh.BoundingBox.Min)).Union(ToVector(mesh.BoundingBox.Max));
 
+        internal override void Prepare()
+        {
+            _triangles = mesh.Triangulated();
+            _normals = _triangles.Normals();
+        }
+
         internal override void Emit(MeshAccumulator accumulator, float marker)
         {
-            Spark.Geometry.Mesh triangles = mesh.Triangulated();
-            Vector3d[]? normals = triangles.Normals();
-
-            for (int index = 0; index < triangles.FaceCount; index++)
+            if (_triangles is not null)
             {
-                MeshFace face = triangles.Face(index);
-
-                if (normals is null)
-                {
-                    accumulator.AddTriangle(
-                        ToVector(triangles.Vertex(face.A)),
-                        ToVector(triangles.Vertex(face.B)),
-                        ToVector(triangles.Vertex(face.C)));
-
-                    continue;
-                }
-
-                accumulator.AddShadedTriangle(
-                    ToVector(triangles.Vertex(face.A)), ToVector(normals[face.A]),
-                    ToVector(triangles.Vertex(face.B)), ToVector(normals[face.B]),
-                    ToVector(triangles.Vertex(face.C)), ToVector(normals[face.C]));
+                EmitTriangles(accumulator, _triangles, _normals);
             }
+        }
+    }
+
+    /// <summary>
+    /// A surface, tessellated at a display tolerance derived from its own size.
+    /// </summary>
+    /// <remarks>
+    /// The bounds are the surface's, taken when it is collected, because the marker size is decided
+    /// from the whole scene before anything is tessellated; the tessellation waits for the parallel
+    /// pass.
+    /// </remarks>
+    private sealed class SurfaceDrawable : Drawable
+    {
+        private readonly Surface _surface;
+        private readonly Spark.Geometry.BoundingBox _bounds;
+        private readonly Tolerance _tolerance;
+        private Spark.Geometry.Mesh? _triangles;
+        private Vector3d[]? _normals;
+
+        internal SurfaceDrawable(Surface surface)
+        {
+            _surface = surface;
+            _bounds = surface.BoundingBox;
+            _tolerance = DisplayTolerance(_bounds);
+        }
+
+        internal override bool NeedsPreparing => true;
+
+        internal override Bounds3 Extend(Bounds3 bounds) =>
+            bounds.Union(ToVector(_bounds.Min)).Union(ToVector(_bounds.Max));
+
+        internal override void Prepare()
+        {
+            _triangles = _surface.ToMesh(_tolerance).Triangulated();
+            _normals = _triangles.Normals();
+        }
+
+        internal override void Emit(MeshAccumulator accumulator, float marker)
+        {
+            if (_triangles is not null)
+            {
+                EmitTriangles(accumulator, _triangles, _normals);
+            }
+        }
+    }
+
+    /// <summary>
+    /// A solid, tessellated through whichever kernel is installed.
+    /// </summary>
+    /// <remarks>
+    /// <b>Through the kernel, not around it.</b> Tessellating a trimmed face is behind the seam
+    /// (ADR-0021), so the viewport asks whichever provider is installed - and with none, the
+    /// no-provider kernel still draws an untrimmed shape, because that is a surface and surfaces are
+    /// in front of the seam. A shape it cannot draw is counted unrenderable rather than drawn
+    /// wrongly. Its box still counts towards the scene's extent, because that is known before the
+    /// kernel is asked and it is geometry the user does have.
+    /// </remarks>
+    private sealed class SolidDrawable : Drawable
+    {
+        private readonly Brep _solid;
+        private readonly Spark.Geometry.BoundingBox _bounds;
+        private readonly Tolerance _tolerance;
+        private Spark.Geometry.Mesh? _triangles;
+        private Vector3d[]? _normals;
+        private bool _failed;
+
+        internal SolidDrawable(Brep solid)
+        {
+            _solid = solid;
+            _bounds = solid.BoundingBox;
+            _tolerance = DisplayTolerance(_bounds);
+        }
+
+        internal override bool NeedsPreparing => true;
+
+        internal override bool Failed => _failed;
+
+        internal override Bounds3 Extend(Bounds3 bounds) =>
+            bounds.Union(ToVector(_bounds.Min)).Union(ToVector(_bounds.Max));
+
+        internal override void Prepare()
+        {
+            KernelResult<Spark.Geometry.Mesh> tessellated = BrepKernel.Current.Tessellate(_solid, _tolerance);
+
+            if (tessellated.TryGetValue(out Spark.Geometry.Mesh? mesh))
+            {
+                _triangles = mesh.Triangulated();
+                _normals = _triangles.Normals();
+            }
+            else
+            {
+                _failed = true;
+            }
+        }
+
+        internal override void Emit(MeshAccumulator accumulator, float marker)
+        {
+            if (_triangles is not null)
+            {
+                EmitTriangles(accumulator, _triangles, _normals);
+            }
+        }
+    }
+
+    /// <summary>Emits a triangulated mesh, shaded by its vertex normals when it has them.</summary>
+    private static void EmitTriangles(MeshAccumulator accumulator, Spark.Geometry.Mesh triangles, Vector3d[]? normals)
+    {
+        for (int index = 0; index < triangles.FaceCount; index++)
+        {
+            MeshFace face = triangles.Face(index);
+
+            if (normals is null)
+            {
+                accumulator.AddTriangle(
+                    ToVector(triangles.Vertex(face.A)),
+                    ToVector(triangles.Vertex(face.B)),
+                    ToVector(triangles.Vertex(face.C)));
+
+                continue;
+            }
+
+            accumulator.AddShadedTriangle(
+                ToVector(triangles.Vertex(face.A)), ToVector(normals[face.A]),
+                ToVector(triangles.Vertex(face.B)), ToVector(normals[face.B]),
+                ToVector(triangles.Vertex(face.C)), ToVector(normals[face.C]));
         }
     }
 
