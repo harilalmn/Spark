@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes the evaluator in the running application.
 **Owner:** `graph-engine`
-**Last updated:** 2026-08-31
+**Last updated:** 2026-09-11 (`E3-T12`: a long mesh stops when the run is cancelled; solid operations still cannot)
 
 > **Scope.** What happens between pressing run and seeing geometry: the order nodes run in, what
 > gets skipped, what gets reused, and what the five wiring diagnostics mean. How a node handles a
@@ -105,8 +105,14 @@ can produce.
 ## Cancelling a run
 
 A run can be interrupted, and the check happens **between nodes and between the elements of a
-replicated node** — so a graph of a thousand cheap nodes stops almost immediately, and one node
-doing a single very long operation stops when that operation finishes.
+replicated node** — so a graph of a thousand cheap nodes stops almost immediately.
+
+**A single long operation stops too, where it can be interrupted.** Meshing a surface checks between
+rows of the mesh, so a **Surface.ToMesh** asked for at a tolerance far finer than the surface needs —
+`0.000001` on a surface ten units across, say, which is a quarter of a million facets — stops within a
+row of you pressing stop, rather than after the last facet. **Solid operations cannot be
+interrupted**: a boolean, a fillet or a shell runs inside OpenCascade, which offers no way to stop a
+call from outside once it has started, so those stop when they finish.
 
 Everything already computed stays in the cache, so resuming after a cancel is cheap: the work
 already done is not repeated.

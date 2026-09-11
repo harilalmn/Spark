@@ -1,3 +1,4 @@
+using System.Threading;
 using Spark.Api;
 using Spark.Geometry;
 
@@ -148,10 +149,16 @@ public static class Surface
     /// <summary>Turns a surface into a mesh to a tolerance.</summary>
     /// <param name="surface">The surface.</param>
     /// <param name="tolerance">The largest distance the mesh may stray from the surface.</param>
+    /// <param name="cancellationToken">
+    /// The evaluation's token, which the importer supplies and which is not a port (`E3-T12`): a mesh
+    /// asked for at a tolerance far below the surface's size can take a long time, and a user who
+    /// presses stop should not have to wait for it.
+    /// </param>
     /// <returns>The mesh.</returns>
     [return: NodePort("mesh")]
-    public static Mesh ToMesh(Spark.Geometry.Surface surface, double tolerance = 0.01) =>
-        surface.ToMesh(new Tolerance(tolerance, Angle.FromDegrees(1), 1e-12));
+    public static Mesh ToMesh(
+        Spark.Geometry.Surface surface, double tolerance = 0.01, CancellationToken cancellationToken = default) =>
+        surface.ToMesh(new Tolerance(tolerance, Angle.FromDegrees(1), 1e-12), cancellationToken);
 
     /// <summary>The exact NURBS surface a sphere is.</summary>
     /// <param name="surface">The sphere.</param>

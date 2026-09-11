@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading;
 
 namespace Spark.Engine;
 
@@ -81,6 +82,80 @@ public static class NodeInvoker
     }
 
     /// <summary>
+    /// Whether a method declares a <see cref="CancellationToken"/> for the evaluation to fill (`E3-T12`).
+    /// </summary>
+    /// <param name="method">The method.</param>
+    /// <returns>True when one of its parameters is a token.</returns>
+    public static bool TakesCancellation(MethodInfo method)
+    {
+        ArgumentNullException.ThrowIfNull(method);
+
+        foreach (ParameterInfo parameter in method.GetParameters())
+        {
+            if (parameter.ParameterType == typeof(CancellationToken))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Compiles an invoker for a method that declares a <see cref="CancellationToken"/>, which is
+    /// handed the evaluation's token (`E3-T12`).
+    /// </summary>
+    /// <param name="method">The method.</param>
+    /// <returns>The compiled invoker.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="method"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">The method is open generic, or produces nothing.</exception>
+    /// <remarks>
+    /// <b>The token takes no port and no argument slot.</b> It is the evaluation's, not the graph's:
+    /// nothing wires into it, nothing is saved for it, and the node's key — its name, and on an
+    /// overload collision its port names — does not change because a method started accepting one.
+    /// </remarks>
+    public static CancellableNodeInvocation ForCancellableMethod(MethodInfo method)
+    {
+        ArgumentNullException.ThrowIfNull(method);
+
+        if (method.ContainsGenericParameters)
+        {
+            throw new ArgumentException(
+                $"'{method.Name}' is an open generic method. Close it over concrete types before compiling an invoker.",
+                nameof(method));
+        }
+
+        ParameterInfo[] parameters = method.GetParameters();
+
+        if (method.ReturnType == typeof(void) && !HasOutParameter(parameters))
+        {
+            throw new ArgumentException(
+                $"'{method.Name}' returns void and has no out parameters, so it produces no value a graph can carry.",
+                nameof(method));
+        }
+
+        ParameterExpression arguments = Expression.Parameter(typeof(object[]), "arguments");
+        ParameterExpression token = Expression.Parameter(typeof(CancellationToken), "cancellationToken");
+        int argumentIndex = 0;
+
+        Expression? instance = null;
+        if (!method.IsStatic)
+        {
+            instance = Expression.Convert(
+                Expression.ArrayIndex(arguments, Expression.Constant(argumentIndex++)),
+                method.DeclaringType ?? throw new ArgumentException(
+                    $"'{method.Name}' has no declaring type.", nameof(method)));
+        }
+
+        (List<ParameterExpression> outputVariables, List<Expression> callArguments) =
+            BuildCallArguments(parameters, arguments, ref argumentIndex, token);
+
+        Expression call = Expression.Call(instance, method, callArguments);
+
+        return Compile<CancellableNodeInvocation>(call, method.ReturnType, outputVariables, arguments, token);
+    }
+
+    /// <summary>
     /// Compiles an invoker for a constructor. Its parameters are the input ports and the
     /// constructed value is output port 0.
     /// </summary>
@@ -113,13 +188,22 @@ public static class NodeInvoker
     private static (List<ParameterExpression> OutputVariables, List<Expression> CallArguments) BuildCallArguments(
         ParameterInfo[] parameters,
         ParameterExpression arguments,
-        ref int argumentIndex)
+        ref int argumentIndex,
+        Expression? token = null)
     {
         List<ParameterExpression> outputVariables = [];
         List<Expression> callArguments = [];
 
         foreach (ParameterInfo parameter in parameters)
         {
+            // `E3-T12`: the evaluation's token, where one was supplied, and no token at all where it
+            // was not. Either way it takes no argument slot, because it has no port.
+            if (parameter.ParameterType == typeof(CancellationToken))
+            {
+                callArguments.Add(token ?? Expression.Default(typeof(CancellationToken)));
+                continue;
+            }
+
             if (parameter.IsOut)
             {
                 ParameterExpression variable = Expression.Variable(
@@ -146,7 +230,15 @@ public static class NodeInvoker
         Expression call,
         Type returnType,
         List<ParameterExpression> outputVariables,
-        ParameterExpression arguments)
+        ParameterExpression arguments) =>
+        Compile<NodeInvocation>(call, returnType, outputVariables, arguments);
+
+    private static TDelegate Compile<TDelegate>(
+        Expression call,
+        Type returnType,
+        List<ParameterExpression> outputVariables,
+        params ParameterExpression[] lambdaParameters)
+        where TDelegate : Delegate
     {
         List<ParameterExpression> locals = [.. outputVariables];
         List<Expression> statements = [];
@@ -171,7 +263,7 @@ public static class NodeInvoker
 
         statements.Add(Expression.NewArrayInit(typeof(object), results));
 
-        return Expression.Lambda<NodeInvocation>(Expression.Block(locals, statements), arguments).Compile();
+        return Expression.Lambda<TDelegate>(Expression.Block(locals, statements), lambdaParameters).Compile();
     }
 
     private static bool HasOutParameter(ParameterInfo[] parameters)

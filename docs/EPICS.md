@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E8-T13`: autosave and crash recovery; three criteria ticked by a reconciliation before it)
+**Last updated:** 2026-09-11 (`E3-T12` criterion ticked, with `E3-T22` and `E3-T11`, and the epic's status paragraph brought level)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -353,10 +353,14 @@ is [E5](#e5--node-authoring-and-library). Anything drawn on screen.
       downstream keys (**E3-T10**).
 - [ ] The cache is LRU against a memory budget, evicted by last use and estimated size
       (**E3-T9**).
-- [ ] `IEvaluationScheduler` has parallel, sequential-deterministic and host-thread
-      implementations, and evaluation never runs on the UI thread (**E3-T11**).
-- [ ] Cancellation is checked between nodes, between replication elements and inside long
-      kernel loops; cancelling leaves completed nodes cached (**E3-T12**).
+- [x] `IEvaluationScheduler` has parallel, sequential-deterministic and host-thread
+      implementations, and evaluation never runs on the UI thread (**E3-T11**). *Ticked
+      2026-09-11: the row is Done in TASKS; the criterion had not been ticked with it.*
+- [x] Cancellation is checked between nodes, between replication elements and inside long
+      kernel loops; cancelling leaves completed nodes cached (**E3-T12**). *Done 2026-09-11:
+      tessellation checks its token per refinement span and grid row, and the importer hands the
+      evaluation's token to any node method that declares one. OpenCascade calls cannot be
+      interrupted once started, and the help says so.*
 - [x] `.spark` is plain canonically formatted JSON — stable key order, invariant numbers —
       and save/load round-trips **byte-identically** (**E3-T17**, **E3-T18**).
 - [ ] `graph.formatVersion` is a single monotonic integer decoupled from product version;
@@ -365,9 +369,11 @@ is [E5](#e5--node-authoring-and-library). Anything drawn on screen.
 - [x] Errors do not cascade: downstream of a failed node is greyed as *not evaluated*
       (**E3-T16**).
 - [x] Every `SPK####` diagnostic code carries a `HelpTopicId` (**E3-T15**).
-- [ ] Document tolerance flows through `EvaluationContext` and is **hashed into every
+- [x] Document tolerance flows through `EvaluationContext` and is **hashed into every
       node's cache key**, so changing it invalidates exactly the affected nodes
-      (**E3-T22**).
+      (**E3-T22**). *Ticked 2026-09-11 - the row closed in that day's reconciliation, whose scan
+      for stale criteria matched a tick box and a row ID on the same line and so missed this
+      one, which puts the ID two lines down.*
 
 **Status.** Substantially built in `7ef0919`, and **evaluated by walking the source tree rather
 than the commit message**. The graph model, package-qualified node identity, expression-tree
@@ -375,13 +381,13 @@ compiled invocation, the wire-compatibility rules with same-name refusal, Kahn o
 dirty subgraph, cycle refusal at wire creation and detection at load, the provenance cache, the
 `SPK####` diagnostic space and the non-cascading error rule are all in.
 
-**Four things are half-built, and the halves that are missing are named** rather than left to be
-discovered: the cache evicts by **entry count** rather than by a byte budget (`E3-T9`); the run
-epoch is plumbed but **no node can declare itself impure**, because the attribute does not exist
-(`E3-T10`); two of the three schedulers exist and the **host-thread** one — most of the reason
-the seam exists — does not (`E3-T11`); and cancellation reaches between nodes and between
-replication elements but **not inside a kernel operation**, none of which takes a token
-(`E3-T12`). Run modes and the progress channel are untouched.
+**Four things were half-built, and three of them are finished.** The cache still evicts by
+**entry count** rather than by a byte budget (`E3-T9`) - the one half still missing. The impure-node
+declaration exists and always did, as `[NodeSideEffect]` (`E3-T10`, closed by the 2026-09-11
+reconciliation); the host-thread scheduler exists (`E3-T11`); and since 2026-09-11 cancellation
+reaches inside tessellation and into any node method that declares a token (`E3-T12`), with
+OpenCascade's own operations the stated exception. Run modes and the progress channel are
+untouched.
 
 **Persistence landed after this paragraph was first written.** A graph is saved and opened as
 canonical JSON — `SparkFile` for the text, `GraphDocument` for the seam between the file and a

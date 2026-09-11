@@ -11,3 +11,5 @@ static Spark.Nodes.Core.Point.FromCylindrical(double radius = 1, Spark.Geometry.
 static Spark.Nodes.Core.Point.FromSpherical(double radius = 1, Spark.Geometry.Angle azimuth = default(Spark.Geometry.Angle), Spark.Geometry.Angle polar = default(Spark.Geometry.Angle)) -> Spark.Geometry.Point3d
 static Spark.Nodes.Core.Vector.FromCylindrical(double radius = 1, Spark.Geometry.Angle azimuth = default(Spark.Geometry.Angle), double height = 0) -> Spark.Geometry.Vector3d
 static Spark.Nodes.Core.Vector.FromSpherical(double radius = 1, Spark.Geometry.Angle azimuth = default(Spark.Geometry.Angle), Spark.Geometry.Angle polar = default(Spark.Geometry.Angle)) -> Spark.Geometry.Vector3d
+*REMOVED*static Spark.Nodes.Core.Surface.ToMesh(Spark.Geometry.Surface! surface, double tolerance = 0.01) -> Spark.Geometry.Mesh!
+static Spark.Nodes.Core.Surface.ToMesh(Spark.Geometry.Surface! surface, double tolerance = 0.01, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Spark.Geometry.Mesh!

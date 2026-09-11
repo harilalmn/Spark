@@ -21,6 +21,15 @@ namespace Spark.Engine;
 public delegate object?[] NodeInvocation(object?[] arguments);
 
 /// <summary>
+/// Runs a library node whose method declared a <see cref="CancellationToken"/> parameter, handing
+/// it the evaluation's token (`E3-T12`).
+/// </summary>
+/// <param name="arguments">One argument per input port, in port order.</param>
+/// <param name="cancellationToken">The evaluation's token, passed where the method declared one.</param>
+/// <returns>One value per output port, in port order.</returns>
+public delegate object?[] CancellableNodeInvocation(object?[] arguments, CancellationToken cancellationToken);
+
+/// <summary>
 /// What a node <i>is</i>, as opposed to a node instance on a canvas: its identity, its ports, the
 /// lacing its author chose, and the compiled delegate that runs it.
 /// </summary>
@@ -308,6 +317,17 @@ public sealed class NodeDefinition
     /// </remarks>
     public ScriptInvocation? InvokeScript { get; private init; }
 
+    /// <summary>
+    /// The invoker for a library node whose method takes a cancellation token, which receives the
+    /// evaluation's — null for every other node (`E3-T12`).
+    /// </summary>
+    /// <remarks>
+    /// <b>Separate from <see cref="InvokeScript"/> on purpose.</b> That one is how a code block is
+    /// told apart from a library node, and a library node that honours cancellation is still a
+    /// library node. Set by the importer, and by nothing outside this assembly.
+    /// </remarks>
+    public CancellableNodeInvocation? InvokeCancellable { get; internal init; }
+
     /// <summary>Runs the node once, honouring cancellation if the node is able to.</summary>
     /// <param name="arguments">One argument per input port, in port order.</param>
     /// <param name="cancellationToken">The evaluation's token.</param>
@@ -321,7 +341,9 @@ public sealed class NodeDefinition
     /// </remarks>
     /// <exception cref="OperationCanceledException">Cancellation was requested.</exception>
     public object?[] Call(object?[] arguments, CancellationToken cancellationToken) =>
-        InvokeScript is { } script ? script(arguments, cancellationToken) : Invoke(arguments);
+        InvokeScript is { } script ? script(arguments, cancellationToken)
+        : InvokeCancellable is { } cancellable ? cancellable(arguments, cancellationToken)
+        : Invoke(arguments);
 
     /// <summary>
     /// Resolves an instance's lacing to a real replication algorithm. This is the one hop, and it

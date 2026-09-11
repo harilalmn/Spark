@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-11 (N144–N154: … recovery is off until the window turns it on; a token overload reaches every test)
+**Last updated:** 2026-09-11 (N144–N155: … a token overload reaches every test; the code-example generator counted parameters as ports)
 
 ---
 
@@ -4652,3 +4652,23 @@ it proves the old signature still produces the old mesh, carries a local `#pragm
 
 **The general form.** Adding a token overload to a public method is cheap in the library and costs a
 pass over every test that calls it. Budget for it, and patch from the diagnostics.
+
+## N155 — The code-example generator assumed every method parameter is a port
+
+`NodeImporter.MethodExample` writes the one-line C# a node's help and code blocks show — `return
+Surface.ToMesh(surface, tolerance);` — by walking the method's parameters and taking the next input
+port's name for each. That is only right while every non-`out` parameter *is* an input port, and until
+`E3-T12` it always was.
+
+**`E3-T12` made the first parameter that is not a port**: a `CancellationToken`, which the importer
+now fills from the evaluation rather than exposing. The walk then ran one past the end of the port
+list, and the `ArgumentOutOfRangeException` escaped the importer — **aborting the import of the whole
+first-party library**, because `Spark.Nodes.Core.Surface.ToMesh` was the first adopter. Two unrelated
+tests (`NodeMemberKindTests`, `XmlDocumentationTests`) found it, not the new ones: they import the real
+library, and the new tests imported a fixture of their own.
+
+**The fix skips the token there as it is skipped in the port loop** — left out when it is optional,
+`CancellationToken.None` when it is required, so the example still compiles. **The general form**:
+the importer has three places that map parameters — the port loop, the invoker's argument builder
+and this example — and a parameter that is not a port has to be taught to all three. Test a new
+kind against the real first-party library, not only against a fixture.

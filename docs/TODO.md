@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E8-T13` done: autosave and crash recovery; `E3-T10` before it)
+**Last updated:** 2026-09-11 (`E3-T12` done: cancellation reaches the kernel's long loop; `E8-T13` before it)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -218,7 +218,8 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >    all in place. Its re-check searched for `Impure` and missed it.
 > 4. ~~**`E8-T13`** — aggressive autosave and crash recovery.~~ **Done 2026-09-11**: a working copy
 >    after every unsaved change, and a crashed session's graph offered back on the next start.
-> 5. **`E3-T12`**'s kernel half and **`E3-T9`**'s byte budget — engine rows each missing one half.
+> 5. ~~**`E3-T12`**'s kernel half~~ **done 2026-09-11** (tessellation and token-declaring nodes; OpenCascade
+>    calls cannot be interrupted) — and **`E3-T9`**'s byte budget, the engine's last half-built row.
 > 6. **`E13-T18`** — an imported model's closed shells come back as solids, in the native shim.
 > 7. **`E9-T8`** and **`E9-T7`** — picking through the BVH, and tessellation streamed during a run.
 > 8. **`E8-T12`** — Settings.

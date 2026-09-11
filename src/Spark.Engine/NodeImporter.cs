@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using Spark.Api;
 
 namespace Spark.Engine;
@@ -261,6 +262,14 @@ public static class NodeImporter
 
         foreach (ParameterInfo parameter in parameters)
         {
+            // `E3-T12`: THE EVALUATION'S TOKEN, NOT A PORT. A method that accepts one is asking to
+            // be stopped, and the evaluator supplies its own; a port for it would be a socket nothing
+            // can plug into, and it would change the node's shape for a reason no graph can see.
+            if (parameter.ParameterType == typeof(CancellationToken))
+            {
+                continue;
+            }
+
             if (parameter.IsOut)
             {
                 outputs.Add(OutPort(parameter, docs, method));
@@ -279,7 +288,8 @@ public static class NodeImporter
             outputs,
             NodeInvoker.ForMethod(method),
             docs.SummaryOf(method),
-            InferKind(method.Name, inputs, outputs)));
+            InferKind(method.Name, inputs, outputs),
+            NodeInvoker.TakesCancellation(method) ? NodeInvoker.ForCancellableMethod(method) : null));
     }
 
     private static void ClassifyConstructor(
@@ -620,7 +630,10 @@ public static class NodeImporter
                 hasSlider: hasSlider,
                 hasField: hasField,
                 memberKind: kind,
-                codeExample: CodeExampleFor(candidate));
+                codeExample: CodeExampleFor(candidate))
+            {
+                InvokeCancellable = candidate.InvokeCancellable,
+            };
 
             nodes.Add(new ImportedNode(definition, candidate.Member));
         }
@@ -696,6 +709,19 @@ public static class NodeImporter
                 continue;
             }
 
+            // `E3-T12`: the evaluation's token has no port, so it takes no input here either. An
+            // optional one is left out, which is what anybody calling the method would write; a
+            // required one is passed as None, so the example still compiles in a code block.
+            if (parameter.ParameterType == typeof(CancellationToken))
+            {
+                if (!parameter.HasDefaultValue)
+                {
+                    arguments.Add("System.Threading.CancellationToken.None");
+                }
+
+                continue;
+            }
+
             arguments.Add(candidate.Inputs[input++].Name);
         }
 
@@ -749,5 +775,6 @@ public static class NodeImporter
         IReadOnlyList<PortDefinition> Outputs,
         NodeInvocation Invoke,
         string? Description,
-        NodeMemberKind Kind);
+        NodeMemberKind Kind,
+        CancellableNodeInvocation? InvokeCancellable = null);
 }
