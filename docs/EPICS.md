@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E8-T12` criterion written and ticked: Settings)
+**Last updated:** 2026-09-11 (`E5-T9`: extension methods on their receiver)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -514,7 +514,9 @@ everybody else. This is enforced by `Spark.Architecture.Tests`, not by disciplin
       become extra outputs, `Task<T>` is awaited, `void` is excluded unless marked a side
       effect, `op_*` operators are excluded as nodes and harvested as implicit conversions
       instead, and extension methods present as instance methods on the extended type so
-      package extensions look native (**E5-T3**, **E5-T9**).
+      package extensions look native (**E5-T3**, **E5-T9**). *The extension half landed
+      2026-09-11 (`E5-T9`): an extension method is keyed on its receiver's type. Unticked while
+      the rest of the member-kind rules are unverified here.*
 - [ ] **One node per overload**, grouped under one library entry with a flyout,
       disambiguated by differing parameter names (`ByCenterRadius` versus
       `ByCenterRadiusNormal`), never by `_2` (**E5-T4**). **Half met: the importer produces one
@@ -552,7 +554,7 @@ silently skipped, which is why `E5-T9` and `E5-T10` are `Open` as decisions rath
 This is the DoodleSharp failure the project has been designing against since M0: three
 hand-maintained dictionaries that drifted in **both** directions at once, invisibly, for years.
 
-Still open: extension methods on their receiver, generics, the third-party import acceptance
+Still open: generics (extension methods on their receiver landed 2026-09-11, `E5-T9`), the third-party import acceptance
 test, and the curated List/Math/String/Logic categories. `E5-T14` is `In progress` at 57 nodes,
 which is a number rather than a finish line.
 

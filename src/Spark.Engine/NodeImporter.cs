@@ -30,8 +30,8 @@ namespace Spark.Engine;
 /// every test written after the fact.
 /// </para>
 /// <para>
-/// <b>What this slice deliberately does not do.</b> Generic types and generic methods, extension
-/// methods surfaced on their receiver, operator harvesting, nested types, indexers, events and
+/// <b>What this slice deliberately does not do.</b> Generic types and generic methods,
+/// operator harvesting, nested types, indexers, events and
 /// <c>ref</c> parameters are all excluded with a stated reason rather than imported. Each is a
 /// design decision of its own — how does a user pick a type argument on a canvas? — and none of
 /// them is needed to make a graph draw geometry.
@@ -219,13 +219,6 @@ public static class NodeImporter
             return;
         }
 
-        if (method.IsDefined(typeof(ExtensionAttribute), inherit: false))
-        {
-            exclusions.Add(new ExcludedMember(
-                method, "extension methods are not surfaced on their receiver in this slice."));
-            return;
-        }
-
         ParameterInfo[] parameters = method.GetParameters();
 
         if (parameters.Any(parameter => parameter.ParameterType.IsByRef && !parameter.IsOut))
@@ -281,7 +274,7 @@ public static class NodeImporter
         }
 
         candidates.Add(new Candidate(
-            $"{type.Name}.{method.Name}",
+            $"{OwnerName(method, parameters, type)}.{method.Name}",
             method,
             type,
             inputs,
@@ -290,6 +283,38 @@ public static class NodeImporter
             docs.SummaryOf(method),
             InferKind(method.Name, inputs, outputs),
             NodeInvoker.TakesCancellation(method) ? NodeInvoker.ForCancellableMethod(method) : null));
+    }
+
+    /// <summary>
+    /// The type a method's node is shown on: the type it is declared on, or for an extension method
+    /// the type it extends (<c>E5-T9</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>So a package's extensions look native.</b> <c>CurveExtensions.Bend(this Curve curve)</c> is
+    /// found under <c>Curve.Bend</c>, where a user looking for something to do to a curve looks. The
+    /// node is otherwise the static method it is: the receiver is its first input, under the name the
+    /// author gave it, and it runs, is described and is filed exactly as the declaring class says -
+    /// that class is what shipped it.
+    /// </para>
+    /// <para>
+    /// <b>A key is not a type system.</b> A receiver that is an array or a constructed generic has no
+    /// single name a key can carry, so such an extension keeps its declaring class's name. A receiver
+    /// passed <c>in</c> or <c>ref</c> never gets this far: the ref-parameter rule excludes it first.
+    /// A key that collides with a member the receiver's own type declares, in the same package, is
+    /// separated by the ordinary overload rule - its port names - so neither hides the other.
+    /// </para>
+    /// </remarks>
+    private static string OwnerName(MethodInfo method, ParameterInfo[] parameters, Type declaring)
+    {
+        if (!method.IsDefined(typeof(ExtensionAttribute), inherit: false) || parameters.Length == 0)
+        {
+            return declaring.Name;
+        }
+
+        Type receiver = parameters[0].ParameterType;
+
+        return receiver.IsArray || receiver.IsGenericType || receiver.IsByRef ? declaring.Name : receiver.Name;
     }
 
     private static void ClassifyConstructor(
