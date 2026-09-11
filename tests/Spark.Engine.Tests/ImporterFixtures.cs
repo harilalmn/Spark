@@ -79,11 +79,16 @@ public readonly struct ImportedSegment : IEquatable<ImportedSegment>
 /// <summary>Members the importer refuses, one per rule.</summary>
 public static class ImportedAwkward
 {
-    /// <summary>A generic method.</summary>
-    /// <typeparam name="T">Anything.</typeparam>
+    /// <summary>
+    /// A generic method the importer still refuses: its type parameter is constrained, so closing it
+    /// over <see cref="object"/> would break the constraint. An unconstrained one is imported since
+    /// `E5-T10`, which is why this is not the plain identity it once was.
+    /// </summary>
+    /// <typeparam name="T">A comparable type.</typeparam>
     /// <param name="value">The value.</param>
     /// <returns>The value.</returns>
-    public static T Identity<T>(T value) => value;
+    public static T Identity<T>(T value)
+        where T : System.IComparable<T> => value;
 
     /// <summary>A ref parameter, which is both an input and an output.</summary>
     /// <param name="value">The value.</param>

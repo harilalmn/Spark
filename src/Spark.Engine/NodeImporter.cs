@@ -30,8 +30,8 @@ namespace Spark.Engine;
 /// every test written after the fact.
 /// </para>
 /// <para>
-/// <b>What this slice deliberately does not do.</b> Generic types and generic methods,
-/// operator harvesting, nested types, indexers, events and
+/// <b>What this slice deliberately does not do.</b> Generic types, constrained generic
+/// methods, operator harvesting, nested types, indexers, events and
 /// <c>ref</c> parameters are all excluded with a stated reason rather than imported. Each is a
 /// design decision of its own — how does a user pick a type argument on a canvas? — and none of
 /// them is needed to make a graph draw geometry.
@@ -212,14 +212,23 @@ public static class NodeImporter
             return;
         }
 
+        // `E5-T10`: WHAT THE NODE CALLS, WHICH FOR A GENERIC METHOD IS ITS CLOSED FORM. The member a
+        // node records stays the method as declared, so its documentation and the two-way coverage
+        // diff still find it; only the ports and the invocation use the closed shape.
+        MethodInfo shape = method;
+
         if (method.ContainsGenericParameters)
         {
-            exclusions.Add(new ExcludedMember(
-                method, "generic methods are not imported in this slice: a canvas has no way to bind a type argument."));
-            return;
+            if (GenericRefusal(method) is { } refusal)
+            {
+                exclusions.Add(new ExcludedMember(method, refusal));
+                return;
+            }
+
+            shape = method.MakeGenericMethod([.. method.GetGenericArguments().Select(_ => typeof(object))]);
         }
 
-        ParameterInfo[] parameters = method.GetParameters();
+        ParameterInfo[] parameters = shape.GetParameters();
 
         if (parameters.Any(parameter => parameter.ParameterType.IsByRef && !parameter.IsOut))
         {
@@ -234,7 +243,7 @@ public static class NodeImporter
             return;
         }
 
-        if (method.ReturnType == typeof(void) && !parameters.Any(parameter => parameter.IsOut))
+        if (shape.ReturnType == typeof(void) && !parameters.Any(parameter => parameter.IsOut))
         {
             exclusions.Add(new ExcludedMember(
                 method, "the method returns void and has no out parameter, so it produces no value a graph can carry."));
@@ -248,9 +257,9 @@ public static class NodeImporter
         }
 
         List<PortDefinition> outputs = [];
-        if (method.ReturnType != typeof(void))
+        if (shape.ReturnType != typeof(void))
         {
-            outputs.Add(ReturnPort(method, docs));
+            outputs.Add(ReturnPort(shape, docs));
         }
 
         foreach (ParameterInfo parameter in parameters)
@@ -279,10 +288,10 @@ public static class NodeImporter
             type,
             inputs,
             outputs,
-            NodeInvoker.ForMethod(method),
+            NodeInvoker.ForMethod(shape),
             docs.SummaryOf(method),
             InferKind(method.Name, inputs, outputs),
-            NodeInvoker.TakesCancellation(method) ? NodeInvoker.ForCancellableMethod(method) : null));
+            NodeInvoker.TakesCancellation(shape) ? NodeInvoker.ForCancellableMethod(shape) : null));
     }
 
     /// <summary>
@@ -316,6 +325,52 @@ public static class NodeImporter
 
         return receiver.IsArray || receiver.IsGenericType || receiver.IsByRef ? declaring.Name : receiver.Name;
     }
+
+    /// <summary>
+    /// Why a generic method cannot be closed over <see cref="object"/>, or null when it can
+    /// (<c>E5-T10</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The rule <c>E5-T3</c> wrote down.</b> A rank-polymorphic, identity-like method -
+    /// <c>Reverse&lt;T&gt;(IReadOnlyList&lt;T&gt;)</c> - is imported closed over <see cref="object"/>, which
+    /// works because a graph's lists are object-based: every value a canvas can hold already is one.
+    /// </para>
+    /// <para>
+    /// <b>Two refusals, each for a reason a user would recognise.</b> A <i>constrained</i> type
+    /// parameter is refused, because <see cref="object"/> would break the constraint the author wrote -
+    /// <c>where T : IComparable&lt;T&gt;</c> means the method compares, and object does not. A type
+    /// parameter that appears in <i>no input</i> is refused, because nothing on a canvas could decide it:
+    /// <c>Make&lt;T&gt;()</c> closed over object makes an object. Closed instantiations an author names -
+    /// the other half of <c>E5-T3</c>'s rule - wait for the first author who asks, since they need a new
+    /// public attribute.
+    /// </para>
+    /// </remarks>
+    private static string? GenericRefusal(MethodInfo method)
+    {
+        ParameterInfo[] parameters = method.GetParameters();
+
+        foreach (Type argument in method.GetGenericArguments())
+        {
+            if (argument.GetGenericParameterConstraints().Length > 0
+                || (argument.GenericParameterAttributes & GenericParameterAttributes.SpecialConstraintMask) != 0)
+            {
+                return $"generic type parameter {argument.Name} is constrained, and closing it over object would break the constraint; a canvas has no way to bind a type argument.";
+            }
+
+            if (!parameters.Any(parameter => Mentions(parameter.ParameterType, argument)))
+            {
+                return $"generic type parameter {argument.Name} appears in no input, so nothing on a canvas could decide it.";
+            }
+        }
+
+        return null;
+    }
+
+    private static bool Mentions(Type type, Type argument) =>
+        type == argument
+        || (type.HasElementType && Mentions(type.GetElementType()!, argument))
+        || (type.IsGenericType && type.GetGenericArguments().Any(inner => Mentions(inner, argument)));
 
     private static void ClassifyConstructor(
         ConstructorInfo constructor,

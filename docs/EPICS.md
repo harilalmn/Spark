@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E5-T9`: extension methods on their receiver)
+**Last updated:** 2026-09-11 (`E5-T10`: generic methods closed over object)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -554,7 +554,7 @@ silently skipped, which is why `E5-T9` and `E5-T10` are `Open` as decisions rath
 This is the DoodleSharp failure the project has been designing against since M0: three
 hand-maintained dictionaries that drifted in **both** directions at once, invisibly, for years.
 
-Still open: generics (extension methods on their receiver landed 2026-09-11, `E5-T9`), the third-party import acceptance
+Still open: named generic instantiations (extension methods on their receiver landed 2026-09-11, `E5-T9`, and unconstrained generic methods closed over `object` the same day, `E5-T10`), the third-party import acceptance
 test, and the curated List/Math/String/Logic categories. `E5-T14` is `In progress` at 57 nodes,
 which is a number rather than a finish line.
 
