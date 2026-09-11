@@ -15,4 +15,12 @@
     -->
     <InternalsVisibleTo Include="Spark.Geometry.Occt" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      E2-T13, PRD FR-60: the planar booleans. The kernel's only third-party dependency, used from one
+      internal file (Planar/ClipperBridge.cs) and nowhere else; the architecture test holds the ceiling.
+    -->
+    <PackageReference Include="Clipper2" />
+  </ItemGroup>
 </Project>

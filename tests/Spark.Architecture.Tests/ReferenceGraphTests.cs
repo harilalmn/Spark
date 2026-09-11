@@ -81,12 +81,12 @@ public sealed class ReferenceGraphTests
     /// </para>
     /// </summary>
     /// <remarks>
-    /// This asserts a ceiling, not an exact set. Clipper2 is <b>not</b> referenced at present:
-    /// nothing in the kernel uses it until the planar boolean pipeline lands, and a package
-    /// reference that no source file consumes still appears in the published nuspec, so
-    /// consumers would acquire a dependency the library does not actually have. It comes back
-    /// with the code that needs it, and this test keeps holding either way — what it must
-    /// never permit is a <i>second</i> third-party package arriving unnoticed.
+    /// This asserts a ceiling, not an exact set. Clipper2 is referenced since the planar
+    /// booleans landed (<c>E2-T13</c>), and used from one internal file,
+    /// <c>Planar/ClipperBridge.cs</c>, so nothing public mentions a Clipper type. It was left out
+    /// until then because a package reference no source file consumes still appears in the
+    /// published nuspec. This test holds either way — what it must never permit is a
+    /// <i>second</i> third-party package arriving unnoticed.
     /// </remarks>
     [Fact]
     public void SparkGeometryTakesNoThirdPartyDependencyBeyondClipper()
