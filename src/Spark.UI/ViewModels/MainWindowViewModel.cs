@@ -419,6 +419,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         CanvasGraph? opened = null;
         IReadOnlyList<string> startupRecorded = [];
         IReadOnlyList<Spark.Packages.AbsentGraphPackage> startupAbsent = [];
+        IReadOnlyList<string> startupScripts = [];
         if (!string.IsNullOrWhiteSpace(startupDocumentPath))
         {
             try
@@ -427,8 +428,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
                 // `E7-T17`: what the file says it needs, checked before anything is built - the
                 // same order as File > Open, on the other door.
-                startupRecorded = RecordedIn(SparkFile.Read(startupText));
+                GraphDocument startupDocument = SparkFile.Read(startupText);
+                startupRecorded = RecordedIn(startupDocument);
                 startupAbsent = AbsentFrom(startupDocumentPath, startupRecorded);
+
+                // `E6-T40`: and its code blocks, read before anything is built, so this door applies
+                // `E6-T16`'s rule as File > Open does. It used to adopt with evaluation on and never
+                // ask, so a graph with a code block ran on `--open` where File > Open held it back.
+                startupScripts = startupDocument.Scripts();
 
                 // `E7-T16`: the graph's own packages, on this door as on File > Open, and before the
                 // document is built - building a code block compiles it.
@@ -471,7 +478,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             _ = _graph.Engine.SetFrozen(_graph.Nodes[slot].Id, frozen: true);
         }
 
-        AdoptGraph(_graph, keepPackages: opened is not null);
+        // `E6-T40`: the trust decision is made here, inside the one adoption, and not by opening the
+        // file again afterwards through TryOpenDocument - the remarks on this constructor say why:
+        // a second adoption is a second run, and the last one to finish wins.
+        bool startupRun = opened is null
+            || startupScripts.Count == 0
+            || _trust.IsTrusted(startupDocumentPath, startupScripts);
+
+        AdoptGraph(
+            _graph,
+            evaluate: startupRun,
+            keepPackages: opened is not null,
+            notEvaluated: AwaitingTrustDiagnostic);
 
         // A document named on the command line is a saved graph like any other, and the startup
         // path does not go through TryOpenDocument (`E7-T18`). It is set *after* the adopt above,
@@ -481,6 +499,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             NoteGraphPath(startupDocumentPath);
             PackageBanner = PackageGate.Banner;
             NotePackageRecord(startupRecorded, startupAbsent);
+
+            PendingScripts = startupRun ? 0 : startupScripts.Count;
+            PendingOrigin = startupRun ? null : startupDocumentPath;
+            ScriptBanner = startupRun ? null : NotRunBanner(startupScripts.Count);
         }
 
         if (failure is not null)
@@ -913,7 +935,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 CanvasDocument.Open(text, _session.Library, factory),
                 evaluate: run,
                 keepPackages: true,
-                notEvaluated: "Not evaluated: this graph's code blocks are waiting for you to trust them. See the banner in Properties.");
+                notEvaluated: AwaitingTrustDiagnostic);
 
             // The origin *is* the path, so this is the one place both halves are known (`E7-T18`).
             // A document opened with no origin - a demo graph, a paste - correctly clears it: it
@@ -924,11 +946,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
             PendingScripts = run ? 0 : scripts.Count;
             PendingOrigin = run ? null : origin;
-            ScriptBanner = run
-                ? null
-                : string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"This graph contains {scripts.Count} code block{(scripts.Count == 1 ? string.Empty : "s")}, which is a program. It has been opened but not run.");
+            ScriptBanner = run ? null : NotRunBanner(scripts.Count);
 
             GraphReplaced?.Invoke(this, EventArgs.Empty);
             return true;
@@ -1536,6 +1554,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     /// <summary>Whether an opened graph is waiting to be trusted before it runs.</summary>
     public bool IsAwaitingTrust => PendingScripts > 0;
+
+    /// <summary>What the diagnostics pane says about a graph held back for the user's trust.</summary>
+    private const string AwaitingTrustDiagnostic =
+        "Not evaluated: this graph's code blocks are waiting for you to trust them. See the banner in Properties.";
+
+    /// <summary>
+    /// The code-block trust banner's sentence (`E6-T16`), one wording for both doors a graph
+    /// arrives through (`E6-T40`).
+    /// </summary>
+    private static string NotRunBanner(int scripts) =>
+        string.Create(
+            CultureInfo.InvariantCulture,
+            $"This graph contains {scripts} code block{(scripts == 1 ? string.Empty : "s")}, which is a program. It has been opened but not run.");
 
     /// <summary>
     /// Runs a graph the user has decided to trust, and remembers the decision (`E6-T16`).

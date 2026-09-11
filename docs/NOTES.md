@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-11 (N144–N147: a removed reference kept its import; two stores over one file; a key the file owns; Save asks first)
+**Last updated:** 2026-09-11 (N144–N148: a removed reference kept its import; two stores over one file; a key the file owns; Save asks first; a screenshot is not consent)
 
 ---
 
@@ -4473,3 +4473,20 @@ lost; it costs one dialog the user did not need.
 **Do not move it back.** Serialising first and writing the result under a different name produces a
 file whose list names a folder beside some other file, and the next open reports every package
 absent — correctly, and for no reason the user could see.
+
+## N148 — A screenshot ran the graph it was photographing
+
+`--screenshot` captures the shell once the first evaluation has landed, and to be sure there *is* a
+first evaluation, `CaptureWhenReadyAsync` ran one itself — `await model.EvaluateAsync()`,
+unconditionally, before the shutter. That is right for a demo graph and was a trust bypass for
+anything else. `E6-T16` holds a graph with code blocks back until the user agrees, `E6-T40` made
+`--open` do the same — and the screenshot path then ran it anyway, a few hundred milliseconds later,
+from the view rather than the view model. Fixing the constructor alone would have closed one door
+beside another left open.
+
+**A screenshot is not consent.** The capture now runs the graph only when nothing is waiting for
+trust, and a held-back graph is photographed as a user would see it: unrun, with its banner.
+
+**The general form.** `EvaluateAsync` is public and runs whatever is on the canvas. Every caller
+outside the trust decision — a pose, a benchmark, a startup switch — has to ask `IsAwaitingTrust`
+first, or it is a way round the rule.

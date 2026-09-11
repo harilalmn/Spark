@@ -281,8 +281,9 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
          this item required, on **both** doors and **before** the document is built. Only
          assemblies whose bytes were agreed to are referenced; the rest wait behind a banner that
          names them, and **Trust and load** remembers them per content hash. It found
-         [`E6-T40`](TASKS.md#e6--c-code-block): `--open` skips the *code-block* trust rule, which
-         is its own step because fixing it changes the `--open … --screenshot` workflow.
+         [`E6-T40`](TASKS.md#e6--c-code-block): `--open` skipped the *code-block* trust rule. It
+         was its own step because fixing it changed the `--open … --screenshot` workflow, and it
+         **closed the same day** — both doors and the screenshot now ask before they run.
       2. **`E7-T17` is done** (2026-09-11) — the file names its packages first, at format version
          5, and a missing one is **named in the banner when the graph opens**. The graph still
          opens, because a refused graph cannot be repaired. `E7-T7`'s byte-identical re-save was

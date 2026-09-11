@@ -209,6 +209,68 @@ public sealed class ScriptTrustTests : IDisposable
         Assert.Contains("trust", opened.DiagnosticsText, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// <b>`E6-T40`: the other door.</b> A graph named with <c>--open</c> is built in the constructor
+    /// rather than through <c>TryOpenDocument</c>, and it used to be adopted with evaluation on and
+    /// never asked about — so a graph containing a code block ran on <c>--open</c> where File ▸ Open
+    /// would have held it back. The negative is the assertion, as it is for the first door.
+    /// </summary>
+    [Fact]
+    public void AGraphOpenedAtStartupWithACodeBlockIsNotRun()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "spark-startup-" + Guid.NewGuid().ToString("N") + ".spark");
+
+        try
+        {
+            using (MainWindowViewModel author = new())
+            {
+                Assert.True(author.PlaceCodeBlock(0, 0) >= 0);
+                File.WriteAllText(path, Assert.IsType<string>(author.TrySaveDocument()));
+            }
+
+            using MainWindowViewModel opened = new(null, path);
+
+            Assert.True(opened.IsAwaitingTrust);
+            Assert.NotNull(opened.ScriptBanner);
+            Assert.Equal(path, opened.PendingOrigin);
+            Assert.Contains("trust", opened.DiagnosticsText, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    /// <summary>And a graph with no code block, opened the same way, runs as it always did.</summary>
+    [Fact]
+    public void AGraphOpenedAtStartupWithoutACodeBlockRuns()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "spark-startup-" + Guid.NewGuid().ToString("N") + ".spark");
+
+        try
+        {
+            using (MainWindowViewModel author = new())
+            {
+                File.WriteAllText(path, Assert.IsType<string>(author.TrySaveDocument()));
+            }
+
+            using MainWindowViewModel opened = new(null, path);
+
+            Assert.False(opened.IsAwaitingTrust);
+            Assert.Null(opened.ScriptBanner);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
     /// <summary><c>--no-script</c> is parsed, because a switch nobody can type is not a switch.</summary>
     [Theory]
     [InlineData(new string[0], false)]

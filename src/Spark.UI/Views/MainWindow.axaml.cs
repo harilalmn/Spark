@@ -1727,7 +1727,12 @@ public sealed partial class MainWindow : Window
     /// <param name="prefix">The file path prefix the images are written under.</param>
     private async Task CaptureWhenReadyAsync(string prefix)
     {
-        if (Model is { } model)
+        // `E6-T40`: A SCREENSHOT IS NOT CONSENT. The capture used to run the graph itself, which
+        // made `--open FILE --screenshot` a way to execute an untrusted graph's code blocks without
+        // anybody agreeing to it - a second door beside the constructor's. A graph held back for
+        // trust is photographed as it is, unrun and with its banner; a file the user has trusted
+        // runs as it always did.
+        if (Model is { } model && !model.IsAwaitingTrust)
         {
             await model.EvaluateAsync().ConfigureAwait(true);
         }

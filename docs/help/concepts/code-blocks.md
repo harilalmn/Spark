@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes the code block in the running application.
 **Owner:** `scripting`
-**Last updated:** 2026-09-09
+**Last updated:** 2026-09-11
 
 > **Scope.** A code block is a node whose body is C# you type. Its input ports come from the
 > identifiers your code uses but does not declare; it gets one output port per line that makes
@@ -577,6 +577,11 @@ Two buttons sit under it. **Run once** runs it now and asks again next time. **A
 file** runs it and remembers — for *this file saying exactly this*. Change a line and you are asked
 again; send the file to somebody else and they are asked too. A graph with no code blocks in it is
 never asked about, because there is nothing to decide.
+
+**However the graph is opened.** File ▸ Open, a file named when Spark starts (`--open`), and a
+picture taken with `--screenshot` all apply the same rule. A screenshot of a graph nobody has
+trusted shows it unrun, with this banner — taking a picture is not agreeing to run a program. Trust
+the file once and it runs on every one of them.
 
 **To refuse scripting entirely**, start with `--no-script`:
 
