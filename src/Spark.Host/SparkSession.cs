@@ -286,12 +286,24 @@ public sealed class SparkSession : IDisposable
     /// <summary>Runs the graph on the calling thread.</summary>
     /// <param name="cancellationToken">Checked between nodes and between replication elements.</param>
     /// <returns>The outputs, states and diagnostics.</returns>
-    public EvaluationResult Evaluate(CancellationToken cancellationToken = default)
+    public EvaluationResult Evaluate(CancellationToken cancellationToken = default) =>
+        Evaluate(progress: null, cancellationToken);
+
+    /// <summary>
+    /// Runs the graph on the calling thread, reporting each node as it finishes (<c>E9-T7</c>).
+    /// </summary>
+    /// <param name="progress">
+    /// Told about every node that produced output, on the thread that ran it; see
+    /// <see cref="GraphEvaluator"/>. Null reports nothing.
+    /// </param>
+    /// <param name="cancellationToken">Checked between nodes and between replication elements.</param>
+    /// <returns>The outputs, states and diagnostics.</returns>
+    public EvaluationResult Evaluate(IProgress<NodeCompleted>? progress, CancellationToken cancellationToken = default)
     {
         lock (_gate)
         {
             _context = _context.NextRun();
-            return GraphEvaluator.Evaluate(Graph, _context, cancellationToken);
+            return GraphEvaluator.Evaluate(Graph, _context, progress, cancellationToken);
         }
     }
 
@@ -304,7 +316,23 @@ public sealed class SparkSession : IDisposable
     /// </remarks>
     /// <param name="cancellationToken">Cancels this run.</param>
     /// <returns>The result, or <see langword="null"/> when the run was superseded or cancelled.</returns>
-    public async Task<EvaluationResult?> EvaluateAsync(CancellationToken cancellationToken = default)
+    public Task<EvaluationResult?> EvaluateAsync(CancellationToken cancellationToken = default) =>
+        EvaluateAsync(progress: null, cancellationToken);
+
+    /// <summary>
+    /// Runs the graph off the calling thread, reporting each node as it finishes and cancelling any
+    /// run already in flight (<c>E9-T7</c>).
+    /// </summary>
+    /// <remarks>
+    /// The reports arrive on the evaluation's own threads and are never marshalled, for the reason
+    /// the result is not: the session has no idea what a dispatcher is.
+    /// </remarks>
+    /// <param name="progress">Told about every node that produced output. Null reports nothing.</param>
+    /// <param name="cancellationToken">Cancels this run.</param>
+    /// <returns>The result, or <see langword="null"/> when the run was superseded or cancelled.</returns>
+    public async Task<EvaluationResult?> EvaluateAsync(
+        IProgress<NodeCompleted>? progress,
+        CancellationToken cancellationToken = default)
     {
         CancelInFlight();
 
@@ -318,7 +346,7 @@ public sealed class SparkSession : IDisposable
 
         try
         {
-            return await Task.Run(() => Evaluate(linked.Token), linked.Token).ConfigureAwait(false);
+            return await Task.Run(() => Evaluate(progress, linked.Token), linked.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {

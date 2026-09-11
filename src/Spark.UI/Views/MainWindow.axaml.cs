@@ -223,6 +223,10 @@ public sealed partial class MainWindow : Window
         // backwards feel like a document load, and the user loses their place in their own graph.
         model.DocumentRestored += (_, _) => BindGraph(frame: false);
         model.EvaluationCompleted += OnEvaluationCompleted;
+
+        // `E9-T7`: geometry that reached the scene mid-run. Raised on the thread that ran the node,
+        // so the repaint is posted.
+        model.GeometryStreamed += (_, _) => Dispatcher.UIThread.Post(Viewport.InvalidateGeometry);
         BindGraph(frame: true);
     }
 

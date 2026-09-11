@@ -77,6 +77,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public static int FreezeFirst { get; set; }
 
     private readonly HashSet<GeometryKey> _published = [];
+    private readonly Lock _streamedGate = new();
+    private readonly HashSet<GeometryKey> _streamed = [];
+    private int _runGeneration;
     private readonly DocumentHistory _history = new();
 
     /// <summary>Where the chosen code font is remembered (`E8-T59`).</summary>
@@ -564,6 +567,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <summary>Raised on the UI thread after a run's results have been applied.</summary>
     public event EventHandler? EvaluationCompleted;
 
+    /// <summary>
+    /// Raised when a node's geometry has reached the scene before its run has finished
+    /// (<c>E9-T7</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Raised on whichever thread ran the node</b>, not the UI thread: a view marshals it before
+    /// it touches a control. The scene itself is safe to have changed from there, since it takes its
+    /// own lock.
+    /// </remarks>
+    public event EventHandler? GeometryStreamed;
+
     /// <summary>Raised after <see cref="Layout"/> has been changed by a preset or by a reset.</summary>
     /// <remarks>
     /// <see cref="Layout"/> is a mutable model rather than a stream of values, so changing it
@@ -1047,10 +1061,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         long started = System.Diagnostics.Stopwatch.GetTimestamp();
-        EvaluationResult? result = await _session.EvaluateAsync().ConfigureAwait(true);
+
+        // `E9-T7`: a node's geometry reaches the viewport as the node finishes, not when the slowest
+        // node in the graph does. The listener belongs to this run alone; the full publish below
+        // stays the authority.
+        GeometryStream stream = new(this, Interlocked.Increment(ref _runGeneration), PreviewKeysByNode());
+        EvaluationResult? result = await _session.EvaluateAsync(stream).ConfigureAwait(true);
 
         if (result is null)
         {
+            stream.Close();
+
             // Superseded by a later edit. The later run's results are the ones that matter.
             return;
         }
@@ -1074,6 +1095,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             _lastResult = result;
 
             _graph.ApplyResult(result);
+            stream.Close();
             PublishGeometry(result);
             RefreshInspector();
 
@@ -3519,6 +3541,133 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         return true;
     }
 
+    /// <summary>
+    /// The preview keys of every node, taken on the calling thread before a run (<c>E9-T7</c>).
+    /// </summary>
+    /// <remarks>
+    /// A snapshot, because the listener reads it on the evaluation's threads and the canvas graph it
+    /// comes from is the UI's to edit while a run is in flight.
+    /// </remarks>
+    private Dictionary<NodeId, List<(GeometryKey Key, int Port)>> PreviewKeysByNode()
+    {
+        Dictionary<NodeId, List<(GeometryKey Key, int Port)>> keys = [];
+
+        foreach ((int slot, int portIndex) in _graph.PreviewPorts())
+        {
+            NodeId id = _graph.Nodes[slot].Id;
+
+            if (!keys.TryGetValue(id, out List<(GeometryKey Key, int Port)>? ports))
+            {
+                ports = [];
+                keys[id] = ports;
+            }
+
+            ports.Add((new GeometryKey(id.ToString(), portIndex), portIndex));
+        }
+
+        return keys;
+    }
+
+    private void RememberStreamed(GeometryKey key)
+    {
+        lock (_streamedGate)
+        {
+            _streamed.Add(key);
+        }
+    }
+
+    private GeometryKey[] TakeStreamed()
+    {
+        lock (_streamedGate)
+        {
+            GeometryKey[] taken = [.. _streamed];
+            _streamed.Clear();
+            return taken;
+        }
+    }
+
+    /// <summary>
+    /// Publishes a node's preview geometry as its run reports it (<c>E9-T7</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The full publish is the authority.</b> Reports are made inside the evaluation, so every
+    /// report of the current run has landed before the session returns; <see cref="Close"/> is called
+    /// before the full publish all the same, under the lock a report publishes under, so that holds
+    /// here rather than by courtesy of the scheduler. A report from a run a later one has superseded -
+    /// still finishing on a worker thread - is dropped by generation.
+    /// </para>
+    /// <para>
+    /// <b>Tessellated outside the lock</b>, so two nodes finishing at once tessellate at once, and
+    /// only the hand-over to the scene is serialised.
+    /// </para>
+    /// </remarks>
+    private sealed class GeometryStream(
+        MainWindowViewModel owner,
+        int generation,
+        Dictionary<NodeId, List<(GeometryKey Key, int Port)>> keys) : IProgress<NodeCompleted>
+    {
+        private readonly Lock _gate = new();
+        private bool _closed;
+
+        public void Report(NodeCompleted value)
+        {
+            if (!keys.TryGetValue(value.Node, out List<(GeometryKey Key, int Port)>? ports) || IsStale())
+            {
+                return;
+            }
+
+            SceneBuilder builder = new();
+
+            foreach ((GeometryKey key, int port) in ports)
+            {
+                if (port < value.Outputs.Count)
+                {
+                    builder.Add(key, value.Outputs[port]);
+                }
+            }
+
+            IReadOnlyList<RenderPackage> packages = builder.Build();
+
+            if (packages.Count == 0)
+            {
+                return;
+            }
+
+            lock (_gate)
+            {
+                if (IsStale())
+                {
+                    return;
+                }
+
+                foreach (RenderPackage package in packages)
+                {
+                    owner.Scene.Set(package);
+                    owner.RememberStreamed(package.Key);
+                }
+            }
+
+            owner.GeometryStreamed?.Invoke(owner, EventArgs.Empty);
+        }
+
+        public void Close()
+        {
+            lock (_gate)
+            {
+                _closed = true;
+            }
+        }
+
+        /// <summary>
+        /// Whether this run's reports are no longer wanted: the full publish has happened, or a later
+        /// run has started. Checked before tessellating as well as before publishing, so a superseded
+        /// run does not spend its last moments meshing geometry that will be dropped.
+        /// </summary>
+        private bool IsStale() =>
+            Volatile.Read(ref _closed) || Volatile.Read(ref owner._runGeneration) != generation;
+    }
+
     private void PublishGeometry(EvaluationResult result)
     {
         SceneBuilder builder = new();
@@ -3534,7 +3683,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         // Retiring the previously published keys is the other half of the update. Without it a node
         // that used to produce points and now produces none leaves them on screen, which reads as
         // the graph not having run.
-        builder.PublishTo(Scene, _published);
+        // Keys a streamed report put in the scene are retired like published ones. Without that, a
+        // run superseded after it had streamed a node's geometry could leave it on screen for good,
+        // since only a completed run's keys were ever retired.
+        builder.PublishTo(Scene, [.. _published, .. TakeStreamed()]);
 
         _published.Clear();
         foreach (GeometryKey key in builder.Keys())

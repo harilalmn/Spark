@@ -225,9 +225,15 @@ public sealed class UndoRedoTests
         model.ShowSelection([SlotOf(model, "Number.Range")]);
         PortLiteralViewModel end = model.Inspector.Single(port => port.Name == "end");
         end.Text = "2";
-        end.Commit();
 
-        await model.EvaluateAsync();
+        // The run the edit starts, awaited as the undo's is below. Committing starts an automatic run,
+        // and calling EvaluateAsync on top of it raced the two: whenever the edit's run got past its
+        // last cancellation check first, the explicit one found everything cached, was applied last
+        // and reported nothing computed - which was right, and failed this test (`E9-T7`).
+        Task edited = NextEvaluation(model);
+        end.Commit();
+        await edited;
+
         Assert.True(model.LastRunNodesEvaluated > 0, "The edited graph should have computed something.");
 
         // The run undo starts is the one that matters. Awaiting a fresh evaluation instead would
