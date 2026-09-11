@@ -311,38 +311,21 @@ public abstract class Surface
         // makes trying to escape it free.
         ReseedOffDegeneracy(point, ref u, ref v);
 
-        // TWENTY-FOUR, RAISED FROM EIGHT WHEN THE LINE SEARCH ARRIVED, AND IT COSTS NOTHING.
-        //
-        // Eight was sized for a quadratically-converging method taking full steps, and that is
-        // what this was until `Descend` began halving a step that does not improve. A halved step
-        // is real progress and is not a Newton step, so a run that needs a few of them converges
-        // *linearly* for a while and eight is no longer enough: a revolution surface asked for the
-        // closest point to a point on its own inner rim stopped 1.5e-5 away, with the orthogonality
-        // residuals already down at 1e-7 — converging, and simply out of road. At twenty-four the
-        // same query lands at 3.7e-11.
-        //
-        // The loop exits the moment the step falls below the noise floor, so a well-behaved query
-        // still finishes in three or four passes and pays nothing for the larger budget.
-        bool settled = false;
+        bool settled = Refine(point, ref u, ref v, ref best, ref bestU, ref bestV);
 
-        for (int iteration = 0; iteration < 24; iteration++)
+        // `E2-T62`: CONVERGED IS NOT THE SAME AS CLOSEST.
+        //
+        // Newton finds where the distance stops changing, and a saddle of the distance is such a
+        // place. A surface of revolution whose profile runs tangent to its circle at one end folds
+        // there, and a query 1% of the way along from that edge had Newton overshoot onto the fold,
+        // clamp, and converge on the fold's nearest point - a saddle, 8.5e-5 of the reach from the
+        // answer. So a converged point is checked for being a minimum, and moved off a saddle and
+        // refined again when it is one. A minimum costs one more evaluation to confirm.
+        for (int escape = 0; settled && escape < 3 && EscapeSaddle(point, ref bestU, ref bestV, ref best); escape++)
         {
-            NewtonOutcome outcome = NewtonStep(point, u, v, out double stepU, out double stepV);
-
-            if (outcome == NewtonOutcome.Converged)
-            {
-                settled = true;
-                break;
-            }
-
-            if (outcome == NewtonOutcome.Singular
-                || !Descend(point, ref u, ref v, stepU, stepV, ref best))
-            {
-                break;
-            }
-
-            bestU = u;
-            bestV = v;
+            u = bestU;
+            v = bestV;
+            settled = Refine(point, ref u, ref v, ref best, ref bestU, ref bestV);
         }
 
         // NEWTON STOPPED WITHOUT CONVERGING, so what it left is wherever it ran out of road.
@@ -361,6 +344,142 @@ public abstract class Surface
         v = bestV;
 
         return Evaluate(u, v);
+    }
+
+    /// <summary>
+    /// Newton on the orthogonality conditions, from a starting pair, with the best point kept.
+    /// </summary>
+    /// <param name="point">The point being measured to.</param>
+    /// <param name="u">Where to start in <c>u</c>, and where the iteration stands.</param>
+    /// <param name="v">Where to start in <c>v</c>, likewise.</param>
+    /// <param name="best">The best squared distance so far, lowered as it improves.</param>
+    /// <param name="bestU">The best <c>u</c> so far.</param>
+    /// <param name="bestV">The best <c>v</c> so far.</param>
+    /// <returns>Whether it converged, rather than running out of road.</returns>
+    private bool Refine(
+        in Point3d point, ref double u, ref double v, ref double best, ref double bestU, ref double bestV)
+    {
+        // TWENTY-FOUR, RAISED FROM EIGHT WHEN THE LINE SEARCH ARRIVED, AND IT COSTS NOTHING.
+        //
+        // Eight was sized for a quadratically-converging method taking full steps, and that is
+        // what this was until `Descend` began halving a step that does not improve. A halved step
+        // is real progress and is not a Newton step, so a run that needs a few of them converges
+        // *linearly* for a while and eight is no longer enough: a revolution surface asked for the
+        // closest point to a point on its own inner rim stopped 1.5e-5 away, with the orthogonality
+        // residuals already down at 1e-7 — converging, and simply out of road. At twenty-four the
+        // same query lands at 3.7e-11.
+        //
+        // The loop exits the moment the step falls below the noise floor, so a well-behaved query
+        // still finishes in three or four passes and pays nothing for the larger budget.
+        for (int iteration = 0; iteration < 24; iteration++)
+        {
+            NewtonOutcome outcome = NewtonStep(point, u, v, out double stepU, out double stepV);
+
+            if (outcome == NewtonOutcome.Converged)
+            {
+                return true;
+            }
+
+            if (outcome == NewtonOutcome.Singular
+                || !Descend(point, ref u, ref v, stepU, stepV, ref best))
+            {
+                return false;
+            }
+
+            bestU = u;
+            bestV = v;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Moves a converged answer off a saddle of the distance, when it is sitting on one (`E2-T62`).
+    /// </summary>
+    /// <param name="point">The point being measured to.</param>
+    /// <param name="u">The converged <c>u</c>, moved when a closer point is found.</param>
+    /// <param name="v">Its <c>v</c>, likewise.</param>
+    /// <param name="best">The squared distance there, lowered when a closer point is found.</param>
+    /// <returns>Whether it moved, in which case Newton has more to do.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The way off a saddle is the direction the distance curves downward</b>: the eigenvector
+    /// of the distance's Hessian with the negative eigenvalue, which is exactly the matrix Newton
+    /// solves with. Both senses are tried, from half a seed cell down by halvings, and the first
+    /// point closer than the saddle is taken. A point on the domain's edge that really is the
+    /// answer has its downhill direction pointing out of the domain, so every trial clamps back and
+    /// nothing is closer, and it stays the answer.
+    /// </para>
+    /// <para>
+    /// <b>Relative, not against zero</b>, for the reason <see cref="IsDegenerate"/> gives: at a
+    /// true minimum on a fold the matrix is singular, and rounding hands it an eigenvalue of
+    /// either sign a few units in the last place. Only a clearly negative one is a saddle.
+    /// </para>
+    /// </remarks>
+    private bool EscapeSaddle(in Point3d point, ref double u, ref double v, ref double best)
+    {
+        EvaluateDerivatives(u, v, out Vector3d du, out Vector3d dv);
+        EvaluateSecondDerivatives(u, v, out Vector3d duu, out Vector3d duv, out Vector3d dvv);
+
+        Vector3d offset = Evaluate(u, v) - point;
+
+        double a = du.Dot(du) + offset.Dot(duu);
+        double b = du.Dot(dv) + offset.Dot(duv);
+        double c = dv.Dot(dv) + offset.Dot(dvv);
+
+        double lowest = (0.5 * (a + c)) - Math.Sqrt((0.25 * (a - c) * (a - c)) + (b * b));
+
+        if (!(lowest < -1e-12 * (Math.Abs(a) + Math.Abs(c))))
+        {
+            return false;
+        }
+
+        // An eigenvector of [[a, b], [b, c]] for that eigenvalue. Both forms are exact, and the
+        // longer is taken because one of them vanishes when b does.
+        double alongU = b;
+        double alongV = lowest - a;
+
+        if (((lowest - c) * (lowest - c)) + (b * b) > (alongU * alongU) + (alongV * alongV))
+        {
+            alongU = lowest - c;
+            alongV = b;
+        }
+
+        double length = Math.Sqrt((alongU * alongU) + (alongV * alongV));
+
+        if (!(length > 0.0) || !double.IsFinite(length))
+        {
+            return false;
+        }
+
+        double start = 0.5 * Math.Max(DomainU.Length, DomainV.Length) / SampleCount;
+
+        for (int halving = 0; halving < 40; halving++)
+        {
+            double step = start * Math.Pow(0.5, halving) / length;
+
+            for (int sense = -1; sense <= 1; sense += 2)
+            {
+                double tryU = u + (sense * step * alongU);
+                double tryV = v + (sense * step * alongV);
+
+                tryU = IsClosedU ? Wrap(tryU, DomainU) : DomainU.Clamp(tryU);
+                tryV = IsClosedV ? Wrap(tryV, DomainV) : DomainV.Clamp(tryV);
+
+                double distance = Evaluate(tryU, tryV).DistanceSquaredTo(point);
+
+                if (distance < best)
+                {
+                    best = distance;
+                    u = tryU;
+                    v = tryV;
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

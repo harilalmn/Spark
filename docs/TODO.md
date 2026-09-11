@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E12-T20` done; the *Now* order re-derived from the register the same day)
+**Last updated:** 2026-09-11 (`E2-T62` done and `E2-T63` found; `E12-T20` before it)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -208,8 +208,10 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 > 1. ~~**`E12-T20`** — the tessellation cache ignores the tolerance it was asked for.~~ **Done
 >    2026-09-11**, in managed code; the two-line native fix is `E13-T21`, blocked because the
 >    OpenCascade install the shim is built against is gone from this machine.
-> 2. **`E2-T62`** — `Surface.ClosestPoint` stops 8.5e-5 short on a revolution surface; a documented
->    tolerance is standing in for a fix.
+> 2. ~~**`E2-T62`** — `Surface.ClosestPoint` stops 8.5e-5 short on a revolution surface.~~ **Done
+>    2026-09-11**: Newton was converging on a saddle of the distance ([N152](NOTES.md)).
+>    **Next, found by it: `E2-T63`** — a point exactly *on* the fold is answered 1.8e-5 of the
+>    reach away, before and after alike.
 > 3. **`E3-T10`** — the impure-node declaration. Without it an impure node poisons nothing and
 >    serves stale results for ever.
 > 4. **`E8-T13`** — aggressive autosave and crash recovery, because a `StackOverflowException` ends

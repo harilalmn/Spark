@@ -148,4 +148,42 @@ public sealed class SurfaceClosestPointNearDegeneraciesTests
             }
         }
     }
+
+    /// <summary>
+    /// <b>`E2-T62`'s query.</b> Beside a fold — where a revolved profile runs tangent to the circle
+    /// it sweeps, so the parameterisation is singular along that edge — a point on the surface comes
+    /// back as itself, and not as the fold's nearest point.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Newton used to overshoot onto the fold, clamp, and converge there: both orthogonality
+    /// conditions hold on the fold, so it was a stationary point of the distance, but a saddle, 8.5e-5
+    /// of the reach from the answer at every scale ([N152](../../docs/NOTES.md)). A converged point is
+    /// now checked for being a minimum.
+    /// </para>
+    /// <para>
+    /// The surface is a line perpendicular to the axis, revolved into a flat annulus whose inner rim
+    /// is the fold. The points are just inside it — at the seam in <c>u</c>, a hundredth and a
+    /// thousandth of the way along <c>v</c> — and one half way round, which always worked. A point
+    /// exactly <i>on</i> the rim is a different defect and a different row (`E2-T63`).
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData(0.99, 0.01)]
+    [InlineData(0.999, 0.001)]
+    [InlineData(0.5, 0.01)]
+    public void APointBesideAFoldIsItsOwnClosestPoint(double alongU, double alongV)
+    {
+        RevolutionSurface annulus = new(
+            new Line(new Point3d(0.2, 0.0, 0.0), new Point3d(0.2, 1.0, 0.0)),
+            Point3d.Origin,
+            new Vector3d(0.0, 0.0, 1.0));
+
+        Point3d on = annulus.PointAt(
+            annulus.DomainU.Denormalise(alongU), annulus.DomainV.Denormalise(alongV));
+
+        double miss = annulus.ClosestPoint(on, out _, out _).DistanceTo(on);
+
+        Assert.True(miss <= 1e-12, $"a point at ({alongU}, {alongV}) on the annulus is answered {miss:e3} away");
+    }
 }

@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-11 (N144–N151: … no encoder writes an emoji literally; assigning a `TopoDS_Shape` is not a copy)
+**Last updated:** 2026-09-11 (N144–N152: … assigning a `TopoDS_Shape` is not a copy; converged is not closest)
 
 ---
 
@@ -4564,3 +4564,31 @@ too.
 
 **The general form.** In OpenCascade, `=` on a shape shares and `BRepBuilderAPI_Copy` copies — and
 anything that caches onto topology, meshing first among them, changes every shape sharing it.
+
+## N152 — Converged is not closest: Newton on a closest-point query can stop on a saddle
+
+`Surface.ClosestPoint` runs Newton on the two orthogonality conditions, `(S − P)·S_u = 0` and
+`(S − P)·S_v = 0`. Those hold wherever the distance is **stationary** — at a minimum, and also at a
+saddle. A step-size test cannot tell them apart, so "Newton converged" meant "found a stationary
+point", and the code read it as "found the answer".
+
+**Where it bit (`E2-T62`).** A line perpendicular to an axis, revolved, sweeps a flat annulus whose
+profile runs tangent to its circle at `v = 0`, so the parameterisation folds there: `S_u` and `S_v`
+are parallel on that edge. For a point 1% along `v`, the seed landed on the fold, the reseed stepped
+half a cell in, and Newton's first step overshot below `v = 0` and was clamped back onto the fold —
+where, because the radius changes only at second order in `v`, both conditions hold. Newton converged
+in three steps to the fold's nearest point, a saddle 8.5e-5 of the reach from the answer, and did so
+at every scale. **Two plausible hypotheses were measured and rejected first** — a line search
+comparing with the wrong distance, and an indefinite Hessian refusing every step — and a trace of
+the actual iteration is what found it. Neither of those changes shipped.
+
+**The fix** (`Surface.EscapeSaddle`): at a converged point, the distance's Hessian — the very
+matrix Newton solves with — has a clearly negative eigenvalue at a saddle and none at a minimum.
+Moving along that eigenvector, with halvings, finds a closer point, and Newton resumes from it. A
+minimum costs one evaluation of the second derivatives to confirm. The threshold is relative,
+because on a fold a true minimum's matrix is singular and rounding gives its zero eigenvalue a sign.
+
+**What it does not fix (`E2-T63`).** A point exactly *on* the fold is a genuine minimum with a
+singular Hessian: the distance is quartic in `v` there, Newton creeps, and one query stops 1.8e-5 of
+the reach away. That is slow convergence to the right point rather than fast convergence to the
+wrong one, and it was there before `E2-T62` too.

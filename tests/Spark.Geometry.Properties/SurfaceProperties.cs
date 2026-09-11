@@ -109,22 +109,22 @@ public sealed class SurfaceProperties
         {
             foreach (Surface surface in SurfacesAt(scene))
             {
-                // A THOUSANDTH OF THE SURFACE, AND THE NUMBER IS MEASURED RATHER THAN CHOSEN.
+                // A TEN-THOUSANDTH OF THE SURFACE, AND THE NUMBER IS MEASURED RATHER THAN CHOSEN.
                 //
-                // Seven of the eight types answer to within 1e-12 of their own reach, which is as
-                // exact as doubles get at these scales. `RevolutionSurface` does not: asked for
-                // the closest point to a point on itself at the seam in `u` and one hundredth of
-                // the way along `v`, it stops **8.5e-5 of its reach** away — reproducibly, and the
-                // same figure at every scale from 1e-9 to 1e9, so it is a systematic convergence
-                // limit and not noise. Newton's own residuals there are down at 1e-7 and the line
-                // search has run out of halvings; raising the iteration budget from 24 to 64
-                // changes nothing, so it is not the budget. `E2-T62` owns it.
+                // Seven of the eight types answer to within 1e-12 of their own reach. The revolution
+                // surface here folds: its profile runs tangent to the circle it sweeps at `v = 0`, so
+                // the parameterisation is singular along that edge. Two things happened there.
                 //
-                // 1e-3 is therefore what this property can honestly assert. It is still three
-                // orders tighter than the defect this file was written to catch — the pole, which
-                // was out by 7.9e-3 of the sphere's reach — so it remains a real guard rather than
-                // a tolerance chosen to make a red test green.
-                double slack = Reach(surface) * 1e-3;
+                // Beside the fold, 1% along `v`, Newton overshot onto it, clamped, and converged on a
+                // saddle of the distance 8.5e-5 of the reach from the answer. `E2-T62` fixed that - a
+                // converged point is checked for being a minimum - and it now answers to 1e-17;
+                // `SurfaceClosestPointNearDegeneraciesTests` holds that query to 1e-12 on its own.
+                //
+                // Exactly on the fold, the distance is quartic in `v` and Newton creeps: a point at
+                // 99.9% round the rim is answered 1.8e-5 of the reach away, before and after
+                // `E2-T62` alike. That is `E2-T63`. 1e-4 sits five times outside it and is ten times
+                // tighter than the 1e-3 this read before; tighten it again when `E2-T63` closes.
+                double slack = Reach(surface) * 1e-4;
 
                 foreach ((double a, double b) in FractionsToTheEdge())
                 {
