@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E2-T63` done; `E3-T10` found already delivered under another name)
+**Last updated:** 2026-09-11 (`E3-T10` closed by reconciliation; `E2-T63` before it)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -213,9 +213,9 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >    **`E2-T63`, found by it, closed the same day**: a point exactly *on* the fold was answered
 >    1.8e-5 of the reach away and now answers to 2.4e-13. The property's bound went from 1e-3
 >    to 1e-9 across the two rows.
-> 3. **`E3-T10`** — the impure-node declaration. **Already delivered under another name**, found
->    2026-09-11: `[NodeSideEffect]` in `Spark.Api`, read by the importer and mixed into `CacheKey`.
->    Its re-check searched for `Impure` and missed it; it closes by reconciliation.
+> 3. ~~**`E3-T10`** — the impure-node declaration.~~ **Closed 2026-09-11 by reconciliation**: it
+>    was delivered as `[NodeSideEffect]`, with the importer, the cache key and the downstream test
+>    all in place. Its re-check searched for `Impure` and missed it.
 > 4. **`E8-T13`** — aggressive autosave and crash recovery, because a `StackOverflowException` ends
 >    the process with no chance to save.
 > 5. **`E3-T12`**'s kernel half and **`E3-T9`**'s byte budget — engine rows each missing one half.
