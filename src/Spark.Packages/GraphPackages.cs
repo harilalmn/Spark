@@ -28,6 +28,14 @@ public sealed record GraphAssembly(string Path, string Hash, string Package)
 }
 
 /// <summary>
+/// A package a graph's file names that is not where the file says it is (`E7-T17`).
+/// </summary>
+/// <param name="Recorded">The path exactly as the file records it.</param>
+/// <param name="Name">What a message names: the entry's last segment.</param>
+/// <param name="LookedIn">The folder Spark looked in, which is the one named after the file.</param>
+public sealed record AbsentGraphPackage(string Recorded, string Name, string LookedIn);
+
+/// <summary>
 /// The packages that live beside a graph, in <c>&lt;name&gt;.packages</c> (`E7-T16`,
 /// [ADR-0024](../../docs/adr/0024-graph-local-package-folder.md)).
 /// </summary>
@@ -187,6 +195,204 @@ public sealed class GraphPackages
 
         return PackageFrameworks.FrameworksOffered(
             Path.Combine(FolderFor(graphPath), identity.FolderName));
+    }
+
+    /// <summary>
+    /// The top-level entries of a graph's package folder, in the form a <c>.spark</c> file records
+    /// them (`E7-T17`).
+    /// </summary>
+    /// <param name="graphPath">The <c>.spark</c> file's path.</param>
+    /// <returns>
+    /// One path per package folder and per loose <c>.dll</c> — <c>tower.packages/Helpers.dll</c> —
+    /// relative to the graph file and ordered; empty when there is no folder.
+    /// </returns>
+    /// <exception cref="ArgumentException"><paramref name="graphPath"/> is null or blank.</exception>
+    /// <remarks>
+    /// <b>Listed, not hashed.</b> This runs on every save, and <see cref="Discover"/> reads every byte
+    /// of every assembly to hash it — a thirty-megabyte CAD API included. A file records which
+    /// packages it expects, not what their bytes are; whether those bytes may run is the trust
+    /// gate's question, at load.
+    /// </remarks>
+    public static IReadOnlyList<string> Entries(string graphPath)
+    {
+        string folder = FolderFor(graphPath);
+
+        if (!Directory.Exists(folder))
+        {
+            return [];
+        }
+
+        string prefix = Path.GetFileName(folder) + "/";
+        List<string> found = [];
+
+        foreach (string file in Directory.EnumerateFiles(folder, "*.dll", SearchOption.TopDirectoryOnly))
+        {
+            found.Add(prefix + Path.GetFileName(file));
+        }
+
+        foreach (string directory in Directory.EnumerateDirectories(folder))
+        {
+            string name = Path.GetFileName(directory);
+
+            // A staged download is not a package, for the reason `Discover` skips it (`E7-T21`):
+            // recording it would make a graph expect half an extract.
+            if (!name.EndsWith(NuGetPackageClient.StagingSuffix, StringComparison.OrdinalIgnoreCase))
+            {
+                found.Add(prefix + name);
+            }
+        }
+
+        found.Sort(StringComparer.Ordinal);
+        return found;
+    }
+
+    /// <summary>
+    /// Which of the packages a graph's file names are not where it says (`E7-T17`).
+    /// </summary>
+    /// <param name="graphPath">The <c>.spark</c> file's path.</param>
+    /// <param name="recorded">The paths the file records, as written.</param>
+    /// <returns>The absent ones, in the order given; empty when every one is there.</returns>
+    /// <exception cref="ArgumentException"><paramref name="graphPath"/> is null or blank.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="recorded"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Looked up in the folder named after the file as it is now, whatever folder the path was
+    /// recorded under.</b> A file renamed outside Spark therefore reports its packages absent and
+    /// names the folder it looked in — the client's call: a rename Spark did not perform is answered
+    /// by a loud failure naming <c>&lt;filename&gt;.packages</c>, not by guessing which nearby
+    /// folder was meant. Rename the folder to match and they are found.
+    /// </para>
+    /// <para>
+    /// <b>Confined, and never resolved when it is not.</b> A path that is rooted, or climbs out with
+    /// <c>..</c>, is reported absent without being looked up: a file from somebody else must not be
+    /// able to ask this machine whether something outside the graph's folder exists.
+    /// </para>
+    /// </remarks>
+    public static ImmutableArray<AbsentGraphPackage> Absent(string graphPath, IEnumerable<string> recorded)
+    {
+        ArgumentNullException.ThrowIfNull(recorded);
+
+        string folder = FolderFor(graphPath);
+        List<AbsentGraphPackage> absent = [];
+
+        foreach (string path in recorded)
+        {
+            string? inside = Inside(path);
+            bool there = false;
+
+            if (inside is not null)
+            {
+                string full = Path.Combine(folder, inside.Replace('/', Path.DirectorySeparatorChar));
+                there = File.Exists(full) || Directory.Exists(full);
+            }
+
+            if (!there)
+            {
+                absent.Add(new AbsentGraphPackage(path, LastSegment(inside ?? path), folder));
+            }
+        }
+
+        return [.. absent];
+    }
+
+    /// <summary>
+    /// What a graph's file should record when it is written to a path: what it already recorded,
+    /// plus what is in the folder now (`E7-T17`).
+    /// </summary>
+    /// <param name="graphPath">Where the file is being written, or null for a graph with no file.</param>
+    /// <param name="carried">The paths the file recorded when it was opened.</param>
+    /// <returns>The paths to write. The document sorts them.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="carried"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>A recorded package that is missing is never dropped.</b> That is `E7-T7`'s promise: a graph
+    /// naming a package you do not have re-saves byte for byte, having been through a session that
+    /// could not find it. Forgetting it would turn opening a graph on the wrong machine into
+    /// silently editing it.
+    /// </para>
+    /// <para>
+    /// <b>An entry is written under the folder named after the file being written</b>, so Save As
+    /// records the new name — and one already recorded under that name is kept exactly as written,
+    /// so an untouched graph produces no diff. A path that was not confined to begin with is kept as
+    /// written rather than rewritten into something that would then resolve.
+    /// </para>
+    /// </remarks>
+    public static IReadOnlyList<string> ToRecord(string? graphPath, IEnumerable<string> carried)
+    {
+        ArgumentNullException.ThrowIfNull(carried);
+
+        if (string.IsNullOrWhiteSpace(graphPath))
+        {
+            return [.. carried];
+        }
+
+        string folderName = Path.GetFileName(FolderFor(graphPath));
+        List<string> result = [];
+        HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (string path in carried)
+        {
+            string written = Inside(path) is { } inside && !RecordedUnder(path, folderName)
+                ? folderName + "/" + inside
+                : path;
+
+            if (seen.Add(Inside(written) ?? written))
+            {
+                result.Add(written);
+            }
+        }
+
+        foreach (string entry in Entries(graphPath))
+        {
+            if (seen.Add(Inside(entry) ?? entry))
+            {
+                result.Add(entry);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// The part of a recorded path inside the package folder — <c>Helpers.dll</c> for
+    /// <c>tower.packages/Helpers.dll</c> — or null when the path is not confined to it.
+    /// </summary>
+    private static string? Inside(string recorded)
+    {
+        string normal = recorded.Replace('\\', '/');
+
+        if (normal.StartsWith('/') || Path.IsPathRooted(normal) || normal.Contains(':', StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        string[] segments = normal.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        if (segments.Length == 0 || segments.Any(segment => segment is "." or ".."))
+        {
+            return null;
+        }
+
+        // The first segment is the folder the file was written beside, and it is not what the
+        // lookup uses: that always goes to the folder named after the file as it is now.
+        return segments.Length > 1 && segments[0].EndsWith(FolderSuffix, StringComparison.OrdinalIgnoreCase)
+            ? string.Join('/', segments[1..])
+            : string.Join('/', segments);
+    }
+
+    /// <summary>Whether a recorded path already sits under the folder named <paramref name="folderName"/>.</summary>
+    private static bool RecordedUnder(string recorded, string folderName)
+    {
+        string normal = recorded.Replace('\\', '/');
+        int slash = normal.IndexOf('/', StringComparison.Ordinal);
+
+        return slash > 0 && string.Equals(normal[..slash], folderName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string LastSegment(string path)
+    {
+        string trimmed = path.Replace('\\', '/').TrimEnd('/');
+        return trimmed[(trimmed.LastIndexOf('/') + 1)..];
     }
 
     /// <summary>The assemblies one package folder offers, for the framework this build is.</summary>

@@ -24,10 +24,14 @@ public static class CanvasDocument
 {
     /// <summary>Writes a canvas graph as the text of a `.spark` file.</summary>
     /// <param name="graph">The graph, including where its nodes sit.</param>
+    /// <param name="packages">
+    /// The packages the file should say it expects beside it, or <see langword="null"/> for none
+    /// (`E7-T17`). The canvas knows nothing about where the file lives, so the caller says.
+    /// </param>
     /// <returns>Canonically formatted JSON.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="graph"/> is <see langword="null"/>.</exception>
     /// <exception cref="SparkFileException">A port holds a value the format cannot represent.</exception>
-    public static string Save(CanvasGraph graph)
+    public static string Save(CanvasGraph graph, IReadOnlyList<GraphDocumentPackage>? packages = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -66,7 +70,8 @@ public static class CanvasDocument
             groups,
             id => appearance.TryGetValue(id, out (string? Title, string? Colour) styled)
                 ? styled
-                : (null, null)));
+                : (null, null),
+            packages));
     }
 
     /// <summary>Reads the text of a `.spark` file into a canvas graph.</summary>

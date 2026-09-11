@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-11 (`E7-T17` step A: the file can name its packages)
+**Last updated:** 2026-09-11 (`E7-T17` closed: the file names its packages, and a missing one is named)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E7-T17`, between its two commits.** Step A — the format — is committed: a `.spark` can carry a `packages` list straight after `formatVersion`, at version 5, and a file without one is byte for byte what earlier builds wrote. **Nothing writes the list yet**, so no user sees a change. Step B is next. Earlier today: `E7-T16` and `E7-T24` closed, and the client ran the `E7-T16` demo and reported *all good*. |
+| **Working on** | **Nothing — between steps, and `E7-T17` is closed.** A `.spark` names the packages it expects first in the file, at version 5; saving records what it already named plus what is in the folder, never dropping a missing one; opening checks every entry before anything is built and names what is absent in the banner, and the graph still opens. Today closed `E7-T16`, `E7-T24` and `E7-T17`; the client ran the `E7-T16` demo and reported *all good*. Open from today: `E6-T40`, `E7-T25`, and `E7-T19`, which step B made urgent. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E7-T17` step A — the format.** `GraphDocumentPackage`, the `packages` section first in the file, `PackagesFormatVersion = 5`, and `E7-T7` re-proved at the document level. **Before it:** **`E7-T24` — a library that arrives after the block that needs it.** `EvaluateAsync` compares the catalogue's version with the one the blocks were built against, and a move forces the rebuild and a fresh cache epoch; `SparkSession.ReferencesVersion()` reads it without loading Roslyn. **Before it:** **`E7-T16` — the graph-local package folder, consumed behind its trust gate.** `GraphPackageGate` in `Spark.Host`; `ReferenceCatalog.RemoveUnder` and a `Remove` that takes its namespaces with it; a forced rebuild and a fresh cache epoch on agreeing, because a block's key is written into the file and cannot see the catalogue. **Before it:** `E2-T40` step B — the least-squares plane fit, and the row closes. An internal `LeastSquares` helper rather than a method on `Plane`, because `Circle` and `Line` want the same arithmetic; closed form, so no eigensolver and no convergence tolerance; a **relative** degeneracy threshold ([N143](NOTES.md)); and a normal whose sign follows the winding of the points. **Before it:** step A, polar construction ([N142](NOTES.md) is the rule the two halves put side by side). **Before them:** the constructor flake ([N141](NOTES.md)), `E8-T40` ([N140](NOTES.md)), `E2-T33` / `E11-T10` ([N139](NOTES.md)). |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3,062** tests over **ten** executables with zero failures and zero skips, docs harness green. No stashes. |
-| **Next action** | **`E7-T17` step B — the list is written and checked.** **(1) A checker in `Spark.Packages`**, beside `GraphPackages`: given a graph's path and its recorded list, which entries are absent — a path that does not exist, or one outside the graph's own `<name>.packages` (confinement is checked here, not in the document). Tests in `Spark.Packages.Tests`, including the **rename** case, whose message names the folder Spark looked in. **(2) Save** passes `Capture` the list recorded at the last open **plus** what `GraphPackages.Discover` finds now, rendered as `<name>.packages/<entry>` — and never drops a recorded entry that is missing, which is what keeps a graph naming a package you do not have byte-identical. **(3) Open** runs the checker before the gate and before anything is built, and names what is absent where `E7-T6`'s missing-package banner already names absent node packages. **The decision to take and record**: *fail loudly* means the graph **opens with a named list**, not that it is refused — `E7-T6`'s promise is that nobody's graph is damaged by opening it, and a refused graph cannot be repaired. **(4)** `concepts/files.md` gains version 5 and the list. **Find first**: where `TrySaveDocument` builds its document, and where `MissingPackages()` is shown. **Shorter alternatives**: `E6-T40`, `E7-T25`. |
-| **Verify with** | Step B: a graph whose recorded package is missing opens with a message **naming it**, never a compile error alone; saving it writes the entry back unchanged; a graph whose folder holds an unrecorded DLL records it on save; a renamed file names the folder Spark looked in. The gates, and the suite total rises from **3,062**. |
+| **Last completed step** | **`E7-T17` step B — the list is written, and checked before anything is built.** `GraphPackages.Entries` / `Absent` / `ToRecord`; the list recorded on both doors; the banner names absent packages; Save asks where before it serialises ([N147](NOTES.md)). **Before it:** **`E7-T17` step A — the format.** `GraphDocumentPackage`, the `packages` section first in the file, `PackagesFormatVersion = 5`, and `E7-T7` re-proved at the document level. **Before it:** **`E7-T24` — a library that arrives after the block that needs it.** `EvaluateAsync` compares the catalogue's version with the one the blocks were built against, and a move forces the rebuild and a fresh cache epoch; `SparkSession.ReferencesVersion()` reads it without loading Roslyn. **Before it:** **`E7-T16` — the graph-local package folder, consumed behind its trust gate.** `GraphPackageGate` in `Spark.Host`; `ReferenceCatalog.RemoveUnder` and a `Remove` that takes its namespaces with it; a forced rebuild and a fresh cache epoch on agreeing, because a block's key is written into the file and cannot see the catalogue. **Before it:** `E2-T40` step B — the least-squares plane fit, and the row closes. An internal `LeastSquares` helper rather than a method on `Plane`, because `Circle` and `Line` want the same arithmetic; closed form, so no eigensolver and no convergence tolerance; a **relative** degeneracy threshold ([N143](NOTES.md)); and a normal whose sign follows the winding of the points. **Before it:** step A, polar construction ([N142](NOTES.md) is the rule the two halves put side by side). **Before them:** the constructor flake ([N141](NOTES.md)), `E8-T40` ([N140](NOTES.md)), `E2-T33` / `E11-T10` ([N139](NOTES.md)). |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3,078** tests over **ten** executables with zero failures and zero skips, docs harness green. No stashes. |
+| **Next action** | **`E7-T19` — Save As copies the package folder with the file**, and it is urgent now rather than tidy: since `E7-T17`, Save As records the packages under the new name, so a graph saved as `renamed.spark` without its folder reopens with every package named absent. The client's calls are in the row: **copy, not move**, because the original must still open; a rename outside Spark is not tracked. **Where**: the view's `SaveGraphAsync`, when the target differs from `_documentPath` and the old `<name>.packages` exists — copy it **before** writing the file, and say in the status line what was copied, because it can be large and the row admits Save As stops being instant. **One decision to take and record**: what happens when `<new>.packages` already exists — it belongs to whatever graph the user is overwriting. The defensible default is **merge without overwriting**, reporting what was kept; take it unless the code argues otherwise. The copy is a file-system operation that can be tested without the dialog, so it belongs in `GraphPackages` beside `FolderFor`. **Shorter alternatives**: `E6-T40`, `E7-T25`. |
+| **Verify with** | For `E7-T19`: Save As to a new name copies `<old>.packages` to `<new>.packages`; the original graph still opens with its folder intact; the reopened copy names nothing absent; a Save to the same path copies nothing. The gates, and the suite total rises from **3,078**. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -10825,3 +10825,52 @@ have started passing for the wrong reason the moment 5 became readable.
 **Verified.** Seven new tests in `PackageRecordTests`; `Spark.Engine.Tests` at 557, green. Then the
 three gates: build clean with zero warnings, format clean, docs harness green, **3,062 tests over
 ten executables**, zero failed, zero skipped.
+
+### 2026-09-11 — The file names its packages: written, and checked on open (`E7-T17`, step B)
+
+**What.** Three functions in `GraphPackages`, beside the finder, and the view model using them on
+both doors. `Entries` lists the folder as a file records it — one path per package folder and per
+loose `.dll`, **listed and not hashed**, because it runs on every save and `Discover` would read
+every byte of a thirty-megabyte CAD API to learn nothing a record needs. `Absent` checks a recorded
+list against the folder. `ToRecord` decides what a save writes: what the file already named, plus
+what is in the folder now.
+
+**The decision the step had to take, and took: *fail loudly* means the graph opens with a named
+list.** Refusing would have been a reading of the client's words, and a worse one: `E7-T6`'s
+promise is that nobody's graph is damaged by opening it on a machine without a package, and a
+refused graph is one nobody can open to repair. The names go in the banner that already names
+absent node packages, before the gate and before any node is built, so the first thing a user sees
+is *'Helpers.dll' is not there* and never *the type 'Helper' could not be found*. The banner's
+**Find** button stays for node packages only — no feed search puts back a file somebody dropped in
+by hand.
+
+**Three rules, each protecting somebody else's graph.**
+
+- **A missing entry is never dropped on save.** That is `E7-T7`, re-proved through the window:
+  `AGraphNamingAMissingPackageSavesUnchanged` opens a file naming a package this machine does not
+  have, saves it untouched, and compares the text.
+- **The lookup ignores the folder a path was recorded under** and goes to the folder named after
+  the file as it is now. That is what makes a rename in Explorer answerable: the banner names both
+  folders, and renaming one to match fixes it — the ADR's *a rename outside Spark is not tracked*,
+  made actionable instead of merely true.
+- **A path that leaves the folder is never looked up.** Rooted, or climbing out with `..`, it is
+  reported absent without touching the disk, so a file from somebody else cannot ask this machine
+  whether anything outside the graph's folder exists. The test names three files that do exist and
+  asserts all three are absent.
+
+**One ordering change in the view, and why it must stay** ([N147](NOTES.md)). Save serialised the
+graph and then asked where to put it. The text of a `.spark` now depends on its own name, so the
+order had to flip: ask, then `TrySaveDocument(target)`. The cost is that a graph the format cannot
+write is reported after the dialog rather than before it.
+
+**Found by the design rather than by a test: `E7-T19` became urgent.** Save As records the packages
+under the new name, and until the folder is copied with it, a saved-as graph reopens with every
+package named absent. That is honest — the files really are not beside the copy — but it is the
+first thing a user would hit, so it is *Next action*.
+
+**Verified.** Sixteen new tests: nine for the checker in `Spark.Packages.Tests`, seven through the
+window in `Spark.UI.Tests`. The byte-identity guards were run alongside them on their own before the
+gates — `ExampleGraphTests`, `MissingPackageBannerTests` — because a save that suddenly wrote a
+`packages` key into a graph with no folder would have broken every one. None did. Then the three
+gates: build clean with zero warnings, format clean, docs harness green, **3,078 tests over ten
+executables**, zero failed, zero skipped.

@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-11 (N144–N146: a removed reference kept its import; two stores over one file; a key the file owns)
+**Last updated:** 2026-09-11 (N144–N147: a removed reference kept its import; two stores over one file; a key the file owns; Save asks first)
 
 ---
 
@@ -4457,3 +4457,19 @@ rebuild and a fresh epoch. *Add as a library…*, Local assemblies, a graph's pa
 graph being closed all move that version, and none of them has to know. The version is recorded at
 the **start** of adopting a graph, because the graph arrives already compiled and the release of
 the previous graph's packages that follows is a change its blocks have not seen.
+
+## N147 — Save asks where before it serialises, because the file depends on its own name
+
+Save used to serialise the graph first and ask where to put it second, which was reasonable while a
+`.spark` file's contents were independent of its name. `E7-T17` ended that. The list of packages a
+graph expects is written relative to the file, as `<name>.packages/<entry>`, so Save As to
+`renamed.spark` has to write `renamed.packages/…` — and the text cannot be produced until the name
+is known. The view now asks, then calls `TrySaveDocument(target)`.
+
+**What moved with it.** A graph that cannot be written — a literal the format cannot hold — is now
+reported after the file dialog rather than before it. Nothing is written in its place, so nothing is
+lost; it costs one dialog the user did not need.
+
+**Do not move it back.** Serialising first and writing the result under a different name produces a
+file whose list names a folder beside some other file, and the next open reports every package
+absent — correctly, and for no reason the user could see.

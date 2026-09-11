@@ -158,3 +158,26 @@ way.
   `<name>.packages` is referenced like any library and contributes no nodes. Importing nodes means
   reflecting over types, which runs static constructors, and that is a larger decision than this
   one — the global store still installs node packages.
+
+## What building the record settled (2026-09-11, `E7-T17`)
+
+The two questions this ADR left open were taken as it recommended — paths **confined** to the
+sibling folder, and **no hash** — and four more came up in the building.
+
+- ***Fail loudly* means the graph opens with a named list, not that it is refused.** `E7-T6`'s
+  promise is that nobody's graph is damaged by opening it on a machine without a package, and a
+  refused graph is one nobody can repair. The absent packages are named in the banner that already
+  names absent node packages, before anything is built and before any compile error can appear.
+- **A recorded path is looked up under the file's current name.** The file writes
+  `tower.packages/Helpers.dll`, but the lookup always goes to the folder named after the file as it
+  is now. A rename in Explorer therefore names both folders — the one Spark looked in and the one
+  the file names — which is this ADR's *a rename outside Spark is not tracked*, made actionable.
+- **Save never forgets a missing package, and records what is there.** The list written is what
+  the file already named plus what is in the folder now. Dropping the missing ones would turn
+  opening a graph on the wrong machine into silently editing it, and would break `E7-T7`'s
+  byte-for-byte re-save. Adding what is there makes a hand-dropped DLL nameable on the next machine
+  without anybody writing it down.
+- **Save asks where before it writes.** The list is relative to the file's own name, so the text
+  of a `.spark` now depends on what it is called, and Save As cannot produce it until it knows. A
+  graph the format cannot write is reported after the dialog rather than before it — one dialog
+  the user did not need, and nothing lost.

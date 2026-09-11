@@ -142,6 +142,10 @@ A file from an older format version is migrated forward when it is opened. A fil
 one is refused, because the alternative is a build guessing at a shape it has never seen and
 silently dropping whatever it did not recognise.
 
+**A file carries the lowest version that can read it**, not the version of the build that wrote
+it — so a graph you have never added notes, code blocks or packages to is still version 1, and
+still opens in the oldest Spark there is. A graph that names the packages it needs is version 5.
+
 ---
 
 ## Saving
@@ -219,6 +223,44 @@ Packages window was agreed to when you added it, and does not ask.
 
 **Opening another graph lets go of this one's libraries**, so two graphs can use different versions
 of the same one in a single session.
+
+### The file names what it needs
+
+Saving writes the list of packages at the top of the file, before any node, so that a person
+opening it in a text editor reads what the graph needs before what it does:
+
+```json
+{
+  "formatVersion": 5,
+  "packages": [
+    {
+      "path": "tower.packages/Helpers.dll"
+    },
+    {
+      "path": "tower.packages/Nice3point.Revit.Api.RevitAPI"
+    }
+  ],
+  "nodes": [
+```
+
+The list is **what the file already named, plus whatever is in the folder** when you save — so a DLL
+you dropped in by hand is written down for the next person. It records names and places, not
+contents: whether a file's bytes may run is still asked when it loads.
+
+**When one is missing, the graph still opens and says which.** A banner names every package the
+file expects and the folder does not hold:
+
+> This graph expects 'Helpers.dll' in 'tower.packages' beside it, and it is not there. Code blocks
+> that use it will not compile until it is put back. The file still names it, so it will save
+> unchanged.
+
+Nothing is dropped from the list because it was missing, so saving the graph on a machine without
+the package does not quietly edit it for the machine that has one.
+
+**Renamed the file in Explorer?** Spark looks in the folder named after the file as it is now. If
+you renamed `tower.spark` to `tower-v2.spark` and left the folder alone, the banner names both —
+the file names them under `'tower.packages'`, Spark looked in `'tower-v2.packages'` — and renaming
+the folder to match brings them back. **Save as…** records the new name for you.
 
 ---
 

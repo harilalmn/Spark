@@ -417,14 +417,23 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         string? failure = null;
         CanvasGraph? opened = null;
+        IReadOnlyList<string> startupRecorded = [];
+        IReadOnlyList<Spark.Packages.AbsentGraphPackage> startupAbsent = [];
         if (!string.IsNullOrWhiteSpace(startupDocumentPath))
         {
             try
             {
+                string startupText = File.ReadAllText(startupDocumentPath);
+
+                // `E7-T17`: what the file says it needs, checked before anything is built - the
+                // same order as File > Open, on the other door.
+                startupRecorded = RecordedIn(SparkFile.Read(startupText));
+                startupAbsent = AbsentFrom(startupDocumentPath, startupRecorded);
+
                 // `E7-T16`: the graph's own packages, on this door as on File > Open, and before the
                 // document is built - building a code block compiles it.
                 _ = PackageGate.Open(startupDocumentPath);
-                opened = CanvasDocument.Open(File.ReadAllText(startupDocumentPath), _session.Library, _session.Scripts);
+                opened = CanvasDocument.Open(startupText, _session.Library, _session.Scripts);
             }
             catch (SparkFileException error)
             {
@@ -471,6 +480,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             NoteGraphPath(startupDocumentPath);
             PackageBanner = PackageGate.Banner;
+            NotePackageRecord(startupRecorded, startupAbsent);
         }
 
         if (failure is not null)
@@ -813,11 +823,16 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// look up.
     /// </remarks>
     /// <returns>Canonically formatted JSON, or <see langword="null"/> after reporting why not.</returns>
-    public string? TrySaveDocument()
+    /// <param name="target">
+    /// Where the file is about to be written, or null for where it already lives. The list of
+    /// packages it records is relative to that file's name, so Save As records the new one
+    /// (`E7-T17`).
+    /// </param>
+    public string? TrySaveDocument(string? target = null)
     {
         try
         {
-            return CanvasDocument.Save(_graph);
+            return CanvasDocument.Save(_graph, RecordFor(target ?? GraphPath));
         }
         catch (SparkFileException error)
         {
@@ -865,7 +880,16 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         try
         {
-            IReadOnlyList<string> scripts = SparkFile.Read(text).Scripts();
+            GraphDocument document = SparkFile.Read(text);
+            IReadOnlyList<string> scripts = document.Scripts();
+
+            // `E7-T17`: EVERY PACKAGE THE FILE NAMES IS CHECKED BEFORE ANYTHING IS BUILT. The list is
+            // first in the file for this reason, and a missing one is named by the banner rather
+            // than surfacing later as a compile error about a type. The graph still opens -
+            // `E7-T6`'s promise is that nobody's graph is damaged by opening it, and a graph that
+            // was refused could not be repaired.
+            IReadOnlyList<string> recorded = RecordedIn(document);
+            IReadOnlyList<Spark.Packages.AbsentGraphPackage> absent = AbsentFrom(origin, recorded);
             bool run = scripts.Count == 0 || _trust.IsTrusted(origin, scripts);
 
             // **Scripting is turned on here, and only when the document needs it.** A session that
@@ -892,6 +916,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             // is a graph with no file, and a package has nowhere to go beside it.
             NoteGraphPath(origin);
             PackageBanner = PackageGate.Banner;
+            NotePackageRecord(recorded, absent);
 
             PendingScripts = run ? 0 : scripts.Count;
             PendingOrigin = run ? null : origin;
@@ -1856,6 +1881,93 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private int? _blocksBuiltAgainst;
 
     /// <summary>
+    /// The packages the open graph's file names that are not in its folder, by name (`E7-T17`).
+    /// </summary>
+    public IReadOnlyList<string> AbsentPackageNames { get; private set; } = [];
+
+    /// <summary>
+    /// What to tell the user about packages the file names and the folder does not hold, or null
+    /// when there are none (`E7-T17`).
+    /// </summary>
+    /// <remarks>
+    /// <b>Strings rather than records</b>, because the view that shows it may not name a type from
+    /// the layers underneath (`E8-T11`).
+    /// </remarks>
+    public string? AbsentPackagesMessage { get; private set; }
+
+    /// <summary>
+    /// The package paths the open graph's file records, exactly as written (`E7-T17`). Carried to
+    /// the next save, so a graph naming a package this machine does not have re-saves byte for byte.
+    /// </summary>
+    private IReadOnlyList<string> _recordedPackages = [];
+
+    private static IReadOnlyList<string> RecordedIn(GraphDocument document) =>
+        [.. document.Packages.Select(package => package.Path)];
+
+    /// <summary>The recorded packages not in the folder, or none for a graph with no file.</summary>
+    private static IReadOnlyList<Spark.Packages.AbsentGraphPackage> AbsentFrom(
+        string? graphPath, IReadOnlyList<string> recorded) =>
+        string.IsNullOrWhiteSpace(graphPath) || recorded.Count == 0
+            ? []
+            : Spark.Packages.GraphPackages.Absent(graphPath, recorded);
+
+    private GraphDocumentPackage[] RecordFor(string? graphPath) =>
+    [
+        .. Spark.Packages.GraphPackages.ToRecord(graphPath, _recordedPackages)
+            .Select(path => new GraphDocumentPackage(path)),
+    ];
+
+    private void NotePackageRecord(
+        IReadOnlyList<string> recorded, IReadOnlyList<Spark.Packages.AbsentGraphPackage> absent)
+    {
+        _recordedPackages = recorded;
+        AbsentPackageNames = [.. absent.Select(package => package.Name)];
+        AbsentPackagesMessage = DescribeAbsent(absent);
+    }
+
+    /// <summary>
+    /// The banner's sentence about packages the file names and the folder does not hold.
+    /// </summary>
+    /// <remarks>
+    /// <b>It names the folder Spark looked in</b>, and, when the file recorded them under a different
+    /// one, that one too — which is what a user who renamed the file in Explorer needs to read to
+    /// know what to rename back.
+    /// </remarks>
+    private static string? DescribeAbsent(IReadOnlyList<Spark.Packages.AbsentGraphPackage> absent)
+    {
+        if (absent.Count == 0)
+        {
+            return null;
+        }
+
+        string folder = Path.GetFileName(absent[0].LookedIn);
+        bool one = absent.Count == 1;
+
+        string text = one
+            ? $"This graph expects '{absent[0].Name}' in '{folder}' beside it, and it is not there."
+            : $"This graph expects {absent.Count.ToString(CultureInfo.InvariantCulture)} packages in "
+                + $"'{folder}' beside it that are not there: "
+                + string.Join(", ", absent.Select(package => package.Name)) + ".";
+
+        text += one
+            ? " Code blocks that use it will not compile until it is put back. The file still names it, so it will save unchanged."
+            : " Code blocks that use them will not compile until they are put back. The file still names them, so it will save unchanged.";
+
+        string? elsewhere = absent
+            .Select(package => package.Recorded.Replace('\\', '/'))
+            .Where(path => path.Contains('/', StringComparison.Ordinal))
+            .Select(path => path[..path.IndexOf('/', StringComparison.Ordinal)])
+            .FirstOrDefault(recordedFolder => !string.Equals(recordedFolder, folder, StringComparison.OrdinalIgnoreCase));
+
+        if (elsewhere is not null)
+        {
+            text += $" The file names them under '{elsewhere}'. If it was renamed, rename that folder to '{folder}'.";
+        }
+
+        return text;
+    }
+
+    /// <summary>
     /// The catalogue code blocks compile against, for a test that has to change it the way the
     /// Packages window and the Local assemblies tab do. <b>Touching it loads Roslyn</b>, like
     /// <see cref="SparkSession.ScriptReferences"/> which it forwards to.
@@ -2809,6 +2921,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             {
                 _packageGate?.Release();
                 PackageBanner = null;
+
+                // `E7-T17`: and what the old file said it needed - a new graph expects nothing.
+                NotePackageRecord([], []);
             }
         }
 

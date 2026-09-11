@@ -365,28 +365,46 @@ public sealed partial class MainWindow : Window
         }
 
         IReadOnlyList<string> missing = model.MissingPackages();
+        string? absent = model.AbsentPackagesMessage;
 
-        MissingBanner.IsVisible = missing.Count > 0;
+        MissingBanner.IsVisible = missing.Count > 0 || absent is not null;
 
-        if (missing.Count == 0)
+        if (!MissingBanner.IsVisible)
         {
             return;
         }
 
-        MissingInstallButton.Content = "Find " + missing[0];
+        // `E7-T17`: the Find button searches the feed for a node package that is not installed. A
+        // library the file names and the folder lacks is a file somebody has to put back, and no
+        // search answers that - so the button is there only for the first kind.
+        MissingInstallButton.IsVisible = missing.Count > 0;
 
-        // The label changes with the package, so the automation name has to change with it:
-        // a static name would read "find the missing package" while the button said something
-        // more specific, and the two disagreeing is worse than either alone.
-        Avalonia.Automation.AutomationProperties.SetName(
-            MissingInstallButton, "Find the missing package " + missing[0]);
+        List<string> sentences = [];
 
-        MissingBannerText.Text = missing.Count == 1
-            ? $"This graph uses nodes from '{missing[0]}', which is not installed. "
-                + "Those nodes are kept exactly as they were and the file will save unchanged."
-            : $"This graph uses nodes from {missing.Count} packages that are not installed: "
-                + string.Join(", ", missing)
-                + ". Those nodes are kept exactly as they were and the file will save unchanged.";
+        if (missing.Count > 0)
+        {
+            MissingInstallButton.Content = "Find " + missing[0];
+
+            // The label changes with the package, so the automation name has to change with it:
+            // a static name would read "find the missing package" while the button said something
+            // more specific, and the two disagreeing is worse than either alone.
+            Avalonia.Automation.AutomationProperties.SetName(
+                MissingInstallButton, "Find the missing package " + missing[0]);
+
+            sentences.Add(missing.Count == 1
+                ? $"This graph uses nodes from '{missing[0]}', which is not installed. "
+                    + "Those nodes are kept exactly as they were and the file will save unchanged."
+                : $"This graph uses nodes from {missing.Count} packages that are not installed: "
+                    + string.Join(", ", missing)
+                    + ". Those nodes are kept exactly as they were and the file will save unchanged.");
+        }
+
+        if (absent is not null)
+        {
+            sentences.Add(absent);
+        }
+
+        MissingBannerText.Text = string.Join(" ", sentences);
     }
 
 
@@ -1023,16 +1041,20 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        if (model.TrySaveDocument() is not { } text)
-        {
-            return;
-        }
-
         string? target = askWhere || string.IsNullOrWhiteSpace(_documentPath)
             ? await AskWhereToSaveAsync().ConfigureAwait(true)
             : _documentPath;
 
         if (string.IsNullOrWhiteSpace(target))
+        {
+            return;
+        }
+
+        // `E7-T17`: written for the file it is about to become, which is why this now comes after
+        // the question rather than before it - the packages a graph records are named relative to
+        // its file, so Save As has to record the new name. A graph that cannot be written is
+        // reported here instead, and nothing has been written in its place.
+        if (model.TrySaveDocument(target) is not { } text)
         {
             return;
         }

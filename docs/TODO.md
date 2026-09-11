@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E7-T16` and `E7-T24` closed; `E7-T25` found)
+**Last updated:** 2026-09-11 (`E7-T17` closed: the file names its packages; `E7-T16` and `E7-T24` before it)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -283,11 +283,11 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
          names them, and **Trust and load** remembers them per content hash. It found
          [`E6-T40`](TASKS.md#e6--c-code-block): `--open` skips the *code-block* trust rule, which
          is its own step because fixing it changes the `--open … --screenshot` workflow.
-      2. **`E7-T17`, the record in the file.** *Fail loudly with a named list* (the client's call)
-         is impossible without it: a folder with less in it is not missing anything, and the user
-         would get a compile error naming a **type** rather than a message naming the **package**.
-         Format version 5, and **`E7-T7`'s byte-identical round-trip has to be re-proved**, not
-         assumed.
+      2. **`E7-T17` is done** (2026-09-11) — the file names its packages first, at format version
+         5, and a missing one is **named in the banner when the graph opens**. The graph still
+         opens, because a refused graph cannot be repaired. `E7-T7`'s byte-identical re-save was
+         re-proved at the document and through the window. It made **`E7-T19` urgent**: Save As
+         records the packages under the new name, so the folder has to travel with it.
       3. **`E7-T18` is done and `E7-T19` is not** — refuse the Packages window on an unsaved
          graph and say why; copy the folder on Save As. Both are the client's calls and both remove
          a question rather than answer it. **`E7-T18`'s row held two sentences that pulled apart**
@@ -303,8 +303,7 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
          dependency. **`E7-T21` closed on top of it on 2026-09-09**: an ordinary .NET package can be
          added as a **library**, beside the graph, and its namespaces are imported for the user
          without a `using` - which is the thing the client asked for and the thing the window could
-         not do. **What is left of this group is `E7-T17` and `E7-T19`**: the record in the file,
-         and copying the folder on Save As — and [`E7-T25`](TASKS.md#e7--packages-and-extensibility),
+         not do. **What is left of this group is `E7-T19`**, copying the folder on Save As — and [`E7-T25`](TASKS.md#e7--packages-and-extensibility),
          the command line reading the folder, which `E7-T16` wired into the window only.
          **`E7-T24` closed on 2026-09-11**: a block that failed for a missing type now recovers on
          the next run after its library arrives, whichever path it arrived by.
