@@ -967,9 +967,26 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         // file, and enumerating those is a list that goes stale the next time somebody adds a
         // gesture. Sharing once before the graph runs is the one place all of them have to pass
         // through, and a set that has not moved costs a hash.
-        if (_graph.ShareDeclarations())
+        //
+        // `E7-T24`: AND THE REFERENCES, FOR THE SAME REASON. A library arrives through Add as a
+        // library, the Local assemblies tab, a graph's own package folder or a graph being closed,
+        // and a block's key cannot see any of them (N146) - so a block that failed for a missing
+        // type went on failing after its library arrived. The catalogue's version is compared here
+        // instead of each path being taught to rebuild, and a move forces the rebuild and starts a
+        // fresh cache epoch, since results are cached by the key that did not move.
+        bool shared = _graph.ShareDeclarations();
+        int? references = _session.ReferencesVersion();
+        bool referencesMoved = references != _blocksBuiltAgainst;
+
+        if (shared || referencesMoved)
         {
-            _ = _graph.RebuildScripts();
+            _ = _graph.RebuildScripts(force: referencesMoved);
+        }
+
+        if (referencesMoved)
+        {
+            _blocksBuiltAgainst = references;
+            _session.Replace(_graph.Engine);
         }
 
         long started = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -1569,6 +1586,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         // block the failure its predecessor computed.
         _ = _graph.RebuildScripts(force: true);
         _session.Replace(_graph.Engine);
+        _blocksBuiltAgainst = _session.ReferencesVersion();
 
         if (!IsAwaitingTrust)
         {
@@ -1830,6 +1848,20 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private Spark.Packages.PackageTrustStore? _packageTrust;
     private GraphPackageGate? _packageGate;
+
+    /// <summary>
+    /// The catalogue version the canvas's code blocks were last compiled against, or null when
+    /// scripting was off (`E7-T24`). <see cref="EvaluateAsync"/> rebuilds them when it has moved.
+    /// </summary>
+    private int? _blocksBuiltAgainst;
+
+    /// <summary>
+    /// The catalogue code blocks compile against, for a test that has to change it the way the
+    /// Packages window and the Local assemblies tab do. <b>Touching it loads Roslyn</b>, like
+    /// <see cref="SparkSession.ScriptReferences"/> which it forwards to.
+    /// </summary>
+    /// <returns>The catalogue, or null when scripting is off.</returns>
+    internal Spark.Scripting.ReferenceCatalog? ScriptReferences() => _session.ScriptReferences();
 
     /// <summary>
     /// Where the document on the canvas lives on disk, or null when it has never been saved
@@ -2750,6 +2782,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private void AdoptGraph(CanvasGraph graph, bool evaluate = true, bool resetHistory = true, bool keepPackages = false)
     {
+        // `E7-T24`: the graph arrives already built, so its blocks were compiled against the
+        // catalogue as it stands *now* - recorded before the release below, because letting go of
+        // the previous graph's packages is a change those blocks have not seen yet.
+        _blocksBuiltAgainst = _session.ReferencesVersion();
+
         _graph = graph;
 
         // `E8-T78`: A DIFFERENT DOCUMENT IS NOT SAVED WHERE THE LAST ONE WAS.

@@ -190,6 +190,20 @@ public sealed class SparkSession : IDisposable
             : null;
     }
 
+    /// <summary>
+    /// How many times the code block reference catalogue has changed, or null when scripting has
+    /// not been switched on (`E7-T24`).
+    /// </summary>
+    /// <returns>The catalogue's version, without building the script factory.</returns>
+    /// <remarks>
+    /// <b>Asked on every run, so it must never load Roslyn itself</b> — which is why it reads the
+    /// factory only if one already exists, where <see cref="ScriptReferences"/> would build one. A
+    /// block's key cannot see the catalogue ([N146](../../docs/NOTES.md)), so this number is how the
+    /// canvas learns that a library arrived or left since its blocks were compiled.
+    /// </remarks>
+    public int? ReferencesVersion() =>
+        Scripts is Spark.Scripting.ScriptNodeFactory factory ? factory.References.Version : null;
+
     /// <summary>The definitions that can be placed.</summary>
     public NodeLibrary Library { get; }
 

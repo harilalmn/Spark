@@ -4450,6 +4450,10 @@ block with an unchanged key is served the failure its predecessor computed.
 `AgreeingRebuildsTheBlocksThatWereCompiledWithoutIt` asserts both halves and was red against the
 unforced rebuild.
 
-**Still exposed**: *Add as a library…* and the Local assemblies tab also change the catalogue and
-do neither, so a block that failed for a missing type before the library arrived keeps failing
-until it is edited. That is `E7-T24`.
+**Every other path was exposed too, and `E7-T24` closed them the same day — in one place rather
+than one at a time.** `EvaluateAsync` compares the catalogue's version with the one the canvas's
+blocks were compiled against and, when it has moved, does exactly what agreeing does: a forced
+rebuild and a fresh epoch. *Add as a library…*, Local assemblies, a graph's package folder and a
+graph being closed all move that version, and none of them has to know. The version is recorded at
+the **start** of adopting a graph, because the graph arrives already compiled and the release of
+the previous graph's packages that follows is a change its blocks have not seen.
