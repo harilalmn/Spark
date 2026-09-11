@@ -68,8 +68,10 @@ public readonly record struct BrepEdge(int Start, int End, int Curve);
 /// <b>What a trim does not carry yet, and it is a row rather than an omission.</b> In a complete
 /// kernel a trim also holds a *pcurve*: the edge's path through the face's own parameter space,
 /// which is what lets a face be trimmed by something other than its natural boundary. That needs
-/// the planar layer's <c>Curve2d</c> (`E2-T13`), which does not exist — so a trim currently
+/// the planar layer's <c>Curve2d</c> (`E2-T64`), which does not exist — so a trim currently
 /// references the edge and its direction, and a face's boundary is described in three dimensions.
+/// <c>Curve2d</c> waits for its first managed consumer: nothing in this kernel reads a pcurve yet,
+/// because a genuinely trimmed face is tessellated behind the OCCT seam.
 /// The consequence is stated on <see cref="BrepFace"/>.
 /// </para>
 /// </remarks>
