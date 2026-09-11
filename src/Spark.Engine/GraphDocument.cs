@@ -151,6 +151,42 @@ public readonly record struct GraphLiteral(int PortIndex, object? Value);
 public sealed record GraphDocumentGroup(Guid Id, string Title, IReadOnlyList<NodeId> Members);
 
 /// <summary>
+/// One package a graph expects to find beside it (`E7-T17`,
+/// [ADR-0024](../../docs/adr/0024-graph-local-package-folder.md)).
+/// </summary>
+/// <param name="Path">
+/// Where it is, relative to the <c>.spark</c> file and with forward slashes —
+/// <c>tower.packages/Helpers.dll</c>, or <c>tower.packages/MathNet.Numerics.5.0.0</c> for a package
+/// folder. Kept exactly as it was written, so that a file re-saves byte for byte.
+/// </param>
+/// <remarks>
+/// <para>
+/// <b>Why a convention-based folder needs anything in the file at all.</b> The client's answer to
+/// <i>what happens when the folder is missing</i> was <i>fail loudly, naming what is absent</i>, and
+/// a folder with less in it is not missing anything — without a record the user would get a compile
+/// error naming a <b>type</b> rather than a message naming the <b>package</b>.
+/// </para>
+/// <para>
+/// <b>A record, not a lock, and a path without a hash.</b> The folder is still discovered by
+/// convention, so an assembly nobody wrote down still loads; the record makes an absence nameable
+/// and refuses nothing. It carries no hash because a rebuilt library is ordinary during development,
+/// and whether its bytes may run is decided at load time, per hash, by the package gate — not here.
+/// </para>
+/// </remarks>
+public sealed record GraphDocumentPackage(string Path)
+{
+    /// <summary>The last segment of the path, which is what a message about it names.</summary>
+    public string Name
+    {
+        get
+        {
+            string trimmed = Path.TrimEnd('/');
+            return trimmed[(trimmed.LastIndexOf('/') + 1)..];
+        }
+    }
+}
+
+/// <summary>
 /// A whole graph in the shape a `.spark` file holds it: the data model, with no evaluation state,
 /// no results and no geometry.
 /// </summary>
@@ -182,7 +218,7 @@ public sealed class GraphDocument
     /// change and a release is a release, and tying them together makes every release a format
     /// question.
     /// </remarks>
-    public const int CurrentFormatVersion = 4;
+    public const int CurrentFormatVersion = 5;
 
     /// <summary>
     /// The version a document writes when it contains nothing that needs a newer reader.
@@ -224,6 +260,17 @@ public sealed class GraphDocument
     public const int AppearanceFormatVersion = 4;
 
     /// <summary>
+    /// The version that added the list of packages a graph expects beside it (`E7-T17`).
+    /// </summary>
+    /// <remarks>
+    /// A version-4 reader does not know the list exists, so it would open the graph and drop the
+    /// list on the next save — and the list is the only thing that lets a missing package be named
+    /// rather than surface later as an error about a type. Written only by a document that carries
+    /// one, so every graph that names no package stays exactly what earlier builds wrote.
+    /// </remarks>
+    public const int PackagesFormatVersion = 5;
+
+    /// <summary>
     /// The first version whose reader understands groups. The same as
     /// <see cref="NotesFormatVersion"/>, deliberately: groups and notes landed in the same week,
     /// and inventing a version 3 for the second of them would refuse a file to a reader that can
@@ -235,6 +282,7 @@ public sealed class GraphDocument
     private readonly GraphDocumentWire[] _wires;
     private readonly GraphDocumentNote[] _notes;
     private readonly GraphDocumentGroup[] _groups;
+    private readonly GraphDocumentPackage[] _packages;
 
     /// <summary>Creates a document.</summary>
     /// <param name="formatVersion">The format version. Must be positive.</param>
@@ -242,6 +290,7 @@ public sealed class GraphDocument
     /// <param name="wires">The wires.</param>
     /// <param name="notes">The canvas notes, if any.</param>
     /// <param name="groups">The canvas groups, if any.</param>
+    /// <param name="packages">The packages the graph expects beside it, if any (`E7-T17`).</param>
     /// <exception cref="ArgumentNullException">A collection is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="formatVersion"/> is not positive.</exception>
     public GraphDocument(
@@ -249,7 +298,8 @@ public sealed class GraphDocument
         IEnumerable<GraphDocumentNode> nodes,
         IEnumerable<GraphDocumentWire> wires,
         IEnumerable<GraphDocumentNote>? notes = null,
-        IEnumerable<GraphDocumentGroup>? groups = null)
+        IEnumerable<GraphDocumentGroup>? groups = null,
+        IEnumerable<GraphDocumentPackage>? packages = null)
     {
         ArgumentNullException.ThrowIfNull(nodes);
         ArgumentNullException.ThrowIfNull(wires);
@@ -297,6 +347,17 @@ public sealed class GraphDocument
                 })
                 .OrderBy(group => group.Id.ToString("D", CultureInfo.InvariantCulture), StringComparer.Ordinal),
         ];
+
+        // Sorted and de-duplicated for the reason nodes are: two documents naming the same packages
+        // are the same bytes however the list was assembled. Duplicates are found case-insensitively
+        // because the paths name files, and the file system this runs on does not tell `Helpers.dll`
+        // from `helpers.dll`.
+        _packages =
+        [
+            .. (packages ?? [])
+                .OrderBy(package => package.Path, StringComparer.Ordinal)
+                .DistinctBy(package => package.Path, StringComparer.OrdinalIgnoreCase),
+        ];
     }
 
     /// <summary>The format version this document was read from, or is to be written as.</summary>
@@ -341,12 +402,19 @@ public sealed class GraphDocument
     public IReadOnlyList<GraphDocumentGroup> Groups => _groups;
 
     /// <summary>
+    /// The packages the graph expects beside it, ordered by path. Empty for a graph that names
+    /// none (`E7-T17`).
+    /// </summary>
+    public IReadOnlyList<GraphDocumentPackage> Packages => _packages;
+
+    /// <summary>
     /// The lowest format version whose reader could load this document without losing anything.
     /// </summary>
     /// <param name="notes">How many notes the document carries.</param>
     /// <param name="groups">How many groups it carries.</param>
     /// <param name="scripts">How many of its nodes carry their own source.</param>
     /// <param name="appearance">How many of its nodes carry a title or a colour of their own.</param>
+    /// <param name="packages">How many packages it names (`E7-T17`).</param>
     /// <returns>
     /// <see cref="NotesFormatVersion"/> when there is anything a version-1 reader would drop,
     /// otherwise <see cref="BaselineFormatVersion"/>.
@@ -357,8 +425,14 @@ public sealed class GraphDocument
     /// outcome, and asking for it costs exactly this: writing 2 when, and only when, there is
     /// something a version-1 reader would throw away.
     /// </remarks>
-    public static int MinimumReaderVersion(int notes, int groups = 0, int scripts = 0, int appearance = 0)
+    public static int MinimumReaderVersion(
+        int notes, int groups = 0, int scripts = 0, int appearance = 0, int packages = 0)
     {
+        if (packages > 0)
+        {
+            return PackagesFormatVersion;
+        }
+
         if (appearance > 0)
         {
             return AppearanceFormatVersion;
@@ -391,6 +465,10 @@ public sealed class GraphDocument
     /// has been — which is what a headless caller and every graph nobody has restyled both look
     /// like (`E8-T35`).
     /// </param>
+    /// <param name="packages">
+    /// The packages the graph expects beside it, or <see langword="null"/> for none (`E7-T17`). The
+    /// graph itself knows nothing about packages, so the host that knows where the file lives says.
+    /// </param>
     /// <returns>The document.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="graph"/> is <see langword="null"/>.</exception>
     /// <exception cref="SparkFileException">
@@ -402,7 +480,8 @@ public sealed class GraphDocument
         Func<NodeId, (double X, double Y)>? positions = null,
         IReadOnlyList<GraphDocumentNote>? notes = null,
         IReadOnlyList<GraphDocumentGroup>? groups = null,
-        Func<NodeId, (string? Title, string? Colour)>? appearance = null)
+        Func<NodeId, (string? Title, string? Colour)>? appearance = null,
+        IReadOnlyList<GraphDocumentPackage>? packages = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -503,11 +582,12 @@ public sealed class GraphDocument
         }
 
         return new GraphDocument(
-            MinimumReaderVersion(notes?.Count ?? 0, groups?.Count ?? 0, scripts, restyled),
+            MinimumReaderVersion(notes?.Count ?? 0, groups?.Count ?? 0, scripts, restyled, packages?.Count ?? 0),
             nodes,
             wires,
             notes,
-            groups);
+            groups,
+            packages);
     }
 
     /// <summary>

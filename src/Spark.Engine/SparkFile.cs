@@ -122,6 +122,24 @@ public static class SparkFile
             writer.WriteStartObject();
             writer.WriteNumber("formatVersion", document.FormatVersion);
 
+            // `E7-T17`: THE PACKAGES FIRST, BECAUSE THAT IS LOAD ORDER. Opening a graph builds its
+            // code blocks and building one compiles it, so what they compile against has to be
+            // settled before the first node is touched - and a person opening the file in an editor
+            // reads what the graph needs before what it does. Omitted when there are none, so no
+            // graph that names no package changes by a byte.
+            if (document.Packages.Count > 0)
+            {
+                writer.WriteStartArray("packages");
+                foreach (GraphDocumentPackage package in document.Packages)
+                {
+                    writer.WriteStartObject();
+                    writer.WriteString("path", package.Path);
+                    writer.WriteEndObject();
+                }
+
+                writer.WriteEndArray();
+            }
+
             writer.WriteStartArray("nodes");
             foreach (GraphDocumentNode node in document.Nodes)
             {
@@ -245,6 +263,27 @@ public static class SparkFile
                     helpTopicId: DiagnosticCodes.FileTopic));
             }
 
+            // `E7-T17`: read first because it is written first, though reading is by name and the
+            // order is for the person reading the file. Kept verbatim - whether each path is there
+            // is the host's question, because only the host knows where this file lives.
+            List<GraphDocumentPackage> packages = [];
+            if (root.TryGetProperty("packages", out JsonElement packageArray)
+                && packageArray.ValueKind == JsonValueKind.Array)
+            {
+                foreach (JsonElement element in packageArray.EnumerateArray())
+                {
+                    if (element.ValueKind != JsonValueKind.Object
+                        || !element.TryGetProperty("path", out JsonElement pathElement)
+                        || pathElement.ValueKind != JsonValueKind.String
+                        || pathElement.GetString() is not { Length: > 0 } path)
+                    {
+                        throw Malformed("A package the graph names has no path.");
+                    }
+
+                    packages.Add(new GraphDocumentPackage(path));
+                }
+            }
+
             List<GraphDocumentNode> nodes = [];
             if (root.TryGetProperty("nodes", out JsonElement nodeArray)
                 && nodeArray.ValueKind == JsonValueKind.Array)
@@ -289,7 +328,7 @@ public static class SparkFile
                 }
             }
 
-            return new GraphDocument(formatVersion, nodes, wires, notes, groups);
+            return new GraphDocument(formatVersion, nodes, wires, notes, groups, packages);
         }
     }
 
