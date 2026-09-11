@@ -3,31 +3,6 @@ using System.Collections.Generic;
 
 namespace Spark.Geometry;
 
-/// <summary>Where two curves meet at a point: the point, and the parameter on each (<c>E2-T11</c>).</summary>
-/// <param name="Point">Where they meet.</param>
-/// <param name="ParameterA">The parameter on the first curve.</param>
-/// <param name="ParameterB">The parameter on the second curve.</param>
-internal readonly record struct CurveIntersectionPoint(Point3d Point, double ParameterA, double ParameterB);
-
-/// <summary>Where two curves run together: the stretch of each curve's domain they share (<c>E2-T11</c>).</summary>
-/// <param name="OnA">The shared stretch, in the first curve's parameters.</param>
-/// <param name="OnB">
-/// The same stretch in the second curve's parameters - decreasing when the second curve runs the
-/// other way, which is information rather than an error.
-/// </param>
-internal readonly record struct CurveOverlap(Interval OnA, Interval OnB);
-
-/// <summary>Everything two curves have in common: points where they cross or touch, and overlaps.</summary>
-/// <param name="Points">The points, in order along the first curve.</param>
-/// <param name="Overlaps">The stretches they share.</param>
-internal sealed record CurveIntersections(
-    IReadOnlyList<CurveIntersectionPoint> Points,
-    IReadOnlyList<CurveOverlap> Overlaps)
-{
-    /// <summary>Nothing in common.</summary>
-    internal static CurveIntersections None { get; } = new([], []);
-}
-
 /// <summary>
 /// Curve/curve intersection in closed form, for the curves that have one: lines, circles and arcs
 /// (<c>E2-T11</c>, step A).

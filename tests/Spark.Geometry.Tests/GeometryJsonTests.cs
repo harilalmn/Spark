@@ -177,6 +177,13 @@ public sealed class GeometryJsonTests
         [typeof(BoundingVolumeHierarchy)] =
             "an index over other things, derived and rebuildable in microseconds. Storing it "
             + "would mean storing a second copy of the boxes and a promise that they still agree",
+
+        // `E2-T11`: the three answers to Curve.IntersectWith. Each is a question about two curves
+        // answered, and the curves are what is saved; storing the answer beside them would be a
+        // second statement of the same fact with nothing to keep the two in step.
+        [typeof(CurveIntersectionPoint)] = "the answer to a question about two curves, recomputed from them",
+        [typeof(CurveOverlap)] = "the answer to a question about two curves; see CurveIntersectionPoint",
+        [typeof(CurveIntersections)] = "the answer to a question about two curves; see CurveIntersectionPoint",
     };
 
     [Fact]

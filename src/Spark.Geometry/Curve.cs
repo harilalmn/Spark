@@ -448,6 +448,36 @@ public abstract class Curve
     /// <returns>The nearest point on the curve.</returns>
     public Point3d ClosestPoint(in Point3d point) => Evaluate(ClosestParameter(point));
 
+    /// <summary>
+    /// Where this curve meets another: the points where they cross or touch, and the stretches where
+    /// they run together (<c>E2-T11</c>).
+    /// </summary>
+    /// <param name="other">The other curve.</param>
+    /// <param name="tolerance">How close counts as meeting; the kernel's default when not given.</param>
+    /// <returns>
+    /// The points, each with a parameter on this curve and on <paramref name="other"/>, and the overlaps.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="other"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Closed form where there is one.</b> Lines, circles and arcs against one another are answered
+    /// exactly, in three dimensions; every other pair is sampled into chords, pruned through a bounding
+    /// volume hierarchy and refined by Gauss-Newton, and is tested against the exact answers on the
+    /// pairs that have them.
+    /// </para>
+    /// <para>
+    /// <b>One limit, stated.</b> On the sampled path an overlap shorter than a hundred-and-twenty-eighth
+    /// of this curve's domain is reported as a point.
+    /// </para>
+    /// </remarks>
+    public CurveIntersections IntersectWith(Curve other, in Tolerance tolerance = default)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+
+        return AnalyticCurveIntersection.TryIntersect(this, other, tolerance)
+            ?? GeneralCurveIntersection.Intersect(this, other, tolerance);
+    }
+
     /// <summary>The distance from a point to the nearest point on the curve.</summary>
     /// <param name="point">The point to measure from.</param>
     /// <returns>The distance, never negative.</returns>
