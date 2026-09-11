@@ -77,7 +77,7 @@ internal static class Program
             {
                 "run" => Run(args.AsSpan(1), Console.Out, Console.Error),
                 "check" => Check(args.AsSpan(1), Console.Error),
-                "export" => Export(args.AsSpan(1)),
+                "export" => Export(args.AsSpan(1), Console.Out, Console.Error),
                 "--version" => Version(),
                 _ => Unknown(args[0]),
             };
@@ -566,11 +566,36 @@ internal static class Program
         return string.Join(' ', parts);
     }
 
-    private static int Export(ReadOnlySpan<string> args)
+    /// <summary>
+    /// Opens a graph, evaluates it with no window, and writes its geometry to a file.
+    /// </summary>
+    /// <param name="args">The arguments after the verb.</param>
+    /// <param name="report">Where the line saying what was written goes. <see cref="Console.Out"/> in the product.</param>
+    /// <param name="error">Where diagnostics go. <see cref="Console.Error"/> in the product.</param>
+    /// <param name="trust">
+    /// The record of package-folder assemblies the user has agreed to, or null for the one the
+    /// desktop application keeps. A test passes its own so that the user's is never touched.
+    /// </param>
+    /// <returns>Zero when a file was written and nothing errored, two when there was nothing to write, one otherwise.</returns>
+    /// <remarks>
+    /// <b>A graph with a code block exports like any other</b> (`E12-T24`). It used to be restored
+    /// with no script factory at all, so every such graph was refused as though <c>--no-script</c>
+    /// had been given - including graphs whose geometry came entirely from ordinary nodes. It now
+    /// takes <c>run</c>'s rules whole: a factory only when the document has code blocks, the
+    /// package folder settled before anything is built, <c>--no-script</c> to refuse, and
+    /// <c>--trust-packages</c> for one run.
+    /// </remarks>
+    internal static int Export(
+        ReadOnlySpan<string> args, TextWriter report, TextWriter error, PackageTrustStore? trust = null)
     {
+        ArgumentNullException.ThrowIfNull(report);
+        ArgumentNullException.ThrowIfNull(error);
+
         string? input = null;
         string? output = null;
         double tolerance = 0.0;
+        bool scripting = true;
+        bool once = false;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -589,21 +614,29 @@ internal static class Program
                         || !double.IsFinite(tolerance)
                         || tolerance < 0.0)
                     {
-                        Console.Error.WriteLine("spark: --tolerance takes a non-negative number.");
+                        error.WriteLine("spark: --tolerance takes a non-negative number.");
                         return 1;
                     }
 
                     break;
 
+                case "--no-script":
+                    scripting = false;
+                    break;
+
+                case "--trust-packages":
+                    once = true;
+                    break;
+
                 default:
-                    Console.Error.WriteLine($"spark: unrecognised option '{args[i]}'.");
+                    error.WriteLine($"spark: unrecognised option '{args[i]}'.");
                     return 1;
             }
         }
 
         if (input is null || output is null)
         {
-            Console.Error.WriteLine("spark: export needs --open PATH and --out FILE.obj.");
+            error.WriteLine("spark: export needs --open PATH and --out FILE.obj.");
             return 1;
         }
 
@@ -614,14 +647,33 @@ internal static class Program
         using SparkSession session = new();
 
         GraphDocument document = SparkFile.Read(File.ReadAllText(input));
-        Graph graph = document.Restore(session.Library);
+
+        if (!scripting && document.HasScripts)
+        {
+            error.WriteLine(
+                "spark: this graph contains a code block and --no-script was given, so it was not exported.");
+
+            return 1;
+        }
+
+        IScriptNodeFactory? scripts = scripting && document.HasScripts
+            ? session.EnableScripting()
+            : null;
+
+        if (scripts is not null
+            && !AdmitPackages(input, document, session, trust, once, "spark: ", "exported", error, out _))
+        {
+            return 1;
+        }
+
+        Graph graph = document.Restore(session.Library, scripts);
 
         EvaluationContext context = new(default, new SequentialEvaluationScheduler());
         EvaluationResult result = GraphEvaluator.Evaluate(graph, context, CancellationToken.None);
 
         foreach (SparkDiagnostic diagnostic in result.Diagnostics)
         {
-            Console.Error.WriteLine($"spark: {diagnostic.Code}: {diagnostic.Message}");
+            error.WriteLine($"spark: {diagnostic.Code}: {diagnostic.Message}");
         }
 
         // **The format comes from the extension, and surfaces are tessellated on the way out.**
@@ -636,7 +688,7 @@ internal static class Program
 
             if (solids.Count == 0)
             {
-                Console.Error.WriteLine(
+                error.WriteLine(
                     "spark: the graph produced no solids, so nothing was written. STEP and IGES "
                     + "carry exact solids; use .obj, .stl, .ply or .glb for curves and meshes.");
 
@@ -653,8 +705,8 @@ internal static class Program
 
             if (!together.TryGetValue(out Brep? shape))
             {
-                Console.Error.WriteLine($"spark: {together.Diagnostic!.Code}: {together.Diagnostic.Message}");
-                Console.Error.WriteLine($"spark: {together.Diagnostic.Detail}");
+                error.WriteLine($"spark: {together.Diagnostic!.Code}: {together.Diagnostic.Message}");
+                error.WriteLine($"spark: {together.Diagnostic.Detail}");
 
                 return 1;
             }
@@ -663,13 +715,13 @@ internal static class Program
 
             if (!wrote.IsSuccess)
             {
-                Console.Error.WriteLine($"spark: {wrote.Diagnostic!.Code}: {wrote.Diagnostic.Message}");
-                Console.Error.WriteLine($"spark: {wrote.Diagnostic.Detail}");
+                error.WriteLine($"spark: {wrote.Diagnostic!.Code}: {wrote.Diagnostic.Message}");
+                error.WriteLine($"spark: {wrote.Diagnostic.Detail}");
 
                 return 1;
             }
 
-            Console.WriteLine(string.Create(
+            report.WriteLine(string.Create(
                 CultureInfo.InvariantCulture,
                 $"spark: wrote {solids.Count} solid(s), {shape.FaceCount} face(s), to {output} "
                 + $"({result.NodesEvaluated} node(s) evaluated, {result.CacheHits} cache hit(s))"));
@@ -683,7 +735,7 @@ internal static class Program
 
             if (meshes.Count == 0)
             {
-                Console.Error.WriteLine(
+                error.WriteLine(
                     "spark: the graph produced no surfaces or meshes, so nothing was written.");
 
                 return result.HasErrors ? 1 : 2;
@@ -691,7 +743,7 @@ internal static class Program
 
             int faces = WriteMeshes(output, extension, meshes);
 
-            Console.WriteLine(string.Create(
+            report.WriteLine(string.Create(
                 CultureInfo.InvariantCulture,
                 $"spark: wrote {meshes.Count} mesh(es), {faces} face(s), to {output} at tolerance "
                 + $"{chosen.Linear:G9} ({result.NodesEvaluated} node(s) evaluated, {result.CacheHits} cache hit(s))"));
@@ -706,7 +758,7 @@ internal static class Program
         {
             // Not an error: a graph of numbers is a legal graph. But writing an empty file and
             // saying nothing would look like success, so say which it was.
-            Console.Error.WriteLine(
+            error.WriteLine(
                 "spark: the graph produced no curves, surfaces or meshes, so nothing was written.");
 
             return result.HasErrors ? 1 : 2;
@@ -716,7 +768,7 @@ internal static class Program
             ? ObjWriter.WriteCurvesToFile(output, curves, chosen)
             : ObjWriter.WriteMeshesToFile(output, alsoMeshes);
 
-        Console.WriteLine(string.Create(
+        report.WriteLine(string.Create(
             CultureInfo.InvariantCulture,
             $"spark: wrote {written} object(s) to {output} at tolerance {chosen.Linear:G9} "
             + $"({result.NodesEvaluated} node(s) evaluated, {result.CacheHits} cache hit(s))"));
@@ -1019,6 +1071,7 @@ internal static class Program
         Console.WriteLine("      lacks is a warning, which --strict fails.");
         Console.WriteLine();
         Console.WriteLine("  spark export --open GRAPH.spark --out FILE.[obj|stl|ply|glb] [--tolerance T]");
+        Console.WriteLine("               [--no-script] [--trust-packages]");
         Console.WriteLine("      Evaluate a graph with no window and write its geometry.");
         Console.WriteLine("      The format comes from the extension: obj for curves and meshes,");
         Console.WriteLine("      stl, ply and glb for meshes, step and iges for exact solids.");

@@ -207,6 +207,27 @@ public sealed class PackageFolderTests : IDisposable
         Assert.Contains("Missing.dll", lenient.ToString(), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// <c>spark export</c> refuses the same way (`E12-T24`), and writes no file for a graph it did
+    /// not build.
+    /// </summary>
+    [Fact]
+    public void ExportRefusesTheSameWayAndWritesNoFile()
+    {
+        string name = Unique();
+        string dll = Compile(_folder, name, Payload(name, 4217));
+        SaveGraph(Calling(name));
+
+        string obj = Path.Combine(_root, "out.obj");
+        StringWriter error = new();
+
+        Assert.Equal(1, Program.Export(["--open", _graph, "--out", obj], new StringWriter(), error, _trust));
+
+        Assert.Contains(HashOf(dll), error.ToString(), StringComparison.Ordinal);
+        Assert.Contains("was not exported", error.ToString(), StringComparison.Ordinal);
+        Assert.False(File.Exists(obj), "a refused export wrote a file");
+    }
+
     private static string Calling(string name) => $"return {name}.Payload.Run();";
 
     /// <summary>

@@ -9,7 +9,7 @@ since: "2026.9"
 **Status:** Current. Describes the three verbs that exist — `run`, `check` and `export` — and says
 plainly which of the seven do not.
 **Owner:** `graph-engine`
-**Last updated:** 2026-09-11 (`E7-T25`: `--trust-packages`, and a graph's package folder)
+**Last updated:** 2026-09-11 (`E12-T24`: export and code blocks; `E7-T25`: `--trust-packages`)
 
 > **Scope.** `spark.exe` ships beside the desktop application and does everything **without opening
 > a window**. It is the same engine, the same node library and the same value rendering; what it
@@ -191,6 +191,7 @@ exit ${fail:-0}
 
 ```
 spark export --open GRAPH.spark --out FILE.[obj|stl|ply|glb|step|iges] [--tolerance T]
+             [--no-script] [--trust-packages]
 ```
 
 Evaluates with no window and writes what it produced. The format comes from the extension.
@@ -202,6 +203,19 @@ $ spark export --open docs/examples/curves.spark --out curves.obj --tolerance 0.
 Curves become polylines and surfaces are tessellated, at a tolerance written into the file's own
 header. **Solids are not tessellated on the way to STEP or IGES** — those carry the exact
 surfaces, which is the entire point of having them. See [solids](solids.md).
+
+**A graph with a code block exports like any other**, and whatever geometry the block makes is
+written with the rest. `--no-script` and `--trust-packages` mean exactly what they mean for `run`:
+the first refuses such a graph, the second uses the assemblies in its package folder for this one
+run. **A refused export writes no file**, so a script that checks for the output file cannot
+mistake a refusal for an empty graph.
+
+```
+$ spark export --open facade.spark --out facade.obj --no-script
+spark: this graph contains a code block and --no-script was given, so it was not exported.
+$ echo $?
+1
+```
 
 ---
 
