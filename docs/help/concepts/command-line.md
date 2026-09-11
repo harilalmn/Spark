@@ -9,7 +9,7 @@ since: "2026.9"
 **Status:** Current. Describes the three verbs that exist — `run`, `check` and `export` — and says
 plainly which of the seven do not.
 **Owner:** `graph-engine`
-**Last updated:** 2026-09-09
+**Last updated:** 2026-09-11 (`E7-T25`: `--trust-packages`, and a graph's package folder)
 
 > **Scope.** `spark.exe` ships beside the desktop application and does everything **without opening
 > a window**. It is the same engine, the same node library and the same value rendering; what it
@@ -35,7 +35,7 @@ you what went wrong on the way.
 ## `spark run` — what did this graph produce?
 
 ```
-spark run GRAPH.spark [--all] [--no-script]
+spark run GRAPH.spark [--all] [--no-script] [--trust-packages]
 ```
 
 Opens the graph, evaluates it with no window, and prints **what its watch nodes saw**. A watch is
@@ -69,12 +69,42 @@ than dropping the executable parts**, because a graph that silently ran with its
 missing would produce a wrong answer quietly, which is worse than an error. See
 [code blocks](code-blocks.md).
 
+### A graph's own packages, and `--trust-packages`
+
+A graph can carry libraries in a folder beside it named after the file — `facade.packages` beside
+`facade.spark` — and its code blocks compile against them. The window asks before it uses one: it
+names each assembly and its hash, and **Trust and load** remembers the answer against those exact
+bytes. `run` and `check` use **the same record**, so an assembly you agreed to in Spark is simply
+used. They have nobody to ask about the rest, so they **refuse the graph and name what they found**:
+
+```
+$ spark check facade.spark
+spark: facade.spark: the graph's package folder holds an assembly nobody has agreed to load, so it was not checked:
+spark: facade.spark:   Greeter.dll  sha256 3F9A0C1E…
+spark: facade.spark: agree to it by opening the graph in Spark, or pass --trust-packages to use it for this run only, recording nothing.
+$ echo $?
+1
+```
+
+The hash is printed in full, where the window shows eight characters, so a build can compare it
+with the one it expects. `--trust-packages` uses the folder's assemblies **for that run only**
+and writes nothing down — the record is shared with the desktop application, and a scheduled job
+should not become your consent in the window. A file that cannot be read is refused even then,
+because it has no hash to agree to.
+
+**Only a graph with a code block looks at its folder**, because nothing else compiles against it.
+A package the file names that is missing from the folder prints as a warning, since it is the
+reason a block that uses it will not compile; `check --strict` fails on it.
+
+Why a DLL is asked about when the code blocks are not: the code is text inside the graph, which a
+reviewer reads in a diff, and an assembly is not.
+
 ---
 
 ## `spark check` — is this graph broken?
 
 ```
-spark check GRAPH.spark [--strict] [--no-script]
+spark check GRAPH.spark [--strict] [--no-script] [--trust-packages]
 ```
 
 The same evaluation with the printing taken away. **It says nothing at all when nothing is wrong**,

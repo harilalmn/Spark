@@ -10,6 +10,7 @@ using Spark.Engine;
 using Spark.Geometry;
 using Spark.Geometry.Io;
 using Spark.Host;
+using Spark.Packages;
 
 namespace Spark.Cli;
 
@@ -74,7 +75,7 @@ internal static class Program
         {
             return args[0] switch
             {
-                "run" => Run(args.AsSpan(1)),
+                "run" => Run(args.AsSpan(1), Console.Out, Console.Error),
                 "check" => Check(args.AsSpan(1), Console.Error),
                 "export" => Export(args.AsSpan(1)),
                 "--version" => Version(),
@@ -105,12 +106,29 @@ internal static class Program
     /// Diagnostics go to standard error and values to standard output, so that
     /// <c>spark run g.spark &gt; values.txt</c> captures the answer and still shows the problems.
     /// </para>
+    /// <para>
+    /// <b>It takes its two streams rather than reaching for the console</b>, for <see cref="Check"/>'s
+    /// reason: so that what it printed and what it returned can both be asserted (`E7-T25`).
+    /// </para>
     /// </remarks>
-    private static int Run(ReadOnlySpan<string> args)
+    /// <param name="args">The arguments after the verb.</param>
+    /// <param name="output">Where values go. <see cref="Console.Out"/> in the product.</param>
+    /// <param name="error">Where diagnostics go. <see cref="Console.Error"/> in the product.</param>
+    /// <param name="trust">
+    /// The record of package-folder assemblies the user has agreed to, or null for the one the
+    /// desktop application keeps. A test passes its own so that the user's is never touched.
+    /// </param>
+    /// <returns>Zero when nothing errored, one otherwise.</returns>
+    internal static int Run(
+        ReadOnlySpan<string> args, TextWriter output, TextWriter error, PackageTrustStore? trust = null)
     {
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(error);
+
         string? input = null;
         bool all = false;
         bool scripting = true;
+        bool once = false;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -128,6 +146,10 @@ internal static class Program
                     scripting = false;
                     break;
 
+                case "--trust-packages":
+                    once = true;
+                    break;
+
                 default:
                     // A bare path is the ordinary way to name a file to a command line, and
                     // requiring --open for the argument the verb is about would be ceremony.
@@ -137,14 +159,14 @@ internal static class Program
                         break;
                     }
 
-                    Console.Error.WriteLine($"spark: unrecognised option '{args[i]}'.");
+                    error.WriteLine($"spark: unrecognised option '{args[i]}'.");
                     return 1;
             }
         }
 
         if (input is null)
         {
-            Console.Error.WriteLine("spark: run needs a graph to run. Try: spark run graph.spark");
+            error.WriteLine("spark: run needs a graph to run. Try: spark run graph.spark");
             return 1;
         }
 
@@ -160,7 +182,7 @@ internal static class Program
         // which is what keeps Roslyn out of a `spark run` that has no code blocks (`E6-T14`).
         if (!scripting && document.HasScripts)
         {
-            Console.Error.WriteLine(
+            error.WriteLine(
                 "spark: this graph contains a code block and --no-script was given, so it was not run.");
 
             return 1;
@@ -170,6 +192,13 @@ internal static class Program
             ? session.EnableScripting()
             : null;
 
+        // `E7-T25`: what the blocks may compile against is settled before they are built.
+        if (scripts is not null
+            && !AdmitPackages(input, document, session, trust, once, "spark: ", "run", error, out _))
+        {
+            return 1;
+        }
+
         Graph graph = document.Restore(session.Library, scripts);
 
         EvaluationContext context = new(default, new SequentialEvaluationScheduler());
@@ -177,7 +206,7 @@ internal static class Program
 
         foreach (SparkDiagnostic diagnostic in result.Diagnostics)
         {
-            Console.Error.WriteLine($"spark: {diagnostic.Code}: {diagnostic.Message}");
+            error.WriteLine($"spark: {diagnostic.Code}: {diagnostic.Message}");
         }
 
         int reported = 0;
@@ -202,7 +231,7 @@ internal static class Program
             }
 
             reported++;
-            Console.WriteLine(string.Create(
+            output.WriteLine(string.Create(
                 CultureInfo.InvariantCulture,
                 $"{node.Definition.DisplayName}  {ValueText.Shape(value)}  {summary}"));
         }
@@ -211,11 +240,11 @@ internal static class Program
         {
             // Not an error, and not silence either: a graph with no watches in it ran perfectly
             // well and simply said nothing, which looks identical to a graph that did nothing.
-            Console.Error.WriteLine(
+            error.WriteLine(
                 "spark: no watch nodes in this graph. Add a Watch node, or run with --all.");
         }
 
-        Console.WriteLine(string.Create(
+        output.WriteLine(string.Create(
             CultureInfo.InvariantCulture,
             $"spark: {result.NodesEvaluated} node(s) evaluated, {result.CacheHits} cache hit(s), "
             + $"{result.Diagnostics.Count} diagnostic(s)"));
@@ -228,6 +257,10 @@ internal static class Program
     /// </summary>
     /// <param name="args">The arguments after the verb.</param>
     /// <param name="error">Where diagnostics go. <see cref="Console.Error"/> in the product.</param>
+    /// <param name="trust">
+    /// The record of package-folder assemblies the user has agreed to, or null for the one the
+    /// desktop application keeps. A test passes its own so that the user's is never touched.
+    /// </param>
     /// <returns>Zero when nothing errored, one otherwise.</returns>
     /// <remarks>
     /// <para>
@@ -265,13 +298,14 @@ internal static class Program
     /// cases print; only the first gets a name.
     /// </para>
     /// </remarks>
-    internal static int Check(ReadOnlySpan<string> args, TextWriter error)
+    internal static int Check(ReadOnlySpan<string> args, TextWriter error, PackageTrustStore? trust = null)
     {
         ArgumentNullException.ThrowIfNull(error);
 
         string? input = null;
         bool scripting = true;
         bool strict = false;
+        bool once = false;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -287,6 +321,10 @@ internal static class Program
 
                 case "--strict":
                     strict = true;
+                    break;
+
+                case "--trust-packages":
+                    once = true;
                     break;
 
                 default:
@@ -326,6 +364,14 @@ internal static class Program
             ? session.EnableScripting()
             : null;
 
+        int warned = 0;
+
+        if (scripts is not null
+            && !AdmitPackages(input, document, session, trust, once, $"spark: {input}: ", "checked", error, out warned))
+        {
+            return 1;
+        }
+
         Graph graph = document.Restore(session.Library, scripts);
 
         EvaluationContext context = new(default, new SequentialEvaluationScheduler());
@@ -336,7 +382,119 @@ internal static class Program
             error.WriteLine($"spark: {input}: {Describe(graph, diagnostic)}");
         }
 
-        return result.HasErrors || (strict && result.Diagnostics.Count > 0) ? 1 : 0;
+        return result.HasErrors || (strict && result.Diagnostics.Count + warned > 0) ? 1 : 0;
+    }
+
+    /// <summary>
+    /// Settles what a graph's code blocks may compile against from its own package folder, before
+    /// anything is built (`E7-T25`).
+    /// </summary>
+    /// <param name="input">The graph's path, which names the folder beside it.</param>
+    /// <param name="document">The graph as read, for the packages its file names.</param>
+    /// <param name="session">The session whose catalogue agreed assemblies are handed to.</param>
+    /// <param name="trust">The user's record, or null for the one the desktop application keeps.</param>
+    /// <param name="once">Whether <c>--trust-packages</c> was given.</param>
+    /// <param name="prefix">What every line starts with, which differs between the two verbs.</param>
+    /// <param name="refused">The last word of a refusal: <i>run</i> or <i>checked</i>.</param>
+    /// <param name="error">Where all of it is said.</param>
+    /// <param name="warnings">How many warnings were printed, which <c>--strict</c> counts.</param>
+    /// <returns>True to go on; false when the graph was refused, which has already been said.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The window's rule, with the question taken out.</b> The desktop application references only
+    /// assemblies whose bytes the user agreed to and asks about the rest (`E7-T16`). A build agent
+    /// has nobody to ask, so this references what the record already holds and <b>refuses</b> the
+    /// graph when anything else is there, naming each file and its full hash — refusing rather than
+    /// running without them, for <c>--no-script</c>'s reason: a block would then fail naming a type,
+    /// and the cause is the folder.
+    /// </para>
+    /// <para>
+    /// <b><c>--trust-packages</c> agrees for this run and records nothing</b>
+    /// (<see cref="GraphPackageGate.AgreeOnce"/> says why). An unreadable file is refused even then:
+    /// it has no hash, so there is nothing to agree to.
+    /// </para>
+    /// <para>
+    /// <b>Called only for a graph with code blocks</b>, the only thing that compiles against the
+    /// folder. A graph without one never reads it or the trust record, and never loads Roslyn
+    /// (`E6-T14`). <b>This is stricter than the command line is about code blocks themselves</b>,
+    /// which run unasked unless <c>--no-script</c> is given, and deliberately so — see N149.
+    /// </para>
+    /// </remarks>
+    private static bool AdmitPackages(
+        string input,
+        GraphDocument document,
+        SparkSession session,
+        PackageTrustStore? trust,
+        bool once,
+        string prefix,
+        string refused,
+        TextWriter error,
+        out int warnings)
+    {
+        warnings = 0;
+
+        // `E7-T17`: a package the file names and the folder does not hold is said first, because it
+        // is the explanation for the compile error a block that uses it is about to produce.
+        foreach (AbsentGraphPackage absent in GraphPackages.Absent(
+            input, document.Packages.Select(package => package.Path)))
+        {
+            error.WriteLine(
+                $"{prefix}warning: this graph expects '{absent.Name}' in "
+                + $"'{Path.GetFileName(absent.LookedIn)}' beside it, and it is not there.");
+
+            warnings++;
+        }
+
+        if (!Directory.Exists(GraphPackages.FolderFor(input)))
+        {
+            return true;
+        }
+
+        GraphPackageGate gate = new(
+            trust ?? PackageTrustStore.For(PackageStore.Default()),
+            () => session.ScriptReferences());
+
+        _ = gate.Open(input);
+
+        if (once)
+        {
+            _ = gate.AgreeOnce();
+        }
+
+        foreach (GraphAssembly assembly in gate.Pending.Where(assembly => assembly.Hash.Length == 0))
+        {
+            error.WriteLine(
+                $"{prefix}{assembly.Describe()} in the graph's package folder could not be read, so "
+                + $"the graph was not {refused}. A build may still be writing it.");
+        }
+
+        GraphAssembly[] unagreed = [.. gate.Pending.Where(assembly => assembly.Hash.Length > 0)];
+
+        if (unagreed.Length > 0)
+        {
+            bool one = unagreed.Length == 1;
+            string count = one
+                ? "an assembly"
+                : unagreed.Length.ToString(CultureInfo.InvariantCulture) + " assemblies";
+
+            error.WriteLine(
+                $"{prefix}the graph's package folder holds {count} nobody has agreed to load, so it was not {refused}:");
+
+            // The full hash, where the window shows eight characters: a log is compared against a
+            // known build by a script as often as by eye.
+            foreach (GraphAssembly assembly in unagreed)
+            {
+                error.WriteLine($"{prefix}  {assembly.Describe()}  sha256 {assembly.Hash}");
+            }
+
+            string them = one ? "it" : "them";
+
+            error.WriteLine(
+                $"{prefix}agree to {them} by opening the graph in Spark, or pass --trust-packages "
+                + $"to use {them} for this run only, recording nothing.");
+        }
+
+        return gate.Pending.IsEmpty;
     }
 
     /// <summary>
@@ -841,19 +999,24 @@ internal static class Program
     {
         Console.WriteLine("spark — the Spark command line");
         Console.WriteLine();
-        Console.WriteLine("  spark run GRAPH.spark [--all] [--no-script]");
+        Console.WriteLine("  spark run GRAPH.spark [--all] [--no-script] [--trust-packages]");
         Console.WriteLine("      Evaluate a graph with no window and print what its watches saw.");
         Console.WriteLine("      --all prints every node's value instead, which is what a diff wants.");
         Console.WriteLine("      --no-script refuses a graph containing a code block. A Spark graph is");
         Console.WriteLine("      executable code; this is how a build declines to run somebody else's.");
+        Console.WriteLine("      A graph whose GRAPH.packages folder holds an assembly nobody has agreed");
+        Console.WriteLine("      to in Spark is refused, naming each one and its hash. --trust-packages");
+        Console.WriteLine("      uses them for this run only, and records nothing.");
         Console.WriteLine();
-        Console.WriteLine("  spark check GRAPH.spark [--strict] [--no-script]");
+        Console.WriteLine("  spark check GRAPH.spark [--strict] [--no-script] [--trust-packages]");
         Console.WriteLine("      Evaluate a graph with no window and say nothing unless something");
         Console.WriteLine("      is wrong. Exit 1 if any node errored or the file would not open.");
         Console.WriteLine("      Warnings print and do not fail, because a gate that refused every");
         Console.WriteLine("      one is a gate somebody turns off. --strict fails on any of them,");
         Console.WriteLine("      which is what you want when a replication can fail wholesale and");
         Console.WriteLine("      still only be a warning. For build scripts.");
+        Console.WriteLine("      --trust-packages as for run; a package the file names and the folder");
+        Console.WriteLine("      lacks is a warning, which --strict fails.");
         Console.WriteLine();
         Console.WriteLine("  spark export --open GRAPH.spark --out FILE.[obj|stl|ply|glb] [--tolerance T]");
         Console.WriteLine("      Evaluate a graph with no window and write its geometry.");

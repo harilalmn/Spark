@@ -165,13 +165,35 @@ public sealed class GraphPackageGate
     /// agreeing to a path instead would agree once to a filename and then load whatever later
     /// occupied it, which is exactly the decision the client ruled out.
     /// </remarks>
-    public int Agree()
+    public int Agree() => Admit(record: true);
+
+    /// <summary>
+    /// References every readable pending assembly for as long as this gate holds them, and records
+    /// nothing (`E7-T25`).
+    /// </summary>
+    /// <returns>How many were referenced.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The command line's answer, and the reason it is not <see cref="Agree"/>.</b> A build agent
+    /// or a scheduled job has nobody to ask, and writing a standing permission from a machine nobody
+    /// is watching would turn one run's instruction into every later run's default — and into the
+    /// desktop application's, which reads the same record and would then load the same bytes
+    /// without asking anybody. The person who typed <c>--trust-packages</c> agreed to one run.
+    /// </para>
+    /// <para>An unreadable file stays pending here too, for <see cref="Agree"/>'s reason.</para>
+    /// </remarks>
+    public int AgreeOnce() => Admit(record: false);
+
+    private int Admit(bool record)
     {
         GraphAssembly[] readable = [.. Pending.Where(assembly => assembly.Hash.Length > 0)];
 
-        foreach (GraphAssembly assembly in readable)
+        if (record)
         {
-            _trust.Trust(assembly.Hash);
+            foreach (GraphAssembly assembly in readable)
+            {
+                _trust.Trust(assembly.Hash);
+            }
         }
 
         Pending = [.. Pending.Where(assembly => assembly.Hash.Length == 0)];

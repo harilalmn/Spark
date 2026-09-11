@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-11 (N144–N148: a removed reference kept its import; two stores over one file; a key the file owns; Save asks first; a screenshot is not consent)
+**Last updated:** 2026-09-11 (N144–N149: a removed reference kept its import; two stores over one file; a key the file owns; Save asks first; a screenshot is not consent; the command line holds a DLL to a stricter rule than a code block)
 
 ---
 
@@ -4490,3 +4490,31 @@ trust, and a held-back graph is photographed as a user would see it: unrun, with
 **The general form.** `EvaluateAsync` is public and runs whatever is on the canvas. Every caller
 outside the trust decision — a pose, a benchmark, a startup switch — has to ask `IsAwaitingTrust`
 first, or it is a way round the rule.
+
+## N149 — The command line holds a graph's DLLs to a stricter rule than its code blocks
+
+`spark run` and `spark check` compile and run a graph's code blocks without asking. That is
+`E6-T16`'s posture for the command line: a build runs its own graphs, and `--no-script` is how it
+declines somebody else's. Since `E7-T25` the same verbs **refuse** a graph whose `.packages` folder
+holds an assembly nobody has agreed to, unless `--trust-packages` is given. That looks inconsistent,
+and since a code block can already do anything a DLL can, it looks like theatre as well. It is
+neither.
+
+**The code is in the file; the DLL is not.** A code block's source is text inside the `.spark` — it
+arrives in a diff, a reviewer reads it in a pull request, and `git blame` says who wrote it. An
+assembly beside the graph is opaque bytes that can change without the graph changing at all. A
+build that runs a reviewed graph has in effect agreed to its code blocks; it has agreed to nothing
+about a binary that arrived in the same folder.
+
+**And the desktop application already asks about exactly these bytes.** Consent is per SHA-256,
+given once in the window (`E7-T16`), so the ordinary case — a graph somebody opened in Spark and
+agreed to — passes on the command line with nothing added. Only what no person has looked at is
+refused.
+
+**What would be wrong: making `--trust-packages` record its decision.** The trust file is shared
+with the desktop application, so a scheduled job would silently become consent for the window as
+well. It references for one run and writes nothing — `GraphPackageGate.AgreeOnce`.
+
+**And do not "fix" the asymmetry by gating code blocks on the command line** as a side effect of
+something else. It would break every build script that runs its own graphs today, and whether it
+should is `E6-T16`'s decision to revisit on its own terms.

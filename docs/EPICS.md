@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E7-T16`, `E7-T17`, `E7-T19`: a graph's packages are gated, named in the file, and carried by Save As)
+**Last updated:** 2026-09-11 (`E7-T16`, `E7-T17`, `E7-T19`, `E7-T25`: a graph's packages are gated, named in the file, carried by Save As, and read by the command line)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -811,8 +811,10 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       closed 2026-09-11**: the file names its packages first, at format version 5, and a missing
       one is named in the banner when the graph opens — before anything is built, and without the
       graph being refused. **`E7-T19` closed the same day**: Save As copies the folder beside the
-      new file — copied, never moved, and merged without overwriting what is already there. **What
-      is left is `E7-T25`**, the command line reading the folder.
+      new file — copied, never moved, and merged without overwriting what is already there.
+      **`E7-T25` closed the same day, and with it the group**: `spark run` and `spark check` read
+      the folder behind the same consent, refuse an assembly nobody agreed to by name and full
+      hash, and take `--trust-packages` for one run, recording nothing.
 - [x] Recursion is refused at save **and** at load, with the containment path reported
       (**E7-T13**). *Both sides done 2026-08-31. The load side catches a file that arrived
       recursive; the save side catches one being made recursive, which in practice means a
