@@ -35,6 +35,16 @@ public sealed record GraphAssembly(string Path, string Hash, string Package)
 /// <param name="LookedIn">The folder Spark looked in, which is the one named after the file.</param>
 public sealed record AbsentGraphPackage(string Recorded, string Name, string LookedIn);
 
+/// <summary>What carrying a graph's package folder to a new file did (`E7-T19`).</summary>
+/// <param name="From">The folder copied from.</param>
+/// <param name="To">The folder copied into.</param>
+/// <param name="Copied">How many files were copied.</param>
+/// <param name="Kept">
+/// How many were already at the destination and left alone, because they belong to whatever graph
+/// was there before.
+/// </param>
+public sealed record GraphFolderCopy(string From, string To, int Copied, int Kept);
+
 /// <summary>
 /// The packages that live beside a graph, in <c>&lt;name&gt;.packages</c> (`E7-T16`,
 /// [ADR-0024](../../docs/adr/0024-graph-local-package-folder.md)).
@@ -351,6 +361,75 @@ public sealed class GraphPackages
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Copies a graph's package folder to sit beside a file it is being saved as (`E7-T19`).
+    /// </summary>
+    /// <param name="fromGraph">The <c>.spark</c> file the graph was saved as until now.</param>
+    /// <param name="toGraph">The <c>.spark</c> file it is being saved as.</param>
+    /// <returns>What was copied and what was kept; zero and zero when there was nothing to carry.</returns>
+    /// <exception cref="ArgumentException">Either path is null or blank.</exception>
+    /// <exception cref="IOException">A file could not be copied.</exception>
+    /// <exception cref="UnauthorizedAccessException">The destination could not be written.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>The client's call, and the reasoning is theirs</b>: renaming the package folder would
+    /// otherwise become the user's problem. Save As is the one rename Spark performs itself, so it is
+    /// the one Spark can carry the folder through — and since `E7-T17` the new file records its
+    /// packages under the new name, so a copy without its folder reopens with every one of them
+    /// named absent.
+    /// </para>
+    /// <para>
+    /// <b>Copied, not moved</b>, because Save As leaves the original file where it was and must leave
+    /// it working. <b>Merged, not overwritten</b>, when the destination already has a folder: it
+    /// belongs to whatever graph was saved under that name before, and a save that silently replaced
+    /// somebody's library with a different build of it would change what their graph computes. A
+    /// file already there is counted as kept and left alone.
+    /// </para>
+    /// <para>
+    /// <b>A staged download is not carried</b>, for the reason <see cref="Discover"/> skips it: it is
+    /// half an extract whose disclosure may not have been answered. The listing is taken before
+    /// anything is written, so a destination inside the source cannot copy into itself forever.
+    /// </para>
+    /// </remarks>
+    public static GraphFolderCopy CopyFolder(string fromGraph, string toGraph)
+    {
+        string from = FolderFor(fromGraph);
+        string to = FolderFor(toGraph);
+
+        if (string.Equals(from, to, StringComparison.OrdinalIgnoreCase) || !Directory.Exists(from))
+        {
+            return new GraphFolderCopy(from, to, 0, 0);
+        }
+
+        int copied = 0;
+        int kept = 0;
+
+        foreach (string file in Directory.EnumerateFiles(from, "*", SearchOption.AllDirectories).ToList())
+        {
+            string relative = Path.GetRelativePath(from, file);
+            string first = relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[0];
+
+            if (first.EndsWith(NuGetPackageClient.StagingSuffix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            string destination = Path.Combine(to, relative);
+
+            if (File.Exists(destination))
+            {
+                kept++;
+                continue;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            File.Copy(file, destination, overwrite: false);
+            copied++;
+        }
+
+        return new GraphFolderCopy(from, to, copied, kept);
     }
 
     /// <summary>

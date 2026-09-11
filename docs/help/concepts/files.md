@@ -260,7 +260,14 @@ the package does not quietly edit it for the machine that has one.
 **Renamed the file in Explorer?** Spark looks in the folder named after the file as it is now. If
 you renamed `tower.spark` to `tower-v2.spark` and left the folder alone, the banner names both —
 the file names them under `'tower.packages'`, Spark looked in `'tower-v2.packages'` — and renaming
-the folder to match brings them back. **Save as…** records the new name for you.
+the folder to match brings them back.
+
+**Save as… takes the folder with it.** Saving `tower.spark` as `tower-v2.spark` copies
+`tower.packages` to `tower-v2.packages` and records the new name — a **copy**, so `tower.spark` still
+opens with everything it had. If a folder by the new name is already there, nothing in it is
+overwritten: it belongs to whatever graph was saved under that name before. The status bar says
+what was copied and what was left alone, and a graph with large packages takes as long to Save as…
+as it takes to copy them.
 
 ---
 

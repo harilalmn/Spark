@@ -2041,6 +2041,92 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// Copies the graph's package folder to sit beside a file it is about to be saved as
+    /// (`E7-T19`).
+    /// </summary>
+    /// <param name="target">The file the graph is about to be written to.</param>
+    /// <returns>A sentence for the status bar, or null when there was nothing to carry.</returns>
+    /// <exception cref="ArgumentException"><paramref name="target"/> is null or blank.</exception>
+    /// <remarks>
+    /// <b>Called before the text is produced</b>, so that what the new file records is what is beside
+    /// it. A copy that fails is said in the sentence and does not stop the save: the file is written,
+    /// and when it is reopened the banner names whatever did not make it, which is the honest
+    /// outcome and the one the user can act on.
+    /// </remarks>
+    public string? CarryPackagesTo(string target)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(target);
+
+        if (GraphPath is not { } current)
+        {
+            return null;
+        }
+
+        try
+        {
+            Spark.Packages.GraphFolderCopy copy = Spark.Packages.GraphPackages.CopyFolder(current, target);
+
+            if (copy.Copied == 0 && copy.Kept == 0)
+            {
+                return null;
+            }
+
+            string folder = Path.GetFileName(copy.To);
+            string text = string.Create(
+                CultureInfo.InvariantCulture,
+                $"Copied {copy.Copied} package file{(copy.Copied == 1 ? string.Empty : "s")} into '{folder}'.");
+
+            return copy.Kept == 0
+                ? text
+                : text + string.Create(
+                    CultureInfo.InvariantCulture,
+                    $" {copy.Kept} already there {(copy.Kept == 1 ? "was" : "were")} left as {(copy.Kept == 1 ? "it was" : "they were")}.");
+        }
+        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException)
+        {
+            return "The graph's packages folder could not be copied beside the new file: " + failure.Message;
+        }
+    }
+
+    /// <summary>
+    /// Records that the document has just been written to a file (`E7-T19`).
+    /// </summary>
+    /// <param name="path">The file it was written to.</param>
+    /// <exception cref="ArgumentException"><paramref name="path"/> is null or blank.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>What the file records is now what was just written</b>, so the list carried to the next
+    /// save is re-derived for this path — and the banner re-checked against it, so a Save As whose
+    /// copy fell short says so without the user reopening anything.
+    /// </para>
+    /// <para>
+    /// <b>When the path moved, the package gate moves with it.</b> The graph now installs into the
+    /// new folder (`E7-T21`), and a gate still pointed at the old one would never release what was
+    /// installed there. A plain Save to the same file leaves the gate alone, because re-opening it
+    /// would drop and re-add every reference and rebuild every block for no change at all.
+    /// </para>
+    /// </remarks>
+    public void NoteSavedTo(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        bool moved = GraphPath is not { } previous
+            || !string.Equals(Path.GetFullPath(previous), Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase);
+
+        IReadOnlyList<string> recorded = Spark.Packages.GraphPackages.ToRecord(path, _recordedPackages);
+
+        NoteGraphPath(path);
+
+        if (moved)
+        {
+            _ = PackageGate.Open(path);
+            PackageBanner = PackageGate.Banner;
+        }
+
+        NotePackageRecord(recorded, AbsentFrom(path, recorded));
+    }
+
     /// <summary>The key handed out by the last call to <see cref="NextCustomNodeIdentity"/>.</summary>
     public NodeKey LastCustomNodeKey { get; private set; }
 

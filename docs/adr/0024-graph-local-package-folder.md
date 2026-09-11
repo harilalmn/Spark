@@ -181,3 +181,20 @@ sibling folder, and **no hash** — and four more came up in the building.
   of a `.spark` now depends on what it is called, and Save As cannot produce it until it knows. A
   graph the format cannot write is reported after the dialog rather than before it — one dialog
   the user did not need, and nothing lost.
+
+## What carrying the folder settled (2026-09-11, `E7-T19`)
+
+The client's two calls — copy rather than move, and a rename outside Spark is not tracked — held
+as written. Three more were needed.
+
+- **A folder already at the destination is merged, and nothing in it is overwritten.** Saving over
+  `tower.spark` means that folder belongs to the graph being replaced, and replacing its
+  `Helpers.dll` with a different build would change what that graph computes without anybody
+  asking. What was left alone is counted, and the status bar says so.
+- **The package gate follows the file.** After Save As the graph installs into the new folder, so a
+  gate still keyed to the old one would release by the wrong folder when the next graph opened. A
+  plain Save does not move it, because re-opening would drop and re-add every reference and rebuild
+  every block for no change.
+- **A failed copy does not stop the save.** The file is written, the status bar carries the reason,
+  and on reopening the banner names whatever did not arrive — an outcome a user can act on, where a
+  save that silently did not happen is not.

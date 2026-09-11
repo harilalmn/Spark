@@ -156,6 +156,49 @@ public sealed class GraphPackageRecordTests : IDisposable
         Assert.DoesNotContain("packages", model.TrySaveDocument(), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// <b>`E7-T19` through the window</b>: Save As carries the folder, the saved-as copy reopens with
+    /// nothing absent, the original still has its folder, and the package gate follows the file.
+    /// </summary>
+    [Fact]
+    public void SaveAsCarriesThePackagesAndTheCopyReopensClean()
+    {
+        Directory.CreateDirectory(_folder);
+        File.WriteAllText(Path.Combine(_folder, "Helpers.dll"), "x");
+
+        string renamed = Path.Combine(_root, "renamed.spark");
+
+        using MainWindowViewModel model = Model();
+        Assert.True(model.TryOpenDocument(Naming("facade.packages/Helpers.dll"), _graph));
+
+        Assert.Contains("renamed.packages", model.CarryPackagesTo(renamed), StringComparison.Ordinal);
+
+        string text = Assert.IsType<string>(model.TrySaveDocument(renamed));
+        File.WriteAllText(renamed, text);
+        model.NoteSavedTo(renamed);
+
+        Assert.Equal(GraphPackages.FolderFor(renamed), model.PackageGate.Folder);
+        Assert.Empty(model.AbsentPackageNames);
+        Assert.True(File.Exists(Path.Combine(_folder, "Helpers.dll")), "the original lost its package");
+
+        using MainWindowViewModel reopened = Model();
+        Assert.True(reopened.TryOpenDocument(text, renamed));
+        Assert.Empty(reopened.AbsentPackageNames);
+    }
+
+    /// <summary>A Save to the file the graph already lives in carries nothing.</summary>
+    [Fact]
+    public void ASaveToTheSameFileCarriesNothing()
+    {
+        Directory.CreateDirectory(_folder);
+        File.WriteAllText(Path.Combine(_folder, "Helpers.dll"), "x");
+
+        using MainWindowViewModel model = Model();
+        Assert.True(model.TryOpenDocument(Naming("facade.packages/Helpers.dll"), _graph));
+
+        Assert.Null(model.CarryPackagesTo(_graph));
+    }
+
     private MainWindowViewModel Model()
     {
         MainWindowViewModel model = new();

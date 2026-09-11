@@ -1050,6 +1050,12 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        // `E7-T19`: SAVE AS CARRIES THE GRAPH'S PACKAGES WITH IT, and before the text is produced,
+        // so that what the new file records is what is beside it. Copied, not moved - the client's
+        // call - because Save As leaves the original file where it was and must leave it working.
+        // A plain Save to the same file carries nothing.
+        string? carried = model.CarryPackagesTo(target);
+
         // `E7-T17`: written for the file it is about to become, which is why this now comes after
         // the question rather than before it - the packages a graph records are named relative to
         // its file, so Save As has to record the new name. A graph that cannot be written is
@@ -1070,12 +1076,14 @@ public sealed partial class MainWindow : Window
             _documentPath = target;
 
             // The graph has a file now, so a Packages window that was refusing stops refusing
-            // (`E7-T18`) - on the window already open, rather than on the next one.
-            model.NoteGraphPath(_documentPath);
+            // (`E7-T18`) - on the window already open, rather than on the next one. And when the
+            // file moved, the package gate moves with it (`E7-T19`).
+            model.NoteSavedTo(_documentPath);
 
             // `E8-T79`: what is on the canvas is now what is on disk.
             model.MarkSaved();
-            model.StatusText = "Saved to " + Path.GetFileName(target) + ".";
+            model.StatusText = "Saved to " + Path.GetFileName(target) + "."
+                + (carried is null ? string.Empty : " " + carried);
             UpdateTitle();
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
@@ -1084,6 +1092,7 @@ public sealed partial class MainWindow : Window
         }
 
         UpdateStatus();
+        UpdateMissingBanner();
     }
 
     /// <summary>Asks where the graph should go, and returns the path or null.</summary>
