@@ -186,4 +186,47 @@ public sealed class SurfaceClosestPointNearDegeneraciesTests
 
         Assert.True(miss <= 1e-12, $"a point at ({alongU}, {alongV}) on the annulus is answered {miss:e3} away");
     }
+
+    /// <summary>
+    /// <b>`E2-T63`'s query.</b> A point exactly <i>on</i> the fold — the annulus's inner rim — comes
+    /// back as itself.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// There the answer is a genuine minimum with a singular Hessian: the radial error is v²/0.4, so
+    /// the distance is quartic in <c>v</c>. At 99.9% round the reseed stepped off the rim, and
+    /// Newton's first step — far better than the reseed, but not quite as good as the seed — was
+    /// refused by a line search comparing with the seed; <c>Contract</c> then crept to 1.8e-5 of the
+    /// reach. The line search now compares with where the iteration is.
+    /// </para>
+    /// <para>
+    /// <b>1e-10, not 1e-12, and the reason is measured.</b> On the rim Newton converges linearly —
+    /// every step two thirds of the last, the signature of a quartic — and at 99% round it runs out
+    /// of iterations 3.7e-11 away. Stretching the step once the ratio settles finished that point
+    /// off, and made a point just past the seam's other end worse by eight orders of magnitude, so
+    /// it was taken out again ([N152](../../docs/NOTES.md)). The 99.9% point failed at 5.3e-5 before
+    /// the fix, so this bound still catches the defect this test is for.
+    /// </para>
+    /// <para>
+    /// Half way round and next to the seam are the controls, which were already exact.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData(0.999)]
+    [InlineData(0.99)]
+    [InlineData(0.5)]
+    [InlineData(0.001)]
+    public void APointOnAFoldIsItsOwnClosestPoint(double alongU)
+    {
+        RevolutionSurface annulus = new(
+            new Line(new Point3d(0.2, 0.0, 0.0), new Point3d(0.2, 1.0, 0.0)),
+            Point3d.Origin,
+            new Vector3d(0.0, 0.0, 1.0));
+
+        Point3d on = annulus.PointAt(annulus.DomainU.Denormalise(alongU), annulus.DomainV.Min);
+
+        double miss = annulus.ClosestPoint(on, out _, out _).DistanceTo(on);
+
+        Assert.True(miss <= 1e-10, $"a point {alongU} of the way round the rim is answered {miss:e3} away");
+    }
 }

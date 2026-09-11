@@ -371,6 +371,14 @@ public abstract class Surface
         //
         // The loop exits the moment the step falls below the noise floor, so a well-behaved query
         // still finishes in three or four passes and pays nothing for the larger budget.
+        // `E2-T63`: THE LINE SEARCH COMPARES WITH WHERE THE ITERATION IS, and the best is kept apart.
+        //
+        // After a reseed those are different points, and the reseed can be farther than the seed:
+        // on a fold it steps off the very row the answer is on. Compared with the seed, a first
+        // step that improved enormously on the reseed but not quite on the seed was refused, and a
+        // point on the rim of a revolved annulus came back from `Contract` 1.8e-5 of the reach away.
+        double current = Evaluate(u, v).DistanceSquaredTo(point);
+
         for (int iteration = 0; iteration < 24; iteration++)
         {
             NewtonOutcome outcome = NewtonStep(point, u, v, out double stepU, out double stepV);
@@ -381,13 +389,17 @@ public abstract class Surface
             }
 
             if (outcome == NewtonOutcome.Singular
-                || !Descend(point, ref u, ref v, stepU, stepV, ref best))
+                || !Descend(point, ref u, ref v, stepU, stepV, ref current))
             {
                 return false;
             }
 
-            bestU = u;
-            bestV = v;
+            if (current < best)
+            {
+                best = current;
+                bestU = u;
+                bestV = v;
+            }
         }
 
         return false;
@@ -1216,7 +1228,10 @@ public abstract class Surface
     /// <param name="v">Its <c>v</c>, likewise.</param>
     /// <param name="stepU">The full Newton step in <c>u</c>.</param>
     /// <param name="stepV">The full Newton step in <c>v</c>.</param>
-    /// <param name="best">The best squared distance so far, lowered when a step improves it.</param>
+    /// <param name="current">
+    /// The squared distance where the iteration stands, lowered when a step improves on it. Not the
+    /// best seen so far: after a reseed those are different points (`E2-T63`).
+    /// </param>
     /// <returns>Whether any fraction of the step improved on where it started.</returns>
     /// <remarks>
     /// <para>
@@ -1233,7 +1248,7 @@ public abstract class Surface
     /// </para>
     /// </remarks>
     private bool Descend(
-        in Point3d point, ref double u, ref double v, double stepU, double stepV, ref double best)
+        in Point3d point, ref double u, ref double v, double stepU, double stepV, ref double current)
     {
         double fraction = 1.0;
 
@@ -1247,9 +1262,9 @@ public abstract class Surface
 
             double distance = Evaluate(nextU, nextV).DistanceSquaredTo(point);
 
-            if (distance < best)
+            if (distance < current)
             {
-                best = distance;
+                current = distance;
                 u = nextU;
                 v = nextV;
 

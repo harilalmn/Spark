@@ -109,22 +109,21 @@ public sealed class SurfaceProperties
         {
             foreach (Surface surface in SurfacesAt(scene))
             {
-                // A TEN-THOUSANDTH OF THE SURFACE, AND THE NUMBER IS MEASURED RATHER THAN CHOSEN.
+                // A BILLIONTH OF THE SURFACE, AND THE NUMBER IS MEASURED RATHER THAN CHOSEN.
                 //
                 // Seven of the eight types answer to within 1e-12 of their own reach. The revolution
                 // surface here folds: its profile runs tangent to the circle it sweeps at `v = 0`, so
-                // the parameterisation is singular along that edge. Two things happened there.
+                // the parameterisation is singular along that edge. Its worst is 1.3e-10, a point
+                // exactly on the fold, where the distance is quartic in `v` and Newton converges
+                // linearly - two thirds of the error per step - until its iterations run out. 1e-9
+                // sits outside that, and everything else here is far inside it.
                 //
-                // Beside the fold, 1% along `v`, Newton overshot onto it, clamped, and converged on a
-                // saddle of the distance 8.5e-5 of the reach from the answer. `E2-T62` fixed that - a
-                // converged point is checked for being a minimum - and it now answers to 1e-17;
-                // `SurfaceClosestPointNearDegeneraciesTests` holds that query to 1e-12 on its own.
-                //
-                // Exactly on the fold, the distance is quartic in `v` and Newton creeps: a point at
-                // 99.9% round the rim is answered 1.8e-5 of the reach away, before and after
-                // `E2-T62` alike. That is `E2-T63`. 1e-4 sits five times outside it and is ten times
-                // tighter than the 1e-3 this read before; tighten it again when `E2-T63` closes.
-                double slack = Reach(surface) * 1e-4;
+                // It read 1e-3 until `E2-T62` and `E2-T63` (N152). Beside the fold, Newton converged
+                // on a saddle 8.5e-5 of the reach away; on it, a line search comparing with the seed
+                // refused the one step that mattered and a compass search crept to 1.8e-5. Each has
+                // a named example in `SurfaceClosestPointNearDegeneraciesTests`, and at this bound
+                // the property catches either of them coming back as well.
+                double slack = Reach(surface) * 1e-9;
 
                 foreach ((double a, double b) in FractionsToTheEdge())
                 {

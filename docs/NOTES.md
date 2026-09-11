@@ -4588,7 +4588,19 @@ Moving along that eigenvector, with halvings, finds a closer point, and Newton r
 minimum costs one evaluation of the second derivatives to confirm. The threshold is relative,
 because on a fold a true minimum's matrix is singular and rounding gives its zero eigenvalue a sign.
 
-**What it does not fix (`E2-T63`).** A point exactly *on* the fold is a genuine minimum with a
-singular Hessian: the distance is quartic in `v` there, Newton creeps, and one query stops 1.8e-5 of
-the reach away. That is slow convergence to the right point rather than fast convergence to the
-wrong one, and it was there before `E2-T62` too.
+**And exactly on the fold (`E2-T63`), a different mechanism.** A point on the rim itself is a
+genuine minimum with a singular Hessian — the distance is quartic in `v` there — and one such point
+was answered 1.8e-5 of the reach away, identically before and after the saddle fix. A trace showed the
+reseed stepping *off* the rim, because `ReseedOffDegeneracy` treats the smaller derivative as the
+collapsed one and on a fold neither is; Newton's first step from there was enormously better than the
+reseed and a hair worse than the seed, and `Descend` compared with the seed, so it refused it and
+`Contract` crept. **The line search now compares with where the iteration is, and the best point is
+kept apart** — the change that was measured and rejected for `E2-T62`, where nothing reached it, and
+is proved here by a query that does.
+
+**A third change was tried and taken out.** On the rim Newton goes linear, every step two thirds of the
+last, so stretching a step by 1/(1 − r) once the ratio r settled finished one rim point off exactly —
+and made a point just past the seam's other end worse by eight orders of magnitude, found only because
+the property was measured at a tighter bound than it asserts. So a rim point stops about 1e-10 of the
+reach away, which is where the property's bound comes from. **Measure a bound one order tighter than
+you assert**: that is where the next defect is.
