@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E9-T7` criterion ticked: the viewport epic has no open row)
+**Last updated:** 2026-09-11 (`E8-T12` criterion written and ticked: Settings)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -906,6 +906,10 @@ another.
       what stops two independent chains interleaving. The selection is the scope only when it holds
       more than one node.*
 - [x] LOD below 40% zoom (**E8-T7**).
+- [x] The preferences Spark remembers are in one Settings window, and each is saved as it
+      changes (**E8-T12**). *Done 2026-09-11. Written as a criterion the same day it was met,
+      because the row had none: the update check, the code font and tidying on Enter, over
+      the preference files that already held them, from File > Settings... and `Ctrl+,`.*
 - [ ] A 2000-node synthetic graph pans and zooms at 60 fps, benchmarked nightly from M2
       (**E8-T15**). *The nightly exists and the budget is this criterion stated as a number —
       16.7 ms median is one frame at 60 fps. Locally it holds with room to spare: 1.60 ms median

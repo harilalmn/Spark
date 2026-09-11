@@ -765,6 +765,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// </remarks>
     public static void ApplyRememberedCodeFont() => CodeFont.Use(new CodeFontPreference().Family);
 
+    /// <summary>
+    /// Keeps the code-font choice in a chosen file rather than the user's, so a test never changes
+    /// what the person running it picked (<c>E8-T12</c>).
+    /// </summary>
+    /// <param name="preference">Where the choice is remembered.</param>
+    internal void UseCodeFontPreference(CodeFontPreference preference) =>
+        _codeFont = preference ?? throw new ArgumentNullException(nameof(preference));
+
     /// <summary>The faces a code block can be drawn in (`E8-T59`).</summary>
     /// <remarks>
     /// <b>The shipped face, then the monospaced fonts on this machine</b>, filtered by measuring

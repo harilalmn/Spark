@@ -160,6 +160,8 @@
           <MenuItem Header="Open so_lids example" Click="OnLoadSolids" />
           <Separator />
           <MenuItem Header="_Packages…" Click="OnOpenPackages" />
+          <!-- E8-T12: the preferences Spark remembers, in one place. -->
+          <MenuItem Header="Se_ttings…" InputGesture="Ctrl+OemComma" Click="OnOpenSettings" />
           <Separator />
           <MenuItem Header="E_xit" Click="OnExit" />
         </MenuItem>

@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E9-T7` and `E9-T8` done; `E8-T12` next)
+**Last updated:** 2026-09-11 (`E8-T12` done; geometry breadth next)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -225,7 +225,8 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >    **Blocked 2026-09-11 on the toolchain**, with `E13-T21`: the OpenCascade install is gone.
 > 7. ~~**`E9-T8`**~~ and ~~**`E9-T7`**~~ **done 2026-09-11**: a click on geometry selects its node,
 >    and tessellation is parallel and streams during a run.
-> 8. **`E8-T12`** — Settings.
+> 8. ~~**`E8-T12`** — Settings~~ **done 2026-09-11**: one window over the three preferences that
+>    already persisted.
 > 9. Geometry breadth — **`E2-T11`**, **`E2-T16`**, **`E2-T21`**, **`E2-T13`**, **`E2-T14`** — then
 >    the importer's **`E5-T9`** and **`E5-T10`**, then **`E3-T21`**, **`E3-T14`** and **`E3-T20`**.
 > 10. The Dynamo parity rows (`E2-T41` … `E2-T46`, `E5-T14`, `E11-T23`), the largest and the least

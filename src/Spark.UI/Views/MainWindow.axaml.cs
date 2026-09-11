@@ -122,6 +122,7 @@ public sealed partial class MainWindow : Window
     private HelpWindow? _help;
     private AboutWindow? _about;
     private PackageWindow? _packages;
+    private SettingsWindow? _settings;
 
     /// <summary>
     /// Whether the user wants Spark to look for updates, read once and written when they say
@@ -557,6 +558,47 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    /// <summary>Opens Settings over the session's own preferences (<c>E8-T12</c>).</summary>
+    /// <remarks>
+    /// <b>Over the same preference objects the rest of the window uses</b>, the update check above
+    /// all: the Help menu's tick reads <c>_updatePreference</c>, so a change made here moves the tick,
+    /// and turning the check on runs it at once, as the tick does.
+    /// </remarks>
+    private void OnOpenSettings(object? sender, RoutedEventArgs e)
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        if (_settings is { IsVisible: true })
+        {
+            _settings.Activate();
+            return;
+        }
+
+        SettingsViewModel settings = new(model, _updatePreference);
+
+        settings.PropertyChanged += (_, changed) =>
+        {
+            if (changed.PropertyName != nameof(SettingsViewModel.ChecksForUpdates))
+            {
+                return;
+            }
+
+            UpdateCheckToggle.IsChecked = settings.ChecksForUpdates;
+
+            if (settings.ChecksForUpdates)
+            {
+                StartUpdateCheck(force: true);
+            }
+        };
+
+        _settings = new SettingsWindow(settings);
+        _settings.Closed += (_, _) => _settings = null;
+        _settings.Show(this);
+    }
+
     /// <summary>Turns the update check on or off, and remembers the answer.</summary>
     private void OnToggleUpdateCheck(object? sender, RoutedEventArgs e)
     {
@@ -719,6 +761,14 @@ public sealed partial class MainWindow : Window
         if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.L)
         {
             OnCleanUpLayout(this, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
+        // E8-T12. Ctrl+comma is where the platforms' own applications keep their settings.
+        if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.OemComma)
+        {
+            OnOpenSettings(this, new RoutedEventArgs());
             e.Handled = true;
             return;
         }
