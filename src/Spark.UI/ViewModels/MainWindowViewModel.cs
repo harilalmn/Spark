@@ -404,7 +404,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// boundary rather than a setting.
     /// </remarks>
     public MainWindowViewModel(string? startupGraph, string? startupDocumentPath, bool noScript)
+        : this(startupGraph, startupDocumentPath, noScript, DefaultBundleFolder())
     {
+    }
+
+    /// <summary>
+    /// Creates the view model with the folder a startup bundle is opened into named, so that a test
+    /// never writes into the user's profile (<c>E3-T20</c>).
+    /// </summary>
+    /// <param name="startupGraph">The seeded graph to open, or null.</param>
+    /// <param name="startupDocumentPath">A <c>.spark</c> or <c>.sparkz</c> file to open instead, or null.</param>
+    /// <param name="noScript">True to refuse scripting permanently.</param>
+    /// <param name="bundleFolder">Where opened bundles are unpacked.</param>
+    internal MainWindowViewModel(string? startupGraph, string? startupDocumentPath, bool noScript, string bundleFolder)
+    {
+        BundleFolder = bundleFolder;
+
         if (noScript)
         {
             _session.DisableScripting();
@@ -432,6 +447,25 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         Inspector = [];
 
         string? failure = null;
+
+        // `E3-T20`: A BUNDLE ON THIS DOOR, AS ON FILE > OPEN. It is unpacked into a folder of its own
+        // and the graph there is what opens, so everything below - the package record, the trust
+        // decision, the package gate - sees an ordinary file and applies its rules to it unchanged.
+        if (!string.IsNullOrWhiteSpace(startupDocumentPath)
+            && startupDocumentPath.EndsWith(Spark.Packages.SparkBundle.Extension, StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                startupDocumentPath = Spark.Packages.SparkBundle.Unpack(
+                    startupDocumentPath, Path.Combine(BundleFolder, ContentName(startupDocumentPath)));
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                failure = $"That bundle could not be opened: {error.Message}";
+                startupDocumentPath = null;
+            }
+        }
+
         CanvasGraph? opened = null;
         IReadOnlyList<string> startupRecorded = [];
         IReadOnlyList<Spark.Packages.AbsentGraphPackage> startupAbsent = [];

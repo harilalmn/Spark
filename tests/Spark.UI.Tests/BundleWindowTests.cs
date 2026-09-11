@@ -69,6 +69,24 @@ public sealed class BundleWindowTests : IDisposable
         Assert.Equal(Graph, model.TrySaveDocument());
     }
 
+    /// <summary>
+    /// A bundle named at startup - <c>--open tower.sparkz</c>, or a double-click - opens exactly as
+    /// File ▸ Open would open it.
+    /// </summary>
+    [Fact]
+    public async Task ABundleNamedAtStartupOpensAsItsGraph()
+    {
+        string bundle = SparkBundle.Pack(WriteGraph(), Path.Combine(_root, "tower.sparkz")).BundlePath;
+
+        using MainWindowViewModel model = new(startupGraph: null, bundle, noScript: false, Bundles);
+        await model.EvaluateAsync();
+
+        string opened = Assert.IsType<string>(model.GraphPath);
+        Assert.StartsWith(Bundles, opened, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("tower.spark", Path.GetFileName(opened));
+        Assert.Equal(Graph, model.TrySaveDocument());
+    }
+
     /// <summary>The same bundle opened twice lands in one folder, not two.</summary>
     [Fact]
     public async Task OpeningTheSameBundleTwiceReusesOneFolder()

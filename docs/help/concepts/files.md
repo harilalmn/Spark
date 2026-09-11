@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes the `.spark` reader and writer, which exist and are tested.
 **Owner:** `graph-engine`
-**Last updated:** 2026-09-11 (`E3-T20`: sending a graph as a `.sparkz` bundle)
+**Last updated:** 2026-09-11 (`E3-T20`: a bundle opens from --open as well)
 
 > **Scope.** A `.spark` file holds nodes, wires, lacing, canvas positions and the values typed
 > into unwired ports. It holds **no geometry** — geometry exists only after evaluation. Assets and
@@ -318,8 +318,9 @@ yourself. A bundle Spark cannot open safely is refused with the reason, and noth
 that is not a Spark bundle, one from a newer Spark, one missing the graph it names, or one containing a
 file that would land outside its own folder.
 
-**From the command line**, `spark pack tower.spark` makes the same bundle, and `spark run`,
-`spark check` and `spark export` take a `.sparkz` wherever they take a `.spark`.
+**Starting Spark with one** — `Spark.Desktop --open tower.sparkz` — opens it the same way as
+File ▸ Open does. **From the command line**, `spark pack tower.spark` makes the same bundle, and
+`spark run`, `spark check` and `spark export` take a `.sparkz` wherever they take a `.spark`.
 
 A bundle does not carry custom node definitions or assets yet — neither has a file of its own for a
 bundle to carry — nor a thumbnail.
