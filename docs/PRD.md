@@ -3,7 +3,7 @@
 **Status:** M0 — foundations, mostly landed. No product code is implemented; the repository
 is scaffolding, gates and specification.
 **Owner:** Nicety
-**Last updated:** 2026-09-11 (FR-60: Curve2d filed as E2-T64, waiting for a consumer)
+**Last updated:** 2026-09-11 (FR-35 partly met: the .sparkz bundle)
 **Latest change:** the solid-modelling kernel decision — **D2 reverses**, **D15** is new, R1 and
 R12 retire, R15 … R22 arrive, and a new epic **E13** appears. [ADR-0020](adr/0020-occt-via-c-abi-shim.md),
 [ADR-0021](adr/0021-brep-kernel-residency.md). **Nothing of it is built.**
@@ -250,7 +250,7 @@ previously invisible — **Q11** and **Q12** — and one new risk, **R14**.
 
 | ID | Requirement | Status |
 |---|---|---|
-| FR-35 | `.spark` is plain, canonically formatted JSON — stable key order, invariant numbers — so graphs diff and merge in git. `.sparkz` zips a graph with its assets for sharing. | Not started (E3) |
+| FR-35 | `.spark` is plain, canonically formatted JSON — stable key order, invariant numbers — so graphs diff and merge in git. `.sparkz` zips a graph with its assets for sharing. | **Partly met** (E3-T20). The `.spark` format is met; the bundle landed 2026-09-11 as `SparkBundle` - the graph and its package folder, with a manifest and refusals for anything unsafe or unknown - and reaches the command line and the application in the next two steps. Assets, custom node definitions and a thumbnail join it when they have a file home. |
 | FR-36 | Save/load round-trips byte-identically. | Not started (E3) |
 | FR-37 | `graph.formatVersion` is a single monotonic integer, decoupled from product version; migrations are JSON-to-JSON, never against typed models, are never deleted, and each ships with a golden-file test against a real old graph. | Not started (E3) |
 | FR-38 | `.sparkcustom` custom nodes use the same graph schema plus an interface block; ports come from Input/Output nodes placed inside the definition. Graph-in-graph is the same mechanism, not a separate feature. Recursion is refused at save and at load with the containment path reported. | Not started (E7) |

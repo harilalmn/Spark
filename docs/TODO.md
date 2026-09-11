@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E3-T14` done; `E3-T20` next)
+**Last updated:** 2026-09-11 (`E3-T20` step A done; `spark pack` next)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -228,7 +228,7 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 > 8. ~~**`E8-T12`** — Settings~~ **done 2026-09-11**: one window over the three preferences that
 >    already persisted.
 > 9. Geometry breadth — ~~**`E2-T11`**~~, ~~**`E2-T16`**~~ and ~~**`E2-T21`**~~ (done 2026-09-11), ~~**`E2-T13`**~~ and ~~**`E2-T14`**~~ (done 2026-09-11; `Curve2d` filed as `E2-T64`, waiting for a consumer) — then
->    the importer's ~~**`E5-T9`**~~ and ~~**`E5-T10`**~~ (done 2026-09-11), then ~~**`E3-T21`**~~ (done 2026-09-11, on the evidence), ~~**`E3-T14`**~~ (done 2026-09-11: a slow run's nodes show as evaluating, the stroke travelling) and **`E3-T20`**.
+>    the importer's ~~**`E5-T9`**~~ and ~~**`E5-T10`**~~ (done 2026-09-11), then ~~**`E3-T21`**~~ (done 2026-09-11, on the evidence), ~~**`E3-T14`**~~ (done 2026-09-11: a slow run's nodes show as evaluating, the stroke travelling) and **`E3-T20`** (step A done 2026-09-11: a bundle packs and opens; the command line and the application next).
 > 10. The Dynamo parity rows (`E2-T41` … `E2-T46`, `E5-T14`, `E11-T23`), the largest and the least
 >     bounded, last.
 >
