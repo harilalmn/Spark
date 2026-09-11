@@ -41,14 +41,50 @@ public static class GraphEvaluator
     /// <returns>The outputs, states and diagnostics.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="graph"/> or <paramref name="context"/> is <see langword="null"/>.</exception>
     /// <exception cref="OperationCanceledException">Cancellation was requested.</exception>
-    public static EvaluationResult Evaluate(Graph graph, EvaluationContext context, CancellationToken cancellationToken = default)
+    public static EvaluationResult Evaluate(Graph graph, EvaluationContext context, CancellationToken cancellationToken = default) =>
+        Evaluate(graph, context, progress: null, cancellationToken);
+
+    /// <summary>Evaluates a graph, reporting each node as it finishes (<c>E9-T7</c>).</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="context">The tolerance, scheduler, cache and run epoch for this run.</param>
+    /// <param name="progress">
+    /// Told about every node that produced output, fresh or from the cache, as soon as it has - on
+    /// whichever thread the scheduler ran the node on, and outside the run's own lock, so a slow
+    /// listener holds up only that node's thread. Null reports nothing.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// Checked between nodes and between replication elements. Cancelling leaves everything already
+    /// computed in the cache, so resuming is cheap.
+    /// </param>
+    /// <returns>The outputs, states and diagnostics.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="graph"/> or <paramref name="context"/> is <see langword="null"/>.</exception>
+    /// <exception cref="OperationCanceledException">Cancellation was requested.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Scoped to one run, deliberately.</b> An event on the evaluator, or a listener kept on the
+    /// <see cref="EvaluationContext"/>, would outlive the run it was meant for - the context is
+    /// carried from run to run by <see cref="EvaluationContext.NextRun"/> - and a viewport fed by a
+    /// superseded run draws the wrong graph.
+    /// </para>
+    /// <para>
+    /// A node that failed or could not run is not reported: it produced nothing to show, and the
+    /// result says why. What a report carries is what the result will hold for that node, so a
+    /// listener that draws from reports and then from the result draws the same thing twice, never
+    /// two different things.
+    /// </para>
+    /// </remarks>
+    public static EvaluationResult Evaluate(
+        Graph graph,
+        EvaluationContext context,
+        IProgress<NodeCompleted>? progress,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(context);
 
         TopologicalOrder order = TopologicalOrder.Of(graph);
 
-        Run run = new(graph, context, cancellationToken);
+        Run run = new(graph, context, progress, cancellationToken);
 
         foreach (NodeId id in order.CyclicNodes)
         {
@@ -92,13 +128,19 @@ public static class GraphEvaluator
         private readonly Graph _graph;
         private readonly EvaluationContext _context;
         private readonly CancellationToken _cancellationToken;
+        private readonly IProgress<NodeCompleted>? _progress;
         private int _nodesEvaluated;
         private int _cacheHits;
 
-        internal Run(Graph graph, EvaluationContext context, CancellationToken cancellationToken)
+        internal Run(
+            Graph graph,
+            EvaluationContext context,
+            IProgress<NodeCompleted>? progress,
+            CancellationToken cancellationToken)
         {
             _graph = graph;
             _context = context;
+            _progress = progress;
             _cancellationToken = cancellationToken;
         }
 
@@ -299,6 +341,9 @@ public static class GraphEvaluator
                     _nodesEvaluated++;
                 }
             }
+
+            // Outside the lock: the listener may be slow, and nothing it does can reach this run.
+            _progress?.Report(new NodeCompleted(id, outputs, fromCache));
         }
     }
 }
