@@ -285,7 +285,11 @@
               BorderBrush="{DynamicResource ThemeBorderMidBrush}"
               BorderThickness="1">
         <StackPanel Spacing="6">
-          <TextBlock Text="{Binding ScriptBanner}" TextWrapping="Wrap" />
+          <!-- The warning triangle before the message: the client's rule for every warning. -->
+          <Grid ColumnDefinitions="Auto,*">
+            <PathIcon x:Name="TrustBannerGlyph" Classes="warning" />
+            <TextBlock Grid.Column="1" Text="{Binding ScriptBanner}" TextWrapping="Wrap" />
+          </Grid>
           <TextBlock Classes="muted" TextWrapping="Wrap"
                      Text="Opening a graph from a source you do not trust is like running an unknown program." />
           <StackPanel Orientation="Horizontal" Spacing="6">
@@ -304,7 +308,10 @@
               BorderBrush="{DynamicResource ThemeBorderMidBrush}"
               BorderThickness="1">
         <StackPanel Spacing="6">
-          <TextBlock Text="{Binding PackageBanner}" TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="Auto,*">
+            <PathIcon x:Name="PackageTrustBannerGlyph" Classes="warning" />
+            <TextBlock Grid.Column="1" Text="{Binding PackageBanner}" TextWrapping="Wrap" />
+          </Grid>
           <TextBlock Classes="muted" TextWrapping="Wrap"
                      Text="An assembly runs with your full permissions and Spark does not check who wrote it. You will be asked again if a file changes." />
           <Button Content="Trust and load" Click="OnAgreeToPackages" HorizontalAlignment="Left" />

@@ -293,6 +293,8 @@
         <Button DockPanel.Dock="Right" Classes="toolbar" x:Name="MissingInstallButton"
                 Content="Find it" Click="OnInstallMissing" Margin="0,0,8,0"
                 AutomationProperties.Name="Find the missing package" />
+        <!-- The warning triangle before the message: the client's rule for every warning. -->
+        <PathIcon x:Name="MissingBannerGlyph" Classes="warning" DockPanel.Dock="Left" VerticalAlignment="Center" />
         <TextBlock x:Name="MissingBannerText" VerticalAlignment="Center" TextWrapping="Wrap"
                    Foreground="{DynamicResource SparkTextPrimaryBrush}" />
       </DockPanel>

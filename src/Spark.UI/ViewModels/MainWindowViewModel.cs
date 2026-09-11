@@ -909,7 +909,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 ? _session.EnableScripting()
                 : _session.Scripts;
 
-            AdoptGraph(CanvasDocument.Open(text, _session.Library, factory), evaluate: run, keepPackages: true);
+            AdoptGraph(
+                CanvasDocument.Open(text, _session.Library, factory),
+                evaluate: run,
+                keepPackages: true,
+                notEvaluated: "Not evaluated: this graph's code blocks are waiting for you to trust them. See the banner in Properties.");
 
             // The origin *is* the path, so this is the one place both halves are known (`E7-T18`).
             // A document opened with no origin - a demo graph, a paste - correctly clears it: it
@@ -971,7 +975,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <param name="nodeCount">How many nodes.</param>
     public void LoadSynthetic(int nodeCount)
     {
-        AdoptGraph(DemoGraphs.Synthetic(_session.Library, nodeCount), evaluate: false);
+        AdoptGraph(
+            DemoGraphs.Synthetic(_session.Library, nodeCount),
+            evaluate: false,
+            notEvaluated: "Not evaluated: synthetic graphs are a renderer measurement.");
         GraphReplaced?.Invoke(this, EventArgs.Empty);
     }
 
@@ -2978,7 +2985,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private int _lastRenderableCount;
     private readonly ScriptTrustStore _trust = new();
 
-    private void AdoptGraph(CanvasGraph graph, bool evaluate = true, bool resetHistory = true, bool keepPackages = false)
+    private void AdoptGraph(
+        CanvasGraph graph,
+        bool evaluate = true,
+        bool resetHistory = true,
+        bool keepPackages = false,
+        string? notEvaluated = null)
     {
         // `E7-T24`: the graph arrives already built, so its blocks were compiled against the
         // catalogue as it stands *now* - recorded before the release below, because letting go of
@@ -3048,7 +3060,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
         else
         {
-            DiagnosticsText = "Not evaluated: synthetic graphs are a renderer measurement.";
+            // The caller says why. This used to be the synthetic benchmark's reason for everybody,
+            // so a graph opened and held back for the user's trust told them it was "a renderer
+            // measurement" - which the client read in a screenshot of their own graph.
+            DiagnosticsText = notEvaluated ?? "Not evaluated.";
             StatusText = string.Create(
                 CultureInfo.InvariantCulture,
                 $"{graph.Nodes.Count} nodes, {graph.Wires.Count} wires (not evaluated).");

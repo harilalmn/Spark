@@ -29,6 +29,21 @@
     <Setter Property="Foreground" Value="{DynamicResource SparkTextMutedBrush}" />
   </Style>
 
+  <!--
+    The warning triangle before a warning message - the client's rule, 2026-09-11, for every banner
+    and pane that warns. One class, so each draws the same glyph at the same size in the same amber
+    and the next banner gets it by writing `Classes="warning"` rather than by drawing its own. 16 px
+    sits on the first line of 13 px text; a one-line banner centres it instead.
+  -->
+  <Style Selector="PathIcon.warning">
+    <Setter Property="Data" Value="{DynamicResource SparkWarningGlyph}" />
+    <Setter Property="Foreground" Value="{DynamicResource SparkStateWarningBrush}" />
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="Margin" Value="0,1,8,0" />
+  </Style>
+
   <!-- Caption: 11 px is the floor. Nothing in Spark is set smaller, at any scale, in any state. -->
   <Style Selector="TextBlock.caption">
     <Setter Property="FontSize" Value="11" />

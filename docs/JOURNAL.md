@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-11 (`E7-T19` closed: Save As carries the package folder)
+**Last updated:** 2026-09-11 (`E8-T85`: a warning carries a triangle, the client's rule)
 **Protocol version:** 2
 
 ---
@@ -19,8 +19,8 @@ this file says what is happening.
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
 | **Working on** | **Nothing — between steps, and `E7-T19` is closed.** The graph-local package folder is complete in the window: consumed behind a per-hash gate (`E7-T16`), named in the file and checked on open (`E7-T17`), carried by Save As (`E7-T19`), and a library that arrives late rebuilds its blocks (`E7-T24`). Left from the group: `E7-T25`, the command line. Also open from today: `E6-T40`. The client ran the `E7-T16` demo and reported *all good*; the rest of the round was launched for them at the end of this session. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E7-T19` — Save As carries the package folder.** `GraphPackages.CopyFolder`, merged without overwriting; the gate follows the file (`NoteSavedTo`). **Before it:** **`E7-T17` step B — the list is written, and checked before anything is built.** `GraphPackages.Entries` / `Absent` / `ToRecord`; the list recorded on both doors; the banner names absent packages; Save asks where before it serialises ([N147](NOTES.md)). **Before it:** **`E7-T17` step A — the format.** `GraphDocumentPackage`, the `packages` section first in the file, `PackagesFormatVersion = 5`, and `E7-T7` re-proved at the document level. **Before it:** **`E7-T24` — a library that arrives after the block that needs it.** `EvaluateAsync` compares the catalogue's version with the one the blocks were built against, and a move forces the rebuild and a fresh cache epoch; `SparkSession.ReferencesVersion()` reads it without loading Roslyn. **Before it:** **`E7-T16` — the graph-local package folder, consumed behind its trust gate.** `GraphPackageGate` in `Spark.Host`; `ReferenceCatalog.RemoveUnder` and a `Remove` that takes its namespaces with it; a forced rebuild and a fresh cache epoch on agreeing, because a block's key is written into the file and cannot see the catalogue. **Before it:** `E2-T40` step B — the least-squares plane fit, and the row closes. An internal `LeastSquares` helper rather than a method on `Plane`, because `Circle` and `Line` want the same arithmetic; closed form, so no eigensolver and no convergence tolerance; a **relative** degeneracy threshold ([N143](NOTES.md)); and a normal whose sign follows the winding of the points. **Before it:** step A, polar construction ([N142](NOTES.md) is the rule the two halves put side by side). **Before them:** the constructor flake ([N141](NOTES.md)), `E8-T40` ([N140](NOTES.md)), `E2-T33` / `E11-T10` ([N139](NOTES.md)). |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3,086** tests over **ten** executables with zero failures and zero skips, docs harness green. No stashes. |
+| **Last completed step** | **`E8-T85` — a warning carries a warning triangle**, the client's interruption, and the wrong *not evaluated* reason found in the same screenshot. **Before it:** **`E7-T19` — Save As carries the package folder.** `GraphPackages.CopyFolder`, merged without overwriting; the gate follows the file (`NoteSavedTo`). **Before it:** **`E7-T17` step B — the list is written, and checked before anything is built.** `GraphPackages.Entries` / `Absent` / `ToRecord`; the list recorded on both doors; the banner names absent packages; Save asks where before it serialises ([N147](NOTES.md)). **Before it:** **`E7-T17` step A — the format.** `GraphDocumentPackage`, the `packages` section first in the file, `PackagesFormatVersion = 5`, and `E7-T7` re-proved at the document level. **Before it:** **`E7-T24` — a library that arrives after the block that needs it.** `EvaluateAsync` compares the catalogue's version with the one the blocks were built against, and a move forces the rebuild and a fresh cache epoch; `SparkSession.ReferencesVersion()` reads it without loading Roslyn. **Before it:** **`E7-T16` — the graph-local package folder, consumed behind its trust gate.** `GraphPackageGate` in `Spark.Host`; `ReferenceCatalog.RemoveUnder` and a `Remove` that takes its namespaces with it; a forced rebuild and a fresh cache epoch on agreeing, because a block's key is written into the file and cannot see the catalogue. **Before it:** `E2-T40` step B — the least-squares plane fit, and the row closes. An internal `LeastSquares` helper rather than a method on `Plane`, because `Circle` and `Line` want the same arithmetic; closed form, so no eigensolver and no convergence tolerance; a **relative** degeneracy threshold ([N143](NOTES.md)); and a normal whose sign follows the winding of the points. **Before it:** step A, polar construction ([N142](NOTES.md) is the rule the two halves put side by side). **Before them:** the constructor flake ([N141](NOTES.md)), `E8-T40` ([N140](NOTES.md)), `E2-T33` / `E11-T10` ([N139](NOTES.md)). |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3,090** tests over **ten** executables with zero failures and zero skips, docs harness green. No stashes. |
 | **Next action** | **`E6-T40` — `--open` applies the code-block trust rule that File ▸ Open does.** The constructor adopts a `--open` document with evaluation on and never asks `ScriptTrustStore`, so a graph with code blocks runs on `--open` where File ▸ Open opens it unrun. **The constraint is in the constructor's own remarks**: exactly one graph is adopted there, because a second adoption is a second run and the last to finish wins — so the fix applies the rule **inside** the startup path (compute `run` as `TryOpenDocument` does, adopt with `evaluate: run`, set `PendingScripts`, `PendingOrigin` and `ScriptBanner`), and does **not** call `TryOpenDocument` afterwards. **The trade to state rather than hide**: `--open FILE --screenshot` of an untrusted graph with code blocks will photograph it unrun, while a file the user has trusted still runs; decide whether `--screenshot` needs its own consent and record the call. **Alternative**: `E7-T25`, the command line reading the package folder — the trust question is the work there too. |
 | **Verify with** | For `E6-T40`: a graph with a code block opened through `--open` from an untrusted path is **not evaluated** and shows the code-block banner; the same file after *Always trust* runs on `--open`; a graph with no code blocks is unaffected. The gates, and the suite total rises from **3,086**. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
@@ -1635,9 +1635,9 @@ passed* and then never cancels anything. `Assert.Equal(source.Token, seen)` is t
 cannot be faked.
 
 **An unrelated thing found on the way:** `ScriptNodeFactory.cs` contained a **raw NUL byte** — the
-cache-key separator in `script + "\u0000" + version`, written as the character rather than the escape.
+cache-key separator in `script + "0000" + version`, written as the character rather than the escape.
 It is a sound separator and the string is unchanged, but grep classified the whole file as binary
-and silently omitted it from every content search. Replaced with `"\u0000"`. Nothing behavioural, and
+and silently omitted it from every content search. Replaced with `"0000"`. Nothing behavioural, and
 the file is greppable again.
 
 **No help topic.** Nothing user-facing changed — there is still no stop button — so there is
@@ -1746,7 +1746,7 @@ test that asserts both are in the catalogue. [N43](NOTES.md).
 
 **The NUL byte is gone this time.** The previous entry says `ScriptNodeFactory.cs`'s cache-key
 separator was replaced; it was not — the raw NUL was still in the file at `c383acb`, and grep still
-classified it as binary and silently skipped it in every content search. It is now `"\u0000"`, an
+classified it as binary and silently skipped it in every content search. It is now `"0000"`, an
 escape rather than a character, which keeps the separator unambiguous and makes the file text.
 **Trusting the tree over the journal, as the protocol says.**
 
@@ -10906,3 +10906,41 @@ one saves under a new name, reopens the copy, and asserts that nothing is absent
 kept its folder, and that the gate followed the file. Then the three gates: build clean with zero
 warnings, format clean, docs harness green, **3,086 tests over ten executables**, zero failed, zero
 skipped.
+
+### 2026-09-11 — A warning carries a warning triangle (`E8-T85`, a client interruption)
+
+**Reported with a screenshot** of `missing.spark` open, after the client had run this round's
+demo and answered *all good*: *always add warning triangle before the message, both in banner and
+in properties window.* Taken ahead of *Next action*, which stayed `E6-T40`; the tree was clean at
+`f0ebb53`, so nothing had to be stashed.
+
+**"Always" is the word that shaped it.** Two edits would have satisfied the screenshot; the rule is
+about every warning, including the next one somebody adds. So the glyph is one resource and one
+style — `SparkWarningGlyph`, `SparkStateWarningBrush`, `PathIcon.warning` — the three banners use
+it, `design-language.md` §5.6 states it, and a standing memory records it for the sessions after
+this one. **A path, not the `⚠` character**: Inter has no glyph for it, and the colour-emoji
+fallback draws it a different size and colour on every machine.
+
+**The same screenshot held a second defect, and it was ours.** The Diagnostics pane read *Not
+evaluated: synthetic graphs are a renderer measurement* under the client's own graph, held back
+for trust. `AdoptGraph` had one reason for not evaluating — the benchmark's — and gave it to every
+caller. Each caller now passes its own; `AGraphWaitingForTrustSaysSoInTheDiagnostics` was watched
+red first.
+
+**And a third thing, registered rather than fixed**: the client's re-saved demo files carry
+`"return 1 \u002B 1;"`, and `\u0022` for every quotation mark. `Utf8JsonWriter`'s default encoder
+escapes `+` and `"`, and scripts go through it — so the format that exists to diff like code does not, for
+exactly the text most likely to be read. That predates this round and changes the bytes of every
+saved code block, which makes it a format decision for its own step: `E3-T24`.
+
+**One compile error on the way, worth a sentence**: in `Spark.UI.Tests`, a bare `Geometry` is the
+`Spark.Geometry` namespace, not Avalonia's type, so the first build of the glyph test failed — and
+the test run that followed it ran stale binaries and reported the old red. A failed build followed by
+a test result is not a test result.
+
+**Verified.** Four tests: the diagnostics reason, the triangle before its message in both Properties
+banners, and the theme dictionary loaded directly to prove the keys the style names exist — the
+headless test application does not load the theme, so a misspelt key would otherwise draw nothing on
+the real window only. **The banner under the menu was checked in the running application**, by
+`--open missing.spark --screenshot`. Then the three gates: build clean with zero warnings, format
+clean, docs harness green, **3,090 tests over ten executables**, zero failed, zero skipped.

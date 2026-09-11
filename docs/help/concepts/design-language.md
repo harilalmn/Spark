@@ -14,7 +14,7 @@ the named tokens are real, but several values below are worked examples, rejecte
 derived ladder steps, and no test tells those apart from tokens. If you change a colour here,
 change it in `SparkPalette` and `NodeCategory` too.
 **Owner:** `spark-ui`
-**Last updated:** 2026-09-08
+**Last updated:** 2026-09-11
 
 > This topic is both an end-user reference — *why does Spark look like this?* — and the
 > executable specification for the shell, the node canvas renderer and the viewport. Every
@@ -592,6 +592,22 @@ Warnings use `state.warning` and a `⚠` glyph and are otherwise identical. This
 [`concepts.lacing`](lacing.md) §2.12 distinguishes an Error, which produces no output, from a
 Warning, which produces output with caveats, and the interface must make the same distinction
 visible without the user having to read the diagnostic code.
+
+**A warning message carries the triangle before its words** — in a banner, in a pane, anywhere the
+shell warns in a sentence rather than on a node. The client's rule, 2026-09-11: *always add warning
+triangle before the message*. It is `SparkWarningGlyph`, drawn as a path in `state.warning` through
+the `PathIcon.warning` style, 16 px on the first line of the text. A new warning writes
+`Classes="warning"` and gets it, rather than drawing its own:
+
+```xml
+<Grid ColumnDefinitions="Auto,*">
+  <PathIcon Classes="warning" />
+  <TextBlock Grid.Column="1" Text="{Binding PackageBanner}" TextWrapping="Wrap" />
+</Grid>
+```
+
+Informational text — the status bar, *Nothing selected* — does not carry one, because a glyph on
+everything means nothing.
 
 ---
 

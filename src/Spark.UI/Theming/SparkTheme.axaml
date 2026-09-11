@@ -74,6 +74,18 @@
   <SolidColorBrush x:Key="SparkFocusRingBrush" Color="{StaticResource SparkFocusRing}" />
   <SolidColorBrush x:Key="SparkFocusContourBrush" Color="{StaticResource SparkFocusContour}" />
 
+  <!-- The warning state as a brush, which it had not needed until a glyph drawn from XAML did. -->
+  <SolidColorBrush x:Key="SparkStateWarningBrush" Color="{StaticResource SparkStateWarning}" />
+
+  <!--
+    The warning triangle drawn before every warning message the shell shows - the client's standing
+    rule, 2026-09-11: "Always add warning triangle before the message". A path rather than the U+26A0
+    character, because Inter has no glyph for it and the fallback is a colour emoji font, which draws
+    it at a different size and in different colours on every machine. Even-odd, so the exclamation
+    mark is cut out of the triangle and reads on whatever surface the banner sits on.
+  -->
+  <StreamGeometry x:Key="SparkWarningGlyph">F0 M12,1.5 L23,21.5 L1,21.5 Z M11,8 L13,8 L13,15 L11,15 Z M11,17 L13,17 L13,19.5 L11,19.5 Z</StreamGeometry>
+
   <!--
     Fluent's own tokens, overridden so that any control we have not styled by hand still lands
     inside the palette rather than showing Fluent's default blue-grey.

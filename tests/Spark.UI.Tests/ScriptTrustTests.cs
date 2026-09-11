@@ -188,6 +188,27 @@ public sealed class ScriptTrustTests : IDisposable
         Assert.Null(opened.ScriptBanner);
     }
 
+    /// <summary>
+    /// <b>The diagnostics pane says why an opened graph did not run</b>, and not the benchmark's
+    /// reason. It used to say <i>synthetic graphs are a renderer measurement</i> for every graph
+    /// adopted without running — a graph waiting for the user's trust included, which is how the
+    /// client saw it.
+    /// </summary>
+    [Fact]
+    public void AGraphWaitingForTrustSaysSoInTheDiagnostics()
+    {
+        using MainWindowViewModel model = new();
+        Assert.True(model.PlaceCodeBlock(0, 0) >= 0);
+
+        string saved = Assert.IsType<string>(model.TrySaveDocument());
+
+        using MainWindowViewModel opened = new();
+        Assert.True(opened.TryOpenDocument(saved, Path.Combine(Path.GetTempPath(), "untrusted.spark")));
+
+        Assert.DoesNotContain("synthetic", opened.DiagnosticsText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("trust", opened.DiagnosticsText, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary><c>--no-script</c> is parsed, because a switch nobody can type is not a switch.</summary>
     [Theory]
     [InlineData(new string[0], false)]
