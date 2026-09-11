@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace Spark.Geometry;
@@ -186,6 +187,62 @@ public readonly struct Point3d : IEquatable<Point3d>
     /// either point is unset.
     /// </returns>
     public double DistanceTo(in Point3d other) => Math.Sqrt(DistanceSquaredTo(other));
+
+    /// <summary>
+    /// The points with every later one that lies within a tolerance of an earlier kept one removed
+    /// (<c>E2-T16</c>).
+    /// </summary>
+    /// <param name="points">The points, in order.</param>
+    /// <param name="tolerance">How close two points must be to count as one. Zero removes exact copies only.</param>
+    /// <returns>The first point of each cluster, in the order the points came.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="points"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="tolerance"/> is negative or not finite.</exception>
+    /// <exception cref="ArgumentException">A point is not finite.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Through a k-d tree, not every pair.</b> A hundred thousand points cost a hundred thousand radius
+    /// queries instead of five billion distances.
+    /// </para>
+    /// <para>
+    /// <b>Judged against what was kept.</b> A point is removed only when a point already kept lies within
+    /// the tolerance - so in a chain of points each a little closer than the tolerance to the next, the
+    /// first is kept, the second removed, and the third kept, because what it was close to is gone. That
+    /// is the rule that makes the answer independent of anything but the order of the input.
+    /// </para>
+    /// </remarks>
+    public static Point3d[] PruneDuplicates(IReadOnlyList<Point3d> points, double tolerance = 0.0)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+
+        if (!double.IsFinite(tolerance) || tolerance < 0.0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(tolerance), tolerance, "A tolerance must be finite and not negative.");
+        }
+
+        PointKdTree tree = PointKdTree.Build(points);
+        bool[] removed = new bool[points.Count];
+        List<Point3d> kept = new(points.Count);
+
+        for (int i = 0; i < points.Count; i++)
+        {
+            if (removed[i])
+            {
+                continue;
+            }
+
+            kept.Add(points[i]);
+
+            foreach (int j in tree.Within(points[i], tolerance))
+            {
+                if (j > i)
+                {
+                    removed[j] = true;
+                }
+            }
+        }
+
+        return [.. kept];
+    }
 
     /// <summary>
     /// The squared straight-line distance from this point to another.

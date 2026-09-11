@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Spark.Api;
 using Spark.Geometry;
 
@@ -23,6 +24,24 @@ public static class Point
     [return: NodePort("point")]
     [SparkNodeAlias("Point.ByCoordinates")]
     public static Point3d FromCoordinates(double x = 0, double y = 0, double z = 0) => new(x, y, z);
+
+    /// <summary>
+    /// The points with near duplicates removed, keeping the first of each cluster (<c>E2-T16</c>).
+    /// </summary>
+    /// <param name="points">
+    /// The points, in order. This port takes a list, so the node sees the whole list rather than
+    /// running once per point.
+    /// </param>
+    /// <param name="tolerance">How close two points must be to count as one.</param>
+    /// <returns>The first point of each cluster, in the order the points came.</returns>
+    /// <remarks>
+    /// A point is removed only when one already kept is within the tolerance, so a chain of points
+    /// each slightly closer than the tolerance keeps every other one rather than collapsing to its
+    /// first.
+    /// </remarks>
+    [return: NodePort("points")]
+    public static IReadOnlyList<Point3d> PruneDuplicates(IReadOnlyList<Point3d> points, double tolerance = 0.001) =>
+        Point3d.PruneDuplicates(points, tolerance);
 
     /// <summary>
     /// Makes a point from cylindrical coordinates: a distance from the world z axis, an angle

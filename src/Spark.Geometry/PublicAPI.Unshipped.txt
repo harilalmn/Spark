@@ -73,6 +73,7 @@ static Spark.Geometry.Plane.FromBestFit(System.Collections.Generic.IReadOnlyList
 static Spark.Geometry.Plane.FromLineAndPoint(Spark.Geometry.Line! line, in Spark.Geometry.Point3d point) -> Spark.Geometry.Plane
 static Spark.Geometry.Point3d.FromCylindrical(double radius, Spark.Geometry.Angle azimuth, double height) -> Spark.Geometry.Point3d
 static Spark.Geometry.Point3d.FromSpherical(double radius, Spark.Geometry.Angle azimuth, Spark.Geometry.Angle polar) -> Spark.Geometry.Point3d
+static Spark.Geometry.Point3d.PruneDuplicates(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, double tolerance = 0) -> Spark.Geometry.Point3d[]!
 static Spark.Geometry.Tessellation.Tessellate(Spark.Geometry.Surface! surface, Spark.Geometry.ITessellationSink! sink, in Spark.Geometry.Tolerance tolerance, System.Threading.CancellationToken cancellationToken) -> void
 static Spark.Geometry.Tessellation.ToMesh(this Spark.Geometry.Surface! surface, in Spark.Geometry.Tolerance tolerance, System.Threading.CancellationToken cancellationToken) -> Spark.Geometry.Mesh!
 static Spark.Geometry.Vector3d.FromCylindrical(double radius, Spark.Geometry.Angle azimuth, double height) -> Spark.Geometry.Vector3d
