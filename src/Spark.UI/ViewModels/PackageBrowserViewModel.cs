@@ -79,19 +79,26 @@ public sealed partial class PackageBrowserViewModel : ObservableObject
     /// rather than the catalogue itself</b>, for `E6-T14`'s reason: building this must not load
     /// Roslyn, and it is called only when a user actually adds a library.
     /// </param>
+    /// <param name="trust">
+    /// The record of what the user has agreed to, or null for the one beside
+    /// <paramref name="store"/>. <b>Pass the session's own when there is one</b> (`E7-T16`): the
+    /// record is one file, and two instances over it each miss the other's decisions and then
+    /// overwrite them on the next save.
+    /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="library"/> is null.</exception>
     public PackageBrowserViewModel(
         NodeLibrary library,
         PackageStore? store = null,
         string? source = null,
-        Func<Spark.Scripting.ReferenceCatalog?>? catalogue = null)
+        Func<Spark.Scripting.ReferenceCatalog?>? catalogue = null,
+        PackageTrustStore? trust = null)
     {
         ArgumentNullException.ThrowIfNull(library);
 
         _catalogue = catalogue ?? (() => null);
 
         _store = store ?? PackageStore.Default();
-        _trust = PackageTrustStore.For(_store);
+        _trust = trust ?? PackageTrustStore.For(_store);
         _manager = new PackageManager(_store, library);
         _client = new NuGetPackageClient(source);
 
@@ -100,6 +107,9 @@ public sealed partial class PackageBrowserViewModel : ObservableObject
 
         RefreshInstalled();
     }
+
+    /// <summary>The record of what the user has agreed to, for a test to check it is shared.</summary>
+    internal PackageTrustStore Trust => _trust;
 
     /// <summary>
     /// The feed in a form worth showing a user: <c>nuget.org</c>, a host name, or a folder path.

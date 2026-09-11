@@ -85,6 +85,40 @@ public sealed class LibraryImportTests : IDisposable
     }
 
     /// <summary>
+    /// <b>Removing a library takes its namespaces with it</b> (`E7-T16`). Opening a second graph
+    /// releases the first graph's packages, and a prelude that kept <c>using Gadgetry;</c> for an
+    /// assembly no longer referenced would fail <b>every</b> block with <c>CS0246</c> — on a line the
+    /// user did not write, for a library they did not ask for in this graph.
+    /// </summary>
+    [Fact]
+    public void RemovingALibraryTakesItsNamespacesWithIt()
+    {
+        string library = Compile("Gadgetry", """
+            namespace Gadgetry
+            {
+                public static class Sprockets
+                {
+                    public static double Twice(double value) => value * 2.0;
+                }
+            }
+            """);
+
+        ReferenceCatalog catalogue = new();
+        _ = catalogue.Add([library]);
+
+        Assert.True(catalogue.Remove(library));
+        Assert.DoesNotContain("Gadgetry", catalogue.Imports);
+        Assert.DoesNotContain(new ScriptNodeFactory(catalogue).Diagnose("return a * 2.0;"), d => d.IsError);
+
+        // And it stays gone when the snapshot is next rebuilt, which is what an unrelated Add does.
+        string other = Compile("Cogworks", "namespace Cogworks { public static class Gear { } }");
+        _ = catalogue.Add([other]);
+
+        Assert.DoesNotContain("Gadgetry", catalogue.Imports);
+        Assert.Contains("Cogworks", catalogue.Imports);
+    }
+
+    /// <summary>
     /// <b>The hazard, refused.</b> One colliding name is enough to keep the whole namespace out of
     /// the prelude — coarse on purpose, because <i>why does <c>Sprocket</c> resolve and <c>Line</c>
     /// not</i> is a worse question than a namespace that plainly was not imported.

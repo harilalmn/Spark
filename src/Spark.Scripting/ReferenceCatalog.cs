@@ -235,19 +235,75 @@ public sealed class ReferenceCatalog
 
         string full = Full(path);
 
+        return RemoveWhere(existing => string.Equals(existing, full, StringComparison.OrdinalIgnoreCase), out _);
+    }
+
+    /// <summary>
+    /// Drops every added assembly inside a folder, and the namespaces they brought (`E7-T16`).
+    /// </summary>
+    /// <param name="folder">The folder. Assemblies in folders beneath it are dropped too.</param>
+    /// <returns>How many references were dropped.</returns>
+    /// <exception cref="ArgumentException"><paramref name="folder"/> is null or blank.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>By folder rather than by a list, because more than one thing puts a graph's packages
+    /// here.</b> Opening a graph references what was already agreed to, and <i>Add as a library…</i>
+    /// references what it has just installed. Releasing by the list the opener kept would leave the
+    /// second kind referenced when the next graph opened, and that graph would compile against a
+    /// library it never asked for.
+    /// </para>
+    /// <para>
+    /// <b>One rebuild of the prelude for the whole folder</b>, not one per assembly: deriving it
+    /// reads the metadata of every referenced assembly, and one package with its dependencies can
+    /// be twenty of them.
+    /// </para>
+    /// <para>
+    /// The limit in <see cref="Remove"/> applies: an assembly the process has already loaded — a
+    /// block ran against it — is referenced again by the next rebuild, because it is genuinely
+    /// still loaded. Its namespaces are not imported again.
+    /// </para>
+    /// </remarks>
+    public int RemoveUnder(string folder)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(folder);
+
+        string root = Path.TrimEndingDirectorySeparator(Full(folder)) + Path.DirectorySeparatorChar;
+
+        _ = RemoveWhere(existing => existing.StartsWith(root, StringComparison.OrdinalIgnoreCase), out int removed);
+        return removed;
+    }
+
+    /// <summary>Drops every added reference whose full path matches, and re-derives the prelude.</summary>
+    /// <returns>True when anything changed.</returns>
+    private bool RemoveWhere(Func<string, bool> matches, out int removed)
+    {
+        // `E7-T16`: A REMOVED LIBRARY TAKES ITS NAMESPACES WITH IT.
+        //
+        // Removing used to filter the references and keep the snapshot's imports, so a library's
+        // `using Gadgetry;` stayed in the prelude after the assembly behind it had gone - and every
+        // block then failed `CS0246` on a line the user did not write. Nothing noticed while removing
+        // meant a user deleting one row from the Local assemblies list; it became the common case
+        // when opening a second graph started releasing the first graph's packages.
+        bool library = _libraries.RemoveWhere(existing => matches(existing)) > 0;
+
         ImmutableArray<MetadataReference> kept =
         [
             .. _current.References.Where(reference =>
                 reference is not PortableExecutableReference { FilePath: { } existing }
-                || !string.Equals(Full(existing), full, StringComparison.OrdinalIgnoreCase)),
+                || !matches(Full(existing))),
         ];
 
-        if (kept.Length == _current.References.Length)
+        removed = _current.References.Length - kept.Length;
+
+        if (removed == 0 && !library)
         {
             return false;
         }
 
-        _current = _current with { References = kept, Version = _current.Version + 1 };
+        (ImmutableArray<string> imports, ImmutableArray<string> skipped) = PreludeFor(
+            [.. kept.OfType<PortableExecutableReference>().Select(reference => reference.FilePath).OfType<string>()]);
+
+        _current = new Snapshot(kept, imports, skipped, _current.Version + 1);
         return true;
     }
 
@@ -420,26 +476,37 @@ public sealed class ReferenceCatalog
             }
         }
 
+        (ImmutableArray<string> imports, ImmutableArray<string> skipped) = PreludeFor([.. byPath.Keys]);
+
+        return new Snapshot([.. byPath.Values], imports, skipped, _current?.Version ?? 0);
+    }
+
+    /// <summary>
+    /// The imports a snapshot over these references starts every block with, and the refusals.
+    /// </summary>
+    /// <remarks>
+    /// <b>One rule for <see cref="Build"/> and <see cref="Remove"/></b>, because two places deriving
+    /// the prelude is how a removed library's namespace outlived its assembly (`E7-T16`).
+    /// </remarks>
+    private (ImmutableArray<string> Imports, ImmutableArray<string> Skipped) PreludeFor(
+        IReadOnlyCollection<string> referencePaths)
+    {
         // `E6-T30`: THE NODE LIBRARY IS IMPORTED ONLY WHEN IT IS ACTUALLY REFERENCED.
         //
-        // The sweep above finds what the process has loaded, and a host that never loaded
+        // The sweep in `Build` finds what the process has loaded, and a host that never loaded
         // `Spark.Nodes.Core` - a test, an embedder, a tool - would otherwise be told
         // `using Spark.Nodes.Core;` for an assembly that is not there, and EVERY script would
         // fail to compile on a line the user did not write. That is the failure mode the comment
-        // above this method already records for Spark.Geometry, met a second time.
-        bool nodes = byPath.Keys.Any(path =>
+        // on `Build` already records for Spark.Geometry, met a second time.
+        bool nodes = referencePaths.Any(path =>
             string.Equals(Path.GetFileNameWithoutExtension(path), NodeLibrary, StringComparison.OrdinalIgnoreCase));
 
         string[] imports = nodes ? [.. DefaultImports, .. NodeLibraryImports] : [.. DefaultImports];
 
         (ImmutableArray<string> libraries, ImmutableArray<string> skipped) =
-            LibraryImports(imports, byPath.Keys);
+            LibraryImports(imports, referencePaths);
 
-        return new Snapshot(
-            [.. byPath.Values],
-            [.. imports, .. libraries],
-            skipped,
-            _current?.Version ?? 0);
+        return ([.. imports, .. libraries], skipped);
     }
 
     /// <summary>

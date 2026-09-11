@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-10 (`E2-T40` closed: the plane fit, and `Plane` at 16 of 16)
+**Last updated:** 2026-09-11 (`E7-T16` closed: the package folder is consumed behind its gate)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -277,11 +277,12 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
       that prompted it — *how do I use NuGet packages?* — for which the honest answer today is
       "download the `.nupkg`, rename it to `.zip`, extract the DLL, and use the Local assemblies
       tab". **Take them in this order, and the order is not arbitrary:**
-      1. **`E7-T16`, the folder and its trust gate, together.** A loader without the gate is
-         remote code execution — a `.spark` and a folder of DLLs arriving by email, opened, and
-         running before anybody reads anything. It must not exist on `main` even briefly, which is
-         why it is one row and not two. Consent is **per content hash** (the client's call), so a
-         rebuilt DLL asks again and an unchanged one never does.
+      1. **`E7-T16` is done** (2026-09-11) — the folder and its trust gate landed in one commit, as
+         this item required, on **both** doors and **before** the document is built. Only
+         assemblies whose bytes were agreed to are referenced; the rest wait behind a banner that
+         names them, and **Trust and load** remembers them per content hash. It found
+         [`E6-T40`](TASKS.md#e6--c-code-block): `--open` skips the *code-block* trust rule, which
+         is its own step because fixing it changes the `--open … --screenshot` workflow.
       2. **`E7-T17`, the record in the file.** *Fail loudly with a named list* (the client's call)
          is impossible without it: a folder with less in it is not missing anything, and the user
          would get a compile error naming a **type** rather than a message naming the **package**.

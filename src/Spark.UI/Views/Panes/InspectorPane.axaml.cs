@@ -181,6 +181,14 @@ public sealed partial class InspectorPane : UserControl
         }
     }
 
+    private void OnAgreeToPackages(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel model)
+        {
+            _ = model.AgreeToPackages();
+        }
+    }
+
     private void OnGroupTitleCommitted(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainWindowViewModel model && model.CommitGroupTitle())

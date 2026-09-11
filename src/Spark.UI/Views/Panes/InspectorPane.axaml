@@ -19,7 +19,7 @@
       A code block wants BOTH at once - the ports are how you see what your identifiers turned
       into - so the fix is two rows rather than hiding one of them.
     -->
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto">
       <TextBlock Grid.Row="0" Classes="paneTitle" Text="PROPERTIES" />
 
       <StackPanel Grid.Row="1" Margin="10,0,10,8" Spacing="2">
@@ -295,9 +295,25 @@
         </StackPanel>
       </Border>
 
-      <Border Grid.Row="10" Height="1" Margin="10,0,10,6"
+      <!-- E7-T16: the graph's packages folder holds assemblies nobody has agreed to load. Its own
+           row, for E8-T71's reason: it is not exclusive with the code-block banner above - a graph
+           that arrived by email can carry both, and each is a separate decision. -->
+      <Border x:Name="PackageTrustBanner" Grid.Row="10" Margin="10,0,10,10" Padding="8" CornerRadius="3"
+              IsVisible="{Binding PackageBanner, Converter={x:Static ObjectConverters.IsNotNull}}"
+              Background="{DynamicResource ThemeAccentBrush4}"
+              BorderBrush="{DynamicResource ThemeBorderMidBrush}"
+              BorderThickness="1">
+        <StackPanel Spacing="6">
+          <TextBlock Text="{Binding PackageBanner}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" TextWrapping="Wrap"
+                     Text="An assembly runs with your full permissions and Spark does not check who wrote it. You will be asked again if a file changes." />
+          <Button Content="Trust and load" Click="OnAgreeToPackages" HorizontalAlignment="Left" />
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="11" Height="1" Margin="10,0,10,6"
               Background="{DynamicResource SparkBorderHairlineBrush}" />
-      <StackPanel Grid.Row="11" Margin="0,0,0,4">
+      <StackPanel Grid.Row="12" Margin="0,0,0,4">
         <TextBlock Classes="paneTitle" Text="DIAGNOSTICS" />
         <TextBlock Classes="muted" Margin="10,0,10,10" TextWrapping="Wrap"
                    Text="{Binding DiagnosticsText}" />

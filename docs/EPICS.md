@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-10 (`E2-T33`/`E11-T10`: the surface properties)
+**Last updated:** 2026-09-11 (`E7-T16`: a graph's packages are consumed behind their gate)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -795,8 +795,11 @@ SemVer, dependency resolution, private feeds and nuget.org reach all come free. 
       the same commit as the loader: a folder of DLLs beside a downloaded graph is remote code
       execution, and **E6-T16** already refuses to auto-run the *readable* version of the same
       hazard. The file records what it expects, so a missing package is named rather than surfacing
-      later as an error about a type. **Two of the five are in**: `E7-T16` finds and hashes the
-      folder, and `E7-T18` closed 2026-09-09 — the Packages window opens on **Local assemblies**
+      later as an error about a type. **`E7-T16` closed 2026-09-11, and the gate with it**: opening
+      a graph — through File ▸ Open or `--open` — references only the assemblies in its folder whose
+      bytes the user agreed to, before any node is built; the rest wait behind a banner naming each
+      file and its hash, **Trust and load** remembers them, and opening another graph lets go of
+      them. `E7-T18` closed 2026-09-09 — the Packages window opens on **Local assemblies**
       over a graph that has never been saved, and its **Packages** tab refuses in place, naming the
       folder it would have needed and offering the save that would create one. *Refusing the whole
       window, which the row first said, would have taken away the local-assemblies path, and that

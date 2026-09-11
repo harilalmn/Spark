@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-10 (N142, N143: two answers to a bad argument, and relative thresholds)
+**Last updated:** 2026-09-11 (N144–N146: a removed reference kept its import; two stores over one file; a key the file owns)
 
 ---
 
@@ -4393,3 +4393,63 @@ thousand-kilometre one to prove the invariance rather than assert it.
 should be a ratio of like things, or should take a `Tolerance` and let the caller say what scale they
 are working at. A bare constant compared against a length, an area or a moment is a units bug waiting
 for a user who works in different ones.
+
+## N144 — Removing a reference is not removing an import
+
+`ReferenceCatalog` derives two things from its references: the list the compiler sees, and the
+prelude — the `using` lines every block starts with, which since `E7-T21` includes the namespaces
+of libraries a user added. `Add` rebuilt both. `Remove` filtered the first and kept the second, so
+a removed library's `using Gadgetry;` stayed in the prelude with no assembly behind it, and
+**every** block then failed `CS0246` — on a line the user did not write, naming a namespace they
+had not asked for in this graph. The path also stayed in `_libraries`, so the next `Add` would have
+put the import straight back even had the snapshot been right.
+
+**Nothing noticed, because nothing removed.** Removing meant a user deleting one row from Local
+assemblies, which nobody had done with a library whose namespaces were imported. `E7-T16` made it
+the common case: opening a second graph releases the first graph's packages.
+
+**The general form.** When a type derives two things from one list, every mutation of the list
+re-derives both, through one method. `PreludeFor` is now that method, called by `Build` and by
+`RemoveWhere`, and `RemovingALibraryTakesItsNamespacesWithIt` removes a library and asserts that a
+plain block still compiles — watched red before the fix.
+
+## N145 — Two instances of a record over one file overwrite each other
+
+`PackageTrustStore` reads its file once, in its constructor, and `Save` writes its whole in-memory
+set back. That is right for one instance and wrong for two. The Packages window built its own, and
+`E7-T16`'s gate would have built a second over the same `trusted.json`. Each would miss the other's
+decisions — a library added through the window would be asked about again on the next open — and
+the next save from either would delete what the other had recorded.
+
+**Both failures point the safe way**, which is why neither would have been reported as a bug: the
+user is asked again, and it reads as Spark forgetting rather than as Spark losing data.
+
+**Fixed by ownership rather than by locking or re-reading.** The view model owns one
+`PackageTrust` and hands it to both, and `ThePackagesWindowAndTheGateShareOneRecord` asserts they
+are the same instance. `ScriptTrustStore` and `LocalReferenceStore` have the same shape and one
+instance each today; a second consumer of either needs the same treatment, not a second `new`.
+
+## N146 — A code block's key is written into the file, so it cannot see the catalogue
+
+A code block's `NodeKey` is `Spark.Scripting/CodeBlock#` plus `ContentHash` — the script, its
+input types and the shared declarations — and it does two jobs. `CanvasGraph.RebuildScripts`
+compares it to decide whether a block's meaning moved, and the evaluation cache keys results on it.
+Both jobs want it to change when the assemblies a block compiles against change, and **it does
+not**: adding a library leaves every key exactly where it was.
+
+**That looked like the bug, and putting the catalogue into the hash looked like the fix.** It is
+not, because the key has a third job: `GraphDocument` writes it into the `.spark` file. A hash that
+moved with the session's references would make one graph save differently on a machine that has
+its packages than on one that does not — which is `E7-T7`'s byte-for-byte re-save broken for
+precisely the graph `E7-T17` is about, the one naming a package you do not have.
+
+**So a catalogue change is signalled, not inferred.** Agreeing to a graph's packages calls
+`RebuildScripts(force: true)`, which replaces every block regardless of key, and then
+`SparkSession.Replace` on the same graph for a fresh cache epoch — without the second, a rebuilt
+block with an unchanged key is served the failure its predecessor computed.
+`AgreeingRebuildsTheBlocksThatWereCompiledWithoutIt` asserts both halves and was red against the
+unforced rebuild.
+
+**Still exposed**: *Add as a library…* and the Local assemblies tab also change the catalogue and
+do neither, so a block that failed for a missing type before the library arrived keeps failing
+until it is edited. That is `E7-T24`.

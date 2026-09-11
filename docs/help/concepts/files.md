@@ -8,7 +8,7 @@ since: "0.1"
 
 **Status:** Current. Describes the `.spark` reader and writer, which exist and are tested.
 **Owner:** `graph-engine`
-**Last updated:** 2026-09-09
+**Last updated:** 2026-09-11
 
 > **Scope.** A `.spark` file holds nodes, wires, lacing, canvas positions and the values typed
 > into unwired ports. It holds **no geometry** — geometry exists only after evaluation. Assets,
@@ -205,9 +205,20 @@ Save the graph and the tab comes back to life without your reopening anything.
 by its full path wherever that path is, which is exactly what a scratch graph you have not saved
 still has.
 
-Nothing in `tower.packages` is loaded because it is there. Spark asks first, and it remembers
-your answer against the assembly's **contents** rather than its name — rebuild the DLL and it
-asks again, because it is not the file it was when you agreed to it.
+Nothing in `tower.packages` is loaded because it is there. When you open the graph, Spark lets code
+blocks use only the assemblies you have already agreed to, and names the rest in a banner in the
+Properties pane — each file with the first eight characters of its hash:
+
+> This graph's packages folder holds 1 assembly you have not agreed to load: Helpers.dll
+> (3F9A21C0). Code blocks cannot use it until you do.
+
+**Trust and load** agrees to them and rebuilds the code blocks against them. Spark remembers your
+answer against the assembly's **contents** rather than its name — rebuild the DLL and it asks
+again, because it is not the file it was when you agreed to it. A library you added through the
+Packages window was agreed to when you added it, and does not ask.
+
+**Opening another graph lets go of this one's libraries**, so two graphs can use different versions
+of the same one in a single session.
 
 ---
 

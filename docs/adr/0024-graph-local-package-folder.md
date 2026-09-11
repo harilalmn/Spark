@@ -136,3 +136,25 @@ rather than move, because Save As leaves the original file where it was and must
 **Two search paths, not one changed path.** `NuGetPackageClient` searches `tags:spark` deliberately;
 that filter is right for finding node packages and wrong for referencing a library. `E7-T20` adds a
 second search rather than widening the first, so neither answer degrades the other.
+
+## What building the gate settled (2026-09-11, `E7-T16`)
+
+Four things the decision above left to the implementation, each of which could have gone the other
+way.
+
+- **One button, and it remembers.** `E6-T16`'s banner offers *Run once* beside *Always trust*. The
+  package banner offers only **Trust and load**, which records the hashes — the client's rule is
+  that an unchanged assembly never asks twice, and a once-only answer would ask on every open.
+- **Referenced, not loaded, and settled before the document is built.** The gate runs ahead of
+  `CanvasDocument.Open` on both doors, File ▸ Open and `--open`. Agreeing hands metadata references
+  to the compiler; code in an agreed assembly runs only when a code block calls it, and code blocks
+  run only under `E6-T16`'s rule. The two gates are independent, and a downloaded graph can show
+  both banners at once.
+- **Releasing goes by folder.** Opening another graph takes every reference under the previous
+  folder out of the catalogue however it got there, because *Add as a library…* references what it
+  installs without going through the gate. That is what lets two graphs disagree about a version
+  in one session.
+- **The folder holds libraries, not node packages.** A Spark package with a manifest inside
+  `<name>.packages` is referenced like any library and contributes no nodes. Importing nodes means
+  reflecting over types, which runs static constructors, and that is a larger decision than this
+  one — the global store still installs node packages.

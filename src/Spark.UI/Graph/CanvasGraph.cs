@@ -2079,8 +2079,20 @@ public sealed class CanvasGraph
     /// rebuild removes the node and puts it back, so its slot moves. The key carries the shared
     /// set's fingerprint, so "did this block's meaning change" is exactly the question being asked.
     /// </para>
+    /// <para>
+    /// <b>Unless forced, which is for a change the key is blind to on purpose</b> (`E7-T16`). The
+    /// key is written into the <c>.spark</c> file, so it must not depend on which libraries this
+    /// session happens to reference: a key that moved with them would make a graph re-save
+    /// differently on a machine without its packages, and that is `E7-T7`'s byte-for-byte promise
+    /// broken for exactly the graph `E7-T17` is about. So when the references change — a user
+    /// agreeing to a graph's packages — the rebuild is forced instead of inferred.
+    /// </para>
     /// </remarks>
-    public int RebuildScripts()
+    /// <param name="force">
+    /// True to replace every block even where its key has not moved, because the assemblies it
+    /// compiles against have.
+    /// </param>
+    public int RebuildScripts(bool force = false)
     {
         if (Scripts is not { } factory)
         {
@@ -2103,7 +2115,7 @@ public sealed class CanvasGraph
 
             int slot = SlotOf(id);
 
-            if (definition.Key != instance.Definition.Key
+            if ((force || definition.Key != instance.Definition.Key)
                 && slot >= 0
                 && ReplaceDefinition(_nodes[slot], definition))
             {

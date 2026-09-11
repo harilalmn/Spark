@@ -293,6 +293,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string? _scriptBanner;
 
+    /// <summary>
+    /// What the graph's package folder is waiting on, or null when it is waiting on nothing
+    /// (`E7-T16`).
+    /// </summary>
+    [ObservableProperty]
+    private string? _packageBanner;
+
     [ObservableProperty]
     private LibraryEntryViewModel? _selectedLibraryEntry;
 
@@ -414,6 +421,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             try
             {
+                // `E7-T16`: the graph's own packages, on this door as on File > Open, and before the
+                // document is built - building a code block compiles it.
+                _ = PackageGate.Open(startupDocumentPath);
                 opened = CanvasDocument.Open(File.ReadAllText(startupDocumentPath), _session.Library, _session.Scripts);
             }
             catch (SparkFileException error)
@@ -452,7 +462,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             _ = _graph.Engine.SetFrozen(_graph.Nodes[slot].Id, frozen: true);
         }
 
-        AdoptGraph(_graph);
+        AdoptGraph(_graph, keepPackages: opened is not null);
 
         // A document named on the command line is a saved graph like any other, and the startup
         // path does not go through TryOpenDocument (`E7-T18`). It is set *after* the adopt above,
@@ -460,6 +470,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         if (opened is not null)
         {
             NoteGraphPath(startupDocumentPath);
+            PackageBanner = PackageGate.Banner;
         }
 
         if (failure is not null)
@@ -862,16 +873,25 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             // must not make it - that is `E6-T14`. But a saved graph *with* one has to open in a
             // session that has not placed one, which it could not do while this passed whatever
             // `_session.Scripts` happened to be.
+            // `E7-T16`: THE GRAPH'S OWN PACKAGES, BEFORE ANY NODE IS BUILT.
+            //
+            // Building a code block's definition compiles it, so what it may compile against has
+            // to be settled first - ADR-0024's load-order point. Only assemblies whose bytes the
+            // user has agreed to are referenced; the rest wait behind `PackageBanner`. Opening also
+            // lets go of the previous graph's, because two graphs may disagree about a version.
+            _ = PackageGate.Open(origin);
+
             IScriptNodeFactory? factory = scripts.Count > 0 && _session.ScriptingAllowed
                 ? _session.EnableScripting()
                 : _session.Scripts;
 
-            AdoptGraph(CanvasDocument.Open(text, _session.Library, factory), evaluate: run);
+            AdoptGraph(CanvasDocument.Open(text, _session.Library, factory), evaluate: run, keepPackages: true);
 
             // The origin *is* the path, so this is the one place both halves are known (`E7-T18`).
             // A document opened with no origin - a demo graph, a paste - correctly clears it: it
             // is a graph with no file, and a package has nowhere to go beside it.
             NoteGraphPath(origin);
+            PackageBanner = PackageGate.Banner;
 
             PendingScripts = run ? 0 : scripts.Count;
             PendingOrigin = run ? null : origin;
@@ -886,6 +906,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
         catch (SparkFileException error)
         {
+            // The document that is still on the canvas gets its own packages back: the gate let go
+            // of them before the new file turned out not to open.
+            _ = PackageGate.Open(GraphPath);
+            PackageBanner = PackageGate.Banner;
+
             DiagnosticsText = Describe(error.Diagnostic);
             return false;
         }
@@ -1497,6 +1522,66 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Agrees to every assembly the graph's package folder is waiting on, and rebuilds the code
+    /// blocks against them (`E7-T16`).
+    /// </summary>
+    /// <returns>How many assemblies were agreed to.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>One button, and it remembers.</b> The code-block banner offers <i>Run once</i> beside
+    /// <i>Always trust</i>; this does not, because the client's rule for a package folder is that
+    /// an unchanged assembly never asks twice — a one-off agreement would ask again on every open,
+    /// which is the outcome that rule was written to prevent.
+    /// </para>
+    /// <para>
+    /// <b>Agreeing is not running.</b> The blocks are rebuilt so they compile against what was just
+    /// agreed to, and the graph runs only if <c>E6-T16</c> has nothing still waiting — a graph
+    /// whose code blocks nobody has agreed to stays unrun, whatever its DLLs.
+    /// </para>
+    /// </remarks>
+    public int AgreeToPackages()
+    {
+        int agreed;
+
+        try
+        {
+            agreed = PackageGate.Agree();
+        }
+        catch (Spark.Packages.SparkPackageException failure)
+        {
+            StatusText = failure.Message;
+            return 0;
+        }
+
+        PackageBanner = PackageGate.Banner;
+
+        if (agreed == 0)
+        {
+            return 0;
+        }
+
+        // The blocks were compiled when the graph opened, against a catalogue without these, and
+        // hold that failure until something rebuilds them. FORCED, because a block's key is
+        // written into the file and is therefore deliberately blind to the catalogue - so the
+        // key-compare that normally decides a rebuild sees nothing to do. And a fresh cache epoch,
+        // because results are cached by that same key: an unforced epoch would serve a rebuilt
+        // block the failure its predecessor computed.
+        _ = _graph.RebuildScripts(force: true);
+        _session.Replace(_graph.Engine);
+
+        if (!IsAwaitingTrust)
+        {
+            _ = EvaluateGraphAsync();
+        }
+
+        StatusText = string.Create(
+            CultureInfo.InvariantCulture,
+            $"{agreed} assembl{(agreed == 1 ? "y" : "ies")} from the graph's packages folder can now be used by code blocks.");
+
+        return agreed;
+    }
+
     /// <summary>The source behind a canvas node, or null when it is not a code block.</summary>
     private string? ScriptOf(CanvasNode node) =>
         _graph.Engine.Node(node.Id).Definition.Script;
@@ -1705,13 +1790,46 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         PackageBrowserViewModel browser = new(
             _session.Library,
             source: PackageSource,
-            catalogue: () => _session.ScriptReferences());
+            catalogue: () => _session.ScriptReferences(),
+            trust: PackageTrust);
         browser.Installed.CollectionChanged += (_, _) => _help = null;
         browser.GraphPath = GraphPath;
 
         _packages = browser;
         return _packages;
     }
+
+    /// <summary>
+    /// What the user has agreed to install or load, shared by everything in the session that asks
+    /// (`E7-T8`, `E7-T16`).
+    /// </summary>
+    /// <remarks>
+    /// <b>One instance, because the record is one file.</b> The Packages window and the graph's
+    /// package gate both write to it, and two instances would each load it once, miss each other's
+    /// decisions, and write their own set back over the other's. <b>Settable so a test can point the
+    /// gate at a scratch file rather than the user's own, and it reaches the gate alone</b>: the
+    /// constructor builds the Packages window while loading installed packages, so the window
+    /// already holds the default by the time anybody can call the setter.
+    /// </remarks>
+    internal Spark.Packages.PackageTrustStore PackageTrust
+    {
+        get => _packageTrust ??= Spark.Packages.PackageTrustStore.For(Spark.Packages.PackageStore.Default());
+        set
+        {
+            _packageTrust = value;
+            _packageGate = null;
+        }
+    }
+
+    /// <summary>
+    /// Which assemblies in the open graph's <c>.packages</c> folder code blocks may compile
+    /// against (`E7-T16`).
+    /// </summary>
+    internal GraphPackageGate PackageGate =>
+        _packageGate ??= new GraphPackageGate(PackageTrust, () => _session.ScriptReferences());
+
+    private Spark.Packages.PackageTrustStore? _packageTrust;
+    private GraphPackageGate? _packageGate;
 
     /// <summary>
     /// Where the document on the canvas lives on disk, or null when it has never been saved
@@ -2630,7 +2748,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private int _lastRenderableCount;
     private readonly ScriptTrustStore _trust = new();
 
-    private void AdoptGraph(CanvasGraph graph, bool evaluate = true, bool resetHistory = true)
+    private void AdoptGraph(CanvasGraph graph, bool evaluate = true, bool resetHistory = true, bool keepPackages = false)
     {
         _graph = graph;
 
@@ -2646,6 +2764,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         if (resetHistory)
         {
             NoteGraphPath(null);
+
+            // `E7-T16`: AND ITS PACKAGES GO WITH IT. Released by default, so a gesture added later
+            // that replaces the document cannot leave the last graph's libraries referenced; the
+            // two open paths pass `keepPackages` because they have just opened the new file's own.
+            if (!keepPackages)
+            {
+                _packageGate?.Release();
+                PackageBanner = null;
+            }
         }
 
         // `E6-T6`: the canvas re-types a code block as it is wired up, and it needs the factory to

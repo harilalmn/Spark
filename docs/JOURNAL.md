@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-10 (`E2-T40` closed: the plane fit, and `Plane` at 16 of 16)
+**Last updated:** 2026-09-11 (`E7-T16` closed: the package folder is consumed behind its gate)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps, and `E2-T40` is closed.** Both halves landed today: polar construction on `Point3d` and `Vector3d`, then `Plane.FromBestFit` and `Plane.FromLineAndPoint`. **`Plane` is 16 of 16 — the first ProtoGeometry type Spark covers completely** — and FR-81 stands at **99 of 837**. Earlier the same day the step-3 gate run found the tree **red** and that flake was fixed first ([N141](NOTES.md)); its prediction fired again mid-verification and took four more tests with it, six in all. |
+| **Working on** | **Nothing — between steps, and `E7-T16` is closed.** A graph's `<name>.packages` folder is consumed on open, on both doors, before any node is built, and only assemblies whose bytes the user agreed to are referenced; the rest wait behind a banner in the Properties pane with one **Trust and load** button. The folder and its gate landed in **one commit**, as the row required. Four defects came out of it ([N144](NOTES.md), [N145](NOTES.md), [N146](NOTES.md) and a release hole), and two rows were found and left for their own steps: `E6-T40` and `E7-T24`. |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E2-T40` step B — the least-squares plane fit, and the row closes.** An internal `LeastSquares` helper rather than a method on `Plane`, because `Circle` and `Line` want the same arithmetic; closed form, so no eigensolver and no convergence tolerance; a **relative** degeneracy threshold ([N143](NOTES.md)); and a normal whose sign follows the winding of the points. **Before it:** step A, polar construction ([N142](NOTES.md) is the rule the two halves put side by side). **Before them:** the constructor flake ([N141](NOTES.md)), `E8-T40` ([N140](NOTES.md)), `E2-T33` / `E11-T10` ([N139](NOTES.md)). |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3,041** tests over **ten** executables with zero failures and zero skips, docs harness green. No stashes. |
-| **Next action** | **The top of [TODO.md](TODO.md#now--what-is-next-in-order) is now `E7-T16` … `E7-T20`, the graph-local package folder**, and the row spells out an order that is not arbitrary — **`E7-T16`, the folder and its trust gate, must be one commit**, because a loader without the gate is remote code execution: a `.spark` and a folder of DLLs arriving by email, opened, and running before anybody reads anything. It must not exist on `main` even briefly. Consent is **per content hash**, the client's call, so a rebuilt DLL asks again and an unchanged one never does. Then `E7-T17`, the record in the file, which needs **format version 5** and a **re-proof of `E7-T7`'s byte-identical round trip** rather than an assumption. **Alternatives, if a shorter step is wanted:** `E2-T62`, the 8.5e-5 residual on `RevolutionSurface` — the thing to look at is why a Newton step of about 1.75e-6 fails to improve a distance of 1.5e-5, since the residuals are already at 1e-7 and the budget is not the constraint. **Union volume is the one clause of `E2-T33`'s criterion still open** and waits on solids. |
-| **Verify with** | Whatever the chosen row needs. For `E7-T16` the load-bearing test is the **refusal**: a folder of DLLs beside a graph that has never been consented to must not be loaded, and the test has to prove nothing was loaded rather than that a prompt appeared. The suite total rises from **3,041**. |
+| **Last completed step** | **`E7-T16` — the graph-local package folder, consumed behind its trust gate.** `GraphPackageGate` in `Spark.Host`; `ReferenceCatalog.RemoveUnder` and a `Remove` that takes its namespaces with it; a forced rebuild and a fresh cache epoch on agreeing, because a block's key is written into the file and cannot see the catalogue. **Before it:** `E2-T40` step B — the least-squares plane fit, and the row closes. An internal `LeastSquares` helper rather than a method on `Plane`, because `Circle` and `Line` want the same arithmetic; closed form, so no eigensolver and no convergence tolerance; a **relative** degeneracy threshold ([N143](NOTES.md)); and a normal whose sign follows the winding of the points. **Before it:** step A, polar construction ([N142](NOTES.md) is the rule the two halves put side by side). **Before them:** the constructor flake ([N141](NOTES.md)), `E8-T40` ([N140](NOTES.md)), `E2-T33` / `E11-T10` ([N139](NOTES.md)). |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3,054** tests over **ten** executables with zero failures and zero skips, docs harness green. No stashes. |
+| **Next action** | **`E7-T24`, because it is a defect in shipped behaviour and it is small**: *Add as a library…* and the Local assemblies tab change the catalogue and rebuild nothing, so a block that failed for a missing type should keep failing after its library arrives. **Write the two tests first, one per path** — a block naming a type from a library, the library added, the graph evaluated — and **if they are green before any change, withdraw the row**: it was found by reading, not by a test. The fix, if it is real, is to route both through the same forced rebuild and fresh epoch that `AgreeToPackages` uses. **Then `E7-T17`**, the top of [TODO.md](TODO.md#now--what-is-next-in-order): the record in the file, **format version 5**, and a re-proof of `E7-T7`'s byte-identical round trip — which [N146](NOTES.md) now shows is load-bearing for more than it looked. **`E6-T40`** is the other short step: `--open` skips the code-block trust rule. |
+| **Verify with** | For `E7-T24`: the two new tests, red before and green after, and a block that names a library type running once the library is added. The gates, and the suite total rises from **3,054**. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -10686,3 +10686,71 @@ and zero skips**. **Two mutations were watched:** dropping the relative degenera
 
 **Cost.** About an hour. The arithmetic was twenty minutes of it; the rest was deciding where the
 fit lives, what the threshold is measured against, and what the sign is allowed to promise.
+
+### 2026-09-11 — The graph's package folder, consumed behind its gate (`E7-T16`)
+
+**Reconciled first.** The tree was clean at `cf6e745`, the journal said `CLEAN`, and the step-3
+gates agreed: zero warnings, **3,041** tests over ten executables, zero failed, zero skipped.
+
+**What.** `GraphPackageGate`, in `Spark.Host` beside `ScriptTrustStore`, wired into both doors of
+`MainWindowViewModel` — `TryOpenDocument` and the constructor's `--open` path — and a banner row in
+the Properties pane with one **Trust and load** button. On open it lets go of the previous graph's
+packages, discovers `<name>.packages`, references only assemblies whose SHA-256 is in
+`PackageTrustStore`, and names the rest with their short hashes. **It runs before
+`CanvasDocument.Open`**, because building a code block compiles it. The row's rule held: the folder
+and its gate are one commit, so nothing on `main` has ever referenced that folder without asking.
+
+**The load-bearing test is a negative, asserted as one.**
+`AFolderNobodyAgreedToIsNeitherReferencedNorLoaded` compiles a real assembly into the folder, opens
+the graph, and checks that the catalogue has no path for it, that a block naming its type does not
+compile, and — last, so it covers the compile attempt too — that no assembly of that name is in
+`AppDomain.CurrentDomain.GetAssemblies()`. It also asserts the catalogue was never reached, which is
+`E6-T14`'s promise kept for a graph whose folder holds nothing agreed to. `TheStartupDoorIsGatedToo`
+repeats the refusal through `--open`.
+
+**Four defects, and the fourth is the one worth reading.**
+
+1. **`ReferenceCatalog.Remove` kept a removed library's namespaces in the prelude**
+   ([N144](NOTES.md)). Predicted while scoping, written as a test first, **watched red**, then fixed
+   by giving `Build` and `Remove` one prelude derivation, `PreludeFor`.
+2. **Releasing by the gate's own list** would have left behind what *Add as a library…* installs,
+   since that references assemblies without going through the gate. Release goes by folder
+   (`RemoveUnder`) and happens whenever the folder exists — one prelude rebuild for the folder, not
+   one per assembly, because each rebuild reads every reference's metadata.
+3. **The Packages window built its own `PackageTrustStore`** over the same file ([N145](NOTES.md)):
+   each would have missed the other's decisions and overwritten them.
+4. **Agreeing rebuilt nothing** ([N146](NOTES.md)). `AgreeingRebuildsTheBlocksThatWereCompiledWithoutIt`
+   failed on the first full gate run: a block's key is `ContentHash`, which cannot see the catalogue,
+   so `RebuildScripts` found no key that had moved. **The obvious fix was wrong.** Folding the
+   catalogue into the hash would have broken `E7-T7`, because `GraphDocument` writes that key into
+   the `.spark` file — a graph would save differently on a machine without its packages. So agreeing
+   now forces the rebuild and advances the cache epoch, and the test that was red is the proof.
+
+**Found and not fixed, each with a row.** **`E6-T40`**: `--open` skips `E6-T16`'s code-block trust
+entirely — the constructor adopts with evaluation on and never asks `ScriptTrustStore`. It is left
+for its own commit because the fix changes the `--open … --screenshot` workflow; the installer
+registers no file association and a bare path is ignored, so no double-click reaches it, and the
+*package* half of that door is gated now. **`E7-T24`**: *Add as a library…* and Local assemblies
+change the catalogue and rebuild nothing — N146's gap on the other two paths, found by reading
+rather than by a test, and the row says to withdraw it if the test is green before any change.
+
+**A test that asserted a configuration which cannot exist.** `ThePackagesWindowAndTheGateShareOneRecord`
+first set a scratch trust store and then asserted the window used it, and failed: the constructor
+builds the window while loading installed packages, before any setter can run. Production was right
+and the test was wrong. It now asserts the wiring the application runs with, and the setter's
+documentation says it reaches the gate alone.
+
+**AGENTS step 7, stated rather than implied.** The pre-existing defect (N144) was watched red before
+its fix, and N146's test was red against the unforced rebuild. A run of the gate's tests against a
+**deliberately disabled gate** — the revert-and-watch for the gate itself — was **blocked by the
+session's permission classifier**. It was not retried by another route; the gate was restored
+immediately. The refusal test's assertions are negatives against real process state, which is the
+property that run would have demonstrated.
+
+**Noticed, not acted on.** `TODO.md` says `E7-T20` is done; its `TASKS.md` row says *In progress*,
+re-checked 2026-09-09 with the install half not started. One of them is wrong, and settling it is
+not this step's work — `EPICS.md` was written to name which rows are done rather than to count them.
+
+**Verified.** Build clean with zero warnings, format clean, docs harness green, **3,054 tests over
+ten executables**, zero failed, zero skipped — thirteen new: twelve in `GraphPackageGateTests` and
+one in `LibraryImportTests`.
