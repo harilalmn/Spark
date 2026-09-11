@@ -3278,7 +3278,14 @@ public sealed class GraphCanvas : Control
             context.DrawRectangle(null, pens.SelectionRing, ring);
         }
 
-        if (node.State.HasFlag(CanvasNodeState.Error))
+        if (node.State.HasFlag(CanvasNodeState.Evaluating))
+        {
+            // `E3-T14`: first, because a node being worked on has no settled state yet - an error
+            // ring left by the run before would be news about a result this run is replacing.
+            RoundedRect ring = new(nodeRect.Inflate(4 / zoom), CornerRadius + (4 / zoom));
+            context.DrawRectangle(null, pens.EvaluatingRing, ring);
+        }
+        else if (node.State.HasFlag(CanvasNodeState.Error))
         {
             RoundedRect ring = new(nodeRect.Inflate(4 / zoom), CornerRadius + (4 / zoom));
             context.DrawRectangle(null, pens.ErrorRing, ring);
@@ -4395,6 +4402,12 @@ public sealed class GraphCanvas : Control
     /// </summary>
     private static string? StateGlyph(CanvasNodeState state)
     {
+        // `E3-T14`: evaluating first, for the reason its ring is drawn first.
+        if (state.HasFlag(CanvasNodeState.Evaluating))
+        {
+            return "…";
+        }
+
         if (state.HasFlag(CanvasNodeState.Error))
         {
             return "✕";
@@ -4601,6 +4614,7 @@ public sealed class GraphCanvas : Control
             SelectionRing = Pen(SparkPalette.Accent, 2 * screen);
             ErrorRing = Pen(SparkPalette.StateError, 2 * screen);
             WarningRing = Pen(SparkPalette.StateWarning, 2 * screen);
+            EvaluatingRing = Pen(SparkPalette.Accent, 2 * screen);
             FocusRing = Pen(SparkPalette.FocusRing, 2 * screen);
             FocusContour = Pen(SparkPalette.FocusContour, screen);
             AccentThin = Pen(SparkPalette.Accent, screen);
@@ -4657,6 +4671,8 @@ public sealed class GraphCanvas : Control
         internal IPen ErrorRing { get; }
 
         internal IPen WarningRing { get; }
+
+        internal IPen EvaluatingRing { get; }
 
         internal IPen FocusRing { get; }
 

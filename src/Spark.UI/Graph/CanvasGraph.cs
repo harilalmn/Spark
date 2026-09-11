@@ -49,6 +49,18 @@ public enum CanvasNodeState
     /// user who cannot tell which is which on the canvas will go looking for a fault they created.
     /// </remarks>
     Frozen = 32,
+
+    /// <summary>
+    /// Evaluating: a run is still working towards this node (<c>E3-T14</c>). A 2 px <c>accent</c>
+    /// ring and a <c>…</c> glyph - the static form §7.4 gives for reduced motion and for a
+    /// zoomed-out canvas.
+    /// </summary>
+    /// <remarks>
+    /// <b>Shown only for a run slow enough to watch.</b> A run that finishes inside the view model's
+    /// evaluating delay marks nothing, and every mark is cleared by the node's own report or, at the
+    /// latest, by <see cref="CanvasGraph.ApplyResult"/>.
+    /// </remarks>
+    Evaluating = 64,
 }
 
 /// <summary>Identifies one port on one node, by the node's slot on the canvas.</summary>
@@ -2780,6 +2792,33 @@ public sealed class CanvasGraph
             node.ResultSummary = Summarise(value);
             node.ResultRank = SparkList.RankOf(value);
             node.ResultCount = value is SparkList produced ? produced.Count : 0;
+        }
+    }
+
+    /// <summary>
+    /// Marks the nodes a run in progress has not finished as evaluating, and clears the ones it has
+    /// (<c>E3-T14</c>).
+    /// </summary>
+    /// <param name="finished">The nodes the run has reported so far.</param>
+    /// <remarks>
+    /// A frozen node is never marked: it is not going to run, and saying it is would be wrong for
+    /// the length of every run. <see cref="ApplyResult"/> clears whatever is left, because it
+    /// rewrites every node's state.
+    /// </remarks>
+    public void ShowEvaluating(IReadOnlySet<NodeId> finished)
+    {
+        ArgumentNullException.ThrowIfNull(finished);
+
+        foreach (CanvasNode node in _nodes)
+        {
+            if (finished.Contains(node.Id) || node.State.HasFlag(CanvasNodeState.Frozen))
+            {
+                node.State &= ~CanvasNodeState.Evaluating;
+            }
+            else
+            {
+                node.State |= CanvasNodeState.Evaluating;
+            }
         }
     }
 

@@ -81,6 +81,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly HashSet<GeometryKey> _streamed = [];
     private int _runGeneration;
     private int _appliedGeneration;
+
+    // `E3-T14`: the run in progress, whose reports say which nodes are finished, and whether a
+    // request to show them is already on its way to the UI thread.
+    private GeometryStream? _running;
+    private int _progressPending;
     private readonly DocumentHistory _history = new();
 
     /// <summary>Where the chosen code font is remembered (`E8-T59`).</summary>
@@ -569,10 +574,33 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public event EventHandler? EvaluationCompleted;
 
     /// <summary>
+    /// Raised when a run slow enough to watch has moved on (<c>E3-T14</c>): it has outlasted the
+    /// evaluating delay, or a node of it has finished since. Raised on whichever thread noticed - the
+    /// evaluation's own, for a report - so a view posts <see cref="ShowProgress"/> to its UI thread.
+    /// Coalesced: once raised, it is not raised again until <see cref="ShowProgress"/> has run.
+    /// </summary>
+    public event EventHandler? EvaluationProgressed;
+
+    /// <summary>
     /// Called with a run's generation after it has evaluated and before it waits to be applied, so a
     /// test can hold an older run back until a newer one has been applied. Tests only.
     /// </summary>
     internal Func<int, Task>? BeforeApplyingForTesting { get; set; }
+
+    /// <summary>
+    /// Called with each node's report before it is recorded, on the thread that ran the node, so a
+    /// test can hold a run part-way (<c>E3-T14</c>).
+    /// </summary>
+    internal Action<NodeCompleted>? WhileReportingForTesting { get; set; }
+
+    /// <summary>
+    /// How long a run may take before its unfinished nodes are shown as evaluating (<c>E3-T14</c>).
+    /// </summary>
+    /// <remarks>
+    /// A run that finishes inside it marks nothing. Dragging a slider starts a run per pointer move,
+    /// and without the delay every node on the canvas would flash its ring on each one.
+    /// </remarks>
+    internal TimeSpan EvaluatingDelay { get; set; } = TimeSpan.FromMilliseconds(150);
 
     /// <summary>
     /// Raised when a node's geometry has reached the scene before its run has finished
@@ -1082,7 +1110,20 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         // stays the authority.
         int generation = Interlocked.Increment(ref _runGeneration);
         GeometryStream stream = new(this, generation, PreviewKeysByNode());
-        EvaluationResult? result = await _session.EvaluateAsync(stream).ConfigureAwait(true);
+        Volatile.Write(ref _running, stream);
+        Task<EvaluationResult?> running = _session.EvaluateAsync(stream);
+
+        // `E3-T14`: A RUN SLOW ENOUGH TO WATCH SHOWS WHAT IT HAS NOT FINISHED. One that finishes
+        // inside the delay shows nothing, and its timer is cancelled rather than left to fire.
+        using CancellationTokenSource late = new();
+
+        if (await Task.WhenAny(running, Task.Delay(EvaluatingDelay, late.Token)).ConfigureAwait(true) != running)
+        {
+            stream.MarkOverdue();
+        }
+
+        await late.CancelAsync().ConfigureAwait(true);
+        EvaluationResult? result = await running.ConfigureAwait(true);
 
         if (result is null)
         {
@@ -3602,6 +3643,33 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         return keys;
     }
 
+    /// <summary>
+    /// Shows a slow run's progress on the canvas: every node it has not finished as evaluating, and
+    /// every node it has as not (<c>E3-T14</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Call it on the UI thread</b>, in answer to <see cref="EvaluationProgressed"/>. It does
+    /// nothing for a run still inside the evaluating delay or whose result has been applied, so a
+    /// request a finished run posted late cannot mark a node that is done.
+    /// </remarks>
+    public void ShowProgress()
+    {
+        Interlocked.Exchange(ref _progressPending, 0);
+
+        if (Volatile.Read(ref _running)?.Progress() is { } finished)
+        {
+            _graph.ShowEvaluating(finished);
+        }
+    }
+
+    private void RaiseProgress()
+    {
+        if (Interlocked.Exchange(ref _progressPending, 1) == 0)
+        {
+            EvaluationProgressed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
     private void RememberStreamed(GeometryKey key)
     {
         lock (_streamedGate)
@@ -3642,10 +3710,29 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         Dictionary<NodeId, List<(GeometryKey Key, int Port)>> keys) : IProgress<NodeCompleted>
     {
         private readonly Lock _gate = new();
+        private readonly HashSet<NodeId> _finished = [];
         private bool _closed;
+        private bool _overdue;
 
         public void Report(NodeCompleted value)
         {
+            owner.WhileReportingForTesting?.Invoke(value);
+
+            // `E3-T14`: every node is recorded as finished, geometry or not, before anything else is
+            // decided - the canvas marks nodes, not previews.
+            bool overdue;
+
+            lock (_gate)
+            {
+                _finished.Add(value.Node);
+                overdue = _overdue && !_closed;
+            }
+
+            if (overdue)
+            {
+                owner.RaiseProgress();
+            }
+
             if (!keys.TryGetValue(value.Node, out List<(GeometryKey Key, int Port)>? ports) || IsStale())
             {
                 return;
@@ -3690,6 +3777,34 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             lock (_gate)
             {
                 _closed = true;
+            }
+        }
+
+        /// <summary>The run has outlasted the delay: from now on its progress is shown (<c>E3-T14</c>).</summary>
+        public void MarkOverdue()
+        {
+            lock (_gate)
+            {
+                if (_closed)
+                {
+                    return;
+                }
+
+                _overdue = true;
+            }
+
+            owner.RaiseProgress();
+        }
+
+        /// <summary>
+        /// The nodes finished so far, or null while the run is not being shown - inside the delay, or
+        /// once its result has been applied.
+        /// </summary>
+        public HashSet<NodeId>? Progress()
+        {
+            lock (_gate)
+            {
+                return _overdue && !_closed ? [.. _finished] : null;
             }
         }
 
