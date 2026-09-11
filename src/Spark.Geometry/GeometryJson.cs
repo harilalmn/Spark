@@ -531,6 +531,18 @@ public static class GeometryJson
                 writer.WriteEndArray();
                 break;
 
+            case PointCloud v:
+                // The points only. The tree and the box are derived from them and rebuilt on reading.
+                Open(writer, nameof(PointCloud));
+                writer.WriteStartArray("points");
+                foreach (Point3d point in v.Points())
+                {
+                    Write(writer, point);
+                }
+
+                writer.WriteEndArray();
+                break;
+
             default:
                 throw new NotSupportedException(
                     $"{value.GetType().Name} has no JSON form. Add one to GeometryJson: a public "
@@ -641,6 +653,7 @@ public static class GeometryJson
             nameof(KnotVector) => ReadKnotVector(element),
             nameof(NurbsCurve) => ReadNurbsCurve(element),
             nameof(PolyLine) => ReadPolyLine(element),
+            nameof(PointCloud) => ReadPointCloud(element),
             nameof(PolyCurve) => ReadPolyCurve(element),
             _ => throw new NotSupportedException(
                 $"'{type}' is not a geometry type this build knows how to read."),
@@ -723,6 +736,18 @@ public static class GeometryJson
         }
 
         return new PolyLine(points);
+    }
+
+    private static PointCloud ReadPointCloud(JsonElement element)
+    {
+        List<Point3d> points = [];
+
+        foreach (JsonElement point in element.GetProperty("points").EnumerateArray())
+        {
+            points.Add((Point3d)Read(point));
+        }
+
+        return new PointCloud(points);
     }
 
     private static PolyCurve ReadPolyCurve(JsonElement element)

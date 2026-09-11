@@ -74,6 +74,15 @@ public sealed class GeometryJsonTests
             new Line(new Point3d(1.0, 0.0, 0.0), new Point3d(1.0, 2.0, 0.0)),
         ]),
 
+        // `E2-T21`: a point twice, because a round trip that deduplicated on the way would pass a
+        // sample of distinct points.
+        [typeof(PointCloud)] = new PointCloud(
+        [
+            new Point3d(0.5, -1.0, 2.0),
+            new Point3d(3.0, 4.0, -5.25),
+            new Point3d(0.5, -1.0, 2.0),
+        ]),
+
         // Surfaces. Each sample uses a *patch* rather than a whole sphere or torus wherever the
         // type allows one, because a partial domain is what a round trip can actually get wrong:
         // a whole one round-trips through a default and looks correct whatever was written.
@@ -351,6 +360,14 @@ public sealed class GeometryJsonTests
         if (expected is Brep brep)
         {
             AssertSameBrep(brep, (Brep)actual);
+
+            return;
+        }
+
+        if (expected is PointCloud cloud)
+        {
+            // Point by point and exactly: doubles are written in their shortest round-trippable form.
+            Assert.Equal(cloud.Points(), ((PointCloud)actual).Points());
 
             return;
         }

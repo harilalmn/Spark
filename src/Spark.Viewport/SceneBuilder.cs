@@ -209,6 +209,16 @@ public sealed class SceneBuilder
                 Record(key, new SurfaceDrawable(surface), colour, wrapped);
                 return;
 
+            case PointCloud cloud:
+                // One marker per point, as a list of points would be drawn - which is what it is,
+                // seen from the viewport.
+                foreach (Point3d point in cloud.Points())
+                {
+                    Record(key, new PointMarker(ToVector(point)), colour, wrapped);
+                }
+
+                return;
+
             case Spark.Geometry.Mesh drawn:
                 Record(key, new MeshDrawable(drawn), colour, wrapped);
                 return;

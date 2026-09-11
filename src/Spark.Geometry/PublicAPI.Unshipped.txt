@@ -49,6 +49,15 @@ Spark.Geometry.PlaneSurface.PlaneSurface(in Spark.Geometry.Plane plane, double w
 Spark.Geometry.PlaneSurface.PlaneSurface(in Spark.Geometry.Plane plane, in Spark.Geometry.Point2d corner, in Spark.Geometry.Point2d oppositeCorner) -> void
 Spark.Geometry.Point3d.Point3d(double radius, Spark.Geometry.Angle azimuth, Spark.Geometry.Angle polar) -> void
 Spark.Geometry.Point3d.Point3d(double radius, Spark.Geometry.Angle azimuth, double height) -> void
+Spark.Geometry.PointCloud
+Spark.Geometry.PointCloud.BoundingBox.get -> Spark.Geometry.BoundingBox
+Spark.Geometry.PointCloud.Count.get -> int
+Spark.Geometry.PointCloud.NearestTo(in Spark.Geometry.Point3d point) -> (int Index, double Distance)
+Spark.Geometry.PointCloud.PointCloud(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> void
+Spark.Geometry.PointCloud.Points() -> Spark.Geometry.Point3d[]!
+Spark.Geometry.PointCloud.PruneDuplicates(double tolerance = 0) -> Spark.Geometry.PointCloud!
+Spark.Geometry.PointCloud.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.PointCloud!
+Spark.Geometry.PointCloud.Within(in Spark.Geometry.Point3d point, double radius) -> int[]!
 Spark.Geometry.PolyCurve.PolyCurve(System.Collections.Generic.IEnumerable<Spark.Geometry.Curve!>! curves, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> void
 Spark.Geometry.PolyLine.PolyLine(in Spark.Geometry.Plane plane, double radius, int sides) -> void
 Spark.Geometry.PolyLine.PolyLine(in Spark.Geometry.Plane plane, double width, double length) -> void
@@ -74,6 +83,7 @@ static Spark.Geometry.Plane.FromLineAndPoint(Spark.Geometry.Line! line, in Spark
 static Spark.Geometry.Point3d.FromCylindrical(double radius, Spark.Geometry.Angle azimuth, double height) -> Spark.Geometry.Point3d
 static Spark.Geometry.Point3d.FromSpherical(double radius, Spark.Geometry.Angle azimuth, Spark.Geometry.Angle polar) -> Spark.Geometry.Point3d
 static Spark.Geometry.Point3d.PruneDuplicates(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, double tolerance = 0) -> Spark.Geometry.Point3d[]!
+static Spark.Geometry.PointCloud.FromPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.PointCloud!
 static Spark.Geometry.Tessellation.Tessellate(Spark.Geometry.Surface! surface, Spark.Geometry.ITessellationSink! sink, in Spark.Geometry.Tolerance tolerance, System.Threading.CancellationToken cancellationToken) -> void
 static Spark.Geometry.Tessellation.ToMesh(this Spark.Geometry.Surface! surface, in Spark.Geometry.Tolerance tolerance, System.Threading.CancellationToken cancellationToken) -> Spark.Geometry.Mesh!
 static Spark.Geometry.Vector3d.FromCylindrical(double radius, Spark.Geometry.Angle azimuth, double height) -> Spark.Geometry.Vector3d
