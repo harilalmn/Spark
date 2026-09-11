@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E3-T12` criterion ticked, with `E3-T22` and `E3-T11`, and the epic's status paragraph brought level)
+**Last updated:** 2026-09-11 (`E3-T9` criterion ticked: the evaluation epic has no half-built row left)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -351,8 +351,10 @@ is [E5](#e5--node-authoring-and-library). Anything drawn on screen.
       nodes and serves every one of them from the cache.
 - [ ] Impure nodes declare themselves, mix a run epoch into their key, and poison
       downstream keys (**E3-T10**).
-- [ ] The cache is LRU against a memory budget, evicted by last use and estimated size
-      (**E3-T9**).
+- [x] The cache is LRU against a memory budget, evicted by last use and estimated size
+      (**E3-T9**). *Done 2026-09-11: three ceilings - an entry count, the native budget that
+      landed on 2026-08-31, and a managed budget over a count-based estimate that never
+      materialises a resident shape.*
 - [x] `IEvaluationScheduler` has parallel, sequential-deterministic and host-thread
       implementations, and evaluation never runs on the UI thread (**E3-T11**). *Ticked
       2026-09-11: the row is Done in TASKS; the criterion had not been ticked with it.*
@@ -381,8 +383,9 @@ compiled invocation, the wire-compatibility rules with same-name refusal, Kahn o
 dirty subgraph, cycle refusal at wire creation and detection at load, the provenance cache, the
 `SPK####` diagnostic space and the non-cascading error rule are all in.
 
-**Four things were half-built, and three of them are finished.** The cache still evicts by
-**entry count** rather than by a byte budget (`E3-T9`) - the one half still missing. The impure-node
+**Four things were half-built, and all four are finished.** The cache evicts against a native
+and a managed memory budget as well as a count (`E3-T9`) - the native half had landed on
+2026-08-31 and the register had not noticed. The impure-node
 declaration exists and always did, as `[NodeSideEffect]` (`E3-T10`, closed by the 2026-09-11
 reconciliation); the host-thread scheduler exists (`E3-T11`); and since 2026-09-11 cancellation
 reaches inside tessellation and into any node method that declares a token (`E3-T12`), with
