@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using Spark.Geometry;
 
 namespace Spark.Viewport;
 
@@ -115,6 +116,38 @@ public sealed class Camera
 
     /// <summary>The combined view-projection matrix, which is what a shader receives.</summary>
     public Matrix4x4 ViewProjection => View * Projection;
+
+    /// <summary>
+    /// The ray from the eye through a pixel, in world coordinates (`E9-T8`).
+    /// </summary>
+    /// <param name="pixelX">The horizontal position in pixels, from the left edge.</param>
+    /// <param name="pixelY">The vertical position in pixels, from the top edge.</param>
+    /// <returns>A ray from <see cref="Position"/> through that pixel.</returns>
+    /// <remarks>
+    /// <b>Built from the same basis the view and projection are</b> - the look-at frame and the
+    /// vertical field of view spread over the aspect ratio - rather than by inverting
+    /// <see cref="ViewProjection"/>. Inverting would work, and would cost a matrix inverse whose
+    /// precision falls apart exactly where a CAD scene lives: a far plane forty thousand times the
+    /// near one. The test that matters projects a point with <see cref="ViewProjection"/> and checks
+    /// it lies on the ray through its own pixel, so the two can never quietly disagree.
+    /// </remarks>
+    public Ray RayThrough(double pixelX, double pixelY)
+    {
+        Vector3 eye = Position;
+        Vector3 forward = Vector3.Normalize(Target - eye);
+        Vector3 right = Vector3.Normalize(Vector3.Cross(forward, WorldUp));
+        Vector3 up = Vector3.Cross(right, forward);
+
+        double tangent = Math.Tan(_fieldOfView / 2.0);
+        double horizontal = ((2.0 * pixelX / ViewportWidth) - 1.0) * tangent * AspectRatio;
+        double vertical = (1.0 - (2.0 * pixelY / ViewportHeight)) * tangent;
+
+        Vector3 direction = forward + (right * (float)horizontal) + (up * (float)vertical);
+
+        return new Ray(
+            new Point3d(eye.X, eye.Y, eye.Z),
+            new Vector3d(direction.X, direction.Y, direction.Z));
+    }
 
     /// <summary>Records the size of the surface being rendered into.</summary>
     /// <param name="widthPixels">Width in pixels. Values below one are treated as one.</param>
