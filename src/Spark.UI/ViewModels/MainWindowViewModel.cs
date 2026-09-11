@@ -80,6 +80,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly Lock _streamedGate = new();
     private readonly HashSet<GeometryKey> _streamed = [];
     private int _runGeneration;
+    private int _appliedGeneration;
     private readonly DocumentHistory _history = new();
 
     /// <summary>Where the chosen code font is remembered (`E8-T59`).</summary>
@@ -566,6 +567,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     /// <summary>Raised on the UI thread after a run's results have been applied.</summary>
     public event EventHandler? EvaluationCompleted;
+
+    /// <summary>
+    /// Called with a run's generation after it has evaluated and before it waits to be applied, so a
+    /// test can hold an older run back until a newer one has been applied. Tests only.
+    /// </summary>
+    internal Func<int, Task>? BeforeApplyingForTesting { get; set; }
 
     /// <summary>
     /// Raised when a node's geometry has reached the scene before its run has finished
@@ -1073,7 +1080,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         // `E9-T7`: a node's geometry reaches the viewport as the node finishes, not when the slowest
         // node in the graph does. The listener belongs to this run alone; the full publish below
         // stays the authority.
-        GeometryStream stream = new(this, Interlocked.Increment(ref _runGeneration), PreviewKeysByNode());
+        int generation = Interlocked.Increment(ref _runGeneration);
+        GeometryStream stream = new(this, generation, PreviewKeysByNode());
         EvaluationResult? result = await _session.EvaluateAsync(stream).ConfigureAwait(true);
 
         if (result is null)
@@ -1094,10 +1102,28 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         // costs nothing; in a headless host — a test, `spark run`, an embedder without one — two
         // results applied concurrently would tear `Inspector` and `_published`, which are ordinary
         // collections. See N24.
+        if (BeforeApplyingForTesting is { } hold)
+        {
+            await hold(generation).ConfigureAwait(true);
+        }
+
         await _applying.WaitAsync().ConfigureAwait(true);
 
         try
         {
+            // THE NEWEST RUN WINS, NOT THE LAST ONE TO FINISH. Results are applied in the order they
+            // reach this gate, and a run that had already finished when a later one superseded it can
+            // reach it second - and would put an older graph's results, and its geometry, over a newer
+            // one's. Every constructor that opens a graph starts a run, so a caller's own run racing
+            // that one is the ordinary case, not a rare one. The older result is dropped (`E9-T7`).
+            if (generation < _appliedGeneration)
+            {
+                stream.Close();
+                return;
+            }
+
+            _appliedGeneration = generation;
+
             // Kept so the watch panel can render the value in full. The canvas node only carries
             // a sixty-character summary, which is right for a bubble and useless for reading.
             _lastResult = result;
