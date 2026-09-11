@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-11 (N144–N150: a removed reference kept its import; two stores over one file; a key the file owns; Save asks first; a screenshot is not consent; the command line holds a DLL to a stricter rule than a code block; no encoder writes an emoji literally)
+**Last updated:** 2026-09-11 (N144–N151: … no encoder writes an emoji literally; assigning a `TopoDS_Shape` is not a copy)
 
 ---
 
@@ -4535,3 +4535,32 @@ writing JSON strings by hand, which ADR-0026 declined.
 through, and it still escapes `+`, `<`, `>`, `&`, `'` and the quotation mark, because the built-in
 encoders treat the HTML-sensitive characters as forbidden whatever ranges they are given. It looks
 like the conservative choice and does half the job; the code block's `+` is the half it misses.
+
+## N151 — Assigning a `TopoDS_Shape` is not a copy, and meshing is not read-only
+
+`spark_occt_tessellate` wrote `TopoDS_Shape meshed = shape->shape;` under a comment saying it made a
+copy so that the caller's shape would not change. `TopoDS_Shape` is a handle — a location, an
+orientation and a pointer to a shared `TShape` — so the assignment copied the pointer and every face
+stayed shared. `BRepMesh_IncrementalMesh` stores each face's triangulation **on the face**, so the
+caller's shape changed after all, and the mesher's rule of keeping an existing triangulation finer
+than the one requested turned that into a cache keyed on the shape and nothing else: N87's 1,099,460
+triangles for a coarse request whose fresh answer is 1,332. Two threads tessellating one shape wrote
+into the same faces as well.
+
+**A real copy is `BRepBuilderAPI_Copy(shape, true, false)`** — geometry copied, mesh not. That is
+the proper fix, two lines in the shim, and it waits on `E13-T21` because the OpenCascade install the
+shim was built against is gone from this machine.
+
+**What ships instead is managed** (`OcctBrepKernel.Place`, `E12-T20`). A held shape's first
+tessellation meshes the shape itself; every later tolerance meshes a fresh import of the shape read
+back out, which shares nothing with it; and a per-shape, per-tolerance cache serves exact repeats.
+Correct at every tolerance, and the viewport's one-tolerance case costs what it always did. If the
+fresh import ever fails, the shape itself is meshed, which is the old behaviour and never worse.
+
+**One residue, benign and stated.** A boolean keeps the faces it did not touch as the input's own
+faces, so a triangulation written into an input can be inherited by the result's first, in-place
+tessellation — finer than asked for in places, never wrong. The deep copy in the shim removes that
+too.
+
+**The general form.** In OpenCascade, `=` on a shape shares and `BRepBuilderAPI_Copy` copies — and
+anything that caches onto topology, meshing first among them, changes every shape sharing it.

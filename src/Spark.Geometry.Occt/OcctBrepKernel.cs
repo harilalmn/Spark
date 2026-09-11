@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Runtime.CompilerServices;
 using Spark.Api;
 using Spark.Geometry;
 
@@ -568,6 +569,27 @@ public sealed class OcctBrepKernel : IBrepKernel
         return false;
     }
 
+    /// <summary>
+    /// What each shape has already been tessellated into, per tolerance (`E12-T20`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The cache used to be OpenCascade's, and it was keyed on the wrong thing.</b> Meshing writes
+    /// the triangulation into the shape it meshes, and the mesher keeps a triangulation finer than
+    /// the one asked for, so a held shape served its first mesh to every coarser request after it
+    /// (N87). <see cref="Place"/> now meshes a fresh import for every tolerance after the first,
+    /// which makes each of those a full mesh - and the viewport tessellates every solid on every
+    /// scene rebuild, so without this a correct answer would also be a slow one.
+    /// </para>
+    /// <para>
+    /// <b>Keyed on the shape's identity and the exact tolerance.</b> Identity is the right key for
+    /// the reason the evaluation cache is by provenance: a node whose inputs did not change hands
+    /// back the same <see cref="Brep"/> instance, and hashing a shape to find it would cost more
+    /// than meshing it. A weak table, so a shape nobody holds takes its meshes with it.
+    /// </para>
+    /// </remarks>
+    private readonly ConditionalWeakTable<Brep, TessellationCache> _tessellations = new();
+
     /// <inheritdoc/>
     public KernelResult<Mesh> Tessellate(Brep shape, in Tolerance tolerance)
     {
@@ -576,7 +598,14 @@ public sealed class OcctBrepKernel : IBrepKernel
         double linear = tolerance.Linear;
         double angular = tolerance.Angular.Radians;
 
-        using Borrowed borrowed = Borrow(shape, linear);
+        TessellationCache cache = _tessellations.GetValue(shape, _ => new TessellationCache());
+
+        if (cache.Find(linear, angular) is { } cached)
+        {
+            return KernelResult<Mesh>.Success(cached);
+        }
+
+        using Borrowed borrowed = Place(shape, linear, cache);
 
         if (borrowed.Problem is { } problem)
         {
@@ -625,8 +654,79 @@ public sealed class OcctBrepKernel : IBrepKernel
             faces[i] = new MeshFace(triangles[i * 3], triangles[(i * 3) + 1], triangles[(i * 3) + 2]);
         }
 
-        return KernelResult<Mesh>.Success(
-            new Mesh(vertices, faces, readNormals, textureCoordinates: null, colours: null));
+        Mesh result = new(vertices, faces, readNormals, textureCoordinates: null, colours: null);
+        cache.Keep(linear, angular, result);
+
+        return KernelResult<Mesh>.Success(result);
+    }
+
+    /// <summary>One shape's meshes, by the tolerance each was made at (`E12-T20`).</summary>
+    /// <remarks>
+    /// <b>A handful, not all of them.</b> The viewport asks for one tolerance per shape; a node that
+    /// sweeps tolerances asks for many, and holding every mesh of a sweep for as long as the shape
+    /// lives would turn a cache into a leak. The oldest goes first. Meshes are immutable, so handing
+    /// the same one to two callers is safe; the lock is for the list, which two evaluation threads
+    /// can reach at once.
+    /// </remarks>
+    private sealed class TessellationCache
+    {
+        private const int Kept = 4;
+
+        private readonly List<(double Linear, double Angular, Mesh Mesh)> _meshes = [];
+
+        private bool _meshedInPlace;
+
+        /// <summary>
+        /// Whether this call may mesh the held shape itself: true for exactly one call per shape.
+        /// </summary>
+        /// <remarks>
+        /// Under the same lock as the list, so two evaluation threads asking at once cannot both
+        /// write a triangulation into the one native shape - which they could before `E12-T20`.
+        /// </remarks>
+        public bool ClaimInPlace()
+        {
+            lock (_meshes)
+            {
+                if (_meshedInPlace)
+                {
+                    return false;
+                }
+
+                _meshedInPlace = true;
+                return true;
+            }
+        }
+
+        public Mesh? Find(double linear, double angular)
+        {
+            lock (_meshes)
+            {
+                foreach ((double kept, double keptAngle, Mesh mesh) in _meshes)
+                {
+                    // Exactly equal, deliberately: a mesh made at a nearby tolerance is a different
+                    // answer, and deciding which differences do not matter is the mesher's job.
+                    if (kept.Equals(linear) && keptAngle.Equals(angular))
+                    {
+                        return mesh;
+                    }
+                }
+
+                return null;
+            }
+        }
+
+        public void Keep(double linear, double angular, Mesh mesh)
+        {
+            lock (_meshes)
+            {
+                if (_meshes.Count == Kept)
+                {
+                    _meshes.RemoveAt(0);
+                }
+
+                _meshes.Add((linear, angular, mesh));
+            }
+        }
     }
 
     // --------------------------------------------------------------------------------------------
@@ -670,6 +770,52 @@ public sealed class OcctBrepKernel : IBrepKernel
             return new Borrowed(resident.Shape, owned: false, problem: null);
         }
 
+        return Import(shape, tolerance);
+    }
+
+    /// <summary>
+    /// The provider shape a tessellation may write into (`E12-T20`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Meshing writes the triangulation into the shape it meshes</b>, and OpenCascade keeps a
+    /// triangulation finer than the one asked for — so a held shape meshed once handed that mesh to
+    /// every coarser request after it (N87). The first tessellation of a held shape still meshes the
+    /// shape itself, which keeps the ordinary case, the viewport asking for one tolerance, exactly as
+    /// cheap as it was. Every later one meshes a fresh import, which shares nothing with it.
+    /// </para>
+    /// <para>
+    /// <b>If that import fails, the shape itself is meshed</b> — the behaviour before this row, so
+    /// never worse than it was, and the finer mesh it can produce is still valid geometry. The
+    /// proper fix is two lines in the shim, meshing a deep copy, and waits on a C++ toolchain this
+    /// machine no longer has (`E13-T21`). A shape the kernel does not hold is imported afresh on
+    /// every call already, so it never had the defect.
+    /// </para>
+    /// </remarks>
+    private static Borrowed Place(Brep shape, double tolerance, TessellationCache cache)
+    {
+        if (shape.Residency is not OcctResidency || cache.ClaimInPlace())
+        {
+            return Borrow(shape, tolerance);
+        }
+
+        Borrowed fresh = Import(shape, tolerance);
+
+        if (fresh.Problem is null)
+        {
+            return fresh;
+        }
+
+        fresh.Dispose();
+        return Borrow(shape, tolerance);
+    }
+
+    /// <summary>
+    /// A new provider shape built from a shape's managed description, owned by the caller — for a
+    /// held shape, a copy that shares nothing with the one the kernel holds.
+    /// </summary>
+    private static Borrowed Import(Brep shape, double tolerance)
+    {
         ModelWriter writer = ModelWriter.FromBrep(shape);
 
         using NativeBuffers buffers = new();

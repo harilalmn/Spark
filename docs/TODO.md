@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (the *Now* order re-derived from the register after a reconciliation; `E12-T24`, `E3-T24` and `E7-T25` closed the same day)
+**Last updated:** 2026-09-11 (`E12-T20` done; the *Now* order re-derived from the register the same day)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -205,7 +205,9 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 > stop till all Epics are done*, so this is the order the run takes — defects first, then the rows
 > each missing one named half, then breadth.
 >
-> 1. **`E12-T20`** — the tessellation cache ignores the tolerance it was asked for.
+> 1. ~~**`E12-T20`** — the tessellation cache ignores the tolerance it was asked for.~~ **Done
+>    2026-09-11**, in managed code; the two-line native fix is `E13-T21`, blocked because the
+>    OpenCascade install the shim is built against is gone from this machine.
 > 2. **`E2-T62`** — `Surface.ClosestPoint` stops 8.5e-5 short on a revolution surface; a documented
 >    tolerance is standing in for a fix.
 > 3. **`E3-T10`** — the impure-node declaration. Without it an impure node poisons nothing and
