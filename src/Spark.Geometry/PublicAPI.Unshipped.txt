@@ -44,16 +44,23 @@ Spark.Geometry.NurbsCurve.NurbsCurve(System.Collections.Generic.IReadOnlyList<Sp
 Spark.Geometry.NurbsSurface.NurbsSurface(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! corners) -> void
 Spark.Geometry.Planar.Region
 Spark.Geometry.Planar.Region.Area.get -> double
+Spark.Geometry.Planar.Region.Centroid() -> Spark.Geometry.Point3d
 Spark.Geometry.Planar.Region.Contains(in Spark.Geometry.Point3d point, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
 Spark.Geometry.Planar.Region.Difference(Spark.Geometry.Planar.Region! other) -> Spark.Geometry.Planar.Region!
 Spark.Geometry.Planar.Region.Intersection(Spark.Geometry.Planar.Region! other) -> Spark.Geometry.Planar.Region!
 Spark.Geometry.Planar.Region.IsEmpty.get -> bool
 Spark.Geometry.Planar.Region.LoopCount.get -> int
+Spark.Geometry.Planar.Region.Offset(double distance, Spark.Geometry.Planar.RegionJoin join = Spark.Geometry.Planar.RegionJoin.Round, double miterLimit = 2) -> Spark.Geometry.Planar.Region!
 Spark.Geometry.Planar.Region.Plane.get -> Spark.Geometry.Plane
 Spark.Geometry.Planar.Region.Region(in Spark.Geometry.Plane plane, System.Collections.Generic.IEnumerable<Spark.Geometry.PolyLine!>! loops, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> void
+Spark.Geometry.Planar.Region.Simplify(double tolerance) -> Spark.Geometry.Planar.Region!
 Spark.Geometry.Planar.Region.SymmetricDifference(Spark.Geometry.Planar.Region! other) -> Spark.Geometry.Planar.Region!
 Spark.Geometry.Planar.Region.ToPolyLines() -> Spark.Geometry.PolyLine![]!
 Spark.Geometry.Planar.Region.Union(Spark.Geometry.Planar.Region! other) -> Spark.Geometry.Planar.Region!
+Spark.Geometry.Planar.RegionJoin
+Spark.Geometry.Planar.RegionJoin.Miter = 1 -> Spark.Geometry.Planar.RegionJoin
+Spark.Geometry.Planar.RegionJoin.Round = 0 -> Spark.Geometry.Planar.RegionJoin
+Spark.Geometry.Planar.RegionJoin.Square = 2 -> Spark.Geometry.Planar.RegionJoin
 Spark.Geometry.Plane.Plane(Spark.Geometry.Line! line, in Spark.Geometry.Point3d point) -> void
 Spark.Geometry.Plane.Plane(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> void
 Spark.Geometry.Plane.Plane(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> void

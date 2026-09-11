@@ -52,6 +52,42 @@ public sealed class Region
     /// <summary>The area enclosed, holes subtracted.</summary>
     public double Area => ClipperBridge.Area(_loops);
 
+    /// <summary>The centre of the area, holes accounted for (<c>E2-T14</c>).</summary>
+    /// <returns>The centroid, in the region's plane.</returns>
+    /// <exception cref="InvalidOperationException">The region is empty, and an empty area has no centre.</exception>
+    /// <remarks>
+    /// The signed-area centroid over every loop: outer boundaries and holes run opposite ways in the
+    /// region's canonical form, so a hole subtracts its own moment and pulls the centre away from itself
+    /// with no case of its own.
+    /// </remarks>
+    public Point3d Centroid()
+    {
+        double twiceArea = 0.0;
+        double x = 0.0;
+        double y = 0.0;
+
+        foreach (Point2d[] loop in _loops)
+        {
+            for (int i = 0; i < loop.Length; i++)
+            {
+                Point2d a = loop[i];
+                Point2d b = loop[(i + 1) % loop.Length];
+                double cross = (a.X * b.Y) - (b.X * a.Y);
+
+                twiceArea += cross;
+                x += (a.X + b.X) * cross;
+                y += (a.Y + b.Y) * cross;
+            }
+        }
+
+        if (Math.Abs(twiceArea) <= 1e-300)
+        {
+            throw new InvalidOperationException("An empty region has no centroid.");
+        }
+
+        return Plane.To3d(new Point2d(x / (3.0 * twiceArea), y / (3.0 * twiceArea)));
+    }
+
     /// <summary>Makes a region from closed polylines lying in a plane.</summary>
     /// <param name="plane">The plane. Every point of every loop must lie in it.</param>
     /// <param name="loops">The boundaries. A loop inside another is a hole, whichever way round it runs.</param>
@@ -131,6 +167,44 @@ public sealed class Region
     /// <returns>A new region.</returns>
     /// <exception cref="ArgumentException"><paramref name="other"/> is in a different plane.</exception>
     public Region SymmetricDifference(Region other) => Combine(other, ClipperBridge.Operation.SymmetricDifference);
+
+    /// <summary>The region grown by a distance, or shrunk when the distance is negative.</summary>
+    /// <param name="distance">How far every boundary moves outwards; negative moves it inwards, and far enough makes the region empty.</param>
+    /// <param name="join">How a corner is turned when the boundary grows past it.</param>
+    /// <param name="miterLimit">
+    /// For <see cref="RegionJoin.Miter"/>: how many times the distance a sharp corner may reach before
+    /// it is squared off instead. Two admits a right angle.
+    /// </param>
+    /// <returns>A new region in the same plane.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="distance"/> or <paramref name="miterLimit"/> is not finite, or the limit is below one.</exception>
+    public Region Offset(double distance, RegionJoin join = RegionJoin.Round, double miterLimit = 2.0)
+    {
+        if (!double.IsFinite(distance))
+        {
+            throw new ArgumentOutOfRangeException(nameof(distance), distance, "An offset distance must be finite.");
+        }
+
+        if (!double.IsFinite(miterLimit) || miterLimit < 1.0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(miterLimit), miterLimit, "A miter limit must be finite and at least one.");
+        }
+
+        return new Region(Plane, ClipperBridge.Offset(_loops, distance, join, miterLimit, _precision), _precision);
+    }
+
+    /// <summary>The region with the vertices that barely change its shape removed.</summary>
+    /// <param name="tolerance">How near a vertex must be to the line through its neighbours to go.</param>
+    /// <returns>A new region in the same plane.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="tolerance"/> is negative or not finite.</exception>
+    public Region Simplify(double tolerance)
+    {
+        if (!double.IsFinite(tolerance) || tolerance < 0.0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(tolerance), tolerance, "A simplifying tolerance must be finite and not negative.");
+        }
+
+        return new Region(Plane, ClipperBridge.Simplify(_loops, tolerance), _precision);
+    }
 
     /// <summary>Whether a point lies in the region or on its boundary.</summary>
     /// <param name="point">The point. Off the plane by more than the tolerance, it is not in the region.</param>

@@ -55,6 +55,31 @@ internal static class ClipperBridge
         return From(result);
     }
 
+    /// <summary>
+    /// The region grown by a distance - shrunk when it is negative - with its corners joined as asked.
+    /// </summary>
+    internal static Point2d[][] Offset(IReadOnlyList<Point2d[]> loops, double distance, RegionJoin join, double miterLimit, int precision)
+    {
+        JoinType joinType = join switch
+        {
+            RegionJoin.Miter => JoinType.Miter,
+            RegionJoin.Square => JoinType.Square,
+            _ => JoinType.Round,
+        };
+
+        // The arcs a round join adds stay within the region's tolerance of true arcs, but never finer
+        // than a hundred-thousandth of the distance: a finer arc on a large offset is hundreds of
+        // thousands of vertices nobody can see. Clipper's own default is far coarser - a 2 x 2 square
+        // grown by one with it came out 0.008 short of its quarter circles.
+        double arcTolerance = Math.Max(Math.Pow(10.0, -precision), Math.Abs(distance) * 1e-5);
+
+        return From(Clipper.InflatePaths(To(loops), distance, joinType, EndType.Polygon, miterLimit, precision, arcTolerance));
+    }
+
+    /// <summary>The loops with every vertex nearer than a distance to the line through its neighbours removed.</summary>
+    internal static Point2d[][] Simplify(IReadOnlyList<Point2d[]> loops, double epsilon) =>
+        From(Clipper.SimplifyPaths(To(loops), epsilon, isClosedPath: true));
+
     /// <summary>The area enclosed, holes subtracted. Canonical outer loops count positive and holes negative.</summary>
     internal static double Area(IReadOnlyList<Point2d[]> loops) => Clipper.Area(To(loops));
 
