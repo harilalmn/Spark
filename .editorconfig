@@ -146,6 +146,14 @@ dotnet_diagnostic.CA1848.severity = none      # use LoggerMessage delegates
 # optional tolerance - to satisfy a rule aimed at a constraint we do not have would be
 # the tail wagging the dog.
 dotnet_diagnostic.RS0026.severity = none
+#
+# RS0027 is off for the same reason (`E3-T12`). It forbids an overload with more parameters
+# than an existing overload that has optional ones - so it forbade adding
+# Tessellate(surface, sink, tolerance, cancellationToken) beside
+# Tessellate(surface, sink, tolerance = default), which is the additive change AGENTS.md asks
+# for over an edited signature. It protects the source compatibility of a PUBLISHED library's
+# future overloads, and Spark publishes nothing (ADR-0019).
+dotnet_diagnostic.RS0027.severity = none
 
 [tests/**/*.cs]
 # Test method names are full PascalCase sentences with no underscores, inherited from

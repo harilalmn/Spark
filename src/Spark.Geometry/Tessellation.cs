@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Spark.Geometry;
 
@@ -54,18 +55,51 @@ public static class Tessellation
     /// <param name="sink">Where the vertices and faces go.</param>
     /// <param name="tolerance">The largest chord sag to allow.</param>
     /// <exception cref="ArgumentNullException">Either argument is null.</exception>
-    public static void Tessellate(Surface surface, ITessellationSink sink, in Tolerance tolerance = default)
+    public static void Tessellate(Surface surface, ITessellationSink sink, in Tolerance tolerance = default) =>
+        Tessellate(surface, sink, tolerance, CancellationToken.None);
+
+    /// <summary>Tessellates a surface into a sink, stopping promptly when asked to (`E3-T12`).</summary>
+    /// <param name="surface">The surface.</param>
+    /// <param name="sink">Where the vertices and faces go.</param>
+    /// <param name="tolerance">The largest chord sag to allow.</param>
+    /// <param name="cancellationToken">
+    /// Checked before any work, on every refinement pass and span, and on every row of the grid.
+    /// </param>
+    /// <exception cref="ArgumentNullException">Either reference argument is null.</exception>
+    /// <exception cref="OperationCanceledException">
+    /// Cancellation was requested. The sink may hold part of a mesh and should be discarded; the
+    /// surface is untouched, because surfaces are immutable and nothing here writes to one.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the kernel's long loop, and until `E3-T12` nothing could stop it.</b> The evaluator
+    /// cancelled between nodes and between replication elements, so one surface asked for at an
+    /// absurd tolerance ran its quarter of a million quads to the end whatever the user pressed.
+    /// </para>
+    /// <para>
+    /// <b>The row asked that a token threaded into a tessellation must leave the shape unmodified
+    /// when it trips, and it does so by construction</b>: a surface is immutable, and a mesh is built
+    /// into a sink and handed out only once complete — <see cref="ToMesh(Surface, in Tolerance, CancellationToken)"/>
+    /// throws before <c>Build</c>, so no caller ever holds half of one.
+    /// </para>
+    /// </remarks>
+    public static void Tessellate(
+        Surface surface, ITessellationSink sink, in Tolerance tolerance, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(surface);
         ArgumentNullException.ThrowIfNull(sink);
 
-        double[] us = Parameters(surface, tolerance.Linear, alongU: true);
-        double[] vs = Parameters(surface, tolerance.Linear, alongU: false);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        double[] us = Parameters(surface, tolerance.Linear, alongU: true, cancellationToken);
+        double[] vs = Parameters(surface, tolerance.Linear, alongU: false, cancellationToken);
 
         int[,] indices = new int[us.Length, vs.Length];
 
         for (int j = 0; j < vs.Length; j++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             // A row that has collapsed to a point is one vertex, shared by every face that reaches
             // it. A pole emitted as a row of coincident vertices is the classic cause of a "closed"
             // sphere with a ring of zero-area triangles and a hole underneath them.
@@ -104,6 +138,8 @@ public static class Tessellation
 
         for (int i = 0; i + 1 < us.Length; i++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             for (int j = 0; j + 1 < vs.Length; j++)
             {
                 Emit(
@@ -121,11 +157,23 @@ public static class Tessellation
     /// <param name="tolerance">The largest chord sag to allow.</param>
     /// <returns>A mesh with normals and texture coordinates.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="surface"/> is null.</exception>
-    public static Mesh ToMesh(this Surface surface, in Tolerance tolerance = default)
+    public static Mesh ToMesh(this Surface surface, in Tolerance tolerance = default) =>
+        ToMesh(surface, tolerance, CancellationToken.None);
+
+    /// <summary>Tessellates a surface into a new mesh, stopping promptly when asked to (`E3-T12`).</summary>
+    /// <param name="surface">The surface.</param>
+    /// <param name="tolerance">The largest chord sag to allow.</param>
+    /// <param name="cancellationToken">Checked throughout; see <see cref="Tessellate(Surface, ITessellationSink, in Tolerance, CancellationToken)"/>.</param>
+    /// <returns>A mesh with normals and texture coordinates.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="surface"/> is null.</exception>
+    /// <exception cref="OperationCanceledException">
+    /// Cancellation was requested. No mesh is returned, so nobody holds half of one.
+    /// </exception>
+    public static Mesh ToMesh(this Surface surface, in Tolerance tolerance, CancellationToken cancellationToken)
     {
         MeshBuilder builder = new();
 
-        Tessellate(surface, builder, tolerance);
+        Tessellate(surface, builder, tolerance, cancellationToken);
 
         return builder.Build();
     }
@@ -178,7 +226,7 @@ public static class Tessellation
     /// <summary>
     /// The sample parameters for one direction, refined until the chord sag is inside tolerance.
     /// </summary>
-    private static double[] Parameters(Surface surface, double sag, bool alongU)
+    private static double[] Parameters(Surface surface, double sag, bool alongU, CancellationToken cancellationToken)
     {
         Interval domain = alongU ? surface.DomainU : surface.DomainV;
         Interval other = alongU ? surface.DomainV : surface.DomainU;
@@ -196,6 +244,10 @@ public static class Tessellation
 
             for (int index = parameters.Count - 1; index > 0; index--)
             {
+                // Per span rather than per pass: a pass near the cap is five hundred spans of
+                // twelve evaluations each, which is the delay this exists to remove.
+                cancellationToken.ThrowIfCancellationRequested();
+
                 double low = parameters[index - 1];
                 double high = parameters[index];
                 double middle = (low + high) * 0.5;

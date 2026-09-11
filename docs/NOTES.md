@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-11 (N144–N153: … converged is not closest; recovery is off until the window turns it on)
+**Last updated:** 2026-09-11 (N144–N154: … recovery is off until the window turns it on; a token overload reaches every test)
 
 ---
 
@@ -4629,3 +4629,26 @@ as their own lost work**. A test that wants recovery points `Recovery` at a scra
 - **The copy follows `IsModified`, not the edit count** — `KeepRecovery` runs from `RefreshHistory`
   and `MarkSaved` — so undoing back to the saved state deletes it, and a restored graph opens
   *modified*, because the file on disk does not hold it.
+
+## N154 — A cancellation-token overload reaches every test that calls the method
+
+`E3-T12` gave `Tessellation.Tessellate` and `ToMesh` overloads that take a `CancellationToken`,
+beside the existing forms, which is the additive change AGENTS.md asks for. Two analyzers objected,
+and both objections are worth knowing before the next overload of this kind.
+
+**RS0027** forbids an overload with more parameters than an existing overload that has optional
+ones. It protects the source compatibility of a *published* library's future overloads; Spark
+publishes nothing (ADR-0019), so it is off in `.editorconfig` beside RS0026, for the same stated
+reason.
+
+**xUnit1051** asks every test that calls a method with a token-taking overload to pass
+`TestContext.Current.CancellationToken`, so that a cancelled test run stops promptly. Adding the
+overloads therefore made **every existing test call to `ToMesh` an error** — sixteen of them, in a file
+nobody had touched. This repository's convention is to comply rather than suppress (the engine tests
+already pass the test context's token), so the sites were patched — **by the compiler's own list**,
+not by a text search: `Solid.ToMesh` in `Spark.Nodes.Core` shares the name and has no token overload,
+and appending a token to it would not have compiled. The one call that must stay token-free, because
+it proves the old signature still produces the old mesh, carries a local `#pragma` saying so.
+
+**The general form.** Adding a token overload to a public method is cheap in the library and costs a
+pass over every test that calls it. Budget for it, and patch from the diagnostics.

@@ -38,3 +38,5 @@ static Spark.Geometry.Point3d.FromCylindrical(double radius, Spark.Geometry.Angl
 static Spark.Geometry.Point3d.FromSpherical(double radius, Spark.Geometry.Angle azimuth, Spark.Geometry.Angle polar) -> Spark.Geometry.Point3d
 static Spark.Geometry.Vector3d.FromCylindrical(double radius, Spark.Geometry.Angle azimuth, double height) -> Spark.Geometry.Vector3d
 static Spark.Geometry.Vector3d.FromSpherical(double radius, Spark.Geometry.Angle azimuth, Spark.Geometry.Angle polar) -> Spark.Geometry.Vector3d
+static Spark.Geometry.Tessellation.Tessellate(Spark.Geometry.Surface! surface, Spark.Geometry.ITessellationSink! sink, in Spark.Geometry.Tolerance tolerance, System.Threading.CancellationToken cancellationToken) -> void
+static Spark.Geometry.Tessellation.ToMesh(this Spark.Geometry.Surface! surface, in Spark.Geometry.Tolerance tolerance, System.Threading.CancellationToken cancellationToken) -> Spark.Geometry.Mesh!

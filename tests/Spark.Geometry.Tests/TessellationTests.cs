@@ -31,7 +31,7 @@ public sealed class TessellationTests
     [Fact]
     public void APlaneNeedsNoRefinement()
     {
-        Mesh mesh = new PlaneSurface(Plane.WorldXY, new Interval(0, 3), new Interval(0, 4)).ToMesh(Coarse);
+        Mesh mesh = new PlaneSurface(Plane.WorldXY, new Interval(0, 3), new Interval(0, 4)).ToMesh(Coarse, TestContext.Current.CancellationToken);
 
         Assert.Equal(1, mesh.FaceCount);
         Assert.Equal(4, mesh.VertexCount);
@@ -47,7 +47,7 @@ public sealed class TessellationTests
     public void EveryVertexIsOnTheSurface()
     {
         SphericalSurface sphere = new(Plane.WorldXY, 2.0);
-        Mesh mesh = sphere.ToMesh(Coarse);
+        Mesh mesh = sphere.ToMesh(Coarse, TestContext.Current.CancellationToken);
 
         foreach (Point3d vertex in mesh.Vertices())
         {
@@ -64,7 +64,7 @@ public sealed class TessellationTests
     [MemberData(nameof(Surfaces))]
     public void TheMeshIsWithinToleranceOfTheSurface(Surface surface)
     {
-        Mesh mesh = surface.ToMesh(Coarse);
+        Mesh mesh = surface.ToMesh(Coarse, TestContext.Current.CancellationToken);
 
         for (int index = 0; index < mesh.FaceCount; index++)
         {
@@ -86,8 +86,8 @@ public sealed class TessellationTests
     {
         SphericalSurface sphere = new(Plane.WorldXY, 2.0);
 
-        Mesh coarse = sphere.ToMesh(Coarse);
-        Mesh fine = sphere.ToMesh(Fine);
+        Mesh coarse = sphere.ToMesh(Coarse, TestContext.Current.CancellationToken);
+        Mesh fine = sphere.ToMesh(Fine, TestContext.Current.CancellationToken);
 
         Assert.True(fine.FaceCount > coarse.FaceCount, "a tighter tolerance should refine further");
 
@@ -106,7 +106,7 @@ public sealed class TessellationTests
     [MemberData(nameof(ClosedSurfaces))]
     public void AClosedSurfaceProducesAClosedMesh(Surface surface)
     {
-        MeshTopology topology = surface.ToMesh(Coarse).Topology;
+        MeshTopology topology = surface.ToMesh(Coarse, TestContext.Current.CancellationToken).Topology;
 
         Assert.True(topology.IsManifold, $"{topology.NonManifoldEdgeCount} non-manifold edges");
         Assert.True(topology.IsClosed, $"{topology.NakedEdgeCount} naked edges");
@@ -122,7 +122,7 @@ public sealed class TessellationTests
         SphericalSurface sphere = new(Plane.WorldXY, 2.0);
 
         double exact = 4.0 / 3.0 * Math.PI * 8.0;
-        double volume = sphere.ToMesh(Fine).Volume();
+        double volume = sphere.ToMesh(Fine, TestContext.Current.CancellationToken).Volume();
 
         Assert.True(volume > 0.0, "a sphere tessellated outwards should have a positive volume");
         Assert.True(volume < exact, "an inscribed facetted sphere holds less than the sphere");
@@ -142,7 +142,7 @@ public sealed class TessellationTests
     [Fact]
     public void APoleIsOneVertex()
     {
-        Mesh mesh = new SphericalSurface(Plane.WorldXY, 2.0).ToMesh(Coarse);
+        Mesh mesh = new SphericalSurface(Plane.WorldXY, 2.0).ToMesh(Coarse, TestContext.Current.CancellationToken);
 
         int atNorthPole = mesh.Vertices().Count(vertex => vertex.DistanceTo(new Point3d(0, 0, 2)) < 1e-9);
 
@@ -156,7 +156,7 @@ public sealed class TessellationTests
     [Fact]
     public void NoFaceNamesTheSameVertexTwice()
     {
-        Mesh mesh = new SphericalSurface(Plane.WorldXY, 2.0).ToMesh(Coarse);
+        Mesh mesh = new SphericalSurface(Plane.WorldXY, 2.0).ToMesh(Coarse, TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain(mesh.Faces(), face => face.IsDegenerate);
         Assert.Contains(mesh.Faces(), face => !face.IsQuad);
@@ -170,7 +170,7 @@ public sealed class TessellationTests
     [Fact]
     public void TheSeamIsWelded()
     {
-        Mesh mesh = new CylindricalSurface(Plane.WorldXY, 2.0, new Interval(0.0, 4.0)).ToMesh(Coarse);
+        Mesh mesh = new CylindricalSurface(Plane.WorldXY, 2.0, new Interval(0.0, 4.0)).ToMesh(Coarse, TestContext.Current.CancellationToken);
 
         Point3d[] onTheSeam =
         [
@@ -189,7 +189,7 @@ public sealed class TessellationTests
     public void TheNormalsPointOutwards()
     {
         SphericalSurface sphere = new(Plane.WorldXY, 2.0);
-        Mesh mesh = sphere.ToMesh(Coarse);
+        Mesh mesh = sphere.ToMesh(Coarse, TestContext.Current.CancellationToken);
 
         Vector3d[] normals = mesh.Normals()!;
 
@@ -207,7 +207,7 @@ public sealed class TessellationTests
     [Fact]
     public void TextureCoordinatesCoverTheUnitSquare()
     {
-        Mesh mesh = new PlaneSurface(Plane.WorldXY, new Interval(-1, 2), new Interval(3, 7)).ToMesh(Coarse);
+        Mesh mesh = new PlaneSurface(Plane.WorldXY, new Interval(-1, 2), new Interval(3, 7)).ToMesh(Coarse, TestContext.Current.CancellationToken);
         UV[] uvs = mesh.TextureCoordinates()!;
 
         Assert.Equal(0.0, uvs.Min(uv => uv.U), 1e-12);
@@ -225,7 +225,7 @@ public sealed class TessellationTests
     {
         Tolerance absurd = new(1e-12, Angle.FromRadians(1e-9), 1e-15);
 
-        Mesh mesh = new SphericalSurface(Plane.WorldXY, 1000.0).ToMesh(absurd);
+        Mesh mesh = new SphericalSurface(Plane.WorldXY, 1000.0).ToMesh(absurd, TestContext.Current.CancellationToken);
 
         Assert.True(
             mesh.FaceCount <= Tessellation.MaximumSamplesPerDirection * Tessellation.MaximumSamplesPerDirection,
@@ -243,7 +243,7 @@ public sealed class TessellationTests
         ConicalSurface cone = new(
             Plane.WorldXY, 0.1, Angle.FromRadians(Math.Atan(2.0)), new Interval(0.0, 4.0));
 
-        Mesh mesh = cone.ToMesh(Coarse);
+        Mesh mesh = cone.ToMesh(Coarse, TestContext.Current.CancellationToken);
 
         // The widest ring is the last one; its facets must be inside tolerance like the rest.
         foreach (MeshFace face in mesh.Faces())
@@ -269,8 +269,8 @@ public sealed class TessellationTests
     {
         MeshBuilder builder = new();
 
-        Tessellation.Tessellate(new PlaneSurface(Plane.WorldXY, Interval.Unit, Interval.Unit), builder, Coarse);
-        Tessellation.Tessellate(new PlaneSurface(Plane.WorldXZ, Interval.Unit, Interval.Unit), builder, Coarse);
+        Tessellation.Tessellate(new PlaneSurface(Plane.WorldXY, Interval.Unit, Interval.Unit), builder, Coarse, TestContext.Current.CancellationToken);
+        Tessellation.Tessellate(new PlaneSurface(Plane.WorldXZ, Interval.Unit, Interval.Unit), builder, Coarse, TestContext.Current.CancellationToken);
 
         Mesh mesh = builder.Build();
 
