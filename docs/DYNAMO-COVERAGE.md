@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-10 (`E2-T40` closed: the plane fit, and a count §3.1 cannot settle)
+**Last updated:** 2026-09-11 (`E11-T23`: the parity manifest measures this register)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -59,6 +59,16 @@ or from this repository; none is an estimate.
 
 Against the scope we have actually committed to — 837 less the 93 we refuse and the 169 that
 need their own decision, so **575 members** — Spark stands at **99 of 575, or 17.2%**.
+
+> **The manifest counts these now, and where it differs from this table the manifest is right**
+> (2026-09-11, `E11-T23`). [`tests/corpus/dynamo-parity.tsv`](../tests/corpus/dynamo-parity.tsv) holds
+> one row per member, generated from the same `ProtoGeometry.dll` metadata, and `Spark.Docs.Verify`
+> checks it against this document on every build. Applying §5's rules to it gives **107** refused
+> members, not 93 — §5's own lists add to 104, and the four primitive solids carry 14
+> parameter-recovery properties, not 11 — so the committed surface is **561**, not 575. It also records
+> 89 members present in Spark by an exact name match, still to be reviewed, and 472 not yet assessed.
+> This table's 99 predates the curve, surface and mesh layers; the manifest's count replaces it as the
+> review proceeds.
 
 ### What the 99 counts, exactly
 
@@ -593,7 +603,7 @@ compiler finds every call site. **The day after 1.0 it would have been an
 
 ## 5. What we will deliberately not replicate
 
-**93 members, 11.1% of the inventory.** Each with a reason and with what a Spark user does
+**93 members, 11.1% of the inventory, by this document's count — 107 by the manifest's** (`E11-T23`: the lists below add to 104, and the primitives' parameter-recovery properties are 14, not the 11 [h] says). Each with a reason and with what a Spark user does
 instead. These were evaluated on their merits rather than accepted as a list.
 
 **[a] `Application` (6) and `HostFactory` (6) — kernel session lifetime.** `StartUp`,
@@ -865,7 +875,7 @@ before it is *listed*, which is why they do not block this register.
 ## 7. How this document is kept true
 
 A register that drifts is worse than no register, because it is consulted with confidence. The
-mechanism below is proposed rather than promised, and it is registered as **E11-T23**.
+mechanism below was proposed rather than promised, and it is registered as **E11-T23**. **Its first half landed 2026-09-11**: the manifest, and the checks that it is well formed, that its totals agree with this document, and that every Done row names a member that exists. The reverse direction is the next step.
 
 **The failure to design against is documented and this project's own.** DoodleSharp's help was
 driven by three hand-maintained dictionaries of roughly 1,478 member entries keyed by string.

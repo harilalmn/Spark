@@ -1,0 +1,845 @@
+# The Dynamo parity manifest (E11-T23, DYNAMO-COVERAGE §7): one row per public member of ProtoGeometry.
+# Generated 2026-09-11 from the public METADATA of ProtoGeometry.dll as shipped with Revit 2026 - types and
+# signatures only, nothing decompiled - and edited by hand from then on as decisions land. It records our
+# decisions about a surface we have read; it is not a copy of that surface.
+# Status: Done (present and documented in Spark.Geometry - never "equivalent"), Planned, Not planned (reason
+# required), Needs a decision (reason required), Unassessed. "matched by name" marks a Done found by an exact
+# member-name match on the mapped Spark type, which a review has still to confirm.
+DynamoType	Member	Status	SparkMember	Reason
+Application	Instance	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
+Application	IsExecuting	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
+Application	PreloadAsmLibraries(string)	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
+Application	ShutDown()	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
+Application	StartUp()	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
+Application	StartUp(ExtensionStartupParams)	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
+Arc	ByBestFitThroughPoints(IEnumerable<Point>)	Unassessed		
+Arc	ByCenterPointRadiusAngle(Point, double, double, double, Vector)	Unassessed		
+Arc	ByCenterPointStartPointEndPoint(Point, Point, Point)	Unassessed		
+Arc	ByCenterPointStartPointSweepAngle(Point, Point, double, Vector)	Unassessed		
+Arc	ByFillet(Curve, Curve, double)	Unassessed		
+Arc	ByFilletTangentToCurve(Curve, Curve, Curve)	Unassessed		
+Arc	ByStartEndAndTangencies(Point, Vector, Point, Vector)	Unassessed		
+Arc	ByStartPointEndPointStartTangent(Point, Point, Vector)	Unassessed		
+Arc	ByThreePoints(Point, Point, Point)	Unassessed		
+Arc	CenterPoint	Unassessed		
+Arc	Radius	Done	Spark.Geometry.Arc.Radius	matched by name; not yet reviewed
+Arc	StartAngle	Done	Spark.Geometry.Arc.StartAngle	matched by name; not yet reviewed
+Arc	SweepAngle	Done	Spark.Geometry.Arc.SweepAngle	matched by name; not yet reviewed
+Arc	ToString()	Done	Spark.Geometry.Arc.ToString	matched by name; not yet reviewed
+BoundingBox	ByCorners(Point, Point)	Unassessed		
+BoundingBox	ByCornersCoordinateSystem(Point, Point, CoordinateSystem)	Unassessed		
+BoundingBox	ByGeometry(Geometry)	Unassessed		
+BoundingBox	ByGeometry(IEnumerable<Geometry>)	Unassessed		
+BoundingBox	ByGeometryCoordinateSystem(Geometry, CoordinateSystem)	Unassessed		
+BoundingBox	ByGeometryCoordinateSystem(IEnumerable<Geometry>, CoordinateSystem)	Unassessed		
+BoundingBox	ByMinimumVolume(IEnumerable<Geometry>)	Unassessed		
+BoundingBox	Contains(Point)	Done	Spark.Geometry.BoundingBox.Contains	matched by name; not yet reviewed
+BoundingBox	ContextCoordinateSystem	Unassessed		
+BoundingBox	FromJson(string)	Unassessed		
+BoundingBox	Intersection(BoundingBox)	Done	Spark.Geometry.BoundingBox.Intersection	matched by name; not yet reviewed
+BoundingBox	Intersects(BoundingBox)	Done	Spark.Geometry.BoundingBox.Intersects	matched by name; not yet reviewed
+BoundingBox	IsEmpty()	Unassessed		
+BoundingBox	MaxPoint	Unassessed		
+BoundingBox	MinPoint	Unassessed		
+BoundingBox	ToCuboid()	Unassessed		
+BoundingBox	ToJson()	Unassessed		
+BoundingBox	ToPolySurface()	Unassessed		
+BoundingBox	ToString()	Done	Spark.Geometry.BoundingBox.ToString	matched by name; not yet reviewed
+Circle	ByBestFitThroughPoints(IEnumerable<Point>)	Unassessed		
+Circle	ByCenterPointRadius(Point, double)	Unassessed		
+Circle	ByCenterPointRadiusNormal(Point, double, Vector)	Unassessed		
+Circle	ByPlaneRadius(Plane, double)	Unassessed		
+Circle	ByThreePoints(Point, Point, Point)	Unassessed		
+Circle	CenterPoint	Unassessed		
+Circle	Radius	Done	Spark.Geometry.Circle.Radius	matched by name; not yet reviewed
+Circle	ToString()	Done	Spark.Geometry.Circle.ToString	matched by name; not yet reviewed
+CoEdge	Edge	Done	Spark.Geometry.BrepTrim.Edge	matched by name; not yet reviewed
+CoEdge	EndVertex	Unassessed		
+CoEdge	Loop	Unassessed		
+CoEdge	Next	Unassessed		
+CoEdge	ParameterCurve	Unassessed		
+CoEdge	Partner	Unassessed		
+CoEdge	Previous	Unassessed		
+CoEdge	Reversed	Unassessed		
+CoEdge	StartVertex	Unassessed		
+CoEdge	ToString()	Done	Spark.Geometry.BrepTrim.ToString	matched by name; not yet reviewed
+Cone	ByCoordinateSystemHeightRadii(CoordinateSystem, double, double, double)	Unassessed		
+Cone	ByCoordinateSystemHeightRadius(CoordinateSystem, double, double)	Unassessed		
+Cone	ByPointsRadii(Point, Point, double, double)	Unassessed		
+Cone	ByPointsRadius(Point, Point, double)	Unassessed		
+Cone	EndPoint	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
+Cone	EndRadius	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
+Cone	Height	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
+Cone	RadiusRatio	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
+Cone	StartPoint	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
+Cone	StartRadius	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
+Cone	ToString()	Unassessed		
+CoordinateSystem	ByCylindricalCoordinates(CoordinateSystem, double, double, double)	Unassessed		
+CoordinateSystem	ByMatrix(double[])	Unassessed		
+CoordinateSystem	ByOrigin(Point)	Unassessed		
+CoordinateSystem	ByOrigin(double, double)	Unassessed		
+CoordinateSystem	ByOrigin(double, double, double)	Unassessed		
+CoordinateSystem	ByOriginVectors(Point, Vector, Vector)	Unassessed		
+CoordinateSystem	ByOriginVectors(Point, Vector, Vector, Vector)	Unassessed		
+CoordinateSystem	ByPlane(Plane)	Unassessed		
+CoordinateSystem	BySphericalCoordinates(CoordinateSystem, double, double, double)	Unassessed		
+CoordinateSystem	Determinant	Unassessed		
+CoordinateSystem	FromJson(string)	Unassessed		
+CoordinateSystem	Identity()	Done	Spark.Geometry.CoordinateSystem.Identity	matched by name; not yet reviewed
+CoordinateSystem	Inverse()	Unassessed		
+CoordinateSystem	IsEqualTo(CoordinateSystem)	Unassessed		
+CoordinateSystem	IsScaledOrtho	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
+CoordinateSystem	IsSingular	Unassessed		
+CoordinateSystem	IsUniscaledOrtho	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
+CoordinateSystem	Mirror(Plane)	Unassessed		
+CoordinateSystem	Origin	Done	Spark.Geometry.CoordinateSystem.Origin	matched by name; not yet reviewed
+CoordinateSystem	PostMultiplyBy(CoordinateSystem)	Unassessed		
+CoordinateSystem	PreMultiplyBy(CoordinateSystem)	Unassessed		
+CoordinateSystem	Rotate(Plane, double)	Unassessed		
+CoordinateSystem	Rotate(Point, Vector, double)	Unassessed		
+CoordinateSystem	Scale(Plane, double, double, double)	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
+CoordinateSystem	Scale(Point, Point, Point)	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
+CoordinateSystem	Scale(double)	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
+CoordinateSystem	Scale(double, double, double)	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
+CoordinateSystem	Scale1D(Point, Point, Point)	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
+CoordinateSystem	Scale2D(Plane, Point, Point)	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
+CoordinateSystem	ScaleFactor()	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
+CoordinateSystem	ToJson()	Unassessed		
+CoordinateSystem	ToString()	Done	Spark.Geometry.CoordinateSystem.ToString	matched by name; not yet reviewed
+CoordinateSystem	Transform(CoordinateSystem)	Unassessed		
+CoordinateSystem	Transform(CoordinateSystem, CoordinateSystem)	Unassessed		
+CoordinateSystem	Translate(Vector)	Unassessed		
+CoordinateSystem	Translate(Vector, double)	Unassessed		
+CoordinateSystem	Translate(double, double, double)	Unassessed		
+CoordinateSystem	XAxis	Done	Spark.Geometry.CoordinateSystem.XAxis	matched by name; not yet reviewed
+CoordinateSystem	XScaleFactor	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
+CoordinateSystem	XYPlane	Unassessed		
+CoordinateSystem	YAxis	Done	Spark.Geometry.CoordinateSystem.YAxis	matched by name; not yet reviewed
+CoordinateSystem	YScaleFactor	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
+CoordinateSystem	YZPlane	Unassessed		
+CoordinateSystem	ZAxis	Done	Spark.Geometry.CoordinateSystem.ZAxis	matched by name; not yet reviewed
+CoordinateSystem	ZScaleFactor	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
+CoordinateSystem	ZXPlane	Unassessed		
+Core.EntityTags	AddTag(string, object)	Not planned		§5 [c]: needs a geometry instance to have identity, which a Spark value does not (PRD principle 3); carry data alongside the geometry instead.
+Core.EntityTags	LookupTag(string)	Not planned		§5 [c]: needs a geometry instance to have identity, which a Spark value does not (PRD principle 3); carry data alongside the geometry instead.
+Core.EntityTags	Parent	Not planned		§5 [c]: needs a geometry instance to have identity, which a Spark value does not (PRD principle 3); carry data alongside the geometry instead.
+Cuboid	ByCorners(Point, Point)	Unassessed		
+Cuboid	ByLengths(CoordinateSystem, double, double, double)	Unassessed		
+Cuboid	ByLengths(Point, double, double, double)	Unassessed		
+Cuboid	ByLengths(double, double, double)	Unassessed		
+Cuboid	Height	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
+Cuboid	Length	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
+Cuboid	ToString()	Unassessed		
+Cuboid	Width	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
+Curve	ApproximateWithArcAndLineSegments()	Unassessed		
+Curve	ByBlendBetweenCurves(Curve, Curve, bool, bool, bool)	Unassessed		
+Curve	ByIsoCurveOnSurface(Surface, int, double)	Unassessed		
+Curve	ByParameterLineOnSurface(Surface, UV, UV)	Unassessed		
+Curve	CoordinateSystemAtDistance(double)	Unassessed		
+Curve	CoordinateSystemAtParameter(double)	Unassessed		
+Curve	CoordinateSystemAtSegmentLength(double)	Unassessed		
+Curve	DistanceAtParameter(double)	Unassessed		
+Curve	DivideByDistance(int)	Unassessed		
+Curve	DivideByDistanceFromParameter(double, double)	Unassessed		
+Curve	DivideByLengthFromParameter(double, double)	Unassessed		
+Curve	DivideEqually(int)	Done	Spark.Geometry.Curve.DivideEqually	matched by name; not yet reviewed
+Curve	EndParameter()	Unassessed		
+Curve	EndPoint	Done	Spark.Geometry.Curve.EndPoint	matched by name; not yet reviewed
+Curve	Extend(double, Point)	Unassessed		
+Curve	ExtendEnd(double)	Unassessed		
+Curve	ExtendStart(double)	Unassessed		
+Curve	Extrude(Vector)	Unassessed		
+Curve	Extrude(Vector, double)	Unassessed		
+Curve	Extrude(double)	Unassessed		
+Curve	ExtrudeAsSolid(Vector)	Unassessed		
+Curve	ExtrudeAsSolid(Vector, double)	Unassessed		
+Curve	ExtrudeAsSolid(double)	Unassessed		
+Curve	HorizontalFrameAtParameter(double)	Unassessed		
+Curve	IsClosed	Done	Spark.Geometry.Curve.IsClosed	matched by name; not yet reviewed
+Curve	IsPlanar	Unassessed		
+Curve	Join(Curve)	Unassessed		
+Curve	Join(IEnumerable<Curve>)	Unassessed		
+Curve	Length	Done	Spark.Geometry.Curve.Length	matched by name; not yet reviewed
+Curve	LengthBetweenParameters(double, double)	Unassessed		
+Curve	Normal	Unassessed		
+Curve	NormalAtParameter(double)	Unassessed		
+Curve	NormalAtParameter(double, bool)	Unassessed		
+Curve	Offset(double)	Unassessed		
+Curve	OffsetMany(double, Vector)	Unassessed		
+Curve	ParameterAtChordLength(double, double, bool)	Unassessed		
+Curve	ParameterAtDistance(double)	Unassessed		
+Curve	ParameterAtPoint(Point)	Unassessed		
+Curve	ParameterAtSegmentLength(double)	Unassessed		
+Curve	ParameterSplit(double)	Unassessed		
+Curve	ParameterSplit(double[])	Unassessed		
+Curve	ParameterTrim(double, double)	Unassessed		
+Curve	ParameterTrimEnd(double)	Unassessed		
+Curve	ParameterTrimInterior(double, double)	Unassessed		
+Curve	ParameterTrimSegments(double[])	Unassessed		
+Curve	ParameterTrimStart(double)	Unassessed		
+Curve	Patch()	Unassessed		
+Curve	PlaneAtDistance(double)	Unassessed		
+Curve	PlaneAtParameter(double)	Unassessed		
+Curve	PlaneAtSegmentLength(double)	Unassessed		
+Curve	PointAtChordLength(double, double, bool)	Unassessed		
+Curve	PointAtDistance(double)	Unassessed		
+Curve	PointAtParameter(double)	Unassessed		
+Curve	PointAtSegmentLength(double)	Unassessed		
+Curve	PointsAtChordLengthFromPoint(Point, double)	Unassessed		
+Curve	PointsAtEqualChordLength(int)	Unassessed		
+Curve	PointsAtEqualSegmentLength(int)	Unassessed		
+Curve	PointsAtSegmentLengthFromPoint(Point, double)	Unassessed		
+Curve	Project(Geometry, Vector)	Unassessed		
+Curve	PullOntoPlane(Plane)	Unassessed		
+Curve	PullOntoSurface(Surface)	Unassessed		
+Curve	Reverse()	Unassessed		
+Curve	SegmentLengthAtParameter(double)	Unassessed		
+Curve	SegmentLengthBetweenParameters(double, double)	Unassessed		
+Curve	Simplify(double)	Unassessed		
+Curve	SplitByParameter(double)	Unassessed		
+Curve	SplitByParameter(double[])	Unassessed		
+Curve	SplitByPoints(IEnumerable<Point>)	Unassessed		
+Curve	StartParameter()	Unassessed		
+Curve	StartPoint	Done	Spark.Geometry.Curve.StartPoint	matched by name; not yet reviewed
+Curve	SweepAsSolid(Curve)	Unassessed		
+Curve	SweepAsSolid(Curve, bool)	Unassessed		
+Curve	SweepAsSurface(Curve)	Unassessed		
+Curve	TangentAtParameter(double)	Unassessed		
+Curve	ToNurbsCurve()	Unassessed		
+Curve	ToString()	Unassessed		
+Curve	TrimByEndParameter(double)	Unassessed		
+Curve	TrimByParameter(double, double)	Unassessed		
+Curve	TrimByStartParameter(double)	Unassessed		
+Curve	TrimInteriorByParameter(double, double)	Unassessed		
+Curve	TrimSegmentsByParameter(double[])	Unassessed		
+Curve	TrimSegmentsByParameter(double[], bool)	Unassessed		
+Cylinder	Axis	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
+Cylinder	ByPointsRadius(Point, Point, double)	Unassessed		
+Cylinder	ByRadiusHeight(CoordinateSystem, double, double)	Unassessed		
+Cylinder	Height	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
+Cylinder	Radius	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
+Cylinder	ToString()	Unassessed		
+DesignScriptEntity	BaseTessellationGuid	Not planned		§5 [e]: lifetime and native-interop machinery of a disposable kernel handle; Spark's geometry is immutable values.
+DesignScriptEntity	Dispose()	Not planned		§5 [e]: lifetime and native-interop machinery of a disposable kernel handle; Spark's geometry is immutable values.
+DesignScriptEntity	Equals(object)	Unassessed		
+DesignScriptEntity	GetHashCode()	Unassessed		
+DesignScriptEntity	InstanceInfoAvailable	Not planned		§5 [e]: lifetime and native-interop machinery of a disposable kernel handle; Spark's geometry is immutable values.
+DesignScriptEntity	Tessellate(IRenderPackage, TessellationParameters)	Unassessed		
+DesignScriptEntity	ToString()	Unassessed		
+DesignScriptEntity	scaleFactor	Not planned		§5 [e]: lifetime and native-interop machinery of a disposable kernel handle; Spark's geometry is immutable values.
+Edge	AdjacentFaces	Unassessed		
+Edge	CoEdges	Unassessed		
+Edge	CurveGeometry	Unassessed		
+Edge	EndVertex	Unassessed		
+Edge	StartVertex	Unassessed		
+Edge	ToString()	Done	Spark.Geometry.BrepEdge.ToString	matched by name; not yet reviewed
+Ellipse	ByCoordinateSystemRadii(CoordinateSystem, double, double)	Unassessed		
+Ellipse	ByOriginRadii(Point, double, double)	Unassessed		
+Ellipse	ByOriginVectors(Point, Vector, Vector)	Unassessed		
+Ellipse	ByPlaneRadii(Plane, double, double)	Unassessed		
+Ellipse	CenterPoint	Unassessed		
+Ellipse	MajorAxis	Unassessed		
+Ellipse	MinorAxis	Unassessed		
+Ellipse	ToString()	Done	Spark.Geometry.EllipseCurve.ToString	matched by name; not yet reviewed
+EllipseArc	ByPlaneRadiiAngles(Plane, double, double, double, double)	Unassessed		
+EllipseArc	ByPlaneRadiiStartAngleSweepAngle(Plane, double, double, double, double)	Unassessed		
+EllipseArc	CenterPoint	Unassessed		
+EllipseArc	MajorAxis	Unassessed		
+EllipseArc	MinorAxis	Unassessed		
+EllipseArc	Plane	Unassessed		
+EllipseArc	StartAngle	Unassessed		
+EllipseArc	SweepAngle	Unassessed		
+EllipseArc	ToString()	Unassessed		
+Face	Edges	Unassessed		
+Face	Loops	Unassessed		
+Face	SurfaceGeometry()	Unassessed		
+Face	ToString()	Done	Spark.Geometry.BrepFace.ToString	matched by name; not yet reviewed
+Face	Vertices	Unassessed		
+Geometry	Approximate()	Unassessed		
+Geometry	BoundingBox	Unassessed		
+Geometry	ClosestPointTo(Geometry)	Unassessed		
+Geometry	ContextCoordinateSystem	Unassessed		
+Geometry	DeserializeFromSAB(Byte[])	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	DeserializeFromSAB(Byte[], double)	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	DistanceTo(Geometry)	Unassessed		
+Geometry	DoesIntersect(Geometry)	Unassessed		
+Geometry	Explode()	Unassessed		
+Geometry	ExportToSAT(IEnumerable<Geometry>, string)	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	ExportToSAT(IEnumerable<Geometry>, string, double)	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	ExportToSAT(string)	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	ExportToSAT(string, double)	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	FromJson(string)	Unassessed		
+Geometry	FromNativePointer(IntPtr)	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	FromObject(long)	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	FromSolidDef(string)	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	ImportFromSAT(FileInfo)	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	ImportFromSAT(FileInfo, double)	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	ImportFromSAT(string)	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	ImportFromSAT(string, double)	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	Intersect(Geometry)	Unassessed		
+Geometry	IntersectAll(IEnumerable<Geometry>)	Unassessed		
+Geometry	IsAlmostEqualTo(Geometry)	Unassessed		
+Geometry	Mirror(Plane)	Unassessed		
+Geometry	OrientedBoundingBox	Unassessed		
+Geometry	Rotate(Plane, double)	Unassessed		
+Geometry	Rotate(Point, Vector, double)	Unassessed		
+Geometry	Scale(Plane, double, double, double)	Unassessed		
+Geometry	Scale(Point, Point, Point)	Unassessed		
+Geometry	Scale(double)	Unassessed		
+Geometry	Scale(double, double, double)	Unassessed		
+Geometry	Scale1D(Point, Point, Point)	Unassessed		
+Geometry	Scale2D(Plane, Point, Point)	Unassessed		
+Geometry	SerializeAsSAB()	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	SerializeAsSAB(IEnumerable<Geometry>)	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	Split(Geometry)	Unassessed		
+Geometry	ToJson()	Unassessed		
+Geometry	ToNativePointer(IEnumerable<Geometry>)	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	ToSolidDef()	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+Geometry	Transform(CoordinateSystem)	Unassessed		
+Geometry	Transform(CoordinateSystem, CoordinateSystem)	Unassessed		
+Geometry	Translate(Vector)	Unassessed		
+Geometry	Translate(Vector, double)	Unassessed		
+Geometry	Translate(double, double, double)	Unassessed		
+Geometry	Trim(Geometry, Point)	Unassessed		
+Geometry	UpdateDisplay()	Not planned		§5 [g]: ACIS interchange and native marshalling; Spark exchanges geometry through STEP and open mesh formats.
+GeometryExtension	AreCoincident(IPointEntity[])	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
+GeometryExtension	ConvertAll(M0[], Converter<M0, M1>)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
+GeometryExtension	DegreesToRadians(double)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
+GeometryExtension	Equals(double, double, double)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
+GeometryExtension	EqualsTo(double, double)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
+GeometryExtension	ForEach(M0[], Action<M0>)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
+GeometryExtension	ForEach(M0[][], Action<M0>)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
+GeometryExtension	GetCurveEntity(Curve, bool)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
+GeometryExtension	LessThanOrEqualTo(double, double)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
+GeometryExtension	LessThanOrEquals(double, double, double)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
+GeometryExtension	LocateFile(string)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
+GeometryExtension	RadiansToDegrees(double)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
+GeometryExtension	ToEntity(DesignScriptEntity)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
+GeometryExtension	ToPointArray(IPointEntity[][], bool)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
+GeometryExtension	ToPointEntityArray(Point[][], bool)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
+Helix	Angle	Unassessed		
+Helix	AxisDirection	Unassessed		
+Helix	AxisPoint	Unassessed		
+Helix	ByAxis(Point, Vector, Point, double, double)	Unassessed		
+Helix	Pitch	Unassessed		
+Helix	Radius	Unassessed		
+Helix	ToString()	Unassessed		
+HostFactory	Factory	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
+HostFactory	Instance	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
+HostFactory	PersistenceManager	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
+HostFactory	PreloadAsmLibraries(string)	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
+HostFactory	ShutDown()	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
+HostFactory	StartUp(double)	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
+IProtoGeometryConfiguration	GeometryFactoryFileName	Not planned		§5 [b]: names the native DLLs ProtoGeometry loads; Spark loads none to do geometry.
+IProtoGeometryConfiguration	PersistentManagerFileName	Not planned		§5 [b]: names the native DLLs ProtoGeometry loads; Spark loads none to do geometry.
+IndexGroup	A	Unassessed		
+IndexGroup	B	Unassessed		
+IndexGroup	ByIndices(UInt32, UInt32, UInt32)	Unassessed		
+IndexGroup	ByIndices(UInt32, UInt32, UInt32, UInt32)	Unassessed		
+IndexGroup	C	Unassessed		
+IndexGroup	Count	Unassessed		
+IndexGroup	D	Unassessed		
+IndexGroup	Equals(object)	Unassessed		
+IndexGroup	GetHashCode()	Unassessed		
+IndexGroup	ToString()	Unassessed		
+Line	ByBestFitThroughPoints(IEnumerable<Point>)	Unassessed		
+Line	ByStartPointDirectionLength(Point, Vector, double)	Unassessed		
+Line	ByStartPointEndPoint(Point, Point)	Unassessed		
+Line	ByTangency(Curve, double)	Unassessed		
+Line	Direction	Done	Spark.Geometry.Line.Direction	matched by name; not yet reviewed
+Line	ToString()	Done	Spark.Geometry.Line.ToString	matched by name; not yet reviewed
+Loop	CoEdges	Unassessed		
+Loop	Face	Unassessed		
+Loop	IsExternal	Unassessed		
+Loop	ToString()	Done	Spark.Geometry.BrepLoop.ToString	matched by name; not yet reviewed
+Mesh	Area	Done	Spark.Geometry.Mesh.Area	matched by name; not yet reviewed
+Mesh	BooleanDifference(Mesh)	Unassessed		
+Mesh	BooleanIntersection(Mesh)	Unassessed		
+Mesh	BooleanUnion(Mesh)	Unassessed		
+Mesh	BoundingBox()	Done	Spark.Geometry.Mesh.BoundingBox	matched by name; not yet reviewed
+Mesh	ByGeometry(Geometry, double, int)	Unassessed		
+Mesh	ByPointsFaceIndices(IEnumerable<Point>, IEnumerable<IndexGroup>)	Unassessed		
+Mesh	ByPointsIndexGroups(IEnumerable<Point>, IEnumerable<IndexGroup>)	Unassessed		
+Mesh	ByPointsIndices(IEnumerable<Point>, IEnumerable<int>)	Unassessed		
+Mesh	ByVerticesAndIndices(IEnumerable<Point>, IEnumerable<int>)	Unassessed		
+Mesh	CloseCracks()	Unassessed		
+Mesh	Cone(Point, double, double, double, int, bool)	Unassessed		
+Mesh	Cuboid(Point, double, double, double, int, int, int)	Unassessed		
+Mesh	EdgeCount	Unassessed		
+Mesh	Edges()	Unassessed		
+Mesh	EdgesAsSixNumbers	Unassessed		
+Mesh	Explode()	Unassessed		
+Mesh	ExportMeshes(string, IEnumerable<Mesh>)	Unassessed		
+Mesh	ExtrudePolyCurve(PolyCurve, double, Vector, bool)	Unassessed		
+Mesh	FaceIndices	Unassessed		
+Mesh	FromJson(string)	Unassessed		
+Mesh	GenerateSupport(double, double, double, double, double)	Unassessed		
+Mesh	ImportFile(string)	Unassessed		
+Mesh	Intersect(Plane)	Unassessed		
+Mesh	MakeHollow(int, double, double, double, double)	Unassessed		
+Mesh	MakeWatertight()	Unassessed		
+Mesh	Mirror(Plane)	Unassessed		
+Mesh	Nearest(Point)	Unassessed		
+Mesh	Plane(Point, double, double, int, int)	Unassessed		
+Mesh	PlaneCut(Plane, bool)	Unassessed		
+Mesh	Project(Point, Vector)	Unassessed		
+Mesh	Reduce(double)	Unassessed		
+Mesh	Remesh()	Unassessed		
+Mesh	Repair()	Unassessed		
+Mesh	Rotate(Vector, double)	Unassessed		
+Mesh	Scale(double)	Unassessed		
+Mesh	Scale(double, double, double)	Unassessed		
+Mesh	Smooth(double)	Unassessed		
+Mesh	Sphere(Point, double, int, bool)	Unassessed		
+Mesh	ToJson()	Unassessed		
+Mesh	ToString()	Done	Spark.Geometry.Mesh.ToString	matched by name; not yet reviewed
+Mesh	Translate(Vector)	Unassessed		
+Mesh	Translate(Vector, double)	Unassessed		
+Mesh	Translate(double, double, double)	Unassessed		
+Mesh	TriangleCentroids()	Unassessed		
+Mesh	TriangleCount	Unassessed		
+Mesh	TriangleNormals()	Unassessed		
+Mesh	Triangles()	Unassessed		
+Mesh	TrianglesAsNineNumbers	Unassessed		
+Mesh	VertexCount	Done	Spark.Geometry.Mesh.VertexCount	matched by name; not yet reviewed
+Mesh	VertexIndicesByTri()	Unassessed		
+Mesh	VertexNormals	Unassessed		
+Mesh	VertexPositions	Unassessed		
+Mesh	VerticesAsThreeNumbers	Unassessed		
+Mesh	Volume	Done	Spark.Geometry.Mesh.Volume	matched by name; not yet reviewed
+NurbsCurve	ByControlPoints(IEnumerable<Point>)	Unassessed		
+NurbsCurve	ByControlPoints(IEnumerable<Point>, int)	Unassessed		
+NurbsCurve	ByControlPoints(IEnumerable<Point>, int, bool)	Unassessed		
+NurbsCurve	ByControlPointsWeightsKnots(IEnumerable<Point>, double[], double[], int)	Unassessed		
+NurbsCurve	ByPoints(IEnumerable<Point>)	Unassessed		
+NurbsCurve	ByPoints(IEnumerable<Point>, bool)	Unassessed		
+NurbsCurve	ByPoints(IEnumerable<Point>, int)	Unassessed		
+NurbsCurve	ByPointsTangents(IEnumerable<Point>, Vector, Vector)	Unassessed		
+NurbsCurve	ControlPoints()	Done	Spark.Geometry.NurbsCurve.ControlPoints	matched by name; not yet reviewed
+NurbsCurve	Degree	Done	Spark.Geometry.NurbsCurve.Degree	matched by name; not yet reviewed
+NurbsCurve	IsPeriodic	Unassessed		
+NurbsCurve	IsRational	Done	Spark.Geometry.NurbsCurve.IsRational	matched by name; not yet reviewed
+NurbsCurve	Knots()	Done	Spark.Geometry.NurbsCurve.Knots	matched by name; not yet reviewed
+NurbsCurve	ToString()	Done	Spark.Geometry.NurbsCurve.ToString	matched by name; not yet reviewed
+NurbsCurve	Weights()	Done	Spark.Geometry.NurbsCurve.Weights	matched by name; not yet reviewed
+NurbsSurface	ByControlPoints(Point[][], int, int)	Unassessed		
+NurbsSurface	ByControlPointsWeightsKnots(Point[][], double[][], double[], double[], int, int)	Unassessed		
+NurbsSurface	ByPoints(Point[][], int, int)	Unassessed		
+NurbsSurface	ByPointsTangents(Point[][], IEnumerable<Vector>, IEnumerable<Vector>, IEnumerable<Vector>, IEnumerable<Vector>)	Unassessed		
+NurbsSurface	ByPointsTangentsKnotsDerivatives(Point[][], IEnumerable<Vector>, IEnumerable<Vector>, IEnumerable<Vector>, IEnumerable<Vector>, double[], double[], IEnumerable<Vector>)	Unassessed		
+NurbsSurface	ControlPoints()	Done	Spark.Geometry.NurbsSurface.ControlPoints	matched by name; not yet reviewed
+NurbsSurface	DegreeU	Done	Spark.Geometry.NurbsSurface.DegreeU	matched by name; not yet reviewed
+NurbsSurface	DegreeV	Done	Spark.Geometry.NurbsSurface.DegreeV	matched by name; not yet reviewed
+NurbsSurface	IsPeriodicInU	Unassessed		
+NurbsSurface	IsPeriodicInV	Unassessed		
+NurbsSurface	IsRational	Done	Spark.Geometry.NurbsSurface.IsRational	matched by name; not yet reviewed
+NurbsSurface	NumControlPointsU	Unassessed		
+NurbsSurface	NumControlPointsV	Unassessed		
+NurbsSurface	ToString()	Done	Spark.Geometry.NurbsSurface.ToString	matched by name; not yet reviewed
+NurbsSurface	UKnots()	Unassessed		
+NurbsSurface	VKnots()	Unassessed		
+NurbsSurface	Weights()	Done	Spark.Geometry.NurbsSurface.Weights	matched by name; not yet reviewed
+PanelSurface	ByCrossSplitSquares(Surface, int, int, PanelSurfaceBoundaryCondition)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	ByCustomOrthogonalLattice(Surface, int, int, double, double, UV[][], PanelSurfaceBoundaryCondition)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	ByDiagonallySplitSquares(Surface, int, int, bool, PanelSurfaceBoundaryCondition)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	ByDiamonds(Surface, int, int, PanelSurfaceBoundaryCondition)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	ByHexagons(Surface, int, int, PanelSurfaceBoundaryCondition)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	ByParallelograms(Surface, int, int, double, bool, PanelSurfaceBoundaryCondition)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	ByQuads(Surface, int, int, PanelSurfaceBoundaryCondition)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	ByRhombiTriHexagonals(Surface, int, int, PanelSurfaceBoundaryCondition)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	BySplitDiamonds(Surface, int, int, bool, PanelSurfaceBoundaryCondition)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	ByStaggeredQuads(Surface, int, int, bool, double, PanelSurfaceBoundaryCondition)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	GetNumPanelVertices(int[])	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	GetPanelPoints(int[])	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	GetPanelPolygon(int[])	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	GetPanelVertices(int[])	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	GetPoint(int)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	GetVertex(int)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	GetVertexIndex(int, int)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	NumPanels	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	NumVertices	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	SetTransform(double, double, double, double, Point)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurface	ToString()	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurfaceBoundaryCondition	Keep	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurfaceBoundaryCondition	Remove	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurfaceBoundaryCondition	RemoveVertices	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+PanelSurfaceBoundaryCondition	Trim	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
+Plane	ByBestFitThroughPoints(IEnumerable<Point>)	Unassessed		
+Plane	ByLineAndPoint(Line, Point)	Unassessed		
+Plane	ByOriginNormal(Point, Vector)	Unassessed		
+Plane	ByOriginNormalXAxis(Point, Vector, Vector)	Unassessed		
+Plane	ByOriginXAxisYAxis(Point, Vector, Vector)	Unassessed		
+Plane	ByThreePoints(Point, Point, Point)	Unassessed		
+Plane	Normal	Done	Spark.Geometry.Plane.Normal	matched by name; not yet reviewed
+Plane	Offset(double)	Done	Spark.Geometry.Plane.Offset	matched by name; not yet reviewed
+Plane	Origin	Done	Spark.Geometry.Plane.Origin	matched by name; not yet reviewed
+Plane	ToCoordinateSystem()	Unassessed		
+Plane	ToString()	Done	Spark.Geometry.Plane.ToString	matched by name; not yet reviewed
+Plane	XAxis	Done	Spark.Geometry.Plane.XAxis	matched by name; not yet reviewed
+Plane	XY()	Unassessed		
+Plane	XZ()	Unassessed		
+Plane	YAxis	Done	Spark.Geometry.Plane.YAxis	matched by name; not yet reviewed
+Plane	YZ()	Unassessed		
+Point	Add(Vector)	Done	Spark.Geometry.Point3d.Add	matched by name; not yet reviewed
+Point	AsVector()	Unassessed		
+Point	ByCartesianCoordinates(CoordinateSystem, double, double, double)	Unassessed		
+Point	ByCoordinates(double, double)	Unassessed		
+Point	ByCoordinates(double, double, double)	Unassessed		
+Point	ByCylindricalCoordinates(CoordinateSystem, double, double, double)	Unassessed		
+Point	BySphericalCoordinates(CoordinateSystem, double, double, double)	Unassessed		
+Point	Origin()	Done	Spark.Geometry.Point3d.Origin	matched by name; not yet reviewed
+Point	Project(Geometry, Vector)	Unassessed		
+Point	PruneDuplicates(IEnumerable<Point>, double)	Done	Spark.Geometry.Point3d.PruneDuplicates	matched by name; not yet reviewed
+Point	Subtract(Vector)	Done	Spark.Geometry.Point3d.Subtract	matched by name; not yet reviewed
+Point	ToString()	Done	Spark.Geometry.Point3d.ToString	matched by name; not yet reviewed
+Point	X	Done	Spark.Geometry.Point3d.X	matched by name; not yet reviewed
+Point	Y	Done	Spark.Geometry.Point3d.Y	matched by name; not yet reviewed
+Point	Z	Done	Spark.Geometry.Point3d.Z	matched by name; not yet reviewed
+PolyCurve	BasePlane()	Unassessed		
+PolyCurve	ByGroupedCurves(IEnumerable<Curve>, double)	Unassessed		
+PolyCurve	ByGroupedCurves(IEnumerable<Curve>, double, bool, double)	Unassessed		
+PolyCurve	ByJoinedCurves(IEnumerable<Curve>, double)	Unassessed		
+PolyCurve	ByJoinedCurves(IEnumerable<Curve>, double, bool, double)	Unassessed		
+PolyCurve	ByPoints(IEnumerable<Point>, bool)	Unassessed		
+PolyCurve	ByThickeningCurve(Curve, double, Vector)	Unassessed		
+PolyCurve	ByThickeningCurveNormal(Curve, double, Vector)	Unassessed		
+PolyCurve	CloseWithLine()	Unassessed		
+PolyCurve	CloseWithLineAndTangentArcs(double, double)	Unassessed		
+PolyCurve	CurveAtIndex(int, bool)	Unassessed		
+PolyCurve	Curves()	Unassessed		
+PolyCurve	ExtendWithArc(double, double, bool)	Unassessed		
+PolyCurve	ExtendWithEllipse(double, double, double, double, bool)	Unassessed		
+PolyCurve	Fillet(double, bool)	Unassessed		
+PolyCurve	Heal(double)	Unassessed		
+PolyCurve	NumberOfCurves	Unassessed		
+PolyCurve	Offset(double, bool)	Unassessed		
+PolyCurve	OffsetMany(double, bool, Vector)	Unassessed		
+PolyCurve	Points	Unassessed		
+PolyCurve	ToString()	Done	Spark.Geometry.PolyCurve.ToString	matched by name; not yet reviewed
+PolySurface	ByJoinedSurfaces(IEnumerable<Surface>)	Unassessed		
+PolySurface	ByLoft(IEnumerable<Curve>)	Unassessed		
+PolySurface	ByLoft(IEnumerable<Curve>, Curve)	Unassessed		
+PolySurface	ByLoftGuides(IEnumerable<Curve>, IEnumerable<Curve>)	Unassessed		
+PolySurface	BySolid(Solid)	Unassessed		
+PolySurface	BySweep(Curve, Curve)	Unassessed		
+PolySurface	BySweep(Curve, IEnumerable<Curve>)	Unassessed		
+PolySurface	Chamfer(IEnumerable<Edge>, double)	Unassessed		
+PolySurface	EdgeCount()	Done	Spark.Geometry.Brep.EdgeCount	matched by name; not yet reviewed
+PolySurface	ExtractSolids()	Unassessed		
+PolySurface	Fillet(IEnumerable<Edge>, double)	Unassessed		
+PolySurface	LocateSurfacesByLine(Line)	Unassessed		
+PolySurface	LocateSurfacesByPoint(Point, Vector)	Unassessed		
+PolySurface	SurfaceCount()	Unassessed		
+PolySurface	Surfaces()	Done	Spark.Geometry.Brep.Surfaces	matched by name; not yet reviewed
+PolySurface	ToString()	Done	Spark.Geometry.Brep.ToString	matched by name; not yet reviewed
+PolySurface	UnconnectedBoundaries()	Unassessed		
+PolySurface	VertexCount()	Done	Spark.Geometry.Brep.VertexCount	matched by name; not yet reviewed
+Polygon	ByPoints(IEnumerable<Point>)	Unassessed		
+Polygon	Center()	Unassessed		
+Polygon	ContainmentTest(Point)	Unassessed		
+Polygon	Corners()	Unassessed		
+Polygon	PlaneDeviation	Unassessed		
+Polygon	Points	Done	Spark.Geometry.PolyLine.Points	matched by name; not yet reviewed
+Polygon	RegularPolygon(Circle, int)	Unassessed		
+Polygon	SelfIntersections()	Unassessed		
+Polygon	ToString()	Done	Spark.Geometry.PolyLine.ToString	matched by name; not yet reviewed
+ProtoGeometryConfiguration	GeometryFactoryFileName	Not planned		§5 [b]: names the native DLLs ProtoGeometry loads; Spark loads none to do geometry.
+ProtoGeometryConfiguration	PersistentManagerFileName	Not planned		§5 [b]: names the native DLLs ProtoGeometry loads; Spark loads none to do geometry.
+Rectangle	ByCornerPoints(IEnumerable<Point>)	Unassessed		
+Rectangle	ByCornerPoints(Point, Point, Point, Point)	Unassessed		
+Rectangle	ByWidthLength(CoordinateSystem, double, double)	Unassessed		
+Rectangle	ByWidthLength(Plane, double, double)	Unassessed		
+Rectangle	ByWidthLength(double, double)	Unassessed		
+Rectangle	Height	Unassessed		
+Rectangle	ToString()	Unassessed		
+Rectangle	Width	Unassessed		
+Solid	Area	Unassessed		
+Solid	ByJoinedSurfaces(IEnumerable<Surface>)	Unassessed		
+Solid	ByLoft(IEnumerable<Curve>)	Unassessed		
+Solid	ByLoft(IEnumerable<Curve>, Curve)	Unassessed		
+Solid	ByLoft(IEnumerable<Curve>, IEnumerable<Curve>)	Unassessed		
+Solid	ByRevolve(Curve, Point, Vector, double, double)	Unassessed		
+Solid	ByRuledLoft(IEnumerable<PolyCurve>, bool)	Unassessed		
+Solid	BySweep(Curve, Curve)	Unassessed		
+Solid	BySweep(Curve, Curve, bool)	Unassessed		
+Solid	BySweep2Rails(Curve, Curve, Curve)	Unassessed		
+Solid	ByUnion(IEnumerable<Solid>)	Unassessed		
+Solid	Centroid()	Unassessed		
+Solid	Chamfer(IEnumerable<Edge>, double)	Unassessed		
+Solid	Difference(Solid)	Unassessed		
+Solid	DifferenceAll(IEnumerable<Solid>)	Unassessed		
+Solid	Fillet(IEnumerable<Edge>, double)	Unassessed		
+Solid	ProjectInputOnto(Geometry, Vector)	Unassessed		
+Solid	Repair()	Unassessed		
+Solid	Separate()	Unassessed		
+Solid	ThinShell(double, double)	Unassessed		
+Solid	ToString()	Done	Spark.Geometry.Brep.ToString	matched by name; not yet reviewed
+Solid	Union(Solid)	Unassessed		
+Solid	UnionAll(IEnumerable<Solid>)	Unassessed		
+Solid	Volume	Unassessed		
+Sphere	ByBestFit(IEnumerable<Point>)	Unassessed		
+Sphere	ByCenterPointRadius(Point, double)	Unassessed		
+Sphere	ByFourPoints(IEnumerable<Point>)	Unassessed		
+Sphere	CenterPoint	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
+Sphere	Radius	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
+Sphere	ToString()	Unassessed		
+Surface	ApproximateWithTolerance(double)	Unassessed		
+Surface	Area	Done	Spark.Geometry.Surface.Area	matched by name; not yet reviewed
+Surface	ByLoft(IEnumerable<Curve>)	Unassessed		
+Surface	ByLoft(IEnumerable<Curve>, Curve)	Unassessed		
+Surface	ByLoft(IEnumerable<Curve>, IEnumerable<Curve>)	Unassessed		
+Surface	ByPatch(Curve)	Unassessed		
+Surface	ByPerimeterPoints(IEnumerable<Point>)	Unassessed		
+Surface	ByRevolve(Curve, Point, Vector, double, double)	Unassessed		
+Surface	ByRuledLoft(IEnumerable<Line>)	Unassessed		
+Surface	BySweep(Curve, Curve)	Unassessed		
+Surface	BySweep(Curve, Curve, bool)	Unassessed		
+Surface	BySweep2Rails(Curve, Curve, Curve)	Unassessed		
+Surface	ByUnion(IEnumerable<Surface>)	Unassessed		
+Surface	Closed	Unassessed		
+Surface	ClosedInU	Unassessed		
+Surface	ClosedInV	Unassessed		
+Surface	CoordinateSystemAtParameter(double, double)	Unassessed		
+Surface	CurvatureAtParameter(double, double)	Unassessed		
+Surface	DerivativesAtParameter(double, double)	Unassessed		
+Surface	Difference(IEnumerable<Surface>)	Unassessed		
+Surface	FlipNormalDirection()	Unassessed		
+Surface	GaussianCurvatureAtParameter(double, double)	Unassessed		
+Surface	GetIsoline(int, double)	Unassessed		
+Surface	Join(IEnumerable<Surface>)	Unassessed		
+Surface	Join(Surface)	Unassessed		
+Surface	NormalAtParameter(double, double)	Unassessed		
+Surface	NormalAtPoint(Point)	Unassessed		
+Surface	Offset(double)	Unassessed		
+Surface	Perimeter	Unassessed		
+Surface	PerimeterCurves()	Unassessed		
+Surface	PointAtParameter(double, double)	Unassessed		
+Surface	PrincipalCurvaturesAtParameter(double, double)	Unassessed		
+Surface	PrincipalDirectionsAtParameter(double, double)	Unassessed		
+Surface	ProjectInputOnto(Geometry, Vector)	Unassessed		
+Surface	Repair()	Unassessed		
+Surface	SubtractFrom(Solid)	Unassessed		
+Surface	TangentAtUParameter(double, double)	Unassessed		
+Surface	TangentAtVParameter(double, double)	Unassessed		
+Surface	Thicken(double)	Unassessed		
+Surface	Thicken(double, bool)	Unassessed		
+Surface	ToNurbsSurface()	Unassessed		
+Surface	ToNurbsSurface(bool)	Unassessed		
+Surface	ToString()	Unassessed		
+Surface	TrimWithEdgeLoops(IEnumerable<PolyCurve>)	Unassessed		
+Surface	TrimWithEdgeLoops(IEnumerable<PolyCurve>, double)	Unassessed		
+Surface	UVParameterAtPoint(Point)	Unassessed		
+TSpline.TSplineEdge	AdjacentFaces	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineEdge	EndVertex	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineEdge	Index	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineEdge	Info()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineEdge	IsBorder	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineEdge	IsManifold	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineEdge	StartVertex	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineEdge	ToString()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineEdge	UVNFrame	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineFace	Edges	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineFace	Index	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineFace	Info()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineFace	Sides	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineFace	ToString()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineFace	UVNFrame	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineFace	Valence	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineFace	Vertices	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineInitialSymmetry	ByAxial(bool, bool, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineInitialSymmetry	ByRadial(int)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineInitialSymmetry	IsRadial	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineInitialSymmetry	RadialSymmetryFaces	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineInitialSymmetry	ToString()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineInitialSymmetry	XAxis	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineInitialSymmetry	YAxis	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineInitialSymmetry	ZAxis	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineReflection	Axis	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineReflection	ByAxial(Plane)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineReflection	ByRadial(Plane, int, double)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineReflection	IsRadial	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineReflection	Plane	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineReflection	SegmentAngle	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineReflection	SegmentsCount	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineReflection	ToString()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	AddReflections(IEnumerable<TSplineReflection>, bool, double)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	BevelEdges(IEnumerable<TSplineEdge>, double, int, bool, double)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	BridgeEdgesToEdges(IEnumerable<TSplineEdge>, IEnumerable<TSplineEdge>, IEnumerable<Curve>, IEnumerable<int>, IEnumerable<int>, bool, bool, IEnumerable<TSplineVertex>, IEnumerable<TSplineVertex>, IEnumerable<bool>)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	BridgeEdgesToFaces(IEnumerable<TSplineEdge>, IEnumerable<TSplineFace>, IEnumerable<Curve>, IEnumerable<int>, IEnumerable<int>, bool, bool, IEnumerable<TSplineVertex>, IEnumerable<TSplineVertex>, IEnumerable<bool>)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	BridgeFacesToEdges(IEnumerable<TSplineFace>, IEnumerable<TSplineEdge>, IEnumerable<Curve>, IEnumerable<int>, IEnumerable<int>, bool, bool, IEnumerable<TSplineVertex>, IEnumerable<TSplineVertex>, IEnumerable<bool>)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	BridgeFacesToFaces(IEnumerable<TSplineFace>, IEnumerable<TSplineFace>, IEnumerable<Curve>, IEnumerable<int>, IEnumerable<int>, bool, bool, IEnumerable<TSplineVertex>, IEnumerable<TSplineVertex>, IEnumerable<bool>)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	BuildFromLines(IEnumerable<Curve>, int, double, bool, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	BuildPipes(IEnumerable<Curve>, double, double, IEnumerable<int>, IEnumerable<double>, IEnumerable<double>, IEnumerable<double>, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	BuildPipes(IEnumerable<Curve>, double, double, IEnumerable<int>, bool, bool, IEnumerable<double>, IEnumerable<double>, IEnumerable<double>, IEnumerable<double>, IEnumerable<double>, IEnumerable<double>, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByBoxCorners(Point, Point, int, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByBoxLengths(CoordinateSystem, double, double, double, int, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByBoxLengths(Point, double, double, double, int, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByBoxLengths(double, double, double, int, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByCombinedTSplineSurfaces(IEnumerable<TSplineSurface>)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByConeCoordinateSystemHeightRadii(CoordinateSystem, double, double, double, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByConeCoordinateSystemHeightRadius(CoordinateSystem, double, double, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByConePointsRadii(Point, Point, double, double, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByConePointsRadius(Point, Point, double, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByCylinderPointsRadius(Point, Point, double, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByCylinderRadiusHeight(CoordinateSystem, double, double, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByExtrude(Curve, Vector, double, double, int, int, int, bool, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByNurbsSurfaceCurvature(NurbsSurface, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByNurbsSurfaceUniform(NurbsSurface, int, int, bool, bool, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByPlaneBestFitThroughPoints(IEnumerable<Point>, Point, Point, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByPlaneLineAndPoint(Line, Point, Point, Point, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByPlaneOriginNormal(Point, Vector, Point, Point, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByPlaneOriginNormalXAxis(Point, Vector, Vector, Point, Point, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByPlaneOriginXAxisYAxis(Point, Vector, Vector, Point, Point, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByPlaneThreePoints(Point, Point, Point, Point, Point, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByQuadballCenterRadius(Point, double, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByQuadballCoordinateSystemRadius(CoordinateSystem, double, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByRevolve(Curve, Point, Vector, double, double, int, int, bool, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	BySphereBestFit(IEnumerable<Point>, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	BySphereCenterPointRadius(Point, double, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	BySphereFourPoints(IEnumerable<Point>, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	BySweep(Curve, Curve, bool, int, int, bool, bool, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByTorusCenterRadii(Point, double, double, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ByTorusCoordinateSystemRadii(CoordinateSystem, double, double, int, int, TSplineInitialSymmetry, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	CompressIndexes()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	CreaseEdges(IEnumerable<TSplineEdge>)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	CreaseVertices(IEnumerable<TSplineVertex>)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	CreateMatch(IEnumerable<TSplineEdge>, IEnumerable<Curve>, int, bool, bool, int, double, bool, double, double, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	CreateMatch(IEnumerable<TSplineEdge>, IEnumerable<Curve>, int, bool, bool, int, double, bool, double, double, double, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	CreateMatch(IEnumerable<TSplineEdge>, IEnumerable<Edge>, int, bool, bool, int, double, bool, double, double, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	CreateMatch(IEnumerable<TSplineEdge>, IEnumerable<Edge>, int, bool, bool, int, double, bool, double, double, double, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	DeleteEdges(IEnumerable<TSplineEdge>)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	DeleteFaces(IEnumerable<TSplineFace>)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	DeleteVertices(IEnumerable<TSplineVertex>)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	DeserializeFromTSM(string, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	DuplicateFaces(IEnumerable<TSplineFace>)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	EnableSmoothMode(bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ExportToTSM(TSplineSurface, string)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ExportToTSS(IEnumerable<TSplineSurface>, string)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ExtrudeEdges(IEnumerable<TSplineEdge>, Vector, int)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ExtrudeEdgesAlongCurve(IEnumerable<TSplineEdge>, Curve, int)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ExtrudeFaces(IEnumerable<TSplineFace>, Vector, int)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ExtrudeFacesAlongCurve(IEnumerable<TSplineFace>, Curve, int)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	FillHole(IEnumerable<TSplineEdge>, int, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	FlattenVertices(IEnumerable<TSplineVertex>)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	FlattenVertices(IEnumerable<TSplineVertex>, Plane)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	FlipNormals()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ImportFromTSM(FileInfo, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ImportFromTSM(string, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ImportFromTSS(FileInfo, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ImportFromTSS(string, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	Interpolate(bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	IsClosed	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	IsExtractable	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	IsInBoxMode	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	IsStandard	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	IsWaterTight	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	MakeUniform()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	MergeEdges(IEnumerable<TSplineEdge>, IEnumerable<TSplineEdge>, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	MoveVertices(IEnumerable<TSplineVertex>, Vector, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	PullVertices(IEnumerable<TSplineVertex>, IEnumerable<Geometry>, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	Reflections	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	RemoveReflections()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	Repair()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	SerializeAsTSM(TSplineSurface)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	SlideEdges(IEnumerable<TSplineEdge>, double, double)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	Standardize()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	SubdivideFaces(IEnumerable<TSplineFace>, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	Thicken(Vector, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	Thicken(double, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ToBRep(bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ToMesh(int, double)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	ToString()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	UncreaseEdges(IEnumerable<TSplineEdge>)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	UncreaseVertices(IEnumerable<TSplineVertex>)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	UnweldEdges(IEnumerable<TSplineEdge>)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	UnweldVertices(IEnumerable<TSplineVertex>)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	WeldCoincidentVertices(double)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	WeldVertices(IEnumerable<TSplineVertex>, IEnumerable<TSplineVertex>, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineSurface	WeldVertices(IEnumerable<TSplineVertex>, Point, bool)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	BorderEdges	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	BorderFaces	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	BorderVertices	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	DecomposedEdges()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	DecomposedFaces()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	DecomposedVertices()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	EdgeByIndex(int)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	Edges	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	EdgesCount	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	FaceByIndex(int)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	Faces	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	FacesCount	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	InnerEdges	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	InnerFaces	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	InnerVertices	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	NGonFaces	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	NonManifoldEdges	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	NonManifoldVertices	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	RegularFaces	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	RegularVertices	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	StarPointVertices	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	TPointVertices	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	ToString()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	VertexByIndex(int)	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	Vertices	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineTopology	VerticesCount	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineUVNFrame	Normal	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineUVNFrame	Position	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineUVNFrame	ToString()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineUVNFrame	U	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineUVNFrame	V	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineVertex	AdjacentEdges	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineVertex	AdjacentFaces	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineVertex	FunctionalValence	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineVertex	Index	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineVertex	Info()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineVertex	IsManifold	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineVertex	IsStarPoint	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineVertex	IsTPoint	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineVertex	ToString()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineVertex	UVNFrame	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+TSpline.TSplineVertex	Valence	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
+Topology	Edges	Unassessed		
+Topology	Faces	Unassessed		
+Topology	ToString()	Unassessed		
+Topology	Vertices	Unassessed		
+UV	ByCoordinates(double, double)	Unassessed		
+UV	Equals(object)	Done	Spark.Geometry.UV.Equals	matched by name; not yet reviewed
+UV	GetHashCode()	Done	Spark.Geometry.UV.GetHashCode	matched by name; not yet reviewed
+UV	ToString()	Done	Spark.Geometry.UV.ToString	matched by name; not yet reviewed
+UV	U	Done	Spark.Geometry.UV.U	matched by name; not yet reviewed
+UV	V	Done	Spark.Geometry.UV.V	matched by name; not yet reviewed
+Vector	Add(Vector)	Done	Spark.Geometry.Vector3d.Add	matched by name; not yet reviewed
+Vector	AngleAboutAxis(Vector, Vector)	Unassessed		
+Vector	AngleBetween(Vector)	Unassessed		
+Vector	AngleBetween(Vector, Vector)	Unassessed		
+Vector	AngleWithVector(Vector)	Unassessed		
+Vector	AsPoint()	Unassessed		
+Vector	ByCoordinates(double, double, double)	Unassessed		
+Vector	ByCoordinates(double, double, double, bool)	Unassessed		
+Vector	ByTwoPoints(Point, Point)	Unassessed		
+Vector	Cross(Vector)	Done	Spark.Geometry.Vector3d.Cross	matched by name; not yet reviewed
+Vector	Dot(Vector)	Done	Spark.Geometry.Vector3d.Dot	matched by name; not yet reviewed
+Vector	FromJson(string)	Unassessed		
+Vector	IsAlmostEqualTo(Vector)	Unassessed		
+Vector	IsParallel(Vector)	Unassessed		
+Vector	Length	Done	Spark.Geometry.Vector3d.Length	matched by name; not yet reviewed
+Vector	Normalized()	Unassessed		
+Vector	Reverse()	Unassessed		
+Vector	Rotate(Plane, double)	Done	Spark.Geometry.Vector3d.Rotate	matched by name; not yet reviewed
+Vector	Rotate(Vector, double)	Done	Spark.Geometry.Vector3d.Rotate	matched by name; not yet reviewed
+Vector	Scale(double)	Unassessed		
+Vector	Scale(double, double, double)	Unassessed		
+Vector	Subtract(Vector)	Done	Spark.Geometry.Vector3d.Subtract	matched by name; not yet reviewed
+Vector	ToJson()	Unassessed		
+Vector	ToString()	Done	Spark.Geometry.Vector3d.ToString	matched by name; not yet reviewed
+Vector	Transform(CoordinateSystem)	Unassessed		
+Vector	X	Done	Spark.Geometry.Vector3d.X	matched by name; not yet reviewed
+Vector	XAxis()	Done	Spark.Geometry.Vector3d.XAxis	matched by name; not yet reviewed
+Vector	Y	Done	Spark.Geometry.Vector3d.Y	matched by name; not yet reviewed
+Vector	YAxis()	Done	Spark.Geometry.Vector3d.YAxis	matched by name; not yet reviewed
+Vector	Z	Done	Spark.Geometry.Vector3d.Z	matched by name; not yet reviewed
+Vector	ZAxis()	Done	Spark.Geometry.Vector3d.ZAxis	matched by name; not yet reviewed
+Vertex	AdjacentEdges	Unassessed		
+Vertex	AdjacentFaces	Unassessed		
+Vertex	PointGeometry	Unassessed		
+Vertex	ToString()	Done	Spark.Geometry.BrepVertex.ToString	matched by name; not yet reviewed
