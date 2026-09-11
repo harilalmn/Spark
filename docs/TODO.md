@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E7-T25` closed: the command line reads a graph's package folder; `E7-T19`, `E7-T16`, `E7-T17` and `E7-T24` before it)
+**Last updated:** 2026-09-11 (the *Now* order re-derived from the register after a reconciliation; `E12-T24`, `E3-T24` and `E7-T25` closed the same day)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -200,6 +200,30 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 
 ## Now — what is next, in order
 
+> **Re-derived from the register on 2026-09-11**, after a reconciliation closed eleven rows the tree
+> had already delivered and re-described three. The client's instruction the same day was *go non
+> stop till all Epics are done*, so this is the order the run takes — defects first, then the rows
+> each missing one named half, then breadth.
+>
+> 1. **`E12-T20`** — the tessellation cache ignores the tolerance it was asked for.
+> 2. **`E2-T62`** — `Surface.ClosestPoint` stops 8.5e-5 short on a revolution surface; a documented
+>    tolerance is standing in for a fix.
+> 3. **`E3-T10`** — the impure-node declaration. Without it an impure node poisons nothing and
+>    serves stale results for ever.
+> 4. **`E8-T13`** — aggressive autosave and crash recovery, because a `StackOverflowException` ends
+>    the process with no chance to save.
+> 5. **`E3-T12`**'s kernel half and **`E3-T9`**'s byte budget — engine rows each missing one half.
+> 6. **`E13-T18`** — an imported model's closed shells come back as solids, in the native shim.
+> 7. **`E9-T8`** and **`E9-T7`** — picking through the BVH, and tessellation streamed during a run.
+> 8. **`E8-T12`** — Settings.
+> 9. Geometry breadth — **`E2-T11`**, **`E2-T16`**, **`E2-T21`**, **`E2-T13`**, **`E2-T14`** — then
+>    the importer's **`E5-T9`** and **`E5-T10`**, then **`E3-T21`**, **`E3-T14`** and **`E3-T20`**.
+> 10. The Dynamo parity rows (`E2-T41` … `E2-T46`, `E5-T14`, `E11-T23`), the largest and the least
+>     bounded, last.
+>
+> **Not on this list because no commit closes them**: `E13-T12`'s third-party viewer, `Q13`'s counsel
+> questions, `E13-T17`'s signing identity, and the CI rows that Actions being off has blocked.
+
 - [x] ~~**Selection goes wrong when a code block is present.**~~ **Fixed 2026-09-10**, `E8-T40`,
       on a client report with two screenshots. Opening a block's in-place editor reserves room on
       the node — and that reservation was reaching the node's `Bounds`, which is what the spatial
@@ -319,19 +343,19 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
       the other way, and the reason it did not is portability: the graph and its dependencies
       travel together, and two graphs may disagree about a version.
 
-- [ ] **`E7-T12` — collapse selection to custom node.** The engine half is built and tested:
+- [x] ~~**`E7-T12` — collapse selection to custom node.**~~ **Done 2026-08-31** (`CanvasCollapse`), and this bullet was never ticked - found by the 2026-09-11 reconciliation. The engine half is built and tested:
       `.sparkcustom` is the graph format plus an interface block, ports come from Input/Output
       nodes placed in the definition graph, and recursion is refused at build time with the
       containment path named (`E7-T11`, `E7-T13`, `E7-T15`). **What is missing is the gesture** "
       + D + " take a selection, cut it out, and infer the interface from the wires that crossed the
       boundary. `E7-T13`'s save-side refusal belongs with it, because collapse is what can build a
       recursive definition by accident.
-- [ ] **The rest of M7, which is network-facing.** `E7-T1` (the package convention), `E7-T2` (the
+- [x] ~~**The rest of M7, which is network-facing.**~~ **All five rows were done by 2026-09-01**, and this bullet was never ticked. `E7-T1` (the package convention), `E7-T2` (the
       NuGet client), `E7-T8` (trust and install disclosure), `E7-T9` (local DLLs with hot reload)
       and `E7-T10` (the package manager UI). **The load layer underneath them is done and proven**:
       one collectible context per package *version*, contract assemblies always shared, side-by-side
       versions demonstrated (`E7-T3`, `E7-T4`).
-- [ ] **`E7-T5`'s purge half.** The unload mechanism is built and proven by weak reference; the
+- [x] ~~**`E7-T5`'s purge half.**~~ **Done with `E7-T10`**, and this bullet was never ticked. The unload mechanism is built and proven by weak reference; the
       registries it has to empty do not exist until `E7-T2`.
 - [ ] **`E9-T7` and `E9-T8`** — parallel streamed tessellation, and picking through the
       kernel's BVH ray caster. Both are M2-era viewport work rather than anything M5 owed.

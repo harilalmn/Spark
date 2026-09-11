@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E7-T16`, `E7-T17`, `E7-T19`, `E7-T25`: a graph's packages are gated, named in the file, carried by Save As, and read by the command line)
+**Last updated:** 2026-09-11 (three criteria ticked by a register reconciliation - `E8-T16`, `E11-T12`, `E11-T13`; `E7-T25` before it)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -979,7 +979,9 @@ another.
       find with no window.
 - [ ] Aggressive autosave and crash recovery, because
       [R11](PRD.md#12-risks) means the process can die without warning (**E8-T13**).
-- [ ] Banners for a missing package and for a graph containing script nodes (**E8-T16**).
+- [x] Banners for a missing package and for a graph containing script nodes (**E8-T16**).
+      *Both built by the rows that needed them - `E6-T16`'s code-block banner and `E7-T17`'s
+      missing-package banner - and ticked by the 2026-09-11 reconciliation.*
 
 **Status.** Built in `85e3183` and `35107f0`, and **the gate it depended on passed**: M1.5 spike
 (b) measured 2,000 nodes at 0.87 ms median and 2.26 ms p95 for the whole render pass, with cost
@@ -1324,8 +1326,10 @@ nothing.
       the very defect it was written to catch**, which lives inside half a seed cell of the domain
       edge; its fractions now crowd towards both ends and it goes red against the old behaviour.*
 - [ ] Golden-file geometry tests print readable diff tables on failure (**E11-T11**).
-- [ ] The lacing case table asserts value and rank separately (**E11-T12**).
-- [ ] The node↔member two-way diff passes in both directions (**E11-T13**).
+- [x] The lacing case table asserts value and rank separately (**E11-T12**). *It is `E4-T12`'s
+      `LacingCaseTests` and `LacingCorpusCoverageTests`; ticked by the 2026-09-11 reconciliation.*
+- [x] The node↔member two-way diff passes in both directions (**E11-T13**). *It is `E5-T6`'s
+      `NodeLibraryCoverageTests`; ticked by the 2026-09-11 reconciliation.*
 - [ ] The `docs-freshness` job fails a diff that changes a public-API baseline or touches
       `src/Spark.Nodes.*` without touching `docs/`, overridable only by an explicit
       `docs: none-needed` commit trailer that is **visible in review**. A silent exemption
