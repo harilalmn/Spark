@@ -8,13 +8,13 @@ since: "0.1"
 
 **Status:** Current. Describes the `.spark` reader and writer, which exist and are tested.
 **Owner:** `graph-engine`
-**Last updated:** 2026-09-11 (`E8-T13`: a working copy of unsaved changes, and what a crash leaves you)
+**Last updated:** 2026-09-11 (`E3-T20`: sending a graph as a `.sparkz` bundle)
 
 > **Scope.** A `.spark` file holds nodes, wires, lacing, canvas positions and the values typed
-> into unwired ports. It holds **no geometry** — geometry exists only after evaluation. Assets,
-> the `.sparkz` bundle and custom node definitions are later milestones and are not in the file
-> yet. **Libraries a graph needs live beside it**, in a folder named after the file, rather than
-> inside it.
+> into unwired ports. It holds **no geometry** — geometry exists only after evaluation. Assets and
+> custom node definitions are later milestones and are not in the file yet. **Libraries a graph
+> needs live beside it**, in a folder named after the file, rather than inside it — and the two
+> travel together as one `.sparkz` bundle.
 
 ---
 
@@ -219,7 +219,8 @@ proposals/
     Helpers.dll
 ```
 
-Zip the pair, send it, and it opens with its libraries. Under a machine-wide install folder alone
+**File ▸ Share as bundle…** zips the pair into one `.sparkz` for you ([below](#sending-a-graph-to-somebody-the-sparkz-bundle)),
+and it opens with its libraries. Under a machine-wide install folder alone
 a `.spark` is a graph plus verbal instructions about what to install first, and the instructions
 are not in the file.
 
@@ -297,6 +298,31 @@ opens with everything it had. If a folder by the new name is already there, noth
 overwritten: it belongs to whatever graph was saved under that name before. The status bar says
 what was copied and what was left alone, and a graph with large packages takes as long to Save as…
 as it takes to copy them.
+
+---
+
+## Sending a graph to somebody: the `.sparkz` bundle
+
+**File ▸ Share as bundle…** writes `tower.sparkz` beside `tower.spark`: the graph and its
+`tower.packages` folder in one file that cannot be half-sent. A graph with changes is saved first,
+because the bundle is made from the file.
+
+**File ▸ Open accepts a `.sparkz`** as well as a `.spark`. Spark opens it into a folder of its own in
+your user profile — one per bundle, so opening the same one twice does not make a second copy — and the
+status bar says where, because **Save writes there**, not back into the bundle. To send your changes
+on, share a new bundle.
+
+**A bundle is a file from somebody else, and it is treated like one.** Its code blocks do not run until
+you agree, and its packages ask before they load, exactly as they would if you had unzipped it
+yourself. A bundle Spark cannot open safely is refused with the reason, and nothing is written: one
+that is not a Spark bundle, one from a newer Spark, one missing the graph it names, or one containing a
+file that would land outside its own folder.
+
+**From the command line**, `spark pack tower.spark` makes the same bundle, and `spark run`,
+`spark check` and `spark export` take a `.sparkz` wherever they take a `.spark`.
+
+A bundle does not carry custom node definitions or assets yet — neither has a file of its own for a
+bundle to carry — nor a thumbnail.
 
 ---
 

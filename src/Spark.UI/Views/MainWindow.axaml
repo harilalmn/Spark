@@ -147,6 +147,8 @@
           <!-- E8-T78: Save writes where the file already is; Save as… is the one that asks. -->
           <MenuItem Header="_Save" InputGesture="Ctrl+S" Click="OnSaveGraph" />
           <MenuItem Header="Save _as…" InputGesture="Ctrl+Shift+S" Click="OnSaveGraphAs" />
+          <!-- E3-T20: the graph and its packages in one .sparkz, beside the file. -->
+          <MenuItem Header="Share as _bundle…" Click="OnShareBundle" />
           <Separator />
           <!-- E8-T69, E9-T15: a picture and a solid, each at a resolution or a format the user
                chooses. -->

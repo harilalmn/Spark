@@ -1065,6 +1065,18 @@ public sealed partial class MainWindow : Window
         Patterns = ["*.spark"],
     };
 
+    /// <summary>A <c>.sparkz</c> bundle, which Open accepts beside a graph (<c>E3-T20</c>).</summary>
+    private static FilePickerFileType BundleFileType => new("Spark bundle")
+    {
+        Patterns = ["*.sparkz"],
+    };
+
+    /// <summary>Both, first in Open's list, so a bundle is not hidden behind a filter nobody changes.</summary>
+    private static FilePickerFileType SparkFilesType => new("Spark graph or bundle")
+    {
+        Patterns = ["*.spark", "*.sparkz"],
+    };
+
     private async void OnOpenGraph(object? sender, RoutedEventArgs e)
     {
         if (Model is not { } model)
@@ -1084,11 +1096,28 @@ public sealed partial class MainWindow : Window
             {
                 Title = "Open graph",
                 AllowMultiple = false,
-                FileTypeFilter = [GraphFileType],
+                FileTypeFilter = [SparkFilesType, GraphFileType, BundleFileType],
             }).ConfigureAwait(true);
 
         if (chosen.Count == 0)
         {
+            return;
+        }
+
+        // `E3-T20`: a bundle is opened as the file it unpacks to, which the view model records.
+        if (chosen[0].TryGetLocalPath() is { } local
+            && local.EndsWith(Spark.Packages.SparkBundle.Extension, StringComparison.OrdinalIgnoreCase))
+        {
+            if (model.TryOpenBundle(local))
+            {
+                _documentPath = model.GraphPath;
+                UpdateTitle();
+                Canvas.ZoomToFit();
+                Viewport.ZoomToFit();
+            }
+
+            UpdateStatus();
+            UpdateMissingBanner();
             return;
         }
 
@@ -1121,6 +1150,39 @@ public sealed partial class MainWindow : Window
 
         UpdateStatus();
         UpdateMissingBanner();
+    }
+
+    /// <summary>
+    /// Packs the graph and its package folder into a <c>.sparkz</c> beside it, saving first when the
+    /// graph has no file or has changes (<c>E3-T20</c>).
+    /// </summary>
+    /// <remarks>
+    /// ADR-0017's warning is the reason this is a menu item: a bundle <i>only works if it is
+    /// discoverable</i>, and one that lived only in the command line would be found after the
+    /// half-sent graph it exists to prevent.
+    /// </remarks>
+    /// <param name="sender">The menu item.</param>
+    /// <param name="e">Unused.</param>
+    private async void OnShareBundle(object? sender, RoutedEventArgs e)
+    {
+        if (Model is not { } model)
+        {
+            return;
+        }
+
+        if (model.GraphPath is null || model.IsModified)
+        {
+            await SaveGraphAsync().ConfigureAwait(true);
+
+            // Cancelled, or refused - the save has said why.
+            if (model.GraphPath is null || model.IsModified)
+            {
+                return;
+            }
+        }
+
+        _ = model.ShareAsBundle();
+        UpdateStatus();
     }
 
     private async void OnSaveGraph(object? sender, RoutedEventArgs e) =>

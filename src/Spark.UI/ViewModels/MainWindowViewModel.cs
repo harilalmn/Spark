@@ -2437,6 +2437,121 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         NotePackageRecord(recorded, AbsentFrom(path, recorded));
     }
 
+    /// <summary>
+    /// Where opened <c>.sparkz</c> bundles are unpacked (<c>E3-T20</c>): a folder per bundle, under the
+    /// user's local application data. A test points it at a folder of its own.
+    /// </summary>
+    internal string BundleFolder { get; set; } = DefaultBundleFolder();
+
+    /// <summary>
+    /// Opens a <c>.sparkz</c> bundle: its graph and package folder are unpacked into a folder of their
+    /// own, and the graph is opened from there exactly as any file is (<c>E3-T20</c>).
+    /// </summary>
+    /// <param name="bundlePath">The bundle.</param>
+    /// <returns><see langword="true"/> when it opened; otherwise the reason is in the diagnostics pane.</returns>
+    /// <exception cref="ArgumentException"><paramref name="bundlePath"/> is null or blank.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Opened as a file, not as text</b>, because a graph's trust, its packages and its banners are
+    /// all keyed on where it lives. The unpacked graph is the origin, so a bundle's code blocks are
+    /// asked about as any file's are, and its package folder is gated as any folder beside a graph -
+    /// a bundle is not a way round the question of whether its code may run.
+    /// </para>
+    /// <para>
+    /// <b>One folder per bundle's contents</b>, named from the bundle and a hash of its bytes, so
+    /// opening the same bundle twice reuses one folder rather than filling the disk, and a different
+    /// bundle with the same name never lands on top of it. A Save writes into that folder, so the
+    /// status bar says where it is.
+    /// </para>
+    /// </remarks>
+    public bool TryOpenBundle(string bundlePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bundlePath);
+
+        string graph;
+        string text;
+
+        try
+        {
+            graph = Spark.Packages.SparkBundle.Unpack(bundlePath, Path.Combine(BundleFolder, ContentName(bundlePath)));
+            text = File.ReadAllText(graph);
+        }
+        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException)
+        {
+            ReportFailure($"That bundle could not be opened: {failure.Message}");
+            return false;
+        }
+
+        if (!TryOpenDocument(text, graph))
+        {
+            return false;
+        }
+
+        StatusText = $"Opened {Path.GetFileName(bundlePath)} into {Path.GetDirectoryName(graph)}. Save writes there.";
+        return true;
+    }
+
+    /// <summary>
+    /// Packs the saved graph and its package folder into a <c>.sparkz</c> beside it (<c>E3-T20</c>).
+    /// </summary>
+    /// <returns>
+    /// The bundle's path, or null when the graph has no file, has unsaved changes, or the bundle could
+    /// not be written - the reason is in the diagnostics pane.
+    /// </returns>
+    /// <remarks>
+    /// <b>What is packed is the file</b>, so a graph with changes that are not in it is refused here;
+    /// the window saves first, since it is the one place that can put up a file picker.
+    /// </remarks>
+    public string? ShareAsBundle()
+    {
+        if (GraphPath is not { } path)
+        {
+            ReportFailure("Save the graph first: a bundle is made from its file, and this graph has none yet.");
+            return null;
+        }
+
+        if (IsModified)
+        {
+            ReportFailure("Save the graph first: a bundle is made from its file, and this graph has changes that are not in it.");
+            return null;
+        }
+
+        try
+        {
+            Spark.Packages.SparkBundleContents packed =
+                Spark.Packages.SparkBundle.Pack(path, Path.ChangeExtension(path, Spark.Packages.SparkBundle.Extension));
+
+            StatusText = packed.PackageFiles == 0
+                ? $"Shared as {Path.GetFileName(packed.BundlePath)}."
+                : $"Shared as {Path.GetFileName(packed.BundlePath)}, with {packed.PackageFiles} package file(s).";
+
+            return packed.BundlePath;
+        }
+        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException)
+        {
+            ReportFailure($"The bundle could not be written: {failure.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>A bundle's folder name: its own name, and the start of a hash of its bytes.</summary>
+    private static string ContentName(string bundlePath)
+    {
+        using FileStream stream = File.OpenRead(bundlePath);
+        byte[] hash = System.Security.Cryptography.SHA256.HashData(stream);
+
+        return Path.GetFileNameWithoutExtension(bundlePath) + "-" + Convert.ToHexString(hash, 0, 8);
+    }
+
+    private static string DefaultBundleFolder()
+    {
+        string root = Environment.GetFolderPath(
+            Environment.SpecialFolder.LocalApplicationData,
+            Environment.SpecialFolderOption.DoNotVerify);
+
+        return Path.Combine(string.IsNullOrEmpty(root) ? Path.GetTempPath() : root, "Spark", "bundles");
+    }
+
     /// <summary>The key handed out by the last call to <see cref="NextCustomNodeIdentity"/>.</summary>
     public NodeKey LastCustomNodeKey { get; private set; }
 
