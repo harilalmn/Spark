@@ -174,6 +174,10 @@ public sealed class GeometryJsonTests
         [typeof(BrepLoopView)] = "a ref struct navigator; see BrepFaceView",
         [typeof(BrepEdgeView)] = "a ref struct navigator; see BrepFaceView",
         [typeof(BrepShellView)] = "a ref struct navigator; see BrepFaceView",
+        [typeof(BrepAdjacency)] =
+            "a derived index over one Brep (E2-T65), not a value. Everything in it is computed in "
+            + "one pass from what the Brep already holds, so writing it would be writing the same "
+            + "fact twice - which is the reason the model does not store it in the first place",
         [typeof(MeshBuilder)] =
             "a sink that collects a tessellation into a Mesh. It has no state worth saving - what "
             + "it produces does, and that is a Mesh, which has a sample",

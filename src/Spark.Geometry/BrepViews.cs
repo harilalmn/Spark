@@ -136,6 +136,62 @@ public readonly ref struct BrepLoopView
     /// <exception cref="ArgumentOutOfRangeException">The position is outside the loop.</exception>
     public BrepEdgeView Edge(int position) => new(_brep, Trim(position).Edge);
 
+    /// <summary>The position after one of this loop's trims, wrapping at the end.</summary>
+    /// <param name="position">The trim's position within the loop, from zero.</param>
+    /// <returns>The next position, which is zero after the last.</returns>
+    /// <remarks>
+    /// <b>Arithmetic rather than a lookup, and that is a property of the model.</b> A loop's trims
+    /// are contiguous from <see cref="BrepLoop.FirstTrim"/>, so *next* and *previous* need nothing
+    /// stored and nothing built — unlike the relationships that run the other way, which need
+    /// <see cref="BrepAdjacency"/> (`E2-T65`).
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">The position is outside the loop.</exception>
+    public int NextPosition(int position)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(position);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(position, Loop.TrimCount);
+
+        return position + 1 == Loop.TrimCount ? 0 : position + 1;
+    }
+
+    /// <inheritdoc cref="NextPosition"/>
+    /// <summary>The position before one of this loop's trims, wrapping at the start.</summary>
+    /// <returns>The previous position, which is the last after zero.</returns>
+    public int PreviousPosition(int position)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(position);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(position, Loop.TrimCount);
+
+        return position == 0 ? Loop.TrimCount - 1 : position - 1;
+    }
+
+    /// <summary>The vertex one of this loop's trims starts at.</summary>
+    /// <param name="position">The trim's position within the loop, from zero.</param>
+    /// <returns>The vertex index.</returns>
+    /// <remarks>
+    /// <b>Taken from the trim's direction, not the edge's</b>, for the reason
+    /// <see cref="VertexIndices"/> gives: an edge runs from its start vertex to its end and a loop
+    /// may traverse it the other way, so a reversed trim starts where its edge ends.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">The position is outside the loop.</exception>
+    public int StartVertex(int position)
+    {
+        BrepTrim trim = Trim(position);
+        BrepEdge edge = _brep.RawEdges[trim.Edge];
+
+        return trim.IsReversed ? edge.End : edge.Start;
+    }
+
+    /// <inheritdoc cref="StartVertex"/>
+    /// <summary>The vertex one of this loop's trims ends at.</summary>
+    public int EndVertex(int position)
+    {
+        BrepTrim trim = Trim(position);
+        BrepEdge edge = _brep.RawEdges[trim.Edge];
+
+        return trim.IsReversed ? edge.Start : edge.End;
+    }
+
     /// <summary>
     /// The vertices this loop passes through, in the order it traverses them.
     /// </summary>
@@ -197,6 +253,12 @@ public readonly ref struct BrepEdgeView
     /// second description of the same fact that has to be kept in step. For a model of any size a
     /// caller wanting this repeatedly should build the reverse index once and keep it, which is a
     /// decision the caller is in a position to make and this type is not.
+    /// <para>
+    /// <b>That index is <see cref="BrepAdjacency"/></b> (`E2-T65`), and this method deliberately
+    /// does not use it: building one for a single call costs more than the scan it would replace.
+    /// The two are held to the same answer by
+    /// <c>BrepAdjacencyTests.TheIndexAndTheScanAgreeOnEveryEdge</c>.
+    /// </para>
     /// </remarks>
     public int[] AdjacentFaces()
     {

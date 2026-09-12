@@ -4,6 +4,24 @@ Spark.Geometry.Arc.Arc(in Spark.Geometry.Point3d center, in Spark.Geometry.Point
 Spark.Geometry.Arc.Arc(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> void
 Spark.Geometry.BoundingBox.BoundingBox(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> void
 Spark.Geometry.BoundingBox.BoundingBox(System.ReadOnlySpan<Spark.Geometry.Point3d> points) -> void
+Spark.Geometry.BrepAdjacency
+Spark.Geometry.BrepAdjacency.EdgeCount.get -> int
+Spark.Geometry.BrepAdjacency.EdgesAt(int vertex) -> System.ReadOnlySpan<int>
+Spark.Geometry.BrepAdjacency.EdgesOf(int face) -> int[]!
+Spark.Geometry.BrepAdjacency.FaceCount.get -> int
+Spark.Geometry.BrepAdjacency.FaceOf(int loop) -> int
+Spark.Geometry.BrepAdjacency.FacesAt(int vertex) -> int[]!
+Spark.Geometry.BrepAdjacency.LoopCount.get -> int
+Spark.Geometry.BrepAdjacency.LoopOf(int trim) -> int
+Spark.Geometry.BrepAdjacency.PartnerOf(int trim) -> int
+Spark.Geometry.BrepAdjacency.TrimCount.get -> int
+Spark.Geometry.BrepAdjacency.TrimsOf(int edge) -> System.ReadOnlySpan<int>
+Spark.Geometry.BrepAdjacency.VertexCount.get -> int
+Spark.Geometry.BrepAdjacency.VerticesOf(int face) -> int[]!
+Spark.Geometry.BrepLoopView.EndVertex(int position) -> int
+Spark.Geometry.BrepLoopView.NextPosition(int position) -> int
+Spark.Geometry.BrepLoopView.PreviousPosition(int position) -> int
+Spark.Geometry.BrepLoopView.StartVertex(int position) -> int
 Spark.Geometry.Circle.Circle(in Spark.Geometry.Point3d center, double radius) -> void
 Spark.Geometry.Circle.Circle(in Spark.Geometry.Point3d center, in Spark.Geometry.Vector3d normal, double radius) -> void
 Spark.Geometry.Circle.Circle(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> void
@@ -92,6 +110,7 @@ override Spark.Geometry.CurveIntersectionPoint.GetHashCode() -> int
 override Spark.Geometry.CurveOverlap.GetHashCode() -> int
 ~override Spark.Geometry.CurveOverlap.ToString() -> string
 static Spark.Geometry.Brep.Join(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>! parts) -> Spark.Geometry.Brep!
+static Spark.Geometry.BrepAdjacency.Of(Spark.Geometry.Brep! brep) -> Spark.Geometry.BrepAdjacency!
 static Spark.Geometry.CurveIntersectionPoint.operator !=(Spark.Geometry.CurveIntersectionPoint left, Spark.Geometry.CurveIntersectionPoint right) -> bool
 static Spark.Geometry.CurveIntersectionPoint.operator ==(Spark.Geometry.CurveIntersectionPoint left, Spark.Geometry.CurveIntersectionPoint right) -> bool
 static Spark.Geometry.CurveIntersections.None.get -> Spark.Geometry.CurveIntersections!

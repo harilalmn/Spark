@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-12 (`E2-T44` step A: §3.5 assessed member by member, 19 of 33 reachable)
+**Last updated:** 2026-09-12 (`E2-T44` closes: §3.5 at 31 of 33, the reverse navigation built)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -373,38 +373,47 @@ actually lives.
 **Twelve of `Solid`'s 24 members are exact-boolean work** — the whole of §6.1's argument. See
 there.
 
-### 3.5 Topology — 6 types, 33 members, 19 reachable
+### 3.5 Topology — 6 types, 33 members, 31 reachable
 
 **Assessed member by member on 2026-09-12** (`E2-T44` step A), against the manifest rather than by
-eye, which is why this is the one §3 table whose *Reachable* column is measured.
+eye, which is why this is the one §3 table whose *Reachable* column is measured — **and the 12 the
+assessment found missing were built the same day** (`E2-T65`). Two are left, and both are pcurves.
 
 | Dynamo type | Members | Reachable | Spark equivalent | Status | Milestone |
 |---|---:|---:|---|---|---|
 | `Topology` (base) | 4 | 4 | `Brep.Faces()` / `Edges()` / `Vertices()` | **Done** | M6 |
-| `Vertex` | 4 | 2 | `BrepVertex`, `Brep.VertexPoint` | Partial | M6 |
-| `Edge` | 6 | 5 | `BrepEdge`, `BrepEdgeView` | Partial | M6 |
-| `CoEdge` | 10 | 3 | `BrepTrim` | Partial | M6 |
-| `Loop` | 4 | 3 | `BrepLoop`, `BrepLoopView` | Partial | M6 |
-| `Face` | 5 | 2 | `BrepFace`, `BrepFaceView` | Partial | M6 |
+| `Vertex` | 4 | 4 | `BrepVertex`, `Brep.VertexPoint`, `BrepAdjacency` | **Done** | M6 |
+| `Edge` | 6 | 6 | `BrepEdge`, `BrepEdgeView`, `BrepAdjacency` | **Done** | M6 |
+| `CoEdge` | 10 | 9 | `BrepTrim`, `BrepLoopView`, `BrepAdjacency` | Partial | M6 |
+| `Loop` | 4 | 4 | `BrepLoop`, `BrepLoopView`, `BrepAdjacency` | **Done** | M6 |
+| `Face` | 5 | 4 | `BrepFace`, `BrepFaceView`, `BrepAdjacency` | Partial | M6 |
 
 This is the cleanest subsystem in the inventory: 33 members, almost all of them navigation.
 `Edge.AdjacentFaces`, `Vertex.AdjacentEdges`, `Loop.CoEdges`, `CoEdge.Next`/`Previous`/
 `Partner`/`Reversed`, `Face.Loops`. Parity is achievable in full and should be.
 
-**The 14 that are not reachable are one gap and one gap only**, and the assessment is worth more
-than the count for saying so. Spark's topology stores each relationship exactly once and in one
+**The 14 the assessment found missing were one gap and one gap only**, which is why 12 of them could
+be closed in a single step. Spark's topology stores each relationship exactly once and in one
 direction — a face names its loops, a loop names its trims, a trim names its edge, an edge names its
-vertices — so every member that asks for the *other* direction has nothing to answer it:
+vertices — so every member that asks for the *other* direction had nothing to answer it:
 `Vertex.AdjacentEdges`, `Vertex.AdjacentFaces`, `Edge.CoEdges`, `Loop.Face`, `CoEdge.Loop`,
-`CoEdge.Partner`, and `Face.Edges` / `Face.Vertices` at one remove. `CoEdge.Next`, `Previous`,
-`StartVertex` and `EndVertex` are in the same list and are cheaper: trims are contiguous from
-`BrepLoop.FirstTrim`, so they are index arithmetic rather than a lookup. All twelve are
-**`E2-T65`**, filed with the warning that the answer must not quietly turn the kernel into the
-object graph `E2-T22` decided against — `BrepEdgeView.AdjacentFaces`'s own remarks already argue
-that a back-pointer array is a second description of the same fact.
+`CoEdge.Partner`, and `Face.Edges` / `Face.Vertices` at one remove.
 
-**The other two are pcurves**: `Face.SurfaceGeometry()` and `CoEdge.ParameterCurve`, which are
-`E2-T64`.
+**`E2-T65` answered them without storing the reverse**, because storing it would be a second
+description of the same fact that somebody has to keep in step through every edit, join and
+deserialization — and a back-pointer array is how an index-based topology quietly becomes the object
+graph `E2-T22` rejected. Instead **`BrepAdjacency`** computes the reverse in one pass over a `Brep`
+and is **kept by the caller**, who is the only one in a position to decide how long it is worth
+keeping: `BrepEdgeView.AdjacentFaces` still scans, because building an index for one call costs more
+than the scan, and a test holds the two to the same answer on every edge of three fixtures.
+
+**Four of the twelve needed no index at all.** `CoEdge.Next`, `Previous`, `StartVertex` and
+`EndVertex` are `BrepLoopView.NextPosition`, `PreviousPosition`, `StartVertex` and `EndVertex` —
+arithmetic, because a loop's trims are contiguous from `BrepLoop.FirstTrim`. Dynamo answers the same
+questions with pointers between objects; here they cost nothing and are stored nowhere.
+
+**The two that are left are pcurves**: `Face.SurfaceGeometry()` and `CoEdge.ParameterCurve`, which
+are `E2-T64`.
 
 **`Face.SurfaceGeometry()` is the finding of the assessment.** It looks reachable —
 `BrepFaceView.Surface` exists and returns a `Surface` — and it is not. Dynamo returns the

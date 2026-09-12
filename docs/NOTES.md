@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-12 (N156: one row in 89 where the name matched and the capability did not)
+**Last updated:** 2026-09-12 (N156–N157: a name match that lied; the cost of an exact-match budget)
 
 ---
 
@@ -4696,3 +4696,36 @@ and high enough that shipping it unreviewed would have put a false claim in a re
 value is that it is consulted with confidence. **The marker in the data is what made the review
 finite**: a `Done` row that carries *how it was decided* can be re-examined, and one that does not
 cannot be told apart from a row somebody actually checked.
+
+---
+
+## N157 — An exact-match budget is a good guard and a noisy one, and the reason field is what pays for it
+
+`E11-T23` step B gave the Dynamo parity register a **residue budget**: the number of public
+`Spark.Geometry` members that no parity row names and no exclusion rule excuses, checked for
+**exact** equality rather than as a ceiling. The argument for exactness is sound — a ceiling lets
+the number sit where it is for ever, and the point of the number is that it falls as the review
+proceeds.
+
+**It rose twice within a day of being written, and both rises were correct.**
+
+- **278 → 287.** `E2-T44` assessed the topology rows and named 13 Spark members. Three of those
+  members lived on types the exclusions file excused *wholesale* — `BrepFaceView`, `BrepLoopView`,
+  `BrepEdgeView` — and the check refuses a wholesale excuse for a type some row names, on purpose.
+  Deleting those three rules moved their remaining members into the residue.
+- **287 → 293.** `E2-T65` added `BrepAdjacency`. Eight of its members are named by parity rows; the
+  other six — `Of` and five counts — are its own machinery, and they cannot be excused by type
+  because the type is named.
+
+**So the budget's number changes whenever the public surface does, not only when the review
+advances**, and a session that reads *a rise means drift* without reading further will draw the
+wrong conclusion twice on the first day. **The fix was not to loosen the check.** A ceiling would
+have absorbed all three changes silently and the register would have learnt nothing. The fix is
+that the budget's `Reason` cell carries the *history*: each rise, its date, its task and its cause,
+so the next reader sees either a rise with an explanation beside it or a rise with none, and those
+mean different things.
+
+**The general form.** An exact-match guard over a derived number is worth having, and its running
+cost is a sentence of prose per change. Budget for the prose when you choose exactness — a guard
+whose failures are routinely dismissed is worse than no guard, and the only thing that stops
+dismissal becoming a habit is that each failure arrives with a place to write down why.

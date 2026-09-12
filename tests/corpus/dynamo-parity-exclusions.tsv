@@ -4,9 +4,9 @@
 # row of dynamo-parity.tsv names it, or this file says why no row needs to. A member that is neither
 # is counted against the residue budget at the foot of this file.
 #
-# IT EXCUSES BY RULE AND NEVER MEMBER BY MEMBER. Spark.Geometry declares 877 public members by the
+# IT EXCUSES BY RULE AND NEVER MEMBER BY MEMBER. Spark.Geometry declares 895 public members by the
 # manifest's own counting rule - methods, properties, enum values and operators, and not constructors
-# or property accessors - and 778 of them are named by no row today. A file holding 778 hand-written
+# or property accessors - and 784 of them are named by no row today. A file holding 784 hand-written
 # excuses would be the drifting artefact §7 exists to prevent. Two scopes do the work - a member-name
 # rule that applies on any type, and a whole type Dynamo has no counterpart for - and what neither
 # reaches is counted rather than waved through. 44 rules today: 5 member names and 39 types.
@@ -61,4 +61,4 @@ Type	Spark.Geometry.Tolerance	An explicit tolerance value, passed to every opera
 Type	Spark.Geometry.ToroidalSurface	An analytic torus. As PlaneSurface.
 Type	Spark.Geometry.Transform	Spark's 4x4 matrix. Dynamo has no such type - it puts the whole transformation algebra on CoordinateSystem, which §3.1 records as the largest deliberate shape difference in the value layer.
 Type	Spark.Geometry.Vector2d	A 2D vector. Dynamo has no 2D vector type; UV is its nearest and is a parameter pair, not a direction.
-Budget	residue	287 members are named by no row and excused by no rule. They are not excusable: they sit on types that DO map to a Dynamo type, so each one is either a member some Unassessed row will name once it is assessed, or a genuine gap. The check requires an EXACT match, so the number falls as rows are assessed and cannot quietly climb back. IT ROSE ONCE, FROM 278 TO 287 ON 2026-09-12, AND THE REASON IS RECORDED RATHER THAN ABSORBED: E2-T44 assessed §3.5 and 13 Spark members became named by a row - which took three whole types, BrepFaceView, BrepLoopView and BrepEdgeView, out of the excused list, because a type a row names cannot be excused wholesale. Their remaining members joined the residue. A rise with no such entry beside it means a member was added to a mapped type with no thought for the register.
+Budget	residue	293 members are named by no row and excused by no rule. Most sit on types that DO map to a Dynamo type, so each is either a member some Unassessed row will name once it is assessed or a genuine gap; a few are Spark's own machinery on a type a row names - BrepAdjacency.Of and its five counts - which cannot be excused wholesale because the type is named, and are counted rather than argued away. The check requires an EXACT match, so the number falls as rows are assessed and cannot quietly climb back. IT HAS RISEN TWICE, AND BOTH TIMES THE REASON IS RECORDED RATHER THAN ABSORBED. 278 to 287 on 2026-09-12: E2-T44 assessed DYNAMO-COVERAGE 3.5 and 13 Spark members became named by a row, which took BrepFaceView, BrepLoopView and BrepEdgeView out of the excused types, and their remaining members joined the residue. 287 to 293 the same day: E2-T65 added BrepAdjacency, whose 8 navigation members are named by rows and whose 6 construction and count members are not. A rise with no such entry beside it means a member was added to a mapped type with no thought for the register.

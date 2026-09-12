@@ -413,6 +413,74 @@ public sealed class BrepTests
         }
     }
 
+    /// <summary>
+    /// <b>A loop's positions wrap, and that is arithmetic rather than a stored link</b> (`E2-T65`).
+    /// Dynamo's <c>CoEdge.Next</c> and <c>CoEdge.Previous</c> are pointers between objects; here the
+    /// trims of a loop are contiguous from <see cref="BrepLoop.FirstTrim"/>, so the same question is
+    /// answered without storing anything and without building an index.
+    /// </summary>
+    [Fact]
+    public void ALoopsPositionsWrapAtBothEnds()
+    {
+        Brep box = BrepPrimitives.Box(Plane.WorldXY, 2, 3, 4);
+        BrepLoopView loop = box.Face(0).OuterLoop();
+
+        Assert.Equal(4, loop.TrimCount);
+
+        Assert.Equal(1, loop.NextPosition(0));
+        Assert.Equal(0, loop.NextPosition(3));
+        Assert.Equal(2, loop.PreviousPosition(3));
+        Assert.Equal(3, loop.PreviousPosition(0));
+
+        for (int position = 0; position < loop.TrimCount; position++)
+        {
+            Assert.Equal(position, loop.PreviousPosition(loop.NextPosition(position)));
+        }
+    }
+
+    /// <summary>
+    /// <b>A trim's own ends follow its direction, not its edge's</b>, so one trim's end is the next
+    /// trim's start all the way round — which is what makes a loop a circuit rather than a bag of
+    /// edges. The seam of a cylinder is the case that breaks a version reading the edge instead.
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void EachTrimEndsWhereTheNextOneStarts(int face)
+    {
+        Brep cylinder = BrepPrimitives.Cylinder(Plane.WorldXY, 1, 2);
+        BrepLoopView loop = cylinder.Face(face).OuterLoop();
+
+        for (int position = 0; position < loop.TrimCount; position++)
+        {
+            Assert.Equal(loop.StartVertex(loop.NextPosition(position)), loop.EndVertex(position));
+        }
+
+        int[] starts = new int[loop.TrimCount];
+
+        for (int position = 0; position < loop.TrimCount; position++)
+        {
+            starts[position] = loop.StartVertex(position);
+        }
+
+        Assert.Equal(loop.VertexIndices(), starts);
+    }
+
+    /// <summary>A position outside the loop is refused by each of the four.</summary>
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(4)]
+    public void APositionOutsideTheLoopIsRefused(int position)
+    {
+        Brep box = BrepPrimitives.Box(Plane.WorldXY, 2, 3, 4);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => box.Face(0).OuterLoop().NextPosition(position));
+        Assert.Throws<ArgumentOutOfRangeException>(() => box.Face(0).OuterLoop().PreviousPosition(position));
+        Assert.Throws<ArgumentOutOfRangeException>(() => box.Face(0).OuterLoop().StartVertex(position));
+        Assert.Throws<ArgumentOutOfRangeException>(() => box.Face(0).OuterLoop().EndVertex(position));
+    }
+
     /// <summary>An edge view knows where it starts and ends in space.</summary>
     [Fact]
     public void AnEdgeViewKnowsItsEnds()
