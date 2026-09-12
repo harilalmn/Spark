@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-12 (`E11-T23` closes: the reverse direction, and the 89 name matches reviewed)
+**Last updated:** 2026-09-12 (`E2-T44` step A: §3.5 assessed member by member, 19 of 33 reachable)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -373,20 +373,45 @@ actually lives.
 **Twelve of `Solid`'s 24 members are exact-boolean work** — the whole of §6.1's argument. See
 there.
 
-### 3.5 Topology — 6 types, 33 members, 0 reachable
+### 3.5 Topology — 6 types, 33 members, 19 reachable
 
-| Dynamo type | Members | Spark equivalent | Status | Milestone |
-|---|---:|---|---|---|
-| `Topology` (base) | 4 | `Brep` navigators | Planned | M6 |
-| `Vertex` | 4 | `BrepVertex` | Planned | M6 |
-| `Edge` | 6 | `BrepEdge` | Planned | M6 |
-| `CoEdge` | 10 | `BrepTrim` | Planned | M6 |
-| `Loop` | 4 | `BrepLoop` | Planned | M6 |
-| `Face` | 5 | `BrepFace` | Planned | M6 |
+**Assessed member by member on 2026-09-12** (`E2-T44` step A), against the manifest rather than by
+eye, which is why this is the one §3 table whose *Reachable* column is measured.
+
+| Dynamo type | Members | Reachable | Spark equivalent | Status | Milestone |
+|---|---:|---:|---|---|---|
+| `Topology` (base) | 4 | 4 | `Brep.Faces()` / `Edges()` / `Vertices()` | **Done** | M6 |
+| `Vertex` | 4 | 2 | `BrepVertex`, `Brep.VertexPoint` | Partial | M6 |
+| `Edge` | 6 | 5 | `BrepEdge`, `BrepEdgeView` | Partial | M6 |
+| `CoEdge` | 10 | 3 | `BrepTrim` | Partial | M6 |
+| `Loop` | 4 | 3 | `BrepLoop`, `BrepLoopView` | Partial | M6 |
+| `Face` | 5 | 2 | `BrepFace`, `BrepFaceView` | Partial | M6 |
 
 This is the cleanest subsystem in the inventory: 33 members, almost all of them navigation.
 `Edge.AdjacentFaces`, `Vertex.AdjacentEdges`, `Loop.CoEdges`, `CoEdge.Next`/`Previous`/
 `Partner`/`Reversed`, `Face.Loops`. Parity is achievable in full and should be.
+
+**The 14 that are not reachable are one gap and one gap only**, and the assessment is worth more
+than the count for saying so. Spark's topology stores each relationship exactly once and in one
+direction — a face names its loops, a loop names its trims, a trim names its edge, an edge names its
+vertices — so every member that asks for the *other* direction has nothing to answer it:
+`Vertex.AdjacentEdges`, `Vertex.AdjacentFaces`, `Edge.CoEdges`, `Loop.Face`, `CoEdge.Loop`,
+`CoEdge.Partner`, and `Face.Edges` / `Face.Vertices` at one remove. `CoEdge.Next`, `Previous`,
+`StartVertex` and `EndVertex` are in the same list and are cheaper: trims are contiguous from
+`BrepLoop.FirstTrim`, so they are index arithmetic rather than a lookup. All twelve are
+**`E2-T65`**, filed with the warning that the answer must not quietly turn the kernel into the
+object graph `E2-T22` decided against — `BrepEdgeView.AdjacentFaces`'s own remarks already argue
+that a back-pointer array is a second description of the same fact.
+
+**The other two are pcurves**: `Face.SurfaceGeometry()` and `CoEdge.ParameterCurve`, which are
+`E2-T64`.
+
+**`Face.SurfaceGeometry()` is the finding of the assessment.** It looks reachable —
+`BrepFaceView.Surface` exists and returns a `Surface` — and it is not. Dynamo returns the
+**trimmed** face; `BrepFaceView.Surface` returns the **untrimmed** surface the face is a window
+onto. That is the same difference [N156](NOTES.md) had found the day before under
+`PolySurface.Surfaces()`, caught twice in two days because the review asks what a member *does*
+rather than what it is *called*. It is marked `Planned`, not `Done`.
 
 **Two structural differences, both already decided and neither a gap.**
 

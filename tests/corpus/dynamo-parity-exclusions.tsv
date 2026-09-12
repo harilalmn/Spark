@@ -6,10 +6,10 @@
 #
 # IT EXCUSES BY RULE AND NEVER MEMBER BY MEMBER. Spark.Geometry declares 877 public members by the
 # manifest's own counting rule - methods, properties, enum values and operators, and not constructors
-# or property accessors - and 790 of them are named by no row today. A file holding 790 hand-written
+# or property accessors - and 778 of them are named by no row today. A file holding 778 hand-written
 # excuses would be the drifting artefact §7 exists to prevent. Two scopes do the work - a member-name
 # rule that applies on any type, and a whole type Dynamo has no counterpart for - and what neither
-# reaches is counted rather than waved through.
+# reaches is counted rather than waved through. 44 rules today: 5 member names and 39 types.
 #
 # Scope:
 #   MemberName  Name is a member name, or op_* for the operators. Excused wherever it appears.
@@ -26,14 +26,11 @@ Type	Spark.Geometry.Angle	An angle with its unit in the type (ADR-0011). Dynamo 
 Type	Spark.Geometry.BoundingVolumeHierarchy	A spatial index over boxes. Dynamo has no spatial index in its public surface.
 Type	Spark.Geometry.BrepBuilder	Builds a Brep incrementally with validation. Dynamo has no builder; its topology is produced by operations only.
 Type	Spark.Geometry.BrepData	The nine flat arrays a Brep crosses the kernel seam as (ADR-0021). An implementation detail of residency, with no Dynamo counterpart.
-Type	Spark.Geometry.BrepEdgeView	As BrepFaceView, for an edge.
-Type	Spark.Geometry.BrepFaceView	A reading view over a face and its loops. The view types exist because the topology is index-based; Dynamo's topology is an object graph.
-Type	Spark.Geometry.BrepLoopKind	Whether a loop is outer or inner. Dynamo does not expose loop kind.
-Type	Spark.Geometry.BrepLoopView	As BrepFaceView, for a loop.
+Type	Spark.Geometry.BrepLoopKind	Whether a loop is outer or inner, as an enum. Dynamo exposes the same fact as Loop.IsExternal, a boolean, which §3.5 counts on Loop and BrepLoopView.Kind answers; the enum TYPE has no Dynamo counterpart because Dynamo has no such type.
 Type	Spark.Geometry.BrepPrimitives	Box and cylinder built from explicit topology, with no intersection needed. Dynamo's primitives are Cuboid and Cylinder types, counted there and refused as types in §3.4.
 Type	Spark.Geometry.BrepResidency	Where a Brep's authoritative form lives while a provider holds it (ADR-0021). No Dynamo counterpart.
 Type	Spark.Geometry.BrepShell	A shell in the index-based topology (E2-T22). Dynamo has no shell type; its Topology exposes faces and edges only.
-Type	Spark.Geometry.BrepShellView	As BrepFaceView, for a shell.
+Type	Spark.Geometry.BrepShellView	A reading view over a shell and its faces. It goes with BrepShell: Dynamo has no shell type, so nothing counts it. Its three sibling views - face, loop and edge - ARE named by §3.5 rows and are no longer excused (E2-T44).
 Type	Spark.Geometry.ConicalSurface	An analytic cone. As PlaneSurface.
 Type	Spark.Geometry.CurveIntersectionPoint	One intersection with both parameters. As CurveIntersections.
 Type	Spark.Geometry.CurveIntersections	The result of a curve-curve intersection - points and overlaps together. Dynamo returns bare arrays and has no result type.
@@ -64,4 +61,4 @@ Type	Spark.Geometry.Tolerance	An explicit tolerance value, passed to every opera
 Type	Spark.Geometry.ToroidalSurface	An analytic torus. As PlaneSurface.
 Type	Spark.Geometry.Transform	Spark's 4x4 matrix. Dynamo has no such type - it puts the whole transformation algebra on CoordinateSystem, which §3.1 records as the largest deliberate shape difference in the value layer.
 Type	Spark.Geometry.Vector2d	A 2D vector. Dynamo has no 2D vector type; UV is its nearest and is a parameter pair, not a direction.
-Budget	residue	278 members are named by no row and excused by no rule. They are not excusable: they sit on types that DO map to a Dynamo type, so each one is either a member some Unassessed row will name once it is assessed, or a genuine gap. The number is a ceiling and a live measure of the review - lower it as rows are assessed, and a rise means a member was added to a mapped type with no thought for the register.
+Budget	residue	287 members are named by no row and excused by no rule. They are not excusable: they sit on types that DO map to a Dynamo type, so each one is either a member some Unassessed row will name once it is assessed, or a genuine gap. The check requires an EXACT match, so the number falls as rows are assessed and cannot quietly climb back. IT ROSE ONCE, FROM 278 TO 287 ON 2026-09-12, AND THE REASON IS RECORDED RATHER THAN ABSORBED: E2-T44 assessed §3.5 and 13 Spark members became named by a row - which took three whole types, BrepFaceView, BrepLoopView and BrepEdgeView, out of the excused list, because a type a row names cannot be excused wholesale. Their remaining members joined the residue. A rise with no such entry beside it means a member was added to a mapped type with no thought for the register.

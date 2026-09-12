@@ -55,14 +55,14 @@ Circle	CenterPoint	Unassessed
 Circle	Radius	Done	Spark.Geometry.Circle.Radius	reviewed 2026-09-12: the same capability under the same name.
 Circle	ToString()	Done	Spark.Geometry.Circle.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 CoEdge	Edge	Done	Spark.Geometry.BrepTrim.Edge	reviewed 2026-09-12: BrepTrim.Edge is the edge's index into Brep.Edges rather than an edge object, which is the same capability in an index-based topology (E2-T22, and the CoEdge to BrepTrim rename §4 records).
-CoEdge	EndVertex	Unassessed		
-CoEdge	Loop	Unassessed		
-CoEdge	Next	Unassessed		
-CoEdge	ParameterCurve	Unassessed		
-CoEdge	Partner	Unassessed		
-CoEdge	Previous	Unassessed		
-CoEdge	Reversed	Unassessed		
-CoEdge	StartVertex	Unassessed		
+CoEdge	EndVertex	Planned		assessed 2026-09-12: as CoEdge.StartVertex. E2-T65.
+CoEdge	Loop	Planned		assessed 2026-09-12: no member; the reverse of the one direction stored. E2-T65.
+CoEdge	Next	Planned		assessed 2026-09-12: no member, and cheap when it lands - trims are contiguous from BrepLoop.FirstTrim, so next is index arithmetic that wraps at TrimCount. E2-T65.
+CoEdge	ParameterCurve	Planned		assessed 2026-09-12: the pcurve, which a BrepTrim does not carry. It is the missing half of Face.SurfaceGeometry() and of trimmed evaluation generally. E2-T64.
+CoEdge	Partner	Planned		assessed 2026-09-12: the trim on the other side of the same edge. Needs the edge-to-trims reverse lookup Edge.CoEdges needs. E2-T65.
+CoEdge	Previous	Planned		assessed 2026-09-12: as CoEdge.Next. E2-T65.
+CoEdge	Reversed	Done	Spark.Geometry.BrepTrim.IsReversed	assessed 2026-09-12: whether the trim runs against its edge. The one member of the CoEdge to BrepTrim rename that reads identically.
+CoEdge	StartVertex	Planned		assessed 2026-09-12: no member. It is the edge's start or end according to IsReversed - BrepLoopView.VertexIndices() does exactly that arithmetic for a whole loop and nothing does it for one trim. E2-T65.
 CoEdge	ToString()	Done	Spark.Geometry.BrepTrim.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Cone	ByCoordinateSystemHeightRadii(CoordinateSystem, double, double, double)	Unassessed		
 Cone	ByCoordinateSystemHeightRadius(CoordinateSystem, double, double)	Unassessed		
@@ -228,11 +228,11 @@ DesignScriptEntity	InstanceInfoAvailable	Not planned		§5 [e]: lifetime and nati
 DesignScriptEntity	Tessellate(IRenderPackage, TessellationParameters)	Unassessed		
 DesignScriptEntity	ToString()	Unassessed		
 DesignScriptEntity	scaleFactor	Not planned		§5 [e]: lifetime and native-interop machinery of a disposable kernel handle; Spark's geometry is immutable values.
-Edge	AdjacentFaces	Unassessed		
-Edge	CoEdges	Unassessed		
-Edge	CurveGeometry	Unassessed		
-Edge	EndVertex	Unassessed		
-Edge	StartVertex	Unassessed		
+Edge	AdjacentFaces	Done	Spark.Geometry.BrepEdgeView.AdjacentFaces	assessed 2026-09-12: found by scanning the trims, because an edge does not know its trims and a back-pointer array would be a second description of the same fact. At most two, in ascending index order.
+Edge	CoEdges	Planned		assessed 2026-09-12: no member. The trims of an edge are the reverse of the one direction the model stores, and AdjacentFaces already scans for them privately. E2-T65.
+Edge	CurveGeometry	Done	Spark.Geometry.BrepEdgeView.Curve	assessed 2026-09-12: the edge curve in 3D. The load-bearing member of the subsystem, with Face.SurfaceGeometry().
+Edge	EndVertex	Done	Spark.Geometry.BrepEdge.End	assessed 2026-09-12: as Edge.StartVertex; BrepEdgeView.EndPoint gives the point directly.
+Edge	StartVertex	Done	Spark.Geometry.BrepEdge.Start	assessed 2026-09-12: the start vertex as its index. Index rather than object is E2-T22 and is the deliberate difference, not a shortfall; BrepEdgeView.StartPoint gives the point directly.
 Edge	ToString()	Done	Spark.Geometry.BrepEdge.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Ellipse	ByCoordinateSystemRadii(CoordinateSystem, double, double)	Unassessed		
 Ellipse	ByOriginRadii(Point, double, double)	Unassessed		
@@ -251,11 +251,11 @@ EllipseArc	Plane	Unassessed
 EllipseArc	StartAngle	Unassessed		
 EllipseArc	SweepAngle	Unassessed		
 EllipseArc	ToString()	Unassessed		
-Face	Edges	Unassessed		
-Face	Loops	Unassessed		
-Face	SurfaceGeometry()	Unassessed		
+Face	Edges	Planned		assessed 2026-09-12: reachable only by walking the face's loops and de-duplicating, which is not the same capability as a member that answers it. E2-T65.
+Face	Loops	Done	Spark.Geometry.BrepFaceView.Loop	assessed 2026-09-12: the loops of a face, by position, with BrepFaceView.LoopCount and OuterLoop(). BrepFace.FirstLoop and LoopCount are the same fact in the record.
+Face	SurfaceGeometry()	Planned		assessed 2026-09-12: NOT BrepFaceView.Surface, which is the UNTRIMMED surface the face is a window onto. Dynamo returns the trimmed face. This is the same difference N156 found under PolySurface.Surfaces(), and the faithful answer needs the pcurves a trim does not carry yet. E2-T64.
 Face	ToString()	Done	Spark.Geometry.BrepFace.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
-Face	Vertices	Unassessed		
+Face	Vertices	Planned		assessed 2026-09-12: as Face.Edges - BrepLoopView.VertexIndices() answers it per loop and the face-level union is the caller's to write. E2-T65.
 Geometry	Approximate()	Unassessed		
 Geometry	BoundingBox	Unassessed		
 Geometry	ClosestPointTo(Geometry)	Unassessed		
@@ -349,9 +349,9 @@ Line	ByStartPointEndPoint(Point, Point)	Unassessed
 Line	ByTangency(Curve, double)	Unassessed		
 Line	Direction	Done	Spark.Geometry.Line.Direction	reviewed 2026-09-12: the same capability under the same name.
 Line	ToString()	Done	Spark.Geometry.Line.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
-Loop	CoEdges	Unassessed		
-Loop	Face	Unassessed		
-Loop	IsExternal	Unassessed		
+Loop	CoEdges	Done	Spark.Geometry.BrepLoopView.Trim	assessed 2026-09-12: the trims of a loop by position, with BrepLoopView.TrimCount. They are contiguous from BrepLoop.FirstTrim, which is what makes Next and Previous index arithmetic.
+Loop	Face	Planned		assessed 2026-09-12: no member. A face names its loops; a loop does not name its face. BrepEdgeView already scans for it privately (FaceOf). E2-T65.
+Loop	IsExternal	Done	Spark.Geometry.BrepLoopView.Kind	assessed 2026-09-12: BrepLoopKind.Outer is Dynamo's true. An enum rather than a boolean because a third kind is a real possibility and a boolean cannot grow one.
 Loop	ToString()	Done	Spark.Geometry.BrepLoop.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Mesh	Area	Done	Spark.Geometry.Mesh.Area	reviewed 2026-09-12: the same capability under the same name.
 Mesh	BooleanDifference(Mesh)	Unassessed		
@@ -799,10 +799,10 @@ TSpline.TSplineVertex	IsTPoint	Needs a decision		§6.2, Q12: T-Splines is a subd
 TSpline.TSplineVertex	ToString()	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
 TSpline.TSplineVertex	UVNFrame	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
 TSpline.TSplineVertex	Valence	Needs a decision		§6.2, Q12: T-Splines is a subdivision modeller, a second product; whether it is in the parity commitment waits for the client's decision.
-Topology	Edges	Unassessed		
-Topology	Faces	Unassessed		
-Topology	ToString()	Unassessed		
-Topology	Vertices	Unassessed		
+Topology	Edges	Done	Spark.Geometry.Brep.Edges	assessed 2026-09-12: the edge table, one BrepEdge per edge. Index-based rather than an object graph (E2-T22) - the record carries its two vertex indices and its curve index, and Brep.Edge(i) gives a navigator over it.
+Topology	Faces	Done	Spark.Geometry.Brep.Faces	assessed 2026-09-12: the face table, one BrepFace per face; Brep.Face(i) gives a navigator over it.
+Topology	ToString()	Done	Spark.Geometry.Brep.ToString	assessed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+Topology	Vertices	Done	Spark.Geometry.Brep.Vertices	assessed 2026-09-12: the vertex table; Brep.VertexPoint(i) gives the point a vertex stands at.
 UV	ByCoordinates(double, double)	Unassessed		
 UV	Equals(object)	Done	Spark.Geometry.UV.Equals	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 UV	GetHashCode()	Done	Spark.Geometry.UV.GetHashCode	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
@@ -840,7 +840,7 @@ Vector	Y	Done	Spark.Geometry.Vector3d.Y	reviewed 2026-09-12: the same capability
 Vector	YAxis()	Done	Spark.Geometry.Vector3d.YAxis	reviewed 2026-09-12: the same capability under the same name.
 Vector	Z	Done	Spark.Geometry.Vector3d.Z	reviewed 2026-09-12: the same capability under the same name.
 Vector	ZAxis()	Done	Spark.Geometry.Vector3d.ZAxis	reviewed 2026-09-12: the same capability under the same name.
-Vertex	AdjacentEdges	Unassessed		
-Vertex	AdjacentFaces	Unassessed		
-Vertex	PointGeometry	Unassessed		
+Vertex	AdjacentEdges	Planned		assessed 2026-09-12: no member. The model stores every relationship one way - an edge names its vertices, a vertex names nothing - so this is a scan the caller would have to write. E2-T65.
+Vertex	AdjacentFaces	Planned		assessed 2026-09-12: no member, and two hops from what is stored. E2-T65.
+Vertex	PointGeometry	Done	Spark.Geometry.Brep.VertexPoint	assessed 2026-09-12: a vertex is an index into the point table and this is the lookup. On Brep rather than on BrepVertex because the record holds the index and the Brep holds the table.
 Vertex	ToString()	Done	Spark.Geometry.BrepVertex.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.

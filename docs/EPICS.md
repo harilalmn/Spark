@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-12 (`E11-T23` closes: the parity register's reverse direction)
+**Last updated:** 2026-09-12 (`E2-T44` step A: topology measured at 19 of 33)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -219,7 +219,14 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       tolerance.
 - [ ] Analytic surfaces are first-class, not NURBS in disguise (**E2-T18**).
 - [ ] BRep topology is index-based — arrays and int indices, no object references — with
-      `readonly ref struct` navigator views for ergonomics (**E2-T22**, **E2-T23**).
+      `readonly ref struct` navigator views for ergonomics (**E2-T22**, **E2-T23**). *The model
+      is built and the views with it. **`E2-T44` step A measured what it costs**, on 2026-09-12:
+      19 of Dynamo's 33 topology members are reachable, and the 12 that are not are one gap —
+      the model stores each relationship once and in one direction, so everything that asks for
+      the reverse has nothing to answer it (**`E2-T65`**). The remaining two are pcurves
+      (**`E2-T64`**). Storing one direction is the decision working as intended, not a defect;
+      the question `E2-T65` must answer is where the reverse index lives without becoming the
+      object graph this criterion rejects.*
 - [ ] Every operation behind `IBrepKernel` returns `Result<T>` carrying diagnostics and
       partial results; kernel failure is diagnosable, never thrown (**E2-T28**). *Unchanged by
       ADR-0020, and more load-bearing than before: the failures are now OCCT's (**R18**), and

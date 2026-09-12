@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-12 (`E11-T23` closes; the client's decisions of 2026-09-12)
+**Last updated:** 2026-09-12 (`E2-T44` step A: topology assessed, `E2-T65` filed)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -230,7 +230,11 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 > 9. Geometry breadth — ~~**`E2-T11`**~~, ~~**`E2-T16`**~~ and ~~**`E2-T21`**~~ (done 2026-09-11), ~~**`E2-T13`**~~ and ~~**`E2-T14`**~~ (done 2026-09-11; `Curve2d` filed as `E2-T64`, waiting for a consumer) — then
 >    the importer's ~~**`E5-T9`**~~ and ~~**`E5-T10`**~~ (done 2026-09-11), then ~~**`E3-T21`**~~ (done 2026-09-11, on the evidence), ~~**`E3-T14`**~~ (done 2026-09-11: a slow run's nodes show as evaluating, the stroke travelling) and ~~**`E3-T20`**~~ (done 2026-09-11: `.sparkz` from the command line and the application).
 > 10. The Dynamo parity rows (`E2-T41` … `E2-T46`, `E5-T14`), the largest and the least
->     bounded, last. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
+>     bounded, last. **`E2-T44` step A done 2026-09-12**: §3.5's 33 topology members assessed one
+>     by one, 19 reachable, and the 12 that are not turn out to be a single gap — the reverse of
+>     the one direction the model stores — now filed as **`E2-T65`**. The other two are `E2-T64`'s
+>     pcurves. **Take the remaining subsystems the same way**: `E2-T42` surfaces, `E2-T43` solids,
+>     `E2-T45` mesh, `E2-T46` infrastructure, then `E2-T41` curves, which is the largest. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than
 >     machinery.
