@@ -64,17 +64,17 @@ CoEdge	Previous	Done	Spark.Geometry.BrepLoopView.PreviousPosition	2026-09-12, E2
 CoEdge	Reversed	Done	Spark.Geometry.BrepTrim.IsReversed	assessed 2026-09-12: whether the trim runs against its edge. The one member of the CoEdge to BrepTrim rename that reads identically.
 CoEdge	StartVertex	Done	Spark.Geometry.BrepLoopView.StartVertex	2026-09-12, E2-T65: taken from the trim's direction, not its edge's - a reversed trim starts where its edge ends.
 CoEdge	ToString()	Done	Spark.Geometry.BrepTrim.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
-Cone	ByCoordinateSystemHeightRadii(CoordinateSystem, double, double, double)	Unassessed		
-Cone	ByCoordinateSystemHeightRadius(CoordinateSystem, double, double)	Unassessed		
-Cone	ByPointsRadii(Point, Point, double, double)	Unassessed		
-Cone	ByPointsRadius(Point, Point, double)	Unassessed		
-Cone	EndPoint	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
-Cone	EndRadius	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
-Cone	Height	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
-Cone	RadiusRatio	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
-Cone	StartPoint	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
-Cone	StartRadius	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
-Cone	ToString()	Unassessed		
+Cone	ByCoordinateSystemHeightRadii(CoordinateSystem, double, double, double)	Planned		2026-09-12, E2-T43: the truncated cone, which is the general case and the one the primitive should take. E2-T66.
+Cone	ByCoordinateSystemHeightRadius(CoordinateSystem, double, double)	Planned		2026-09-12, E2-T43: there is no cone primitive. BrepPrimitives has Box and Cylinder only, and Spark.Geometry.ConicalSurface is a SURFACE. The same gap as Sphere. E2-T66.
+Cone	ByPointsRadii(Point, Point, double, double)	Planned		2026-09-12, E2-T43: the truncated cone from an axis. E2-T66.
+Cone	ByPointsRadius(Point, Point, double)	Planned		2026-09-12, E2-T43: as ByCoordinateSystemHeightRadius, from an axis rather than a frame. E2-T66.
+Cone	EndPoint	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
+Cone	EndRadius	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
+Cone	Height	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
+Cone	RadiusRatio	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
+Cone	StartPoint	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
+Cone	StartRadius	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
+Cone	ToString()	Done	Spark.Geometry.Brep.ToString	2026-09-12, E2-T43: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 CoordinateSystem	ByCylindricalCoordinates(CoordinateSystem, double, double, double)	Unassessed		
 CoordinateSystem	ByMatrix(double[])	Unassessed		
 CoordinateSystem	ByOrigin(Point)	Unassessed		
@@ -124,14 +124,14 @@ CoordinateSystem	ZXPlane	Unassessed
 Core.EntityTags	AddTag(string, object)	Not planned		§5 [c]: needs a geometry instance to have identity, which a Spark value does not (PRD principle 3); carry data alongside the geometry instead.
 Core.EntityTags	LookupTag(string)	Not planned		§5 [c]: needs a geometry instance to have identity, which a Spark value does not (PRD principle 3); carry data alongside the geometry instead.
 Core.EntityTags	Parent	Not planned		§5 [c]: needs a geometry instance to have identity, which a Spark value does not (PRD principle 3); carry data alongside the geometry instead.
-Cuboid	ByCorners(Point, Point)	Unassessed		
-Cuboid	ByLengths(CoordinateSystem, double, double, double)	Unassessed		
-Cuboid	ByLengths(Point, double, double, double)	Unassessed		
-Cuboid	ByLengths(double, double, double)	Unassessed		
-Cuboid	Height	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
-Cuboid	Length	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
-Cuboid	ToString()	Unassessed		
-Cuboid	Width	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
+Cuboid	ByCorners(Point, Point)	Planned		2026-09-12, E2-T43: a box from two opposite corners. BrepPrimitives.Box takes a frame and three lengths, and the corner form is arithmetic the caller must do - including deciding what happens when the two corners are not axis-aligned to the frame. E2-T66.
+Cuboid	ByLengths(CoordinateSystem, double, double, double)	Done	Spark.Geometry.BrepPrimitives.Box	2026-09-12, E2-T43: the frame is a Plane in Spark, which CoordinateSystem takes and gives (3.1).
+Cuboid	ByLengths(Point, double, double, double)	Done	Spark.Geometry.BrepPrimitives.Box	2026-09-12, E2-T43: a Plane at the point, which Plane takes an origin for.
+Cuboid	ByLengths(double, double, double)	Done	Spark.Geometry.BrepPrimitives.Box	2026-09-12, E2-T43: built from explicit topology rather than from an intersection, so it needs no kernel and is exact. The overload with no frame is the world XY plane.
+Cuboid	Height	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
+Cuboid	Length	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
+Cuboid	ToString()	Done	Spark.Geometry.Brep.ToString	2026-09-12, E2-T43: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+Cuboid	Width	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
 Curve	ApproximateWithArcAndLineSegments()	Unassessed		
 Curve	ByBlendBetweenCurves(Curve, Curve, bool, bool, bool)	Unassessed		
 Curve	ByIsoCurveOnSurface(Surface, int, double)	Unassessed		
@@ -214,12 +214,12 @@ Curve	TrimByStartParameter(double)	Unassessed
 Curve	TrimInteriorByParameter(double, double)	Unassessed		
 Curve	TrimSegmentsByParameter(double[])	Unassessed		
 Curve	TrimSegmentsByParameter(double[], bool)	Unassessed		
-Cylinder	Axis	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
-Cylinder	ByPointsRadius(Point, Point, double)	Unassessed		
-Cylinder	ByRadiusHeight(CoordinateSystem, double, double)	Unassessed		
-Cylinder	Height	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
-Cylinder	Radius	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
-Cylinder	ToString()	Unassessed		
+Cylinder	Axis	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
+Cylinder	ByPointsRadius(Point, Point, double)	Planned		2026-09-12, E2-T43: a cylinder between two points. BrepPrimitives.Cylinder takes a frame, a radius and a height, so the axis has to be turned into a Plane and a length first. Small, and the same shape of gap as Cuboid.ByCorners. E2-T66.
+Cylinder	ByRadiusHeight(CoordinateSystem, double, double)	Done	Spark.Geometry.BrepPrimitives.Cylinder	2026-09-12, E2-T43: from explicit topology, exact, and needing no kernel. The frame is a Plane.
+Cylinder	Height	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
+Cylinder	Radius	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
+Cylinder	ToString()	Done	Spark.Geometry.Brep.ToString	2026-09-12, E2-T43: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 DesignScriptEntity	BaseTessellationGuid	Not planned		§5 [e]: lifetime and native-interop machinery of a disposable kernel handle; Spark's geometry is immutable values.
 DesignScriptEntity	Dispose()	Not planned		§5 [e]: lifetime and native-interop machinery of a disposable kernel handle; Spark's geometry is immutable values.
 DesignScriptEntity	Equals(object)	Unassessed		
@@ -554,36 +554,36 @@ Rectangle	ByWidthLength(double, double)	Unassessed
 Rectangle	Height	Unassessed		
 Rectangle	ToString()	Unassessed		
 Rectangle	Width	Unassessed		
-Solid	Area	Unassessed		
-Solid	ByJoinedSurfaces(IEnumerable<Surface>)	Unassessed		
-Solid	ByLoft(IEnumerable<Curve>)	Unassessed		
-Solid	ByLoft(IEnumerable<Curve>, Curve)	Unassessed		
-Solid	ByLoft(IEnumerable<Curve>, IEnumerable<Curve>)	Unassessed		
-Solid	ByRevolve(Curve, Point, Vector, double, double)	Unassessed		
-Solid	ByRuledLoft(IEnumerable<PolyCurve>, bool)	Unassessed		
-Solid	BySweep(Curve, Curve)	Unassessed		
-Solid	BySweep(Curve, Curve, bool)	Unassessed		
-Solid	BySweep2Rails(Curve, Curve, Curve)	Unassessed		
-Solid	ByUnion(IEnumerable<Solid>)	Unassessed		
-Solid	Centroid()	Unassessed		
-Solid	Chamfer(IEnumerable<Edge>, double)	Unassessed		
-Solid	Difference(Solid)	Unassessed		
-Solid	DifferenceAll(IEnumerable<Solid>)	Unassessed		
-Solid	Fillet(IEnumerable<Edge>, double)	Unassessed		
-Solid	ProjectInputOnto(Geometry, Vector)	Unassessed		
-Solid	Repair()	Unassessed		
-Solid	Separate()	Unassessed		
-Solid	ThinShell(double, double)	Unassessed		
-Solid	ToString()	Done	Spark.Geometry.Brep.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
-Solid	Union(Solid)	Unassessed		
-Solid	UnionAll(IEnumerable<Solid>)	Unassessed		
-Solid	Volume	Unassessed		
-Sphere	ByBestFit(IEnumerable<Point>)	Unassessed		
-Sphere	ByCenterPointRadius(Point, double)	Unassessed		
-Sphere	ByFourPoints(IEnumerable<Point>)	Unassessed		
-Sphere	CenterPoint	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
-Sphere	Radius	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
-Sphere	ToString()	Unassessed		
+Solid	Area	Done	Spark.Geometry.Mesh.Area	2026-09-12, E2-T43: as Volume - the tessellation's area, through Spark.Nodes.Core.Solid.ToMesh. Approximate, and converging with the tolerance. E2-T67.
+Solid	ByJoinedSurfaces(IEnumerable<Surface>)	Planned		2026-09-12, E2-T43: IBrepKernel.Sew joins BREPS, and a surface has to become a face with a loop first, which is BrepBuilder work. The same gap as Surface.Join and PolySurface.ByJoinedSurfaces. E2-T66.
+Solid	ByLoft(IEnumerable<Curve>)	Done	Spark.Api.IBrepKernel.Loft	2026-09-12, E2-T43: profiles lofted, open or closed. Whether the result is a solid is IsSolid, not a type.
+Solid	ByLoft(IEnumerable<Curve>, Curve)	Planned		2026-09-12, E2-T43: IBrepKernel.Loft takes profiles and a closed flag and no GUIDE. E2-T66.
+Solid	ByLoft(IEnumerable<Curve>, IEnumerable<Curve>)	Planned		2026-09-12, E2-T43: as ByLoft with one guide - no guide rails. E2-T66.
+Solid	ByRevolve(Curve, Point, Vector, double, double)	Done	Spark.Api.IBrepKernel.Revolve	2026-09-12, E2-T43: a profile revolved about an axis through an angle. Spark.Geometry.RevolutionSurface is the analytic SURFACE of the same construction; this is the Brep.
+Solid	ByRuledLoft(IEnumerable<PolyCurve>, bool)	Planned		2026-09-12, E2-T43: a ruled loft through a sequence. IBrepKernel.Loft interpolates between profiles rather than ruling between them, and Spark.Geometry.RuledSurface is the two-curve SURFACE case. E2-T66.
+Solid	BySweep(Curve, Curve)	Done	Spark.Api.IBrepKernel.Sweep	2026-09-12, E2-T43: a profile swept along a rail.
+Solid	BySweep(Curve, Curve, bool)	Planned		2026-09-12, E2-T43: IBrepKernel.Sweep does take a bool and it is CAP, not keep-profile-orientation. E2-T66.
+Solid	BySweep2Rails(Curve, Curve, Curve)	Planned		2026-09-12, E2-T43: IBrepKernel.Sweep takes ONE rail. E2-T66.
+Solid	ByUnion(IEnumerable<Solid>)	Done	Spark.Api.IBrepKernel.Union	2026-09-12, E2-T43: as UnionAll - the same operation under a constructor name.
+Solid	Centroid()	Planned		2026-09-12, E2-T43: no member anywhere, exact or approximate. It goes with Volume and Area as a mass property, and the three belong on one member that asks the kernel once. E2-T67.
+Solid	Chamfer(IEnumerable<Edge>, double)	Done	Spark.Api.IBrepKernel.Chamfer	2026-09-12, E2-T43: as Fillet, chamfered to a distance.
+Solid	Difference(Solid)	Done	Spark.Api.IBrepKernel.Difference	2026-09-12, E2-T43: Spark.Nodes.Core.Solid.Difference is the node; --graph solids drills a hole through a box and a cylinder with it.
+Solid	DifferenceAll(IEnumerable<Solid>)	Done	Spark.Api.IBrepKernel.Difference	2026-09-12, E2-T43: pairwise, folded by the caller.
+Solid	Fillet(IEnumerable<Edge>, double)	Done	Spark.Api.IBrepKernel.Fillet	2026-09-12, E2-T43: named edges rounded to a radius, edges by INDEX because Spark topology is index-based (E2-T22). Spark.Nodes.Core.Solid.FilletAll rounds every edge, which --graph solids has done since M6.
+Solid	ProjectInputOnto(Geometry, Vector)	Planned		2026-09-12, E2-T43: no projection along a direction onto a shape. The same gap as Surface.ProjectInputOnto. E2-T66.
+Solid	Repair()	Done	Spark.Api.IBrepKernel.Heal	2026-09-12, E2-T43: behind the seam by decision - OCCT ShapeFix does it and a second managed implementation would be worse (E13-T10) - and behind the seam is still delivered. The same row as Surface.Repair(), and the same correction (N158).
+Solid	Separate()	Done	Spark.Api.IBrepKernel.Split	2026-09-12, E2-T43: Split returns the pieces a shape falls into. Read with Brep.Shells() for the shell structure it leaves behind.
+Solid	ThinShell(double, double)	Done	Spark.Api.IBrepKernel.Shell	2026-09-12, E2-T43: a solid hollowed to a wall thickness, with named faces opened. Spark.Nodes.Core.Solid.Hollow is the node; --graph solids hollows a box with it.
+Solid	ToString()	Done	Spark.Geometry.Brep.ToString	2026-09-12, E2-T43: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+Solid	Union(Solid)	Done	Spark.Api.IBrepKernel.Union	2026-09-12, E2-T43: Spark has NO Solid type and will not have one (3.4): Dynamo splits PolySurface from Solid by CLOSURE, which is tolerance-dependent, so under that scheme a healing operation can change an object's type. Spark has one Brep and asks IsSolid. Spark.Nodes.Core.Solid.Union is the node over it.
+Solid	UnionAll(IEnumerable<Solid>)	Done	Spark.Api.IBrepKernel.Union	2026-09-12, E2-T43: pairwise, and a sequence folds over it. One member rather than two, because the fold is the caller's and not the kernel's.
+Solid	Volume	Done	Spark.Nodes.Core.Solid.Volume	2026-09-12, E2-T43: measured on the tessellation rather than on the exact shape, which is honest and is a DIFFERENT NUMBER from an exact volume - it converges with the tolerance and does not equal it. Worth a member on Brep that asks the kernel; E2-T67.
+Sphere	ByBestFit(IEnumerable<Point>)	Planned		2026-09-12, E2-T43: a least-squares sphere. Spark fits planes this way already (Plane.FromBestFit, with its own LeastSquares helper), so the arithmetic has a home; the primitive it would return does not exist yet. E2-T66.
+Sphere	ByCenterPointRadius(Point, double)	Planned		2026-09-12, E2-T43: there is no sphere primitive. BrepPrimitives has Box and Cylinder only, and Spark.Geometry.SphericalSurface is a SURFACE - closing it into a solid means a Brep with a seam and two poles, which is exactly the topology a primitive exists to get right once. E2-T66.
+Sphere	ByFourPoints(IEnumerable<Point>)	Planned		2026-09-12, E2-T43: the circumsphere of four points, and then the primitive. It follows ByCenterPointRadius. E2-T66.
+Sphere	CenterPoint	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
+Sphere	Radius	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
+Sphere	ToString()	Done	Spark.Geometry.Brep.ToString	2026-09-12, E2-T43: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Surface	ApproximateWithTolerance(double)	Planned		2026-09-12, E2-T42: no NURBS approximation of a surface to a tolerance. It is the inexact counterpart of SurfaceConversion, which is exact and therefore takes no tolerance. E2-T66.
 Surface	Area	Done	Spark.Geometry.Surface.Area	reviewed 2026-09-12: the same capability under the same name.
 Surface	ByLoft(IEnumerable<Curve>)	Done	Spark.Api.IBrepKernel.Loft	A loft through an ordered set of profiles, open or closed. Behind the kernel seam and delivered through it, which the register can now say: E11-T30 made the rename-catcher read Spark.Api and Spark.Nodes.Core beside Spark.Geometry, because section 1 and FR-81 make the subject capability. This row said Planned until 2026-09-12 and the capability had been there since M6.

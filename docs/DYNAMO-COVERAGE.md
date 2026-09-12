@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-12 (`E11-T30`: the register reads what delivers the geometry, §3.3 at 48 of 106)
+**Last updated:** 2026-09-12 (`E2-T43`: §3.4 assessed, 24 of 55 reachable)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -404,15 +404,45 @@ means.** Returning a frame from a curvature query is unusual — presumably the 
 directions as axes with magnitudes encoded in axis lengths, but that is a guess from the
 signature. Flagged in §6.3.
 
-### 3.4 Solids — 5 types, 55 members, 0 reachable
+### 3.4 Solids — 5 types, 55 members, 24 reachable
 
-| Dynamo type | Members | Spark equivalent | Status | Milestone |
-|---|---:|---|---|---|
-| `Solid` (base) | 24 | `Brep` (closed) | Planned / post-1.0 | M6 + |
-| `Cuboid` | 8 | `Brep.ByBox` factory, not a type | Planned | M6 |
-| `Sphere` | 6 | `Brep.BySphere` factory, not a type | Planned | M6 |
-| `Cone` | 11 | `Brep.ByCone` factory, not a type | Planned | M6 |
-| `Cylinder` | 6 | `Brep.ByCylinder` factory, not a type | Planned | M6 |
+**Assessed member by member on 2026-09-12** (`E2-T43`), against `Spark.Api.IBrepKernel` as well as
+`Spark.Geometry` — which `E11-T30` made possible the same day and which is most of why this section
+is not the *0 reachable* it read as for a year.
+
+| Dynamo type | Members | Reachable | Spark equivalent | Status | Milestone |
+|---|---:|---:|---|---|---|
+| `Solid` (base) | 24 | 16 | `Brep` (closed), `Spark.Api.IBrepKernel` | Partial | M6 + |
+| `Cuboid` | 8 | 4 | `BrepPrimitives.Box`, a factory not a type | Partial | M6 |
+| `Sphere` | 6 | 1 | None yet — no sphere primitive | Partial | M6 |
+| `Cone` | 11 | 1 | None yet — no cone primitive | Partial | M6 |
+| `Cylinder` | 6 | 2 | `BrepPrimitives.Cylinder`, a factory not a type | Partial | M6 |
+
+**`Solid`'s operations are 16 of 24 and every one of them is on the kernel interface.** Union,
+difference, loft, revolve, sweep, fillet, chamfer, `ThinShell` (`IBrepKernel.Shell`), `Separate`
+(`Split`) and `Repair` (`Heal`) are all there, and `--graph solids` has been exercising most of them
+since M6. The eight that are missing are the same shapes the surface section found: `Loft` has no
+guide, `Sweep` takes one rail and its `bool` is *cap*, `ByRuledLoft` rules rather than interpolates,
+`ByJoinedSurfaces` wants surfaces where the kernel takes `Brep`s, and `ProjectInputOnto` has no
+member at all.
+
+**`Volume` and `Area` are `Done` and both deserve an asterisk that the rows carry.** They are
+measured on the *tessellation* — `Spark.Nodes.Core.Solid.Volume` meshes and sums, `Mesh.Area` does
+the same — so they converge with the tolerance rather than equalling the exact figure. `Centroid()`
+has no member at all. The three are one gap and one member: `E2-T67`, which asks the kernel once.
+
+**The primitives are the interesting half.** `Cuboid` is 4 of 8 and `Cylinder` 2 of 6, through
+`BrepPrimitives.Box` and `BrepPrimitives.Cylinder` — built from explicit topology rather than from an
+intersection, so they need no kernel and are exact. **`Sphere` and `Cone` have no primitive at all**,
+and that is a real gap rather than a shape difference: `SphericalSurface` and `ConicalSurface` are
+*surfaces*, and closing one into a solid means a `Brep` with a seam and poles, which is exactly the
+topology a primitive exists to get right once. `E2-T66`.
+
+**The 14 refusals here are §5's, and they line up exactly.** `Cuboid.Length`, `Cylinder.Radius`,
+`Cone.RadiusRatio` and the rest are parameter-recovery properties, and Spark's primitives are
+factories rather than types — a `Brep` made by `BrepPrimitives.Box` is a `Brep`, and asking it for
+the length it was built from is asking it to remember its own history, which the value model does not
+do. Fourteen properties over four types, which is the count §5 was corrected to on 2026-09-11.
 
 **Spark has no `Solid` type and will not have one.** Dynamo splits `PolySurface` from `Solid`
 by *closure*: a `PolySurface` that happens to be watertight is a `Solid`, and a `Solid` that
