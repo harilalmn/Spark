@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-12 (N156–N158: a name match that lied; an exact-match budget; a register scoped to an assembly)
+**Last updated:** 2026-09-12 (N156–N159: a name match that lied; an exact-match budget; a register scoped to an assembly; an index that crossed a seam)
 
 ---
 
@@ -4787,3 +4787,40 @@ the conclusion drawn from it — *therefore Spark does not do this* — was wron
 still delivered.** A true premise reached a false conclusion because the unstated middle step, *and
 the register measures what `Spark.Geometry` declares*, was never written down anywhere to be
 argued with.
+
+---
+
+## N159 — An index that crosses a seam is not the same index on the other side
+
+Spark's BRep topology is index-based by `E2-T22`: a face is an `int` into `Brep.Faces()`, an edge an
+`int` into `Brep.Edges()`. `IBrepKernel` takes those ints — `Fillet(solid, edges, …)`,
+`Shell(solid, facesToOpen, …)`, `Chamfer`, `Draft` — and `OcctBrepKernel` passes them **straight
+through to the shim**, where OCCT numbers its own faces in its own explorer order.
+
+**They are not the same numbers.** On a 3×3×6 block, `BrepFaceView.NormalAt` says managed face 1 is
+the top, normal `(0,0,1)`. Shelling `[1]` opens a *side*: the volume comes back 24.256, and a z-face
+opening gives 26.896. Managed face 2, which the model calls a side, behaves like a z-face.
+
+**Two things made this invisible for as long as it has existed.**
+
+1. **Every caller in the product passes an empty list, meaning *all of them*.** `Solid.FilletAll`
+   rounds every edge; `Solid.Hollow` opens none. **A permutation of a whole set is that set**, so the
+   mismatch cancels exactly at every shipped call site. `--graph solids` has been right all along.
+2. **So had every test.** `Shell` had two call sites and `Fillet` seven, and all of them passed `[]`.
+   The suite had complete coverage of the operations and *zero* coverage of the argument.
+
+**It was found by writing a node that needed the argument.** `Solid.HollowOpen` — hollow, and open
+the face that looks a given way — was written, given a test that asserted *which* face by volume on a
+block that is not a cube, found broken, and deleted in the same step. Had the test asserted a face
+count, or asserted volume on a **cube**, it would have passed and the node would have shipped.
+
+**The general form, and it is not really about OCCT.** An index is meaningful only inside the
+collection that defines its order. Handing one across a boundary silently asserts that both sides
+agree on that order, and nothing checks it — there is no type error, no null, no exception, just a
+plausible answer to a question nobody asked. `ADR-0021` put the managed model and the provider's
+model deliberately far apart; **an `int` is the one thing that will cross that distance without
+anybody noticing it has.** Where an index must cross a seam, either carry an identity the far side
+can verify, or make the near side prove the two orders agree — and if neither is possible, only the
+whole-set call is safe, which is exactly the shape the product had stumbled into.
+
+`E13-T22`, pinned by `SolidNodeTests` and blocked on `E13-T21` for the shim rebuild.

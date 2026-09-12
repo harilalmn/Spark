@@ -358,6 +358,10 @@ public static class DemoGraphs
         graph.TryConnect(Output(shellBase, 0), Input(shellPlane, 0));
         graph.TryConnect(Output(axis, 0), Input(shellPlane, 1));
         graph.TryConnect(Output(shellPlane, 0), Input(shellBox, 0));
+        // The hollow is SEALED, so this box looks exactly like a solid one - which is a
+        // demonstration of nothing, and the client said so on 2026-09-12. Opening a face would fix
+        // it and cannot be done yet: face indices do not survive the crossing into OCCT (E13-T22),
+        // so the kernel opens a face nobody chose. `SolidNodeTests` pins that.
         graph.TryConnect(Output(shellBox, 0), Input(hollow, 0));
         graph.TryConnect(Output(hollow, 0), Input(shellDisplay, 0));
         graph.TryConnect(Output(shellColour, 0), Input(shellDisplay, 1));

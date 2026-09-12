@@ -150,6 +150,82 @@ public sealed class OcctBrepKernelTests
         Assert.Equal(37.0, mesh.Volume(), 1);
     }
 
+    /// <summary>
+    /// <b><c>Chamfer</c> was the one kernel operation nothing called</b> — every other member of
+    /// <see cref="IBrepKernel"/> had between one and nine call sites in this suite, and it had none,
+    /// while two Dynamo parity rows were marked <i>Done</i> against it (`E2-T43`). A member that is
+    /// declared and never executed is a claim, not a capability.
+    /// </summary>
+    /// <remarks>
+    /// <b>Measured by volume against a closed form, as <see cref="HollowingLeavesAWall"/> is</b>,
+    /// because a face count only says that OCCT did <i>something</i> to each edge. Chamfering every
+    /// edge of a cube of side <c>a</c> by distance <c>d</c> removes two things: a right-angled prism
+    /// from each of the twelve edges, <c>d²/2</c> in section over the <c>a - 2d</c> that survives
+    /// between the corners, and a piece worth <c>5d³/6</c> from each of the eight vertices. So
+    /// <c>V = a³ - 6d²(a - 2d) - 20d³/3</c>, which for a 4-cube chamfered at 0.5 is exactly 176/3.
+    /// <para>
+    /// <b>A range would have passed while saying almost nothing.</b> The first draft of this test
+    /// asserted 60 to 63.5, from a half-derivation that dropped the corner term — and the real
+    /// answer, 58.666666666666664, fell outside it. Doing the arithmetic properly was the difference
+    /// between a test that checks OCCT and a test that checks that OCCT returned a number.
+    /// </para>
+    /// </remarks>
+    [NativeFact]
+    public void ChamferingTakesAWedgeOffEveryEdge()
+    {
+        Brep block = Box(0, 0, 0, 4, 4, 4);
+
+        KernelResult<Brep> chamfered = Kernel.Chamfer(block, AllEdges(block), 0.5, Fine);
+
+        Assert.True(chamfered.IsSuccess, chamfered.Diagnostic?.Detail);
+
+        // A chamfered cube has its six faces, twelve edge facets and eight corner facets.
+        Assert.Equal(26, chamfered.Value.FaceCount);
+
+        const double Side = 4.0;
+        const double Distance = 0.5;
+
+        double expected = (Side * Side * Side)
+            - (6.0 * Distance * Distance * (Side - (2.0 * Distance)))
+            - (20.0 / 3.0 * Distance * Distance * Distance);
+
+        Assert.Equal(176.0 / 3.0, expected, 12);
+
+        // Every face of the result is planar, so the tessellation IS the solid and this is an
+        // equality rather than an approximation.
+        Assert.Equal(expected, Kernel.Tessellate(chamfered.Value, Fine).Value.Volume(), 6);
+    }
+
+    /// <summary>
+    /// <b>A chamfer distance that eats the solid is refused, not silently clamped.</b> The whole
+    /// edge length cannot be taken off both sides of every edge, and a kernel that returned
+    /// *something* here would be the worst outcome — a plausible shape nobody asked for. It answers
+    /// <c>SPK1081</c>, the same refusal <see cref="AFilletThatDoesNotFitIsRefused"/> gets, which is
+    /// right: the geometry declined, nothing is broken.
+    /// </summary>
+    [NativeFact]
+    public void AChamferTooLargeForTheSolidIsRefused()
+    {
+        Brep block = Box(0, 0, 0, 4, 4, 4);
+
+        KernelResult<Brep> chamfered = Kernel.Chamfer(block, AllEdges(block), 4.0, Fine);
+
+        Assert.False(chamfered.IsSuccess);
+        Assert.Equal(KernelDiagnostics.Refused, chamfered.Diagnostic!.Code);
+    }
+
+    private static IReadOnlyList<int> AllEdges(Brep solid)
+    {
+        List<int> edges = [];
+
+        for (int index = 0; index < solid.EdgeCount; index++)
+        {
+            edges.Add(index);
+        }
+
+        return edges;
+    }
+
     [NativeFact]
     public void ExtrudingAClosedProfileMakesASolid()
     {
