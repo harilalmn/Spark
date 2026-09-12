@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-12 (`E2-T42` step A: §3.3's `Surface` assessed, 18 of 46 reachable)
+**Last updated:** 2026-09-12 (`E2-T42` closes: §3.3 assessed throughout, 36 of 106 reachable)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -302,18 +302,43 @@ capabilities that only live on those types — `Polygon.Center`, `Polygon.Corner
 `Polygon.ContainmentTest`, `Polygon.SelfIntersections`, `Polygon.PlaneDeviation` and
 `Polygon.RegularPolygon` — are all planned, on `PolyLine` or in `Spark.Geometry.Planar`.
 
-### 3.3 Surfaces — 5 types, 106 members, 18 reachable
+### 3.3 Surfaces — 5 types, 106 members, 36 reachable
 
-**`Surface`'s 46 were assessed member by member on 2026-09-12** (`E2-T42` step A); `NurbsSurface` and
-`PolySurface` are step B and their *Reachable* figures below are still the seeded name matches.
+**Assessed member by member on 2026-09-12** (`E2-T42`), against the manifest rather than by eye. All
+81 rows that are not `PanelSurface`'s carry a status and a reason for it.
 
 | Dynamo type | Members | Reachable | Spark equivalent | Status | Milestone |
 |---|---:|---:|---|---|---|
 | `Surface` (base) | 46 | 18 | `Surface` — the FR-49/E2-T17 contract | Partial | M5 |
-| `NurbsSurface` | 17 | 6 | `NurbsSurface` | Partial | M5 |
-| `PolySurface` | 18 | 3 | `Brep` (open shell) | Partial | M6 |
+| `NurbsSurface` | 17 | 12 | `NurbsSurface`, `KnotVector` | Partial | M5 |
+| `PolySurface` | 18 | 6 | `Brep` (open shell) | Partial | M6 |
 | `PanelSurface` | 21 | 0 | None — see §5 [d] | Not planned | — |
 | `PanelSurfaceBoundaryCondition` | 4 | 0 | None — see §5 [d] | Not planned | — |
+
+**`NurbsSurface` is 12 of 17 and the five that are missing split cleanly in two.** Everything that
+*reads* a NURBS surface is there — degrees, rationality, the control points and weights whole or one
+at a time, both control-point counts, and both knot vectors. Spark hands back a `KnotVector` where
+Dynamo hands back a `double[]`, because a knot vector has invariants a bare array cannot hold, and
+`KnotVector.ToArray()` gives Dynamo's shape when a caller wants it. **Three of the missing five are
+interpolation** — `ByPoints` and its two tangent-constrained forms — which is a real algorithm and
+not the control-point constructor wearing a different name. **The other two are `IsPeriodicInU` and
+`IsPeriodicInV`, and they are the trap [N156](NOTES.md) exists to stop.** They look like
+`Surface.IsClosedU` and `IsClosedV` and they are not: closed is geometric, the two ends meeting in
+space; periodic is a property of the knot vector and of the control net wrapping smoothly. A closed
+surface with a seam is not periodic. They are `E2-T66`, not `Done`.
+
+**`PolySurface` is 6 of 18, and one of the six is `Done` because Spark needs no member for it.**
+`BySolid` converts a `Solid` to a `PolySurface`; Spark has **one** `Brep` and asks `IsSolid`, so
+there is nothing to convert — §3.4 records that Dynamo splits the two types by closure, which is
+tolerance-dependent, so under that scheme a healing operation can change an object's type.
+`UnconnectedBoundaries()` became reachable **on the day it was assessed**: a naked edge is an edge
+used by exactly one trim, and until `E2-T65` built `BrepAdjacency` an edge did not know its trims.
+
+**Eight of `PolySurface`'s twelve gaps are `E11-T30`'s seam again** — loft, sweep, fillet and
+chamfer, which `--graph solids` has been performing since M6. `Surfaces()` is `E2-T64`'s pcurves.
+`ExtractSolids()` is the shell-level question `E13-T18` asks from the other side: `Brep.Shells()`
+gives the shells, but `Brep.IsSolid` asks about the whole model, so a `Brep` of two shells cannot say
+which of them is closed.
 
 **The evaluation family is complete, and this document said otherwise.** `E2-T42`'s row claimed the
 curvature family — Gaussian, principal values, principal directions — was absent from `E2-T17`'s

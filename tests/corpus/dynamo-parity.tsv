@@ -423,23 +423,23 @@ NurbsCurve	IsRational	Done	Spark.Geometry.NurbsCurve.IsRational	reviewed 2026-09
 NurbsCurve	Knots()	Done	Spark.Geometry.NurbsCurve.Knots	reviewed 2026-09-12: the same capability under the same name.
 NurbsCurve	ToString()	Done	Spark.Geometry.NurbsCurve.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 NurbsCurve	Weights()	Done	Spark.Geometry.NurbsCurve.Weights	reviewed 2026-09-12: the same capability under the same name.
-NurbsSurface	ByControlPoints(Point[][], int, int)	Unassessed		
-NurbsSurface	ByControlPointsWeightsKnots(Point[][], double[][], double[], double[], int, int)	Unassessed		
-NurbsSurface	ByPoints(Point[][], int, int)	Unassessed		
-NurbsSurface	ByPointsTangents(Point[][], IEnumerable<Vector>, IEnumerable<Vector>, IEnumerable<Vector>, IEnumerable<Vector>)	Unassessed		
-NurbsSurface	ByPointsTangentsKnotsDerivatives(Point[][], IEnumerable<Vector>, IEnumerable<Vector>, IEnumerable<Vector>, IEnumerable<Vector>, double[], double[], IEnumerable<Vector>)	Unassessed		
-NurbsSurface	ControlPoints()	Done	Spark.Geometry.NurbsSurface.ControlPoints	reviewed 2026-09-12: the same capability under the same name.
-NurbsSurface	DegreeU	Done	Spark.Geometry.NurbsSurface.DegreeU	reviewed 2026-09-12: the same capability under the same name.
-NurbsSurface	DegreeV	Done	Spark.Geometry.NurbsSurface.DegreeV	reviewed 2026-09-12: the same capability under the same name.
-NurbsSurface	IsPeriodicInU	Unassessed		
-NurbsSurface	IsPeriodicInV	Unassessed		
-NurbsSurface	IsRational	Done	Spark.Geometry.NurbsSurface.IsRational	reviewed 2026-09-12: the same capability under the same name.
-NurbsSurface	NumControlPointsU	Unassessed		
-NurbsSurface	NumControlPointsV	Unassessed		
-NurbsSurface	ToString()	Done	Spark.Geometry.NurbsSurface.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
-NurbsSurface	UKnots()	Unassessed		
-NurbsSurface	VKnots()	Unassessed		
-NurbsSurface	Weights()	Done	Spark.Geometry.NurbsSurface.Weights	reviewed 2026-09-12: the same capability under the same name.
+NurbsSurface	ByControlPoints(Point[][], int, int)	Done	Spark.Geometry.NurbsSurface	2026-09-12, E2-T42 step B: the constructor taking two KnotVectors and a rectangular control-point array. The degrees come from the knot vectors rather than from separate arguments, because a degree and a knot vector that disagree is a state the type should not be able to reach.
+NurbsSurface	ByControlPointsWeightsKnots(Point[][], double[][], double[], double[], int, int)	Done	Spark.Geometry.NurbsSurface	2026-09-12, E2-T42 step B: the overload taking weights beside the control points. Knots arrive inside the KnotVectors rather than as bare arrays, for the same reason.
+NurbsSurface	ByPoints(Point[][], int, int)	Planned		2026-09-12, E2-T42 step B: INTERPOLATION through a grid of points, which is a real algorithm and not the control-point constructor. NurbsSurface.FromCorners takes four corners and is the degenerate case, not this. E2-T66.
+NurbsSurface	ByPointsTangents(Point[][], IEnumerable<Vector>, IEnumerable<Vector>, IEnumerable<Vector>, IEnumerable<Vector>)	Planned		2026-09-12, E2-T42 step B: interpolation with boundary tangents. It follows ByPoints and not before it. E2-T66.
+NurbsSurface	ByPointsTangentsKnotsDerivatives(Point[][], IEnumerable<Vector>, IEnumerable<Vector>, IEnumerable<Vector>, IEnumerable<Vector>, double[], double[], IEnumerable<Vector>)	Planned		2026-09-12, E2-T42 step B: interpolation with tangents, a chosen parametrisation and corner twists - the most constrained of the three and the last to be worth writing. E2-T66.
+NurbsSurface	ControlPoints()	Done	Spark.Geometry.NurbsSurface.ControlPoints	2026-09-12, E2-T42 step B: the whole rectangular array; NurbsSurface.ControlPoint(i, j) reads one without building it.
+NurbsSurface	DegreeU	Done	Spark.Geometry.NurbsSurface.DegreeU	2026-09-12, E2-T42 step B: read off KnotsU, which is where the degree is actually held.
+NurbsSurface	DegreeV	Done	Spark.Geometry.NurbsSurface.DegreeV	2026-09-12, E2-T42 step B: as DegreeU.
+NurbsSurface	IsPeriodicInU	Planned		2026-09-12, E2-T42 step B: genuinely absent, and NOT Surface.IsClosedU, which is the trap N156 was written about. Closed is geometric - the two ends meet in space - and periodic is a property of the knot vector and the control net wrapping smoothly. A closed surface with a seam is not periodic, and marking one as the other would put a false claim in the register. E2-T66.
+NurbsSurface	IsPeriodicInV	Planned		2026-09-12, E2-T42 step B: as IsPeriodicInU, and the same trap. E2-T66.
+NurbsSurface	IsRational	Done	Spark.Geometry.NurbsSurface.IsRational	2026-09-12, E2-T42 step B: whether any weight differs from one, decided once at construction rather than scanned on each ask.
+NurbsSurface	NumControlPointsU	Done	Spark.Geometry.NurbsSurface.ControlPointCountU	2026-09-12, E2-T42 step B: the same count under a name that says what it counts.
+NurbsSurface	NumControlPointsV	Done	Spark.Geometry.NurbsSurface.ControlPointCountV	2026-09-12, E2-T42 step B: as NumControlPointsU.
+NurbsSurface	ToString()	Done	Spark.Geometry.NurbsSurface.ToString	2026-09-12, E2-T42 step B: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+NurbsSurface	UKnots()	Done	Spark.Geometry.NurbsSurface.KnotsU	2026-09-12, E2-T42 step B: a KnotVector rather than a double array, and KnotVector.ToArray() gives Dynamo's shape. The type exists because a knot vector has invariants - clamped, non-decreasing, the right length for its degree and control-point count - that a bare array cannot hold.
+NurbsSurface	VKnots()	Done	Spark.Geometry.NurbsSurface.KnotsV	2026-09-12, E2-T42 step B: as UKnots().
+NurbsSurface	Weights()	Done	Spark.Geometry.NurbsSurface.Weights	2026-09-12, E2-T42 step B: as ControlPoints(); NurbsSurface.Weight(i, j) reads one.
 PanelSurface	ByCrossSplitSquares(Surface, int, int, PanelSurfaceBoundaryCondition)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
 PanelSurface	ByCustomOrthogonalLattice(Surface, int, int, double, double, UV[][], PanelSurfaceBoundaryCondition)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
 PanelSurface	ByDiagonallySplitSquares(Surface, int, int, bool, PanelSurfaceBoundaryCondition)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
@@ -517,24 +517,24 @@ PolyCurve	Offset(double, bool)	Unassessed
 PolyCurve	OffsetMany(double, bool, Vector)	Unassessed		
 PolyCurve	Points	Unassessed		
 PolyCurve	ToString()	Done	Spark.Geometry.PolyCurve.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
-PolySurface	ByJoinedSurfaces(IEnumerable<Surface>)	Unassessed		
-PolySurface	ByLoft(IEnumerable<Curve>)	Unassessed		
-PolySurface	ByLoft(IEnumerable<Curve>, Curve)	Unassessed		
-PolySurface	ByLoftGuides(IEnumerable<Curve>, IEnumerable<Curve>)	Unassessed		
-PolySurface	BySolid(Solid)	Unassessed		
-PolySurface	BySweep(Curve, Curve)	Unassessed		
-PolySurface	BySweep(Curve, IEnumerable<Curve>)	Unassessed		
-PolySurface	Chamfer(IEnumerable<Edge>, double)	Unassessed		
-PolySurface	EdgeCount()	Done	Spark.Geometry.Brep.EdgeCount	reviewed 2026-09-12: the same capability under the same name.
-PolySurface	ExtractSolids()	Unassessed		
-PolySurface	Fillet(IEnumerable<Edge>, double)	Unassessed		
-PolySurface	LocateSurfacesByLine(Line)	Unassessed		
-PolySurface	LocateSurfacesByPoint(Point, Vector)	Unassessed		
-PolySurface	SurfaceCount()	Unassessed		
-PolySurface	Surfaces()	Unassessed		reviewed 2026-09-12 and DEMOTED: the name match hid a real difference. Brep.Surfaces() hands back the face surfaces in index order - the untrimmed surface table - and Dynamo returns the trimmed faces. The faithful equivalent is a face's trimmed surface, which needs the pcurves a trim does not carry yet (E2-T64).
-PolySurface	ToString()	Done	Spark.Geometry.Brep.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
-PolySurface	UnconnectedBoundaries()	Unassessed		
-PolySurface	VertexCount()	Done	Spark.Geometry.Brep.VertexCount	reviewed 2026-09-12: the same capability under the same name.
+PolySurface	ByJoinedSurfaces(IEnumerable<Surface>)	Planned		2026-09-12, E2-T42 step B: Brep.Join joins BREPS, not surfaces - each surface has to become a face with a loop first, which is BrepBuilder work. The same gap as Surface.Join. E2-T66.
+PolySurface	ByLoft(IEnumerable<Curve>)	Planned		Loft - NOT in Spark.Geometry. Spark delivers this through Spark.Api.IBrepKernel and its Spark.Nodes.Core node, and the register reads Spark.Geometry.dll alone, so it cannot be Done under the rule as it stands (E11-T30). The row moves when the register does, not when the capability arrives, because the capability is already here.
+PolySurface	ByLoft(IEnumerable<Curve>, Curve)	Planned		Loft with a guide - NOT in Spark.Geometry. Spark delivers this through Spark.Api.IBrepKernel and its Spark.Nodes.Core node, and the register reads Spark.Geometry.dll alone, so it cannot be Done under the rule as it stands (E11-T30). The row moves when the register does, not when the capability arrives, because the capability is already here.
+PolySurface	ByLoftGuides(IEnumerable<Curve>, IEnumerable<Curve>)	Planned		Loft with guides - NOT in Spark.Geometry. Spark delivers this through Spark.Api.IBrepKernel and its Spark.Nodes.Core node, and the register reads Spark.Geometry.dll alone, so it cannot be Done under the rule as it stands (E11-T30). The row moves when the register does, not when the capability arrives, because the capability is already here.
+PolySurface	BySolid(Solid)	Done	Spark.Geometry.Brep.IsSolid	2026-09-12, E2-T42 step B: there is nothing to convert. Dynamo splits PolySurface from Solid by CLOSURE, which is tolerance-dependent, so under that scheme a healing operation can change an object's type; Spark has one Brep and asks IsSolid. This row is Done because the capability - treat a solid as a collection of surfaces - needs no member at all.
+PolySurface	BySweep(Curve, Curve)	Planned		Sweep - NOT in Spark.Geometry. Spark delivers this through Spark.Api.IBrepKernel and its Spark.Nodes.Core node, and the register reads Spark.Geometry.dll alone, so it cannot be Done under the rule as it stands (E11-T30). The row moves when the register does, not when the capability arrives, because the capability is already here.
+PolySurface	BySweep(Curve, IEnumerable<Curve>)	Planned		Sweep along several rails - NOT in Spark.Geometry. Spark delivers this through Spark.Api.IBrepKernel and its Spark.Nodes.Core node, and the register reads Spark.Geometry.dll alone, so it cannot be Done under the rule as it stands (E11-T30). The row moves when the register does, not when the capability arrives, because the capability is already here.
+PolySurface	Chamfer(IEnumerable<Edge>, double)	Planned		Chamfer - NOT in Spark.Geometry. Spark delivers this through Spark.Api.IBrepKernel and its Spark.Nodes.Core node, and the register reads Spark.Geometry.dll alone, so it cannot be Done under the rule as it stands (E11-T30). The row moves when the register does, not when the capability arrives, because the capability is already here.
+PolySurface	EdgeCount()	Done	Spark.Geometry.Brep.EdgeCount	2026-09-12, E2-T42 step B: a Spark Brep is Dynamo's PolySurface and its Solid both - the difference between them is closure, which Brep.IsSolid answers as a query (3.4).
+PolySurface	ExtractSolids()	Planned		2026-09-12, E2-T42 step B: Brep.Shells() gives the shells, but Brep.IsSolid asks about the whole model rather than one shell, so a Brep of two shells cannot say which of them is closed. E13-T18 is the same question arriving from the other side - an imported model whose closed shells should come back as solids - and it is blocked on the toolchain.
+PolySurface	Fillet(IEnumerable<Edge>, double)	Planned		Fillet, which --graph solids has been rounding every edge of a box with since M6 - NOT in Spark.Geometry. Spark delivers this through Spark.Api.IBrepKernel and its Spark.Nodes.Core node, and the register reads Spark.Geometry.dll alone, so it cannot be Done under the rule as it stands (E11-T30). The row moves when the register does, not when the capability arrives, because the capability is already here.
+PolySurface	LocateSurfacesByLine(Line)	Planned		2026-09-12, E2-T42 step B: no member. The pieces are here - Ray, and BoundingVolumeHierarchy over the faces - and Spark.Viewport already casts against them for picking, but nothing in Spark.Geometry answers which faces a line meets. E2-T66.
+PolySurface	LocateSurfacesByPoint(Point, Vector)	Planned		2026-09-12, E2-T42 step B: as LocateSurfacesByLine(Line), from a point along a direction. E2-T66.
+PolySurface	SurfaceCount()	Done	Spark.Geometry.Brep.FaceCount	2026-09-12, E2-T42 step B: faces, not surfaces - the surface table can be shorter, because two faces may sit on one surface. The count Dynamo means is the face count.
+PolySurface	Surfaces()	Planned		2026-09-12: reviewed, DEMOTED, and now assessed. Brep.Surfaces() hands back the face surfaces in index order - the UNTRIMMED surface table - and Dynamo returns the trimmed faces. The faithful equivalent is a face's trimmed surface, which needs the pcurves a trim does not carry yet. E2-T64, with Face.SurfaceGeometry(). N156 is the review that caught it.
+PolySurface	ToString()	Done	Spark.Geometry.Brep.ToString	2026-09-12, E2-T42 step B: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+PolySurface	UnconnectedBoundaries()	Done	Spark.Geometry.BrepAdjacency.TrimsOf	2026-09-12, E2-T42 step B: a naked edge is one used by exactly one trim, which TrimsOf answers per edge; Brep.Edge(i).Curve gives its curve. Reachable only since E2-T65 built the reverse index - before it, an edge did not know its trims.
+PolySurface	VertexCount()	Done	Spark.Geometry.Brep.VertexCount	2026-09-12, E2-T42 step B: as EdgeCount().
 Polygon	ByPoints(IEnumerable<Point>)	Unassessed		
 Polygon	Center()	Unassessed		
 Polygon	ContainmentTest(Point)	Unassessed		
