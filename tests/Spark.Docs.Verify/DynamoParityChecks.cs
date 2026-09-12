@@ -162,7 +162,173 @@ public sealed class DynamoParityChecks
             + string.Join("\n  ", missing));
     }
 
+    /// <summary>
+    /// <b>The reverse direction.</b> Every public member of <c>Spark.Geometry</c> is named by a parity
+    /// row, excused by a rule in the exclusions file, or counted against the residue budget - so a
+    /// member cannot drift away from the plan it was meant to satisfy without somebody noticing.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The budget is checked exactly, and that is deliberate.</b> A ceiling alone would let the
+    /// number sit where it is for ever; requiring the file to agree with the assembly means the count
+    /// falls as rows are assessed and cannot quietly climb back. It is the same rule
+    /// <c>bench/budgets.jsonc</c> applies to performance: a measurement with no budget beside it is
+    /// not a guard.
+    /// </para>
+    /// <para>
+    /// <b>A type a parity row names may not be excused wholesale</b>, which is the rule that stops this
+    /// file becoming a way to make the check green. It is enforced here rather than trusted.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void EveryPublicMemberIsNamedExcusedOrCounted()
+    {
+        Dictionary<string, HashSet<string>> declared = SparkGeometryMembers();
+        List<Exclusion> exclusions = ReadExclusions();
+        List<string> problems = [];
+
+        HashSet<string> memberRules = [.. exclusions.Where(e => e.Scope == "MemberName").Select(e => e.Name)];
+        HashSet<string> excusedTypes = [.. exclusions.Where(e => e.Scope == "Type").Select(e => e.Name)];
+        bool operators = memberRules.Remove("op_*");
+
+        Dictionary<string, HashSet<string>> named = new(StringComparer.Ordinal);
+
+        foreach (ParityRow row in Rows.Where(row => row.SparkMember.Length > 0))
+        {
+            int dot = row.SparkMember.LastIndexOf('.');
+
+            if (dot > 0)
+            {
+                if (!named.TryGetValue(row.SparkMember[..dot], out HashSet<string>? members))
+                {
+                    named[row.SparkMember[..dot]] = members = new HashSet<string>(StringComparer.Ordinal);
+                }
+
+                members.Add(row.SparkMember[(dot + 1)..]);
+            }
+        }
+
+        foreach (Exclusion exclusion in exclusions)
+        {
+            if (exclusion.Reason.Length == 0)
+            {
+                problems.Add($"line {exclusion.Line}: {exclusion.Scope} '{exclusion.Name}' gives no reason.");
+            }
+
+            if (exclusion.Scope == "Type" && !declared.ContainsKey(exclusion.Name))
+            {
+                problems.Add($"line {exclusion.Line}: {exclusion.Name} is excused and Spark.Geometry does not declare it - delete the row.");
+            }
+
+            if (exclusion.Scope == "Type" && named.TryGetValue(exclusion.Name, out HashSet<string>? claimed) && claimed.Count > 0)
+            {
+                problems.Add($"line {exclusion.Line}: {exclusion.Name} is excused wholesale and a parity row names {claimed.Count} of its members. A type a row names cannot be excused.");
+            }
+        }
+
+        List<string> residue = [];
+        HashSet<string> rulesUsed = new(StringComparer.Ordinal);
+
+        foreach ((string type, HashSet<string> members) in declared)
+        {
+            foreach (string member in members)
+            {
+                if (named.TryGetValue(type, out HashSet<string>? rows) && rows.Contains(member))
+                {
+                    continue;
+                }
+
+                if (memberRules.Contains(member))
+                {
+                    rulesUsed.Add(member);
+                    continue;
+                }
+
+                if (operators && member.StartsWith("op_", StringComparison.Ordinal))
+                {
+                    rulesUsed.Add("op_*");
+                    continue;
+                }
+
+                if (excusedTypes.Contains(type))
+                {
+                    continue;
+                }
+
+                residue.Add($"{ShortName(type)}.{member}");
+            }
+        }
+
+        foreach (string rule in memberRules.Concat(operators ? ["op_*"] : []))
+        {
+            if (!rulesUsed.Contains(rule))
+            {
+                problems.Add($"the member rule '{rule}' excuses nothing any more - delete it.");
+            }
+        }
+
+        Exclusion budget = exclusions.SingleOrDefault(e => e.Scope == "Budget" && e.Name == "residue")
+            ?? throw new InvalidOperationException("The exclusions file has no residue budget.");
+
+        int allowed = int.Parse(
+            new string([.. budget.Reason.TakeWhile(char.IsDigit)]),
+            System.Globalization.CultureInfo.InvariantCulture);
+
+        if (residue.Count != allowed)
+        {
+            residue.Sort(StringComparer.Ordinal);
+
+            problems.Add(
+                $"the residue budget says {allowed} and the assembly has {residue.Count}. "
+                + (residue.Count > allowed
+                    ? "A member was added to a type that maps to a Dynamo type without a thought for the register: name it from the row it satisfies, or raise the budget and say why."
+                    : "Rows have been assessed, which is the point - lower the budget to match.")
+                + "\n  " + string.Join("\n  ", residue.Take(12))
+                + (residue.Count > 12 ? $"\n  ... and {residue.Count - 12} more" : string.Empty));
+        }
+
+        Assert.Empty(problems);
+    }
+
+    private static List<Exclusion> ReadExclusions()
+    {
+        string path = Path.Combine(Root, "tests", "corpus", "dynamo-parity-exclusions.tsv");
+        Assert.True(File.Exists(path), $"The parity exclusions file is missing: {path}.");
+
+        List<Exclusion> exclusions = [];
+        string[] lines = File.ReadAllLines(path);
+        bool header = false;
+
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string line = lines[i].TrimEnd('\r');
+
+            if (line.Length == 0 || line.StartsWith('#'))
+            {
+                continue;
+            }
+
+            if (!header)
+            {
+                Assert.Equal("Scope\tName\tReason", line);
+                header = true;
+                continue;
+            }
+
+            string[] cells = line.Split('\t');
+            Assert.True(cells.Length == 3, $"line {i + 1} of the parity exclusions has {cells.Length} cells, not 3.");
+            Assert.Contains(cells[0], (string[])["MemberName", "Type", "Budget"], StringComparer.Ordinal);
+            exclusions.Add(new Exclusion(i + 1, cells[0], cells[1], cells[2]));
+        }
+
+        return exclusions;
+    }
+
     private static string ShortName(string dynamoType) => dynamoType[(dynamoType.LastIndexOf('.') + 1)..];
+
+    private static bool IsPublic(MetadataReader metadata, MethodDefinitionHandle accessor) =>
+        !accessor.IsNil
+        && (metadata.GetMethodDefinition(accessor).Attributes & MethodAttributes.MemberAccessMask) == MethodAttributes.Public;
 
     private static List<ParityRow> ReadManifest(string path)
     {
@@ -230,15 +396,35 @@ public sealed class DynamoParityChecks
             {
                 MethodDefinition definition = metadata.GetMethodDefinition(method);
 
-                if ((definition.Attributes & MethodAttributes.MemberAccessMask) == MethodAttributes.Public)
+                if ((definition.Attributes & MethodAttributes.MemberAccessMask) != MethodAttributes.Public)
                 {
-                    members.Add(metadata.GetString(definition.Name));
+                    continue;
                 }
+
+                string name = metadata.GetString(definition.Name);
+
+                // A constructor is not a member the inventory counts, and an accessor is counted
+                // through its property. Operators are counted, which is why the special-name test
+                // lets `op_` through: they are members a user calls.
+                if (name is ".ctor" or ".cctor"
+                    || ((definition.Attributes & MethodAttributes.SpecialName) != 0
+                        && !name.StartsWith("op_", StringComparison.Ordinal)))
+                {
+                    continue;
+                }
+
+                members.Add(name);
             }
 
             foreach (PropertyDefinitionHandle property in type.GetProperties())
             {
-                members.Add(metadata.GetString(metadata.GetPropertyDefinition(property).Name));
+                PropertyDefinition definition = metadata.GetPropertyDefinition(property);
+                PropertyAccessors accessors = definition.GetAccessors();
+
+                if (IsPublic(metadata, accessors.Getter) || IsPublic(metadata, accessors.Setter))
+                {
+                    members.Add(metadata.GetString(definition.Name));
+                }
             }
 
             foreach (FieldDefinitionHandle field in type.GetFields())
@@ -272,4 +458,6 @@ public sealed class DynamoParityChecks
     }
 
     private sealed record ParityRow(int Line, string DynamoType, string Member, string Status, string SparkMember, string Reason);
+
+    private sealed record Exclusion(int Line, string Scope, string Name, string Reason);
 }

@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-12 (the client's decisions of 2026-09-12; four blocked items resolved)
+**Last updated:** 2026-09-12 (`E11-T23` closes; the client's decisions of 2026-09-12)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -229,8 +229,11 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >    already persisted.
 > 9. Geometry breadth — ~~**`E2-T11`**~~, ~~**`E2-T16`**~~ and ~~**`E2-T21`**~~ (done 2026-09-11), ~~**`E2-T13`**~~ and ~~**`E2-T14`**~~ (done 2026-09-11; `Curve2d` filed as `E2-T64`, waiting for a consumer) — then
 >    the importer's ~~**`E5-T9`**~~ and ~~**`E5-T10`**~~ (done 2026-09-11), then ~~**`E3-T21`**~~ (done 2026-09-11, on the evidence), ~~**`E3-T14`**~~ (done 2026-09-11: a slow run's nodes show as evaluating, the stroke travelling) and ~~**`E3-T20`**~~ (done 2026-09-11: `.sparkz` from the command line and the application).
-> 10. The Dynamo parity rows (`E2-T41` … `E2-T46`, `E5-T14`, `E11-T23` — whose manifest and first three checks landed 2026-09-11), the largest and the least
->     bounded, last.
+> 10. The Dynamo parity rows (`E2-T41` … `E2-T46`, `E5-T14`), the largest and the least
+>     bounded, last. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
+>     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
+>     now has a guard in both directions and the remaining rows are assessment rather than
+>     machinery.
 >
 > **Not on this list because no commit closes them**: `Q12`'s T-Splines decision, which is the denominator of every parity figure, and the OpenCascade reinstall that `E13-T18` and `E13-T21` wait on — the client installs it by hand. **Four came off this list on 2026-09-12**: the third-party viewer (verified in AutoCAD), the counsel questions (reduced by `D25`, open source at release), the signing identity (`D26`, no certificate is bought) and the CI rows (Actions stopped; they unblock themselves at the open-source release).
 > questions, `E13-T17`'s signing identity, and the CI rows that Actions being off has blocked.

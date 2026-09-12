@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-11 (`E11-T23`: the parity manifest measures this register)
+**Last updated:** 2026-09-12 (`E11-T23` closes: the reverse direction, and the 89 name matches reviewed)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -66,9 +66,10 @@ need their own decision, so **575 members** — Spark stands at **99 of 575, or 
 > checks it against this document on every build. Applying §5's rules to it gives **107** refused
 > members, not 93 — §5's own lists add to 104, and the four primitive solids carry 14
 > parameter-recovery properties, not 11 — so the committed surface is **561**, not 575. It also records
-> 89 members present in Spark by an exact name match, still to be reviewed, and 472 not yet assessed.
-> This table's 99 predates the curve, surface and mesh layers; the manifest's count replaces it as the
-> review proceeds.
+> 89 members present in Spark by an exact name match. **Those 89 were reviewed on 2026-09-12** (§7):
+> 88 are the same capability and stay `Done`, one — `PolySurface.Surfaces()` — was demoted because the
+> name hid a real difference, and 473 are not yet assessed. This table's 99 predates the curve, surface
+> and mesh layers; the manifest's count replaces it as the review proceeds.
 
 ### What the 99 counts, exactly
 
@@ -875,7 +876,35 @@ before it is *listed*, which is why they do not block this register.
 ## 7. How this document is kept true
 
 A register that drifts is worse than no register, because it is consulted with confidence. The
-mechanism below was proposed rather than promised, and it is registered as **E11-T23**. **Its first half landed 2026-09-11**: the manifest, and the checks that it is well formed, that its totals agree with this document, and that every Done row names a member that exists. The reverse direction is the next step.
+mechanism below was proposed rather than promised, and it is registered as **E11-T23**, which is
+**complete as of 2026-09-12**. The manifest landed 2026-09-11 with three of its four checks — that it
+is well formed, that its totals agree with this document, and that every Done row names a member that
+exists. **The fourth, the reverse direction, landed 2026-09-12**, and with it the review of the 89
+Done rows that had been seeded by a bare name match.
+
+**The reverse direction excuses by rule, never member by member.** `Spark.Geometry` declares **877**
+public members by the manifest's own counting rule, and **790** of them are named by no parity row —
+a file holding 790 hand-written excuses would be exactly the drifting artefact this section exists to
+prevent. So [`tests/corpus/dynamo-parity-exclusions.tsv`](../tests/corpus/dynamo-parity-exclusions.tsv)
+carries **47 rules**: five member names that are .NET plumbing rather than capability (`Equals`,
+`GetHashCode`, `ToString`, `Deconstruct` and the operators), and **42 whole types Dynamo has no
+counterpart for** — `Transform`, `Tolerance`, `Interval`, `Angle`, `Quaternion`, `Ray`, the analytic
+surfaces, the Brep views and the planar layer, each with the §2 or §3 sentence that says why. **A type
+some parity row names may not be excused wholesale**, and the check enforces that rather than trusting
+it, because otherwise the file would be a way to make the check green.
+
+**What no rule reaches is counted, not waved through.** **278** members sit on types that *do* map to a
+Dynamo type, so each is either a member some `Unassessed` row will name once it is assessed or a
+genuine gap — and the budget at the foot of the exclusions file is checked for **exact** equality, not
+as a ceiling. The number therefore falls as rows are assessed and cannot quietly climb back; a rise
+means a member was added to a mapped type with no thought for this register.
+
+**The review found one row in 89 where the name lied.** `PolySurface.Surfaces()` had matched
+`Brep.Surfaces()`, which hands back the *untrimmed* face surface table in index order where Dynamo
+returns the trimmed faces; it is demoted to `Unassessed` with that reason, and the faithful equivalent
+needs pcurves a trim does not carry yet (`E2-T64`). The other 88 are the same capability under the same
+name — though **24 of the 88 are .NET plumbing** (22 `ToString()`, one `Equals` and one
+`GetHashCode`), which is presence and nothing more and is marked as such in each row's reason. See [N156](NOTES.md).
 
 **The failure to design against is documented and this project's own.** DoodleSharp's help was
 driven by three hand-maintained dictionaries of roughly 1,478 member entries keyed by string.
@@ -898,9 +927,10 @@ node↔member coverage.
 2. **A check in `Spark.Docs.Verify`** that fails when:
    - a row says `Done` and the named Spark member does not exist in `Spark.Geometry` — **this
      is the rename-catcher**, and the reason the manifest names members rather than types;
-   - a public member of `Spark.Geometry` is named by no row and is absent from an exclusions
-     file with a stated reason — the reverse direction, which is what catches a Spark member
-     drifting away from the plan it was meant to satisfy;
+   - a public member of `Spark.Geometry` is named by no row, is excused by no rule in the
+     exclusions file, and the count of what is left disagrees with the stated budget — the
+     reverse direction, which is what catches a Spark member drifting away from the plan it was
+     meant to satisfy;
    - the totals in §2 and the per-type counts in §3 disagree with the row counts. Arithmetic
      rot is the most likely failure of a document like this one and the cheapest to catch.
 

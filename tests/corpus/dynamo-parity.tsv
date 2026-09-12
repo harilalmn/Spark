@@ -3,8 +3,9 @@
 # signatures only, nothing decompiled - and edited by hand from then on as decisions land. It records our
 # decisions about a surface we have read; it is not a copy of that surface.
 # Status: Done (present and documented in Spark.Geometry - never "equivalent"), Planned, Not planned (reason
-# required), Needs a decision (reason required), Unassessed. "matched by name" marks a Done found by an exact
-# member-name match on the mapped Spark type, which a review has still to confirm.
+# required), Needs a decision (reason required), Unassessed. The 89 Done rows seeded by an exact member-name
+# match on the mapped Spark type were reviewed on 2026-09-12 (E11-T23 step B): 88 carry the review in their
+# reason and one, PolySurface.Surfaces(), was demoted to Unassessed because the name hid a real difference.
 DynamoType	Member	Status	SparkMember	Reason
 Application	Instance	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
 Application	IsExecuting	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
@@ -22,10 +23,10 @@ Arc	ByStartEndAndTangencies(Point, Vector, Point, Vector)	Unassessed
 Arc	ByStartPointEndPointStartTangent(Point, Point, Vector)	Unassessed		
 Arc	ByThreePoints(Point, Point, Point)	Unassessed		
 Arc	CenterPoint	Unassessed		
-Arc	Radius	Done	Spark.Geometry.Arc.Radius	matched by name; not yet reviewed
-Arc	StartAngle	Done	Spark.Geometry.Arc.StartAngle	matched by name; not yet reviewed
-Arc	SweepAngle	Done	Spark.Geometry.Arc.SweepAngle	matched by name; not yet reviewed
-Arc	ToString()	Done	Spark.Geometry.Arc.ToString	matched by name; not yet reviewed
+Arc	Radius	Done	Spark.Geometry.Arc.Radius	reviewed 2026-09-12: the same capability under the same name.
+Arc	StartAngle	Done	Spark.Geometry.Arc.StartAngle	reviewed 2026-09-12: the same capability under the same name.
+Arc	SweepAngle	Done	Spark.Geometry.Arc.SweepAngle	reviewed 2026-09-12: the same capability under the same name.
+Arc	ToString()	Done	Spark.Geometry.Arc.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 BoundingBox	ByCorners(Point, Point)	Unassessed		
 BoundingBox	ByCornersCoordinateSystem(Point, Point, CoordinateSystem)	Unassessed		
 BoundingBox	ByGeometry(Geometry)	Unassessed		
@@ -33,27 +34,27 @@ BoundingBox	ByGeometry(IEnumerable<Geometry>)	Unassessed
 BoundingBox	ByGeometryCoordinateSystem(Geometry, CoordinateSystem)	Unassessed		
 BoundingBox	ByGeometryCoordinateSystem(IEnumerable<Geometry>, CoordinateSystem)	Unassessed		
 BoundingBox	ByMinimumVolume(IEnumerable<Geometry>)	Unassessed		
-BoundingBox	Contains(Point)	Done	Spark.Geometry.BoundingBox.Contains	matched by name; not yet reviewed
+BoundingBox	Contains(Point)	Done	Spark.Geometry.BoundingBox.Contains	reviewed 2026-09-12: the same capability under the same name.
 BoundingBox	ContextCoordinateSystem	Unassessed		
 BoundingBox	FromJson(string)	Unassessed		
-BoundingBox	Intersection(BoundingBox)	Done	Spark.Geometry.BoundingBox.Intersection	matched by name; not yet reviewed
-BoundingBox	Intersects(BoundingBox)	Done	Spark.Geometry.BoundingBox.Intersects	matched by name; not yet reviewed
+BoundingBox	Intersection(BoundingBox)	Done	Spark.Geometry.BoundingBox.Intersection	reviewed 2026-09-12: the same capability under the same name.
+BoundingBox	Intersects(BoundingBox)	Done	Spark.Geometry.BoundingBox.Intersects	reviewed 2026-09-12: the same capability under the same name.
 BoundingBox	IsEmpty()	Unassessed		
 BoundingBox	MaxPoint	Unassessed		
 BoundingBox	MinPoint	Unassessed		
 BoundingBox	ToCuboid()	Unassessed		
 BoundingBox	ToJson()	Unassessed		
 BoundingBox	ToPolySurface()	Unassessed		
-BoundingBox	ToString()	Done	Spark.Geometry.BoundingBox.ToString	matched by name; not yet reviewed
+BoundingBox	ToString()	Done	Spark.Geometry.BoundingBox.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Circle	ByBestFitThroughPoints(IEnumerable<Point>)	Unassessed		
 Circle	ByCenterPointRadius(Point, double)	Unassessed		
 Circle	ByCenterPointRadiusNormal(Point, double, Vector)	Unassessed		
 Circle	ByPlaneRadius(Plane, double)	Unassessed		
 Circle	ByThreePoints(Point, Point, Point)	Unassessed		
 Circle	CenterPoint	Unassessed		
-Circle	Radius	Done	Spark.Geometry.Circle.Radius	matched by name; not yet reviewed
-Circle	ToString()	Done	Spark.Geometry.Circle.ToString	matched by name; not yet reviewed
-CoEdge	Edge	Done	Spark.Geometry.BrepTrim.Edge	matched by name; not yet reviewed
+Circle	Radius	Done	Spark.Geometry.Circle.Radius	reviewed 2026-09-12: the same capability under the same name.
+Circle	ToString()	Done	Spark.Geometry.Circle.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+CoEdge	Edge	Done	Spark.Geometry.BrepTrim.Edge	reviewed 2026-09-12: BrepTrim.Edge is the edge's index into Brep.Edges rather than an edge object, which is the same capability in an index-based topology (E2-T22, and the CoEdge to BrepTrim rename §4 records).
 CoEdge	EndVertex	Unassessed		
 CoEdge	Loop	Unassessed		
 CoEdge	Next	Unassessed		
@@ -62,7 +63,7 @@ CoEdge	Partner	Unassessed
 CoEdge	Previous	Unassessed		
 CoEdge	Reversed	Unassessed		
 CoEdge	StartVertex	Unassessed		
-CoEdge	ToString()	Done	Spark.Geometry.BrepTrim.ToString	matched by name; not yet reviewed
+CoEdge	ToString()	Done	Spark.Geometry.BrepTrim.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Cone	ByCoordinateSystemHeightRadii(CoordinateSystem, double, double, double)	Unassessed		
 Cone	ByCoordinateSystemHeightRadius(CoordinateSystem, double, double)	Unassessed		
 Cone	ByPointsRadii(Point, Point, double, double)	Unassessed		
@@ -85,14 +86,14 @@ CoordinateSystem	ByPlane(Plane)	Unassessed
 CoordinateSystem	BySphericalCoordinates(CoordinateSystem, double, double, double)	Unassessed		
 CoordinateSystem	Determinant	Unassessed		
 CoordinateSystem	FromJson(string)	Unassessed		
-CoordinateSystem	Identity()	Done	Spark.Geometry.CoordinateSystem.Identity	matched by name; not yet reviewed
+CoordinateSystem	Identity()	Done	Spark.Geometry.CoordinateSystem.Identity	reviewed 2026-09-12: the same capability under the same name.
 CoordinateSystem	Inverse()	Unassessed		
 CoordinateSystem	IsEqualTo(CoordinateSystem)	Unassessed		
 CoordinateSystem	IsScaledOrtho	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
 CoordinateSystem	IsSingular	Unassessed		
 CoordinateSystem	IsUniscaledOrtho	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
 CoordinateSystem	Mirror(Plane)	Unassessed		
-CoordinateSystem	Origin	Done	Spark.Geometry.CoordinateSystem.Origin	matched by name; not yet reviewed
+CoordinateSystem	Origin	Done	Spark.Geometry.CoordinateSystem.Origin	reviewed 2026-09-12: the same capability under the same name.
 CoordinateSystem	PostMultiplyBy(CoordinateSystem)	Unassessed		
 CoordinateSystem	PreMultiplyBy(CoordinateSystem)	Unassessed		
 CoordinateSystem	Rotate(Plane, double)	Unassessed		
@@ -105,19 +106,19 @@ CoordinateSystem	Scale1D(Point, Point, Point)	Not planned		§5 [h], §3.1: a sca
 CoordinateSystem	Scale2D(Plane, Point, Point)	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
 CoordinateSystem	ScaleFactor()	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
 CoordinateSystem	ToJson()	Unassessed		
-CoordinateSystem	ToString()	Done	Spark.Geometry.CoordinateSystem.ToString	matched by name; not yet reviewed
+CoordinateSystem	ToString()	Done	Spark.Geometry.CoordinateSystem.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 CoordinateSystem	Transform(CoordinateSystem)	Unassessed		
 CoordinateSystem	Transform(CoordinateSystem, CoordinateSystem)	Unassessed		
 CoordinateSystem	Translate(Vector)	Unassessed		
 CoordinateSystem	Translate(Vector, double)	Unassessed		
 CoordinateSystem	Translate(double, double, double)	Unassessed		
-CoordinateSystem	XAxis	Done	Spark.Geometry.CoordinateSystem.XAxis	matched by name; not yet reviewed
+CoordinateSystem	XAxis	Done	Spark.Geometry.CoordinateSystem.XAxis	reviewed 2026-09-12: the same capability under the same name.
 CoordinateSystem	XScaleFactor	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
 CoordinateSystem	XYPlane	Unassessed		
-CoordinateSystem	YAxis	Done	Spark.Geometry.CoordinateSystem.YAxis	matched by name; not yet reviewed
+CoordinateSystem	YAxis	Done	Spark.Geometry.CoordinateSystem.YAxis	reviewed 2026-09-12: the same capability under the same name.
 CoordinateSystem	YScaleFactor	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
 CoordinateSystem	YZPlane	Unassessed		
-CoordinateSystem	ZAxis	Done	Spark.Geometry.CoordinateSystem.ZAxis	matched by name; not yet reviewed
+CoordinateSystem	ZAxis	Done	Spark.Geometry.CoordinateSystem.ZAxis	reviewed 2026-09-12: the same capability under the same name.
 CoordinateSystem	ZScaleFactor	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
 CoordinateSystem	ZXPlane	Unassessed		
 Core.EntityTags	AddTag(string, object)	Not planned		§5 [c]: needs a geometry instance to have identity, which a Spark value does not (PRD principle 3); carry data alongside the geometry instead.
@@ -142,9 +143,9 @@ Curve	DistanceAtParameter(double)	Unassessed
 Curve	DivideByDistance(int)	Unassessed		
 Curve	DivideByDistanceFromParameter(double, double)	Unassessed		
 Curve	DivideByLengthFromParameter(double, double)	Unassessed		
-Curve	DivideEqually(int)	Done	Spark.Geometry.Curve.DivideEqually	matched by name; not yet reviewed
+Curve	DivideEqually(int)	Done	Spark.Geometry.Curve.DivideEqually	reviewed 2026-09-12: the same capability under the same name.
 Curve	EndParameter()	Unassessed		
-Curve	EndPoint	Done	Spark.Geometry.Curve.EndPoint	matched by name; not yet reviewed
+Curve	EndPoint	Done	Spark.Geometry.Curve.EndPoint	reviewed 2026-09-12: the same capability under the same name.
 Curve	Extend(double, Point)	Unassessed		
 Curve	ExtendEnd(double)	Unassessed		
 Curve	ExtendStart(double)	Unassessed		
@@ -155,11 +156,11 @@ Curve	ExtrudeAsSolid(Vector)	Unassessed
 Curve	ExtrudeAsSolid(Vector, double)	Unassessed		
 Curve	ExtrudeAsSolid(double)	Unassessed		
 Curve	HorizontalFrameAtParameter(double)	Unassessed		
-Curve	IsClosed	Done	Spark.Geometry.Curve.IsClosed	matched by name; not yet reviewed
+Curve	IsClosed	Done	Spark.Geometry.Curve.IsClosed	reviewed 2026-09-12: the same capability under the same name.
 Curve	IsPlanar	Unassessed		
 Curve	Join(Curve)	Unassessed		
 Curve	Join(IEnumerable<Curve>)	Unassessed		
-Curve	Length	Done	Spark.Geometry.Curve.Length	matched by name; not yet reviewed
+Curve	Length	Done	Spark.Geometry.Curve.Length	reviewed 2026-09-12: the same capability under the same name.
 Curve	LengthBetweenParameters(double, double)	Unassessed		
 Curve	Normal	Unassessed		
 Curve	NormalAtParameter(double)	Unassessed		
@@ -200,7 +201,7 @@ Curve	SplitByParameter(double)	Unassessed
 Curve	SplitByParameter(double[])	Unassessed		
 Curve	SplitByPoints(IEnumerable<Point>)	Unassessed		
 Curve	StartParameter()	Unassessed		
-Curve	StartPoint	Done	Spark.Geometry.Curve.StartPoint	matched by name; not yet reviewed
+Curve	StartPoint	Done	Spark.Geometry.Curve.StartPoint	reviewed 2026-09-12: the same capability under the same name.
 Curve	SweepAsSolid(Curve)	Unassessed		
 Curve	SweepAsSolid(Curve, bool)	Unassessed		
 Curve	SweepAsSurface(Curve)	Unassessed		
@@ -232,7 +233,7 @@ Edge	CoEdges	Unassessed
 Edge	CurveGeometry	Unassessed		
 Edge	EndVertex	Unassessed		
 Edge	StartVertex	Unassessed		
-Edge	ToString()	Done	Spark.Geometry.BrepEdge.ToString	matched by name; not yet reviewed
+Edge	ToString()	Done	Spark.Geometry.BrepEdge.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Ellipse	ByCoordinateSystemRadii(CoordinateSystem, double, double)	Unassessed		
 Ellipse	ByOriginRadii(Point, double, double)	Unassessed		
 Ellipse	ByOriginVectors(Point, Vector, Vector)	Unassessed		
@@ -240,7 +241,7 @@ Ellipse	ByPlaneRadii(Plane, double, double)	Unassessed
 Ellipse	CenterPoint	Unassessed		
 Ellipse	MajorAxis	Unassessed		
 Ellipse	MinorAxis	Unassessed		
-Ellipse	ToString()	Done	Spark.Geometry.EllipseCurve.ToString	matched by name; not yet reviewed
+Ellipse	ToString()	Done	Spark.Geometry.EllipseCurve.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 EllipseArc	ByPlaneRadiiAngles(Plane, double, double, double, double)	Unassessed		
 EllipseArc	ByPlaneRadiiStartAngleSweepAngle(Plane, double, double, double, double)	Unassessed		
 EllipseArc	CenterPoint	Unassessed		
@@ -253,7 +254,7 @@ EllipseArc	ToString()	Unassessed
 Face	Edges	Unassessed		
 Face	Loops	Unassessed		
 Face	SurfaceGeometry()	Unassessed		
-Face	ToString()	Done	Spark.Geometry.BrepFace.ToString	matched by name; not yet reviewed
+Face	ToString()	Done	Spark.Geometry.BrepFace.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Face	Vertices	Unassessed		
 Geometry	Approximate()	Unassessed		
 Geometry	BoundingBox	Unassessed		
@@ -346,17 +347,17 @@ Line	ByBestFitThroughPoints(IEnumerable<Point>)	Unassessed
 Line	ByStartPointDirectionLength(Point, Vector, double)	Unassessed		
 Line	ByStartPointEndPoint(Point, Point)	Unassessed		
 Line	ByTangency(Curve, double)	Unassessed		
-Line	Direction	Done	Spark.Geometry.Line.Direction	matched by name; not yet reviewed
-Line	ToString()	Done	Spark.Geometry.Line.ToString	matched by name; not yet reviewed
+Line	Direction	Done	Spark.Geometry.Line.Direction	reviewed 2026-09-12: the same capability under the same name.
+Line	ToString()	Done	Spark.Geometry.Line.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Loop	CoEdges	Unassessed		
 Loop	Face	Unassessed		
 Loop	IsExternal	Unassessed		
-Loop	ToString()	Done	Spark.Geometry.BrepLoop.ToString	matched by name; not yet reviewed
-Mesh	Area	Done	Spark.Geometry.Mesh.Area	matched by name; not yet reviewed
+Loop	ToString()	Done	Spark.Geometry.BrepLoop.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+Mesh	Area	Done	Spark.Geometry.Mesh.Area	reviewed 2026-09-12: the same capability under the same name.
 Mesh	BooleanDifference(Mesh)	Unassessed		
 Mesh	BooleanIntersection(Mesh)	Unassessed		
 Mesh	BooleanUnion(Mesh)	Unassessed		
-Mesh	BoundingBox()	Done	Spark.Geometry.Mesh.BoundingBox	matched by name; not yet reviewed
+Mesh	BoundingBox()	Done	Spark.Geometry.Mesh.BoundingBox	reviewed 2026-09-12: a method in Dynamo and a property in Spark, which is the naming rule and not a gap.
 Mesh	ByGeometry(Geometry, double, int)	Unassessed		
 Mesh	ByPointsFaceIndices(IEnumerable<Point>, IEnumerable<IndexGroup>)	Unassessed		
 Mesh	ByPointsIndexGroups(IEnumerable<Point>, IEnumerable<IndexGroup>)	Unassessed		
@@ -392,7 +393,7 @@ Mesh	Scale(double, double, double)	Unassessed
 Mesh	Smooth(double)	Unassessed		
 Mesh	Sphere(Point, double, int, bool)	Unassessed		
 Mesh	ToJson()	Unassessed		
-Mesh	ToString()	Done	Spark.Geometry.Mesh.ToString	matched by name; not yet reviewed
+Mesh	ToString()	Done	Spark.Geometry.Mesh.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Mesh	Translate(Vector)	Unassessed		
 Mesh	Translate(Vector, double)	Unassessed		
 Mesh	Translate(double, double, double)	Unassessed		
@@ -401,12 +402,12 @@ Mesh	TriangleCount	Unassessed
 Mesh	TriangleNormals()	Unassessed		
 Mesh	Triangles()	Unassessed		
 Mesh	TrianglesAsNineNumbers	Unassessed		
-Mesh	VertexCount	Done	Spark.Geometry.Mesh.VertexCount	matched by name; not yet reviewed
+Mesh	VertexCount	Done	Spark.Geometry.Mesh.VertexCount	reviewed 2026-09-12: the same capability under the same name.
 Mesh	VertexIndicesByTri()	Unassessed		
 Mesh	VertexNormals	Unassessed		
 Mesh	VertexPositions	Unassessed		
 Mesh	VerticesAsThreeNumbers	Unassessed		
-Mesh	Volume	Done	Spark.Geometry.Mesh.Volume	matched by name; not yet reviewed
+Mesh	Volume	Done	Spark.Geometry.Mesh.Volume	reviewed 2026-09-12: the same capability under the same name.
 NurbsCurve	ByControlPoints(IEnumerable<Point>)	Unassessed		
 NurbsCurve	ByControlPoints(IEnumerable<Point>, int)	Unassessed		
 NurbsCurve	ByControlPoints(IEnumerable<Point>, int, bool)	Unassessed		
@@ -415,30 +416,30 @@ NurbsCurve	ByPoints(IEnumerable<Point>)	Unassessed
 NurbsCurve	ByPoints(IEnumerable<Point>, bool)	Unassessed		
 NurbsCurve	ByPoints(IEnumerable<Point>, int)	Unassessed		
 NurbsCurve	ByPointsTangents(IEnumerable<Point>, Vector, Vector)	Unassessed		
-NurbsCurve	ControlPoints()	Done	Spark.Geometry.NurbsCurve.ControlPoints	matched by name; not yet reviewed
-NurbsCurve	Degree	Done	Spark.Geometry.NurbsCurve.Degree	matched by name; not yet reviewed
+NurbsCurve	ControlPoints()	Done	Spark.Geometry.NurbsCurve.ControlPoints	reviewed 2026-09-12: the same capability under the same name.
+NurbsCurve	Degree	Done	Spark.Geometry.NurbsCurve.Degree	reviewed 2026-09-12: the same capability under the same name.
 NurbsCurve	IsPeriodic	Unassessed		
-NurbsCurve	IsRational	Done	Spark.Geometry.NurbsCurve.IsRational	matched by name; not yet reviewed
-NurbsCurve	Knots()	Done	Spark.Geometry.NurbsCurve.Knots	matched by name; not yet reviewed
-NurbsCurve	ToString()	Done	Spark.Geometry.NurbsCurve.ToString	matched by name; not yet reviewed
-NurbsCurve	Weights()	Done	Spark.Geometry.NurbsCurve.Weights	matched by name; not yet reviewed
+NurbsCurve	IsRational	Done	Spark.Geometry.NurbsCurve.IsRational	reviewed 2026-09-12: the same capability under the same name.
+NurbsCurve	Knots()	Done	Spark.Geometry.NurbsCurve.Knots	reviewed 2026-09-12: the same capability under the same name.
+NurbsCurve	ToString()	Done	Spark.Geometry.NurbsCurve.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+NurbsCurve	Weights()	Done	Spark.Geometry.NurbsCurve.Weights	reviewed 2026-09-12: the same capability under the same name.
 NurbsSurface	ByControlPoints(Point[][], int, int)	Unassessed		
 NurbsSurface	ByControlPointsWeightsKnots(Point[][], double[][], double[], double[], int, int)	Unassessed		
 NurbsSurface	ByPoints(Point[][], int, int)	Unassessed		
 NurbsSurface	ByPointsTangents(Point[][], IEnumerable<Vector>, IEnumerable<Vector>, IEnumerable<Vector>, IEnumerable<Vector>)	Unassessed		
 NurbsSurface	ByPointsTangentsKnotsDerivatives(Point[][], IEnumerable<Vector>, IEnumerable<Vector>, IEnumerable<Vector>, IEnumerable<Vector>, double[], double[], IEnumerable<Vector>)	Unassessed		
-NurbsSurface	ControlPoints()	Done	Spark.Geometry.NurbsSurface.ControlPoints	matched by name; not yet reviewed
-NurbsSurface	DegreeU	Done	Spark.Geometry.NurbsSurface.DegreeU	matched by name; not yet reviewed
-NurbsSurface	DegreeV	Done	Spark.Geometry.NurbsSurface.DegreeV	matched by name; not yet reviewed
+NurbsSurface	ControlPoints()	Done	Spark.Geometry.NurbsSurface.ControlPoints	reviewed 2026-09-12: the same capability under the same name.
+NurbsSurface	DegreeU	Done	Spark.Geometry.NurbsSurface.DegreeU	reviewed 2026-09-12: the same capability under the same name.
+NurbsSurface	DegreeV	Done	Spark.Geometry.NurbsSurface.DegreeV	reviewed 2026-09-12: the same capability under the same name.
 NurbsSurface	IsPeriodicInU	Unassessed		
 NurbsSurface	IsPeriodicInV	Unassessed		
-NurbsSurface	IsRational	Done	Spark.Geometry.NurbsSurface.IsRational	matched by name; not yet reviewed
+NurbsSurface	IsRational	Done	Spark.Geometry.NurbsSurface.IsRational	reviewed 2026-09-12: the same capability under the same name.
 NurbsSurface	NumControlPointsU	Unassessed		
 NurbsSurface	NumControlPointsV	Unassessed		
-NurbsSurface	ToString()	Done	Spark.Geometry.NurbsSurface.ToString	matched by name; not yet reviewed
+NurbsSurface	ToString()	Done	Spark.Geometry.NurbsSurface.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 NurbsSurface	UKnots()	Unassessed		
 NurbsSurface	VKnots()	Unassessed		
-NurbsSurface	Weights()	Done	Spark.Geometry.NurbsSurface.Weights	matched by name; not yet reviewed
+NurbsSurface	Weights()	Done	Spark.Geometry.NurbsSurface.Weights	reviewed 2026-09-12: the same capability under the same name.
 PanelSurface	ByCrossSplitSquares(Surface, int, int, PanelSurfaceBoundaryCondition)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
 PanelSurface	ByCustomOrthogonalLattice(Surface, int, int, double, double, UV[][], PanelSurfaceBoundaryCondition)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
 PanelSurface	ByDiagonallySplitSquares(Surface, int, int, bool, PanelSurfaceBoundaryCondition)	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
@@ -470,31 +471,31 @@ Plane	ByOriginNormal(Point, Vector)	Unassessed
 Plane	ByOriginNormalXAxis(Point, Vector, Vector)	Unassessed		
 Plane	ByOriginXAxisYAxis(Point, Vector, Vector)	Unassessed		
 Plane	ByThreePoints(Point, Point, Point)	Unassessed		
-Plane	Normal	Done	Spark.Geometry.Plane.Normal	matched by name; not yet reviewed
-Plane	Offset(double)	Done	Spark.Geometry.Plane.Offset	matched by name; not yet reviewed
-Plane	Origin	Done	Spark.Geometry.Plane.Origin	matched by name; not yet reviewed
+Plane	Normal	Done	Spark.Geometry.Plane.Normal	reviewed 2026-09-12: the same capability under the same name.
+Plane	Offset(double)	Done	Spark.Geometry.Plane.Offset	reviewed 2026-09-12: both move the plane along its own normal by the distance.
+Plane	Origin	Done	Spark.Geometry.Plane.Origin	reviewed 2026-09-12: the same capability under the same name.
 Plane	ToCoordinateSystem()	Unassessed		
-Plane	ToString()	Done	Spark.Geometry.Plane.ToString	matched by name; not yet reviewed
-Plane	XAxis	Done	Spark.Geometry.Plane.XAxis	matched by name; not yet reviewed
+Plane	ToString()	Done	Spark.Geometry.Plane.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+Plane	XAxis	Done	Spark.Geometry.Plane.XAxis	reviewed 2026-09-12: the same capability under the same name.
 Plane	XY()	Unassessed		
 Plane	XZ()	Unassessed		
-Plane	YAxis	Done	Spark.Geometry.Plane.YAxis	matched by name; not yet reviewed
+Plane	YAxis	Done	Spark.Geometry.Plane.YAxis	reviewed 2026-09-12: the same capability under the same name.
 Plane	YZ()	Unassessed		
-Point	Add(Vector)	Done	Spark.Geometry.Point3d.Add	matched by name; not yet reviewed
+Point	Add(Vector)	Done	Spark.Geometry.Point3d.Add	reviewed 2026-09-12: the same capability under the same name.
 Point	AsVector()	Unassessed		
 Point	ByCartesianCoordinates(CoordinateSystem, double, double, double)	Unassessed		
 Point	ByCoordinates(double, double)	Unassessed		
 Point	ByCoordinates(double, double, double)	Unassessed		
 Point	ByCylindricalCoordinates(CoordinateSystem, double, double, double)	Unassessed		
 Point	BySphericalCoordinates(CoordinateSystem, double, double, double)	Unassessed		
-Point	Origin()	Done	Spark.Geometry.Point3d.Origin	matched by name; not yet reviewed
+Point	Origin()	Done	Spark.Geometry.Point3d.Origin	reviewed 2026-09-12: the same capability under the same name.
 Point	Project(Geometry, Vector)	Unassessed		
-Point	PruneDuplicates(IEnumerable<Point>, double)	Done	Spark.Geometry.Point3d.PruneDuplicates	matched by name; not yet reviewed
-Point	Subtract(Vector)	Done	Spark.Geometry.Point3d.Subtract	matched by name; not yet reviewed
-Point	ToString()	Done	Spark.Geometry.Point3d.ToString	matched by name; not yet reviewed
-Point	X	Done	Spark.Geometry.Point3d.X	matched by name; not yet reviewed
-Point	Y	Done	Spark.Geometry.Point3d.Y	matched by name; not yet reviewed
-Point	Z	Done	Spark.Geometry.Point3d.Z	matched by name; not yet reviewed
+Point	PruneDuplicates(IEnumerable<Point>, double)	Done	Spark.Geometry.Point3d.PruneDuplicates	reviewed 2026-09-12: same capability, over IReadOnlyList rather than IEnumerable, on the k-d tree (E2-T16).
+Point	Subtract(Vector)	Done	Spark.Geometry.Point3d.op_Subtraction	reviewed 2026-09-12 and RE-POINTED: the name match was a false friend. Dynamo subtracts a vector from a point and gets a point; Spark.Geometry.Point3d.Subtract takes two points and gets the vector between them. The capability is the operator, Point3d - Vector3d, which returns a point.
+Point	ToString()	Done	Spark.Geometry.Point3d.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+Point	X	Done	Spark.Geometry.Point3d.X	reviewed 2026-09-12: the same capability under the same name.
+Point	Y	Done	Spark.Geometry.Point3d.Y	reviewed 2026-09-12: the same capability under the same name.
+Point	Z	Done	Spark.Geometry.Point3d.Z	reviewed 2026-09-12: the same capability under the same name.
 PolyCurve	BasePlane()	Unassessed		
 PolyCurve	ByGroupedCurves(IEnumerable<Curve>, double)	Unassessed		
 PolyCurve	ByGroupedCurves(IEnumerable<Curve>, double, bool, double)	Unassessed		
@@ -515,7 +516,7 @@ PolyCurve	NumberOfCurves	Unassessed
 PolyCurve	Offset(double, bool)	Unassessed		
 PolyCurve	OffsetMany(double, bool, Vector)	Unassessed		
 PolyCurve	Points	Unassessed		
-PolyCurve	ToString()	Done	Spark.Geometry.PolyCurve.ToString	matched by name; not yet reviewed
+PolyCurve	ToString()	Done	Spark.Geometry.PolyCurve.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 PolySurface	ByJoinedSurfaces(IEnumerable<Surface>)	Unassessed		
 PolySurface	ByLoft(IEnumerable<Curve>)	Unassessed		
 PolySurface	ByLoft(IEnumerable<Curve>, Curve)	Unassessed		
@@ -524,25 +525,25 @@ PolySurface	BySolid(Solid)	Unassessed
 PolySurface	BySweep(Curve, Curve)	Unassessed		
 PolySurface	BySweep(Curve, IEnumerable<Curve>)	Unassessed		
 PolySurface	Chamfer(IEnumerable<Edge>, double)	Unassessed		
-PolySurface	EdgeCount()	Done	Spark.Geometry.Brep.EdgeCount	matched by name; not yet reviewed
+PolySurface	EdgeCount()	Done	Spark.Geometry.Brep.EdgeCount	reviewed 2026-09-12: the same capability under the same name.
 PolySurface	ExtractSolids()	Unassessed		
 PolySurface	Fillet(IEnumerable<Edge>, double)	Unassessed		
 PolySurface	LocateSurfacesByLine(Line)	Unassessed		
 PolySurface	LocateSurfacesByPoint(Point, Vector)	Unassessed		
 PolySurface	SurfaceCount()	Unassessed		
-PolySurface	Surfaces()	Done	Spark.Geometry.Brep.Surfaces	matched by name; not yet reviewed
-PolySurface	ToString()	Done	Spark.Geometry.Brep.ToString	matched by name; not yet reviewed
+PolySurface	Surfaces()	Unassessed		reviewed 2026-09-12 and DEMOTED: the name match hid a real difference. Brep.Surfaces() hands back the face surfaces in index order - the untrimmed surface table - and Dynamo returns the trimmed faces. The faithful equivalent is a face's trimmed surface, which needs the pcurves a trim does not carry yet (E2-T64).
+PolySurface	ToString()	Done	Spark.Geometry.Brep.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 PolySurface	UnconnectedBoundaries()	Unassessed		
-PolySurface	VertexCount()	Done	Spark.Geometry.Brep.VertexCount	matched by name; not yet reviewed
+PolySurface	VertexCount()	Done	Spark.Geometry.Brep.VertexCount	reviewed 2026-09-12: the same capability under the same name.
 Polygon	ByPoints(IEnumerable<Point>)	Unassessed		
 Polygon	Center()	Unassessed		
 Polygon	ContainmentTest(Point)	Unassessed		
 Polygon	Corners()	Unassessed		
 Polygon	PlaneDeviation	Unassessed		
-Polygon	Points	Done	Spark.Geometry.PolyLine.Points	matched by name; not yet reviewed
+Polygon	Points	Done	Spark.Geometry.PolyLine.Points	reviewed 2026-09-12: the same capability under the same name.
 Polygon	RegularPolygon(Circle, int)	Unassessed		
 Polygon	SelfIntersections()	Unassessed		
-Polygon	ToString()	Done	Spark.Geometry.PolyLine.ToString	matched by name; not yet reviewed
+Polygon	ToString()	Done	Spark.Geometry.PolyLine.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 ProtoGeometryConfiguration	GeometryFactoryFileName	Not planned		§5 [b]: names the native DLLs ProtoGeometry loads; Spark loads none to do geometry.
 ProtoGeometryConfiguration	PersistentManagerFileName	Not planned		§5 [b]: names the native DLLs ProtoGeometry loads; Spark loads none to do geometry.
 Rectangle	ByCornerPoints(IEnumerable<Point>)	Unassessed		
@@ -573,7 +574,7 @@ Solid	ProjectInputOnto(Geometry, Vector)	Unassessed
 Solid	Repair()	Unassessed		
 Solid	Separate()	Unassessed		
 Solid	ThinShell(double, double)	Unassessed		
-Solid	ToString()	Done	Spark.Geometry.Brep.ToString	matched by name; not yet reviewed
+Solid	ToString()	Done	Spark.Geometry.Brep.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Solid	Union(Solid)	Unassessed		
 Solid	UnionAll(IEnumerable<Solid>)	Unassessed		
 Solid	Volume	Unassessed		
@@ -584,7 +585,7 @@ Sphere	CenterPoint	Not planned		§5 [h], §3.4: Spark makes a Brep from a factor
 Sphere	Radius	Not planned		§5 [h], §3.4: Spark makes a Brep from a factory and does not keep the defining parameters; they are on the Brep's analytic faces.
 Sphere	ToString()	Unassessed		
 Surface	ApproximateWithTolerance(double)	Unassessed		
-Surface	Area	Done	Spark.Geometry.Surface.Area	matched by name; not yet reviewed
+Surface	Area	Done	Spark.Geometry.Surface.Area	reviewed 2026-09-12: the same capability under the same name.
 Surface	ByLoft(IEnumerable<Curve>)	Unassessed		
 Surface	ByLoft(IEnumerable<Curve>, Curve)	Unassessed		
 Surface	ByLoft(IEnumerable<Curve>, IEnumerable<Curve>)	Unassessed		
@@ -803,12 +804,12 @@ Topology	Faces	Unassessed
 Topology	ToString()	Unassessed		
 Topology	Vertices	Unassessed		
 UV	ByCoordinates(double, double)	Unassessed		
-UV	Equals(object)	Done	Spark.Geometry.UV.Equals	matched by name; not yet reviewed
-UV	GetHashCode()	Done	Spark.Geometry.UV.GetHashCode	matched by name; not yet reviewed
-UV	ToString()	Done	Spark.Geometry.UV.ToString	matched by name; not yet reviewed
-UV	U	Done	Spark.Geometry.UV.U	matched by name; not yet reviewed
-UV	V	Done	Spark.Geometry.UV.V	matched by name; not yet reviewed
-Vector	Add(Vector)	Done	Spark.Geometry.Vector3d.Add	matched by name; not yet reviewed
+UV	Equals(object)	Done	Spark.Geometry.UV.Equals	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+UV	GetHashCode()	Done	Spark.Geometry.UV.GetHashCode	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+UV	ToString()	Done	Spark.Geometry.UV.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+UV	U	Done	Spark.Geometry.UV.U	reviewed 2026-09-12: the same capability under the same name.
+UV	V	Done	Spark.Geometry.UV.V	reviewed 2026-09-12: the same capability under the same name.
+Vector	Add(Vector)	Done	Spark.Geometry.Vector3d.Add	reviewed 2026-09-12: the same capability under the same name.
 Vector	AngleAboutAxis(Vector, Vector)	Unassessed		
 Vector	AngleBetween(Vector)	Unassessed		
 Vector	AngleBetween(Vector, Vector)	Unassessed		
@@ -817,29 +818,29 @@ Vector	AsPoint()	Unassessed
 Vector	ByCoordinates(double, double, double)	Unassessed		
 Vector	ByCoordinates(double, double, double, bool)	Unassessed		
 Vector	ByTwoPoints(Point, Point)	Unassessed		
-Vector	Cross(Vector)	Done	Spark.Geometry.Vector3d.Cross	matched by name; not yet reviewed
-Vector	Dot(Vector)	Done	Spark.Geometry.Vector3d.Dot	matched by name; not yet reviewed
+Vector	Cross(Vector)	Done	Spark.Geometry.Vector3d.Cross	reviewed 2026-09-12: the same capability under the same name.
+Vector	Dot(Vector)	Done	Spark.Geometry.Vector3d.Dot	reviewed 2026-09-12: the same capability under the same name.
 Vector	FromJson(string)	Unassessed		
 Vector	IsAlmostEqualTo(Vector)	Unassessed		
 Vector	IsParallel(Vector)	Unassessed		
-Vector	Length	Done	Spark.Geometry.Vector3d.Length	matched by name; not yet reviewed
+Vector	Length	Done	Spark.Geometry.Vector3d.Length	reviewed 2026-09-12: the same capability under the same name.
 Vector	Normalized()	Unassessed		
 Vector	Reverse()	Unassessed		
-Vector	Rotate(Plane, double)	Done	Spark.Geometry.Vector3d.Rotate	matched by name; not yet reviewed
-Vector	Rotate(Vector, double)	Done	Spark.Geometry.Vector3d.Rotate	matched by name; not yet reviewed
+Vector	Rotate(Plane, double)	Done	Spark.Geometry.Vector3d.Rotate	reviewed 2026-09-12: Spark rotates about an axis vector, and for a plane that axis is its normal. The same capability, reached as vector.Rotate(plane.Normal, angle).
+Vector	Rotate(Vector, double)	Done	Spark.Geometry.Vector3d.Rotate	reviewed 2026-09-12: the same capability under the same name.
 Vector	Scale(double)	Unassessed		
 Vector	Scale(double, double, double)	Unassessed		
-Vector	Subtract(Vector)	Done	Spark.Geometry.Vector3d.Subtract	matched by name; not yet reviewed
+Vector	Subtract(Vector)	Done	Spark.Geometry.Vector3d.Subtract	reviewed 2026-09-12: the same capability under the same name.
 Vector	ToJson()	Unassessed		
-Vector	ToString()	Done	Spark.Geometry.Vector3d.ToString	matched by name; not yet reviewed
+Vector	ToString()	Done	Spark.Geometry.Vector3d.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Vector	Transform(CoordinateSystem)	Unassessed		
-Vector	X	Done	Spark.Geometry.Vector3d.X	matched by name; not yet reviewed
-Vector	XAxis()	Done	Spark.Geometry.Vector3d.XAxis	matched by name; not yet reviewed
-Vector	Y	Done	Spark.Geometry.Vector3d.Y	matched by name; not yet reviewed
-Vector	YAxis()	Done	Spark.Geometry.Vector3d.YAxis	matched by name; not yet reviewed
-Vector	Z	Done	Spark.Geometry.Vector3d.Z	matched by name; not yet reviewed
-Vector	ZAxis()	Done	Spark.Geometry.Vector3d.ZAxis	matched by name; not yet reviewed
+Vector	X	Done	Spark.Geometry.Vector3d.X	reviewed 2026-09-12: the same capability under the same name.
+Vector	XAxis()	Done	Spark.Geometry.Vector3d.XAxis	reviewed 2026-09-12: the same capability under the same name.
+Vector	Y	Done	Spark.Geometry.Vector3d.Y	reviewed 2026-09-12: the same capability under the same name.
+Vector	YAxis()	Done	Spark.Geometry.Vector3d.YAxis	reviewed 2026-09-12: the same capability under the same name.
+Vector	Z	Done	Spark.Geometry.Vector3d.Z	reviewed 2026-09-12: the same capability under the same name.
+Vector	ZAxis()	Done	Spark.Geometry.Vector3d.ZAxis	reviewed 2026-09-12: the same capability under the same name.
 Vertex	AdjacentEdges	Unassessed		
 Vertex	AdjacentFaces	Unassessed		
 Vertex	PointGeometry	Unassessed		
-Vertex	ToString()	Done	Spark.Geometry.BrepVertex.ToString	matched by name; not yet reviewed
+Vertex	ToString()	Done	Spark.Geometry.BrepVertex.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.

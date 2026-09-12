@@ -1,0 +1,67 @@
+# The Dynamo parity exclusions (E11-T23 step B, DYNAMO-COVERAGE §7).
+#
+# The reverse direction of the parity manifest: of every public member of Spark.Geometry, either a
+# row of dynamo-parity.tsv names it, or this file says why no row needs to. A member that is neither
+# is counted against the residue budget at the foot of this file.
+#
+# IT EXCUSES BY RULE AND NEVER MEMBER BY MEMBER. Spark.Geometry declares 877 public members by the
+# manifest's own counting rule - methods, properties, enum values and operators, and not constructors
+# or property accessors - and 790 of them are named by no row today. A file holding 790 hand-written
+# excuses would be the drifting artefact §7 exists to prevent. Two scopes do the work - a member-name
+# rule that applies on any type, and a whole type Dynamo has no counterpart for - and what neither
+# reaches is counted rather than waved through.
+#
+# Scope:
+#   MemberName  Name is a member name, or op_* for the operators. Excused wherever it appears.
+#   Type        Name is a full type name. Refused if any parity row names one of its members.
+#   Budget      Name is "residue"; Reason begins with the count. The check requires an EXACT match,
+#               so the number falls as rows are assessed and cannot quietly climb back.
+Scope	Name	Reason
+MemberName	Equals	.NET plumbing rather than capability. Every Spark value type overrides it, ProtoGeometry's types override it too, and a parity row for it would measure the language rather than the geometry.
+MemberName	GetHashCode	.NET plumbing rather than capability. Every Spark value type overrides it, ProtoGeometry's types override it too, and a parity row for it would measure the language rather than the geometry.
+MemberName	ToString	.NET plumbing rather than capability. Every Spark value type overrides it, ProtoGeometry's types override it too, and a parity row for it would measure the language rather than the geometry.
+MemberName	Deconstruct	.NET plumbing rather than capability. Every Spark value type overrides it, ProtoGeometry's types override it too, and a parity row for it would measure the language rather than the geometry.
+MemberName	op_*	.NET plumbing rather than capability. Every Spark value type overrides it, ProtoGeometry's types override it too, and a parity row for it would measure the language rather than the geometry.
+Type	Spark.Geometry.Angle	An angle with its unit in the type (ADR-0011). Dynamo passes bare doubles and states degrees in documentation.
+Type	Spark.Geometry.BoundingVolumeHierarchy	A spatial index over boxes. Dynamo has no spatial index in its public surface.
+Type	Spark.Geometry.BrepBuilder	Builds a Brep incrementally with validation. Dynamo has no builder; its topology is produced by operations only.
+Type	Spark.Geometry.BrepData	The nine flat arrays a Brep crosses the kernel seam as (ADR-0021). An implementation detail of residency, with no Dynamo counterpart.
+Type	Spark.Geometry.BrepEdgeView	As BrepFaceView, for an edge.
+Type	Spark.Geometry.BrepFaceView	A reading view over a face and its loops. The view types exist because the topology is index-based; Dynamo's topology is an object graph.
+Type	Spark.Geometry.BrepLoopKind	Whether a loop is outer or inner. Dynamo does not expose loop kind.
+Type	Spark.Geometry.BrepLoopView	As BrepFaceView, for a loop.
+Type	Spark.Geometry.BrepPrimitives	Box and cylinder built from explicit topology, with no intersection needed. Dynamo's primitives are Cuboid and Cylinder types, counted there and refused as types in §3.4.
+Type	Spark.Geometry.BrepResidency	Where a Brep's authoritative form lives while a provider holds it (ADR-0021). No Dynamo counterpart.
+Type	Spark.Geometry.BrepShell	A shell in the index-based topology (E2-T22). Dynamo has no shell type; its Topology exposes faces and edges only.
+Type	Spark.Geometry.BrepShellView	As BrepFaceView, for a shell.
+Type	Spark.Geometry.ConicalSurface	An analytic cone. As PlaneSurface.
+Type	Spark.Geometry.CurveIntersectionPoint	One intersection with both parameters. As CurveIntersections.
+Type	Spark.Geometry.CurveIntersections	The result of a curve-curve intersection - points and overlaps together. Dynamo returns bare arrays and has no result type.
+Type	Spark.Geometry.CurveOffset	Curve offsetting and the fillet between two curves. Dynamo's equivalents are Curve.Offset and Arc.ByFillet, counted on those types.
+Type	Spark.Geometry.CurveOverlap	A shared span of two curves. As CurveIntersections.
+Type	Spark.Geometry.CylindricalSurface	An analytic cylinder. As PlaneSurface.
+Type	Spark.Geometry.ExtrusionSurface	An analytic extrusion. As PlaneSurface.
+Type	Spark.Geometry.GeometryJson	Spark's own serialisation (FR-57). Dynamo's is SAT/SAB and FromJson/ToJson, refused in §5 [g].
+Type	Spark.Geometry.ITessellationSink	Where a tessellation is written. As Tessellation.
+Type	Spark.Geometry.Interval	A 1D interval, used for domains and ranges. Dynamo has no interval type.
+Type	Spark.Geometry.KnotVector	A NURBS knot vector as a type. Dynamo exposes knots as a double array on the curve or surface, which is counted there.
+Type	Spark.Geometry.MeshBuilder	Builds a mesh incrementally. Dynamo constructs meshes from whole arrays.
+Type	Spark.Geometry.MeshFace	A mesh face as a value. Dynamo's mesh faces are index triples in flat arrays, counted on Mesh.
+Type	Spark.Geometry.MeshTopology	The halfedge view of a mesh - naked edges, closure. Dynamo has no topology type for meshes.
+Type	Spark.Geometry.PlaneSurface	An analytic plane surface. Dynamo has no analytic surface types at all - every surface it exposes is a NURBS surface or a PolySurface, which §3.3 records.
+Type	Spark.Geometry.Point2d	A 2D point, for the planar layer. Dynamo has no 2D point type.
+Type	Spark.Geometry.PointCloud	Points with a spatial index (E2-T21). Dynamo has no point-cloud type.
+Type	Spark.Geometry.Quaternion	Rotation without gimbal lock, for interpolation. Dynamo has no quaternion type.
+Type	Spark.Geometry.Ray	A half-line for casting. Dynamo has no ray type; its intersection members take geometry.
+Type	Spark.Geometry.Planar.Region	The planar layer's area type (FR-60). Dynamo has no planar region type; its nearest is Polygon, counted there.
+Type	Spark.Geometry.Planar.RegionJoin	How a corner is turned when a region is offset. As Region.
+Type	Spark.Geometry.RevolutionSurface	An analytic surface of revolution. As PlaneSurface.
+Type	Spark.Geometry.RuledSurface	An analytic ruled surface. As PlaneSurface.
+Type	Spark.Geometry.SphericalSurface	An analytic sphere. As PlaneSurface.
+Type	Spark.Geometry.SurfaceConversion	Exact analytic-to-NURBS conversion. Dynamo has no such member because it has no analytic surfaces to convert.
+Type	Spark.Geometry.Tessellation	Surface to mesh, ours because the mesh model is ours (ADR-0003 keeps tessellation in front of the seam). Dynamo tessellates through IRenderPackage, which §5 [e] refuses.
+Type	Spark.Geometry.Tolerance	An explicit tolerance value, passed to every operation that needs one (ADR-0010). Dynamo uses ambient tolerances, which is what this type exists not to do.
+Type	Spark.Geometry.ToroidalSurface	An analytic torus. As PlaneSurface.
+Type	Spark.Geometry.Transform	Spark's 4x4 matrix. Dynamo has no such type - it puts the whole transformation algebra on CoordinateSystem, which §3.1 records as the largest deliberate shape difference in the value layer.
+Type	Spark.Geometry.Vector2d	A 2D vector. Dynamo has no 2D vector type; UV is its nearest and is a parameter pair, not a direction.
+Budget	residue	278 members are named by no row and excused by no rule. They are not excusable: they sit on types that DO map to a Dynamo type, so each one is either a member some Unassessed row will name once it is assessed, or a genuine gap. The number is a ceiling and a live measure of the review - lower it as rows are assessed, and a rise means a member was added to a mapped type with no thought for the register.

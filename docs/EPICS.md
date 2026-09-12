@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-11 (`E5-T10`: generic methods closed over object)
+**Last updated:** 2026-09-12 (`E11-T23` closes: the parity register's reverse direction)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1353,6 +1353,17 @@ nothing.
       `LacingCaseTests` and `LacingCorpusCoverageTests`; ticked by the 2026-09-11 reconciliation.*
 - [x] The node↔member two-way diff passes in both directions (**E11-T13**). *It is `E5-T6`'s
       `NodeLibraryCoverageTests`; ticked by the 2026-09-11 reconciliation.*
+- [x] The Dynamo parity register is a checked manifest with a two-way diff, not a hand-maintained
+      Markdown table (**E11-T23**, [DYNAMO-COVERAGE §7](DYNAMO-COVERAGE.md#7-how-this-document-is-kept-true)).
+      *`tests/corpus/dynamo-parity.tsv` holds one row per ProtoGeometry member and
+      `DynamoParityChecks` fails four ways: a malformed row, a total that disagrees with the
+      document, a `Done` row naming a member that no longer exists (**the rename-catcher**), and a
+      public `Spark.Geometry` member that no row names, no rule excuses and the residue budget does
+      not account for (**the reverse direction**, 2026-09-12). The budget is checked for **exact**
+      equality, so it falls as rows are assessed and cannot climb back. The failure messages say
+      **present, never equivalent**, because [ADR-0016](adr/0016-no-dynamo-interoperability.md) says
+      equivalence is unprovable — and the 89-row review that closed the task found one name match
+      that was not the same capability ([N156](NOTES.md)), which is why a green run is not a review.*
 - [ ] The `docs-freshness` job fails a diff that changes a public-API baseline or touches
       `src/Spark.Nodes.*` without touching `docs/`, overridable only by an explicit
       `docs: none-needed` commit trailer that is **visible in review**. A silent exemption

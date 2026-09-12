@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-11 (N144–N155: … a token overload reaches every test; the code-example generator counted parameters as ports)
+**Last updated:** 2026-09-12 (N156: one row in 89 where the name matched and the capability did not)
 
 ---
 
@@ -4672,3 +4672,27 @@ library, and the new tests imported a fixture of their own.
 the importer has three places that map parameters — the port loop, the invoker's argument builder
 and this example — and a parameter that is not a port has to be taught to all three. Test a new
 kind against the real first-party library, not only against a fixture.
+
+---
+
+## N156 — One row in 89 where the name matched and the capability did not
+
+`E11-T23` step A seeded 89 `Done` rows by an exact member-name match on the mapped Spark type and
+marked every one *matched by name; not yet reviewed*, because a name match is a hypothesis, not
+evidence. Step B reviewed all 89 by hand. **One was wrong**, and it is worth recording which kind.
+
+`PolySurface.Surfaces()` had matched `Spark.Geometry.Brep.Surfaces()`. Dynamo's returns the
+PolySurface's **trimmed** faces as surfaces. Spark's returns the **untrimmed** surface table in face
+index order — the geometry a face is a trimmed window onto, which is what an index-based topology
+stores. Same name, same return shape, same arity, different answer for any face with a hole in it.
+The row is now `Unassessed` with that reason: the faithful equivalent needs a trim's pcurves, which
+`E2-T64` carries.
+
+**The other 88 held**, and 24 of them are `ToString`, `Equals` and `GetHashCode` — presence and
+nothing more, now said so in their reasons rather than counted as if they closed a gap.
+
+**The rate is the point, not the one row.** One in 89 is low enough that the seeding was worth doing
+and high enough that shipping it unreviewed would have put a false claim in a register whose whole
+value is that it is consulted with confidence. **The marker in the data is what made the review
+finite**: a `Done` row that carries *how it was decided* can be re-examined, and one that does not
+cannot be told apart from a row somebody actually checked.
