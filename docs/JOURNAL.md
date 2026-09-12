@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-12 (`E11-T23` closes: the parity register's reverse direction)
+**Last updated:** 2026-09-12 (`docs/progress.html` added: a dashboard over the documents)
 **Protocol version:** 2
 
 ---
@@ -12538,3 +12538,28 @@ first.
 **What this step is really evidence for.** The screenshot was the client's, the question *what should
 I test* was theirs, and the answer that mattered — a kernel defect three commits deep — came from
 refusing to accept a picture as proof of a claim I had written into the register that morning.
+
+### 2026-09-12 — `docs/progress.html`, a dashboard over the documents
+
+**What.** A single-file progress dashboard at `docs/progress.html`, asked for directly by the
+client. One page: the 406-row register broken out by status and by epic, the milestone track, the
+three gates and the suite, the Dynamo parity manifest's five states, the tree's line counts,
+commits per day, and the four things waiting on a person rather than on code. No external
+resources — it opens from the file system, and it reads correctly in a light or a dark browser.
+
+**Not a register row, and it says so.** This is a *view* of `TASKS.md`, `JOURNAL.md`,
+`DYNAMO-COVERAGE.md` and `tests/corpus/dynamo-parity.tsv`, never a substitute for them. Every
+number on it was parsed from one of those four or from the repository, and the footer names which.
+*Current state* is untouched and `E2-T45` is still the next action.
+
+**The one thing worth keeping.** The page shows **two parity figures that disagree**, with a warning
+triangle on the difference rather than a reconciliation: DYNAMO-COVERAGE's headline still reads
+*99 reachable, 11.8%*, which predates the curve, surface and solid layers, while the manifest reads
+174 done of a 558-member committed surface. Re-counting the headline is `E2-T46`'s job. A dashboard
+that quietly averaged the two would have been worse than one that shows the gap — which is the same
+argument the register makes about its own summary line: **re-derive it, do not adjust it.**
+
+**Verified.** The markup is balanced, the per-epic percentages re-computed from the parsed counts
+(`done ÷ rows less withdrawn and deferred`), and the totals agree with the register's own summary
+line — 358 done, 8 in progress, 21 open, 6 blocked, 2 deferred, 11 withdrawn over 406 rows. The
+gates were not re-run: no code changed.

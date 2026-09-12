@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spark — Progress</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f5;
+    --panel: #ffffff;
+    --panel-2: #fbfbfa;
+    --ink: #1b1b19;
+    --ink-2: #55534e;
+    --ink-3: #8a8780;
+    --rule: #e3e1dc;
+    --rule-2: #d2cfc8;
+    --accent: #b4530a;
+
+    --done: #3f7d58;
+    --progress: #b8860b;
+    --open: #4a6fa5;
+    --blocked: #a63d40;
+    --deferred: #6b5b95;
+    --withdrawn: #9b9894;
+
+    --done-soft: #e6efe9;
+    --progress-soft: #f6eeda;
+    --open-soft: #e6ecf4;
+    --blocked-soft: #f5e5e5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16161a;
+      --panel: #1e1e23;
+      --panel-2: #24242a;
+      --ink: #eceae5;
+      --ink-2: #b0ada6;
+      --ink-3: #7c7972;
+      --rule: #32323a;
+      --rule-2: #43434d;
+      --accent: #e08a42;
+
+      --done: #6aab84;
+      --progress: #d9a63c;
+      --open: #7c9dcb;
+      --blocked: #d4696c;
+      --deferred: #9d8ec4;
+      --withdrawn: #6e6b66;
+
+      --done-soft: #23322a;
+      --progress-soft: #342c1a;
+      --open-soft: #222934;
+      --blocked-soft: #342224;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16161a; --panel: #1e1e23; --panel-2: #24242a;
+    --ink: #eceae5; --ink-2: #b0ada6; --ink-3: #7c7972;
+    --rule: #32323a; --rule-2: #43434d; --accent: #e08a42;
+    --done: #6aab84; --progress: #d9a63c; --open: #7c9dcb;
+    --blocked: #d4696c; --deferred: #9d8ec4; --withdrawn: #6e6b66;
+    --done-soft: #23322a; --progress-soft: #342c1a;
+    --open-soft: #222934; --blocked-soft: #342224;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding-block: 40px 72px; padding-left: 20px; padding-right: 20px; }
+
+  h1 { font-size: 30px; letter-spacing: -0.02em; margin: 0 0 4px; font-weight: 640; }
+  h2 {
+    font-size: 12px; letter-spacing: 0.11em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 660; margin: 0 0 14px;
+  }
+  h3 { font-size: 15px; margin: 0 0 10px; font-weight: 640; }
+  p { margin: 0 0 12px; }
+  a { color: var(--accent); }
+
+  .sub { color: var(--ink-2); font-size: 14px; margin: 0; }
+  .rule { height: 1px; background: var(--rule); border: 0; margin: 36px 0; }
+
+  section { margin-top: 40px; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  /* ---- headline ---- */
+  .headline {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 28px;
+    align-items: center;
+  }
+  @media (max-width: 700px) {
+    .headline { grid-template-columns: 1fr; gap: 20px; justify-items: center; text-align: center; }
+  }
+  .ring { flex: none; max-width: 100%; }
+  .ring text.big { font-size: 30px; font-weight: 680; fill: var(--ink); }
+  .ring text.small { font-size: 10px; fill: var(--ink-3); letter-spacing: 0.08em; }
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .tile { background: var(--panel-2); padding: 12px 14px; }
+  .tile .n { font-size: 22px; font-weight: 660; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .tile .l { font-size: 11px; color: var(--ink-3); letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px; }
+  .tile.done .n { color: var(--done); }
+  .tile.progress .n { color: var(--progress); }
+  .tile.open .n { color: var(--open); }
+  .tile.blocked .n { color: var(--blocked); }
+  .tile.deferred .n { color: var(--deferred); }
+  .tile.withdrawn .n { color: var(--withdrawn); }
+
+  /* ---- legend ---- */
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--ink-2); margin-bottom: 16px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 10px; height: 10px; border-radius: 2px; flex: none; display: inline-block; }
+
+  /* ---- epic bars ---- */
+  .epic { display: grid; grid-template-columns: 222px 1fr 56px; gap: 14px; align-items: center; padding: 7px 0; }
+  .epic + .epic { border-top: 1px solid var(--rule); }
+  .epic .name { font-size: 13.5px; }
+  .epic .name b { font-weight: 640; }
+  .epic .name em { font-style: normal; color: var(--ink-3); font-size: 11.5px; display: block; letter-spacing: 0.03em; }
+  .epic .pct { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink-2); }
+  .bar { display: flex; height: 16px; border-radius: 3px; overflow: hidden; background: var(--rule); }
+  .bar i { display: block; height: 100%; }
+  .bar i.done { background: var(--done); }
+  .bar i.progress { background: var(--progress); }
+  .bar i.open { background: var(--open); }
+  .bar i.blocked { background: var(--blocked); }
+  .bar i.deferred { background: var(--deferred); }
+  .bar i.withdrawn { background: var(--withdrawn); }
+  @media (max-width: 640px) {
+    .epic { grid-template-columns: 1fr 48px; grid-template-areas: "name pct" "bar bar"; gap: 6px 10px; }
+    .epic .name { grid-area: name; } .epic .pct { grid-area: pct; } .epic .bar { grid-area: bar; }
+  }
+
+  /* ---- milestones ---- */
+  .miles { display: flex; flex-wrap: wrap; gap: 8px; }
+  .mile {
+    flex: 1 1 96px; min-width: 92px;
+    border: 1px solid var(--rule-2); border-radius: 7px;
+    padding: 10px 11px; background: var(--panel-2);
+  }
+  .mile.shipped { background: var(--done-soft); border-color: var(--done); }
+  .mile.active { background: var(--progress-soft); border-color: var(--progress); }
+  .mile .m { font-weight: 680; font-size: 14px; }
+  .mile .t { font-size: 11.5px; color: var(--ink-2); line-height: 1.35; margin-top: 2px; }
+  .mile .s { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 7px; color: var(--ink-3); }
+  .mile.shipped .s { color: var(--done); font-weight: 640; }
+  .mile.active .s { color: var(--progress); font-weight: 640; }
+
+  /* ---- tables ---- */
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); font-weight: 620; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: 0; }
+  .scroll { overflow-x: auto; }
+
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.92em; }
+
+  .pill {
+    display: inline-block; padding: 1px 7px; border-radius: 999px;
+    font-size: 11px; font-weight: 620; letter-spacing: 0.02em; white-space: nowrap;
+  }
+  .pill.progress { background: var(--progress-soft); color: var(--progress); }
+  .pill.open { background: var(--open-soft); color: var(--open); }
+  .pill.blocked { background: var(--blocked-soft); color: var(--blocked); }
+  .pill.deferred { background: var(--panel-2); color: var(--deferred); border: 1px solid var(--rule-2); }
+
+  /* ---- gates ---- */
+  .gates { display: grid; grid-template-columns: repeat(auto-fit, minmax(196px, 1fr)); gap: 12px; }
+  .gate { border: 1px solid var(--done); background: var(--done-soft); border-radius: 8px; padding: 12px 14px; }
+  .gate .g { font-weight: 640; font-size: 13.5px; color: var(--done); }
+  .gate .d { font-size: 12.5px; color: var(--ink-2); margin-top: 3px; }
+
+  /* ---- velocity ---- */
+  .vel { display: flex; align-items: flex-end; gap: 4px; height: 110px; }
+  .vel div { flex: 1; background: var(--accent); border-radius: 2px 2px 0 0; min-height: 2px; opacity: 0.85; }
+  .vel div.zero { background: var(--rule-2); opacity: 1; }
+  .velx { display: flex; gap: 4px; margin-top: 6px; font-size: 9.5px; color: var(--ink-3); }
+  .velx div { flex: 1; text-align: center; }
+
+  /* ---- notes ---- */
+  .note {
+    border-left: 3px solid var(--progress); background: var(--progress-soft);
+    padding: 11px 14px; border-radius: 0 7px 7px 0; font-size: 13.5px; color: var(--ink-2);
+  }
+  .note b { color: var(--ink); }
+  .note + .note { margin-top: 10px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 780px) { .two { grid-template-columns: 1fr; } }
+
+  footer { margin-top: 52px; padding-top: 18px; border-top: 1px solid var(--rule); font-size: 12.5px; color: var(--ink-3); }
+  footer p { margin: 0 0 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Spark — progress</h1>
+    <p class="sub">
+      A parametric design environment for AEC, in marathon development towards 1.0.
+      Snapshot of <b>2026-09-12</b>, derived from the task register, the journal and the repository.
+    </p>
+  </header>
+
+  <hr class="rule">
+
+  <!-- ============ HEADLINE ============ -->
+  <section style="margin-top:0">
+    <div class="card headline">
+      <svg class="ring" width="168" height="168" viewBox="0 0 168 168" role="img" aria-label="358 of 393 active task rows are done, 91 percent">
+        <circle cx="84" cy="84" r="62" fill="none" stroke="var(--rule)" stroke-width="16"/>
+        <circle cx="84" cy="84" r="62" fill="none" stroke="var(--done)" stroke-width="16"
+                stroke-dasharray="354.9 34.7" transform="rotate(-90 84 84)"/>
+        <text class="big" x="84" y="80" text-anchor="middle">91%</text>
+        <text class="small" x="84" y="98" text-anchor="middle">358 / 393 ROWS</text>
+      </svg>
+
+      <div>
+        <h3 style="margin-bottom:12px">406 rows in the register — 393 of them still in scope</h3>
+        <div class="tiles">
+          <div class="tile done"><div class="n">358</div><div class="l">Done</div></div>
+          <div class="tile progress"><div class="n">8</div><div class="l">In progress</div></div>
+          <div class="tile open"><div class="n">21</div><div class="l">Open</div></div>
+          <div class="tile blocked"><div class="n">6</div><div class="l">Blocked</div></div>
+          <div class="tile deferred"><div class="n">2</div><div class="l">Deferred</div></div>
+          <div class="tile withdrawn"><div class="n">11</div><div class="l">Withdrawn</div></div>
+        </div>
+        <p class="sub" style="margin-top:12px; font-size:13px">
+          The 11 withdrawn and 2 deferred rows are out of the denominator: they are decisions, not
+          debt. Against all 406 rows the figure is 88.2%.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GATES ============ -->
+  <section>
+    <h2>The three gates, and the suite</h2>
+    <div class="gates">
+      <div class="gate">
+        <div class="g">Build — clean</div>
+        <div class="d"><span class="mono">dotnet build --no-incremental -warnaserror</span> over sixteen projects, zero warnings.</div>
+      </div>
+      <div class="gate">
+        <div class="g">Tests — 3,314 passing</div>
+        <div class="d">Ten test executables. Zero failures and <b>zero skips</b> — the native shim was present, so the OCCT provider was really exercised.</div>
+      </div>
+      <div class="gate">
+        <div class="g">Format — clean</div>
+        <div class="d"><span class="mono">dotnet format --verify-no-changes --severity warn</span>.</div>
+      </div>
+    </div>
+    <div class="note" style="margin-top:12px">
+      <b>⚠ Nothing runs in CI.</b> GitHub Actions was switched off on 2026-09-09 when the repository
+      went private and minutes stopped being free. A green local run is the whole of the evidence,
+      and four rows are <span class="pill blocked">Blocked</span> on nothing but a workflow that
+      cannot execute — they unblock themselves at the open-source release.
+    </div>
+  </section>
+
+  <!-- ============ MILESTONES ============ -->
+  <section>
+    <h2>Milestones</h2>
+    <div class="miles">
+      <div class="mile shipped"><div class="m">M0</div><div class="t">Foundations and docs</div><div class="s">Done</div></div>
+      <div class="mile shipped"><div class="m">M1</div><div class="t">Geometry core</div><div class="s">Done</div></div>
+      <div class="mile shipped"><div class="m">M1.5</div><div class="t">De-risk spike</div><div class="s">Done</div></div>
+      <div class="mile shipped"><div class="m">M1.6</div><div class="t">OCCT spike</div><div class="s">Done</div></div>
+      <div class="mile shipped"><div class="m">M2</div><div class="t">Walking skeleton and lacing</div><div class="s">Done</div></div>
+      <div class="mile shipped"><div class="m">M3</div><div class="t">NURBS curves</div><div class="s">Done</div></div>
+      <div class="mile shipped"><div class="m">M4</div><div class="t">C# code block</div><div class="s">Done</div></div>
+      <div class="mile shipped"><div class="m">M5</div><div class="t">Surfaces and mesh</div><div class="s">Done</div></div>
+      <div class="mile shipped"><div class="m">M6</div><div class="t">BRep and exact solids</div><div class="s">Done</div></div>
+      <div class="mile shipped"><div class="m">M7</div><div class="t">Packages and extensibility</div><div class="s">Done</div></div>
+      <div class="mile active"><div class="m">M8</div><div class="t">Embedding and 1.0</div><div class="s">In flight</div></div>
+    </div>
+    <p class="sub" style="margin-top:12px; font-size:13px">
+      Ten releases are tagged, <span class="mono">v0.1.0</span> through <span class="mono">v2026.9.0</span>.
+      The standing instruction is <b>no tag and no release until the register is worked out</b>, and the
+      end-user Help pass is deliberately sequenced after 1.0 (D19).
+    </p>
+  </section>
+
+  <!-- ============ EPICS ============ -->
+  <section>
+    <h2>Epics</h2>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--done)"></i>Done</span>
+      <span><i class="sw" style="background:var(--progress)"></i>In progress</span>
+      <span><i class="sw" style="background:var(--open)"></i>Open</span>
+      <span><i class="sw" style="background:var(--blocked)"></i>Blocked</span>
+      <span><i class="sw" style="background:var(--deferred)"></i>Deferred past 1.0</span>
+      <span><i class="sw" style="background:var(--withdrawn)"></i>Withdrawn</span>
+    </div>
+    <div class="card" style="padding:8px 20px">
+
+      <div class="epic">
+        <div class="name"><b>E1 · Foundations, build and CI</b><em>M0 · 33 rows</em></div>
+        <div class="bar" title="28 done, 2 open, 2 blocked, 1 withdrawn">
+          <i class="done" style="flex:28"></i><i class="open" style="flex:2"></i><i class="blocked" style="flex:2"></i><i class="withdrawn" style="flex:1"></i>
+        </div>
+        <div class="pct">88%</div>
+      </div>
+
+      <div class="epic">
+        <div class="name"><b>E2 · Geometry kernel</b><em>M1 M3 M5 M6 M8 · 67 rows</em></div>
+        <div class="bar" title="52 done, 1 in progress, 10 open, 4 withdrawn">
+          <i class="done" style="flex:52"></i><i class="progress" style="flex:1"></i><i class="open" style="flex:10"></i><i class="withdrawn" style="flex:4"></i>
+        </div>
+        <div class="pct">83%</div>
+      </div>
+
+      <div class="epic">
+        <div class="name"><b>E3 · Graph engine</b><em>M2 · 24 rows</em></div>
+        <div class="bar" title="24 done"><i class="done" style="flex:24"></i></div>
+        <div class="pct">100%</div>
+      </div>
+
+      <div class="epic">
+        <div class="name"><b>E4 · Replication and lacing</b><em>M2 · 13 rows</em></div>
+        <div class="bar" title="13 done"><i class="done" style="flex:13"></i></div>
+        <div class="pct">100%</div>
+      </div>
+
+      <div class="epic">
+        <div class="name"><b>E5 · Node authoring and library</b><em>M2 M3 · 16 rows</em></div>
+        <div class="bar" title="14 done, 1 in progress, 1 open">
+          <i class="done" style="flex:14"></i><i class="progress" style="flex:1"></i><i class="open" style="flex:1"></i>
+        </div>
+        <div class="pct">88%</div>
+      </div>
+
+      <div class="epic">
+        <div class="name"><b>E6 · C# code block</b><em>M4 · 75 rows</em></div>
+        <div class="bar" title="71 done, 1 in progress, 1 open, 1 blocked, 1 withdrawn">
+          <i class="done" style="flex:71"></i><i class="progress" style="flex:1"></i><i class="open" style="flex:1"></i><i class="blocked" style="flex:1"></i><i class="withdrawn" style="flex:1"></i>
+        </div>
+        <div class="pct">96%</div>
+      </div>
+
+      <div class="epic">
+        <div class="name"><b>E7 · Packages and extensibility</b><em>M7 · 25 rows</em></div>
+        <div class="bar" title="24 done, 1 in progress">
+          <i class="done" style="flex:24"></i><i class="progress" style="flex:1"></i>
+        </div>
+        <div class="pct">96%</div>
+      </div>
+
+      <div class="epic">
+        <div class="name"><b>E8 · UI shell and node canvas</b><em>M2 · 51 rows</em></div>
+        <div class="bar" title="49 done, 1 in progress, 1 blocked">
+          <i class="done" style="flex:49"></i><i class="progress" style="flex:1"></i><i class="blocked" style="flex:1"></i>
+        </div>
+        <div class="pct">96%</div>
+      </div>
+
+      <div class="epic">
+        <div class="name"><b>E9 · 3D viewport</b><em>M2 M5 · 15 rows</em></div>
+        <div class="bar" title="15 done"><i class="done" style="flex:15"></i></div>
+        <div class="pct">100%</div>
+      </div>
+
+      <div class="epic">
+        <div class="name"><b>E10 · Documentation</b><em>M0 onwards · 16 rows</em></div>
+        <div class="bar" title="13 done, 1 in progress, 2 open">
+          <i class="done" style="flex:13"></i><i class="progress" style="flex:1"></i><i class="open" style="flex:2"></i>
+        </div>
+        <div class="pct">81%</div>
+      </div>
+
+      <div class="epic">
+        <div class="name"><b>E11 · Quality and verification</b><em>M0 onwards · 30 rows</em></div>
+        <div class="bar" title="24 done, 1 in progress, 4 open, 1 blocked">
+          <i class="done" style="flex:24"></i><i class="progress" style="flex:1"></i><i class="open" style="flex:4"></i><i class="blocked" style="flex:1"></i>
+        </div>
+        <div class="pct">80%</div>
+      </div>
+
+      <div class="epic">
+        <div class="name"><b>E12 · Embedding and release</b><em>M8 · 23 rows</em></div>
+        <div class="bar" title="14 done, 1 in progress, 1 open, 2 deferred, 5 withdrawn">
+          <i class="done" style="flex:14"></i><i class="progress" style="flex:1"></i><i class="open" style="flex:1"></i><i class="deferred" style="flex:2"></i><i class="withdrawn" style="flex:5"></i>
+        </div>
+        <div class="pct">88%</div>
+      </div>
+
+      <div class="epic">
+        <div class="name"><b>E13 · OCCT provider</b><em>M1.6 M6 M8 · 18 rows</em></div>
+        <div class="bar" title="17 done, 1 blocked">
+          <i class="done" style="flex:17"></i><i class="blocked" style="flex:1"></i>
+        </div>
+        <div class="pct">94%</div>
+      </div>
+
+    </div>
+    <p class="sub" style="margin-top:12px; font-size:13px">
+      Percentages are <i>done ÷ (rows less withdrawn and deferred)</i>. E13 — the OpenCascade provider,
+      the largest single change to the plan since it was written, estimated at roughly 24 weeks — is
+      17 of 18, with one row blocked on a missing toolchain rather than on design.
+    </p>
+  </section>
+
+  <!-- ============ WHAT REMAINS ============ -->
+  <section>
+    <h2>What remains — 37 rows</h2>
+    <div class="scroll card" style="padding:8px 12px">
+      <table>
+        <thead>
+          <tr><th style="width:80px">Row</th><th style="width:104px">State</th><th>Task</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="mono">E2-T41</td><td><span class="pill progress">In progress</span></td><td>Dynamo capability parity: curves — 187 members, the largest subsystem left</td></tr>
+          <tr><td class="mono">E5-T14</td><td><span class="pill progress">In progress</span></td><td>Geometry node coverage over <span class="mono">Spark.Geometry</span></td></tr>
+          <tr><td class="mono">E6-T14</td><td><span class="pill progress">In progress</span></td><td>The two node types over one pipeline</td></tr>
+          <tr><td class="mono">E7-T20</td><td><span class="pill progress">In progress</span></td><td>Install from nuget.org into the graph's folder, with its dependencies</td></tr>
+          <tr><td class="mono">E8-T14</td><td><span class="pill progress">In progress</span></td><td>Help panel and F1 — the generated-reference drill-down waits on the post-1.0 Help pass</td></tr>
+          <tr><td class="mono">E10-T3</td><td><span class="pill progress">In progress</span></td><td>Help skeleton under <span class="mono">docs/help/</span></td></tr>
+          <tr><td class="mono">E11-T16</td><td><span class="pill progress">In progress</span></td><td>Benchmark suite, run nightly — the budgets are a manual gate while Actions is off</td></tr>
+          <tr><td class="mono">E12-T5</td><td><span class="pill progress">In progress</span></td><td>The <span class="mono">spark</span> verbs — <span class="mono">render</span>, <span class="mono">pkg</span>, <span class="mono">docs</span>, <span class="mono">graph</span> unwritten</td></tr>
+
+          <tr><td class="mono">E2-T45</td><td><span class="pill open">Open</span></td><td><b>Next action</b> — Dynamo capability parity: mesh, §3.6's 65 members</td></tr>
+          <tr><td class="mono">E2-T46</td><td><span class="pill open">Open</span></td><td>Dynamo capability parity: infrastructure, and the coverage document's stale headline</td></tr>
+          <tr><td class="mono">E2-T66</td><td><span class="pill open">Open</span></td><td>§3.3's eighteen missing members; no sphere and no cone in <span class="mono">BrepPrimitives</span></td></tr>
+          <tr><td class="mono">E2-T67</td><td><span class="pill open">Open</span></td><td>Mass properties on a <span class="mono">Brep</span> exactly, not off the tessellation</td></tr>
+          <tr><td class="mono">E2-T64</td><td><span class="pill open">Open</span></td><td><span class="mono">Curve2d</span> for trim pcurves — deliberately waiting for a consumer</td></tr>
+          <tr><td class="mono">E2-T48</td><td><span class="pill open">Open</span></td><td>Decision: is T-Splines in scope at all? (Q12 — 169 members hang on it)</td></tr>
+          <tr><td class="mono">E2-T27</td><td><span class="pill open">Open</span></td><td>Robust mesh boolean — reduced to 1.x, not withdrawn</td></tr>
+          <tr><td class="mono">E2-T30</td><td><span class="pill open">Open</span></td><td>Compact binary <span class="mono">.sparkgeo</span> for bulk data</td></tr>
+          <tr><td class="mono">E2-T32</td><td><span class="pill open">Open</span></td><td>Harvest the DoodleSharp geometry tests</td></tr>
+          <tr><td class="mono">E2-T38</td><td><span class="pill open">Open</span></td><td>Golden-file geometry tests with readable diff tables</td></tr>
+          <tr><td class="mono">E13-T22</td><td><span class="pill open">Open</span></td><td>A face or edge index does not survive the crossing into OCCT</td></tr>
+          <tr><td class="mono">E11-T7</td><td><span class="pill open">Open</span></td><td>Link and asset integrity, and Markdown renderer parity against a golden corpus</td></tr>
+          <tr><td class="mono">E11-T11</td><td><span class="pill open">Open</span></td><td>Golden-file infrastructure with readable diff tables</td></tr>
+          <tr><td class="mono">E11-T15</td><td><span class="pill open">Open</span></td><td>Headless UI smoke test</td></tr>
+          <tr><td class="mono">E11-T17</td><td><span class="pill open">Open</span></td><td><span class="mono">tests/corpus/</span> regression corpus</td></tr>
+          <tr><td class="mono">E10-T12</td><td><span class="pill open">Open</span></td><td>Per-PR changelog fragments</td></tr>
+          <tr><td class="mono">E10-T14</td><td><span class="pill open">Open</span></td><td>Website</td></tr>
+          <tr><td class="mono">E5-T11</td><td><span class="pill open">Open</span></td><td>CI acceptance test: import a third-party NuGet package, assert a sane node count</td></tr>
+          <tr><td class="mono">E1-T22</td><td><span class="pill open">Open</span></td><td>Release workflow that verifies the computed version equals the tag</td></tr>
+          <tr><td class="mono">E1-T28</td><td><span class="pill open">Open</span></td><td>Branch protection, CI concurrency and build caching</td></tr>
+          <tr><td class="mono">E12-T16</td><td><span class="pill open">Open</span></td><td>Crash-reporting decision</td></tr>
+
+          <tr><td class="mono">E13-T18</td><td><span class="pill blocked">Blocked</span></td><td>An imported model's closed shells should come back as solids — the OpenCascade install is gone from this machine</td></tr>
+          <tr><td class="mono">E13-T21</td><td><span class="pill blocked">Blocked</span></td><td>The shim meshes a deep copy of the shape — same toolchain block</td></tr>
+          <tr><td class="mono">E1-T19</td><td><span class="pill blocked">Blocked</span></td><td>CI job: headless UI smoke — Actions is off</td></tr>
+          <tr><td class="mono">E1-T21</td><td><span class="pill blocked">Blocked</span></td><td>Nightly benchmark workflow — Actions is off</td></tr>
+          <tr><td class="mono">E8-T15</td><td><span class="pill blocked">Blocked</span></td><td>2,000-node canvas benchmark, nightly — Actions is off</td></tr>
+          <tr><td class="mono">E11-T14</td><td><span class="pill blocked">Blocked</span></td><td><span class="mono">docs-freshness</span> CI job — Actions is off</td></tr>
+
+          <tr><td class="mono">E12-T2</td><td><span class="pill deferred">Post-1.0</span></td><td><span class="mono">IHostServices</span> seam (D20)</td></tr>
+          <tr><td class="mono">E12-T4</td><td><span class="pill deferred">Post-1.0</span></td><td>Prove <span class="mono">Spark.Host</span> inside a real Revit or AutoCAD add-in (D20)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ DYNAMO PARITY ============ -->
+  <section>
+    <h2>Dynamo capability parity</h2>
+    <div class="card">
+      <p style="margin-top:0">
+        <span class="mono">ProtoGeometry.dll</span> as shipped with Revit 2026 declares
+        <b>51 public types</b> and <b>837 public members</b>. Every one is tracked on its own row in
+        <span class="mono">tests/corpus/dynamo-parity.tsv</span>, checked against the coverage
+        document in both directions on every build.
+      </p>
+
+      <div class="bar" style="height:26px; border-radius:5px" title="174 done, 49 planned, 335 unassessed, 107 not planned, 172 needing a decision">
+        <i class="done" style="flex:174"></i>
+        <i class="progress" style="flex:49"></i>
+        <i class="open" style="flex:335"></i>
+        <i class="withdrawn" style="flex:107"></i>
+        <i class="deferred" style="flex:172"></i>
+      </div>
+      <div class="legend" style="margin-top:10px; margin-bottom:0">
+        <span><i class="sw" style="background:var(--done)"></i>Done — 174</span>
+        <span><i class="sw" style="background:var(--progress)"></i>Planned — 49</span>
+        <span><i class="sw" style="background:var(--open)"></i>Unassessed — 335</span>
+        <span><i class="sw" style="background:var(--withdrawn)"></i>Not planned — 107</span>
+        <span><i class="sw" style="background:var(--deferred)"></i>Needs a decision — 172</span>
+      </div>
+
+      <p style="margin:16px 0 0; font-size:13.5px; color:var(--ink-2)">
+        Against the <b>committed</b> surface — 837 less the 107 we refuse and the 172 awaiting a
+        decision, so <b>558 members</b> — Spark stands at <b>174, or 31%</b>.
+        169 of those 172 are T-Splines, which <span class="mono">E2-T48</span> settles.
+      </p>
+    </div>
+
+    <div class="scroll card" style="margin-top:12px; padding:8px 12px">
+      <table>
+        <thead>
+          <tr><th>Subsystem</th><th class="num">Types</th><th class="num">Members</th><th class="num">Reachable</th><th>State</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>3.1 Values and frames</td><td class="num">6</td><td class="num">133</td><td class="num">99</td><td>Assessed</td></tr>
+          <tr><td>3.2 Curves</td><td class="num">11</td><td class="num">187</td><td class="num">—</td><td><span class="pill progress">E2-T41</span> largest remaining</td></tr>
+          <tr><td>3.3 Surfaces</td><td class="num">5</td><td class="num">106</td><td class="num">48</td><td>Assessed 2026-09-12</td></tr>
+          <tr><td>3.4 Solids</td><td class="num">5</td><td class="num">55</td><td class="num">24</td><td>Assessed 2026-09-12</td></tr>
+          <tr><td>3.5 Topology</td><td class="num">6</td><td class="num">33</td><td class="num">31</td><td>Assessed 2026-09-12</td></tr>
+          <tr><td>3.6 Mesh</td><td class="num">2</td><td class="num">65</td><td class="num">—</td><td><span class="pill open">E2-T45</span> next</td></tr>
+          <tr><td>3.7 T-Splines</td><td class="num">8</td><td class="num">169</td><td class="num">0</td><td><span class="pill deferred">Q12</span> a second product</td></tr>
+          <tr><td>3.8 Infrastructure</td><td class="num">8</td><td class="num">89</td><td class="num">—</td><td><span class="pill open">E2-T46</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note" style="margin-top:12px">
+      <b>⚠ Two numbers disagree, and deliberately.</b> The coverage document's headline table still
+      reads <i>99 reachable, 11.8%</i>, which predates the curve, surface and solid layers; the
+      per-subsystem counts above and the manifest are current. Re-counting the headline is
+      <span class="mono">E2-T46</span>'s job, not a patch. And
+      <b>a percentage of members is not a percentage of work</b> —
+      <span class="mono">Solid.Difference</span> is one row and a multi-year research problem.
+    </div>
+  </section>
+
+  <!-- ============ CODE AND DOCS ============ -->
+  <section>
+    <h2>The tree</h2>
+    <div class="two">
+      <div class="card">
+        <h3>Code</h3>
+        <div class="scroll">
+          <table>
+            <tbody>
+              <tr><td>C# in <span class="mono">src/</span> — 13 projects</td><td class="num">92,832</td></tr>
+              <tr><td>C# in <span class="mono">tests/</span> — 10 projects</td><td class="num">63,721</td></tr>
+              <tr><td>C++ in <span class="mono">native/spark_occt</span></td><td class="num">4,346</td></tr>
+              <tr><td><b>Total lines</b></td><td class="num"><b>160,899</b></td></tr>
+              <tr><td>Tests passing</td><td class="num">3,314</td></tr>
+              <tr><td>Node families · node methods</td><td class="num">21 · 141</td></tr>
+              <tr><td>Public members in <span class="mono">Spark.Geometry</span></td><td class="num">1,039</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Documents</h3>
+        <div class="scroll">
+          <table>
+            <tbody>
+              <tr><td>Architecture decision records</td><td class="num">27</td></tr>
+              <tr><td>Notes — traps paid for once</td><td class="num">159</td></tr>
+              <tr><td>Journal entries</td><td class="num">278</td></tr>
+              <tr><td>Help topics written</td><td class="num">13</td></tr>
+              <tr><td>Commits</td><td class="num">332</td></tr>
+              <tr><td>Tags released</td><td class="num">10</td></tr>
+              <tr><td>Working days</td><td class="num">14</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VELOCITY ============ -->
+  <section>
+    <h2>Commits per day</h2>
+    <div class="card">
+      <div class="vel" role="img" aria-label="Commits per day from 27 August to 12 September 2026, peaking at 60 on 31 August">
+        <div style="height:13%" title="27 Aug — 8"></div>
+        <div style="height:22%" title="28 Aug — 13"></div>
+        <div style="height:15%" title="29 Aug — 9"></div>
+        <div style="height:50%" title="30 Aug — 30"></div>
+        <div style="height:100%" title="31 Aug — 60"></div>
+        <div style="height:52%" title="1 Sep — 31"></div>
+        <div style="height:30%" title="2 Sep — 18"></div>
+        <div style="height:10%" title="3 Sep — 6"></div>
+        <div class="zero" style="height:2px" title="4 Sep — 0"></div>
+        <div class="zero" style="height:2px" title="5 Sep — 0"></div>
+        <div class="zero" style="height:2px" title="6 Sep — 0"></div>
+        <div style="height:33%" title="7 Sep — 20"></div>
+        <div style="height:48%" title="8 Sep — 29"></div>
+        <div style="height:62%" title="9 Sep — 37"></div>
+        <div style="height:13%" title="10 Sep — 8"></div>
+        <div style="height:78%" title="11 Sep — 47"></div>
+        <div style="height:27%" title="12 Sep — 16"></div>
+      </div>
+      <div class="velx">
+        <div>27</div><div>28</div><div>29</div><div>30</div><div>31</div>
+        <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div>
+        <div>7</div><div>8</div><div>9</div><div>10</div><div>11</div><div>12</div>
+      </div>
+      <p class="sub" style="margin:10px 0 0; font-size:12.5px">
+        27–31 August, then September. 332 commits over 14 working days; a step is a commit.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ WAITING ON A HUMAN ============ -->
+  <section>
+    <h2>Waiting on a person, not on code</h2>
+    <div class="note">
+      <b>1 · The OpenCascade toolchain.</b> The install the shim was built against is gone from this
+      machine, and that is the whole of what blocks <span class="mono">E13-T18</span> and
+      <span class="mono">E13-T21</span>. The client reinstalls it by hand.
+    </div>
+    <div class="note">
+      <b>2 · Counsel.</b> Q13's questions, the first being whether <span class="mono">spark_occt</span>
+      is a <i>work that uses the Library</i> or a derivative work under LGPL §5. Reduced by D25 —
+      open source at release — but not closed.
+    </div>
+    <div class="note">
+      <b>3 · A signing identity.</b> Nothing is signed and the release notes say so, so a first run
+      shows SmartScreen. D26 settles that no certificate is bought for now.
+    </div>
+    <div class="note">
+      <b>4 · T-Splines, Q12.</b> 169 members — 20% of ProtoGeometry — sit behind one decision no
+      commit can make. It is the denominator of every parity figure on this page.
+    </div>
+  </section>
+
+  <footer>
+    <p><b>Provenance.</b> Row counts parsed from <a href="TASKS.md">TASKS.md</a>; parity counts from
+      <span class="mono">tests/corpus/dynamo-parity.tsv</span> and
+      <a href="DYNAMO-COVERAGE.md">DYNAMO-COVERAGE.md</a>; gate and suite figures from
+      <a href="JOURNAL.md">JOURNAL.md</a>'s <i>Current state</i>; line counts, commits and tags from
+      the repository at <span class="mono">64ca208</span>.</p>
+    <p><b>⚠ This page is a snapshot and it will drift.</b> It is a view of the documents and never a
+      substitute for them — re-derive it rather than adjusting it, exactly as the register's own
+      summary line instructs. The single source of truth for where the work stopped is
+      <a href="JOURNAL.md">JOURNAL.md</a>; priority order is <a href="TODO.md">TODO.md</a>; the full
+      register is <a href="TASKS.md">TASKS.md</a>.</p>
+  </footer>
+
+</div>
+</body>
+</html>
