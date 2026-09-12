@@ -6,10 +6,16 @@
 #
 # IT EXCUSES BY RULE AND NEVER MEMBER BY MEMBER. Spark.Geometry declares 895 public members by the
 # manifest's own counting rule - methods, properties, enum values and operators, and not constructors
-# or property accessors - and 784 of them are named by no row today. A file holding 784 hand-written
+# or property accessors - and 773 of them are named by no row today. A file holding 773 hand-written
 # excuses would be the drifting artefact §7 exists to prevent. Two scopes do the work - a member-name
 # rule that applies on any type, and a whole type Dynamo has no counterpart for - and what neither
-# reaches is counted rather than waved through. 44 rules today: 5 member names and 39 types.
+# reaches is counted rather than waved through. 43 rules today: 5 member names and 38 types.
+#
+# A ROW MAY NAME A TYPE RATHER THAN A MEMBER, and a Done row legitimately does when the capability is a
+# construction - Dynamo's Surface.ByRevolve is Spark's `new RevolutionSurface(...)`, and a constructor
+# is not a member this inventory counts. Such a row claims the type, so the type may not then be
+# excused here. Until 2026-09-12 naming a bare type slipped past that rule silently; E2-T42's
+# assessment found it, and the check now catches it.
 #
 # Scope:
 #   MemberName  Name is a member name, or op_* for the operators. Excused wherever it appears.
@@ -52,7 +58,6 @@ Type	Spark.Geometry.Quaternion	Rotation without gimbal lock, for interpolation. 
 Type	Spark.Geometry.Ray	A half-line for casting. Dynamo has no ray type; its intersection members take geometry.
 Type	Spark.Geometry.Planar.Region	The planar layer's area type (FR-60). Dynamo has no planar region type; its nearest is Polygon, counted there.
 Type	Spark.Geometry.Planar.RegionJoin	How a corner is turned when a region is offset. As Region.
-Type	Spark.Geometry.RevolutionSurface	An analytic surface of revolution. As PlaneSurface.
 Type	Spark.Geometry.RuledSurface	An analytic ruled surface. As PlaneSurface.
 Type	Spark.Geometry.SphericalSurface	An analytic sphere. As PlaneSurface.
 Type	Spark.Geometry.SurfaceConversion	Exact analytic-to-NURBS conversion. Dynamo has no such member because it has no analytic surfaces to convert.
@@ -61,4 +66,4 @@ Type	Spark.Geometry.Tolerance	An explicit tolerance value, passed to every opera
 Type	Spark.Geometry.ToroidalSurface	An analytic torus. As PlaneSurface.
 Type	Spark.Geometry.Transform	Spark's 4x4 matrix. Dynamo has no such type - it puts the whole transformation algebra on CoordinateSystem, which §3.1 records as the largest deliberate shape difference in the value layer.
 Type	Spark.Geometry.Vector2d	A 2D vector. Dynamo has no 2D vector type; UV is its nearest and is a parameter pair, not a direction.
-Budget	residue	293 members are named by no row and excused by no rule. Most sit on types that DO map to a Dynamo type, so each is either a member some Unassessed row will name once it is assessed or a genuine gap; a few are Spark's own machinery on a type a row names - BrepAdjacency.Of and its five counts - which cannot be excused wholesale because the type is named, and are counted rather than argued away. The check requires an EXACT match, so the number falls as rows are assessed and cannot quietly climb back. IT HAS RISEN TWICE, AND BOTH TIMES THE REASON IS RECORDED RATHER THAN ABSORBED. 278 to 287 on 2026-09-12: E2-T44 assessed DYNAMO-COVERAGE 3.5 and 13 Spark members became named by a row, which took BrepFaceView, BrepLoopView and BrepEdgeView out of the excused types, and their remaining members joined the residue. 287 to 293 the same day: E2-T65 added BrepAdjacency, whose 8 navigation members are named by rows and whose 6 construction and count members are not. A rise with no such entry beside it means a member was added to a mapped type with no thought for the register.
+Budget	residue	291 members are named by no row and excused by no rule. Most sit on types that DO map to a Dynamo type, so each is either a member some Unassessed row will name once it is assessed or a genuine gap; a few are Spark's own machinery on a type a row names, which cannot be excused because the type is named, and are counted rather than argued away. The check requires an EXACT match, so the number falls as rows are assessed and cannot quietly climb back. THE HISTORY IS KEPT HERE, because a rise and a fall mean different things and neither should have to be guessed at. 278 to 287, 2026-09-12, E2-T44: assessing DYNAMO-COVERAGE 3.5 named 13 Spark members, which took BrepFaceView, BrepLoopView and BrepEdgeView out of the excused types and moved their remaining members here. 287 to 293, same day, E2-T65: BrepAdjacency arrived, 8 of its members named by rows and 6 not. 293 to 283, same day, E2-T42 step A: 11 more members named by Surface's rows - THE FIRST FALL, and the one the number exists to show. 283 to 291, same step: Surface.ByRevolve names the TYPE RevolutionSurface, because the capability is a constructor and constructors are not counted - so the type is claimed by a row, may no longer be excused wholesale, and its other members join the residue. A rise with no entry here means a member was added to a mapped type with no thought for the register.

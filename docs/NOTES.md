@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-12 (N156–N157: a name match that lied; the cost of an exact-match budget)
+**Last updated:** 2026-09-12 (N156–N158: a name match that lied; an exact-match budget; a register scoped to an assembly)
 
 ---
 
@@ -4729,3 +4729,45 @@ mean different things.
 cost is a sentence of prose per change. Budget for the prose when you choose exactness — a guard
 whose failures are routinely dismissed is worse than no guard, and the only thing that stops
 dismissal becoming a habit is that each failure arrives with a place to write down why.
+
+---
+
+## N158 — A register scoped to an assembly measures the assembly, not the capability
+
+`E11-T23` built the Dynamo parity register against `Spark.Geometry.dll`, and both of its
+member-level checks read that one assembly: a `Done` row must name a member it declares, and every
+member it declares must be named, excused or counted. That was the right scope for values, curves
+and topology, and it is `Spark.Docs.Verify`'s whole discipline — reference no Spark project, load
+what you police from disk as metadata.
+
+**`E2-T42`'s assessment is where the scope first cost something.** Twelve of `Surface`'s 46 rows are
+loft, sweep, thicken and the surface and solid booleans. **Spark does all of them.** They live behind
+`Spark.Api.IBrepKernel`, with `Spark.Nodes.Core` families over them, and `--graph solids` has fused,
+drilled, hollowed and filleted since M6. But no row could be marked `Done`, because the member the
+row would name is in a different assembly — so twelve rows now say `Planned` about capabilities that
+already work.
+
+**That is the register lying in the safe direction, and it is still lying.** A reader consulting it
+for *what can Spark do* gets a No where the answer is Yes, and the conservative direction of the
+error is exactly what makes it survive review. The rows say where the capability actually lives
+rather than pretending, and `E11-T30` carries the fix.
+
+**The lesson is about what a scope decision asserts.** Choosing an assembly to measure looked like a
+test-plumbing decision — which DLL does the harness open — and it was a decision about the
+register's *subject*. FR-81 and [DYNAMO-COVERAGE §1](DYNAMO-COVERAGE.md) both say the subject is
+capability parity, so the scope should have followed the capability across the seam from the start.
+It did not, because `Spark.Geometry` was the whole of the geometry when the check was written and
+the question never came up.
+
+**A second, smaller instance of the same thing, found the same day.** `Surface.ByRevolve` is
+answered by `new RevolutionSurface(...)` — a *constructor*, which the inventory's counting rule
+deliberately excludes. So the row names the **type**, which is correct and which the rename-catcher
+handles. The reverse direction did not: it split every `SparkMember` at its last dot, so
+`Spark.Geometry.RevolutionSurface` was filed as a member `RevolutionSurface` of a type
+`Spark.Geometry`, and **naming a bare type was a silent way past the rule that a type a row names
+cannot be excused wholesale**. One line of parsing, and a hole in the one rule that stops the
+exclusions file being a way to make the check green.
+
+**Both have the same shape:** a check that agrees with you is not evidence, and the parts of it you
+never questioned are where the disagreement hides. Ask what the check's *scope* claims, not only
+what its assertions claim.

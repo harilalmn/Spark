@@ -192,9 +192,21 @@ public sealed class DynamoParityChecks
         bool operators = memberRules.Remove("op_*");
 
         Dictionary<string, HashSet<string>> named = new(StringComparer.Ordinal);
+        HashSet<string> namedTypes = new(StringComparer.Ordinal);
 
         foreach (ParityRow row in Rows.Where(row => row.SparkMember.Length > 0))
         {
+            // A row may name a TYPE rather than a member, and a Done row legitimately does when the
+            // capability is a construction: Dynamo's `Surface.ByRevolve` is Spark's
+            // `new RevolutionSurface(...)`, and a constructor is not a member this inventory counts.
+            // Such a row still claims the type, so the type may not then be excused wholesale -
+            // without this, naming a bare type was a silent way past that rule (E2-T42 found it).
+            if (declared.ContainsKey(row.SparkMember))
+            {
+                namedTypes.Add(row.SparkMember);
+                continue;
+            }
+
             int dot = row.SparkMember.LastIndexOf('.');
 
             if (dot > 0)
@@ -223,6 +235,11 @@ public sealed class DynamoParityChecks
             if (exclusion.Scope == "Type" && named.TryGetValue(exclusion.Name, out HashSet<string>? claimed) && claimed.Count > 0)
             {
                 problems.Add($"line {exclusion.Line}: {exclusion.Name} is excused wholesale and a parity row names {claimed.Count} of its members. A type a row names cannot be excused.");
+            }
+
+            if (exclusion.Scope == "Type" && namedTypes.Contains(exclusion.Name))
+            {
+                problems.Add($"line {exclusion.Line}: {exclusion.Name} is excused wholesale and a parity row names the type itself. A type a row names cannot be excused.");
             }
         }
 

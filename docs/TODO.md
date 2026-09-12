@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-12 (`E2-T44` and `E2-T65` close: topology parity at 31 of 33)
+**Last updated:** 2026-09-12 (`E2-T42` step A: `Surface` assessed, 18 of 46 reachable)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -235,10 +235,14 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     the reverse of the one direction the model stores — and closed by `BrepAdjacency` without
 >     adding a back-pointer. **Topology stands at 31 of 33**, and the two left are `E2-T64`'s
 >     pcurves. **Take the remaining subsystems the same way** — assess first, and expect the gaps to
->     cluster. **`E2-T42` surfaces is the one to take next**: 106 members, 24 of them pure
->     evaluation, and the subsystem the viewport and the node library lean on hardest. Then
->     `E2-T43` solids, `E2-T45` mesh, `E2-T46` infrastructure, and `E2-T41` curves last, which is
->     the largest at 187 members. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
+>     cluster. **`E2-T42` step A done 2026-09-12**: all 46 of `Surface`'s rows assessed, 18
+>     reachable, and the evaluation family found **complete** rather than missing its curvature
+>     half - only the principal *directions* are absent (`E2-T66`). **It also found the register
+>     lying in the safe direction**: twelve rows say `Planned` for loft, sweep, thicken and the
+>     booleans, which Spark delivers behind `Spark.Api.IBrepKernel`, because the check reads
+>     `Spark.Geometry.dll` alone (**`E11-T30`**). **Next**: `E2-T42` step B, `NurbsSurface`'s 17
+>     rows and `PolySurface`'s 18. Then `E2-T43` solids, `E2-T45` mesh, `E2-T46` infrastructure,
+>     and `E2-T41` curves last, which is the largest at 187 members. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than
 >     machinery.

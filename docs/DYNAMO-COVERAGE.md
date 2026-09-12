@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-12 (`E2-T44` closes: §3.5 at 31 of 33, the reverse navigation built)
+**Last updated:** 2026-09-12 (`E2-T42` step A: §3.3's `Surface` assessed, 18 of 46 reachable)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -302,15 +302,42 @@ capabilities that only live on those types — `Polygon.Center`, `Polygon.Corner
 `Polygon.ContainmentTest`, `Polygon.SelfIntersections`, `Polygon.PlaneDeviation` and
 `Polygon.RegularPolygon` — are all planned, on `PolyLine` or in `Spark.Geometry.Planar`.
 
-### 3.3 Surfaces — 5 types, 106 members, 0 reachable
+### 3.3 Surfaces — 5 types, 106 members, 18 reachable
 
-| Dynamo type | Members | Spark equivalent | Status | Milestone |
-|---|---:|---|---|---|
-| `Surface` (base) | 46 | `Surface` — the FR-49/E2-T17 contract | Planned | M5 |
-| `NurbsSurface` | 17 | `NurbsSurface` | Planned | M5 |
-| `PolySurface` | 18 | `Brep` (open shell) | Planned | M6 |
-| `PanelSurface` | 21 | None — see §5 [d] | Not planned | — |
-| `PanelSurfaceBoundaryCondition` | 4 | None — see §5 [d] | Not planned | — |
+**`Surface`'s 46 were assessed member by member on 2026-09-12** (`E2-T42` step A); `NurbsSurface` and
+`PolySurface` are step B and their *Reachable* figures below are still the seeded name matches.
+
+| Dynamo type | Members | Reachable | Spark equivalent | Status | Milestone |
+|---|---:|---:|---|---|---|
+| `Surface` (base) | 46 | 18 | `Surface` — the FR-49/E2-T17 contract | Partial | M5 |
+| `NurbsSurface` | 17 | 6 | `NurbsSurface` | Partial | M5 |
+| `PolySurface` | 18 | 3 | `Brep` (open shell) | Partial | M6 |
+| `PanelSurface` | 21 | 0 | None — see §5 [d] | Not planned | — |
+| `PanelSurfaceBoundaryCondition` | 4 | 0 | None — see §5 [d] | Not planned | — |
+
+**The evaluation family is complete, and this document said otherwise.** `E2-T42`'s row claimed the
+curvature family — Gaussian, principal values, principal directions — was absent from `E2-T17`'s
+contract and was *precisely what a facade or structural graph reaches for*. Two thirds of that is
+wrong: `Surface.GaussianCurvature`, `MeanCurvature` and `PrincipalCurvatures` are all on the abstract
+base, and the first two are derived from the third. **Only the principal *directions* are missing**,
+and `PrincipalCurvatures` already forms the shape operator and discards the eigenvectors it would
+return (`E2-T66`). Everything else a graph evaluates — point, normal, both partials, the frame, the
+closest point with its `uv`, the isocurves, closure in each direction, area and the untrimmed
+perimeter — is there, on the base, so every analytic surface and `NurbsSurface` answer it.
+
+**Twelve of `Surface`'s rows say `Planned` for capabilities Spark already delivers**, and that is a
+limit of the register rather than of the kernel. Loft, sweep, thicken, the surface and solid booleans
+live behind `Spark.Api.IBrepKernel` with `Spark.Nodes.Core` families over them; the parity check reads
+`Spark.Geometry.dll` alone, so a row naming them could not be `Done`. It was **not** fudged — the rows
+say where the capability actually lives, and the register's one-assembly rule is filed as `E11-T30`.
+Read those twelve as *delivered, and not by this assembly*.
+
+**Two more are pcurves** (`TrimWithEdgeLoops`, `E2-T64`), **one is refused** (`Repair()`: healing is
+behind the seam by decision, because OCCT's `ShapeFix` does it and a second managed implementation
+would be worse — `E13-T10`), **three need a decision** (`FlipNormalDirection`, because orientation
+lives on `BrepFace.IsReversed` and not on the surface; `CurvatureAtParameter`, whose meaning a
+metadata-only read cannot settle; `ByPerimeterPoints`, which is a fitting problem past four points),
+and **eleven are simply missing** and are `E2-T66`.
 
 **Dynamo has no analytic surface types at all, and Spark has eight.** This is the one place
 where the mapping runs the other way: FR-49 names `PlaneSurface`, `SphericalSurface`,
