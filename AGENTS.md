@@ -2,7 +2,7 @@
 
 For anyone changing this repository — human or AI. Read this before committing.
 
-**Last updated:** 2026-09-09 (`E12-T5`: `spark check`, and the CLI's first test project)
+**Last updated:** 2026-09-12 (the dashboard standing instruction, generated and gated)
 
 ---
 
@@ -48,6 +48,25 @@ write with no harness in front of it is `DocGenerator` again — 1,478 hand-main
 drifted until 101 of 108 public constructors rendered blank. `E11-T2`, `E11-T4`, `E11-T5` and
 `E11-T6` are therefore the **first** rows of the post-1.0 Help pass, not the last.
 
+**Extended by the client on 2026-09-12, and this one is not suspended by anything.** *Keep the
+dashboard updated whenever EPICS, TASKS or TODO is updated, **without fail**.* The dashboard is
+[docs/progress.html](docs/progress.html). **You do not edit it** — it is generated, and editing it
+by hand is the failure this instruction exists to prevent:
+
+```
+python scripts/build-progress.py            # after any change to EPICS, TASKS or TODO
+python scripts/build-progress.py --check     # what the harness asks, without writing
+```
+
+**Why it is a generator and a gate rather than a habit.** The page carries about forty derived
+numbers. *Without fail* is not achievable by remembering forty edits, and this repository already
+knows what happens when somebody tries: `DocGenerator` was 1,478 hand-maintained entries that
+drifted until 101 of 108 public constructors rendered blank. So the numbers are derived on every
+run, and `ProgressDashboardChecks` (mechanism 2 below) **re-derives them independently from
+`docs/TASKS.md` and fails the build when the page disagrees**. Close a row and forget the
+dashboard and the suite goes red, naming the command that fixes it. **The narrative text is the
+part you do write** — it lives in the `NARRATIVE` block of the script, not in the HTML.
+
 Spark backs the rule with three mechanisms rather than trusting it, because a rule nobody
 enforces is a preference:
 
@@ -57,8 +76,9 @@ enforces is a preference:
 2. **The docs harness** (`tests/Spark.Docs.Verify`) runs inside `dotnet test`. **Today** it
    checks help-topic front matter, that every help topic contains a worked example, that
    every relative Markdown link resolves, that every cited `ADR-NNNN` exists — in build files
-   and source comments as well as Markdown — and that every core document carries a
-   `Last updated` line. **It will also**, once there is an API to check against, compile every
+   and source comments as well as Markdown — that every core document carries a
+   `Last updated` line, and **that `docs/progress.html` still agrees with the register,
+   epic by epic** (`ProgressDashboardChecks`). **It will also**, once there is an API to check against, compile every
    sample, execute every example graph, and fail the build when a node has no help topic or a
    help topic names a node that no longer exists. Those checks are not stubbed in advance,
    deliberately: see [NOTES.md N13](docs/NOTES.md).
@@ -92,6 +112,7 @@ properly; a token edit to satisfy the rule is worse than none.
 | [docs/EPICS.md](docs/EPICS.md) | An acceptance criterion is met — tick it · an epic changes status · a new epic appears |
 | [docs/TASKS.md](docs/TASKS.md) | Any task starts, finishes or is discovered. Every task gets an ID (`E<epic>-T<n>`), a status and a note explaining anything non-obvious. **Update the summary counts at the top** |
 | [docs/TODO.md](docs/TODO.md) | Priorities shift · something is done — remove it · something is deliberately accepted rather than fixed — move it to *Known and deliberately accepted* so nobody rediscovers it as a bug |
+| [docs/progress.html](docs/progress.html) | **Whenever EPICS, TASKS or TODO changes — without fail** (client, 2026-09-12). **Never by hand:** run `python scripts/build-progress.py`. Narrative text is edited in the script's `NARRATIVE` block; every number is derived. `ProgressDashboardChecks` fails the build if you forget |
 | [docs/NOTES.md](docs/NOTES.md) | You discover a non-obvious implementation fact the next reader would get wrong. Take the next unused number. **Never renumber, never reuse, leave gaps on deletion** |
 | `docs/adr/` | A decision that **could have gone differently**. Name the alternative and why it lost. Never renumber an ADR |
 | `docs/help/` | Anything user-facing: a new node, a changed port, a new concept, a new `SPK####` code. **Every topic contains a worked example**, and every node family gets one. A node nobody can find is a node nobody uses |

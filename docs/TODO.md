@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-12 (`E2-T43` closes: §3.4 assessed, 24 of 55 reachable)
+**Last updated:** 2026-09-12 (`E10-T17` / `E11-T31`: the dashboard, generated and gated)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -92,6 +92,18 @@ for anything else.
 ---
 
 ## Where the run stands
+
+**The progress dashboard is generated and gated, closed 2026-09-12** — `E10-T17` and `E11-T31`,
+asked for by the client and then made a standing instruction: *keep the dashboard updated whenever
+EPICS, TASKS or TODO is updated, without fail*. **The instruction is why it is not just a page.**
+A hand-written `docs/progress.html` carries about forty derived numbers, and *without fail* is not
+a property hand-written numbers can have — it is `DocGenerator` again. So
+`scripts/build-progress.py` derives every number on each run and `ProgressDashboardChecks`
+re-derives them **independently** from the register and fails the build when the page disagrees.
+**Run `python scripts/build-progress.py` after touching EPICS, TASKS or TODO**; AGENTS.md's
+standing instruction and its document table both say so now. The narrative text — what a milestone
+means, what waits on a person — is edited in the script's `NARRATIVE` block, because generated
+prose is prose nobody reads.
 
 **`v0.4.0` shipped on 2026-09-07** — <https://github.com/harilalmn/Spark/releases/tag/v0.4.0>,
 installer and portable zip attached, **unsigned**. A minor bump for *Clean up layout* on `Ctrl+L`.
