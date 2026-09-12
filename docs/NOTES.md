@@ -4771,3 +4771,19 @@ exclusions file being a way to make the check green.
 **Both have the same shape:** a check that agrees with you is not evidence, and the parts of it you
 never questioned are where the disagreement hides. Ask what the check's *scope* claims, not only
 what its assertions claim.
+
+**Fixed the same day** (`E11-T30`), and the fix is worth recording because of what it cost and what
+it did not. The rename-catcher now reads `Spark.Geometry`, `Spark.Api` and `Spark.Nodes.Core`; **the
+reverse direction was deliberately left on `Spark.Geometry` alone**, because it asks a different
+question — has the *kernel's own* surface drifted from the plan — and `Spark.Nodes.Core`'s families
+exist to be imported by reflection and would swamp the residue budget that makes the check worth
+running. **The budget's number was unchanged across the commit, and that is the evidence the two
+scopes stayed apart.** Twelve rows became `Done` with no geometry written.
+
+**`Surface.Repair()` is the case to remember.** It stood at `Not planned`, on an argument that is
+entirely true: healing and sewing are behind the kernel seam by decision, because OCCT's `ShapeFix`
+does them and a second managed implementation would be worse. Every clause of that is correct, and
+the conclusion drawn from it — *therefore Spark does not do this* — was wrong. **Behind the seam is
+still delivered.** A true premise reached a false conclusion because the unstated middle step, *and
+the register measures what `Spark.Geometry` declares*, was never written down anywhere to be
+argued with.

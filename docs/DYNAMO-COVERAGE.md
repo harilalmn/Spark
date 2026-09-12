@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-12 (`E2-T42` closes: §3.3 assessed throughout, 36 of 106 reachable)
+**Last updated:** 2026-09-12 (`E11-T30`: the register reads what delivers the geometry, §3.3 at 48 of 106)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -302,16 +302,16 @@ capabilities that only live on those types — `Polygon.Center`, `Polygon.Corner
 `Polygon.ContainmentTest`, `Polygon.SelfIntersections`, `Polygon.PlaneDeviation` and
 `Polygon.RegularPolygon` — are all planned, on `PolyLine` or in `Spark.Geometry.Planar`.
 
-### 3.3 Surfaces — 5 types, 106 members, 36 reachable
+### 3.3 Surfaces — 5 types, 106 members, 48 reachable
 
 **Assessed member by member on 2026-09-12** (`E2-T42`), against the manifest rather than by eye. All
 81 rows that are not `PanelSurface`'s carry a status and a reason for it.
 
 | Dynamo type | Members | Reachable | Spark equivalent | Status | Milestone |
 |---|---:|---:|---|---|---|
-| `Surface` (base) | 46 | 18 | `Surface` — the FR-49/E2-T17 contract | Partial | M5 |
+| `Surface` (base) | 46 | 26 | `Surface`, `Spark.Api.IBrepKernel` | Partial | M5 |
 | `NurbsSurface` | 17 | 12 | `NurbsSurface`, `KnotVector` | Partial | M5 |
-| `PolySurface` | 18 | 6 | `Brep` (open shell) | Partial | M6 |
+| `PolySurface` | 18 | 10 | `Brep` (open shell), `Spark.Api.IBrepKernel` | Partial | M6 |
 | `PanelSurface` | 21 | 0 | None — see §5 [d] | Not planned | — |
 | `PanelSurfaceBoundaryCondition` | 4 | 0 | None — see §5 [d] | Not planned | — |
 
@@ -350,19 +350,31 @@ return (`E2-T66`). Everything else a graph evaluates — point, normal, both par
 closest point with its `uv`, the isocurves, closure in each direction, area and the untrimmed
 perimeter — is there, on the base, so every analytic surface and `NurbsSurface` answer it.
 
-**Twelve of `Surface`'s rows say `Planned` for capabilities Spark already delivers**, and that is a
-limit of the register rather than of the kernel. Loft, sweep, thicken, the surface and solid booleans
-live behind `Spark.Api.IBrepKernel` with `Spark.Nodes.Core` families over them; the parity check reads
-`Spark.Geometry.dll` alone, so a row naming them could not be `Done`. It was **not** fudged — the rows
-say where the capability actually lives, and the register's one-assembly rule is filed as `E11-T30`.
-Read those twelve as *delivered, and not by this assembly*.
+**Twelve rows changed from `Planned` to `Done` on 2026-09-12 without a line of geometry being
+written** (`E11-T30`). Loft, sweep, patch, the booleans, thicken, fillet, chamfer and heal live behind
+`Spark.Api.IBrepKernel`, and the parity check used to read `Spark.Geometry.dll` alone — so the
+register said *Planned* about capabilities `--graph solids` had been performing since M6. §1 and
+FR-81 both make the register's subject **capability**, so the rename-catcher now reads `Spark.Api` and
+`Spark.Nodes.Core` beside `Spark.Geometry` and each row names the member that actually does the work.
+**`Surface.Repair()` is the clearest case**: it stood at `Not planned` with an argument that was
+entirely true — healing is behind the seam by decision, because OCCT's `ShapeFix` does it and a second
+managed implementation would be worse (`E13-T10`) — and the conclusion drawn from it was wrong.
+*Behind the seam* is still *delivered*. It is `IBrepKernel.Heal`.
 
-**Two more are pcurves** (`TrimWithEdgeLoops`, `E2-T64`), **one is refused** (`Repair()`: healing is
-behind the seam by decision, because OCCT's `ShapeFix` does it and a second managed implementation
-would be worse — `E13-T10`), **three need a decision** (`FlipNormalDirection`, because orientation
-lives on `BrepFace.IsReversed` and not on the surface; `CurvatureAtParameter`, whose meaning a
-metadata-only read cannot settle; `ByPerimeterPoints`, which is a fitting problem past four points),
-and **eleven are simply missing** and are `E2-T66`.
+**Eight rows stayed `Planned`, and now for reasons about the operation rather than the assembly.**
+`IBrepKernel.Loft` takes profiles and a closed flag and **no guide**, so the guided lofts are a
+different construction; `Sweep` takes **one** rail, so `BySweep2Rails` is not an overload; `Sweep`'s
+own `bool` is **cap**, where Dynamo's is *keep profile orientation* — two booleans meaning different
+things is exactly the near-match this register exists to refuse; `Thicken` has no both-sides flag; and
+`Offset`, `Join` and `ByJoinedSurfaces` all want a `Surface` where the kernel takes a `Brep`, which
+means becoming a face with a loop first. All are `E2-T66`.
+
+**Two more are pcurves** (`TrimWithEdgeLoops`, `E2-T64`) — `IBrepKernel.Trim` cuts a `Brep` with tool
+`Brep`s, which is a different operation from trimming a surface with parameter-space loops. **Three
+need a decision** (`FlipNormalDirection`, because orientation lives on `BrepFace.IsReversed` and not
+on the surface; `CurvatureAtParameter`, whose meaning a metadata-only read cannot settle;
+`ByPerimeterPoints`, which is a fitting problem past four points), and **eleven are simply missing**
+and are `E2-T66`.
 
 **Dynamo has no analytic surface types at all, and Spark has eight.** This is the one place
 where the mapping runs the other way: FR-49 names `PlaneSurface`, `SphericalSurface`,
@@ -1011,8 +1023,13 @@ node↔member coverage.
    from the inventory and thereafter edited by hand as decisions land. It records *our*
    decisions about a surface we have read; it is not a copy of the surface.
 2. **A check in `Spark.Docs.Verify`** that fails when:
-   - a row says `Done` and the named Spark member does not exist in `Spark.Geometry` — **this
-     is the rename-catcher**, and the reason the manifest names members rather than types;
+   - a row says `Done` and the named Spark member does not exist — **this is the rename-catcher**,
+     and the reason the manifest names members rather than types. **It reads every assembly that
+     delivers geometry** — `Spark.Geometry`, `Spark.Api` and `Spark.Nodes.Core` (`E11-T30`) —
+     because this document's subject is capability, and loft, sweep and the booleans are delivered
+     through `Spark.Api.IBrepKernel`. **The reverse direction below is scoped differently, to
+     `Spark.Geometry` alone**, because it asks a different question: has *the kernel's own surface*
+     drifted from the plan it was meant to satisfy;
    - a public member of `Spark.Geometry` is named by no row, is excused by no rule in the
      exclusions file, and the count of what is left disagrees with the stated budget — the
      reverse direction, which is what catches a Spark member drifting away from the plan it was

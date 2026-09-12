@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-12 (`E2-T42` closes: §3.3 assessed throughout, 36 of 106 reachable)
+**Last updated:** 2026-09-12 (`E11-T30` closes: the register reads what delivers the geometry)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -240,9 +240,10 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     missing its curvature half - only the principal *directions* are absent. **It also found the
 >     register lying in the safe direction**: twenty rows say `Planned` for loft, sweep, thicken,
 >     the booleans, fillet and chamfer, which Spark delivers behind `Spark.Api.IBrepKernel`,
->     because the check reads `Spark.Geometry.dll` alone (**`E11-T30`**, and it is now the most
->     valuable row on this list - it makes the register tell the truth about what Spark already
->     does). Eighteen members are simply missing (**`E2-T66`**). **Next**: `E2-T43` solids, then
+>     because the check read `Spark.Geometry.dll` alone. ~~**`E11-T30`**~~ **done the same day**,
+>     and it was the most valuable row on this list: twelve of those rows became `Done` with no
+>     geometry written, and §3.3 rose to **48 of 106**. Eighteen members are simply missing
+>     (**`E2-T66`**). **Next**: `E2-T43` solids, then
 >     `E2-T45` mesh, `E2-T46` infrastructure, and `E2-T41` curves last, which is the largest at
 >     187 members. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register

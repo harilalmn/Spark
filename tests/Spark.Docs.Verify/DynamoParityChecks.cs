@@ -10,8 +10,8 @@ using System.Text.RegularExpressions;
 namespace Spark.Docs.Verify;
 
 /// <summary>
-/// The Dynamo parity manifest, checked against the coverage document and against
-/// <c>Spark.Geometry</c> itself (<c>E11-T23</c>, <c>docs/DYNAMO-COVERAGE.md</c> §7).
+/// The Dynamo parity manifest, checked against the coverage document and against the assemblies that
+/// deliver Spark's geometry (<c>E11-T23</c>, <c>E11-T30</c>, <c>docs/DYNAMO-COVERAGE.md</c> §7).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -23,18 +23,42 @@ namespace Spark.Docs.Verify;
 /// </para>
 /// <para>
 /// <b>What a green run means is narrow, and the failure message says so.</b> <i>Done</i> means the
-/// named member is present in <c>Spark.Geometry</c>. It never means the member does what Dynamo's does
+/// named member is present in Spark. It never means the member does what Dynamo's does
 /// - proving that would need the dependency Spark exists to remove (ADR-0016) - and a green run is not a
 /// review.
 /// </para>
 /// <para>
-/// <b><c>Spark.Geometry</c> is read as metadata from its build output</b>, not loaded and not referenced:
+/// <b>The assemblies are read as metadata from their build output</b>, not loaded and not referenced:
 /// this harness references no Spark project, so that it cannot constrain what it observes.
+/// </para>
+/// <para>
+/// <b>The two directions deliberately read different things</b> (<c>E11-T30</c>). The rename-catcher
+/// reads <b>every assembly that delivers geometry</b> - <c>Spark.Geometry</c>, <c>Spark.Api</c> and
+/// <c>Spark.Nodes.Core</c> - because §1 and FR-81 make the register's subject *capability*, and loft,
+/// sweep, thicken and the booleans are delivered through <c>Spark.Api.IBrepKernel</c>. Scoping it to
+/// one assembly made twenty §3.3 rows say <i>Planned</i> about capabilities that already worked, which
+/// is the register lying in the safe direction (<c>docs/NOTES.md</c> N158).
+/// </para>
+/// <para>
+/// <b>The reverse direction stays on <c>Spark.Geometry</c> alone</b>, and that is not an oversight.
+/// It asks *has a member drifted away from the plan it was meant to satisfy*, which is a question
+/// about the kernel's own surface; its residue budget is a measure of that surface against the
+/// register. <c>Spark.Nodes.Core</c> is a node library whose public surface exists to be imported by
+/// reflection, and counting it here would swamp the number that makes the budget worth checking.
 /// </para>
 /// </remarks>
 public sealed class DynamoParityChecks
 {
     private static readonly string[] Statuses = ["Done", "Planned", "Not planned", "Needs a decision", "Unassessed"];
+
+    /// <summary>
+    /// <b>The assemblies that deliver geometry to a Spark user</b>, in the order a reader should think
+    /// of them (<c>E11-T30</c>). <c>Spark.Api</c> is here because <c>IBrepKernel</c> is, and with it
+    /// loft, sweep, thicken and the booleans; <c>Spark.Nodes.Core</c> because the node families over
+    /// the kernel are how a graph reaches them. Adding an assembly here widens what <i>Done</i> may
+    /// name and nothing else - the reverse direction is scoped separately, on purpose.
+    /// </summary>
+    private static readonly string[] Delivering = ["Spark.Geometry", "Spark.Api", "Spark.Nodes.Core"];
 
     private static readonly string Root = RepositoryRoot();
 
@@ -126,9 +150,9 @@ public sealed class DynamoParityChecks
     }
 
     /// <summary>
-    /// <b>The rename-catcher.</b> Every row marked Done names a member that <c>Spark.Geometry</c>
-    /// declares, so a rename in the kernel turns this red instead of leaving the register claiming a
-    /// capability under a name that no longer exists.
+    /// <b>The rename-catcher.</b> Every row marked Done names a member that one of the delivering
+    /// assemblies declares, so a rename anywhere in that surface turns this red instead of leaving the
+    /// register claiming a capability under a name that no longer exists.
     /// </summary>
     [Fact]
     public void EveryDoneRowNamesASparkMemberThatExists()
@@ -138,7 +162,7 @@ public sealed class DynamoParityChecks
         // A check with nothing to check passes by doing nothing, which this harness does not allow.
         Assert.NotEmpty(done);
 
-        Dictionary<string, HashSet<string>> declared = SparkGeometryMembers();
+        Dictionary<string, HashSet<string>> declared = DeliveredMembers();
         List<string> missing = [];
 
         foreach (ParityRow row in done)
@@ -151,13 +175,13 @@ public sealed class DynamoParityChecks
 
             if (!exists)
             {
-                missing.Add($"line {row.Line}: {row.DynamoType}.{row.Member} is Done as {row.SparkMember}, which Spark.Geometry does not declare.");
+                missing.Add($"line {row.Line}: {row.DynamoType}.{row.Member} is Done as {row.SparkMember}, which no delivering assembly declares.");
             }
         }
 
         Assert.True(
             missing.Count == 0,
-            "Done means present in Spark.Geometry - never equivalent to Dynamo's member (DYNAMO-COVERAGE §1). "
+            "Done means present in Spark - never equivalent to Dynamo's member (DYNAMO-COVERAGE §1). "
             + "These rows name members that are not there, most likely because one was renamed:\n  "
             + string.Join("\n  ", missing));
     }
@@ -183,7 +207,8 @@ public sealed class DynamoParityChecks
     [Fact]
     public void EveryPublicMemberIsNamedExcusedOrCounted()
     {
-        Dictionary<string, HashSet<string>> declared = SparkGeometryMembers();
+        // Spark.Geometry alone, and deliberately - see the remarks on this type.
+        Dictionary<string, HashSet<string>> declared = PublicMembers("Spark.Geometry");
         List<Exclusion> exclusions = ReadExclusions();
         List<string> problems = [];
 
@@ -380,18 +405,45 @@ public sealed class DynamoParityChecks
     }
 
     /// <summary>
-    /// The public types of <c>Spark.Geometry</c> and the names of their public members, read from the
-    /// newest build of the assembly as metadata - nothing is loaded.
+    /// The public types of every assembly that delivers geometry, and the names of their public
+    /// members (<c>E11-T30</c>). Where two assemblies declare the same type name the members are
+    /// merged, which is right: a row names a member, and the question is whether *Spark* declares it.
     /// </summary>
-    private static Dictionary<string, HashSet<string>> SparkGeometryMembers()
+    private static Dictionary<string, HashSet<string>> DeliveredMembers()
+    {
+        Dictionary<string, HashSet<string>> all = new(StringComparer.Ordinal);
+
+        foreach (string project in Delivering)
+        {
+            foreach ((string type, HashSet<string> members) in PublicMembers(project))
+            {
+                if (all.TryGetValue(type, out HashSet<string>? existing))
+                {
+                    existing.UnionWith(members);
+                }
+                else
+                {
+                    all[type] = members;
+                }
+            }
+        }
+
+        return all;
+    }
+
+    /// <summary>
+    /// The public types of one assembly and the names of their public members, read from its newest
+    /// build as metadata - nothing is loaded.
+    /// </summary>
+    private static Dictionary<string, HashSet<string>> PublicMembers(string project)
     {
         string? assembly = new[] { "Debug", "Release" }
-            .Select(configuration => Path.Combine(Root, "src", "Spark.Geometry", "bin", configuration, "net10.0", "Spark.Geometry.dll"))
+            .Select(configuration => Path.Combine(Root, "src", project, "bin", configuration, "net10.0", project + ".dll"))
             .Where(File.Exists)
             .OrderByDescending(File.GetLastWriteTimeUtc)
             .FirstOrDefault();
 
-        Assert.True(assembly is not null, "Spark.Geometry.dll has not been built, so the parity manifest cannot be checked against it. Build the solution first.");
+        Assert.True(assembly is not null, $"{project}.dll has not been built, so the parity manifest cannot be checked against it. Build the solution first.");
 
         using FileStream stream = File.OpenRead(assembly!);
         using PEReader reader = new(stream);
