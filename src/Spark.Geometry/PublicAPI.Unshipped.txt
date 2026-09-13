@@ -30,6 +30,7 @@ Spark.Geometry.CoordinateSystem.CoordinateSystem(in Spark.Geometry.Plane plane) 
 Spark.Geometry.CoordinateSystem.CoordinateSystem(in Spark.Geometry.Point3d origin) -> void
 Spark.Geometry.CoordinateSystem.CoordinateSystem(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d zAxis) -> void
 Spark.Geometry.Curve.IntersectWith(Spark.Geometry.Curve! other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.CurveIntersections!
+Spark.Geometry.Curve.IntersectWith(Spark.Geometry.Surface! surface, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.CurveSurfaceIntersections!
 Spark.Geometry.CurveIntersectionPoint
 Spark.Geometry.CurveIntersectionPoint.CurveIntersectionPoint() -> void
 Spark.Geometry.CurveIntersectionPoint.CurveIntersectionPoint(Spark.Geometry.Point3d Point, double ParameterA, double ParameterB) -> void
@@ -55,6 +56,22 @@ Spark.Geometry.CurveOverlap.OnA.get -> Spark.Geometry.Interval
 Spark.Geometry.CurveOverlap.OnA.init -> void
 Spark.Geometry.CurveOverlap.OnB.get -> Spark.Geometry.Interval
 Spark.Geometry.CurveOverlap.OnB.init -> void
+Spark.Geometry.CurveSurfaceIntersectionPoint
+Spark.Geometry.CurveSurfaceIntersectionPoint.CurveSurfaceIntersectionPoint() -> void
+Spark.Geometry.CurveSurfaceIntersectionPoint.CurveSurfaceIntersectionPoint(Spark.Geometry.Point3d Point, double Parameter, Spark.Geometry.UV Uv) -> void
+Spark.Geometry.CurveSurfaceIntersectionPoint.Deconstruct(out Spark.Geometry.Point3d Point, out double Parameter, out Spark.Geometry.UV Uv) -> void
+Spark.Geometry.CurveSurfaceIntersectionPoint.Equals(Spark.Geometry.CurveSurfaceIntersectionPoint other) -> bool
+Spark.Geometry.CurveSurfaceIntersectionPoint.Parameter.get -> double
+Spark.Geometry.CurveSurfaceIntersectionPoint.Parameter.init -> void
+Spark.Geometry.CurveSurfaceIntersectionPoint.Point.get -> Spark.Geometry.Point3d
+Spark.Geometry.CurveSurfaceIntersectionPoint.Point.init -> void
+Spark.Geometry.CurveSurfaceIntersectionPoint.Uv.get -> Spark.Geometry.UV
+Spark.Geometry.CurveSurfaceIntersectionPoint.Uv.init -> void
+Spark.Geometry.CurveSurfaceIntersections
+Spark.Geometry.CurveSurfaceIntersections.CurveSurfaceIntersections(System.Collections.Generic.IReadOnlyList<Spark.Geometry.CurveSurfaceIntersectionPoint>! points, bool liesOnSurface = false) -> void
+Spark.Geometry.CurveSurfaceIntersections.IsEmpty.get -> bool
+Spark.Geometry.CurveSurfaceIntersections.LiesOnSurface.get -> bool
+Spark.Geometry.CurveSurfaceIntersections.Points.get -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.CurveSurfaceIntersectionPoint>!
 Spark.Geometry.EllipseCurve.EllipseCurve(in Spark.Geometry.Plane plane, double xRadius, double yRadius) -> void
 Spark.Geometry.EllipseCurve.EllipseCurve(in Spark.Geometry.Plane plane, double xRadius, double yRadius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> void
 Spark.Geometry.KnotVector.KnotVector(int degree, int controlPoints) -> void
@@ -107,6 +124,7 @@ Spark.Geometry.Vector3d.Vector3d(double radius, Spark.Geometry.Angle azimuth, Sp
 Spark.Geometry.Vector3d.Vector3d(double radius, Spark.Geometry.Angle azimuth, double height) -> void
 override Spark.Geometry.CurveIntersectionPoint.GetHashCode() -> int
 override Spark.Geometry.CurveOverlap.GetHashCode() -> int
+override Spark.Geometry.CurveSurfaceIntersectionPoint.GetHashCode() -> int
 static Spark.Geometry.Brep.Join(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>! parts) -> Spark.Geometry.Brep!
 static Spark.Geometry.BrepAdjacency.Of(Spark.Geometry.Brep! brep) -> Spark.Geometry.BrepAdjacency!
 static Spark.Geometry.CurveIntersectionPoint.operator !=(Spark.Geometry.CurveIntersectionPoint left, Spark.Geometry.CurveIntersectionPoint right) -> bool
@@ -114,6 +132,9 @@ static Spark.Geometry.CurveIntersectionPoint.operator ==(Spark.Geometry.CurveInt
 static Spark.Geometry.CurveIntersections.None.get -> Spark.Geometry.CurveIntersections!
 static Spark.Geometry.CurveOverlap.operator !=(Spark.Geometry.CurveOverlap left, Spark.Geometry.CurveOverlap right) -> bool
 static Spark.Geometry.CurveOverlap.operator ==(Spark.Geometry.CurveOverlap left, Spark.Geometry.CurveOverlap right) -> bool
+static Spark.Geometry.CurveSurfaceIntersectionPoint.operator !=(Spark.Geometry.CurveSurfaceIntersectionPoint left, Spark.Geometry.CurveSurfaceIntersectionPoint right) -> bool
+static Spark.Geometry.CurveSurfaceIntersectionPoint.operator ==(Spark.Geometry.CurveSurfaceIntersectionPoint left, Spark.Geometry.CurveSurfaceIntersectionPoint right) -> bool
+static Spark.Geometry.CurveSurfaceIntersections.None.get -> Spark.Geometry.CurveSurfaceIntersections!
 static Spark.Geometry.Planar.Region.FromClosedPolyLines(in Spark.Geometry.Plane plane, System.Collections.Generic.IEnumerable<Spark.Geometry.PolyLine!>! loops, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Planar.Region!
 static Spark.Geometry.Plane.FromBestFit(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.FromLineAndPoint(Spark.Geometry.Line! line, in Spark.Geometry.Point3d point) -> Spark.Geometry.Plane
@@ -129,3 +150,5 @@ static Spark.Geometry.Vector3d.FromSpherical(double radius, Spark.Geometry.Angle
 ~override Spark.Geometry.CurveIntersectionPoint.ToString() -> string
 ~override Spark.Geometry.CurveOverlap.Equals(object obj) -> bool
 ~override Spark.Geometry.CurveOverlap.ToString() -> string
+~override Spark.Geometry.CurveSurfaceIntersectionPoint.Equals(object obj) -> bool
+~override Spark.Geometry.CurveSurfaceIntersectionPoint.ToString() -> string

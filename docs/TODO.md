@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T40` re-measured: the register is fully assessed, 392 of 545)
+**Last updated:** 2026-09-13 (`E2-T70` closes: a curve can be cut by a surface)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -312,10 +312,21 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     does Spark want an `OrientedBox`, which is the only question left in §3.1 and §3.8 outside the
 >     T-Splines. **The headline is now 392 of 545 committed members, 72%**, taken from the manifest
 >     rather than checked against it — and it is the most misleading number in the document, because
->     the easy members are what got done. **Next**: the register is out of assessments, so the work is
->     the gaps it found — `E2-T70` step B (the geometry-to-geometry queries, the largest),
->     `E2-T71`/`E2-T72` (the curve gaps), `E2-T73` (`Helix`), `E2-T66`…`E2-T69` — and `Q12`'s
->     T-Splines decision, which is 169 members and the denominator of every figure above. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
+>     the easy members are what got done. ~~**`E2-T70` step B**~~ **done the same day, and `E2-T70`
+>     closes**: `Curve.IntersectWith(Surface)`, which had **no member anywhere**. It brackets a
+>     **signed** distance along the curve — built per sample from `Surface.ClosestPoint` and the
+>     normal there, because a surface has no signed distance of its own — and refines by Newton on
+>     `C(t) - S(u, v) = 0`; a singular Jacobian is a *tangency* rather than a failure and bisection
+>     answers it. The result carries **both** parameters. **It is anchored on a closed form the
+>     kernel does not contain** — a line against a plane, a hundred random cases, matched to a
+>     nanometre — and that assertion caught a design error before it shipped: the refinement was
+>     stopping as soon as the residual was inside the tolerance, and *the tolerance decides what
+>     counts as meeting, not how accurately the answer is reported*. **Surface/surface stays behind
+>     the seam** (ADR-0002), so `Geometry.Intersect` stays `Planned`. **Next**: `E2-T73` (`Helix`,
+>     decided in `D27` and the cheapest type the curve hierarchy can gain), then `E2-T71`/`E2-T72`
+>     (no curve fitting of any kind, one fillet that takes two lines, no periodic NURBS, no
+>     curve-to-NURBS conversion), then `E2-T66`…`E2-T69`. `Q12`'s T-Splines decision is 169 members
+>     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than
 >     machinery.

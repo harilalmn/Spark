@@ -41,10 +41,15 @@ public sealed class CurveIntersectWithTests
         Assert.Equal(sampled.Points, answer.Points);
     }
 
-    /// <summary>Asking about no curve at all is refused by name.</summary>
+    /// <summary>
+    /// Asking about no curve at all is refused by name. The cast is needed because
+    /// <c>IntersectWith</c> also takes a <see cref="Surface"/> since <c>E2-T70</c> step B, and a bare
+    /// <see langword="null"/> does not say which overload was meant - which is the one source-level
+    /// cost of the new overload, and it falls on a call nobody makes outside a test like this one.
+    /// </summary>
     [Fact]
     public void NoOtherCurveIsRefused() =>
-        Assert.Throws<ArgumentNullException>(() => Across.IntersectWith(null!));
+        Assert.Throws<ArgumentNullException>(() => Across.IntersectWith((Curve)null!));
 
     /// <summary>Curves with nothing in common say so.</summary>
     [Fact]

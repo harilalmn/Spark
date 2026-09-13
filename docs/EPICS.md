@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (the Dynamo register is fully assessed: 392 of 545 committed members)
+**Last updated:** 2026-09-13 (`E2-T70` closes: curve/surface intersection)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -323,6 +323,14 @@ curve into twelve equal lengths* is a first-class operation rather than a retrof
 analytic on the five constant-speed types and a ten-point Gauss–Legendre integral with a Newton
 inverse on the ellipse — which is also the only curve here whose tests can tell an arc-length
 division from a parameter division, since every other one travels at a constant speed.
+
+**Curve/surface intersection landed on 2026-09-13** (`E2-T70` step B) and is the last thing the
+curve layer was missing that a graph reaches for daily. `Curve.IntersectWith(Surface)` brackets a
+signed distance along the curve — built at each sample from `Surface.ClosestPoint` and the normal
+there, because a surface carries no signed distance of its own — and refines by Newton on
+`C(t) − S(u, v) = 0`, so the answer lands on the curve *and* the surface and can honestly carry both
+parameters. **Surface against surface is not here and will not be**: ADR-0002 makes it the
+research-grade problem and it belongs behind `Spark.Api.IBrepKernel`.
 
 **That bet was measured on 2026-09-13** (`E2-T41` step A), when all 82 of `Curve`'s parity rows
 were assessed one by one: **40 are reachable**, and the arc-length half of the contract is why —

@@ -5,6 +5,7 @@ static Spark.Nodes.Core.Console.Clear() -> int
 static Spark.Nodes.Core.Console.Write(string! text) -> string!
 static Spark.Nodes.Core.Console.WriteLine(string! text) -> string!
 static Spark.Nodes.Core.Curve.IntersectWith(Spark.Geometry.Curve! curve, Spark.Geometry.Curve! other) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
+static Spark.Nodes.Core.Curve.IntersectWithSurface(Spark.Geometry.Curve! curve, Spark.Geometry.Surface! surface) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
 static Spark.Nodes.Core.Curve.OverlapWith(Spark.Geometry.Curve! curve, Spark.Geometry.Curve! other) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>!
 static Spark.Nodes.Core.Number.RangeByCount(double start = 0, double end = 10, int count = 11) -> System.Collections.Generic.IReadOnlyList<double>!
 static Spark.Nodes.Core.Number.RangeByCountAndStep(double start = 0, int count = 11, double step = 1) -> System.Collections.Generic.IReadOnlyList<double>!

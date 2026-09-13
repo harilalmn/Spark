@@ -1,19 +1,20 @@
 ---
 id: concepts.curves
 title: Curves, parameters and arc length
-nodes: [Line.FromStartPointEndPoint, Circle.FromCenterRadius, Arc.FromThreePoints, Ellipse.FromPlaneRadii, PolyLine.FromRegularPolygon, PolyCurve.FromJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength]
+nodes: [Line.FromStartPointEndPoint, Circle.FromCenterRadius, Arc.FromThreePoints, Ellipse.FromPlaneRadii, PolyLine.FromRegularPolygon, PolyCurve.FromJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength, Curve.IntersectWith, Curve.IntersectWithSurface]
 related: [concepts.geometry-basics, concepts.lacing]
 since: "0.1"
 ---
 
 **Status:** Current. Describes `Spark.Geometry`'s curve layer, which exists and is tested.
 **Owner:** `geometry-kernel`
-**Last updated:** 2026-08-28
+**Last updated:** 2026-09-13
 
-> **Scope.** Six curve types exist today: `Line`, `Arc`, `Circle`, `EllipseCurve`, `PolyLine`
-> and `PolyCurve`. There is no `NurbsCurve` yet, and there is no curve intersection,
-> offsetting, projection or closest-point query — those arrive at M3. There are still no
-> surfaces, meshes or solids. Every example below was run against the assembly.
+> **Scope.** Seven curve types exist today: `Line`, `Arc`, `Circle`, `EllipseCurve`,
+> `NurbsCurve`, `PolyLine` and `PolyCurve`, and an eighth — `Helix` — is decided and not yet
+> built. Curve intersection, offsetting and the closest-point queries are all here; **projection
+> and pull are not**, and neither is a planarity test. Surfaces, meshes and solids arrived at M5
+> and M6. Every example below was run against the assembly.
 
 ---
 
@@ -192,7 +193,64 @@ thing it was given, and it is right: a circle that is not closed is not a circle
 
 ---
 
+## 7. Cutting a curve with a surface
+
+`Curve.IntersectWithSurface` gives the points where a curve passes through a surface. It is the
+node you reach for when a graph has to find where a line of sight meets a roof, or where a duct
+crosses a slab.
+
+```csharp
+using Spark.Geometry;
+
+// A wall as a vertical plane two metres across, and a sight line crossing it.
+Plane wall = Plane.FromOriginNormal(new Point3d(1.0, 0.0, 0.0), Vector3d.XAxis);
+PlaneSurface panel = PlaneSurface.FromPlaneSize(wall, 2.0, 2.0);
+Line sight = Line.FromStartPointEndPoint(new Point3d(0.0, 0.0, 0.3), new Point3d(3.0, 0.0, 0.3));
+
+CurveSurfaceIntersections hits = sight.IntersectWith(panel);
+
+Point3d where = hits.Points[0].Point;        // (1, 0, 0.3)
+double alongTheLine = hits.Points[0].Parameter;   // the parameter on `sight`
+UV onThePanel = hits.Points[0].Uv;                // where it landed on the panel
+```
+
+**Both parameters come back, and that is deliberate.** If you want the part of the curve before
+the wall, you want `Parameter` and `Trimmed`; if you want to mark the panel, you want `Uv`.
+Getting either back afterwards would mean doing the intersection again — so the same snippet,
+carried on:
+
+```csharp
+using Spark.Geometry;
+
+Plane wall = Plane.FromOriginNormal(new Point3d(1.0, 0.0, 0.0), Vector3d.XAxis);
+PlaneSurface panel = PlaneSurface.FromPlaneSize(wall, 2.0, 2.0);
+Line sight = Line.FromStartPointEndPoint(new Point3d(0.0, 0.0, 0.3), new Point3d(3.0, 0.0, 0.3));
+
+CurveSurfaceIntersections hits = sight.IntersectWith(panel);
+double alongTheLine = hits.Points[0].Parameter;
+
+Curve beforeTheWall = sight.Trimmed(new Interval(sight.Domain.Min, alongTheLine));
+double reach = beforeTheWall.Length;   // 1.0 - the line stops at the wall
+```
+
+**Three things it will not do, and they are worth knowing before you rely on it.**
+
+- **A crossing outside the surface's patch is not a crossing.** A `Plane` is infinite; a
+  `PlaneSurface` is the rectangle you asked for. Move the sight line past the end of the panel
+  and the answer is empty, which is the right answer to the question you asked.
+- **A curve lying *in* the surface gives no points.** That is a shared curve rather than a set of
+  crossings, and `hits.LiesOnSurface` says so.
+- **A curve that grazes the surface and turns back may be missed.** The intersector finds a
+  crossing by looking for a change of side; a tangency touches without changing side. This is the
+  same limit curve/curve intersection has, and it is stated rather than hidden.
+
+**Surface against surface is not here.** That is a much harder problem and it belongs to the
+solid modelling kernel, not to this layer — see [Solids](solids.md).
+
+---
+
 ## Related
 
 - [Points, vectors, planes and tolerance](geometry-basics.md) — the value layer underneath
+- [Solids](solids.md) — surfaces, solids, and what the kernel does rather than this layer
 - [Lacing](lacing.md) — what happens when you feed a list of centers to one circle node

@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-13 (`E2-T40`: §3.1 assessed, 113 of 133; **no row is `Unassessed`**; the headline is 392 of 545)
+**Last updated:** 2026-09-13 (`E2-T70` step B: curve/surface intersection; the register is fully assessed, 392 of 545)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 

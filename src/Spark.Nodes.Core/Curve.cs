@@ -176,6 +176,38 @@ public static class Curve
     }
 
     /// <summary>
+    /// The points where a curve crosses a surface (<c>E2-T70</c>).
+    /// </summary>
+    /// <param name="curve">The curve.</param>
+    /// <param name="surface">The surface to cut it with.</param>
+    /// <returns>The points, in order along the curve; empty when they do not meet.</returns>
+    /// <remarks>
+    /// <para>
+    /// The kernel's answer carries the parameter on the curve and the <c>UV</c> on the surface beside
+    /// each point; this node gives the points, because a node that returns three parallel lists is a
+    /// node nobody can wire. A graph that needs the parameters uses a code block over
+    /// <c>Curve.IntersectWith(Surface)</c>.
+    /// </para>
+    /// <para>
+    /// A curve lying <i>in</i> the surface gives no points, because it is a shared curve rather than a
+    /// set of crossings.
+    /// </para>
+    /// </remarks>
+    [return: NodePort("points")]
+    public static IReadOnlyList<Point3d> IntersectWithSurface(Spark.Geometry.Curve curve, Spark.Geometry.Surface surface)
+    {
+        CurveSurfaceIntersections found = curve.IntersectWith(surface);
+        List<Point3d> points = new(found.Points.Count);
+
+        foreach (CurveSurfaceIntersectionPoint point in found.Points)
+        {
+            points.Add(point.Point);
+        }
+
+        return points;
+    }
+
+    /// <summary>
     /// The stretches where two curves run together, as pieces of the first (<c>E2-T11</c>).
     /// </summary>
     /// <param name="curve">The first curve, which the pieces are cut from.</param>

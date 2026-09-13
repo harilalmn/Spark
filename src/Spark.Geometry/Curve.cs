@@ -478,6 +478,49 @@ public abstract class Curve
             ?? GeneralCurveIntersection.Intersect(this, other, tolerance);
     }
 
+    /// <summary>
+    /// Where this curve meets a surface: the points where it crosses or touches, each carrying the
+    /// parameter on this curve and the parameters on the surface (<c>E2-T70</c>, step B).
+    /// </summary>
+    /// <param name="surface">The surface.</param>
+    /// <param name="tolerance">How close counts as meeting; the kernel's default when not given.</param>
+    /// <returns>The points, in order along this curve.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="surface"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Both parameters come back, and that is the point of the member.</b> A caller trimming this
+    /// curve needs its parameter and a caller marking the surface needs the <see cref="UV"/>;
+    /// recovering either afterwards would be a second intersection problem.
+    /// </para>
+    /// <para>
+    /// <b>How it works.</b> The curve is sampled over its domain and a <i>signed</i> distance to the
+    /// surface is taken at each sample - the displacement from the nearest point on the surface,
+    /// along the normal there - so a sign change brackets a crossing. Each bracket is refined by
+    /// Newton on <c>C(t) - S(u, v) = 0</c>, three equations in three unknowns, which lands on the
+    /// curve and the surface at once. A singular Jacobian is a tangency rather than a failure, and
+    /// bisection answers it instead.
+    /// </para>
+    /// <para>
+    /// <b>Two limits, stated rather than hidden.</b> A tangency that touches zero without changing
+    /// sign between two samples is missed - the same bargain
+    /// <see cref="IntersectWith(Curve, in Tolerance)"/> makes on its sampled path. And a curve lying
+    /// <i>in</i> the surface is not a set of points: it comes back as
+    /// <see cref="CurveSurfaceIntersections.LiesOnSurface"/> with no points, rather than as whatever
+    /// samples happened to be taken.
+    /// </para>
+    /// <para>
+    /// <b>Surface/surface is not here and is not an oversight.</b> It is ADR-0002's research-grade
+    /// problem and belongs behind <c>Spark.Api.IBrepKernel</c>; curve/surface does not, which is why
+    /// this one is managed (<c>E2-T70</c>).
+    /// </para>
+    /// </remarks>
+    public CurveSurfaceIntersections IntersectWith(Surface surface, in Tolerance tolerance = default)
+    {
+        ArgumentNullException.ThrowIfNull(surface);
+
+        return CurveSurfaceIntersection.Intersect(this, surface, tolerance);
+    }
+
     /// <summary>The distance from a point to the nearest point on the curve.</summary>
     /// <param name="point">The point to measure from.</param>
     /// <returns>The distance, never negative.</returns>

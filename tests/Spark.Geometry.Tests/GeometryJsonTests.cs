@@ -197,6 +197,8 @@ public sealed class GeometryJsonTests
         [typeof(CurveIntersectionPoint)] = "the answer to a question about two curves, recomputed from them",
         [typeof(CurveOverlap)] = "the answer to a question about two curves; see CurveIntersectionPoint",
         [typeof(CurveIntersections)] = "the answer to a question about two curves; see CurveIntersectionPoint",
+        [typeof(CurveSurfaceIntersectionPoint)] = "the answer to a question about a curve and a surface; see CurveIntersectionPoint",
+        [typeof(CurveSurfaceIntersections)] = "the answer to a question about a curve and a surface; see CurveIntersectionPoint",
     };
 
     [Fact]
