@@ -260,6 +260,22 @@ public sealed class Line : Curve
         new(new NurbsCurve(1, [_start, _end], [0.0, 0.0, 1.0, 1.0]), true);
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// A longer <see cref="Line"/>, exactly — a line continues itself in both directions and the
+    /// extension is the same straight line the base implementation would have tacked on, so
+    /// returning a <see cref="PolyCurve"/> of three collinear pieces would be the same shape
+    /// carrying two joins nobody asked for.
+    /// </remarks>
+    public override Curve Extended(double atStart, double atEnd)
+    {
+        CheckExtension(atStart, atEnd);
+
+        Vector3d along = Direction;
+
+        return new Line(_start - (along * atStart), _end + (along * atEnd));
+    }
+
+    /// <inheritdoc/>
     public override Curve Reversed() => new Line(_end, _start);
 
     /// <inheritdoc/>

@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T71` family (3): chord stepping, and division from a parameter)
+**Last updated:** 2026-09-13 (`E2-T71` family (4): extension, which Spark had none of)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -398,8 +398,14 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     **chord** rather than marching, and fails loudly when it cannot. **Residue 300 → 299, the
 >     first *fall* from building rather than from an assessment**: `DivideByLength` had been
 >     unnamed since it was written and the from-a-parameter rows finally account for it.
->     **Next**: the rest of `E2-T71`
->     (`PolyCurve`'s exact NURBS conversion, extension, the tangent-constrained
+>     ~~**family (4)**~~ **done the same day**: **`Curve.Extended`,
+>     and Spark can lengthen a curve past its own domain**. A type that can continue itself does —
+>     `Line`, `Arc`, `Helix`, all exact — and everything else gets a **straight tail** joined as a
+>     `PolyCurve`, tangent-continuous and visible in the returned type. **The branch that hides is
+>     *which end***, so every test uses an asymmetric curve and asserts the other end did not move.
+>     **It unblocked `CurveOffset.Fillet`'s stated limit**: that member refuses curves that do not
+>     already cross, and nothing could make them cross before. **Next**: the rest of `E2-T71`
+>     (`PolyCurve`'s exact NURBS conversion, the tangent-constrained
 >     interpolation), then
 >     `E2-T66`…`E2-T69`. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks

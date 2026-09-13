@@ -1267,6 +1267,111 @@ public abstract class Curve
             NurbsCurve.InterpolatePoints(samples, Math.Min(3, samples.Length - 1)), false);
     }
 
+    /// <summary>
+    /// Returns the curve lengthened past its own ends (`E2-T71`).
+    /// </summary>
+    /// <param name="atStart">
+    /// How far to add before <see cref="StartPoint"/>, measured in <b>arc length</b>. Zero or more.
+    /// </param>
+    /// <param name="atEnd">How far to add after <see cref="EndPoint"/>. Zero or more.</param>
+    /// <returns>
+    /// The longer curve. <b>Its type depends on what the original could do</b> — see the remarks.
+    /// Extending by nothing at both ends returns the curve unchanged.
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Either distance is negative or not finite.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The curve is closed, and a closed curve has no ends to extend.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the operation <see cref="Trimmed(in Interval)"/> is not.</b> Trimming only ever
+    /// narrows; until this existed nothing in Spark could make two curves that nearly meet actually
+    /// meet, which is why <see cref="CurveOffset.Fillet"/> has to refuse a pair that does not
+    /// already cross.
+    /// </para>
+    /// <para>
+    /// <b>A type that can continue itself does; everything else gets a straight tail.</b> A
+    /// <see cref="Line"/> becomes a longer line, an <see cref="Arc"/> and a <see cref="Helix"/> a
+    /// wider sweep — all exact, because those curves are defined outside the piece you were holding.
+    /// A curve with no such continuation is extended <b>linearly</b>, along its own end tangent,
+    /// and the result is a <see cref="PolyCurve"/> with straight tails. That is always available
+    /// and always tangent-continuous at the join, and it is visible in the returned type rather
+    /// than being a difference the caller has to guess at.
+    /// </para>
+    /// <para>
+    /// <b><see cref="EllipseCurve"/> takes the straight tail on purpose.</b> Its equation continues
+    /// perfectly well past its domain — but it has no constant speed, so turning a requested
+    /// <i>arc length</i> into a sweep means integrating outside the domain its own arc-length
+    /// machinery is built for. A worse version of the exact answer is not better than the honest
+    /// linear one, and this is written down rather than left to be discovered.
+    /// </para>
+    /// <para>
+    /// <b>Dynamo's <c>ExtendStart</c>, <c>ExtendEnd</c> and <c>Extend(distance, point)</c> are all
+    /// this member.</b> The first two pass zero for the other end; the third extends whichever end
+    /// is nearer the point, which is a comparison the caller makes rather than a rule this has to
+    /// choose.
+    /// </para>
+    /// </remarks>
+    public virtual Curve Extended(double atStart, double atEnd)
+    {
+        CheckExtension(atStart, atEnd);
+
+        if (atStart == 0.0 && atEnd == 0.0)
+        {
+            return this;
+        }
+
+        List<Curve> pieces = [];
+
+        if (atStart > 0.0)
+        {
+            Point3d from = StartPoint;
+            pieces.Add(new Line(from - (TangentAt(Domain.Min) * atStart), from));
+        }
+
+        pieces.Add(this);
+
+        if (atEnd > 0.0)
+        {
+            Point3d to = EndPoint;
+            pieces.Add(new Line(to, to + (TangentAt(Domain.Max) * atEnd)));
+        }
+
+        // Joined rather than returned as a list, because a caller extending a curve wants a curve.
+        // The tolerance is the tightest that can succeed: the pieces are built from this curve's
+        // own endpoints, so they meet exactly and a loose join would only hide a mistake.
+        return PolyCurve.FromJoinedCurves(pieces);
+    }
+
+    /// <summary>Validates a pair of extension distances.</summary>
+    /// <param name="atStart">The distance to add before the start.</param>
+    /// <param name="atEnd">The distance to add after the end.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Either is negative or not finite.</exception>
+    /// <exception cref="InvalidOperationException">The curve is closed.</exception>
+    protected void CheckExtension(double atStart, double atEnd)
+    {
+        if (!double.IsFinite(atStart) || atStart < 0.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(atStart), atStart, "An extension distance must be zero or more, and finite.");
+        }
+
+        if (!double.IsFinite(atEnd) || atEnd < 0.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(atEnd), atEnd, "An extension distance must be zero or more, and finite.");
+        }
+
+        if (IsClosed && (atStart > 0.0 || atEnd > 0.0))
+        {
+            throw new InvalidOperationException(
+                "A closed curve has no ends to extend. Trim it first if you want a piece of it to "
+                + "be longer than the whole.");
+        }
+    }
+
     /// <summary>Returns the same curve traversed in the opposite direction.</summary>
     /// <returns>A new curve. The original is unchanged.</returns>
     public abstract Curve Reversed();

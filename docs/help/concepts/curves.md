@@ -1,7 +1,7 @@
 ---
 id: concepts.curves
 title: Curves, parameters and arc length
-nodes: [Line.FromStartPointEndPoint, Circle.FromCenterRadius, Arc.FromThreePoints, Ellipse.FromPlaneRadii, Helix.FromAxis, Curve.Fillet, PolyLine.FromRegularPolygon, PolyCurve.FromJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength, Curve.DivideByChordLength, Curve.DivideEquallyByChord, Curve.IntersectWith, Curve.IntersectWithSurface]
+nodes: [Line.FromStartPointEndPoint, Circle.FromCenterRadius, Arc.FromThreePoints, Ellipse.FromPlaneRadii, Helix.FromAxis, Curve.Fillet, PolyLine.FromRegularPolygon, PolyCurve.FromJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength, Curve.DivideByChordLength, Curve.DivideEquallyByChord, Curve.Extended, Curve.IntersectWith, Curve.IntersectWithSurface]
 related: [concepts.geometry-basics, concepts.lacing]
 since: "0.1"
 ---
@@ -591,6 +591,59 @@ Three things to know:
   across, and you get a message rather than an arc that overshoots both curves.
 - **It rounds the corner nearest where the curves cross.** Two curves crossing have four corners,
   and all four have a valid tangent arc; the one you can see is the one you get.
+
+---
+
+## 13. Making a curve longer
+
+`Trimmed` only ever makes a curve shorter. `Extended` is the other direction — and it is what you
+reach for when two curves nearly meet and you need them to actually meet:
+
+```csharp
+using Spark.Geometry;
+
+Line wall = new(new Point3d(-4.0, 0.0, 0.0), new Point3d(-1.0, 0.0, 0.0));
+
+Curve longer = wall.Extended(0.0, 2.0);   // two units added past the end
+double reach = longer.Length;             // 5 - it was 3
+```
+
+Both numbers are **distances along the curve**, and both must be zero or more. Extending by a
+negative amount would be trimming, and a member that quietly did the opposite of its name is worse
+than one that refuses.
+
+**What you get back depends on what the curve could do.**
+
+| Curve | Extended | Result |
+|---|---|---|
+| `Line` | along itself | a longer `Line` |
+| `Arc` | a wider sweep | a wider `Arc`, stopping at a full turn |
+| `Helix` | more turns | a longer `Helix` |
+| anything else | along the end tangent | a `PolyCurve` with straight tails |
+
+**A straight tail is not a poor relation.** It meets the original smoothly — the join is
+tangent-continuous, so nothing kinks — and it is the honest answer for a curve whose own
+continuation is not cheap to compute. `EllipseCurve` is the case worth knowing: an ellipse carries
+on perfectly well past its ends mathematically, but it does not travel at a constant speed, so
+turning *two units of extension* into *how much more sweep* is an integral rather than a division.
+Spark gives you the straight tail and tells you so by handing back a `PolyCurve`.
+
+**A closed curve has no ends**, so extending a `Circle` is an error rather than a bigger circle.
+
+```csharp
+using Spark.Geometry;
+
+// Two lines that do not meet, and a fillet that therefore cannot be made.
+Line first = new(new Point3d(-4.0, 0.0, 0.0), new Point3d(-1.0, 0.0, 0.0));
+Line second = new(new Point3d(0.0, 1.0, 0.0), new Point3d(0.0, 4.0, 0.0));
+
+// Extend both until they cross, then round the corner.
+Curve longerFirst = first.Extended(0.0, 2.0);
+Curve longerSecond = second.Extended(2.0, 0.0);
+
+(Arc corner, Curve trimmedFirst, Curve trimmedSecond) =
+    CurveOffset.Fillet(longerFirst, longerSecond, 0.5, Vector3d.ZAxis);
+```
 
 ---
 

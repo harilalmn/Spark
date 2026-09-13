@@ -303,4 +303,22 @@ public static class Curve
     public static IReadOnlyList<Point3d> DivideByLengthFromParameter(
         Spark.Geometry.Curve curve, double distance = 1.0, double fromParameter = 0.0) =>
         curve.DivideByLength(distance, curve.Domain.Denormalise(System.Math.Clamp(fromParameter, 0.0, 1.0)));
+
+    /// <summary>Lengthens a curve past its own ends.</summary>
+    /// <param name="curve">The curve.</param>
+    /// <param name="atStart">How far to add before the start, measured along the curve.</param>
+    /// <param name="atEnd">How far to add after the end.</param>
+    /// <returns>The longer curve.</returns>
+    /// <remarks>
+    /// <b>A curve that can continue itself does</b> — a line stays a line, an arc becomes a wider
+    /// arc, a helix gains turns. Anything else is extended along its own end tangent, so the result
+    /// is the curve with straight tails on it. A <b>closed</b> curve has no ends and is an error.
+    /// </remarks>
+    [return: NodePort("curve")]
+    [SparkNodeAlias("Curve.Extend")]
+    [SparkNodeAlias("Curve.ExtendStart")]
+    [SparkNodeAlias("Curve.ExtendEnd")]
+    public static Spark.Geometry.Curve Extended(
+        Spark.Geometry.Curve curve, double atStart = 0.0, double atEnd = 1.0) =>
+        curve.Extended(atStart, atEnd);
 }

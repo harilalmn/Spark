@@ -223,6 +223,22 @@ public sealed class Helix : Curve
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// A <see cref="Helix"/> of more turns, exactly. A helix travels at a constant speed, so a
+    /// requested arc length is a sweep of <c>length / speed</c> — the same property that makes
+    /// every arc-length member on this type closed form, used once more. There is no upper bound to
+    /// clamp against: unlike an <see cref="Arc"/>, a helix never comes back to where it started.
+    /// </remarks>
+    public override Curve Extended(double atStart, double atEnd)
+    {
+        CheckExtension(atStart, atEnd);
+
+        double before = atStart / Speed;
+
+        return Reframe(-before, _sweep + (atEnd / Speed));
+    }
+
+    /// <inheritdoc/>
     public override Curve Reversed() => Reframe(_sweep, 0.0);
 
     /// <summary>Returns the part of the helix between two parameters.</summary>

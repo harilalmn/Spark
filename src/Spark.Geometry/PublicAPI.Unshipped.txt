@@ -143,6 +143,7 @@ Spark.Geometry.Quaternion.Quaternion(in Spark.Geometry.Vector3d from, in Spark.G
 Spark.Geometry.Ray.Ray(in Spark.Geometry.Point3d from, in Spark.Geometry.Point3d towards) -> void
 Spark.Geometry.Vector3d.Vector3d(double radius, Spark.Geometry.Angle azimuth, Spark.Geometry.Angle polar) -> void
 Spark.Geometry.Vector3d.Vector3d(double radius, Spark.Geometry.Angle azimuth, double height) -> void
+override Spark.Geometry.Arc.Extended(double atStart, double atEnd) -> Spark.Geometry.Curve!
 override Spark.Geometry.Arc.IsPlanar(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
 override Spark.Geometry.Arc.PlaneOf(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Plane?
 override Spark.Geometry.Arc.ToNurbsCurve(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsConversion!
@@ -156,6 +157,7 @@ override Spark.Geometry.EllipseCurve.IsPlanar(in Spark.Geometry.Tolerance tolera
 override Spark.Geometry.EllipseCurve.PlaneOf(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Plane?
 override Spark.Geometry.EllipseCurve.ToNurbsCurve(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsConversion!
 override Spark.Geometry.Helix.Domain.get -> Spark.Geometry.Interval
+override Spark.Geometry.Helix.Extended(double atStart, double atEnd) -> Spark.Geometry.Curve!
 override Spark.Geometry.Helix.IsClosed.get -> bool
 override Spark.Geometry.Helix.LengthAt(double parameter) -> double
 override Spark.Geometry.Helix.ParameterAtLength(double distance) -> double
@@ -163,6 +165,7 @@ override Spark.Geometry.Helix.Reversed() -> Spark.Geometry.Curve!
 override Spark.Geometry.Helix.ToString() -> string!
 override Spark.Geometry.Helix.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Curve!
 override Spark.Geometry.Helix.Trimmed(in Spark.Geometry.Interval domain) -> Spark.Geometry.Curve!
+override Spark.Geometry.Line.Extended(double atStart, double atEnd) -> Spark.Geometry.Curve!
 override Spark.Geometry.Line.IsPlanar(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
 override Spark.Geometry.Line.PlaneOf(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Plane?
 override Spark.Geometry.Line.ToNurbsCurve(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsConversion!
@@ -197,6 +200,7 @@ static Spark.Geometry.Tessellation.Tessellate(Spark.Geometry.Surface! surface, S
 static Spark.Geometry.Tessellation.ToMesh(this Spark.Geometry.Surface! surface, in Spark.Geometry.Tolerance tolerance, System.Threading.CancellationToken cancellationToken) -> Spark.Geometry.Mesh!
 static Spark.Geometry.Vector3d.FromCylindrical(double radius, Spark.Geometry.Angle azimuth, double height) -> Spark.Geometry.Vector3d
 static Spark.Geometry.Vector3d.FromSpherical(double radius, Spark.Geometry.Angle azimuth, Spark.Geometry.Angle polar) -> Spark.Geometry.Vector3d
+virtual Spark.Geometry.Curve.Extended(double atStart, double atEnd) -> Spark.Geometry.Curve!
 virtual Spark.Geometry.Curve.IsPlanar(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> bool
 virtual Spark.Geometry.Curve.PlaneOf(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Plane?
 virtual Spark.Geometry.Curve.ToNurbsCurve(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsConversion!

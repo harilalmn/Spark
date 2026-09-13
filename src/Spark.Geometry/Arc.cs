@@ -376,6 +376,37 @@ public sealed class Arc : Curve
         new(RationalArcs.Elliptical(_plane, _radius, _radius, _startAngle, _sweep), true);
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <para>
+    /// A wider <see cref="Arc"/>, exactly: an arc travels at a constant speed of
+    /// <see cref="Radius"/>, so a requested arc length is a sweep of <c>length / radius</c> and
+    /// there is nothing to integrate or approximate.
+    /// </para>
+    /// <para>
+    /// <b>Extending past a full turn gives a full turn and no more</b>, rather than an arc that
+    /// overlaps itself. An arc that has come all the way round is a circle, and a sweep of more
+    /// than <c>2π</c> is a curve that passes through its own points twice — which
+    /// <see cref="FromPlaneRadiusAngles"/> refuses and this will not smuggle past it.
+    /// </para>
+    /// </remarks>
+    public override Curve Extended(double atStart, double atEnd)
+    {
+        CheckExtension(atStart, atEnd);
+
+        double before = atStart / _radius;
+        double after = atEnd / _radius;
+        double sweep = Math.Min(_sweep + before + after, FullTurn);
+
+        // When the two extensions together would pass a full turn, the surplus is dropped from the
+        // END rather than shared, because a caller extending both ends of an almost-closed arc
+        // means "close it" and the start is where the arc is anchored.
+        double start = _startAngle - Math.Min(before, sweep - _sweep);
+
+        return FromPlaneRadiusAngles(
+            _plane, _radius, Angle.FromRadians(start), Angle.FromRadians(sweep));
+    }
+
+    /// <inheritdoc/>
     public override Curve Reversed() =>
         new Arc(
             Plane.FromOriginXAxisYAxis(_plane.Origin, _plane.XAxis, -_plane.YAxis),
