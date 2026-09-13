@@ -174,6 +174,8 @@ public sealed class NurbsCurve : Curve
     {
     }
 
+    private bool? _closed;
+
     /// <summary>The knot vector, which carries the degree and the domain.</summary>
     public KnotVector Knots { get; }
 
@@ -187,13 +189,70 @@ public sealed class NurbsCurve : Curve
     /// Whether the first and last control points coincide.
     /// </summary>
     /// <remarks>
-    /// A geometric test rather than a structural one. A NURBS curve can be closed by repeating its
-    /// first control points at the end (a periodic vector) or by placing the last control point on
-    /// the first, and only the second is visible in the data — but both produce a curve whose ends
-    /// meet, which is what every caller of this actually wants to know.
+    /// <para>
+    /// <b>Both ways of closing a NURBS curve are recognised, and until `E2-T72` only one of them
+    /// was.</b> A curve closes either by placing the last control point on the first, or by
+    /// repeating the first <c>degree</c> control points at the end over a uniform knot vector — and
+    /// this member's own remarks used to say that <i>only the second is visible in the data</i>,
+    /// while testing for it. That was harmless while nothing could build the first, and wrong the
+    /// day <see cref="FromPeriodicControlPoints"/> arrived: a periodic curve's last control point
+    /// is the ring's <i>third</i> point, not its first, so the old test called a curve that plainly
+    /// closes open. <see cref="IsPeriodic"/> answers the case the comment had already named.
+    /// </para>
+    /// <para>
+    /// <b>Cached, because <see cref="Curve.CheckParameter"/> reads it on every evaluation.</b> The
+    /// obvious repair — compare <see cref="Curve.StartPoint"/> with <see cref="Curve.EndPoint"/>,
+    /// which is what <i>geometric</i> would really mean — costs two curve evaluations per
+    /// <c>PointAt</c>, which is the hot path of the whole type. A curve is immutable, so the answer
+    /// is computed once.
+    /// </para>
     /// </remarks>
     public override bool IsClosed =>
-        _controlPoints[0].EqualsWithin(_controlPoints[^1]);
+        _closed ??= _controlPoints[0].EqualsWithin(_controlPoints[^1]) || IsPeriodic;
+
+    /// <summary>
+    /// Whether the curve closes <b>smoothly</b> — its ends meet and its derivatives agree there
+    /// (`E2-T72`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is not <see cref="IsClosed"/>, and the difference is the point of the member.</b> A
+    /// closed curve's ends <i>meet</i>; a periodic curve's ends meet <i>smoothly</i>, with the
+    /// derivatives agreeing up to <c>degree - 1</c>. A clamped curve whose last control point sits
+    /// on its first is closed and is <b>not</b> periodic — it has a visible kink at the seam — and
+    /// reporting one as the other is [N156](../../docs/NOTES.md)'s trap, which
+    /// <c>Surface.IsPeriodicInU</c> and <c>Face.SurfaceGeometry</c> have already walked into once
+    /// each.
+    /// </para>
+    /// <para>
+    /// <b>The test is structural, because the structure is what guarantees the smoothness.</b> A
+    /// uniform knot vector with the first <see cref="Curve"/> degree control points repeated at the
+    /// end produces a curve whose seam is an ordinary interior span — there is nothing special
+    /// about it at all, which is why the derivatives match. Checking the derivatives numerically
+    /// instead would be checking the consequence and inheriting a tolerance for it.
+    /// </para>
+    /// </remarks>
+    public bool IsPeriodic
+    {
+        get
+        {
+            if (!Knots.IsUniform || Knots.IsClamped || _controlPoints.Length <= Degree)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < Degree; i++)
+            {
+                if (!_controlPoints[i].EqualsWithin(_controlPoints[^(Degree - i)])
+                    || _weights[i] != _weights[^(Degree - i)])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
 
     /// <summary>Whether any weight differs from any other, making the curve genuinely rational.</summary>
     /// <remarks>
@@ -1425,6 +1484,98 @@ public sealed class NurbsCurve : Curve
         }
 
         return rightHand;
+    }
+
+    /// <summary>
+    /// Creates the periodic curve through a ring of control points — one that closes
+    /// <b>smoothly</b> (`E2-T72`).
+    /// </summary>
+    /// <param name="controlPoints">
+    /// The ring, given <b>once</b>: the wrap is this method's job, and a caller who repeats the
+    /// first point at the end gets a curve with a doubled control point rather than an error.
+    /// </param>
+    /// <param name="degree">The degree. At least 1, and less than the number of control points.</param>
+    /// <param name="weights">The weights, one per given control point, or <see langword="null"/>.</param>
+    /// <returns>The curve.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="controlPoints"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="degree"/> is less than 1.</exception>
+    /// <exception cref="ArgumentException">
+    /// There are not more control points than the degree, a point is not finite, or the weights do
+    /// not match the points.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>The construction is the standard one and it needed no new evaluation code at all</b>,
+    /// which was the surprise of the step that wrote it. The first <paramref name="degree"/> control
+    /// points are repeated at the end and the knot vector is
+    /// <see cref="KnotVector.CreateUniform"/>'s — after which the seam is an ordinary interior span
+    /// and every existing member evaluates it correctly without knowing it is a seam.
+    /// </para>
+    /// <para>
+    /// <b>The curve does not pass through any of its control points</b>, unlike a clamped one at its
+    /// two ends. That is what being periodic costs and it is not a defect: a uniform cubic sits
+    /// inside its control polygon everywhere. Use <see cref="InterpolatePoints"/> when the points
+    /// are meant to be <i>on</i> the curve.
+    /// </para>
+    /// </remarks>
+    public static NurbsCurve FromPeriodicControlPoints(
+        IReadOnlyList<Point3d> controlPoints, int degree = 3, IReadOnlyList<double>? weights = null)
+    {
+        ArgumentNullException.ThrowIfNull(controlPoints);
+        ArgumentOutOfRangeException.ThrowIfLessThan(degree, 1);
+
+        if (controlPoints.Count <= degree)
+        {
+            throw new ArgumentException(
+                $"A periodic degree-{degree} curve needs more than {degree} control points in its "
+                + $"ring; {controlPoints.Count} were given.",
+                nameof(controlPoints));
+        }
+
+        if (weights is not null && weights.Count != controlPoints.Count)
+        {
+            throw new ArgumentException(
+                $"There are {controlPoints.Count} control points and {weights.Count} weights.",
+                nameof(weights));
+        }
+
+        Point3d[] wrapped = new Point3d[controlPoints.Count + degree];
+        double[]? wrappedWeights = weights is null ? null : new double[wrapped.Length];
+
+        for (int i = 0; i < wrapped.Length; i++)
+        {
+            int source = i % controlPoints.Count;
+            wrapped[i] = controlPoints[source];
+
+            if (wrappedWeights is not null)
+            {
+                wrappedWeights[i] = weights![source];
+            }
+        }
+
+        return new NurbsCurve(
+            wrapped, KnotVector.CreateUniform(degree, wrapped.Length), wrappedWeights);
+    }
+
+    /// <summary>Creates the periodic curve through a ring of control points.</summary>
+    /// <param name="controlPoints">The ring, given once. The wrap is the constructor's job.</param>
+    /// <param name="degree">The degree. At least 1, and less than the number of control points.</param>
+    /// <param name="weights">One per given control point, or <see langword="null"/>.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="controlPoints"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="degree"/> is less than 1.</exception>
+    /// <exception cref="ArgumentException">
+    /// There are not more control points than the degree, or the weights do not match the points.
+    /// </exception>
+    /// <remarks>
+    /// Forwards to <see cref="FromPeriodicControlPoints"/>, so the two cannot drift apart
+    /// (`E2-T59`). It mirrors all three of the factory's parameters including the defaults, which
+    /// is what <c>ConstructorParityTests</c> asks for — a constructor of the <i>same shape</i>,
+    /// not merely of a usable one.
+    /// </remarks>
+    public NurbsCurve(
+        IReadOnlyList<Point3d> controlPoints, int degree = 3, IReadOnlyList<double>? weights = null)
+        : this(FromPeriodicControlPoints(controlPoints, degree, weights))
+    {
     }
 
     /// <inheritdoc/>

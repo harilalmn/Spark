@@ -83,6 +83,7 @@ Spark.Geometry.Helix.Helix(in Spark.Geometry.Point3d origin, in Spark.Geometry.V
 Spark.Geometry.Helix.Pitch.get -> double
 Spark.Geometry.Helix.Radius.get -> double
 Spark.Geometry.Helix.SweepAngle.get -> Spark.Geometry.Angle
+Spark.Geometry.KnotVector.IsUniform.get -> bool
 Spark.Geometry.KnotVector.KnotVector(int degree, int controlPoints) -> void
 Spark.Geometry.Line.Line(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> void
 Spark.Geometry.Line.Line(in Spark.Geometry.Point3d start, in Spark.Geometry.Vector3d direction, double length) -> void
@@ -91,6 +92,8 @@ Spark.Geometry.NurbsConversion
 Spark.Geometry.NurbsConversion.Curve.get -> Spark.Geometry.NurbsCurve!
 Spark.Geometry.NurbsConversion.IsExact.get -> bool
 Spark.Geometry.NurbsConversion.NurbsConversion(Spark.Geometry.NurbsCurve! curve, bool isExact) -> void
+Spark.Geometry.NurbsCurve.IsPeriodic.get -> bool
+Spark.Geometry.NurbsCurve.NurbsCurve(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! controlPoints, int degree = 3, System.Collections.Generic.IReadOnlyList<double>? weights = null) -> void
 Spark.Geometry.NurbsCurve.NurbsCurve(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> void
 Spark.Geometry.NurbsSurface.NurbsSurface(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! corners) -> void
 Spark.Geometry.Planar.Region
@@ -176,7 +179,9 @@ static Spark.Geometry.CurveSurfaceIntersectionPoint.operator !=(Spark.Geometry.C
 static Spark.Geometry.CurveSurfaceIntersectionPoint.operator ==(Spark.Geometry.CurveSurfaceIntersectionPoint left, Spark.Geometry.CurveSurfaceIntersectionPoint right) -> bool
 static Spark.Geometry.CurveSurfaceIntersections.None.get -> Spark.Geometry.CurveSurfaceIntersections!
 static Spark.Geometry.Helix.FromAxis(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d direction, in Spark.Geometry.Point3d startPoint, double pitch, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Helix!
+static Spark.Geometry.KnotVector.CreateUniform(int degree, int controlPoints) -> Spark.Geometry.KnotVector!
 static Spark.Geometry.Line.FromBestFit(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.Line!
+static Spark.Geometry.NurbsCurve.FromPeriodicControlPoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! controlPoints, int degree = 3, System.Collections.Generic.IReadOnlyList<double>? weights = null) -> Spark.Geometry.NurbsCurve!
 static Spark.Geometry.Planar.Region.FromClosedPolyLines(in Spark.Geometry.Plane plane, System.Collections.Generic.IEnumerable<Spark.Geometry.PolyLine!>! loops, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Planar.Region!
 static Spark.Geometry.Plane.FromBestFit(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.Plane
 static Spark.Geometry.Plane.FromLineAndPoint(Spark.Geometry.Line! line, in Spark.Geometry.Point3d point) -> Spark.Geometry.Plane

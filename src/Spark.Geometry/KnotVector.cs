@@ -203,6 +203,82 @@ public sealed class KnotVector : IEquatable<KnotVector>
         return new KnotVector(degree, knots);
     }
 
+    /// <summary>
+    /// Builds the <b>uniform, unclamped</b> knot vector a periodic curve needs (`E2-T72`).
+    /// </summary>
+    /// <param name="degree">The degree. At least 1.</param>
+    /// <param name="controlPoints">
+    /// How many control points, <b>including the wrapped ones</b>. More than
+    /// <paramref name="degree"/>.
+    /// </param>
+    /// <returns>A vector whose knots are evenly spaced from 0, with no repeats at either end.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The degree is less than 1, or there are not more control points than the degree.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>The difference from <see cref="CreateClamped"/> is the ends, and it is the whole
+    /// difference between a curve that stops and one that carries on.</b> A clamped vector repeats
+    /// its end knots <c>degree + 1</c> times, which drags the curve onto its first and last control
+    /// points and makes the ends <i>corners</i> of the control polygon. A uniform vector repeats
+    /// nothing, so the curve starts and stops in the middle of nowhere — which is exactly what is
+    /// wanted when the two ends are going to be joined to each other.
+    /// </para>
+    /// <para>
+    /// <b>Its domain is not [0, 1], and that is not an oversight.</b> It runs from
+    /// <c>knots[degree]</c> to <c>knots[n]</c> — the region where every basis function has enough
+    /// knots on both sides to be defined — which for <c>count</c> knots spaced one apart is
+    /// <c>[degree, count - 1 - degree]</c>. Rescaling it to [0, 1] would make the spans unequal in
+    /// parameter, and equal spans are the property a periodic curve's symmetry rests on.
+    /// </para>
+    /// </remarks>
+    public static KnotVector CreateUniform(int degree, int controlPoints)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(degree, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(controlPoints, degree + 1);
+
+        int count = controlPoints + degree + 1;
+        double[] knots = new double[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            knots[i] = i;
+        }
+
+        return new KnotVector(degree, knots);
+    }
+
+    /// <summary>
+    /// Whether the vector is uniform: every span has the same width and no knot is repeated.
+    /// </summary>
+    /// <remarks>
+    /// <b>Compared with a tolerance relative to the vector's own span</b>, for the reason
+    /// <see cref="Multiplicity(double, in Tolerance)"/> is: a vector that has been through a
+    /// reparameterisation has spans that are equal in every way that matters and not bitwise.
+    /// </remarks>
+    public bool IsUniform
+    {
+        get
+        {
+            double width = _knots[1] - _knots[0];
+
+            if (width <= 0.0)
+            {
+                return false;
+            }
+
+            for (int i = 1; i < _knots.Length - 1; i++)
+            {
+                if (Math.Abs((_knots[i + 1] - _knots[i]) - width) > width * 1e-9)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+
     /// <summary>How many times a knot value is repeated.</summary>
     /// <param name="knot">The value to count.</param>
     /// <param name="tolerance">The tolerance two knots are counted as equal within.</param>

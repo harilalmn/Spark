@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T72` second idea: the general two-curve fillet)
+**Last updated:** 2026-09-13 (`E2-T72` third idea: a NURBS curve that closes smoothly)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -383,9 +383,17 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     exact only for lines, circles and arcs, so the centre is refined by Newton until it is
 >     exactly the radius from both — without which the fillet is tangent only to a fit's accuracy,
 >     and tangency is the whole promise. **Residue unchanged at 300** for the second step running.
->     **Next**: the rest of `E2-T71`/`E2-T72`
->     (no periodic NURBS, `PolyCurve`'s exact NURBS conversion, chord stepping, extension),
->     then
+>     ~~**the third idea**~~ **done the same day**:
+>     **a NURBS curve can be periodic**. `IsPeriodic` **is not `IsClosed`** — a closed curve's ends
+>     meet, a periodic curve's meet *smoothly* — and the clamped closed curve is in the test file
+>     as the control, passing every position assertion and failing every derivative one.
+>     **It needed no new evaluation code**: `KnotVector` never required a clamped vector, so the
+>     seam is an ordinary interior span and the existing evaluator handles it. **It did find a
+>     latent defect** — `NurbsCurve.IsClosed` compared control points and called a periodic curve
+>     open, which its own remarks had predicted and then not guarded. **Next**: the rest of
+>     `E2-T71`/`E2-T72`
+>     (`PolyCurve`'s exact NURBS conversion, chord stepping, extension, the tangent-constrained
+>     interpolation), then
 >     `E2-T66`…`E2-T69`. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register

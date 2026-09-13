@@ -211,18 +211,34 @@ public sealed class CrashRecoveryTests : IDisposable
     }
 
     /// <summary>A copy that differs from its file is offered, and the banner names the file.</summary>
+    /// <remarks>
+    /// <b>The store is emptied between taking the text and keeping the copy, and that is not
+    /// tidiness.</b> <see cref="LeaveACrashedCopy"/> is used here only for the <i>text</i> it
+    /// returns — but it gets that text by crashing a session, which leaves a copy of its own with
+    /// <b>no file</b> behind it. Without the clearing there are two leftovers, the banner describes
+    /// whichever <c>Leftovers</c> happens to hand back first, and the two were written milliseconds
+    /// apart — so this test failed about one run in ten and passed the other nine, which is the
+    /// worst possible behaviour for a test in a gate (`E2-T72` found it; it predates that row).
+    /// </remarks>
     [Fact]
     public void ACopyThatDiffersFromItsFileIsOfferedByName()
     {
         string path = Path.Combine(_root, "tower.spark");
         File.WriteAllText(path, Saved());
 
-        Crashed.Keep(Guid.NewGuid(), LeaveACrashedCopy(), path);
+        string text = LeaveACrashedCopy();
+
+        foreach (RecoveredGraph stray in Crashed.Leftovers(Guid.Empty))
+        {
+            Crashed.Discard(stray);
+        }
+
+        Crashed.Keep(Guid.NewGuid(), text, path);
 
         using MainWindowViewModel next = new();
         next.Recovery = Crashed;
 
-        Assert.True(next.OfferRecovery() >= 1);
+        Assert.Equal(1, next.OfferRecovery());
         Assert.Contains("tower.spark", next.RecoveryBanner, StringComparison.Ordinal);
     }
 
