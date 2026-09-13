@@ -34,6 +34,28 @@ public static class PolyLine
     public static Spark.Geometry.PolyLine FromClosedPoints(IReadOnlyList<Point3d> points) =>
         Spark.Geometry.PolyLine.FromClosedPoints(points);
 
+    /// <summary>Where a polyline crosses itself.</summary>
+    /// <param name="polyline">The polyline to check.</param>
+    /// <returns>One point per crossing. Empty when the outline is clean.</returns>
+    /// <remarks>
+    /// <b>Meeting at a shared corner is not a crossing</b>, so a well-drawn closed outline returns
+    /// nothing. This is what to check an imported or traced boundary with before using it as one.
+    /// </remarks>
+    [return: NodePort("points")]
+    [SparkNodeAlias("Polygon.SelfIntersections")]
+    public static IReadOnlyList<Point3d> SelfIntersections(Spark.Geometry.PolyLine polyline)
+    {
+        CurveIntersections found = polyline.SelfIntersections();
+        Point3d[] points = new Point3d[found.Points.Count];
+
+        for (int index = 0; index < points.Length; index++)
+        {
+            points[index] = found.Points[index].Point;
+        }
+
+        return points;
+    }
+
     /// <summary>Makes a closed rectangle centerd on a plane's origin.</summary>
     /// <param name="plane">The plane the rectangle lies in.</param>
     /// <param name="width">The size along the plane's x axis.</param>

@@ -275,3 +275,4 @@ Spark.Geometry.Mesh.TriangleCentroids() -> Spark.Geometry.Point3d[]!
 Spark.Geometry.Mesh.Explode() -> Spark.Geometry.Mesh![]!
 Spark.Geometry.MeshTopology.VerticesAroundVertex(int vertex) -> int[]!
 Spark.Geometry.Mesh.Smoothed(double strength = 0.5, int passes = 1) -> Spark.Geometry.Mesh!
+Spark.Geometry.PolyLine.SelfIntersections(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.CurveIntersections!

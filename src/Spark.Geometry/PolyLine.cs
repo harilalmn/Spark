@@ -254,6 +254,74 @@ public sealed class PolyLine : Curve
         return _points[index];
     }
 
+    /// <summary>
+    /// Where this polyline crosses itself (`E2-T72`).
+    /// </summary>
+    /// <param name="tolerance">How close two segments must come to count as crossing.</param>
+    /// <returns>
+    /// One entry per crossing, carrying the point and the two parameters on this polyline at which
+    /// it happens. Empty when the polyline is simple.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// <b>This exists because every other intersection query takes the <i>other</i> thing.</b>
+    /// <see cref="Curve.IntersectWith(Curve, in Tolerance)"/> needs a second curve, so a curve
+    /// could not be asked about itself at all — and a closed outline that crosses itself is the
+    /// commonest real case there is, because that is what a badly traced boundary is.
+    /// </para>
+    /// <para>
+    /// <b>Consecutive segments are not crossings, and on a closed polyline the last segment is
+    /// consecutive with the first.</b> Segments meet at their shared vertex by construction; a
+    /// member that reported that would return something on every polyline ever made. Skipping only
+    /// the <c>i, i + 1</c> pairs and forgetting the wrap is the mistake that reports a plain
+    /// rectangle as self-intersecting at its own first corner.
+    /// </para>
+    /// <para>
+    /// <b>Every pair of segments is tested, which is O(n²), and that is the right choice here.</b> A
+    /// sweep line is the answer above a few thousand segments; this is a member people call on
+    /// outlines with tens of them, and a sweep line has a comparison order to get right that an
+    /// exhaustive loop does not.
+    /// </para>
+    /// </remarks>
+    public CurveIntersections SelfIntersections(in Tolerance tolerance = default)
+    {
+        int segments = SegmentCount;
+
+        if (segments < 3)
+        {
+            // Two segments can only meet at the vertex they share.
+            return CurveIntersections.None;
+        }
+
+        List<CurveIntersectionPoint> crossings = [];
+
+        for (int first = 0; first < segments; first++)
+        {
+            for (int second = first + 1; second < segments; second++)
+            {
+                if (AreNeighbours(first, second, segments))
+                {
+                    continue;
+                }
+
+                foreach (CurveIntersectionPoint hit in SegmentAt(first).IntersectWith(SegmentAt(second), tolerance).Points)
+                {
+                    // Each segment spans one unit of this polyline's domain, so a parameter on a
+                    // segment becomes a parameter on the polyline by adding the segment's index.
+                    crossings.Add(new CurveIntersectionPoint(
+                        hit.Point, first + hit.ParameterA, second + hit.ParameterB));
+                }
+            }
+        }
+
+        return crossings.Count == 0 ? CurveIntersections.None : new CurveIntersections(crossings, []);
+
+        // Consecutive, including the wrap from the last segment back to the first on a closed
+        // polyline - which is the pair that makes a simple rectangle look self-intersecting.
+        bool AreNeighbours(int a, int b, int count) =>
+            b == a + 1 || (IsClosed && a == 0 && b == count - 1);
+    }
+
     /// <summary>The straight segment at a segment index.</summary>
     /// <param name="index">The index, from zero to <see cref="SegmentCount"/> minus one.</param>
     /// <returns>The segment as a <see cref="Line"/>.</returns>

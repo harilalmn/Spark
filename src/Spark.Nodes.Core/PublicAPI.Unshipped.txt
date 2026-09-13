@@ -52,3 +52,4 @@ static Spark.Nodes.Core.Mesh.FaceCentres(Spark.Geometry.Mesh! mesh) -> System.Co
 static Spark.Nodes.Core.Mesh.Edges(Spark.Geometry.Mesh! mesh) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Line!>!
 static Spark.Nodes.Core.Mesh.Split(Spark.Geometry.Mesh! mesh) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Mesh!>!
 static Spark.Nodes.Core.Mesh.Smooth(Spark.Geometry.Mesh! mesh, double strength = 0.5, int passes = 1) -> Spark.Geometry.Mesh!
+static Spark.Nodes.Core.PolyLine.SelfIntersections(Spark.Geometry.PolyLine! polyline) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
