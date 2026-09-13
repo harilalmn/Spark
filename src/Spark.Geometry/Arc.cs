@@ -191,6 +191,160 @@ public sealed class Arc : Curve
         return new Arc(plane, radius, 0.0, Wrap(AngleOf(plane, third)));
     }
 
+    /// <summary>
+    /// The arc from a start point to an end point about a given centre (`E2-T72`).
+    /// </summary>
+    /// <param name="center">The centre.</param>
+    /// <param name="startPoint">Where the arc begins. Its distance from the centre is the radius.</param>
+    /// <param name="endPoint">
+    /// Where the arc ends — or rather, the <i>direction</i> in which it ends; see the remarks.
+    /// </param>
+    /// <returns>The arc, sweeping the shorter way round from start to end.</returns>
+    /// <exception cref="ArgumentException">
+    /// The start or the end coincides with the centre, or the three points are collinear, so no
+    /// plane is determined.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>A centre, a start and an end over-determine an arc, and this is what that means here.</b>
+    /// Three arbitrary points do not lie on a common circle about the first of them: the end point
+    /// is generally at a different distance from the centre than the start is. The radius is taken
+    /// from the <b>start</b>, and the end point is used only for the <i>direction</i> it lies in —
+    /// so the arc finishes on the ray from the centre towards it, at the start's radius. A caller
+    /// handing in three measured points will get an arc that misses the third, and this paragraph
+    /// is why.
+    /// </para>
+    /// <para>
+    /// <b>The sweep is the shorter way round.</b> Two rays from a centre bound two arcs, and the
+    /// minor one is what everybody means. Use
+    /// <see cref="FromCenterStartPointSweepAngle(in Point3d, in Point3d, in Vector3d, Angle)"/>
+    /// with an explicit angle for the other one, or for anything past a half turn.
+    /// </para>
+    /// <para>
+    /// <b>There is no constructor for this, and the reason is that one already means something
+    /// else.</b> <c>new Arc(a, b, c)</c> takes three points <i>on</i> the arc — it is
+    /// <see cref="FromThreePoints"/> — so a second reading of the same three arguments would be a
+    /// coin flip the reader of the call could not resolve. This factory is named for that reason.
+    /// </para>
+    /// </remarks>
+    public static Arc FromCenterStartEnd(in Point3d center, in Point3d startPoint, in Point3d endPoint)
+    {
+        Vector3d toStart = startPoint - center;
+        Vector3d toEnd = endPoint - center;
+
+        if (!toStart.TryNormalise(out Vector3d startDirection))
+        {
+            throw new ArgumentException(
+                "An arc's start point must not coincide with its center.", nameof(startPoint));
+        }
+
+        if (!toEnd.TryNormalise(out Vector3d endDirection))
+        {
+            throw new ArgumentException(
+                "An arc's end point must not coincide with its center: it gives no direction to end in.",
+                nameof(endPoint));
+        }
+
+        Vector3d normal = startDirection.Cross(endDirection);
+
+        if (!normal.TryNormalise(out Vector3d unitNormal))
+        {
+            throw new ArgumentException(
+                "The center, the start and the end are collinear, so they determine no plane and no arc.",
+                nameof(endPoint));
+        }
+
+        return FromCenterStartPointSweepAngle(center, startPoint, unitNormal, startDirection.AngleTo(endDirection));
+    }
+
+    /// <summary>
+    /// The arc from a start point to an end point that leaves the start in a given direction
+    /// (`E2-T72`).
+    /// </summary>
+    /// <param name="startPoint">Where the arc begins.</param>
+    /// <param name="endPoint">Where it ends. It passes through this point exactly.</param>
+    /// <param name="startTangent">The direction it sets off in. Only its direction is used.</param>
+    /// <returns>The arc.</returns>
+    /// <exception cref="ArgumentException">
+    /// The two points coincide, the tangent is zero, or the tangent points along the chord — in
+    /// which case the answer is a straight line and not an arc.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Unlike the centre form, this one is well posed</b>: two points and a direction determine
+    /// exactly one arc. Its centre is where the perpendicular bisector of the chord meets the line
+    /// through the start perpendicular to the tangent — both lines lie in the plane the three
+    /// inputs span, so the whole construction is two-dimensional.
+    /// </para>
+    /// <para>
+    /// <b>A tangent along the chord is refused rather than straightened.</b> The two perpendiculars
+    /// are then parallel and there is no centre: the shape wanted is a straight line, and returning
+    /// an arc of enormous radius pretending to be one would be a worse answer than saying so.
+    /// </para>
+    /// <para>
+    /// The arc passes through <paramref name="endPoint"/> <i>exactly</i>, which the centre form
+    /// does not promise — the difference between a well-posed construction and an over-determined
+    /// one.
+    /// </para>
+    /// </remarks>
+    public static Arc FromStartEndStartTangent(
+        in Point3d startPoint, in Point3d endPoint, in Vector3d startTangent)
+    {
+        Vector3d chord = endPoint - startPoint;
+
+        if (!chord.TryNormalise(out Vector3d alongChord))
+        {
+            throw new ArgumentException(
+                "An arc needs two different points to run between.", nameof(endPoint));
+        }
+
+        if (!startTangent.TryNormalise(out Vector3d tangent))
+        {
+            throw new ArgumentException(
+                "An arc's start tangent is zero, which is no direction at all.", nameof(startTangent));
+        }
+
+        Vector3d normal = tangent.Cross(alongChord);
+
+        if (!normal.TryNormalise(out Vector3d unitNormal))
+        {
+            throw new ArgumentException(
+                "The start tangent points along the chord, so the two points and the direction "
+                + "describe a straight line rather than an arc.",
+                nameof(startTangent));
+        }
+
+        // The centre lies perpendicular to the tangent at the start, at whatever distance puts it
+        // equidistant from both points: |r·d|² = |r·d − chord|², which solves for r directly.
+        Vector3d towardsCentre = unitNormal.Cross(tangent);
+        double projection = chord.Dot(towardsCentre);
+
+        if (projection == 0.0)
+        {
+            throw new ArgumentException(
+                "The start tangent points along the chord, so the two points and the direction "
+                + "describe a straight line rather than an arc.",
+                nameof(startTangent));
+        }
+
+        double radius = chord.LengthSquared / (2.0 * projection);
+        Point3d center = startPoint + (towardsCentre * radius);
+
+        // With the centre known the sweep is the angle between the two radii - and it is the major
+        // arc whenever the tangent points away from the end, which the sign of the projection of
+        // the chord on the tangent decides.
+        Vector3d toStart = startPoint - center;
+        Vector3d toEnd = endPoint - center;
+        Angle between = toStart.AngleTo(toEnd);
+        Angle sweep = chord.Dot(tangent) >= 0.0
+            ? between
+            : Angle.FromRadians((2.0 * Math.PI) - between.Radians);
+
+        Vector3d sweepNormal = radius >= 0.0 ? unitNormal : -unitNormal;
+
+        return FromCenterStartPointSweepAngle(center, startPoint, sweepNormal, sweep);
+    }
+
     /// <summary>Creates an arc from its center, its start point, a normal and a sweep.</summary>
     /// <param name="center">The center of the arc's circle.</param>
     /// <param name="startPoint">The arc's start point. Its distance from the center is the radius.</param>

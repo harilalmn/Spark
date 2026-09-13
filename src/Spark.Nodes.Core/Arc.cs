@@ -10,6 +10,39 @@ namespace Spark.Nodes.Core;
 [SparkNode(Category = NodeCategories.Curve)]
 public static class Arc
 {
+    /// <summary>Makes an arc about a centre, from a start point towards an end point.</summary>
+    /// <param name="center">The centre.</param>
+    /// <param name="startPoint">Where it begins. Its distance from the centre is the radius.</param>
+    /// <param name="endPoint">Which way it ends. See the remarks.</param>
+    /// <returns>The arc, sweeping the shorter way round.</returns>
+    /// <remarks>
+    /// <b>The end point gives a direction, not a distance.</b> Three points do not generally lie on
+    /// a circle about the first, so the radius comes from the start and the arc finishes on the ray
+    /// towards the end point. Feed it three measured points and the arc will miss the third.
+    /// </remarks>
+    [SparkNode(Kind = NodeMemberKind.Create)]
+    [return: NodePort("arc")]
+    [SparkNodeAlias("Arc.ByCenterPointStartPointEndPoint")]
+    public static Spark.Geometry.Arc FromCenterStartEnd(Point3d center, Point3d startPoint, Point3d endPoint) =>
+        Spark.Geometry.Arc.FromCenterStartEnd(center, startPoint, endPoint);
+
+    /// <summary>Makes an arc between two points that sets off in a given direction.</summary>
+    /// <param name="startPoint">Where it begins.</param>
+    /// <param name="endPoint">Where it ends. It passes through this exactly.</param>
+    /// <param name="startTangent">The direction it leaves the start in.</param>
+    /// <returns>The arc.</returns>
+    /// <remarks>
+    /// <b>Two points and a direction make exactly one arc</b>, so unlike the centre form this one
+    /// passes through both points. A direction pointing straight at the other point describes a
+    /// line rather than an arc, and is an error.
+    /// </remarks>
+    [SparkNode(Kind = NodeMemberKind.Create)]
+    [return: NodePort("arc")]
+    [SparkNodeAlias("Arc.ByStartPointEndPointStartTangent")]
+    public static Spark.Geometry.Arc FromStartEndStartTangent(
+        Point3d startPoint, Point3d endPoint, Vector3d startTangent) =>
+        Spark.Geometry.Arc.FromStartEndStartTangent(startPoint, endPoint, startTangent);
+
     /// <summary>Makes the arc that runs from the first point through the second to the third.</summary>
     /// <param name="first">The start point.</param>
     /// <param name="second">A point on the arc between the other two.</param>

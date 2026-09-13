@@ -38,6 +38,12 @@ public sealed class ConstructorParityTests
     /// </remarks>
     private static readonly Dictionary<string, string> Exempt = new(StringComparer.Ordinal)
     {
+        ["Arc(in Point3d, in Point3d, in Vector3d)"] =
+            "FromStartEndStartTangent takes a start, an end and a TANGENT, and an arc's other "
+            + "three-argument vector form - FromCenterStartPointSweepAngle - takes a centre, a "
+            + "start and a NORMAL. new Arc(p, q, v) cannot say which v is, and the two describe "
+            + "different arcs through the same points, so the constructor would be a coin flip "
+            + "the reader of the call cannot resolve (`E2-T72`).",
         ["Brep(Surface)"] =
             "Brep.FromSurface builds a whole topology - vertices, edges, trims, a loop, a face "
             + "and a shell - from one surface, and every other way into a Brep is BrepBuilder or "

@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-14 (`E2-T72`: a polyline asked about itself)
+**Last updated:** 2026-09-14 (`E2-T72`: two Arc constructors)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -500,7 +500,11 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     itself, which nothing in Spark could do — `Curve.IntersectWith` takes *another* curve, and
 >     a closed outline crossing itself is the commonest real case. **The branch is the closing
 >     segment**: skip only the `i, i + 1` pairs and every rectangle reports a crossing at its own
->     first corner. `Q12`'s T-Splines decision is 169 members
+>     first corner. ~~**And two `Arc` constructors**~~ **done the same day**: centre/start/end,
+>     which is **over-determined** — the end point gives a direction and not a distance, and the
+>     remarks say so — and start/end/tangent, which is well posed and passes through both points.
+>     **What is left of `E2-T72`** is `PolyCurve` work: thickening, grouping, `BasePlane`, the
+>     flagged offset, and the cyclic periodic interpolation. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than

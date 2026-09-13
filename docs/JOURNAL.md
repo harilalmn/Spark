@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: two Arc constructors, one of them over-determined)
+**Last updated:** 2026-09-14 (`E2-T72`: two Arc constructors, one of them over-determined)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T72`'s two `Arc` constructors — `FromCenterStartEnd` and `FromStartEndStartTangent`.** **Written ahead 2026-09-14, before any code.** They are **constructions rather than algorithms**: `Arc` already builds from three points, from a plane and angles, and from centre/start/sweep, so each of these reduces a different set of givens to one of those. **`FromCenterStartEnd` has a decision in it and Dynamo makes it silently**: a centre, a start and an end **over-determine** an arc — the end point generally does not sit at the start's radius from the centre. **The end point is treated as a *direction* from the centre**, so the arc ends on the ray towards it at the start's radius, and that is written into the remarks because a caller handing in three measured points will otherwise wonder why their arc misses the third. **The sweep is the shorter way round** and that is stated too. **`FromStartEndStartTangent` is the well-posed one**: two points and a direction determine a unique arc, whose centre is where the chord's perpendicular bisector meets the line through the start perpendicular to the tangent. **A tangent along the chord is a refusal**, not a straight line dressed as an arc, because the two perpendiculars are then parallel and there is no centre. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`PolyLine.SelfIntersections` — `E2-T72`'s last small row, and a curve can now be asked about itself.** **The gap was structural rather than geometric**, which is what the assessment recorded: `Curve.IntersectWith` takes *another* curve, so nothing in Spark could ask a curve about itself — and a closed outline crossing itself is the commonest real case, because that is what a badly traced boundary is. **The branch is the closing segment.** Consecutive segments share a vertex by construction and are skipped; on a closed polyline the last is consecutive with the first. Skip only the `i, i + 1` pairs and a plain rectangle reports a crossing at its own first corner — that mutation turns five tests red, including every regular polygon. **The implementation corrected my arithmetic**: the hand-computed crossing in one test was wrong (3 where the answer is 8/3), and the test now carries the working rather than the number. Residue **unchanged at 343**. 11 tests, **3676 → 3687**. **Before it:** Laplacian smoothing. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3687** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
-| **Next action** | **Add `Arc.FromCenterStartEnd(centre, start, end)` and `Arc.FromStartEndStartTangent(start, end, tangent)`** in `src/Spark.Geometry/Arc.cs`, each reducing to an existing factory. Then `tests/Spark.Geometry.Tests/ArcConstructionTests.cs`, the nodes, the two parity rows, the public API, the register counts (439 → 441), the dashboard and the log. |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7). **For the centre/start/end constructor the branch is the over-determination**: an end point deliberately at the wrong radius must give an arc ending on the *ray* towards it, at the start's radius — and an implementation using the end point directly produces something that is not an arc at all, which a test asserting every sampled point is at the radius from the centre will catch. **For the tangent constructor the branch is the tangent**: the arc must leave the start in the direction given, to near machine precision, and an implementation that merely passed through both points would satisfy every assertion about position. **The degenerate refusals each get a test** — a start at the centre, a tangent along the chord, coincident points. And **every arc is checked against its own definition**, which is that every point on it is at the radius from its centre; the constructors do not supply that. The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Thirty-one steps landed across 2026-09-13 and 2026-09-14. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **`E2-T66` is closed; `E2-T68`, `E2-T69` and `E2-T72` are each part done.** `E2-T67` is skipped with its reason — the shim cannot be rebuilt without the OpenCascade install `E13-T21` waits on. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **Two `Arc` constructors — `FromCenterStartEnd` and `FromStartEndStartTangent`, `E2-T72`'s last constructions.** **The interesting one is the over-determined one**: a centre, a start and an end do *not* generally lie on a common circle, because the end sits at a different radius. The radius comes from the **start** and the end point supplies only a **direction**, so the arc finishes on the ray towards it — written into the remarks, because a caller handing in three measured points will otherwise wonder why their arc misses the third. The mutation that uses the end point directly turns six tests red. **The tangent form is the well-posed one** and passes through both points exactly; **a tangent along the chord is refused rather than straightened**, because the shape wanted is a line. **Its branch is the tangent**: an implementation that merely joined the two points satisfies every assertion about position, so the test pins the leaving direction to 1e-9. Residue **unchanged at 343**. 16 tests, **3687 → 3703**. **Before it:** `PolyLine.SelfIntersections`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3703** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T72`'s `PolyCurve.Fillet` — every corner of a chain rounded at once.** **The row already says what it is**: `CurveOffset.Fillet` over `PolyCurve.Segments` with the joins rebuilt, which is bookkeeping over a written algorithm rather than a new one. Read that member first — it takes two curves, a radius and a plane normal, and returns the arc with both curves trimmed back to it. **The work is the chain**: each interior join is one `Fillet` call, and each call **trims both neighbours**, so the segment between two filleted corners is trimmed twice and the second trim has to act on the *result* of the first rather than on the original. Walking the joins in order and carrying the running trimmed segment forward is the way; taking them independently and reassembling is the way that silently loses the middle of short segments. **A radius too large for a corner is the decision.** `CurveOffset.Fillet` refuses when the offsets do not meet, and a chain of twenty corners with one too tight should not throw the whole thing away — **skip that corner, leave it sharp, and say in the remarks that it does**, because a partial fillet is what a caller wants and an exception is not. **A closed polycurve has one more corner than an open one**, which is the same wrap the self-intersection step just dealt with, and it needs its own test. |
+| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the double trim**. A chain of three segments filleted at both joins has a middle segment trimmed from both ends; an implementation that trims each corner against the *original* neighbour produces a chain whose pieces overlap or leave gaps, and whose total length is wrong while every individual fillet looks right. So the assertion is that the result is a continuous `PolyCurve` — which `FromJoinedCurves` already refuses to build across a gap — and that its length equals the sum of its pieces. **Tangency at every fillet** is the other claim, asserted either side of each arc. **The too-tight corner is skipped rather than thrown**, with its own test naming that. **A closed chain gets its wrap tested.** The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -14454,3 +14454,59 @@ sweep line has a comparison order to get right that an exhaustive loop does not.
 **Residue unchanged at 343.**
 
 **Cost.** One session, and a short one. One member, eleven tests, one node.
+
+### 2026-09-14 — Two Arc constructors, one of them over-determined
+
+**What.** `Arc.FromCenterStartEnd` and `Arc.FromStartEndStartTangent`. Sixteen tests, two nodes,
+two rows to `Done`, and the register at **441 of 545**.
+
+**Both reduce to factories `Arc` already had, which the rows predicted.** The value is not in
+the arithmetic; it is in the two decisions the rows left open.
+
+**A centre, a start and an end over-determine an arc, and somebody has to decide what that
+means.** Three arbitrary points do not lie on a common circle about the first: the end point is
+generally at a different distance from the centre than the start is. So the radius comes from
+the **start**, and the end point is used only for the **direction** it lies in — the arc
+finishes on the ray towards it. That is Dynamo's behaviour too, and it is the kind of thing an
+API does silently and a caller discovers when their arc misses the third point they measured.
+It is in the remarks, and it is pinned by a test whose end point sits at radius 7 while the
+start is at radius 2.
+
+**The branch is that over-determination**, and the mutation makes the case: using the end point
+directly — fitting a circle through start, midpoint and end — turns **six** tests red, because
+the result is not an arc about the given centre at all. The assertion that catches it is the
+one every test in the file shares: every sampled point at the radius from the centre.
+
+**The tangent form is the well-posed one and it is worth saying why.** Two points and a
+direction determine exactly one arc, so this one passes through **both** points exactly — which
+the centre form does not promise. Its centre is where the chord's perpendicular bisector meets
+the line through the start perpendicular to the tangent, which reduces to one division rather
+than a solve.
+
+**A tangent along the chord is refused rather than straightened.** The two perpendiculars are
+parallel, there is no centre, and the shape the caller wants is a line — returning an arc of
+enormous radius pretending to be one would be the worse answer. Both directions along the chord
+are refused, and both are tested, because a sign slip would catch only one.
+
+**Its branch is the tangent itself**: an implementation that merely joined the two points
+satisfies every assertion about position, so the test pins the direction the arc leaves in to
+1e-9, and the mutation that ignores the tangent turns exactly that test red.
+
+**The constructor-parity guard found a real collision.** It asked for a constructor to match
+`FromStartEndStartTangent`, and that one is exempted with its reason: `new Arc(p, q, v)` cannot
+say whether `v` is the tangent at the start or the normal of the plane, and both readings describe
+a real arc through those points. **But looking at it turned up something the guard could not
+see**: `Arc(Point, Point, Point)` already exists and means `FromThreePoints`, so the *new*
+`FromCenterStartEnd` now shares its shape with a constructor that means something else entirely.
+The guard is satisfied, because a constructor of that shape exists — it is just not this one. That
+is now written into `FromCenterStartEnd`'s own remarks, where somebody about to type
+`new Arc(centre, start, end)` will read it.
+
+**One process note.** A document edit failed part-way and the node block was applied twice on
+the rerun, which the compiler caught immediately with a duplicate-member error. A script that
+edits source is not idempotent unless it is written to be, and re-running one after a partial
+failure needs the same care as re-running a migration.
+
+**Residue unchanged at 343.**
+
+**Cost.** One session. Two members, sixteen tests, two nodes.
