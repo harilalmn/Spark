@@ -73,6 +73,18 @@ public static class Mesh
         Spark.Geometry.Plane plane, double radius = 1, int divisions = 16, int stacks = 8) =>
         MeshPrimitives.Sphere(plane, radius, divisions, stacks);
 
+    /// <summary>Splits a mesh into its connected pieces.</summary>
+    /// <param name="mesh">The mesh to split.</param>
+    /// <returns>One mesh per piece. A mesh already in one piece comes back on its own.</returns>
+    /// <remarks>
+    /// <b>Connected means joined along an edge.</b> Two parts touching at a single corner come back
+    /// as two pieces, because that is what you could pick up separately. Each piece carries only
+    /// its own vertices, so its counts are about itself.
+    /// </remarks>
+    [return: NodePort("meshes")]
+    [SparkNodeAlias("Mesh.Explode")]
+    public static IReadOnlyList<Spark.Geometry.Mesh> Split(Spark.Geometry.Mesh mesh) => mesh.Explode();
+
     /// <summary>The centre of every face of a mesh, in face order.</summary>
     /// <param name="mesh">The mesh.</param>
     /// <returns>One point per face, pairing index for index with the mesh's faces.</returns>

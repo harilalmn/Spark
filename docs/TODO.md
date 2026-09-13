@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-14 (`E2-T69`: the mesh primitives and two queries)
+**Last updated:** 2026-09-14 (`E2-T68`: `Mesh.Explode`)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -482,7 +482,13 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     whose name carries a decision Dynamo never had to make, because a Spark face may have four
 >     corners. **Next**: `E2-T68`'s `Explode`, which its row calls the one the topology already
 >     answers. `Nearest` and `Project` stay open: they want a spatial index over faces in the
->     kernel. `Q12`'s T-Splines decision is 169 members
+>     kernel. ~~**`Explode`**~~ **done the same day**, and the row was right that the topology
+>     had already answered it. **Connected means sharing an edge, not a vertex** — two parts
+>     touching at a corner are two pieces — which is written down and pinned by a test rather
+>     than left to be discovered. **The branch is the renumbering**: a piece that kept the
+>     original vertex array has the right faces and renders identically, and only its vertex
+>     count sees it. **What is left of `E2-T68`** is `Repair`, `MakeWatertight`, `Remesh`,
+>     `Reduce` and `Smooth`, each its own commit and none of them an afternoon. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than

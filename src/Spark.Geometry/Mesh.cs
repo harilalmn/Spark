@@ -168,6 +168,162 @@ public sealed class Mesh
     public MeshFace[] Faces() => [.. _faces];
 
     /// <summary>
+    /// The mesh split into its connected pieces (`E2-T68`).
+    /// </summary>
+    /// <returns>
+    /// One mesh per connected component, each carrying only the vertices its own faces use. A mesh
+    /// that is already in one piece returns itself, and an empty mesh returns nothing.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// A connected-component walk over <see cref="MeshTopology.AdjacentFaces"/>, which is the
+    /// whole algorithm — the topology had already answered the hard part.
+    /// </para>
+    /// <para>
+    /// <b>Connected means sharing an edge, not sharing a vertex</b>, and the two differ: two boxes
+    /// touching at a single corner come back as <b>two</b> pieces. That is what
+    /// <see cref="MeshTopology.AdjacentFaces"/> answers and it is what a person means by a piece —
+    /// something you could pick up on its own. It is stated here because the other reading is
+    /// defensible and a caller should not have to find out by experiment.
+    /// </para>
+    /// <para>
+    /// <b>Each piece is renumbered.</b> It carries only the vertices its own faces use, with the
+    /// face indices rewritten to match, so a piece's <see cref="VertexCount"/> is about its own
+    /// geometry. Keeping the original vertex array would have been simpler and would produce
+    /// pieces that render identically, round-trip, and report a vertex count belonging to a mesh
+    /// they are no longer part of.
+    /// </para>
+    /// <para>
+    /// <b>The optional channels travel with their vertices.</b> Normals, texture coordinates and
+    /// colours are carried across by the same renumbering, so a piece keeps whatever the original
+    /// had rather than losing it at the split.
+    /// </para>
+    /// </remarks>
+    public Mesh[] Explode()
+    {
+        if (_faces.Length == 0)
+        {
+            return [];
+        }
+
+        MeshTopology topology = Topology;
+        int[] component = new int[_faces.Length];
+        Array.Fill(component, -1);
+        int components = 0;
+
+        for (int seed = 0; seed < _faces.Length; seed++)
+        {
+            if (component[seed] >= 0)
+            {
+                continue;
+            }
+
+            // Breadth-first from this face, claiming everything edge-connected to it.
+            Queue<int> pending = new();
+            pending.Enqueue(seed);
+            component[seed] = components;
+
+            while (pending.Count > 0)
+            {
+                foreach (int neighbour in topology.AdjacentFaces(pending.Dequeue()))
+                {
+                    if (component[neighbour] < 0)
+                    {
+                        component[neighbour] = components;
+                        pending.Enqueue(neighbour);
+                    }
+                }
+            }
+
+            components++;
+        }
+
+        if (components == 1)
+        {
+            return [this];
+        }
+
+        Mesh[] pieces = new Mesh[components];
+
+        for (int index = 0; index < components; index++)
+        {
+            pieces[index] = Piece(index, component);
+        }
+
+        return pieces;
+    }
+
+    /// <summary>One connected piece, with its vertices renumbered to just the ones it uses.</summary>
+    /// <param name="which">The component index.</param>
+    /// <param name="component">Which component each face belongs to.</param>
+    /// <returns>The piece.</returns>
+    private Mesh Piece(int which, int[] component)
+    {
+        Dictionary<int, int> renumbered = [];
+        List<Point3d> vertices = [];
+        List<MeshFace> faces = [];
+
+        for (int index = 0; index < _faces.Length; index++)
+        {
+            if (component[index] != which)
+            {
+                continue;
+            }
+
+            MeshFace face = _faces[index];
+            int[] corners = new int[4];
+
+            for (int corner = 0; corner < face.Count; corner++)
+            {
+                int original = face[corner];
+
+                if (!renumbered.TryGetValue(original, out int moved))
+                {
+                    moved = vertices.Count;
+                    renumbered[original] = moved;
+                    vertices.Add(_vertices[original]);
+                }
+
+                corners[corner] = moved;
+            }
+
+            faces.Add(face.IsQuad
+                ? new MeshFace(corners[0], corners[1], corners[2], corners[3])
+                : new MeshFace(corners[0], corners[1], corners[2]));
+        }
+
+        return new Mesh(
+            vertices,
+            faces,
+            Carry(_normals, renumbered, vertices.Count),
+            Carry(_textureCoordinates, renumbered, vertices.Count),
+            Carry(_colours, renumbered, vertices.Count));
+    }
+
+    /// <summary>Carries one optional per-vertex channel across a renumbering, or nothing if absent.</summary>
+    /// <typeparam name="T">The channel's element type.</typeparam>
+    /// <param name="channel">The original channel, which may be absent.</param>
+    /// <param name="renumbered">Original vertex index to new index.</param>
+    /// <param name="count">How many vertices the piece has.</param>
+    /// <returns>The channel for the piece, or null when the original had none.</returns>
+    private static T[]? Carry<T>(T[]? channel, Dictionary<int, int> renumbered, int count)
+    {
+        if (channel is null)
+        {
+            return null;
+        }
+
+        T[] moved = new T[count];
+
+        foreach ((int original, int index) in renumbered)
+        {
+            moved[index] = channel[original];
+        }
+
+        return moved;
+    }
+
+    /// <summary>
     /// The centroid of every face, in face order (`E2-T69`).
     /// </summary>
     /// <returns>One point per face: the average of the corners that face actually has.</returns>
