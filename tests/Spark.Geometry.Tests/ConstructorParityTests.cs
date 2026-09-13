@@ -38,6 +38,12 @@ public sealed class ConstructorParityTests
     /// </remarks>
     private static readonly Dictionary<string, string> Exempt = new(StringComparer.Ordinal)
     {
+        ["Brep(Surface)"] =
+            "Brep.FromSurface builds a whole topology - vertices, edges, trims, a loop, a face "
+            + "and a shell - from one surface, and every other way into a Brep is BrepBuilder or "
+            + "a kernel operation. A constructor would be a second construction path into the "
+            + "type whose invariants are the most expensive in the kernel to get wrong, for a "
+            + "call that reads no better than the factory it would forward to (`E2-T66`).",
         ["Angle(Double)"] =
             "FromDegrees and FromRadians are both (double), and an angle carries no unit in its "
             + "type. new Angle(90) would have to quietly mean one of them, and the reader of that "

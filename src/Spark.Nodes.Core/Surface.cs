@@ -247,6 +247,19 @@ public static class Surface
         Spark.Geometry.Surface surface, Spark.Geometry.Curve curve, Vector3d direction = default) =>
         surface.Project(curve, direction.LengthSquared > 0.0 ? direction : -Vector3d.ZAxis);
 
+    /// <summary>Joins surfaces into one shape, each becoming a face of it.</summary>
+    /// <param name="surfaces">The surfaces to join, at least one.</param>
+    /// <returns>One solid-modelling shape with a face per surface.</returns>
+    /// <remarks>
+    /// <b>Joining makes one shape out of several sheets; it does not make them watertight.</b>
+    /// Surfaces that meet along an edge keep their own copies of it, because merging coincident
+    /// geometry needs a tolerance and is a different operation.
+    /// </remarks>
+    [return: NodePort("solid")]
+    [SparkNodeAlias("PolySurface.ByJoinedSurfaces")]
+    public static Brep Join(IReadOnlyList<Spark.Geometry.Surface> surfaces) =>
+        Spark.Geometry.Surface.Join(surfaces);
+
     /// <summary>The area of a surface.</summary>
     /// <param name="surface">The surface.</param>
     /// <returns>The area.</returns>

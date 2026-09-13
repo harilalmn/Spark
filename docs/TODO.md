@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T66`: every surface says what it is, and the sequence loft)
+**Last updated:** 2026-09-14 (`E2-T66`: `Surface.Join`, and the row closes)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -461,8 +461,15 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     `ToNurbsSurface`'s. **The loft returns N − 1 surfaces for N curves**, which the register
 >     already recorded as a *different result* rather than a missing one, and the branch proved
 >     red is the **pairing** rather than the count. **Next**: `Surface.Join`, the last of
->     `E2-T66`, which needs a surface to become a Brep face with a loop first — `BrepBuilder`
->     work, and the reason it was not bundled here. `Q12`'s T-Splines decision is 169 members
+>     `E2-T66`. ~~**`Surface.Join`**~~ **done 2026-09-14, and `E2-T66` is closed**: the row's own
+>     blocker was that a surface has to become a face with a loop first, so the step was
+>     **`Brep.FromSurface`** — a single face bounded by the surface's own four iso-curve
+>     boundaries — and the join on top of it. **A degenerate boundary is dropped rather than
+>     refused**, so a whole sphere's loop closes with three edges, which is this kernel's existing
+>     position on cone apexes. **Joining makes one shape out of several sheets and does not make
+>     them watertight**, because merging coincident geometry needs a tolerance and is the kernel's
+>     sew. **Next**: `E2-T67`…`E2-T69` — `BrepPrimitives` has no sphere and no cone, there is no
+>     `Solid.Centroid`, and six mesh-repair members are missing. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than

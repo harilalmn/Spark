@@ -267,6 +267,110 @@ public sealed class Brep
     public BrepShell[] Shells() => [.. RawShells];
 
     /// <summary>
+    /// The single-faced BRep that is one surface, bounded by its own four edges (`E2-T66`).
+    /// </summary>
+    /// <param name="surface">The surface to wrap.</param>
+    /// <returns>A BRep of one face.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="surface"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>The step between a surface and anything topological.</b> <see cref="Join"/> concatenates
+    /// BReps and the kernel's sew merges them, but both need faces — and a face needs a loop, which
+    /// a bare surface does not have. This builds the obvious one: the four boundaries of the
+    /// surface's own parameter rectangle, which <see cref="Surface.IsoCurveU"/> and
+    /// <see cref="Surface.IsoCurveV"/> already give at the domain extremes.
+    /// </para>
+    /// <para>
+    /// <b>A degenerate boundary is dropped rather than refused.</b> A whole sphere's <c>v</c>
+    /// extremes are its poles, where the boundary is a single point and the edge has no length. The
+    /// loop then closes with three edges, which is correct — and allowing it is this kernel's
+    /// existing position, since <see cref="RuledSurface"/> describes a cone as ruled between a
+    /// circle and a degenerate point-curve.
+    /// </para>
+    /// <para>
+    /// <b>A seam is left as two edges on purpose.</b> On a closed surface the two <c>u</c>
+    /// boundaries are the same curve in space, and this makes no attempt to merge them: merging
+    /// coincident geometry needs a tolerance and is the kernel's sew, exactly as <see cref="Join"/>
+    /// says of coincident vertices. So a whole cylinder becomes a face whose loop is a rectangle in
+    /// parameter space, which is what it is.
+    /// </para>
+    /// </remarks>
+    public static Brep FromSurface(Surface surface)
+    {
+        ArgumentNullException.ThrowIfNull(surface);
+
+        BrepBuilder builder = new();
+        Interval domainU = surface.DomainU;
+        Interval domainV = surface.DomainV;
+
+        Point3d[] corners =
+        [
+            surface.PointAt(domainU.Min, domainV.Min),
+            surface.PointAt(domainU.Max, domainV.Min),
+            surface.PointAt(domainU.Max, domainV.Max),
+            surface.PointAt(domainU.Min, domainV.Max),
+        ];
+
+        // Coincident corners share a vertex, so a surface that closes or comes to a point has the
+        // topology it actually has rather than four vertices in three places.
+        int[] vertices = new int[4];
+        for (int index = 0; index < 4; index++)
+        {
+            vertices[index] = -1;
+
+            for (int earlier = 0; earlier < index; earlier++)
+            {
+                if (corners[index].EqualsWithin(corners[earlier]))
+                {
+                    vertices[index] = vertices[earlier];
+                    break;
+                }
+            }
+
+            if (vertices[index] < 0)
+            {
+                vertices[index] = builder.AddVertex(corners[index]);
+            }
+        }
+
+        List<(int Edge, bool IsReversed)> circuit = [];
+
+        Add(surface.IsoCurveU(domainV.Min), vertices[0], vertices[1], false);
+        Add(surface.IsoCurveV(domainU.Max), vertices[1], vertices[2], false);
+        Add(surface.IsoCurveU(domainV.Max), vertices[3], vertices[2], true);
+        Add(surface.IsoCurveV(domainU.Min), vertices[0], vertices[3], true);
+
+        if (circuit.Count == 0)
+        {
+            throw new ArgumentException(
+                "Every boundary of this surface is degenerate, so it has no loop and cannot become "
+                + "a face.",
+                nameof(surface));
+        }
+
+        int loop = builder.AddLoop(circuit);
+        builder.AddFace(surface, [loop]);
+
+        // One face, one shell. A single sheet is an open shell rather than a solid, which is what a
+        // lone surface is, and Build refuses a face that belongs to no shell at all.
+        builder.CloseShell();
+
+        return builder.Build();
+
+        void Add(Curve boundary, int start, int end, bool isReversed)
+        {
+            // A boundary with no length is a pole or an apex: the loop closes without it, and an
+            // edge of zero length would be a trim with nowhere to run.
+            if (start == end && Tolerance.Default.IsZero(boundary.Length))
+            {
+                return;
+            }
+
+            circuit.Add((builder.AddEdge(start, end, boundary), isReversed));
+        }
+    }
+
+    /// <summary>
     /// Puts several models into one, as separate shells (`E2-T61`).
     /// </summary>
     /// <param name="parts">The models to join. An empty list gives an empty model.</param>

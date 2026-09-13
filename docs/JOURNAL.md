@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (`E2-T66`: write-ahead for Surface.Join, the last item)
+**Last updated:** 2026-09-14 (`E2-T66` closes: `Surface.Join`, and three guards that fired at once)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T66`'s last item — `Surface.Join`, which closes the row.** **Written ahead 2026-09-14, before any code.** **The row has always said what it needs**: `Brep.Join` concatenates Breps and `IBrepKernel.Sew` merges them, but **a surface has to become a face with a loop first**, and nothing did that — `BrepBuilder.AddFace` takes loops the caller has already built. So the step is **`Brep.FromSurface`** and `Surface.Join` on top of it. **The loop is the surface's own four boundaries**, which `IsoCurveU` and `IsoCurveV` at the domain extremes already give: four edges, wound bottom, right, top reversed, left reversed, which is the circuit `BrepPrimitives.Cylinder` already builds by hand for its wall. **The trap is the degenerate boundary** — a sphere's pole is an edge whose two ends are one point — and the precedent in this kernel is to allow it and say so, because `RuledSurface`'s own remarks describe a cone as *ruled between a circle and a degenerate point-curve*. So a zero-length boundary is dropped from the circuit and the loop closes with three edges. **The seam is left unmerged on purpose**: a whole cylinder's two `u` boundaries coincide in space and stay two edges, because merging them is `Sew`'s job and needs a tolerance, which `Brep.Join`'s own remarks already say. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`ToString` on every surface type, and `ByRuledLoft` over a sequence — `E2-T66`'s sixth item, two small rows in one step.** **`ToString` is [N161](NOTES.md)'s shape of gap exactly**: only `NurbsSurface` overrode it, so a `Surface`-typed value printed its class name and looked perfectly plausible in a debugger. Eight overrides, **and a reflection guard requiring every concrete type to declare its own** — the second such guard on `Surface` after `ToNurbsSurface`'s — plus a test that the descriptions differ, because an override copied from a neighbour would satisfy the first. **`ByRuledLoft` returns N − 1 surfaces for N curves**, which the register recorded as a *different result* rather than a missing capability, and the remarks now say why one surface would be a different construction. **The branch proved red is the pairing, not the count**: pairing every curve with the first still returns N − 1 surfaces and fails only the test that checks surface *i* runs between curves *i* and *i + 1*. **Residue 321 → 341, and none of it is this step's code**: the eight overrides are excused by the member rule, but naming `PlaneSurface.ToString` and `RuledSurface.FromLoft` in rows took both types off the excused list, so their other 19 members came into the count — [N160](NOTES.md)'s arithmetic for the third time, caught by the check on the commit. 16 tests, **3576 → 3592**. **Before it:** projection along a direction. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3592** tests over **ten** executables with zero failures and zero skips, docs harness green — all fourteen checks, with the residue budget exact at 341 — and the help-sample compiler green. No stashes. |
-| **Next action** | **Write `Brep.FromSurface(Surface)`** in `src/Spark.Geometry/Brep.cs` — four corner vertices with coincident ones shared, four iso-curve edges, degenerate ones dropped, one outer loop, one face — then `Surface.Join(Surface)` and `Surface.Join(IReadOnlyList<Surface>)` returning a `Brep`. Then `tests/Spark.Geometry.Tests/SurfaceJoinTests.cs`, the node, the three parity rows, the public API, the register counts (428 → 431), the dashboard and the log. **Then `E2-T66` is closed.** |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the loop's winding**, not its existence. A face whose trims run the wrong way round builds without complaint, reports the right face and edge counts, and is wrong: the assertion is that the face's normal agrees with the surface's own at a point inside it. **The circuit's continuity is checked by `AddLoop` itself**, which refuses an open loop and names the position — so a test that reverses one edge must see *that* exception rather than a silent wrong answer. **The join's own claim is the count**: joining two surfaces gives **one** Brep with **two** faces, and an implementation returning two Breps, or one face, would pass a test that only asked whether it succeeded. **The degenerate boundary is a decision and gets its own test**: a whole sphere joins, its polar loop has three edges rather than four, and it does not throw. The three gates, and the residue budget **exact** at 341 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Twenty-five steps landed across 2026-09-13 and 2026-09-14; the last eighteen build what the register found rather than measuring it. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **`E2-T66` is closed.** The curve work is paused — what remains of `E2-T71` waits on `E2-T15`'s ray caster, and what remains of `E2-T72` is small `PolyCurve` and `Arc` bookkeeping. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`Surface.Join` — `E2-T66`'s last item, and the row closes at eighteen members over six steps.** **The row's own blocker is what the step removed**: it said a surface has to become a face with a loop first, so the step is **`Brep.FromSurface`** — one face bounded by the surface's four iso-curve boundaries — and the join on top of it. **Joining makes one shape out of several sheets and does not make them watertight**, because merging coincident geometry needs a tolerance and is the kernel's sew. **A degenerate boundary is dropped rather than refused**, so a whole sphere's loop closes with three edges. **The branch is the winding**: a reversed face turns eight tests red while every count stays right. **Three other guards fired on the same commit and every one was right** — the alias check caught `Surface.Join` aliased to its own node name, constructor parity asked for `Brep(Surface)` (exempted, with the reason), and the residue check caught `Brep.FromSurface`. Residue **341 → 342**. 17 tests, **3592 → 3609**. **Before it:** `ToString` on every surface type and the sequence loft. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3609** tests over **ten** executables with zero failures and zero skips — **verified by each runner's exit code rather than by grepping its output** ([N167](NOTES.md)) — docs harness green with the residue budget exact at 342, and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T67` — `BrepPrimitives` has no sphere and no cone.** **It is the smallest of the three rows left in this family and it has a worked example beside it**: `BrepPrimitives.Cylinder` builds a wall, two caps and a seam edge used twice, and its comments already say which parts are the ones that go wrong. A sphere is the same shape of work with **one** face and two degenerate boundaries rather than three faces; a cone is the cylinder with its top circle collapsed to a point. **`Brep.FromSurface` arrived yesterday and does most of it** — a whole sphere already wraps to a single face with a three-edge loop — so the question this step has to answer is whether `BrepPrimitives.Sphere` is that call plus a closed shell, or whether a primitive owes the caller something more (a seam split into two faces, say, so that no face is closed in both directions). **Read what `Cylinder` promises and match it**; a primitive that is topologically weaker than its neighbour is worse than one that is missing. **Then** `E2-T68`'s `Solid.Centroid` and `E2-T69`'s six mesh-repair members. |
+| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **closure**, not face count. A sphere or a cone built from faces that do not share their edges reports the right number of faces and `IsSolid` false, so the assertion is `IsSolid` *and* a volume that matches the analytic one — `4πr³/3` and `πr²h/3` — which no part of the construction supplies. **The cone's apex is a decision with a test**: the top boundary collapses to a point, and whichever way that is handled the test names it. **Compare against the existing primitive**: a sphere's shell must be closed in the same sense the cylinder's is, so the same properties are asserted of both. The three gates, and the residue budget **exact** at 342 or moved with the reason written in the exclusions history. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -14188,3 +14188,63 @@ runner's exit code is the gate and a grep of its output is a report.
 
 **Cost.** One session, and a short one. Eight overrides, one factory, sixteen tests, one node.
 `E2-T66` has one item left.
+
+### 2026-09-14 — `Surface.Join` closes `E2-T66`, and three guards fire at once
+
+**What.** `Brep.FromSurface` and `Surface.Join`. Seventeen tests, a node, two rows to `Done` —
+and **`E2-T66` is closed**, eighteen members over six steps. The register stands at **430 of
+545**.
+
+**The row's own blocker is what the step removed.** `Surface.Join` had said, since `E11-T30`
+assessed it, that `Brep.Join` concatenates BReps and the kernel's sew merges them but *a
+surface has to become a face with a loop first, which is `BrepBuilder` work and not a
+one-liner*. That was right, and it was also the whole step: `Brep.FromSurface` wraps a surface
+as a single face bounded by its own four boundaries, which `IsoCurveU` and `IsoCurveV` already
+give at the domain extremes. The join on top of it is three lines.
+
+**What joining does and does not promise, said once.** It makes one shape out of several
+sheets. It does **not** make them watertight: two surfaces meeting along an edge keep their own
+copies of it, because merging coincident geometry needs a tolerance and is the kernel's sew —
+which `Brep.Join`'s own remarks already said of vertices, and which is now said of this member
+too, where a caller will actually read it.
+
+**A degenerate boundary is dropped rather than refused.** A whole sphere's `v` extremes are its
+poles, where the boundary is a single point; the loop closes with three edges. That is this
+kernel's existing position rather than a new one — `RuledSurface` has always described a cone
+as ruled between a circle and a degenerate point-curve — and keeping the zero-length edge turns
+that test red. **The check needed a tolerance and not a comparison with zero**: a pole's
+iso-curve has a length that is tiny rather than exactly nothing, and the first version
+compared against `0.0` and kept all four edges.
+
+**Three mutations** (AGENTS.md step 7):
+
+| Mutation | Result |
+|---|---|
+| the face is built reversed | eight red, every count still right |
+| one edge wound the other way | refused by `AddLoop`, naming the position |
+| degenerate boundaries kept | one red |
+
+The second is worth noting because the failure is *better* than a test: `AddLoop` checks
+closure when the circuit is added and says *the loop is broken at position 1: the previous edge
+ends at vertex 0 and this one starts at 1*. That message was written into `BrepBuilder` long
+before this step and it is exactly what a caller building a loop by hand needs.
+
+**Three other guards fired on this commit, and every one of them was right.** The alias check
+caught the node aliased to its own name — unreachable, and it would have shipped. Constructor
+parity asked for `Brep(Surface)` beside `Brep.FromSurface`; that one is exempted with the
+reason, because a second construction path into the type whose invariants are the most
+expensive in the kernel to get wrong buys a call that reads no better. And the residue check
+caught `Brep.FromSurface` itself. **Three guards, three different subsystems, one commit** —
+which is the strongest argument for the ones written earlier this run.
+
+**And the gates were run properly this time.** Yesterday's near-miss ([N167](NOTES.md)) was a
+commit chained behind a `grep` of test output, which passes when the grep *finds* a failure.
+Every suite here was run into a file and checked by its exit code, which is how the three
+failures above were seen at all.
+
+**`E2-T66` is closed.** Eighteen members, six steps: the curvature directions, `ToNurbsSurface`
+on the base, the offset, the fit and the grid interpolation, projection, `ToString` and the
+sequence loft, and the join. Every one of them was a row somebody had written a reason into
+months earlier, and in four cases the reason turned out to name the whole of the work.
+
+**Cost.** One session. One factory, two overloads, one exemption, seventeen tests, one node.

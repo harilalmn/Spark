@@ -42,3 +42,4 @@ static Spark.Nodes.Core.Surface.Approximate(Spark.Geometry.Surface! surface, dou
 static Spark.Nodes.Core.Surface.Project(Spark.Geometry.Surface! surface, Spark.Geometry.Point3d point, Spark.Geometry.Vector3d direction = default(Spark.Geometry.Vector3d)) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
 static Spark.Nodes.Core.Surface.ProjectCurve(Spark.Geometry.Surface! surface, Spark.Geometry.Curve! curve, Spark.Geometry.Vector3d direction = default(Spark.Geometry.Vector3d)) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>!
 static Spark.Nodes.Core.Surface.LoftSequence(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>! curves) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.RuledSurface!>!
+static Spark.Nodes.Core.Surface.Join(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Surface!>! surfaces) -> Spark.Geometry.Brep!

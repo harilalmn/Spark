@@ -262,3 +262,6 @@ override Spark.Geometry.ToroidalSurface.ToString() -> string!
 override Spark.Geometry.ExtrusionSurface.ToString() -> string!
 override Spark.Geometry.RevolutionSurface.ToString() -> string!
 override Spark.Geometry.RuledSurface.ToString() -> string!
+static Spark.Geometry.Brep.FromSurface(Spark.Geometry.Surface! surface) -> Spark.Geometry.Brep!
+Spark.Geometry.Surface.Join(Spark.Geometry.Surface! other) -> Spark.Geometry.Brep!
+static Spark.Geometry.Surface.Join(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Surface!>! surfaces) -> Spark.Geometry.Brep!

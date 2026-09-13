@@ -1071,6 +1071,58 @@ public abstract class Surface
     }
 
     /// <summary>
+    /// Joins this surface to another into one BRep, each becoming a face (`E2-T66`).
+    /// </summary>
+    /// <param name="other">The surface to join to this one.</param>
+    /// <returns>A BRep of two faces.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="other"/> is null.</exception>
+    /// <remarks>
+    /// <b>Spark's answer to Dynamo's <c>PolySurface</c> is <see cref="Brep"/></b>, and the join is
+    /// <see cref="Brep.Join(IReadOnlyList{Brep})"/> over each surface's single-faced BRep. It is
+    /// index arithmetic and cannot fail: coincident vertices along a shared edge stay two vertices,
+    /// because merging them needs a tolerance and is the kernel's sew. So this makes one shape out
+    /// of several sheets; it does not make them watertight.
+    /// </remarks>
+    public Brep Join(Surface other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+
+        return Join([this, other]);
+    }
+
+    /// <summary>
+    /// Joins several surfaces into one BRep, each becoming a face (`E2-T66`).
+    /// </summary>
+    /// <param name="surfaces">The surfaces, at least one.</param>
+    /// <returns>A BRep with one face per surface.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="surfaces"/>, or one of them, is null.</exception>
+    /// <exception cref="ArgumentException">There are no surfaces.</exception>
+    /// <remarks>
+    /// Static rather than an instance member taking a list, because <i>join these</i> is a
+    /// statement about a set and not about one of them. See <see cref="Join(Surface)"/> for what
+    /// joining does and does not promise.
+    /// </remarks>
+    public static Brep Join(IReadOnlyList<Surface> surfaces)
+    {
+        ArgumentNullException.ThrowIfNull(surfaces);
+
+        if (surfaces.Count == 0)
+        {
+            throw new ArgumentException("A join needs at least one surface.", nameof(surfaces));
+        }
+
+        Brep[] parts = new Brep[surfaces.Count];
+
+        for (int index = 0; index < surfaces.Count; index++)
+        {
+            parts[index] = Brep.FromSurface(
+                surfaces[index] ?? throw new ArgumentNullException(nameof(surfaces)));
+        }
+
+        return Brep.Join(parts);
+    }
+
+    /// <summary>
     /// A surface at a constant distance from this one, along this one's own normal (`E2-T66`).
     /// </summary>
     /// <param name="distance">
