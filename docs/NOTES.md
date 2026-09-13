@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-13 (N160–N161: a register wrong in the safe direction; a capability complete on every type but one)
+**Last updated:** 2026-09-13 (N160–N161: a register wrong in the safe direction; a capability complete on every type but one, and the orientation bug it led to)
 
 ---
 
@@ -4898,10 +4898,26 @@ types carry the member, **enumerate the types that do not, in the section, in wr
 sentence and it is the only step in the assessment where the answer is not already in the manifest.
 §3.8 now carries that sentence for the transformation family.
 
-**And a second-order note for whoever fixes it (`E2-T70`), because a transform on a `Brep` is not a
-matrix multiply.** A `Brep` may be **resident in the provider** (ADR-0021): the authoritative shape
-is OCCT's and the managed arrays are materialised lazily. Multiplying the managed points while the
-provider holds the real shape produces a `Brep` whose two halves disagree — which is the exact bug
-ADR-0021 was written to prevent, and it will not show up in a test that only reads the managed side.
-The transform either goes through the kernel, or it invalidates residency, and choosing between those
-is the whole of the task.
+**And a second-order note, because a transform on a `Brep` is not a matrix multiply.** A `Brep` may
+be **resident in the provider** (ADR-0021): the authoritative shape is OCCT's and the managed arrays
+are materialised lazily. Multiplying the managed points while the provider holds the real shape
+produces a `Brep` whose two halves disagree — which is the exact bug ADR-0021 was written to prevent,
+and it will not show up in a test that only reads the managed side. The transform either goes through
+the kernel, or it invalidates residency.
+
+**`E2-T70` step A landed the same day and chose the second**, and the choice was already written
+down: `BrepResidency.Materialise`'s own remarks name *a transform* as one of the structural demands
+that read a shape out of its provider. So `Brep.TransformedBy` materialises and the result is a
+managed value. The first option is not available anyway — `IBrepKernel` has no transform operation,
+and `E13-T21` blocks adding one while the shim cannot be rebuilt.
+
+**What the fix actually turned up was a live bug somewhere else.** Getting `Brep.TransformedBy`
+right meant flipping every `BrepFace.IsReversed` when `Transform.Determinant < 0`, because a mirror
+reverses handedness and a surface's own normal is the cross product of its parameter directions.
+Asking whether `Mesh.TransformedBy` did the equivalent showed that it did **not**: it moved the
+vertices, inverse-transposed the normals correctly, and left every face wound backwards. So a
+mirrored mesh had winding disagreeing with its own normals — negative volume, `FaceNormal` answering
+inwards, and it rendered black. **Nothing had reported it**, and the reason is the same as for the
+missing `Brep` transform: mirroring is rare enough that nobody had done it, and every cheap check
+passes. The general form is that **orientation is a property no index checks and no validator
+validates**, so it survives every structural test a model has.

@@ -46,6 +46,58 @@ public sealed class MeshTests
         return new Mesh(vertices, faces);
     }
 
+    /// <summary>A mirrored mesh is not inside out, because every face's winding reverses — `E2-T70`.</summary>
+    /// <remarks>
+    /// <b>This is the test that goes red when the `Determinant &lt; 0` branch is removed from
+    /// `TransformedBy`.</b> Until 2026-09-13 a mirror moved the vertices and inverse-transposed the
+    /// normals and left the winding alone, so every face ended up wound backwards: the volume came
+    /// out negative, `FaceNormal` answered inwards, and the stored vertex normals — which were
+    /// carried across correctly — disagreed with the faces they belonged to.
+    /// </remarks>
+    [Fact]
+    public void AMirroredMeshIsNotInsideOut()
+    {
+        Mesh cube = Cube();
+        Mesh mirrored = cube.TransformedBy(Transform.Mirror(Plane.WorldYZ));
+
+        Assert.Equal(cube.Volume(), mirrored.Volume(), 9);
+        Assert.True(mirrored.Volume() > 0.0, $"the mirrored cube has volume {mirrored.Volume()}");
+
+        // Every face normal still points away from the centre, which is what "not inside out" is.
+        Point3d centre = mirrored.BoundingBox.Center;
+
+        for (int i = 0; i < mirrored.FaceCount; i++)
+        {
+            MeshFace face = mirrored.Face(i);
+
+            Assert.True(
+                mirrored.FaceNormal(i).Dot(mirrored.Vertex(face.A) - centre) > 0.0,
+                $"face {i} of the mirrored cube faces inwards");
+        }
+    }
+
+    /// <summary>A rotation reverses nothing, because it does not reverse handedness.</summary>
+    [Fact]
+    public void ARotationLeavesEveryFaceWoundAsItWas()
+    {
+        Mesh cube = Cube();
+        Mesh turned = cube.TransformedBy(Transform.Rotation(Vector3d.ZAxis, Angle.FromDegrees(90)));
+
+        Assert.Equal(cube.Faces(), turned.Faces());
+    }
+
+    /// <summary>Reversing a face names the same corners the other way round.</summary>
+    [Fact]
+    public void AReversedFaceNamesTheSameCornersBackwards()
+    {
+        Assert.Equal(new MeshFace(2, 1, 0), new MeshFace(0, 1, 2).Reversed());
+        Assert.Equal(new MeshFace(3, 2, 1, 0), new MeshFace(0, 1, 2, 3).Reversed());
+
+        // A reversed triangle is still a triangle: D stays NoVertex rather than picking up a corner.
+        Assert.False(new MeshFace(0, 1, 2).Reversed().IsQuad);
+        Assert.True(new MeshFace(0, 1, 2, 3).Reversed().IsQuad);
+    }
+
     /// <summary>One triangle, which is the smallest open mesh.</summary>
     private static Mesh Triangle() =>
         new(

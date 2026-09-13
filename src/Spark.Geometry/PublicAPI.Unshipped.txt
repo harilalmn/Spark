@@ -4,6 +4,7 @@ Spark.Geometry.Arc.Arc(in Spark.Geometry.Point3d center, in Spark.Geometry.Point
 Spark.Geometry.Arc.Arc(in Spark.Geometry.Point3d first, in Spark.Geometry.Point3d second, in Spark.Geometry.Point3d third) -> void
 Spark.Geometry.BoundingBox.BoundingBox(System.Collections.Generic.IEnumerable<Spark.Geometry.Point3d>! points) -> void
 Spark.Geometry.BoundingBox.BoundingBox(System.ReadOnlySpan<Spark.Geometry.Point3d> points) -> void
+Spark.Geometry.Brep.TransformedBy(in Spark.Geometry.Transform transform) -> Spark.Geometry.Brep!
 Spark.Geometry.BrepAdjacency
 Spark.Geometry.BrepAdjacency.EdgeCount.get -> int
 Spark.Geometry.BrepAdjacency.EdgesAt(int vertex) -> System.ReadOnlySpan<int>
@@ -58,6 +59,7 @@ Spark.Geometry.EllipseCurve.EllipseCurve(in Spark.Geometry.Plane plane, double x
 Spark.Geometry.EllipseCurve.EllipseCurve(in Spark.Geometry.Plane plane, double xRadius, double yRadius, Spark.Geometry.Angle startAngle, Spark.Geometry.Angle sweepAngle) -> void
 Spark.Geometry.KnotVector.KnotVector(int degree, int controlPoints) -> void
 Spark.Geometry.Line.Line(in Spark.Geometry.Point3d start, in Spark.Geometry.Vector3d direction, double length) -> void
+Spark.Geometry.MeshFace.Reversed() -> Spark.Geometry.MeshFace
 Spark.Geometry.NurbsCurve.NurbsCurve(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> void
 Spark.Geometry.NurbsSurface.NurbsSurface(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! corners) -> void
 Spark.Geometry.Planar.Region
@@ -103,12 +105,8 @@ Spark.Geometry.Quaternion.Quaternion(in Spark.Geometry.Vector3d from, in Spark.G
 Spark.Geometry.Ray.Ray(in Spark.Geometry.Point3d from, in Spark.Geometry.Point3d towards) -> void
 Spark.Geometry.Vector3d.Vector3d(double radius, Spark.Geometry.Angle azimuth, Spark.Geometry.Angle polar) -> void
 Spark.Geometry.Vector3d.Vector3d(double radius, Spark.Geometry.Angle azimuth, double height) -> void
-~override Spark.Geometry.CurveIntersectionPoint.Equals(object obj) -> bool
 override Spark.Geometry.CurveIntersectionPoint.GetHashCode() -> int
-~override Spark.Geometry.CurveIntersectionPoint.ToString() -> string
-~override Spark.Geometry.CurveOverlap.Equals(object obj) -> bool
 override Spark.Geometry.CurveOverlap.GetHashCode() -> int
-~override Spark.Geometry.CurveOverlap.ToString() -> string
 static Spark.Geometry.Brep.Join(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>! parts) -> Spark.Geometry.Brep!
 static Spark.Geometry.BrepAdjacency.Of(Spark.Geometry.Brep! brep) -> Spark.Geometry.BrepAdjacency!
 static Spark.Geometry.CurveIntersectionPoint.operator !=(Spark.Geometry.CurveIntersectionPoint left, Spark.Geometry.CurveIntersectionPoint right) -> bool
@@ -127,3 +125,7 @@ static Spark.Geometry.Tessellation.Tessellate(Spark.Geometry.Surface! surface, S
 static Spark.Geometry.Tessellation.ToMesh(this Spark.Geometry.Surface! surface, in Spark.Geometry.Tolerance tolerance, System.Threading.CancellationToken cancellationToken) -> Spark.Geometry.Mesh!
 static Spark.Geometry.Vector3d.FromCylindrical(double radius, Spark.Geometry.Angle azimuth, double height) -> Spark.Geometry.Vector3d
 static Spark.Geometry.Vector3d.FromSpherical(double radius, Spark.Geometry.Angle azimuth, Spark.Geometry.Angle polar) -> Spark.Geometry.Vector3d
+~override Spark.Geometry.CurveIntersectionPoint.Equals(object obj) -> bool
+~override Spark.Geometry.CurveIntersectionPoint.ToString() -> string
+~override Spark.Geometry.CurveOverlap.Equals(object obj) -> bool
+~override Spark.Geometry.CurveOverlap.ToString() -> string

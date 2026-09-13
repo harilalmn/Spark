@@ -375,6 +375,86 @@ public sealed class Brep
         return new Brep(points, curves, surfaces, vertices, edges, trims, loops, faces, shells);
     }
 
+    /// <summary>The same solid moved by a transform.</summary>
+    /// <param name="transform">The transform.</param>
+    /// <returns>A new BRep, with the same topology and moved geometry.</returns>
+    /// <exception cref="ArgumentException">
+    /// The transform scales the axes differently and some of the geometry is analytic. A circle, a
+    /// sphere, a cylinder, a cone or a torus stays itself under a rigid motion and a uniform scale
+    /// and nothing else, and there is no type for the result — see <c>SphericalSurface</c>. The
+    /// refusal is the curve's or the surface's own, passed through rather than caught: returning a
+    /// shape that is the wrong one would be worse than declining.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Topology is untouched, because an affine map does not change what is connected to what.</b>
+    /// Every index — a face's surface, a trim's edge, an edge's vertices — means the same thing
+    /// afterwards. What moves is the geometry the indices point at: the points, the edge curves and
+    /// the face surfaces.
+    /// </para>
+    /// <para>
+    /// <b>A resident shape materialises here, and that is by design rather than by omission</b>
+    /// ([ADR-0021](../../docs/adr/0021-brep-kernel-residency.md)). <see cref="BrepResidency.Materialise"/>
+    /// names *a transform* as one of the structural demands that reads a shape out of its provider,
+    /// so the result of this call is a managed <see cref="Brep"/> and <see cref="IsResident"/> is
+    /// false on it. **The alternative would be to ask the provider to transform the shape it
+    /// holds**, which keeps residency and its fidelity — and there is no such operation on
+    /// `IBrepKernel` to ask. Adding one is real work behind the seam and it is blocked while the
+    /// shim cannot be rebuilt (`E13-T21`), so this is written down here rather than left to be
+    /// rediscovered by the next person who wonders why moving a solid costs a materialisation.
+    /// </para>
+    /// <para>
+    /// <b>A transform that reverses handedness flips every face, and forgetting it turns a solid
+    /// inside out.</b> Under a mirror — any transform whose <see cref="Transform.Determinant"/> is
+    /// negative — a surface's own normal, which is the cross product of its two parameter
+    /// directions, ends up pointing the opposite way relative to the moved shape. Since
+    /// <see cref="BrepFace.IsReversed"/> says whether a face's outward normal opposes its surface's,
+    /// every face's flag has to flip to keep outward pointing outward. A mirrored box whose flags
+    /// were not flipped is a box with its normals pointing in: it renders black, its tessellated
+    /// volume comes out negative, and nothing about it looks wrong until something asks.
+    /// </para>
+    /// </remarks>
+    public Brep TransformedBy(in Transform transform)
+    {
+        Point3d[] points = new Point3d[RawPoints.Length];
+
+        for (int i = 0; i < points.Length; i++)
+        {
+            points[i] = transform.OfPoint(RawPoints[i]);
+        }
+
+        Curve[] curves = new Curve[RawCurves.Length];
+
+        for (int i = 0; i < curves.Length; i++)
+        {
+            curves[i] = RawCurves[i].TransformedBy(transform);
+        }
+
+        Surface[] surfaces = new Surface[RawSurfaces.Length];
+
+        for (int i = 0; i < surfaces.Length; i++)
+        {
+            surfaces[i] = RawSurfaces[i].TransformedBy(transform);
+        }
+
+        BrepFace[] faces = RawFaces;
+
+        if (transform.Determinant < 0.0)
+        {
+            faces = new BrepFace[RawFaces.Length];
+
+            for (int i = 0; i < faces.Length; i++)
+            {
+                BrepFace face = RawFaces[i];
+
+                faces[i] = new BrepFace(face.Surface, face.FirstLoop, face.LoopCount, !face.IsReversed);
+            }
+        }
+
+        return new Brep(
+            points, curves, surfaces, RawVertices, RawEdges, RawTrims, RawLoops, faces, RawShells);
+    }
+
     /// <summary>A navigator over one face.</summary>
     /// <param name="index">The face index.</param>
     /// <returns>A view that can walk to its loops, trims, edges and surface.</returns>

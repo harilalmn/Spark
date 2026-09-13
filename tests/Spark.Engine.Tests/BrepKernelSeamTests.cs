@@ -233,6 +233,43 @@ public sealed class BrepKernelSeamTests
         Assert.True(mesh.Volume() > 0.0, $"the volume came out {mesh.Volume()}");
     }
 
+    /// <summary>
+    /// Moving a resident solid materialises it exactly once, and the caller does not have to know —
+    /// `E2-T70`, ADR-0021.
+    /// </summary>
+    /// <remarks>
+    /// <b>`BrepResidency.Materialise` names *a transform* as one of the structural demands that read
+    /// a shape out of its provider</b>, and this is that sentence made true. The alternative would be
+    /// to ask the provider to transform the shape it holds, which keeps residency and its fidelity —
+    /// and `IBrepKernel` has no such operation to ask. What must never happen is the third thing:
+    /// multiplying the managed arrays while the provider still holds the authoritative shape, which
+    /// produces a `Brep` whose two halves disagree and which no test that reads only one half would
+    /// catch. So the result is checked to be **not resident**.
+    /// </remarks>
+    [Fact]
+    public void MovingAResidentSolidMaterialisesItOnce()
+    {
+        CountingResidency residency = new(BrepPrimitives.Box(Plane.WorldXY, 2, 3, 4));
+        Brep resident = new(residency);
+
+        Assert.True(resident.IsResident);
+        Assert.Equal(0, residency.Materialisations);
+
+        Vector3d offset = new(5, 6, 7);
+        Brep moved = resident.TransformedBy(Transform.Translation(offset));
+
+        Assert.Equal(1, residency.Materialisations);
+        Assert.False(moved.IsResident);
+        Assert.True(
+            moved.VertexPoint(0).EqualsWithin(resident.VertexPoint(0) + offset),
+            $"vertex 0 went to {moved.VertexPoint(0)}");
+
+        // Reading the original again does not ask the provider a second time, which is the property
+        // that makes a chain of operations cost one materialisation rather than one per step.
+        _ = resident.FaceCount;
+        Assert.Equal(1, residency.Materialisations);
+    }
+
     /// <summary>A residency that hands back a model and counts how often it is asked.</summary>
     private sealed class CountingResidency(Brep model) : BrepResidency
     {

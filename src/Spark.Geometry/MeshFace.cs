@@ -123,6 +123,19 @@ public readonly struct MeshFace : IEquatable<MeshFace>
     public MeshFace[] Triangulated() =>
         IsQuad ? [new MeshFace(A, B, C), new MeshFace(A, C, D)] : [this];
 
+    /// <summary>The same face wound the other way round.</summary>
+    /// <returns>A face naming the same corners in the opposite order.</returns>
+    /// <remarks>
+    /// <b>The corner order is the winding, and the winding is the normal.</b> Reversing it is how a
+    /// face that faced outwards comes to face inwards — which is what a mirrored mesh needs, because
+    /// mirroring the positions alone leaves every face wound backwards
+    /// (<see cref="Mesh.TransformedBy"/>). A triangle keeps <see cref="NoVertex"/> in
+    /// <see cref="D"/>; a quad reverses all four, so the diagonal <see cref="Triangulated"/> splits
+    /// on is the same diagonal seen from the other side.
+    /// </remarks>
+    public MeshFace Reversed() =>
+        IsQuad ? new MeshFace(D, C, B, A) : new MeshFace(C, B, A);
+
     /// <summary>Whether two faces name the same corners in the same order.</summary>
     /// <param name="other">The other face.</param>
     /// <returns>True when every index matches.</returns>

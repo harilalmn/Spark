@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T45` and `E2-T46`: mesh 41 of 65, infrastructure 24 of 89)
+**Last updated:** 2026-09-13 (`E2-T70` step A: a solid can be moved)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -274,8 +274,13 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     all**, so a user can union two solids and cannot *move* one (`E2-T70`); and **every query takes
 >     a point, never another geometry**, so `ClosestPointTo`, `DistanceTo`, `DoesIntersect` and
 >     `Intersect` are one gap wearing four names, with curve/surface intersection missing entirely.
->     **Next**: `E2-T41` curves, the largest at 187 members, then `E2-T40`'s value layer; `Q12`'s
->     T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
+>     ~~**`E2-T70` step A**~~ **done the same day it was filed**: `Brep.TransformedBy`, with
+>     `Solid.Translate`, `Rotate` and `Mirror` as nodes. No provider needed, a resident shape
+>     materialises, and **every face flips when the transform reverses handedness** — which also
+>     fixed the same bug live in `Mesh.TransformedBy`, where a mirror had been leaving every face
+>     wound backwards while its normals pointed the other way. **Next**: `E2-T70` step B, the
+>     geometry-to-geometry queries, or `E2-T41` curves, the largest at 187 members; then `E2-T40`'s
+>     value layer. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than
 >     machinery.

@@ -201,6 +201,59 @@ public static class Solid
     public static Brep Hollow(Brep solid, double thickness = 0.1) =>
         Unwrap(BrepKernel.Current.Shell(solid, [], thickness, Tolerance.Default));
 
+    /// <summary>Moves a solid by an offset.</summary>
+    /// <param name="solid">The solid.</param>
+    /// <param name="direction">The direction to move along. Normalised first.</param>
+    /// <param name="distance">How far to move.</param>
+    /// <returns>A new solid. The original is unchanged.</returns>
+    /// <remarks>
+    /// <b>A zero-length direction moves nothing rather than refusing</b>, which is the same choice
+    /// <c>Curve.Translate</c> makes: a graph wiring a computed vector that happens to come out zero
+    /// should carry on, because *move by nothing* has an obvious answer.
+    /// </remarks>
+    [return: NodePort("solid")]
+    public static Brep Translate(Brep solid, Vector3d direction, double distance = 1.0)
+    {
+        ArgumentNullException.ThrowIfNull(solid);
+
+        return direction.TryNormalise(out Vector3d unit)
+            ? solid.TransformedBy(Transform.Translation(unit * distance))
+            : solid;
+    }
+
+    /// <summary>Rotates a solid about an axis through a point.</summary>
+    /// <param name="solid">The solid.</param>
+    /// <param name="origin">A point on the axis.</param>
+    /// <param name="axis">The axis direction.</param>
+    /// <param name="degrees">How far to turn, in degrees.</param>
+    /// <returns>A new solid. The original is unchanged.</returns>
+    [return: NodePort("solid")]
+    public static Brep Rotate(Brep solid, Point3d origin, Vector3d axis, double degrees = 90.0)
+    {
+        ArgumentNullException.ThrowIfNull(solid);
+
+        return axis.TryNormalise(out Vector3d unit)
+            ? solid.TransformedBy(Transform.Rotation(unit, Angle.FromDegrees(degrees), origin))
+            : solid;
+    }
+
+    /// <summary>Mirrors a solid in a plane.</summary>
+    /// <param name="solid">The solid.</param>
+    /// <param name="plane">The mirror plane.</param>
+    /// <returns>A new solid, the right way out. The original is unchanged.</returns>
+    /// <remarks>
+    /// <b>Mirroring reverses handedness, so every face is flipped to keep outward pointing
+    /// outward</b> — <see cref="Brep.TransformedBy"/> does it, and without it the result is a solid
+    /// with its normals pointing in.
+    /// </remarks>
+    [return: NodePort("solid")]
+    public static Brep Mirror(Brep solid, Spark.Geometry.Plane plane)
+    {
+        ArgumentNullException.ThrowIfNull(solid);
+
+        return solid.TransformedBy(Transform.Mirror(plane));
+    }
+
     /// <summary>Turns a solid into a mesh to a tolerance.</summary>
     /// <param name="solid">The solid.</param>
     /// <param name="tolerance">The largest distance the mesh may stray from the solid.</param>

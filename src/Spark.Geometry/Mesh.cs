@@ -336,11 +336,22 @@ public sealed class Mesh
     /// <param name="transform">The transform.</param>
     /// <returns>A new mesh.</returns>
     /// <remarks>
+    /// <para>
     /// <b>Normals are transformed as directions and re-normalised, not as points.</b> Under a
     /// non-uniform scale a normal transformed like a position stops being perpendicular to the
     /// surface, which is the classic lighting bug; the exact answer is the inverse transpose, and
     /// where the transform is not invertible there is no correct normal to give, so the direction
     /// is carried across and the caller may recompute.
+    /// </para>
+    /// <para>
+    /// <b>A transform that reverses handedness reverses every face's winding too.</b> Under a
+    /// mirror — any transform whose <see cref="Transform.Determinant"/> is negative — moving the
+    /// vertices alone leaves each face wound the other way round, so its geometric normal points
+    /// into the solid while the stored vertex normals, which were carried across correctly, point
+    /// out. The two then disagree: the mesh renders black or inside out, <see cref="FaceNormal"/>
+    /// answers backwards, and <see cref="Volume"/> comes out negative. Reversing the corner order
+    /// costs nothing and is the only way the two stay consistent.
+    /// </para>
     /// </remarks>
     public Mesh TransformedBy(in Transform transform)
     {
@@ -377,7 +388,19 @@ public sealed class Mesh
             }
         }
 
-        return new Mesh(moved, _faces, normals, _textureCoordinates, _colours);
+        MeshFace[] faces = _faces;
+
+        if (transform.Determinant < 0.0)
+        {
+            faces = new MeshFace[_faces.Length];
+
+            for (int i = 0; i < faces.Length; i++)
+            {
+                faces[i] = _faces[i].Reversed();
+            }
+        }
+
+        return new Mesh(moved, faces, normals, _textureCoordinates, _colours);
     }
 
     /// <summary>

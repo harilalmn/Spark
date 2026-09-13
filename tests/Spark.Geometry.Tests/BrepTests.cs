@@ -535,4 +535,131 @@ public sealed class BrepTests
         Assert.True(BrepPrimitives.Box(Plane.WorldXY, 1, 1, 1).IsUntrimmed);
         Assert.True(BrepPrimitives.Cylinder(Plane.WorldXY, 1, 1).IsUntrimmed);
     }
+
+    /// <summary>A solid moves, and every vertex moves with it — `E2-T70`.</summary>
+    /// <remarks>
+    /// The plain case, and it is the one that had no member at all until 2026-09-13: a solid could
+    /// be unioned, filleted, hollowed and exported, and not moved.
+    /// </remarks>
+    [Fact]
+    public void ASolidCanBeMoved()
+    {
+        Brep box = BrepPrimitives.Box(Plane.WorldXY, 2, 3, 4);
+        Vector3d offset = new(10, -20, 30);
+        Brep moved = box.TransformedBy(Transform.Translation(offset));
+
+        Assert.Equal(box.VertexCount, moved.VertexCount);
+        Assert.Equal(box.FaceCount, moved.FaceCount);
+
+        for (int i = 0; i < box.VertexCount; i++)
+        {
+            Assert.True(
+                moved.VertexPoint(i).EqualsWithin(box.VertexPoint(i) + offset),
+                $"vertex {i} went to {moved.VertexPoint(i)} rather than {box.VertexPoint(i) + offset}");
+        }
+
+        // The surfaces move too, not only the vertices - a box whose points moved and whose planes
+        // did not is a model whose faces are nowhere near its corners, and every index still checks
+        // out, so nothing but geometry would catch it.
+        Assert.True(
+            moved.BoundingBox.Min.EqualsWithin(box.BoundingBox.Min + offset),
+            $"the box is at {moved.BoundingBox.Min} rather than {box.BoundingBox.Min + offset}");
+    }
+
+    /// <summary>Moving a solid changes no index, because an affine map changes no connectivity.</summary>
+    [Fact]
+    public void MovingASolidLeavesItsTopologyAlone()
+    {
+        Brep cylinder = BrepPrimitives.Cylinder(Plane.WorldXY, 2, 5);
+        Brep moved = cylinder.TransformedBy(
+            Transform.Rotation(Vector3d.XAxis, Angle.FromDegrees(37), new Point3d(1, 2, 3)));
+
+        Assert.Equal(cylinder.Edges(), moved.Edges());
+        Assert.Equal(cylinder.Trims(), moved.Trims());
+        Assert.Equal(cylinder.Loops(), moved.Loops());
+        Assert.Equal(cylinder.Shells(), moved.Shells());
+        Assert.Empty(moved.Validate());
+        Assert.True(moved.IsSolid);
+    }
+
+    /// <summary>
+    /// A mirrored solid is not inside out, because every face flips with the handedness — `E2-T70`.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the test that goes red when the `Determinant &lt; 0` branch is removed</b>, and it
+    /// is the reason the branch exists. A mirror reverses handedness, so each surface's own normal —
+    /// the cross product of its two parameter directions — ends up pointing the opposite way
+    /// relative to the moved shape. Every index still checks out, `Validate` is still empty and
+    /// `IsSolid` is still true; the only symptom is that the volume comes out negative, which is to
+    /// say the solid is inside out.
+    /// </remarks>
+    [Fact]
+    public void AMirroredSolidIsNotInsideOut()
+    {
+        Brep box = BrepPrimitives.Box(Plane.WorldXY, 2, 3, 4);
+        Brep mirrored = box.TransformedBy(Transform.Mirror(Plane.WorldYZ));
+
+        Assert.Empty(mirrored.Validate());
+        Assert.True(mirrored.IsSolid);
+
+        for (int i = 0; i < box.FaceCount; i++)
+        {
+            Assert.NotEqual(box.Faces()[i].IsReversed, mirrored.Faces()[i].IsReversed);
+        }
+
+        // And the flags are not merely different - they are right. Every face's outward normal must
+        // point away from the centre, which is the property "inside out" actually means, and it is
+        // checked here rather than through a tessellated volume because that needs a kernel.
+        Point3d centre = mirrored.BoundingBox.Center;
+
+        for (int i = 0; i < mirrored.FaceCount; i++)
+        {
+            BrepFace face = mirrored.Faces()[i];
+            Surface surface = mirrored.Surfaces()[face.Surface];
+            double u = surface.DomainU.Mid;
+            double v = surface.DomainV.Mid;
+            Vector3d outward = surface.NormalAt(u, v) * (face.IsReversed ? -1.0 : 1.0);
+
+            Assert.True(
+                outward.Dot(surface.PointAt(u, v) - centre) > 0.0,
+                $"face {i} of the mirrored box faces inwards");
+        }
+    }
+
+    /// <summary>A rotation does not flip anything, because it does not reverse handedness.</summary>
+    [Fact]
+    public void ARotationLeavesEveryFacesOrientationAlone()
+    {
+        Brep box = BrepPrimitives.Box(Plane.WorldXY, 2, 3, 4);
+        Brep turned = box.TransformedBy(Transform.Rotation(Vector3d.ZAxis, Angle.FromDegrees(90)));
+
+        Assert.Equal(box.Faces(), turned.Faces());
+    }
+
+    /// <summary>
+    /// A non-uniform scale on a solid with an analytic face is refused, in the words the surface
+    /// already uses.
+    /// </summary>
+    /// <remarks>
+    /// A cylinder scaled 2x in x and 1x in y is an elliptic cylinder, and there is no type for that
+    /// — so the analytic geometry throws and this inherits the refusal rather than catching it and
+    /// returning something that is the wrong shape. **The refusal arrives from the edge circle
+    /// rather than from the cylindrical face**, because curves are moved before surfaces, and that
+    /// is worth knowing rather than worth changing: both refuse, and the first one to notice is the
+    /// one that gets to explain.
+    /// </remarks>
+    [Fact]
+    public void ANonUniformScaleOnAnAnalyticSolidIsRefused()
+    {
+        Brep cylinder = BrepPrimitives.Cylinder(Plane.WorldXY, 1, 2);
+
+        ArgumentException refused = Assert.Throws<ArgumentException>(
+            () => cylinder.TransformedBy(Transform.Scale(2, 1, 1)));
+
+        Assert.Contains("scales", refused.Message, StringComparison.Ordinal);
+
+        // And a UNIFORM scale is fine, which is what makes the refusal about the shape rather than
+        // about scaling at all.
+        Assert.Empty(cylinder.TransformedBy(Transform.Scale(3)).Validate());
+    }
 }

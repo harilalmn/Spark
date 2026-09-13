@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T46`: infrastructure parity at 24 of 89, and a solid that cannot be moved)
+**Last updated:** 2026-09-13 (`E2-T70` step A: a solid can be moved, and a mirror no longer turns one inside out)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -267,7 +267,11 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       on the strength of the types that *do* answer them; it came from asking which types do not.
       And **every query takes a point, never another geometry**, which makes `ClosestPointTo`,
       `DistanceTo`, `DoesIntersect` and `Intersect` one gap under four names — curve/curve is exact
-      (**E2-T11**) and solid/solid is the kernel's, and **curve/surface has nothing at all**.
+      (**E2-T11**) and solid/solid is the kernel's, and **curve/surface has nothing at all**. **The
+      first half was closed the same day** (**E2-T70** step A): `Brep.TransformedBy`, with
+      `Solid.Translate`, `Rotate` and `Mirror` as nodes, no provider needed, and every face flipped
+      when the transform reverses handedness — which also fixed the same live bug in
+      `Mesh.TransformedBy`, where a mirror had been leaving every face wound backwards.
 - [ ] Serialization carries **per-type `schemaVersion`**, so a `NurbsCurve` at v2 and a
       `Mesh` at v1 coexist, with migrations applied JSON-to-JSON (**E2-T29**).
 - [ ] A reflection-driven round-trip test enumerates every concrete geometry type, so a new

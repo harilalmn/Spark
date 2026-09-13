@@ -62,6 +62,38 @@ ships with Spark is **OpenCascade**.
 | `Solid.Hollow` | Turns a solid into a shell of a given wall thickness |
 | `Solid.Offset` | Moves every face outwards or inwards |
 | `Solid.Thicken` | Gives an open sheet a thickness, making a solid of it |
+| `Solid.Translate` | Moves a solid along a direction |
+| `Solid.Rotate` | Turns a solid about an axis through a point |
+| `Solid.Mirror` | Reflects a solid in a plane |
+
+## Moving a solid
+
+**`Translate`, `Rotate` and `Mirror` are not kernel operations and need no provider.** They move
+the geometry a solid is made of and leave its topology exactly as it was, because moving a shape
+does not change what is joined to what. They work in a build with no OpenCascade at all — which is
+worth knowing, because everything else in the table above does not.
+
+```
+box    = Solid.Box(Plane.WorldXY, 2, 3, 4)
+moved  = Solid.Translate(box, Vector.ByCoordinates(10, 0, 0), 1)
+turned = Solid.Rotate(moved, Point.Origin(), Vector.ZAxis(), 45)
+pair   = Solid.Union(box, Solid.Mirror(box, Plane.WorldYZ))
+```
+
+**`Mirror` flips the solid the right way out.** Reflecting a shape reverses its handedness, so
+every face would end up pointing inwards if nothing corrected it — a box that renders black and
+reports a negative volume. Spark flips each face as it mirrors, so the result is a solid you can
+union with the original, which is the usual reason to mirror one at all.
+
+**A non-uniform scale is refused when the solid has round geometry.** Scaling a cylinder twice as
+wide in x as in y would make an *elliptic* cylinder, and Spark has no type for that — so it
+declines and says so, rather than handing back a shape that is not the one you asked for. A uniform
+scale is fine.
+
+**Moving a solid reads it back out of the provider.** After a union or a fillet the shape lives
+inside OpenCascade; moving it brings it into Spark's own arrays first, which costs one conversion.
+It is worth knowing when a graph moves a solid in a loop, and it is not worth avoiding: do the
+kernel work first and the moving afterwards.
 
 **`Split` and `Difference` are not the same operation with different names.** A block cut by a
 plate:
@@ -207,3 +239,6 @@ against *this* build rather than approximately.
 - **AP242.** STEP goes out as AP214. AP242 carries assemblies, names and colours, and Spark has
   none of those to put in a file yet.
 - **Mesh booleans** — combining two *meshes* rather than two solids. Deferred.
+- **Moving a solid without leaving the kernel.** `Translate`, `Rotate` and `Mirror` work on Spark's
+  own arrays, so a solid that was living inside OpenCascade is read out first. Asking the provider
+  to move it instead would be faster and would keep the shape exactly as the kernel built it.

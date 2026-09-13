@@ -686,12 +686,16 @@ and its other 28 members joined the residue — **the largest single move that n
 (292 → 319). It is the price of the claim rather than drift: a type the register says answers
 fourteen Dynamo members is a type whose whole surface the register has to account for.
 
-**`Brep` has no transform at all, and that is the finding of this section.** `TransformedBy` is on
-`Curve`, `Surface`, `Mesh`, `PointCloud`, `PolyCurve`, `PolyLine` and every analytic surface —
-**and not on `Brep`**, and there is no `Transform` operation on `IBrepKernel` either, and no node.
-So a user can union two solids and cannot **move** one. The register would never have found this
-from the `Geometry` rows, because they are `Done` on the strength of the types that do have it; it
-was found by asking which types *do not*. `E2-T70`.
+**`Brep` had no transform at all, which was the finding of this section — and it was closed the
+same day.** `TransformedBy` was on `Curve`, `Surface`, `Mesh`, `PointCloud`, `PolyCurve`,
+`PolyLine` and every analytic surface, **and not on `Brep`**, with no `Transform` operation on
+`IBrepKernel` and no node: a user could union two solids and not **move** one. The register would
+never have found it from the `Geometry` rows, because they are `Done` on the strength of the types
+that *do* have it; it was found by asking which types do not ([N161](NOTES.md)). **`E2-T70` step A
+landed on 2026-09-13** — `Brep.TransformedBy`, plus `Solid.Translate`, `Rotate` and `Mirror` as
+nodes, with every face flipped when the transform reverses handedness. It works with no provider
+installed, and it materialises a resident shape, because `IBrepKernel` still has no transform to
+ask for (`E13-T21` blocks adding one).
 
 *Measurement and intersection (10) — six `Done`, three `Planned`, one needing a decision.*
 `BoundingBox` is on `Curve`, `Surface`, `Brep`, `Mesh` and `PointCloud` (`Surface`'s is sampled and
@@ -1152,7 +1156,7 @@ surfaces, the Brep views and the planar layer, each with the §2 or §3 sentence
 some parity row names may not be excused wholesale**, and the check enforces that rather than trusting
 it, because otherwise the file would be a way to make the check green.
 
-**What no rule reaches is counted, not waved through.** **319** members sit on types that *do* map to a
+**What no rule reaches is counted, not waved through.** **321** members sit on types that *do* map to a
 Dynamo type, so each is either a member some `Unassessed` row will name once it is assessed or a
 genuine gap — and the budget at the foot of the exclusions file is checked for **exact** equality, not
 as a ceiling. The number therefore falls as rows are assessed and cannot quietly climb back.

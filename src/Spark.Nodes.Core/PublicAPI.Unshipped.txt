@@ -13,6 +13,9 @@ static Spark.Nodes.Core.Plane.FromLineAndPoint(Spark.Geometry.Line! line, Spark.
 static Spark.Nodes.Core.Point.FromCylindrical(double radius = 1, Spark.Geometry.Angle azimuth = default(Spark.Geometry.Angle), double height = 0) -> Spark.Geometry.Point3d
 static Spark.Nodes.Core.Point.FromSpherical(double radius = 1, Spark.Geometry.Angle azimuth = default(Spark.Geometry.Angle), Spark.Geometry.Angle polar = default(Spark.Geometry.Angle)) -> Spark.Geometry.Point3d
 static Spark.Nodes.Core.Point.PruneDuplicates(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, double tolerance = 0.001) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
+static Spark.Nodes.Core.Solid.Mirror(Spark.Geometry.Brep! solid, Spark.Geometry.Plane plane) -> Spark.Geometry.Brep!
+static Spark.Nodes.Core.Solid.Rotate(Spark.Geometry.Brep! solid, Spark.Geometry.Point3d origin, Spark.Geometry.Vector3d axis, double degrees = 90) -> Spark.Geometry.Brep!
+static Spark.Nodes.Core.Solid.Translate(Spark.Geometry.Brep! solid, Spark.Geometry.Vector3d direction, double distance = 1) -> Spark.Geometry.Brep!
 static Spark.Nodes.Core.Surface.ToMesh(Spark.Geometry.Surface! surface, double tolerance = 0.01, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Spark.Geometry.Mesh!
 static Spark.Nodes.Core.Vector.FromCylindrical(double radius = 1, Spark.Geometry.Angle azimuth = default(Spark.Geometry.Angle), double height = 0) -> Spark.Geometry.Vector3d
 static Spark.Nodes.Core.Vector.FromSpherical(double radius = 1, Spark.Geometry.Angle azimuth = default(Spark.Geometry.Angle), Spark.Geometry.Angle polar = default(Spark.Geometry.Angle)) -> Spark.Geometry.Vector3d
