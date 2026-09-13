@@ -184,6 +184,21 @@ public static class Surface
     public static Spark.Geometry.Surface Offset(Spark.Geometry.Surface surface, double distance = 1.0) =>
         surface.Offset(distance);
 
+    /// <summary>The NURBS surface that follows another to within a tolerance.</summary>
+    /// <param name="surface">The surface to approximate.</param>
+    /// <param name="tolerance">How far the result may stray from it.</param>
+    /// <returns>The approximating surface.</returns>
+    /// <remarks>
+    /// <b>For the surfaces that have no exact NURBS form</b> — an offset surface is the usual one.
+    /// Where an exact form exists, <c>Surface.ToNurbs</c> gives it and loses nothing. The tolerance
+    /// is a target rather than a promise: the kernel member reports the deviation it achieved, and
+    /// this node hands back the surface alone.
+    /// </remarks>
+    [return: NodePort("surface")]
+    [SparkNodeAlias("Surface.ApproximateWithTolerance")]
+    public static NurbsSurface Approximate(Spark.Geometry.Surface surface, double tolerance = 0.01) =>
+        surface.ApproximateWithTolerance(new Tolerance(tolerance, Angle.FromDegrees(1), 1e-12)).Surface;
+
     /// <summary>The area of a surface.</summary>
     /// <param name="surface">The surface.</param>
     /// <returns>The area.</returns>

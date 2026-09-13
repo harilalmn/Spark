@@ -38,3 +38,4 @@ static Spark.Nodes.Core.Surface.PrincipalDirections(Spark.Geometry.Surface! surf
 *REMOVED*static Spark.Nodes.Core.Surface.ToNurbs(Spark.Geometry.SphericalSurface! surface) -> Spark.Geometry.NurbsSurface!
 static Spark.Nodes.Core.Surface.ToNurbs(Spark.Geometry.Surface! surface, double tolerance = 0.01) -> Spark.Geometry.NurbsSurface!
 static Spark.Nodes.Core.Surface.Offset(Spark.Geometry.Surface! surface, double distance = 1) -> Spark.Geometry.Surface!
+static Spark.Nodes.Core.Surface.Approximate(Spark.Geometry.Surface! surface, double tolerance = 0.01) -> Spark.Geometry.NurbsSurface!

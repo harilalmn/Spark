@@ -1493,7 +1493,7 @@ public sealed class NurbsCurve : Curve
     /// <summary>
     /// A parameter for each point, spaced by the distance between them and normalised to 0..1.
     /// </summary>
-    private static double[] ChordLengthParameters(IReadOnlyList<Point3d> points)
+    internal static double[] ChordLengthParameters(IReadOnlyList<Point3d> points)
     {
         double[] parameters = new double[points.Count];
         double total = 0.0;
@@ -1541,7 +1541,7 @@ public sealed class NurbsCurve : Curve
     /// is non-zero — the Schoenberg–Whitney condition — which is the difference between a system
     /// that is banded and well conditioned and one that is merely square.
     /// </remarks>
-    private static KnotVector AveragedKnots(double[] parameters, int degree)
+    internal static KnotVector AveragedKnots(double[] parameters, int degree)
     {
         int n = parameters.Length;
         double[] knots = new double[n + degree + 1];
@@ -1584,7 +1584,7 @@ public sealed class NurbsCurve : Curve
     /// exception.
     /// </para>
     /// </remarks>
-    private static double[,] SolveInPlace(double[,] matrix, double[,] rightHand)
+    internal static double[,] SolveInPlace(double[,] matrix, double[,] rightHand)
     {
         int n = matrix.GetLength(0);
         int columns = rightHand.GetLength(1);

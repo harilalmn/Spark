@@ -247,3 +247,6 @@ override Spark.Geometry.PlaneSurface.Offset(double distance) -> Spark.Geometry.S
 override Spark.Geometry.SphericalSurface.Offset(double distance) -> Spark.Geometry.Surface!
 override Spark.Geometry.CylindricalSurface.Offset(double distance) -> Spark.Geometry.Surface!
 override Spark.Geometry.ToroidalSurface.Offset(double distance) -> Spark.Geometry.Surface!
+const Spark.Geometry.Surface.ApproximationSampleLimit = 129 -> int
+Spark.Geometry.Surface.ApproximateWithTolerance(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance), int degreeU = 3, int degreeV = 3) -> (Spark.Geometry.NurbsSurface! Surface, double Deviation, bool Fits)
+static Spark.Geometry.NurbsSurface.InterpolatePoints(Spark.Geometry.Point3d[,]! points, int degreeU = 3, int degreeV = 3) -> Spark.Geometry.NurbsSurface!

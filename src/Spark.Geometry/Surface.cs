@@ -720,6 +720,154 @@ public abstract class Surface
             + "ToNurbsSurface; a type that reaches this has not.");
 
     /// <summary>
+    /// The NURBS surface that follows this one to within a tolerance, and how closely it actually
+    /// managed (`E2-T66`).
+    /// </summary>
+    /// <param name="tolerance">
+    /// How far the result may stray from this surface. Its <see cref="Tolerance.Linear"/> component
+    /// is the target.
+    /// </param>
+    /// <param name="degreeU">The degree along <c>u</c>.</param>
+    /// <param name="degreeV">The degree along <c>v</c>.</param>
+    /// <returns>
+    /// The surface, the worst deviation measured, and whether that deviation met the tolerance.
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException">A degree is less than 1.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>The inexact counterpart of <see cref="ToNurbsSurface(in Tolerance)"/>, for the surfaces
+    /// that have no exact form.</b> An <see cref="OffsetSurface"/> is the case that motivated it:
+    /// the offset of a polynomial surface is not polynomial, so there is no exact answer and
+    /// <c>ToNurbsSurface</c> refuses rather than inventing one. This is how to get an inexact one
+    /// deliberately.
+    /// </para>
+    /// <para>
+    /// Sample a grid, interpolate it with <see cref="NurbsSurface.InterpolatePoints"/>, measure how
+    /// far the result strays, and double the grid until it is close enough or the ceiling is
+    /// reached. <b>Interpolation rather than least squares</b>, for the reason
+    /// <see cref="Curve.ToNurbsCurve(in Tolerance)"/> gives: the samples are exact, so a surface
+    /// through them is bounded by how far the original wanders between them, where a fit is free to
+    /// miss every one.
+    /// </para>
+    /// <para>
+    /// <b>The deviation is measured between the samples and never at them</b>, which is the whole
+    /// difficulty of measuring this. At a sample the interpolating surface is exact by
+    /// construction, so a measurement taken there reports a perfect fit for any grid however
+    /// coarse — a check that would pass for a two-by-two grid approximating a sphere.
+    /// </para>
+    /// <para>
+    /// <b>The tolerance is a target and the returned deviation is the answer.</b> A caller who needs
+    /// to know reads the deviation and the flag rather than trusting the argument, which is the
+    /// same contract <see cref="NurbsCurve.FitPoints"/> publishes and for the same reason: there
+    /// are surfaces no grid of this size will fit, and saying so is better than a bound nobody
+    /// verified.
+    /// </para>
+    /// </remarks>
+    public (NurbsSurface Surface, double Deviation, bool Fits) ApproximateWithTolerance(
+        in Tolerance tolerance = default, int degreeU = 3, int degreeV = 3)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(degreeU, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(degreeV, 1);
+
+        Tolerance resolved = tolerance;
+        int countU = Math.Max(degreeU + 1, 4);
+        int countV = Math.Max(degreeV + 1, 4);
+
+        NurbsSurface best = NurbsSurface.InterpolatePoints(SampleGrid(countU, countV), degreeU, degreeV);
+        double deviation = DeviationBetweenSamples(best, countU, countV);
+
+        while (resolved.IsGreaterThan(deviation, 0.0)
+            && (countU < ApproximationSampleLimit || countV < ApproximationSampleLimit))
+        {
+            countU = Math.Min(((countU - 1) * 2) + 1, ApproximationSampleLimit);
+            countV = Math.Min(((countV - 1) * 2) + 1, ApproximationSampleLimit);
+
+            NurbsSurface candidate =
+                NurbsSurface.InterpolatePoints(SampleGrid(countU, countV), degreeU, degreeV);
+            double candidateDeviation = DeviationBetweenSamples(candidate, countU, countV);
+
+            // Keep the best measured result rather than the last one, as FitPoints does: a finer
+            // grid is not guaranteed to be better on a surface with a feature between samples.
+            if (candidateDeviation < deviation)
+            {
+                best = candidate;
+                deviation = candidateDeviation;
+            }
+        }
+
+        return (best, deviation, !resolved.IsGreaterThan(deviation, 0.0));
+    }
+
+    /// <summary>
+    /// The ceiling on samples per direction in <see cref="ApproximateWithTolerance"/>.
+    /// </summary>
+    /// <remarks>
+    /// A limit rather than an unbounded loop, because a surface with a feature finer than any grid
+    /// would otherwise refine until it ran out of memory. Reaching it is reported through the
+    /// returned flag rather than thrown, so the caller gets the best available answer and the truth
+    /// about it.
+    /// </remarks>
+    public const int ApproximationSampleLimit = 129;
+
+    /// <summary>A grid of points on this surface, spanning both domains.</summary>
+    /// <param name="countU">How many samples along <c>u</c>.</param>
+    /// <param name="countV">How many samples along <c>v</c>.</param>
+    /// <returns>The grid.</returns>
+    private Point3d[,] SampleGrid(int countU, int countV)
+    {
+        Point3d[,] grid = new Point3d[countU, countV];
+
+        for (int i = 0; i < countU; i++)
+        {
+            double u = DomainU.Denormalise(i / (double)(countU - 1));
+
+            for (int j = 0; j < countV; j++)
+            {
+                grid[i, j] = PointAt(u, DomainV.Denormalise(j / (double)(countV - 1)));
+            }
+        }
+
+        return grid;
+    }
+
+    /// <summary>
+    /// The worst distance from this surface to an approximation of it, sampled <b>between</b> the
+    /// points the approximation was built from.
+    /// </summary>
+    /// <param name="candidate">The approximating surface.</param>
+    /// <param name="countU">The sample count the candidate was built with, along <c>u</c>.</param>
+    /// <param name="countV">The same along <c>v</c>.</param>
+    /// <returns>The worst distance found.</returns>
+    /// <remarks>
+    /// The midpoints of the sampling grid, which is where an interpolating surface is furthest from
+    /// what it interpolates. Measuring at the grid points themselves reports zero for every grid,
+    /// which is the trap this method exists to avoid.
+    /// </remarks>
+    private double DeviationBetweenSamples(NurbsSurface candidate, int countU, int countV)
+    {
+        double worst = 0.0;
+
+        for (int i = 0; i < countU - 1; i++)
+        {
+            double u = DomainU.Denormalise((i + 0.5) / (countU - 1));
+
+            for (int j = 0; j < countV - 1; j++)
+            {
+                double v = DomainV.Denormalise((j + 0.5) / (countV - 1));
+
+                Point3d mine = PointAt(u, v);
+                Point3d theirs = candidate.PointAt(
+                    candidate.DomainU.Denormalise((i + 0.5) / (countU - 1)),
+                    candidate.DomainV.Denormalise((j + 0.5) / (countV - 1)));
+
+                worst = Math.Max(worst, mine.DistanceTo(theirs));
+            }
+        }
+
+        return worst;
+    }
+
+    /// <summary>
     /// A surface at a constant distance from this one, along this one's own normal (`E2-T66`).
     /// </summary>
     /// <param name="distance">

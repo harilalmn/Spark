@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-13 (`E2-T66`: write-ahead for the surface fit and the grid interpolation)
+**Last updated:** 2026-09-13 (`E2-T66`: the surface fit, and a measurement that had to be taken elsewhere)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T66`'s fourth item — `Surface.ApproximateWithTolerance`, and the grid interpolation underneath it (`NurbsSurface.InterpolatePoints`).** **Written ahead 2026-09-13, before any code.** **Two rows, one algorithm, and the order is forced**: an approximation is *sample a grid, then interpolate it*, so the interpolation has to exist first and it is `NurbsSurface.ByPoints`'s own row. **The interpolation is Piegl and Tiller A9.4**, the tensor-product form of `InterpolatePoints`: chord-length parameters **averaged across the rows** and again down the columns, one knot vector per direction from those, then the *same banded solve* applied along `u` for every row and along `v` for every column — `ChordLengthParameters`, `AveragedKnots` and `SolveInPlace` become internal rather than being written twice. **The approximation samples, interpolates, measures and refines**, doubling the grid until the tolerance is met or a ceiling is hit, and **returns the deviation it achieved beside the surface**, as `NurbsCurve.FitPoints` does — a tolerance on a fit is a target, not a bound. **The trap is where the deviation is measured**: at the interpolation nodes it is zero by construction, so a measurement there would report a perfect fit for any grid however coarse. It has to be measured *between* the nodes. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`Surface.Offset` — `E2-T66`'s third item, and it is exact for *every* surface.** **That is the finding, and the reason is not geometry**: `CurveOffset` fits because a `NurbsCurve` is a *representation* with nowhere to put the true answer, while `Surface` is an *evaluatable type*, so the new `OffsetSurface` carries `S(u, v) + d · N(u, v)` exactly. **Approximation arrives only when something asks that surface for a NURBS form, and it refuses**, naming `ApproximateWithTolerance`. The analytic types override only to return a nicer kind, with the inversions refused; **the cone deliberately does not, and the reason is written down** — its true offset is the same cone trimmed at a *different* height, so the shortcut would be the wrong patch. **The branch is the direction, mutated twice**: reversing the general offset turns eleven tests red, and making the *sphere* shortcut subtract instead of add — leaving a perfectly good sphere of the right radius — turns four red, caught by the test that compares each shortcut against the general answer point for point. Residue **310 → 319**, all nine `OffsetSurface`'s own surface. 26 tests, **3517 → 3543**. **Before it:** `Surface.ToNurbsSurface`, where *exact* turned out to be two claims. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3543** tests over **ten** executables with zero failures and zero skips, docs harness green — all fourteen checks, with the residue budget exact at 319 — and the help-sample compiler green. No stashes. |
-| **Next action** | **Make `ChordLengthParameters`, `AveragedKnots` and `SolveInPlace` internal in `NurbsCurve`**, then write `NurbsSurface.InterpolatePoints(Point3d[,] grid, int degreeU = 3, int degreeV = 3)` and `Surface.ApproximateWithTolerance(in Tolerance, int degreeU = 3, int degreeV = 3)` returning `(NurbsSurface Surface, double Deviation, bool Fits)`. Then `tests/Spark.Geometry.Tests/SurfaceApproximationTests.cs`, the node, the two parity rows, the public API, the register counts (423 → 425), the dashboard and the log. |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **where the deviation is measured**. Measured at the interpolation nodes it is zero for every grid, so a fit that never refines reports a perfect result: the assertion is that a deliberately coarse ceiling on a curved surface reports `Fits` **false** with a deviation that matches an independent measurement taken *between* the nodes. **The second claim is that tightening the tolerance tightens the surface**, which a fit ignoring its tolerance would fail and a merely-close one would not. **The interpolation has its own defining property**: the surface passes through **every** grid point, at several degrees and on an irregular grid, which is what the word means. **A sphere is the case with an independent answer** — approximate one and every sample is at the radius from the centre, which the fitting code does not supply. The three gates, and the residue budget **exact** at 319 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Twenty-two steps landed today; the last fifteen build what the register found rather than measuring it. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **The curve work is paused** — what remains of `E2-T71` waits on `E2-T15`'s ray caster, and what remains of `E2-T72` is small `PolyCurve` and `Arc` bookkeeping — and **`E2-T66` is under way**, in the order its row gives. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`Surface.ApproximateWithTolerance`, with `NurbsSurface.InterpolatePoints` underneath it — `E2-T66`'s fourth item, two rows and one algorithm.** **The order was forced rather than chosen**: an approximation *is* sample a grid and interpolate it, so the grid interpolation had to exist first, and it is `NurbsSurface.ByPoints`'s own row. It is Piegl and Tiller's A9.4 — the same banded solve along `u` for every row and then along `v` for every column — with three `NurbsCurve` helpers made internal rather than written twice. **The branch is where the deviation is measured**: at the samples an interpolating surface is exact by construction, so a coarse grid would report perfection. Moving the measurement onto the samples turns **five** tests red. **And a mutation corrected the write-up for the second step running**: averaging the parameters across the grid is *not* what makes it interpolate — replacing it with the first row's leaves everything green — so the remark now records that as **unguarded rather than assumed safe**. Residue **319 → 320**, the smallest rise yet while building, because both new members were asked for by name in the register. 16 tests, **3543 → 3559**. **Before it:** `Surface.Offset`, which is exact where a curve offset is not. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3559** tests over **ten** executables with zero failures and zero skips, docs harness green — all fourteen checks, with the residue budget exact at 320 — and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T66`'s fifth item — `Surface.ProjectInputOnto`, projection along a direction.** **It is not `ClosestPoint`, which is the whole of the row**: the nearest point on a surface and the point you hit travelling in a given direction are different questions with different answers, and conflating them is the trap the row names. **The pieces exist**: `Ray` and `BoundingVolumeHierarchy` arrived in `E2-T15`, and `Spark.Viewport` already casts rays against tessellated geometry for picking — so this is a ray cast against the surface, seeded by a tessellation and refined on the surface itself, rather than new intersection machinery. **`Curve.IntersectWithSurface` from `E2-T70` is the closest existing relative** and should be read first, because a projection is that intersection with the curve being a straight line. **The shape**: project a point, and a curve, along a direction onto a surface. **A projection can miss, and can hit more than once** — a cylinder seen side-on is hit twice — so the return is a collection rather than a point, and an empty one is an answer rather than an error. **Then** the two `Join`s, `ByRuledLoft` over a sequence, and `ToString` on the base, which is the last of `E2-T66`. |
+| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **that it is a projection and not a nearest point**. On a tilted plane the two answers differ, and a test on a surface the direction happens to hit perpendicularly cannot tell them apart, so the assertion is on a plane whose normal is *not* the projection direction, where `ClosestPoint` gives a provably different answer. **The multiplicity is its own claim**: projecting through a cylinder along a diameter returns two points, and returning only the nearer would pass every single-point test. **A miss returns nothing and does not throw.** The three gates, and the residue budget **exact** at 320 or moved with the reason written in the exclusions history. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -14022,3 +14022,55 @@ rather than being fitted into a `NurbsSurface`.
 
 **Cost.** One session. One virtual, one new surface type, four overrides, a serialization case,
 twenty-six tests, one node, one help section.
+
+### 2026-09-13 — The surface fit, and a measurement that had to be taken somewhere else
+
+**What.** `Surface.ApproximateWithTolerance` and `NurbsSurface.InterpolatePoints`. Sixteen
+tests, a node, two parity rows to `Done`, and the register at **425 of 545**.
+
+**Two rows, one algorithm, and the order was forced.** An approximation of a surface is *sample
+a grid and interpolate it*, so the grid interpolation had to exist first — and that is
+`NurbsSurface.ByPoints`, a row I had not planned to touch. It is Piegl and Tiller's A9.4, which
+is the tensor-product form of the curve interpolation Spark has had since M3: solve the banded
+system along `u` for every row of the grid, then along `v` for every column of what that
+produced. No new solver, no new knot arithmetic. `ChordLengthParameters`, `AveragedKnots` and
+`SolveInPlace` went from private to internal, which is the whole of the plumbing.
+
+**The branch is where the deviation is measured, and it is the only hard thing here.** An
+interpolating surface passes exactly through the points it was built from. So a deviation
+measured at those points is **zero for every grid, however coarse** — a two-by-two grid would
+report a perfect approximation of a sphere, the refinement loop would exit immediately, and
+every test asking *is the result close* would pass, because the result is close at the places
+the test looked. The measurement is taken at the midpoints between samples instead, and moving
+it onto the samples turns five tests red.
+
+**A mutation corrected the write-up, for the second step running.** I had written that averaging
+the chord parameters across the grid was load-bearing and that taking one row's would fail on
+real data. Replacing the average with the first row's parameters leaves **every test green**.
+The reason is that a tensor-product interpolation passes through its grid for *any* parameter
+values that keep the system non-singular — the parameters change the shape *between* the
+points, and nothing in this suite measures that against a reference surface. The averaging
+stays, because it is the standard construction and the cheap alternative has no argument for
+it, but the remark now says it is **unguarded rather than safe**, and says what a test would
+have to do. Two steps running, a mutation has changed a paragraph I had already written; that
+is the practice working rather than failing.
+
+**`OffsetSurface` is why this member exists, and it is in the tests.** Yesterday's step gave
+Spark a surface type with no exact NURBS form, which refuses to invent one and names
+`ApproximateWithTolerance` in the refusal. That refusal now has something to point at: an
+offset cone approximates to a ten-thousandth and the test asserts both halves — that the
+conversion still throws, and that the approximation works.
+
+**One small decision worth recording.** A grid with a collapsed row — the pole of a sphere — is
+accepted rather than refused. The degenerate line has no chord lengths to contribute, so it is
+skipped in the averaging and the other lines carry the parameterisation. Refusing would have
+ruled out every surface of revolution, which is exactly the shape somebody sampling a surface
+has.
+
+**Residue 319 → 320**, the smallest rise this number has made while building, and the reason is
+that both new members were asked for by name in the register. The one that costs is
+`ApproximationSampleLimit`, the ceiling on refinement, which is Spark's own machinery on a type
+a row names.
+
+**Cost.** One session. Two public members, three helpers promoted to internal, sixteen tests,
+one node, and a mutation that rewrote a paragraph.

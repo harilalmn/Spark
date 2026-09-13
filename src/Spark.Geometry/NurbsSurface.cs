@@ -486,6 +486,238 @@ public sealed class NurbsSurface : Surface
     }
 
     /// <summary>
+    /// The surface of given degrees that passes exactly through a grid of points (`E2-T66`).
+    /// </summary>
+    /// <param name="points">
+    /// The grid to interpolate, indexed <c>[i, j]</c> with <c>i</c> running along <c>u</c> and
+    /// <c>j</c> along <c>v</c>. At least two in each direction, and more than the degree.
+    /// </param>
+    /// <param name="degreeU">The degree along <c>u</c>. At least 1, and less than the row count.</param>
+    /// <param name="degreeV">The degree along <c>v</c>. At least 1, and less than the column count.</param>
+    /// <returns>A clamped surface through every point of the grid.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="points"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A degree is less than 1 or too high for the grid.</exception>
+    /// <exception cref="ArgumentException">
+    /// The grid is smaller than two by two, a point is not finite, or two consecutive points in a
+    /// row or a column coincide.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// The tensor-product form of <see cref="NurbsCurve.InterpolatePoints"/>, which is Piegl and
+    /// Tiller's algorithm A9.4, and it is <b>the same banded solve twice</b> rather than a new one:
+    /// solve along <c>u</c> for every row of the grid, then along <c>v</c> for every column of what
+    /// that produced. The intermediate result is not a surface and is not meaningful on its own —
+    /// it is the control points of the row curves, which the second pass interpolates through.
+    /// </para>
+    /// <para>
+    /// <b>The parameters are averaged across the grid, not taken from one row.</b> Each row has its
+    /// own chord-length parameterisation, and they disagree wherever the grid is not a rectangle;
+    /// a tensor-product surface has exactly one parameterisation per direction, so the row values
+    /// are averaged into it.
+    /// </para>
+    /// <para>
+    /// <b>That averaging is not what makes the surface interpolate, and the tests say so.</b>
+    /// Replacing it with the first row's parameters leaves every test in
+    /// <c>SurfaceApproximationTests</c> green, which is the honest measurement rather than the
+    /// expectation: a tensor-product interpolation passes through its grid for <i>any</i> parameter
+    /// values that keep the system non-singular. What the averaging changes is the shape
+    /// <i>between</i> the points, and nothing here measures that against a reference — a test that
+    /// did would need a known surface sampled so that the rows' relative spacings genuinely differ,
+    /// which no grid in this suite does. The averaging stays because it is the standard construction
+    /// and the cheaper claim is false; it is recorded as unguarded rather than assumed safe.
+    /// </para>
+    /// <para>
+    /// The result is non-rational, for the reason <see cref="NurbsCurve.InterpolatePoints"/> gives:
+    /// weights are a modelling choice and inventing them would answer a question nobody asked.
+    /// </para>
+    /// </remarks>
+    public static NurbsSurface InterpolatePoints(Point3d[,] points, int degreeU = 3, int degreeV = 3)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+        ArgumentOutOfRangeException.ThrowIfLessThan(degreeU, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(degreeV, 1);
+
+        int rows = points.GetLength(0);
+        int columns = points.GetLength(1);
+
+        if (rows < 2 || columns < 2)
+        {
+            throw new ArgumentException(
+                $"A surface through a grid needs at least two points each way and was given "
+                + $"{rows} by {columns}.",
+                nameof(points));
+        }
+
+        if (degreeU >= rows)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(degreeU),
+                degreeU,
+                $"A degree-{degreeU} surface needs more than {degreeU} rows and was given {rows}.");
+        }
+
+        if (degreeV >= columns)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(degreeV),
+                degreeV,
+                $"A degree-{degreeV} surface needs more than {degreeV} columns and was given {columns}.");
+        }
+
+        double[] parametersU = AveragedParameters(points, alongRows: true);
+        double[] parametersV = AveragedParameters(points, alongRows: false);
+
+        KnotVector knotsU = NurbsCurve.AveragedKnots(parametersU, degreeU);
+        KnotVector knotsV = NurbsCurve.AveragedKnots(parametersV, degreeV);
+
+        // Along u, for every column of the grid: the control points of the curve through that
+        // column's points. This is not a surface yet - it is the input to the second pass.
+        Point3d[,] intermediate = new Point3d[rows, columns];
+        SolveDirection(knotsU, parametersU, rows, columns, points, intermediate, alongRows: true);
+
+        // Along v, through those control points, which is what makes the two passes compose into
+        // one surface rather than two curves that happen to cross.
+        Point3d[,] control = new Point3d[rows, columns];
+        SolveDirection(knotsV, parametersV, columns, rows, intermediate, control, alongRows: false);
+
+        return new NurbsSurface(knotsU, knotsV, control);
+    }
+
+    /// <summary>
+    /// The chord-length parameters of a grid in one direction, averaged over the lines running the
+    /// other way.
+    /// </summary>
+    /// <param name="points">The grid.</param>
+    /// <param name="alongRows">
+    /// <see langword="true"/> for the <c>u</c> direction, which walks the first index.
+    /// </param>
+    /// <returns>One parameter per point in that direction, from 0 to 1.</returns>
+    private static double[] AveragedParameters(Point3d[,] points, bool alongRows)
+    {
+        int along = points.GetLength(alongRows ? 0 : 1);
+        int across = points.GetLength(alongRows ? 1 : 0);
+
+        double[] totals = new double[along];
+        int counted = 0;
+
+        for (int other = 0; other < across; other++)
+        {
+            Point3d[] line = new Point3d[along];
+            for (int index = 0; index < along; index++)
+            {
+                line[index] = alongRows ? points[index, other] : points[other, index];
+            }
+
+            double[] parameters;
+
+            try
+            {
+                parameters = NurbsCurve.ChordLengthParameters(line);
+            }
+            catch (ArgumentException)
+            {
+                // A single degenerate line - a pole, where a whole row collapses to one point - is
+                // not a reason to refuse the grid. It contributes nothing to the average and the
+                // other lines carry the parameterisation; refusing here would rule out every
+                // surface of revolution, which is exactly the shape a caller samples.
+                continue;
+            }
+
+            for (int index = 0; index < along; index++)
+            {
+                totals[index] += parameters[index];
+            }
+
+            counted++;
+        }
+
+        if (counted == 0)
+        {
+            throw new ArgumentException(
+                "Every line of the grid is degenerate in one direction, so there is nothing to "
+                + "interpolate: the points are all the same, or all on one line of the grid.",
+                nameof(points));
+        }
+
+        double[] averaged = new double[along];
+        for (int index = 0; index < along; index++)
+        {
+            averaged[index] = totals[index] / counted;
+        }
+
+        averaged[0] = 0.0;
+        averaged[^1] = 1.0;
+
+        return averaged;
+    }
+
+    /// <summary>
+    /// Solves the interpolation system along one direction, for every line running the other way.
+    /// </summary>
+    /// <param name="knots">The knot vector for this direction.</param>
+    /// <param name="parameters">The parameters for this direction.</param>
+    /// <param name="along">How many points each line has.</param>
+    /// <param name="across">How many lines there are.</param>
+    /// <param name="source">The points to interpolate.</param>
+    /// <param name="target">Where to put the control points.</param>
+    /// <param name="alongRows">Whether this direction walks the first index.</param>
+    private static void SolveDirection(
+        KnotVector knots,
+        double[] parameters,
+        int along,
+        int across,
+        Point3d[,] source,
+        Point3d[,] target,
+        bool alongRows)
+    {
+        // The basis matrix is the same for every line, so it is built once and re-factored per
+        // line only because the solver works in place.
+        double[,] template = new double[along, along];
+
+        for (int i = 0; i < along; i++)
+        {
+            int span = knots.FindSpan(parameters[i]);
+            double[] basis = knots.BasisFunctions(span, parameters[i]);
+
+            for (int j = 0; j <= knots.Degree; j++)
+            {
+                template[i, span - knots.Degree + j] = basis[j];
+            }
+        }
+
+        for (int other = 0; other < across; other++)
+        {
+            double[,] matrix = (double[,])template.Clone();
+            double[,] rightHand = new double[along, 3];
+
+            for (int index = 0; index < along; index++)
+            {
+                Point3d point = alongRows ? source[index, other] : source[other, index];
+
+                rightHand[index, 0] = point.X;
+                rightHand[index, 1] = point.Y;
+                rightHand[index, 2] = point.Z;
+            }
+
+            double[,] solved = NurbsCurve.SolveInPlace(matrix, rightHand);
+
+            for (int index = 0; index < along; index++)
+            {
+                Point3d control = new(solved[index, 0], solved[index, 1], solved[index, 2]);
+
+                if (alongRows)
+                {
+                    target[index, other] = control;
+                }
+                else
+                {
+                    target[other, index] = control;
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// A flat rectangular surface through four corners, which is the smallest useful NURBS surface.
     /// </summary>
     /// <param name="corners">
