@@ -33,3 +33,5 @@ static Spark.Nodes.Core.Vector.FromSpherical(double radius = 1, Spark.Geometry.A
 static Spark.Nodes.Core.NurbsCurve.InterpolatePoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, int degree = 3) -> Spark.Geometry.NurbsCurve!
 static Spark.Nodes.Core.NurbsCurve.InterpolatePointsWithTangents(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, Spark.Geometry.Vector3d startTangent, Spark.Geometry.Vector3d endTangent, int degree = 3) -> Spark.Geometry.NurbsCurve!
 Spark.Nodes.Core.NurbsCurve
+static Spark.Nodes.Core.Surface.PrincipalCurvatures(Spark.Geometry.Surface! surface, double u = 0.5, double v = 0.5) -> System.Collections.Generic.IReadOnlyList<double>!
+static Spark.Nodes.Core.Surface.PrincipalDirections(Spark.Geometry.Surface! surface, double u = 0.5, double v = 0.5) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Vector3d>!

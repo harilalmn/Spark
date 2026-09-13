@@ -1,14 +1,14 @@
 ---
 id: concepts.solids
 title: Solids
-nodes: []
+nodes: [Surface.PrincipalCurvatures, Surface.PrincipalDirections]
 related: [concepts.geometry-basics, concepts.curves, concepts.files]
 since: "0.1"
 ---
 
 **Status:** Current. Describes solids in the running application.
 **Owner:** `geometry-kernel`
-**Last updated:** 2026-08-31
+**Last updated:** 2026-09-13
 
 > **Scope.** A solid in Spark is a **boundary representation** — exact surfaces, joined along exact
 > edges, enclosing a volume. It is not a mesh. This topic covers what you can build, what you can
@@ -189,6 +189,41 @@ than that, you want a smaller object or a different question.
 
 `Solid.Volume` measures the mesh rather than the surfaces, and says so: the number approaches the
 true volume from below as the tolerance tightens.
+
+## How a surface bends, and which way
+
+Every point on a surface has two special directions in its tangent plane, at right angles to each
+other: the direction it bends *least* in and the direction it bends *most* in. The two curvatures
+are `PrincipalCurvatures` and the two directions are `PrincipalDirections`, and they come paired —
+the first direction goes with the first curvature:
+
+```csharp
+using Spark.Geometry;
+
+CylindricalSurface pipe = new(Plane.WorldXY, 2.0, new Interval(0.0, 5.0));
+
+(double least, double most) = pipe.PrincipalCurvatures(1.0, 2.5);
+(Vector3d alongLeast, Vector3d alongMost) = pipe.PrincipalDirections(1.0, 2.5);
+
+// A cylinder is flat along its axis and bends around it: one curvature is 0 and the other is
+// 1 / radius in size, and the direction paired with the 0 runs along the axis.
+```
+
+A curvature is one over the radius of the tightest circle that fits the surface in that direction,
+so a flat direction reads zero, a sphere of radius two reads a half every way, and the sign says
+whether the surface bends towards its normal or away from it. The curvatures are what tell you a
+surface is developable — one of them is zero everywhere, so it unrolls flat, as a cylinder or a cone
+does — or a saddle, where they have opposite signs. The directions are what tell you *which way* it
+unrolls, or which way a flat panel laid on it will want to curl.
+
+**Where the surface bends the same amount every way** — anywhere on a sphere, anywhere on a plane,
+and at isolated points on most other surfaces — there is no least or most, and every direction is a
+principal direction. Spark returns a pair that follows the surface's own parameter lines rather than
+refusing, and the two curvatures are equal there, which is how to tell.
+
+The nodes take the parameters as fractions from 0 to 1 across each direction of the surface, as every
+surface node does, and hand back each pair as a two-item list; the kernel members take the surface's
+own parameters.
 
 ## Where the provider comes from, and what to do when it is missing
 

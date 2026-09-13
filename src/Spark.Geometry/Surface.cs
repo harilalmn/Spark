@@ -708,7 +708,108 @@ public abstract class Surface
         u = CheckU(u);
         v = CheckV(v);
 
-        EvaluateDerivatives(u, v, out Vector3d du, out Vector3d dv);
+        FundamentalForms(u, v, out _, out _, out _, out FundamentalCoefficients forms);
+
+        return CurvaturesOf(forms);
+    }
+
+    /// <summary>
+    /// The two principal directions at a parameter pair, paired with the curvatures
+    /// <see cref="PrincipalCurvatures"/> returns: the direction of least normal curvature first.
+    /// </summary>
+    /// <param name="u">A parameter in <see cref="DomainU"/>.</param>
+    /// <param name="v">A parameter in <see cref="DomainV"/>.</param>
+    /// <returns>
+    /// Two unit vectors in the tangent plane, orthogonal to each other: the direction along which
+    /// the normal curvature is the minimum, then the direction along which it is the maximum.
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException">Either parameter is out of range.</exception>
+    /// <exception cref="InvalidOperationException">The surface is degenerate here.</exception>
+    /// <remarks>
+    /// <para>
+    /// The eigenvectors of the shape operator <see cref="PrincipalCurvatures"/> already forms and
+    /// takes the eigenvalues of. Each direction is solved from the shape operator's rows for its own
+    /// curvature, in the parametric basis, and mapped into space through the two first
+    /// derivatives; the second is then taken as the normal crossed with the first, which is the same
+    /// vector in exact arithmetic and keeps the pair exactly orthonormal in floating point.
+    /// </para>
+    /// <para>
+    /// <b>At an umbilic point every direction is principal and there is no eigenvector to find.</b>
+    /// A sphere is umbilic everywhere, a plane is umbilic everywhere, and a general surface has
+    /// isolated umbilics. The two curvatures are equal there and both rows of the shape operator
+    /// vanish, so this returns the normalised <c>u</c> derivative and the normal crossed with it —
+    /// a valid orthonormal pair of principal directions, chosen by the parameterisation rather than
+    /// by the geometry, and stated here because nothing in the return value says which case you
+    /// are in. Compare the two curvatures if it matters.
+    /// </para>
+    /// <para>
+    /// On a surface of revolution the two directions are the meridian and the parallel; on a
+    /// cylinder they run along the axis, with zero curvature, and around it.
+    /// </para>
+    /// </remarks>
+    public (Vector3d Minimum, Vector3d Maximum) PrincipalDirections(double u, double v)
+    {
+        u = CheckU(u);
+        v = CheckV(v);
+
+        FundamentalForms(u, v, out Vector3d du, out Vector3d dv, out Vector3d normal, out FundamentalCoefficients forms);
+        (double minimum, _) = CurvaturesOf(forms);
+
+        // A tangent direction a·du + b·dv is principal for curvature k when (II − k·I)(a, b) = 0.
+        // Each row of that 2×2 system gives (a, b) as its own null vector; take the row with the
+        // larger coefficients, because the other may be zero to rounding while this one is not.
+        double p = forms.L - (minimum * forms.E);
+        double q = forms.M - (minimum * forms.F);
+        double r = forms.N - (minimum * forms.G);
+
+        double scale = Math.Abs(forms.L) + Math.Abs(forms.M) + Math.Abs(forms.N)
+            + (Math.Abs(minimum) * (forms.E + Math.Abs(forms.F) + forms.G));
+
+        (double a, double b) = Math.Abs(p) + Math.Abs(q) >= Math.Abs(q) + Math.Abs(r)
+            ? (q, -p)
+            : (r, -q);
+
+        Vector3d first;
+
+        // Both rows vanish: an umbilic. Every direction is principal; see the remarks.
+        if (Math.Abs(a) + Math.Abs(b) <= 1e-9 * scale)
+        {
+            first = du.Normalised();
+        }
+        else
+        {
+            first = ((du * a) + (dv * b)).Normalised();
+        }
+
+        Vector3d second = normal.Cross(first).Normalised();
+
+        return (first, second);
+    }
+
+    /// <summary>The coefficients of the first and second fundamental forms at a point.</summary>
+    /// <param name="E">First form, <c>du · du</c>.</param>
+    /// <param name="F">First form, <c>du · dv</c>.</param>
+    /// <param name="G">First form, <c>dv · dv</c>.</param>
+    /// <param name="L">Second form, <c>duu · n</c>.</param>
+    /// <param name="M">Second form, <c>duv · n</c>.</param>
+    /// <param name="N">Second form, <c>dvv · n</c>.</param>
+    private readonly record struct FundamentalCoefficients(double E, double F, double G, double L, double M, double N);
+
+    /// <summary>
+    /// The derivatives, the unit normal and the two fundamental forms at a checked parameter pair —
+    /// the one copy of the arithmetic that <see cref="PrincipalCurvatures"/> and
+    /// <see cref="PrincipalDirections"/> share.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The surface is degenerate here.</exception>
+    private void FundamentalForms(
+        double u,
+        double v,
+        out Vector3d du,
+        out Vector3d dv,
+        out Vector3d normal,
+        out FundamentalCoefficients forms)
+    {
+        EvaluateDerivatives(u, v, out du, out dv);
         EvaluateSecondDerivatives(u, v, out Vector3d duu, out Vector3d duv, out Vector3d dvv);
 
         if (IsDegenerate(du, dv, out Vector3d cross))
@@ -717,19 +818,25 @@ public abstract class Surface
                 "The surface is degenerate at this parameter, so its curvature is undefined there.");
         }
 
-        Vector3d normal = cross.Normalised();
+        normal = cross.Normalised();
 
-        // First fundamental form.
-        double e = du.Dot(du);
-        double f = du.Dot(dv);
-        double g = dv.Dot(dv);
+        forms = new FundamentalCoefficients(
+            du.Dot(du),
+            du.Dot(dv),
+            dv.Dot(dv),
+            duu.Dot(normal),
+            duv.Dot(normal),
+            dvv.Dot(normal));
+    }
 
-        // Second fundamental form.
-        double l = duu.Dot(normal);
-        double m = duv.Dot(normal);
-        double n = dvv.Dot(normal);
-
-        double determinant = (e * g) - (f * f);
+    /// <summary>The principal curvatures from the two fundamental forms, smallest first.</summary>
+    /// <remarks>
+    /// Mean curvature <c>H</c> and Gaussian curvature <c>K</c> come out of the two forms directly,
+    /// and the principal curvatures are the roots of <c>k² − 2Hk + K = 0</c>.
+    /// </remarks>
+    private static (double Minimum, double Maximum) CurvaturesOf(in FundamentalCoefficients forms)
+    {
+        double determinant = (forms.E * forms.G) - (forms.F * forms.F);
 
         if (Math.Abs(determinant) <= 0.0)
         {
@@ -737,10 +844,11 @@ public abstract class Surface
                 "The surface's parameterisation is degenerate at this parameter.");
         }
 
-        double gaussian = ((l * n) - (m * m)) / determinant;
-        double mean = ((l * g) - (2.0 * m * f) + (n * e)) / (2.0 * determinant);
+        double gaussian = ((forms.L * forms.N) - (forms.M * forms.M)) / determinant;
+        double mean = ((forms.L * forms.G) - (2.0 * forms.M * forms.F) + (forms.N * forms.E)) / (2.0 * determinant);
 
-        // Clamped: see the remarks. On a sphere this is exactly zero and rounds negative.
+        // Clamped: see the remarks on PrincipalCurvatures. On a sphere this is exactly zero and
+        // rounds negative.
         double discriminant = Math.Sqrt(Math.Max(0.0, (mean * mean) - gaussian));
 
         return (mean - discriminant, mean + discriminant);

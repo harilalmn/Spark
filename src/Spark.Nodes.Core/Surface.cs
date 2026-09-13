@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading;
 using Spark.Api;
 using Spark.Geometry;
@@ -123,6 +124,49 @@ public static class Surface
     [return: NodePort("normal")]
     public static Vector3d NormalAtParameter(Spark.Geometry.Surface surface, double u = 0.5, double v = 0.5) =>
         surface.NormalAt(surface.DomainU.Denormalise(u), surface.DomainV.Denormalise(v));
+
+    /// <summary>The smallest and largest normal curvature of a surface at a pair of parameters.</summary>
+    /// <param name="surface">The surface.</param>
+    /// <param name="u">A fraction of the way along the first direction.</param>
+    /// <param name="v">A fraction of the way along the second.</param>
+    /// <returns>Two numbers: the minimum curvature, then the maximum.</returns>
+    /// <remarks>
+    /// Curvature is one over the radius of the tightest circle that fits the surface in that
+    /// direction, so a flat direction reads zero and a sphere of radius two reads a half both ways.
+    /// The sign says which way the surface bends relative to its normal.
+    /// </remarks>
+    [return: NodePort("curvatures")]
+    [SparkNodeAlias("Surface.PrincipalCurvaturesAtParameter")]
+    public static IReadOnlyList<double> PrincipalCurvatures(Spark.Geometry.Surface surface, double u = 0.5, double v = 0.5)
+    {
+        (double minimum, double maximum) =
+            surface.PrincipalCurvatures(surface.DomainU.Denormalise(u), surface.DomainV.Denormalise(v));
+
+        return [minimum, maximum];
+    }
+
+    /// <summary>The two directions a surface bends least and most in, at a pair of parameters.</summary>
+    /// <param name="surface">The surface.</param>
+    /// <param name="u">A fraction of the way along the first direction.</param>
+    /// <param name="v">A fraction of the way along the second.</param>
+    /// <returns>
+    /// Two unit vectors in the surface's tangent plane, at right angles to each other: the direction
+    /// of the minimum curvature, then the direction of the maximum — paired with the two numbers
+    /// <see cref="PrincipalCurvatures"/> gives.
+    /// </returns>
+    /// <remarks>
+    /// Where the surface bends equally every way — anywhere on a sphere or a plane — no direction is
+    /// special, and the pair returned follows the surface's own parameter lines.
+    /// </remarks>
+    [return: NodePort("directions")]
+    [SparkNodeAlias("Surface.PrincipalDirectionsAtParameter")]
+    public static IReadOnlyList<Vector3d> PrincipalDirections(Spark.Geometry.Surface surface, double u = 0.5, double v = 0.5)
+    {
+        (Vector3d minimum, Vector3d maximum) =
+            surface.PrincipalDirections(surface.DomainU.Denormalise(u), surface.DomainV.Denormalise(v));
+
+        return [minimum, maximum];
+    }
 
     /// <summary>The area of a surface.</summary>
     /// <param name="surface">The surface.</param>
