@@ -308,8 +308,30 @@ internal sealed class ModelWriter
                 return;
 
             default:
-                WriteNurbsCurve(ToNurbs(curve));
-                return;
+                {
+                    // `E2-T71`: THE CURVE ITSELF SAYS WHETHER THE CONVERSION WAS EXACT, AND THIS
+                    // BRANCH NO LONGER GUESSES.
+                    //
+                    // It used to set `Approximated` from the fact that the switch had fallen
+                    // through, which is wrong in both directions: a curve that converts exactly
+                    // and has no case above would be exported perfectly and reported as
+                    // approximate, and a case added above would be reported as exact whether it
+                    // was or not. A `Helix` is the type that makes the difference visible - it
+                    // reaches this branch and is genuinely inexact, because a helix is provably
+                    // not a NURBS curve at any degree (docs/NOTES.md N165) - but the flag is the
+                    // conversion's answer now, not this label's.
+                    // The sag is taken from the CURVE'S OWN LENGTH rather than being a constant,
+                    // because Spark's coordinates are unitless and a fixed sag is wrong for a model
+                    // in kilometres and wrong for one in microns - which is what Tolerance.ForScale
+                    // exists to say. The code this replaced sampled at a flat 64 points: on a
+                    // three-turn helix that is a chord every 16 degrees and a deviation of about
+                    // two per cent of the radius, which is not a rounding error and was not
+                    // measured anywhere.
+                    NurbsConversion converted = curve.ToNurbsCurve(Tolerance.ForScale(curve.Length));
+                    Approximated |= !converted.IsExact;
+                    WriteNurbsCurve(converted.Curve);
+                    return;
+                }
         }
     }
 
@@ -341,23 +363,6 @@ internal sealed class ModelWriter
             values);
     }
 
-    /// <summary>
-    /// The fallback for a curve the ABI has no word for — a polycurve, a polyline, an offset.
-    /// </summary>
-    /// <remarks>
-    /// <b>An interpolation, and therefore an approximation, and it says so.</b> A general
-    /// conversion of every Spark curve to an exact NURBS is <c>E2</c> work that does not exist
-    /// yet; sampling and interpolating is what can be done today, and hiding that behind an
-    /// exact-looking result would make a user's boolean quietly wrong at the fourth decimal.
-    /// </remarks>
-    private NurbsCurve ToNurbs(Curve curve)
-    {
-        Approximated = true;
-
-        Point3d[] samples = curve.DivideEqually(64);
-
-        return NurbsCurve.InterpolatePoints(samples, Math.Min(3, samples.Length - 1));
-    }
 
     private void WriteCurve(int kind, IReadOnlyList<int> ints, IReadOnlyList<double> values)
     {

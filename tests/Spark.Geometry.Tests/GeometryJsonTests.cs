@@ -211,6 +211,11 @@ public sealed class GeometryJsonTests
         [typeof(CurveIntersections)] = "the answer to a question about two curves; see CurveIntersectionPoint",
         [typeof(CurveSurfaceIntersectionPoint)] = "the answer to a question about a curve and a surface; see CurveIntersectionPoint",
         [typeof(CurveSurfaceIntersections)] = "the answer to a question about a curve and a surface; see CurveIntersectionPoint",
+        [typeof(NurbsConversion)] =
+            "the answer to a conversion request, not a value: it carries a NurbsCurve - which has a "
+            + "sample - and a flag saying whether that curve is the original or an approximation to "
+            + "it. Serialising the pair would save a claim about a conversion alongside its result, "
+            + "and the claim is only true of the curve it was computed from (`E2-T71`)",
     };
 
     [Fact]

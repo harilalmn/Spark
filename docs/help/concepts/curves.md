@@ -327,6 +327,64 @@ double radius = elsewhere.Radius;          // 1.2 - taken from the start point
 
 ---
 
+## 9. Turning any curve into a NURBS curve, and knowing whether you lost anything
+
+A lot of downstream work wants **one** curve representation — a solid modelling kernel converts
+everything to NURBS as a matter of course, and so does every interchange format.
+`Curve.ToNurbsCurve` does that, and it hands back two things rather than one:
+
+```csharp
+using Spark.Geometry;
+
+Circle circle = Circle.FromCenterRadius(Point3d.Origin, 5.0);
+NurbsConversion converted = circle.ToNurbsCurve();
+
+NurbsCurve asNurbs = converted.Curve;
+bool lossless = converted.IsExact;
+```
+
+**`IsExact` is not a formality, and it is the reason the member does not simply return a curve.**
+
+| Curve | Converts | Why |
+|---|---|---|
+| `Line`, `PolyLine` | **exactly** | a degree-1 B-spline *is* a polyline |
+| `NurbsCurve` | **exactly** | itself |
+| `Arc`, `Circle`, `EllipseCurve` | **exactly** | a rational quadratic traces a conic exactly |
+| `Helix` | **never exactly** | see below |
+| `PolyCurve` | not yet | possible in principle; the segments are not joined yet |
+
+**A helix is the interesting row, because it is not a gap waiting to be filled — it is a
+theorem.** A NURBS curve's coordinates are ratios of polynomials in its parameter. A helix needs
+its height to be proportional to the *angle* it has turned through, and its x coordinate to be the
+*cosine* of that same angle, at once — and no function is both rational and the cosine of something
+rational. So no NURBS curve of any degree, with any knot vector, is a helix. Spark gives you the
+best approximation it can and tells you that is what it is:
+
+```csharp
+using Spark.Geometry;
+
+Helix stair = Helix.FromAxis(
+    Point3d.Origin, Vector3d.ZAxis, new Point3d(1.2, 0.0, 0.0), 3.0, Angle.FullTurn);
+
+NurbsConversion converted = stair.ToNurbsCurve();
+
+bool lossless = converted.IsExact;                    // false, and it always will be
+double strayed = stair.DistanceTo(converted.Curve.PointAt(0.37));   // how far off, at one point
+```
+
+Pass a tolerance to trade accuracy for size — a tighter one samples the original more finely and
+gives a heavier curve. It is a sampling target rather than a promise about the worst error, so
+where the error matters, measure it with `DistanceTo` as above.
+
+**One thing that surprises people, and it is true of every exact conversion above degree 1.**
+*Exact* means the converted curve is the **same set of points**. It does **not** mean
+`circle.PointAt(t)` and `converted.Curve.PointAt(t)` are the same point — a rational quadratic
+walks a circular arc by a projective function of the angle rather than by the angle itself, so the
+parameters do not line up. `Line` and `PolyLine` are the exception: at degree 1 the
+parameterisation survives as well.
+
+---
+
 ## Related
 
 - [Points, vectors, planes and tolerance](geometry-basics.md) — the value layer underneath

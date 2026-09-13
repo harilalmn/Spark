@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T73`: `Helix`, the eighth curve type, and the first gap the register found and then closed)
+**Last updated:** 2026-09-13 (`E2-T71` step A: `Curve.ToNurbsCurve`, and a result that says whether it was exact)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -339,11 +339,20 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     could see** ([N164](NOTES.md)): `ReferenceCatalog`'s pin list against `CS0104` is written by
 >     hand, a tenth colliding façade made `Helix` ambiguous in **every code block**, and the only
 >     thing that noticed was the help-sample compiler — because the topic happened to name the type.
->     That list is now derived by reflection. **Next**: `E2-T71`/`E2-T72`
->     (no curve fitting of any kind, one fillet that takes two lines, no periodic NURBS, no
->     curve-to-NURBS conversion — and a `Helix` is what decides the shape of the last of those,
->     since a helix is provably **not** exactly representable as a NURBS while every other Spark
->     curve is ([N165](NOTES.md)), so the conversion has to say which answer it gave), then
+>     That list is now derived by reflection. ~~**`E2-T71` step A**~~ **done the same
+>     day**: **`Curve.ToNurbsCurve`, the finding of `E2-T41` step A, and it returns a
+>     `NurbsConversion` rather than a bare curve.** [N165](NOTES.md) is why: seven of the eight
+>     curve types convert exactly and a `Helix` provably never can, so the flag travels with the
+>     answer instead of being something a caller has to know to ask for. `Line` and `PolyLine`
+>     convert exactly **and keep their parameterisation**, which nothing above degree 1 does;
+>     `NurbsCurve` returns itself; everything else interpolates a tessellation and says so.
+>     **`ModelWriter` stopped guessing** — it had been setting its `Approximated` flag from which
+>     `switch` branch it fell through, which is wrong in both directions, and sampling at a flat 64
+>     points, which on a three-turn helix is a two-per-cent deviation nobody had measured.
+>     **Next**: `E2-T71` step B (`Arc`, `Circle`, `EllipseCurve` — the same quarter-circle
+>     arithmetic `SurfaceConversion` has had since `E2-T19`, so the work is lifting that private
+>     helper into one copy both call), then the rest of `E2-T71`/`E2-T72`
+>     (no curve fitting of any kind, one fillet that takes two lines, no periodic NURBS), then
 >     `E2-T66`…`E2-T69`. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register

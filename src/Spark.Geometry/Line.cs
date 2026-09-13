@@ -159,6 +159,17 @@ public sealed class Line : Curve
     public override Point3d[] Tessellate(in Tolerance tolerance = default) => [_start, _end];
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <b>Exact, and the only conversion in Spark that also preserves the parameterisation.</b> A
+    /// degree-1 B-spline over two clamped control points is a straight line traversed at a constant
+    /// speed, which is what a <see cref="Line"/> already is — so <c>PointAt(t)</c> gives the same
+    /// point on both, not merely the same set of points. Everything above degree 1 loses that; see
+    /// <see cref="NurbsConversion"/>.
+    /// </remarks>
+    public override NurbsConversion ToNurbsCurve(in Tolerance tolerance = default) =>
+        new(new NurbsCurve(1, [_start, _end], [0.0, 0.0, 1.0, 1.0]), true);
+
+    /// <inheritdoc/>
     public override Curve Reversed() => new Line(_end, _start);
 
     /// <inheritdoc/>

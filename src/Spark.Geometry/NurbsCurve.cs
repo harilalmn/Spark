@@ -1428,6 +1428,16 @@ public sealed class NurbsCurve : Curve
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <b>Itself, and exactly.</b> The override exists rather than being left to the base, because
+    /// the base's fallback would sample this curve and interpolate the samples — an approximation
+    /// of a curve that is already the thing being asked for, reported as approximate. That is the
+    /// sort of quiet loss a caller converting a whole model to one representation would never see.
+    /// </remarks>
+    public override NurbsConversion ToNurbsCurve(in Tolerance tolerance = default) =>
+        new(this, true);
+
+    /// <inheritdoc/>
     public override Curve Reversed()
     {
         // The control points and weights reverse together, and the knots are mirrored within the

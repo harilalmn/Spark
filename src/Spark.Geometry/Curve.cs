@@ -791,6 +791,48 @@ public abstract class Curve
         return [.. points];
     }
 
+    /// <summary>
+    /// Turns this curve into a NURBS curve, and says whether the result is the <i>same curve</i> or
+    /// an approximation to it (`E2-T71`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The base implementation approximates, and every type that can do better overrides it.</b>
+    /// <see cref="Line"/>, <see cref="PolyLine"/> and <see cref="NurbsCurve"/> convert exactly with
+    /// no arithmetic at all; <see cref="Arc"/>, <see cref="Circle"/> and <see cref="EllipseCurve"/>
+    /// convert exactly through the rational quadratic that <see cref="SurfaceConversion"/> already
+    /// uses. What is left reaches this fallback, which interpolates a tessellation and reports
+    /// <see cref="NurbsConversion.IsExact"/> as <see langword="false"/>.
+    /// </para>
+    /// <para>
+    /// <b>Reaching the fallback is not always a gap waiting to be filled.</b> A
+    /// <see cref="Helix"/> is <i>provably</i> not representable as a NURBS curve — a NURBS would
+    /// need the swept angle to be a rational function of the parameter and its cosine to be
+    /// rational with it, which no function is — so for a helix this is the best answer that exists,
+    /// not the best answer written so far ([N165](../../docs/NOTES.md)). A
+    /// <see cref="PolyCurve"/>, by contrast, is exactly convertible in principle and is not yet:
+    /// its segments would have to be joined with their knot vectors merged.
+    /// </para>
+    /// </remarks>
+    /// <param name="tolerance">
+    /// How closely an <i>approximate</i> conversion should follow the original. Ignored by every
+    /// exact conversion, because an exact conversion has no error to trade against. Its
+    /// <see cref="Tolerance.Linear"/> component drives how finely the curve is sampled, and it is a
+    /// sampling target rather than a proved bound on the deviation.
+    /// </param>
+    /// <returns>The NURBS curve and whether it is exact.</returns>
+    public virtual NurbsConversion ToNurbsCurve(in Tolerance tolerance = default)
+    {
+        // Interpolation rather than least-squares approximation: an interpolating curve passes
+        // through the samples, so the deviation is bounded by how far the original strays between
+        // them and shrinks with the tolerance. A fit would be free to miss every one of them, which
+        // is the right choice when the samples are noisy and the wrong one when they are exact.
+        Point3d[] samples = Tessellate(tolerance);
+
+        return new NurbsConversion(
+            NurbsCurve.InterpolatePoints(samples, Math.Min(3, samples.Length - 1)), false);
+    }
+
     /// <summary>Returns the same curve traversed in the opposite direction.</summary>
     /// <returns>A new curve. The original is unchanged.</returns>
     public abstract Curve Reversed();

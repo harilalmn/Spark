@@ -329,6 +329,29 @@ public sealed class PolyLine : Curve
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <b>Exact, and the parameterisation survives too.</b> A degree-1 B-spline whose knots are
+    /// <c>0, 0, 1, 2, … n-1, n-1</c> has its vertices at the whole numbers and travels each span at
+    /// a constant speed — which is exactly <see cref="Domain"/>'s <i>one unit per segment</i>. So
+    /// the converted curve agrees with this one point for point at every parameter, not just as a
+    /// set of points.
+    /// </remarks>
+    public override NurbsConversion ToNurbsCurve(in Tolerance tolerance = default)
+    {
+        // A clamped degree-1 vector is the interior knots with the first and last repeated once
+        // more: n+1 points need n+3 knots, and every interior knot is simple because a polyline is
+        // meant to have a corner at each vertex rather than a smoothed one.
+        double[] knots = new double[_points.Length + 2];
+
+        for (int index = 0; index < knots.Length; index++)
+        {
+            knots[index] = Math.Clamp(index - 1, 0, _points.Length - 1);
+        }
+
+        return new NurbsConversion(new NurbsCurve(1, _points, knots), true);
+    }
+
+    /// <inheritdoc/>
     public override Curve Reversed()
     {
         Point3d[] reversed = new Point3d[_points.Length];
