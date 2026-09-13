@@ -186,6 +186,19 @@ public sealed class EllipseCurve : Curve
     }
 
     /// <inheritdoc/>
+    /// <remarks>Always, and without fitting anything: an ellipse carries its plane.</remarks>
+    public override bool IsPlanar(in Tolerance tolerance = default) => true;
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <see cref="Plane"/>, exactly — <b>not</b> a fit through a sampling. The base implementation
+    /// would give an answer agreeing to the last few bits and would still be the wrong member to
+    /// leave in place: it costs a tessellation and a covariance matrix to recover a frame this type
+    /// was constructed from.
+    /// </remarks>
+    public override Plane? PlaneOf(in Tolerance tolerance = default) => _plane;
+
+    /// <inheritdoc/>
     /// <remarks>
     /// <b>Exact, and it costs nothing beyond the circle's own construction.</b> An ellipse is an
     /// affine image of a circle, and an affine map carries a rational B-spline to a rational

@@ -177,6 +177,19 @@ public sealed class Circle : Curve
     }
 
     /// <inheritdoc/>
+    /// <remarks>Always, and without fitting anything: a circle carries its plane.</remarks>
+    public override bool IsPlanar(in Tolerance tolerance = default) => true;
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <see cref="Plane"/>, exactly — <b>not</b> a fit through a sampling. The base implementation
+    /// would give an answer agreeing to the last few bits and would still be the wrong member to
+    /// leave in place: it costs a tessellation and a covariance matrix to recover a frame this type
+    /// was constructed from.
+    /// </remarks>
+    public override Plane? PlaneOf(in Tolerance tolerance = default) => _plane;
+
+    /// <inheritdoc/>
     /// <remarks>
     /// <b>Exact, through the rational quadratic in <see cref="RationalArcs"/> — the same
     /// construction <see cref="SurfaceConversion"/> has used since `E2-T19`.</b> A full circle is four spans, because the form is valid only to a half turn, so this returns <b>nine</b> control points rather than three.

@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T71` step B: the rational curves convert exactly, and the quarter-circle has one copy)
+**Last updated:** 2026-09-13 (`E2-T71` family (2): planarity, and the plane a curve lies in)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -357,7 +357,16 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     image of a circle, and an affine map carries a rational B-spline to a rational B-spline.
 >     **One copy proved itself at once** — replacing `cos(θ/2)` with `cos θ` reddens the curve
 >     tests *and* eight surface tests. **`PolyCurve` is the one conversion left**, and needs its
->     segments' knot vectors merged. **Next**: the rest of `E2-T71`/`E2-T72`
+>     segments' knot vectors merged. ~~**family (2)**~~ **done the same day, and it
+>     answered five rows rather than two**: **`Curve.IsPlanar` and `Curve.PlaneOf`**. The name is
+>     not Dynamo's on purpose — Spark already has `Curve.NormalAt(parameter)`, the *Frenet* normal,
+>     so a curve-wide `Normal` beside it would be two unrelated things under almost one name;
+>     Dynamo's is `PlaneOf()?.Normal`, and returning the frame answers `PolyCurve.BasePlane` too.
+>     **A straight line is `IsPlanar` true and `PlaneOf` null**, which is the only honest pair: it
+>     lies in infinitely many planes. **The fit is not the test** — a best-fit plane exists for any
+>     points at all, so what decides it is the residual against the caller's tolerance.
+>     `Extrude(double)` and `ExtrudeAsSolid(double)` closed as compositions on it. **Next**: the
+>     rest of `E2-T71`/`E2-T72`
 >     (no curve fitting of any kind, one fillet that takes two lines, no periodic NURBS), then
 >     `E2-T66`…`E2-T69`. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks

@@ -251,6 +251,19 @@ public sealed class Arc : Curve
     }
 
     /// <inheritdoc/>
+    /// <remarks>Always, and without fitting anything: an arc carries its plane.</remarks>
+    public override bool IsPlanar(in Tolerance tolerance = default) => true;
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <see cref="Plane"/>, exactly — <b>not</b> a fit through a sampling. The base implementation
+    /// would give an answer agreeing to the last few bits and would still be the wrong member to
+    /// leave in place: it costs a tessellation and a covariance matrix to recover a frame this type
+    /// was constructed from.
+    /// </remarks>
+    public override Plane? PlaneOf(in Tolerance tolerance = default) => _plane;
+
+    /// <inheritdoc/>
     /// <remarks>
     /// <b>Exact, through the rational quadratic in <see cref="RationalArcs"/> — the same
     /// construction <see cref="SurfaceConversion"/> has used since `E2-T19`.</b> The control points are built at their angles in the plane and the knots are then slid back by <see cref="StartAngle"/>, because an arc is parameterised from its own start rather than from the plane's x axis.

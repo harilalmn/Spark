@@ -792,6 +792,87 @@ public abstract class Curve
     }
 
     /// <summary>
+    /// Whether some plane contains the whole curve, to within a tolerance (`E2-T71`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This and <see cref="PlaneOf(in Tolerance)"/> answer two different questions, and a
+    /// straight line is the case that shows why.</b> <i>Is there a plane containing this curve</i>
+    /// and <i>which plane is it</i> are not the same question: a line lies in infinitely many
+    /// planes, so it is planar and has no plane. <see cref="PlaneOf(in Tolerance)"/> returns
+    /// <see langword="null"/> for it rather than choosing one nobody asked for.
+    /// </para>
+    /// <para>
+    /// <b>The tolerance is the caller's, and it has to be.</b> What counts as planar at the scale
+    /// of a building is not what counts at the scale of a bolt (ADR-0010), and a curve a millimetre
+    /// out of plane is flat for a floor slab and is not flat for a bearing surface. The same curve
+    /// answers differently under two tolerances, on purpose.
+    /// </para>
+    /// </remarks>
+    /// <param name="tolerance">
+    /// How far the curve may stray from the plane. Its <see cref="Tolerance.Linear"/> component is
+    /// the one that matters.
+    /// </param>
+    /// <returns><see langword="true"/> when a plane contains the curve.</returns>
+    public virtual bool IsPlanar(in Tolerance tolerance = default)
+    {
+        Point3d[] points = Tessellate(tolerance);
+
+        // Fewer than three points, or three that do not span a plane, means a straight run — which
+        // IS planar, in infinitely many planes. It is only PlaneOf that has nothing to say there.
+        return points.Length < 3
+            || !LeastSquares.TryFitPlane(points, out Point3d centroid, out Vector3d normal)
+            || Strays(points, centroid, normal) <= tolerance.Linear;
+    }
+
+    /// <summary>
+    /// The plane the curve lies in, or <see langword="null"/> when there is not exactly one
+    /// (`E2-T71`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see langword="null"/> has two causes and the caller usually wants to treat them the
+    /// same.</b> Either the curve is not planar at all — a <see cref="Helix"/> — or it is planar in
+    /// infinitely many planes, which is a straight line and a <see cref="PolyLine"/> whose vertices
+    /// are collinear. <see cref="IsPlanar(in Tolerance)"/> separates the two when that matters.
+    /// </para>
+    /// <para>
+    /// <b>This is Dynamo's <c>Curve.Normal</c>, under a different name and returning a whole
+    /// frame.</b> Spark already has <see cref="NormalAt(double)"/> — the <i>Frenet</i> normal at a
+    /// parameter, which points at the centre of curvature and is a completely different quantity —
+    /// so a curve-wide <c>Normal</c> beside it would be two unrelated things under almost one name.
+    /// A caller who wants the vector writes <c>curve.PlaneOf()?.Normal</c>.
+    /// </para>
+    /// <para>
+    /// <b>The plane's origin is the centroid of the sampling and its x axis is not pinned</b>,
+    /// which is <see cref="Plane.FromBestFit"/>'s contract. Use
+    /// <see cref="Plane.FromOriginNormalXAxis"/> on the result if the rotation matters; what this
+    /// member promises is the <i>normal</i> and the plane it defines.
+    /// </para>
+    /// </remarks>
+    /// <param name="tolerance">
+    /// How far the curve may stray from the plane. Its <see cref="Tolerance.Linear"/> component is
+    /// the one that matters.
+    /// </param>
+    /// <returns>The plane, or <see langword="null"/>.</returns>
+    public virtual Plane? PlaneOf(in Tolerance tolerance = default)
+    {
+        Point3d[] points = Tessellate(tolerance);
+
+        if (points.Length < 3 || !LeastSquares.TryFitPlane(points, out Point3d centroid, out Vector3d normal))
+        {
+            return null;
+        }
+
+        // THE FIT IS NOT THE TEST. A best-fit plane exists for any set of points whatever, so
+        // returning it unchecked would make every curve planar, a helix included. What decides the
+        // answer is how far the curve strays from the plane that was fitted to it.
+        return Strays(points, centroid, normal) <= tolerance.Linear
+            ? Plane.FromOriginNormal(centroid, normal)
+            : null;
+    }
+
+    /// <summary>
     /// Turns this curve into a NURBS curve, and says whether the result is the <i>same curve</i> or
     /// an approximation to it (`E2-T71`).
     /// </summary>
@@ -915,6 +996,23 @@ public abstract class Curve
         double sag = Math.Max(Length * 1e-6, 1e-12);
         Point3d[] points = Tessellate(new Tolerance(sag, Angle.FromDegrees(0.001), 1e-12));
         return BoundingBox.FromPoints(points).Inflated(sag);
+    }
+
+    /// <summary>The furthest any of the points lies from a plane.</summary>
+    /// <param name="points">The points.</param>
+    /// <param name="origin">A point on the plane.</param>
+    /// <param name="normal">The plane's unit normal.</param>
+    /// <returns>The largest absolute signed distance.</returns>
+    private static double Strays(Point3d[] points, in Point3d origin, in Vector3d normal)
+    {
+        double worst = 0.0;
+
+        foreach (Point3d point in points)
+        {
+            worst = Math.Max(worst, Math.Abs((point - origin).Dot(normal)));
+        }
+
+        return worst;
     }
 
     /// <summary>

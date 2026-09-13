@@ -160,6 +160,24 @@ public sealed class Line : Curve
 
     /// <inheritdoc/>
     /// <remarks>
+    /// <b>Always — and this is the case that makes <see cref="Curve.IsPlanar(in Tolerance)"/> and
+    /// <see cref="PlaneOf(in Tolerance)"/> two separate members.</b> A straight line lies in
+    /// infinitely many planes, so it is as planar as anything can be and there is no plane to name.
+    /// </remarks>
+    public override bool IsPlanar(in Tolerance tolerance = default) => true;
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <b>Always <see langword="null"/>, and that is an answer rather than a gap.</b> Every plane
+    /// through the line contains it, so picking one would be inventing a rotation the caller did
+    /// not ask for and would then have to guess at. <see cref="Curve.IsPlanar(in Tolerance)"/>
+    /// returns <see langword="true"/> for the same line, which is the pair of answers this case
+    /// actually has.
+    /// </remarks>
+    public override Plane? PlaneOf(in Tolerance tolerance = default) => null;
+
+    /// <inheritdoc/>
+    /// <remarks>
     /// <b>Exact, and the only conversion in Spark that also preserves the parameterisation.</b> A
     /// degree-1 B-spline over two clamped control points is a straight line traversed at a constant
     /// speed, which is what a <see cref="Line"/> already is — so <c>PointAt(t)</c> gives the same

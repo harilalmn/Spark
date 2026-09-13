@@ -390,6 +390,74 @@ parameterisation survives as well.
 
 ---
 
+## 10. Is this curve flat, and which way does it face?
+
+Two questions, and Spark makes you notice they are different:
+
+```csharp
+using Spark.Geometry;
+
+PolyLine outline = PolyLine.FromRegularPolygon(Plane.WorldXY, 3.0, 6);
+
+bool flat = outline.IsPlanar();          // true
+Plane? plane = outline.PlaneOf();        // the plane it lies in
+Vector3d facing = plane!.Value.Normal;   // (0, 0, 1)
+```
+
+**`IsPlanar` asks whether *some* plane contains the curve. `PlaneOf` asks *which* plane.** Most of
+the time they agree and you only need the second. The case that separates them is a **straight
+line**:
+
+```csharp
+using Spark.Geometry;
+
+Line line = new(Point3d.Origin, new Point3d(1.0, 2.0, 3.0));
+
+bool flat = line.IsPlanar();     // true - a line lies in a plane
+Plane? plane = line.PlaneOf();   // null - it lies in infinitely many, and we will not pick one
+```
+
+That is an answer, not a gap. Every plane through the line contains it, so returning one would mean
+inventing a rotation you did not ask for and could not predict. `PlaneOf` returns `null` in two
+situations — *no* plane (a helix) and *too many* planes (a line, or a polyline whose vertices are
+collinear) — and `IsPlanar` is what tells them apart.
+
+**Flat is a question about tolerance, and the answer changes with it.** A curve a millimetre out of
+plane is flat for a floor slab and is not flat for a bearing surface, so `IsPlanar` takes the
+tolerance rather than assuming one:
+
+```csharp
+using Spark.Geometry;
+
+// A gentle bow out of the xy plane - one control point lifted by five hundredths.
+NurbsCurve bowed = new(
+    3,
+    [
+        new Point3d(0.0, 0.0, 0.0),
+        new Point3d(1.0, 1.0, 0.0),
+        new Point3d(2.0, 1.0, 0.05),
+        new Point3d(3.0, 0.0, 0.0),
+    ],
+    [0, 0, 0, 0, 1, 1, 1, 1]);
+
+bool strict = bowed.IsPlanar(new Tolerance(1e-4, Angle.FromDegrees(0.001), 1e-12));   // false
+bool relaxed = bowed.IsPlanar(new Tolerance(1.0, Angle.FromDegrees(0.001), 1e-12));   // true
+```
+
+**Two things worth knowing about the plane you get back.**
+
+- **On a closed curve the normal follows the winding.** A loop and its reverse face opposite ways,
+  which is what you want when you are extruding along it and is worth remembering when you are not.
+- **The plane's rotation is not pinned.** `PlaneOf` promises the *normal* and the plane it defines;
+  which direction ends up as the plane's x axis is not something to depend on. Use
+  `Plane.FromOriginNormalXAxis` on the result if you need it fixed.
+
+If you are looking for `Curve.Normal` from another package — this is it. Spark spells it
+`PlaneOf()?.Normal`, because `NormalAt(parameter)` already means something quite different: the
+direction the curve is *bending* at a point, which has nothing to do with what plane it lies in.
+
+---
+
 ## Related
 
 - [Points, vectors, planes and tolerance](geometry-basics.md) — the value layer underneath
