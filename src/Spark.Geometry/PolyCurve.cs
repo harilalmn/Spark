@@ -218,6 +218,137 @@ public sealed class PolyCurve : Curve
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <para>
+    /// <b>Exact, when every segment is</b> — which is the ordinary case, because every curve type a
+    /// polycurve usually holds converts exactly. The segments are converted, raised to a common
+    /// degree, and joined into one curve; nothing is sampled and nothing is fitted.
+    /// </para>
+    /// <para>
+    /// <b>A segment that cannot convert exactly makes the whole thing approximate</b>, and the
+    /// member says so rather than claiming what one segment cannot support. A <see cref="Helix"/>
+    /// is the case: it is <i>provably</i> not a NURBS curve at any degree
+    /// ([N165](../../docs/NOTES.md)), so a polycurve containing one falls back to the base
+    /// implementation's sampling and reports <see cref="NurbsConversion.IsExact"/> as
+    /// <see langword="false"/>.
+    /// </para>
+    /// <para>
+    /// <b>The seam keeps its corner.</b> At each join the knot is repeated <c>degree</c> times —
+    /// one fewer than the <c>degree + 1</c> that clamps the end of a standalone curve. That is
+    /// exactly the multiplicity that makes a curve continuous and not smooth, which is what a
+    /// polycurve's joins are: repeating it once more would split the curve into two, and once fewer
+    /// would round off a corner the user drew.
+    /// </para>
+    /// <para>
+    /// <b>The result is exact and not minimal.</b> Raising a line to the degree of the arc beside it
+    /// describes the same straight line with more control points than it needs, and nothing here
+    /// lowers it again — which is <see cref="NurbsCurve.WithDegreeElevated"/>'s own trade, made for
+    /// the same reason: removing them needs knot removal, and knot removal has a tolerance question
+    /// in it that does not belong inside an operation whose whole promise is that it changes
+    /// nothing.
+    /// </para>
+    /// </remarks>
+    public override NurbsConversion ToNurbsCurve(in Tolerance tolerance = default)
+    {
+        NurbsCurve[] pieces = new NurbsCurve[_segments.Length];
+        int degree = 1;
+
+        for (int index = 0; index < _segments.Length; index++)
+        {
+            NurbsConversion converted = _segments[index].ToNurbsCurve(tolerance);
+
+            // One inexact segment is enough. A Helix cannot be a NURBS curve at all, so a polycurve
+            // holding one has no exact form either, and the honest answer is the base's sampling.
+            // An unclamped segment - a periodic curve used as a piece of a chain - is refused here
+            // for a different reason: the join arithmetic below assumes clamped ends, and quietly
+            // producing a wrong curve would be worse than an approximate right one.
+            if (!converted.IsExact || !converted.Curve.Knots.IsClamped)
+            {
+                return base.ToNurbsCurve(tolerance);
+            }
+
+            pieces[index] = converted.Curve;
+            degree = Math.Max(degree, converted.Curve.Degree);
+        }
+
+        for (int index = 0; index < pieces.Length; index++)
+        {
+            if (pieces[index].Degree < degree)
+            {
+                pieces[index] = pieces[index].WithDegreeElevated(degree - pieces[index].Degree);
+            }
+        }
+
+        return new NurbsConversion(Join(pieces, degree), true);
+    }
+
+    /// <summary>Joins clamped curves of one degree end to end, over this polycurve's domain.</summary>
+    /// <param name="pieces">The converted segments, all of <paramref name="degree"/>.</param>
+    /// <param name="degree">The common degree.</param>
+    /// <returns>One curve.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Each segment is reparameterised onto its own unit of the domain</b>, because a polycurve
+    /// runs one unit per segment (<see cref="Domain"/>) and each converted piece arrives spanning
+    /// whatever its own type used. Sliding and scaling a knot vector is an affine
+    /// reparameterisation and leaves the curve alone.
+    /// </para>
+    /// <para>
+    /// <b>The counting is where this goes wrong if it goes wrong.</b> Two clamped degree-<c>p</c>
+    /// curves of <c>n₁</c> and <c>n₂</c> control points join to one of <c>n₁ + n₂ − 1</c> — the
+    /// shared endpoint counted once — which needs <c>n₁ + n₂ + p</c> knots. Taking all of the first
+    /// vector and all but the leading <c>p + 1</c> of the second gives one too many; dropping the
+    /// first vector's <i>final</i> knot lands it, <b>and is the same edit that leaves the seam at
+    /// multiplicity <c>p</c></b> rather than <c>p + 1</c>. The arithmetic and the continuity are
+    /// one correction, which is why neither can be got right without the other.
+    /// </para>
+    /// </remarks>
+    private static NurbsCurve Join(NurbsCurve[] pieces, int degree)
+    {
+        List<Point3d> controlPoints = [];
+        List<double> weights = [];
+        List<double> knots = [];
+        bool rational = false;
+
+        for (int index = 0; index < pieces.Length; index++)
+        {
+            NurbsCurve piece = pieces[index];
+            Point3d[] points = piece.ControlPoints();
+            double[] pieceWeights = piece.Weights();
+            double[] pieceKnots = piece.Knots.ToArray();
+
+            rational |= piece.IsRational;
+
+            double first = pieceKnots[0];
+            double span = pieceKnots[^1] - first;
+
+            // The shared endpoint is the previous segment's last control point, so this one's first
+            // is dropped - and with it the clamp that would otherwise make the seam a split.
+            int skipPoints = index == 0 ? 0 : 1;
+            int skipKnots = index == 0 ? 0 : degree + 1;
+
+            if (index > 0)
+            {
+                knots.RemoveAt(knots.Count - 1);
+            }
+
+            for (int i = skipPoints; i < points.Length; i++)
+            {
+                controlPoints.Add(points[i]);
+                weights.Add(pieceWeights[i]);
+            }
+
+            for (int i = skipKnots; i < pieceKnots.Length; i++)
+            {
+                knots.Add(index + (span > 0.0 ? (pieceKnots[i] - first) / span : 0.0));
+            }
+        }
+
+        return new NurbsCurve(
+            controlPoints, new KnotVector(degree, knots), rational ? weights : null);
+    }
+
+    /// <inheritdoc/>
     public override Curve Reversed()
     {
         Curve[] reversed = new Curve[_segments.Length];

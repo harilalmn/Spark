@@ -283,11 +283,8 @@ public sealed class CurveToNurbsTests
     }
 
     [Fact]
-    public void APolyCurveIsConvertedApproximatelyForNowAndSaysSo()
+    public void APolyCurveOfLinesConvertsExactly()
     {
-        // A polycurve of lines IS exactly convertible in principle; joining the segments means
-        // merging their knot vectors, which is not written. The flag is honest in the meantime,
-        // which is the difference between a gap and a silent wrong answer.
         PolyCurve chain = PolyCurve.FromJoinedCurves(
         [
             new Line(Point3d.Origin, new Point3d(3.0, 0.0, 0.0)),
@@ -296,9 +293,115 @@ public sealed class CurveToNurbsTests
 
         NurbsConversion converted = chain.ToNurbsCurve();
 
+        Assert.True(converted.IsExact);
+        Assert.Equal(chain.Domain, converted.Curve.Domain);
+        Assert.Equal(0.0, chain.StartPoint.DistanceTo(converted.Curve.StartPoint), 1e-12);
+        Assert.Equal(0.0, chain.EndPoint.DistanceTo(converted.Curve.EndPoint), 1e-12);
+        Assert.Equal(chain.Length, converted.Curve.Length, 1e-9);
+
+        AssertOnCurve(chain, converted.Curve);
+    }
+
+    [Fact]
+    public void APolyCurveOfMixedDegreesIsElevatedToACommonDegree()
+    {
+        // `E2-T71`: the case that exercises the degree elevation. A line is degree 1 and an arc is
+        // degree 2, so the join has to raise the line before the two can share a knot vector — a
+        // polycurve of three lines would convert correctly with the elevation deleted.
+        Arc arc = Arc.FromThreePoints(
+            new Point3d(3.0, 0.0, 0.0), new Point3d(4.0, 1.0, 0.0), new Point3d(3.0, 2.0, 0.0));
+
+        PolyCurve chain = PolyCurve.FromJoinedCurves(
+        [
+            new Line(Point3d.Origin, new Point3d(3.0, 0.0, 0.0)),
+            arc,
+        ]);
+
+        NurbsConversion converted = chain.ToNurbsCurve();
+
+        Assert.True(converted.IsExact);
+        Assert.Equal(2, converted.Curve.Degree);
+        Assert.True(converted.Curve.IsRational);
+        Assert.Equal(chain.Length, converted.Curve.Length, 1e-9);
+
+        // Exact means exact: every sampled point of the conversion is ON the polycurve to the last
+        // few bits, not within a tolerance.
+        AssertOnCurve(chain, converted.Curve);
+    }
+
+    [Fact]
+    public void TheSeamKeepsItsCorner()
+    {
+        // `E2-T71`: THE BRANCH THIS PROVES. A join that repeats the seam knot one time too few
+        // produces a curve that is SMOOTH where the polycurve has a corner — and it passes every
+        // test that samples away from the join, has the right length to several figures, and looks
+        // right. So the assertion is at the corner, and the test curve must HAVE one.
+        PolyCurve corner = PolyCurve.FromJoinedCurves(
+        [
+            new Line(Point3d.Origin, new Point3d(3.0, 0.0, 0.0)),
+            new Line(new Point3d(3.0, 0.0, 0.0), new Point3d(3.0, 4.0, 0.0)),
+        ]);
+
+        NurbsCurve converted = corner.ToNurbsCurve().Curve;
+
+        // A right angle at the seam, on both curves. Sampled either side rather than at the join
+        // itself, because the tangent exactly at a corner is not defined.
+        double seam = 1.0;
+        Vector3d before = converted.TangentAt(seam - 1e-6);
+        Vector3d after = converted.TangentAt(seam + 1e-6);
+
+        Assert.Equal(0.0, before.Dot(after), 1e-4);
+        Assert.Equal(1.0, Math.Abs(before.Dot(Vector3d.XAxis)), 1e-4);
+        Assert.Equal(1.0, Math.Abs(after.Dot(Vector3d.YAxis)), 1e-4);
+    }
+
+    [Fact]
+    public void APolyCurveContainingAHelixIsApproximateAndSaysSo()
+    {
+        // One segment that cannot convert exactly makes the whole thing inexact. A Helix is
+        // provably not a NURBS curve at any degree, so this is not a gap waiting to be filled.
+        Helix helix = Helix.FromAxis(
+            Point3d.Origin, Vector3d.ZAxis, new Point3d(1.0, 0.0, 0.0), 2.0, Angle.FullTurn);
+
+        PolyCurve chain = PolyCurve.FromJoinedCurves(
+        [
+            new Line(new Point3d(1.0, 0.0, -2.0), new Point3d(1.0, 0.0, 0.0)),
+            helix,
+        ]);
+
+        NurbsConversion converted = chain.ToNurbsCurve(
+            new Tolerance(1e-4, Angle.FromDegrees(0.001), 1e-12));
+
         Assert.False(converted.IsExact);
-        Assert.Equal(chain.StartPoint, converted.Curve.StartPoint);
-        Assert.Equal(chain.EndPoint, converted.Curve.EndPoint);
+        Assert.Equal(0.0, chain.StartPoint.DistanceTo(converted.Curve.StartPoint), 1e-6);
+    }
+
+    [Fact]
+    public void ALongerChainJoinsWithACornerAtEverySeam()
+    {
+        PolyCurve zigzag = PolyCurve.FromJoinedCurves(
+        [
+            new Line(Point3d.Origin, new Point3d(2.0, 0.0, 0.0)),
+            new Line(new Point3d(2.0, 0.0, 0.0), new Point3d(3.0, 2.0, 0.0)),
+            new Line(new Point3d(3.0, 2.0, 0.0), new Point3d(5.0, 1.0, 0.0)),
+            new Line(new Point3d(5.0, 1.0, 0.0), new Point3d(7.0, 4.0, 0.0)),
+        ]);
+
+        NurbsConversion converted = zigzag.ToNurbsCurve();
+
+        Assert.True(converted.IsExact);
+        Assert.Equal(zigzag.Length, converted.Curve.Length, 1e-9);
+        Assert.Equal(zigzag.Domain, converted.Curve.Domain);
+
+        // The vertices are on the curve at the whole numbers, which is the polycurve's own
+        // parameterisation surviving the join.
+        for (int seam = 1; seam < 4; seam++)
+        {
+            Assert.Equal(
+                0.0, zigzag.PointAt(seam).DistanceTo(converted.Curve.PointAt(seam)), 1e-12);
+        }
+
+        AssertOnCurve(zigzag, converted.Curve);
     }
 
     [Fact]

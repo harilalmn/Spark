@@ -390,10 +390,10 @@ bool lossless = converted.IsExact;
 | `NurbsCurve` | **exactly** | itself |
 | `Arc`, `Circle`, `EllipseCurve` | **exactly** | a rational quadratic traces a conic exactly |
 | `Helix` | **never exactly** | see below |
-| `PolyCurve` | not yet | possible in principle; the segments are not joined yet |
+| `PolyCurve` | **exactly** | its segments are converted and joined, corners and all |
 
-**A helix is the interesting row, because it is not a gap waiting to be filled — it is a
-theorem.** A NURBS curve's coordinates are ratios of polynomials in its parameter. A helix needs
+**A helix is the only row that is not *exactly*, and it is not a gap waiting to be filled — it is
+a theorem.** A NURBS curve's coordinates are ratios of polynomials in its parameter. A helix needs
 its height to be proportional to the *angle* it has turned through, and its x coordinate to be the
 *cosine* of that same angle, at once — and no function is both rational and the cosine of something
 rational. So no NURBS curve of any degree, with any knot vector, is a helix. Spark gives you the

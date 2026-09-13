@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T71` family (4): extension, which Spark had none of)
+**Last updated:** 2026-09-13 (`E2-T71`: `PolyCurve.ToNurbsCurve`, and every curve that can convert exactly does)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -404,9 +404,12 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     `PolyCurve`, tangent-continuous and visible in the returned type. **The branch that hides is
 >     *which end***, so every test uses an asymmetric curve and asserts the other end did not move.
 >     **It unblocked `CurveOffset.Fillet`'s stated limit**: that member refuses curves that do not
->     already cross, and nothing could make them cross before. **Next**: the rest of `E2-T71`
->     (`PolyCurve`'s exact NURBS conversion, the tangent-constrained
->     interpolation), then
+>     already cross, and nothing could make them cross before. ~~**`PolyCurve.ToNurbsCurve`**~~ **done the same day**:
+>     **every curve type that can convert exactly now does**, and the one that cannot is the one
+>     that provably never will. The work was knot bookkeeping — convert, elevate to a common
+>     degree, join — and **the seam is the branch**: repeat its knot once too few and the curve is
+>     smooth where the polycurve has a corner. **Next**: the rest of `E2-T71`
+>     (the tangent-constrained interpolation), then
 >     `E2-T66`…`E2-T69`. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register

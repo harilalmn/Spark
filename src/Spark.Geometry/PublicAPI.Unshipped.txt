@@ -171,6 +171,7 @@ override Spark.Geometry.Line.PlaneOf(in Spark.Geometry.Tolerance tolerance = def
 override Spark.Geometry.Line.ToNurbsCurve(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsConversion!
 override Spark.Geometry.NurbsConversion.ToString() -> string!
 override Spark.Geometry.NurbsCurve.ToNurbsCurve(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsConversion!
+override Spark.Geometry.PolyCurve.ToNurbsCurve(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsConversion!
 override Spark.Geometry.PolyLine.ToNurbsCurve(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsConversion!
 static Spark.Geometry.Arc.FromBestFit(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.Arc!
 static Spark.Geometry.Brep.Join(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Brep!>! parts) -> Spark.Geometry.Brep!
