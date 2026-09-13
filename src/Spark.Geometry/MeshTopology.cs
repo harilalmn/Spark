@@ -239,6 +239,45 @@ public sealed class MeshTopology
     }
 
     /// <summary>
+    /// The vertices joined to a vertex by an edge (`E2-T68`).
+    /// </summary>
+    /// <param name="vertex">The vertex index.</param>
+    /// <returns>Each neighbour once, in no particular order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">The index is outside the mesh.</exception>
+    /// <remarks>
+    /// <b>Derived from the faces around the vertex rather than stored.</b> A vertex's neighbours
+    /// are the corners either side of it in every face that uses it, and a vertex shared by several
+    /// faces meets most of them twice — so the set is deduplicated here rather than left for every
+    /// caller to do. This is what Laplacian smoothing averages over, and what anything describing a
+    /// vertex's local neighbourhood needs.
+    /// </remarks>
+    public int[] VerticesAroundVertex(int vertex)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(vertex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(vertex, _mesh.VertexCount);
+
+        HashSet<int> neighbours = [];
+
+        foreach (int f in FacesAroundVertex(vertex))
+        {
+            MeshFace face = _mesh.Face(f);
+
+            for (int corner = 0; corner < face.Count; corner++)
+            {
+                if (face[corner] != vertex)
+                {
+                    continue;
+                }
+
+                neighbours.Add(face[(corner + 1) % face.Count]);
+                neighbours.Add(face[(corner + face.Count - 1) % face.Count]);
+            }
+        }
+
+        return [.. neighbours];
+    }
+
+    /// <summary>
     /// Every distinct edge of the mesh, once each (`E2-T69`).
     /// </summary>
     /// <returns>

@@ -51,3 +51,4 @@ static Spark.Nodes.Core.Mesh.Cone(Spark.Geometry.Plane plane, double baseRadius 
 static Spark.Nodes.Core.Mesh.FaceCentres(Spark.Geometry.Mesh! mesh) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
 static Spark.Nodes.Core.Mesh.Edges(Spark.Geometry.Mesh! mesh) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Line!>!
 static Spark.Nodes.Core.Mesh.Split(Spark.Geometry.Mesh! mesh) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Mesh!>!
+static Spark.Nodes.Core.Mesh.Smooth(Spark.Geometry.Mesh! mesh, double strength = 0.5, int passes = 1) -> Spark.Geometry.Mesh!

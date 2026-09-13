@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-14 (`E2-T68`: `Mesh.Explode`)
+**Last updated:** 2026-09-14 (`E2-T68`: Laplacian smoothing)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -488,7 +488,14 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     than left to be discovered. **The branch is the renumbering**: a piece that kept the
 >     original vertex array has the right faces and renders identically, and only its vertex
 >     count sees it. **What is left of `E2-T68`** is `Repair`, `MakeWatertight`, `Remesh`,
->     `Reduce` and `Smooth`, each its own commit and none of them an afternoon. `Q12`'s T-Splines decision is 169 members
+>     `Reduce` and `Smooth`, each its own commit and none of them an afternoon. ~~**`Smooth`**~~
+>     **done the same day, and it was an afternoon after all**: Laplacian smoothing, with
+>     `MeshTopology.VerticesAroundVertex` named beside it because the neighbour set was
+>     nowhere. **The boundary is pinned** — an unpinned smoother shrinks an open mesh away from
+>     its own outline while looking perfectly smooth in the middle. **And a mutation found an
+>     unguarded claim for the third time this run**: that each pass reads the previous one
+>     rather than its own partial results was true, untested, and is now tested.
+>     **What is left of `E2-T68`**: `Repair`, `MakeWatertight`, `Remesh` and `Reduce`. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than

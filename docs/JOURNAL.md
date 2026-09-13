@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: Laplacian smoothing, and the neighbour set it needs)
+**Last updated:** 2026-09-14 (`E2-T68`: smoothing, and a true claim that nothing was checking)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T68`'s `Smooth` — Laplacian smoothing, the next member of that row that is an afternoon rather than a literature.** **Written ahead 2026-09-14, before any code.** Each vertex moves towards the average of its neighbours by a weight, repeated for a number of passes. **The machinery it needs is *the vertices around a vertex*, which nothing exposes**: `MeshTopology` reaches faces around a vertex and edges, and the neighbour set has to be derived — so `MeshTopology.VerticesAroundVertex` is named in this step rather than hidden inside the smoother, because it is a question about topology and the next member will want it too. **The two decisions are the boundary and the strength.** A boundary vertex has fewer neighbours, and moving it pulls an open mesh inwards from its edges — **the boundary is pinned**, identified through `NakedEdges()`, and that is written down. The weight and the pass count are both **the caller's**, in the signature rather than as constants, because *how much* smoothing is the whole question a caller has. **`Explode` is the shape to follow**: walk the topology, then build a new `Mesh`; this one keeps every face and moves only points, so the topology of the result is the topology of the original. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`Mesh.Explode` — `E2-T68`'s first member, and the row was right that the topology had already answered it.** A connected-component walk over `MeshTopology.AdjacentFaces`: a queue, a visited array, one `Mesh` per component. **The decision the row did not make is what *connected* means, and it is now made and written down**: sharing an **edge**, not a vertex, so two parts touching at a single corner are two pieces. The mutation that walks `FacesAroundVertex` instead turns exactly one test red — the one that exists to pin it. **The branch is the renumbering, not the split**: each piece carries only the vertices its own faces use. A piece that kept the original array has the right faces, the right geometry and renders identically, and only its vertex count sees the difference; that mutation turns three tests red. The optional channels travel across with their vertices. Residue **unchanged at 342**. 11 tests, **3651 → 3662**. **Before it:** the two mesh queries. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3662** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 342, and the help-sample compiler green. No stashes. |
-| **Next action** | **Add `MeshTopology.VerticesAroundVertex(int)` and `Mesh.Smoothed(double strength, int passes)`.** Then `tests/Spark.Geometry.Tests/MeshSmoothingTests.cs`, the node, the parity row, the public API, the register counts (437 → 438), the dashboard and the log. |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the pinned boundary**. A smoother that moves boundary vertices still smooths, still terminates, and still looks right in the middle; what it does is pull an open mesh inwards from its edges. So the assertion is that a flat grid's boundary vertices are **exactly** where they were and that its bounding box has not shrunk — which an unpinned implementation fails and no test of the interior can see. **The strength has to matter**: zero changes nothing and a larger weight moves further, which an implementation ignoring its argument would fail. **Smoothing moves points and nothing else**: face count, vertex count and the edge set are unchanged, so the result's topology is the original's. **And it must actually smooth**: a grid with one vertex pulled out of plane comes back closer to flat, measured as that vertex's distance from the plane, which is the property the member is named for. The three gates, and the residue budget **exact** at 342 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Twenty-nine steps landed across 2026-09-13 and 2026-09-14. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **`E2-T66` is closed; `E2-T68` and `E2-T69` are each part done.** `E2-T67` is skipped with its reason — the shim cannot be rebuilt without the OpenCascade install `E13-T21` waits on. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`Mesh.Smoothed` and `MeshTopology.VerticesAroundVertex` — `E2-T68`'s Laplacian smoothing.** **The neighbour set was nowhere**: the topology reached faces around a vertex and edges, and the vertices around a vertex had to be derived — so it is named as a member of its own rather than hidden inside the smoother, because it is a question about topology. **The boundary is pinned, and that is the decision in the member**: a vertex on an open edge has fewer neighbours, all on one side, so averaging pulls it inwards — an unpinned smoother shrinks an open grid away from its own outline while looking perfectly smooth in the middle. That mutation turns four tests red. **And a mutation found an unguarded claim for the third time this run**: that every pass reads the previous pass rather than its own partial results was *true*, and updating in place left every test green. A test now pins it — one pass at full strength puts each free vertex exactly at the average of its neighbours' original positions — and the in-place mutation turns it red. Residue **342 → 343**, the one member being `VerticesAroundVertex` — Spark's own machinery, which no Dynamo row asks for because Dynamo has no `MeshTopology`. 14 tests, **3662 → 3676**. **Before it:** `Mesh.Explode`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3676** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T72`'s `Polygon.SelfIntersections` — a curve asked about itself, which is `E2-T70`'s finding in a second place.** **It is small and it is unblocked**, which is what makes it next: `Curve.IntersectWith` takes *another* curve, so a curve cannot be asked about itself at all — and a closed polyline crossing itself is the commonest real case, because that is what a badly drawn outline is. **On a `PolyLine` it is segment against segment**, which is `Line`-`Line` intersection over every pair that is not adjacent — adjacent segments share an endpoint by construction and that is not a self-intersection. **Read `Curve.IntersectWith`'s line case first** and use it rather than writing a second line-line solve. **The decision is what to do about the closing segment**: on a closed polyline the last segment is adjacent to the first, so the pair must be excluded the same way, and an implementation that only excludes `i, i+1` reports every closed polyline as self-intersecting at its own start point. **O(n²) is the right algorithm here and should be said so in the remarks** — a sweep line is the answer at thousands of segments and this is a member people call on outlines with tens. |
+| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the closing segment**. A figure-of-eight polyline has one genuine self-intersection; a *simple* closed rectangle has none, and an implementation that forgets the last-to-first adjacency reports one at its own start corner. So the assertion is that a simple closed polyline returns **nothing**, which is the case that fails loudly and silently otherwise. **The genuine crossing is the other claim**: a figure of eight returns exactly one point, at the place computed by hand rather than read from the implementation. **An open polyline that doubles back on itself** is the third, because that is the shape a user actually draws. The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -14371,3 +14371,48 @@ mesh explodes into coloured pieces rather than losing what it had at the split.
 **Residue unchanged at 342**: the member is named by the row it satisfies.
 
 **Cost.** One session, and a short one. One member, two private helpers, eleven tests, one node.
+
+### 2026-09-14 — Smoothing, and a true claim that nothing was checking
+
+**What.** `Mesh.Smoothed` and `MeshTopology.VerticesAroundVertex`. Fourteen tests, a node, the
+row to `Done`, and the register at **438 of 545**.
+
+**The neighbour set was the missing piece, and it deserved a name.** `MeshTopology` could
+answer *which faces touch this vertex* and *which edges exist*, but not *which vertices are
+joined to this one* — which is precisely what Laplacian smoothing averages over. It could have
+been a private loop inside the smoother. It is a public member instead, because it is a
+question about topology rather than about smoothing, and the next member of this row will want
+it.
+
+**The boundary is pinned, and that is the decision the member makes.** A vertex on an open edge
+has fewer neighbours and they are all on one side, so averaging drags it inwards. Smooth an
+open grid a few times without pinning and it **shrinks away from its own outline** — while
+looking perfectly smooth in the middle, which is why no test of the interior can see it. The
+assertions are that boundary vertices have not moved at all and that the bounding box has not
+changed; unpinning turns four tests red.
+
+**And a mutation found an unguarded claim, for the third time in this run.** The remarks said
+every pass reads the previous pass's positions rather than its own partial results, so the
+answer does not depend on the order vertices happen to be stored in. That was **true** — and
+nothing was checking it: mutating the loop to update in place left all thirteen tests green.
+The fix is a test that pins it directly. At full strength, one pass must put each free vertex
+*exactly* at the average of its neighbours' **original** positions, which an in-place update
+cannot do because some neighbours have already moved. Fourteen tests now, and the mutation
+turns the new one red.
+
+**Three times this run a mutation has caught a claim nothing was testing** — the knot tolerance
+in `E2-T66`, the parameter averaging in the surface fit, and this. Two of those were left as
+documented gaps because no reasonable test existed. This one had an easy test and simply did
+not have it, which is the better outcome and the more embarrassing one.
+
+**One thing recorded rather than fixed.** A closed mesh has no boundary, so smoothing shrinks
+it — that is what Laplacian smoothing does, not a defect, and there is a test asserting the
+shrinkage so nobody reads it as one. Taubin's λ|μ smoothing is the answer if shrinkage ever
+matters, and it is a different member.
+
+**Residue 342 → 343.** `Smoothed` is named by its row; `VerticesAroundVertex` is not, because no
+Dynamo row asks for it — Dynamo has no `MeshTopology`. It is Spark's own machinery on a type a row
+names, the same category as the two sampling constants earlier this run.
+
+**Cost.** One session. Two members, fourteen tests, one node, and a test written because a
+mutation proved it was missing.

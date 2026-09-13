@@ -168,6 +168,104 @@ public sealed class Mesh
     public MeshFace[] Faces() => [.. _faces];
 
     /// <summary>
+    /// The mesh with its vertices moved towards the average of their neighbours (`E2-T68`).
+    /// </summary>
+    /// <param name="strength">
+    /// How far each vertex moves towards that average, from 0 (not at all) to 1 (all the way).
+    /// </param>
+    /// <param name="passes">How many times to repeat it. At least 1.</param>
+    /// <returns>A mesh with the same faces and different vertex positions.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The strength is outside 0 to 1 or not finite, or the pass count is below 1.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// Laplacian smoothing. <b>It moves points and nothing else</b> — every face, every index and
+    /// the whole edge set survive, so the result's topology is the original's and a caller can
+    /// still pair the two index for index.
+    /// </para>
+    /// <para>
+    /// <b>Boundary vertices are pinned, and that is the decision in this member.</b> A vertex on an
+    /// open edge has fewer neighbours, all of them on one side, so averaging pulls it inwards —
+    /// smooth an open grid a few times without pinning and it shrinks away from its own boundary
+    /// while looking perfectly smooth in the middle. The boundary is identified through
+    /// <see cref="MeshTopology.NakedEdges"/> and held still.
+    /// </para>
+    /// <para>
+    /// <b>Every pass reads the previous pass's positions</b>, not its own partial results, so the
+    /// answer does not depend on the order the vertices happen to be stored in.
+    /// </para>
+    /// <para>
+    /// The optional channels are carried across unchanged: smoothing moves vertices, and a normal
+    /// that was supplied by the caller is theirs to recompute if they want it to follow.
+    /// </para>
+    /// </remarks>
+    public Mesh Smoothed(double strength = 0.5, int passes = 1)
+    {
+        if (!double.IsFinite(strength) || strength < 0.0 || strength > 1.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(strength), strength, "A smoothing strength runs from 0 to 1.");
+        }
+
+        ArgumentOutOfRangeException.ThrowIfLessThan(passes, 1);
+
+        MeshTopology topology = Topology;
+
+        bool[] pinned = new bool[_vertices.Length];
+        foreach ((int from, int to) in topology.NakedEdges())
+        {
+            pinned[from] = true;
+            pinned[to] = true;
+        }
+
+        // The neighbour sets do not change - only the positions do - so they are gathered once.
+        int[][] neighbours = new int[_vertices.Length][];
+        for (int index = 0; index < _vertices.Length; index++)
+        {
+            neighbours[index] = pinned[index] ? [] : topology.VerticesAroundVertex(index);
+        }
+
+        Point3d[] current = [.. _vertices];
+
+        for (int pass = 0; pass < passes; pass++)
+        {
+            Point3d[] next = new Point3d[current.Length];
+
+            for (int index = 0; index < current.Length; index++)
+            {
+                int[] around = neighbours[index];
+
+                if (pinned[index] || around.Length == 0)
+                {
+                    next[index] = current[index];
+
+                    continue;
+                }
+
+                double x = 0.0;
+                double y = 0.0;
+                double z = 0.0;
+
+                foreach (int neighbour in around)
+                {
+                    x += current[neighbour].X;
+                    y += current[neighbour].Y;
+                    z += current[neighbour].Z;
+                }
+
+                Point3d average = new(x / around.Length, y / around.Length, z / around.Length);
+
+                next[index] = current[index] + ((average - current[index]) * strength);
+            }
+
+            current = next;
+        }
+
+        return new Mesh(current, _faces, _normals, _textureCoordinates, _colours);
+    }
+
+    /// <summary>
     /// The mesh split into its connected pieces (`E2-T68`).
     /// </summary>
     /// <returns>

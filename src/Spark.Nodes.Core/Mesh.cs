@@ -73,6 +73,20 @@ public static class Mesh
         Spark.Geometry.Plane plane, double radius = 1, int divisions = 16, int stacks = 8) =>
         MeshPrimitives.Sphere(plane, radius, divisions, stacks);
 
+    /// <summary>Evens out a mesh by moving each vertex towards its neighbours.</summary>
+    /// <param name="mesh">The mesh to smooth.</param>
+    /// <param name="strength">How far each vertex moves, from 0 (not at all) to 1 (all the way).</param>
+    /// <param name="passes">How many times to repeat it.</param>
+    /// <returns>A mesh with the same faces and gentler shape.</returns>
+    /// <remarks>
+    /// <b>The edges of an open mesh stay put.</b> Vertices on a boundary are held still, so
+    /// smoothing a panel does not shrink it away from its own outline. A closed mesh has no
+    /// boundary and will shrink a little, which is what smoothing does.
+    /// </remarks>
+    [return: NodePort("mesh")]
+    public static Spark.Geometry.Mesh Smooth(Spark.Geometry.Mesh mesh, double strength = 0.5, int passes = 1) =>
+        mesh.Smoothed(strength, passes);
+
     /// <summary>Splits a mesh into its connected pieces.</summary>
     /// <param name="mesh">The mesh to split.</param>
     /// <returns>One mesh per piece. A mesh already in one piece comes back on its own.</returns>

@@ -273,3 +273,5 @@ static Spark.Geometry.MeshPrimitives.Cone(in Spark.Geometry.Plane plane, double 
 Spark.Geometry.MeshTopology.Edges() -> (int From, int To)[]!
 Spark.Geometry.Mesh.TriangleCentroids() -> Spark.Geometry.Point3d[]!
 Spark.Geometry.Mesh.Explode() -> Spark.Geometry.Mesh![]!
+Spark.Geometry.MeshTopology.VerticesAroundVertex(int vertex) -> int[]!
+Spark.Geometry.Mesh.Smoothed(double strength = 0.5, int passes = 1) -> Spark.Geometry.Mesh!
