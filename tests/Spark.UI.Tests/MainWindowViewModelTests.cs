@@ -311,12 +311,19 @@ public sealed class MainWindowViewModelTests
     /// then alphabetically — against the real library, not a fixture.
     /// </summary>
     /// <remarks>
-    /// <b>This is the screenful the client photographed.</b> <c>circ</c> matches four <c>Circle</c>
+    /// <b>This is the screenful the client photographed.</b> <c>circ</c> matches the <c>Circle</c>
     /// constructors equally well, and they used to come out ordered by name length — a rule that is
-    /// real and that nobody looking at the list can see. The fifth result is the one that proves
+    /// real and that nobody looking at the list can see. The last result is the one that proves
     /// relevance still sits above the new keys: <c>PolyLine.FromRegularPolygon</c> is also a
-    /// <c>Create</c>, and it stays below all four because it matches the query less well, not
+    /// <c>Create</c>, and it stays below all the others because it matches the query less well, not
     /// because of what it does. <see cref="NodeSearchTests"/> pins the rule; this pins the screen.
+    /// <para>
+    /// <b>The list grows as the library does, and that is the cost of pinning a real screen rather
+    /// than a fixture.</b> <c>Circle.FromBestFit</c> joined it on 2026-09-13 (`E2-T72`) and sorts
+    /// first, which is the alphabetical rule working rather than a regression — but it means this
+    /// test has to be read and updated when a <c>Circle</c> constructor is added, not silently
+    /// re-baselined.
+    /// </para>
     /// </remarks>
     [Fact]
     public void TheCreationBoxOrdersEqualMatchesByKindThenAlphabetically()
@@ -327,6 +334,7 @@ public sealed class MainWindowViewModelTests
 
         Assert.Equal(
             [
+                "Circle.FromBestFit",
                 "Circle.FromCenterNormalRadius",
                 "Circle.FromCenterRadius",
                 "Circle.FromPlaneRadius",

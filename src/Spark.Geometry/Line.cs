@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Spark.Geometry;
 
@@ -157,6 +158,77 @@ public sealed class Line : Curve
 
     /// <inheritdoc/>
     public override Point3d[] Tessellate(in Tolerance tolerance = default) => [_start, _end];
+
+    /// <summary>
+    /// Fits the line that minimises the sum of squared distances from a set of points (`E2-T72`).
+    /// </summary>
+    /// <param name="points">
+    /// At least two points, not all coincident and not spread isotropically — see the exceptions.
+    /// </param>
+    /// <returns>
+    /// The line through the points' centroid along their principal direction, running from the
+    /// first point's end towards the last's and <b>trimmed to the span of the points</b> projected
+    /// onto it, so the result is a segment rather than an unbounded direction.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="points"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when there are fewer than two points, when one is not finite, or when the points have
+    /// <b>no preferred direction</b> — they are coincident, or spread evenly in a plane or a ball,
+    /// where every line through the centroid fits as well as every other. Refused rather than
+    /// answered, for the reason <see cref="Plane.FromBestFit"/> refuses collinear points.
+    /// </exception>
+    /// <remarks>
+    /// <b>The fit is closed form</b> — the largest eigenvector of the points' covariance matrix,
+    /// from the trigonometric solution of the characteristic cubic — so there is no iteration and
+    /// no convergence tolerance, and the only threshold is the relative one deciding the direction
+    /// is ambiguous ([N143](../../docs/NOTES.md)). It is <see cref="Plane.FromBestFit"/> read the
+    /// other way round: a plane wants the direction the points vary <i>least</i> along, a line
+    /// wants the one they vary <i>most</i> along.
+    /// </remarks>
+    public static Line FromBestFit(IReadOnlyList<Point3d> points)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+
+        if (points.Count < 2)
+        {
+            throw new ArgumentException(
+                $"A line needs at least two points to be fitted through; {points.Count} were given.",
+                nameof(points));
+        }
+
+        if (!LeastSquares.TryFitLine(points, out Point3d centroid, out Vector3d direction))
+        {
+            throw new ArgumentException(
+                "Those points have no preferred direction. They are coincident, spread evenly "
+                + "about their centroid, or one of them is not finite — so no line fits them "
+                + "better than any other.",
+                nameof(points));
+        }
+
+        // Trimmed to the points rather than returned as an infinite direction: a Line in Spark is a
+        // segment, and the segment a caller means is the one that spans what they handed in.
+        double low = double.MaxValue;
+        double high = double.MinValue;
+
+        foreach (Point3d point in points)
+        {
+            double along = (point - centroid).Dot(direction);
+            low = Math.Min(low, along);
+            high = Math.Max(high, along);
+        }
+
+        return new Line(centroid + (direction * low), centroid + (direction * high));
+    }
+
+    /// <summary>Fits the line that best passes through a set of points.</summary>
+    /// <param name="points">At least two points with a preferred direction.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="points"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when the points have no preferred direction.</exception>
+    /// <remarks>Forwards to <see cref="FromBestFit"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public Line(IReadOnlyList<Point3d> points)
+        : this(FromBestFit(points))
+    {
+    }
 
     /// <inheritdoc/>
     /// <remarks>

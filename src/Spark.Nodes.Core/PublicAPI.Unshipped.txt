@@ -2,6 +2,8 @@
 *REMOVED*static Spark.Nodes.Core.Surface.ToMesh(Spark.Geometry.Surface! surface, double tolerance = 0.01) -> Spark.Geometry.Mesh!
 Spark.Nodes.Core.Console
 Spark.Nodes.Core.Helix
+static Spark.Nodes.Core.Arc.FromBestFit(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.Arc!
+static Spark.Nodes.Core.Circle.FromBestFit(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.Circle!
 static Spark.Nodes.Core.Console.Clear() -> int
 static Spark.Nodes.Core.Console.Write(string! text) -> string!
 static Spark.Nodes.Core.Console.WriteLine(string! text) -> string!
@@ -9,6 +11,7 @@ static Spark.Nodes.Core.Curve.IntersectWith(Spark.Geometry.Curve! curve, Spark.G
 static Spark.Nodes.Core.Curve.IntersectWithSurface(Spark.Geometry.Curve! curve, Spark.Geometry.Surface! surface) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
 static Spark.Nodes.Core.Curve.OverlapWith(Spark.Geometry.Curve! curve, Spark.Geometry.Curve! other) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>!
 static Spark.Nodes.Core.Helix.FromAxis(Spark.Geometry.Point3d origin, Spark.Geometry.Vector3d direction, Spark.Geometry.Point3d startPoint, double pitch, Spark.Geometry.Angle sweepAngle) -> Spark.Geometry.Helix!
+static Spark.Nodes.Core.Line.FromBestFit(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.Line!
 static Spark.Nodes.Core.Number.RangeByCount(double start = 0, double end = 10, int count = 11) -> System.Collections.Generic.IReadOnlyList<double>!
 static Spark.Nodes.Core.Number.RangeByCountAndStep(double start = 0, int count = 11, double step = 1) -> System.Collections.Generic.IReadOnlyList<double>!
 static Spark.Nodes.Core.Plane.FromBestFit(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> Spark.Geometry.Plane

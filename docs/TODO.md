@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T71` family (2): planarity, and the plane a curve lies in)
+**Last updated:** 2026-09-13 (`E2-T72` first idea: curve fitting, of which Spark had none)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -365,9 +365,19 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     **A straight line is `IsPlanar` true and `PlaneOf` null**, which is the only honest pair: it
 >     lies in infinitely many planes. **The fit is not the test** — a best-fit plane exists for any
 >     points at all, so what decides it is the residual against the caller's tolerance.
->     `Extrude(double)` and `ExtrudeAsSolid(double)` closed as compositions on it. **Next**: the
+>     `Extrude(double)` and `ExtrudeAsSolid(double)` closed as compositions on it. ~~**`E2-T72`'s first idea**~~ **done the same
+>     day**: **`Line.FromBestFit`, `Circle.FromBestFit` and `Arc.FromBestFit`** — Spark had no curve
+>     fitting of any kind, and the machinery was already there, which is why it was one step. The
+>     line fit is the plane fit read the other way round, so `LeastSquares` gained a method rather
+>     than the codebase gaining a second routine, and the two refusals are mirror images: a plane
+>     refuses collinear points, a line refuses points with **no preferred direction**. **The circle
+>     fit is algebraic then refined geometrically, and the second half is not decoration** —
+>     measured rather than cited, removing the refinement fits a 20° arc of radius 10 as radius
+>     **9.58**. `Arc.FromBestFit` keeps the fit and the sweep apart and **refuses points that double
+>     back**. **Residue unchanged at 300**, the first step in five that cost nothing. **Next**: the
 >     rest of `E2-T71`/`E2-T72`
->     (no curve fitting of any kind, one fillet that takes two lines, no periodic NURBS), then
+>     (one fillet that takes two lines, no periodic NURBS, `PolyCurve`'s exact NURBS conversion),
+>     then
 >     `E2-T66`…`E2-T69`. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register

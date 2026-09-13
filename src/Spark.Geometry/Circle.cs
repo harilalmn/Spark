@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Spark.Geometry;
 
@@ -159,6 +160,101 @@ public sealed class Circle : Curve
     {
         (Plane plane, double radius) = Arc.Circumcircle(first, second, third);
         return new Circle(plane, radius);
+    }
+
+    /// <summary>
+    /// Fits the circle that best passes through a set of points (`E2-T72`).
+    /// </summary>
+    /// <param name="points">At least three points, not collinear.</param>
+    /// <returns>The circle, in the plane fitted through the points.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="points"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when there are fewer than three points, when one is not finite, or when they are
+    /// collinear or coincident — either way no circle passes near them.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Two fits, in two stages.</b> The points are almost never coplanar, so a plane is fitted
+    /// first (<see cref="Plane.FromBestFit"/>) and the circle is fitted <i>within</i> it. A caller
+    /// who wants the circle in a plane they already have should project the points themselves and
+    /// use <see cref="FromThreePoints"/> or <see cref="FromPlaneRadius"/>.
+    /// </para>
+    /// <para>
+    /// <b>The circle fit is algebraic, then refined geometrically, and the second half is not
+    /// decoration.</b> The algebraic fit is a 3×3 solve and is <i>exact</i> for points that lie on
+    /// a circle — but under noise, on a <b>short arc</b>, it systematically under-estimates the
+    /// radius. The refinement minimises the distance residual that anybody fitting a circle
+    /// actually means, converges in a handful of steps from the algebraic seed, and moves nothing
+    /// at all when the seed is already exact.
+    /// </para>
+    /// </remarks>
+    public static Circle FromBestFit(IReadOnlyList<Point3d> points)
+    {
+        (Plane plane, double radius) = FitInPlane(points);
+
+        return new Circle(plane, radius);
+    }
+
+    /// <summary>Fits the circle that best passes through a set of points.</summary>
+    /// <param name="points">At least three points, not collinear.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="points"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when no circle fits the points.</exception>
+    /// <remarks>Forwards to <see cref="FromBestFit"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public Circle(IReadOnlyList<Point3d> points)
+        : this(FromBestFit(points))
+    {
+    }
+
+    /// <summary>
+    /// The shared half of <see cref="FromBestFit"/> and <see cref="Arc.FromBestFit"/>: the fitted
+    /// plane, centred on the fitted circle, and the radius.
+    /// </summary>
+    /// <param name="points">The points.</param>
+    /// <returns>A plane whose origin is the circle's centre, and the radius.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="points"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when no circle fits the points.</exception>
+    /// <remarks>
+    /// <b>An arc fitted through points is the same fit with a sweep read off it</b>, so the two
+    /// share this rather than each running the fit. The plane's x axis is inherited from
+    /// <see cref="Plane.FromBestFit"/> and is not pinned, which matters only to
+    /// <see cref="Arc"/> — and it takes its start angle from the points rather than from the axis.
+    /// </remarks>
+    internal static (Plane Plane, double Radius) FitInPlane(IReadOnlyList<Point3d> points)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+
+        if (points.Count < 3)
+        {
+            throw new ArgumentException(
+                $"A circle needs at least three points to be fitted through; {points.Count} were given.",
+                nameof(points));
+        }
+
+        if (!LeastSquares.TryFitPlane(points, out Point3d centroid, out Vector3d normal))
+        {
+            throw new ArgumentException(
+                "Those points do not span a plane. They are collinear, coincident, or too nearly "
+                + "so for a circle through them to mean anything, or one of them is not finite.",
+                nameof(points));
+        }
+
+        Plane fitted = Plane.FromOriginNormal(centroid, normal);
+        Point2d[] flat = new Point2d[points.Count];
+
+        for (int index = 0; index < points.Count; index++)
+        {
+            flat[index] = fitted.To2d(points[index]);
+        }
+
+        if (!LeastSquares.TryFitCircle(flat, out Point2d centre, out double radius))
+        {
+            throw new ArgumentException(
+                "Those points do not determine a circle. Projected into the plane fitted through "
+                + "them they are collinear or coincident.",
+                nameof(points));
+        }
+
+        return (Plane.FromOriginXAxisYAxis(fitted.To3d(centre), fitted.XAxis, fitted.YAxis), radius);
     }
 
     /// <inheritdoc/>

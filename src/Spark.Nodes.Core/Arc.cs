@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Spark.Api;
 using Spark.Geometry;
 
@@ -54,4 +55,16 @@ public static class Arc
         Vector3d normal,
         Angle sweepAngle) =>
         Spark.Geometry.Arc.FromCenterStartPointSweepAngle(center, startPoint, normal, sweepAngle);
+
+    /// <summary>Makes the arc that best fits a list of points.</summary>
+    /// <param name="points">
+    /// At least three points, <b>in order along the arc</b>. Points that double back are an error:
+    /// they still have a circle through them, so only the sweep would be wrong, which is worse
+    /// than a message.
+    /// </param>
+    /// <returns>The arc, spanning the points from the first to the last.</returns>
+    [return: NodePort("arc")]
+    [SparkNodeAlias("Arc.ByBestFitThroughPoints")]
+    public static Spark.Geometry.Arc FromBestFit(IReadOnlyList<Point3d> points) =>
+        Spark.Geometry.Arc.FromBestFit(points);
 }

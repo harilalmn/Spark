@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Spark.Api;
 using Spark.Geometry;
 
@@ -51,4 +52,20 @@ public static class Circle
     public static Spark.Geometry.Circle FromThreePoints(
         Point3d first, Point3d second, Point3d third) =>
         Spark.Geometry.Circle.FromThreePoints(first, second, third);
+
+    /// <summary>Makes the circle that best fits a list of points.</summary>
+    /// <param name="points">
+    /// At least three points, not collinear. They need not be coplanar — a plane is fitted through
+    /// them first and the circle is fitted within it.
+    /// </param>
+    /// <returns>The circle.</returns>
+    /// <remarks>
+    /// <b>A radius is recovered from how far the arc bulges from its own chord</b>, so points
+    /// covering a short arc carry little information about it. The fit is as good as the
+    /// measurements allow and no better.
+    /// </remarks>
+    [return: NodePort("circle")]
+    [SparkNodeAlias("Circle.ByBestFitThroughPoints")]
+    public static Spark.Geometry.Circle FromBestFit(IReadOnlyList<Point3d> points) =>
+        Spark.Geometry.Circle.FromBestFit(points);
 }

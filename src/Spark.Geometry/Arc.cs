@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Spark.Geometry;
 
@@ -248,6 +249,103 @@ public sealed class Arc : Curve
         }
 
         return Math.Clamp(distance / _radius, 0.0, _sweep);
+    }
+
+    /// <summary>
+    /// Fits the arc that best passes through a set of points (`E2-T72`).
+    /// </summary>
+    /// <param name="points">At least three points, in order along the arc, not collinear.</param>
+    /// <returns>
+    /// The arc, spanning the points from the first to the last <b>the way they are ordered</b>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="points"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when fewer than three points are given, when one is not finite, when they are
+    /// collinear or coincident, or when they do not advance monotonically around the fitted circle.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>The circle is <see cref="Circle.FromBestFit"/>'s, and the only new question is the
+    /// sweep.</b> Fitting is a question about a <i>circle</i>; which part of it the points cover is
+    /// a question about their <i>order</i>, and the two are answered separately so the fit cannot
+    /// be affected by the ordering.
+    /// </para>
+    /// <para>
+    /// <b>The order of the points is data, not a hint.</b> The sweep is accumulated from one point
+    /// to the next, each step taken the short way round, so points given end-to-end trace the arc
+    /// they were sampled from — including one that passes the plane's x axis, which a first-to-last
+    /// angle difference would get wrong by a whole turn. <b>Points out of order are refused</b>
+    /// rather than fitted to whatever sweep their shuffled angles happen to sum to: a step that
+    /// reverses direction means the caller does not have an arc.
+    /// </para>
+    /// </remarks>
+    public static Arc FromBestFit(IReadOnlyList<Point3d> points)
+    {
+        (Plane plane, double radius) = Circle.FitInPlane(points);
+
+        double[] angles = new double[points.Count];
+
+        for (int index = 0; index < points.Count; index++)
+        {
+            Point2d flat = plane.To2d(points[index]);
+            angles[index] = Math.Atan2(flat.Y, flat.X);
+        }
+
+        double sweep = 0.0;
+        int sign = 0;
+
+        for (int index = 1; index < points.Count; index++)
+        {
+            double step = angles[index] - angles[index - 1];
+
+            // Each step the short way round. A step of more than half a turn between consecutive
+            // samples is not an arc anybody sampled; it is two points on opposite sides.
+            while (step > Math.PI)
+            {
+                step -= FullTurn;
+            }
+
+            while (step <= -Math.PI)
+            {
+                step += FullTurn;
+            }
+
+            int thisSign = Math.Sign(step);
+
+            if (thisSign != 0 && sign != 0 && thisSign != sign)
+            {
+                throw new ArgumentException(
+                    "Those points do not advance around the fitted circle in one direction, so "
+                    + "they do not describe an arc. Order them along the arc, or fit a circle.",
+                    nameof(points));
+            }
+
+            if (thisSign != 0)
+            {
+                sign = thisSign;
+            }
+
+            sweep += step;
+        }
+
+        if (sweep == 0.0)
+        {
+            throw new ArgumentException(
+                "Those points cover no sweep of the fitted circle.", nameof(points));
+        }
+
+        return FromPlaneRadiusAngles(
+            plane, radius, Angle.FromRadians(angles[0]), Angle.FromRadians(sweep));
+    }
+
+    /// <summary>Fits the arc that best passes through a set of points.</summary>
+    /// <param name="points">At least three points, in order along the arc.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="points"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when no arc fits the points.</exception>
+    /// <remarks>Forwards to <see cref="FromBestFit"/>, so the two cannot drift apart (`E2-T59`).</remarks>
+    public Arc(IReadOnlyList<Point3d> points)
+        : this(FromBestFit(points))
+    {
     }
 
     /// <inheritdoc/>

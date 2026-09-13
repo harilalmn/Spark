@@ -458,6 +458,69 @@ direction the curve is *bending* at a point, which has nothing to do with what p
 
 ---
 
+## 11. Fitting a curve through measured points
+
+Survey points, scan points, points a user clicked — none of them lie exactly on anything.
+`FromBestFit` finds the curve that comes closest:
+
+```csharp
+using System.Collections.Generic;
+using Spark.Geometry;
+
+List<Point3d> surveyed =
+[
+    new Point3d(0.00, 0.05, 0.0),
+    new Point3d(1.00, -0.02, 0.0),
+    new Point3d(2.00, 0.04, 0.0),
+    new Point3d(3.00, -0.03, 0.0),
+];
+
+Line centreline = Line.FromBestFit(surveyed);   // trimmed to the span of the points
+```
+
+There are three, one per shape: `Line.FromBestFit`, `Circle.FromBestFit` and `Arc.FromBestFit`
+(and `Plane.FromBestFit`, which the other two use). Each is also a constructor, so
+`new Circle(points)` works in a code block.
+
+**They refuse rather than guess, and the refusals are the useful part.**
+
+| Ask for | Given | What happens |
+|---|---|---|
+| a line | points spread evenly in a ring or a ball | **refused** — every line through the middle fits equally well |
+| a circle | collinear points | **refused** — no circle passes near them |
+| an arc | points that double back | **refused** — they have a circle but not an arc |
+
+That last one is worth dwelling on. Shuffled points still have a perfectly good *circle* through
+them, so a naive arc fit succeeds and returns a sweep that is nonsense. `Arc.FromBestFit` checks
+that the points advance around the circle in one direction, and says so when they do not — so the
+order you pass them in is data, not a hint.
+
+```csharp
+using System.Collections.Generic;
+using Spark.Geometry;
+
+Circle guide = Circle.FromCenterRadius(Point3d.Origin, 2.0);
+
+List<Point3d> alongTheArc = [];
+for (int index = 0; index <= 6; index++)
+{
+    alongTheArc.Add(guide.PointAt(index * 0.1));
+}
+
+Arc fitted = Arc.FromBestFit(alongTheArc);
+double sweep = fitted.SweepAngle.Degrees;   // about 34 - the arc the points actually cover
+```
+
+**One thing to know before you trust a fitted circle.** A radius is recovered from how much the arc
+*bulges* away from its own chord, not from how long it is — so a short arc carries very little
+information about its radius, and noise comparable to that bulge makes the radius genuinely
+uncertain rather than merely imprecise. Spark fits it as well as it can be fitted (the naive
+algebraic answer is refined until it minimises the real distance to the points, which stops the
+radius coming out short on short arcs), but no method can recover what the measurements do not
+contain. If your points cover twenty degrees, treat the radius as an estimate.
+
+---
+
 ## Related
 
 - [Points, vectors, planes and tolerance](geometry-basics.md) — the value layer underneath

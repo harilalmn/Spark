@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Spark.Api;
 using Spark.Geometry;
 
@@ -34,4 +35,16 @@ public static class Line
     public static Spark.Geometry.Line FromStartPointDirectionLength(
         Point3d start, Vector3d direction, double length = 1.0) =>
         Spark.Geometry.Line.FromStartPointDirectionLength(start, direction, length);
+
+    /// <summary>Makes the line that best fits a list of points.</summary>
+    /// <param name="points">
+    /// At least two points. They must have a preferred direction: points spread evenly in a ring
+    /// or a ball are an error rather than an answer, because every line through their middle fits
+    /// as well as every other.
+    /// </param>
+    /// <returns>The line, trimmed to the span of the points.</returns>
+    [return: NodePort("line")]
+    [SparkNodeAlias("Line.ByBestFitThroughPoints")]
+    public static Spark.Geometry.Line FromBestFit(IReadOnlyList<Point3d> points) =>
+        Spark.Geometry.Line.FromBestFit(points);
 }
