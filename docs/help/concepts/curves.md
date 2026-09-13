@@ -1,7 +1,7 @@
 ---
 id: concepts.curves
 title: Curves, parameters and arc length
-nodes: [Line.FromStartPointEndPoint, Circle.FromCenterRadius, Arc.FromThreePoints, Ellipse.FromPlaneRadii, Helix.FromAxis, Curve.Fillet, PolyLine.FromRegularPolygon, PolyCurve.FromJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength, Curve.IntersectWith, Curve.IntersectWithSurface]
+nodes: [Line.FromStartPointEndPoint, Circle.FromCenterRadius, Arc.FromThreePoints, Ellipse.FromPlaneRadii, Helix.FromAxis, Curve.Fillet, PolyLine.FromRegularPolygon, PolyCurve.FromJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength, Curve.DivideByChordLength, Curve.DivideEquallyByChord, Curve.IntersectWith, Curve.IntersectWithSurface]
 related: [concepts.geometry-basics, concepts.lacing]
 since: "0.1"
 ---
@@ -85,6 +85,45 @@ Two things worth knowing:
   ends included.
 - **`DivideByLength` drops the remainder.** Asking for a point every 3 units along a curve
   10 units long gives you points at 0, 3, 6 and 9 — not a stubby 1-unit piece at the end.
+
+**And there is a second way to measure, which is not the same one.** Everything above walks the
+curve with a tape measure. `DivideByChordLength` and `DivideEquallyByChord` measure the
+**straight line** between consecutive points instead:
+
+```csharp
+using Spark.Geometry;
+
+Circle circle = Circle.FromCenterRadius(Point3d.Origin, 5.0);
+
+Point3d[] alongTheCurve = circle.DivideByLength(2.0);      // 2 units walked, each step
+Point3d[] straightLine = circle.DivideByChordLength(2.0);  // 2 units as the crow flies
+
+int walked = alongTheCurve.Length;    // 16
+int flown = straightLine.Length;      // 16 - but not the same sixteen points
+double apart = alongTheCurve[8].DistanceTo(straightLine[8]);   // 0.11 - a real difference
+```
+
+**Which do you want?** If the pieces between the points are going to be *straight* — equal struts,
+equal panels, a chain of equal members — you want the chord. If what matters is distance travelled
+along the path, you want the length. On a straight line the two are identical; the tighter the
+curve, the further apart their answers.
+
+`DivideEquallyByChord(n)` is the chord counterpart of `DivideEqually(n)`. Around a circle it gives
+the inscribed regular polygon, which is the clearest picture of the difference there is:
+
+```csharp
+using Spark.Geometry;
+
+Circle circle = Circle.FromCenterRadius(Point3d.Origin, 5.0);
+
+Point3d[] corners = circle.DivideEquallyByChord(6);
+double side = corners[0].DistanceTo(corners[1]);   // 5 - a hexagon's side is its radius
+```
+
+One caution: an equal-chord division has to *solve* for the chord that fits a whole number of
+times, and on a curve that doubles back sharply within one step the search can fail. It says so
+with an error rather than returning separations that are only nearly equal — `DivideEqually`
+divides by arc length and always succeeds.
 
 ---
 

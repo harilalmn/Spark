@@ -31,6 +31,10 @@ Spark.Geometry.Circle.Circle(in Spark.Geometry.Point3d first, in Spark.Geometry.
 Spark.Geometry.CoordinateSystem.CoordinateSystem(in Spark.Geometry.Plane plane) -> void
 Spark.Geometry.CoordinateSystem.CoordinateSystem(in Spark.Geometry.Point3d origin) -> void
 Spark.Geometry.CoordinateSystem.CoordinateSystem(in Spark.Geometry.Point3d origin, in Spark.Geometry.Vector3d zAxis) -> void
+Spark.Geometry.Curve.DivideByChordLength(double chord) -> Spark.Geometry.Point3d[]!
+Spark.Geometry.Curve.DivideByChordLength(double chord, double fromParameter) -> Spark.Geometry.Point3d[]!
+Spark.Geometry.Curve.DivideByLength(double length, double fromParameter) -> Spark.Geometry.Point3d[]!
+Spark.Geometry.Curve.DivideEquallyByChord(int segments) -> Spark.Geometry.Point3d[]!
 Spark.Geometry.Curve.IntersectWith(Spark.Geometry.Curve! other, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.CurveIntersections!
 Spark.Geometry.Curve.IntersectWith(Spark.Geometry.Surface! surface, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.CurveSurfaceIntersections!
 Spark.Geometry.CurveIntersectionPoint

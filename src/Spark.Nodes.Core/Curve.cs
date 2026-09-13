@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Spark.Api;
 using Spark.Geometry;
@@ -254,4 +255,52 @@ public static class Curve
 
         return [trimmedFirst, fillet, trimmedSecond];
     }
+
+    /// <summary>Places a point every so far along the curve, measured in a straight line.</summary>
+    /// <param name="curve">The curve.</param>
+    /// <param name="chordLength">
+    /// The straight-line spacing. <b>Not the same as the distance along the curve</b> — see the
+    /// remarks.
+    /// </param>
+    /// <returns>The points, starting at the curve's start. The remainder at the end is dropped.</returns>
+    /// <remarks>
+    /// <b>Use this when the pieces between the points have to be straight and equal</b> — equal
+    /// struts, equal panels, a chain of equal members. Use <c>DivideByLength</c> when what matters
+    /// is the distance walked along the curve. On a line the two agree; on anything else they do
+    /// not.
+    /// </remarks>
+    [return: NodePort("points")]
+    [SparkNodeAlias("Curve.PointsAtChordLength")]
+    public static IReadOnlyList<Point3d> DivideByChordLength(
+        Spark.Geometry.Curve curve, double chordLength = 1.0) =>
+        curve.DivideByChordLength(chordLength);
+
+    /// <summary>Divides the curve into pieces whose straight-line separations are all equal.</summary>
+    /// <param name="curve">The curve.</param>
+    /// <param name="divisions">How many pieces. At least one.</param>
+    /// <returns>One more point than divisions, including both ends.</returns>
+    /// <remarks>
+    /// <b>Equal <i>chords</i>, not equal arc lengths.</b> Around a circle this gives the inscribed
+    /// polygon. <c>DivideEqually</c> gives the other answer, and on a curve that is not a line the
+    /// two are different points.
+    /// </remarks>
+    [return: NodePort("points")]
+    [SparkNodeAlias("Curve.PointsAtEqualChordLength")]
+    public static IReadOnlyList<Point3d> DivideEquallyByChord(
+        Spark.Geometry.Curve curve, int divisions = 4) =>
+        curve.DivideEquallyByChord(divisions);
+
+    /// <summary>Divides the curve by distance along it, starting from a parameter.</summary>
+    /// <param name="curve">The curve.</param>
+    /// <param name="distance">The spacing, measured along the curve.</param>
+    /// <param name="fromParameter">
+    /// Where to start, from 0 to 1 through the curve's own parameter space. Outside that it is
+    /// clamped rather than refused.
+    /// </param>
+    /// <returns>The points from there onwards, including the starting point.</returns>
+    [return: NodePort("points")]
+    [SparkNodeAlias("Curve.DivideByDistanceFromParameter")]
+    public static IReadOnlyList<Point3d> DivideByLengthFromParameter(
+        Spark.Geometry.Curve curve, double distance = 1.0, double fromParameter = 0.0) =>
+        curve.DivideByLength(distance, curve.Domain.Denormalise(System.Math.Clamp(fromParameter, 0.0, 1.0)));
 }

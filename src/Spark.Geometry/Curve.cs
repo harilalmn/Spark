@@ -757,6 +757,359 @@ public abstract class Curve
     }
 
     /// <summary>
+    /// Divides the curve by arc length, starting from a parameter rather than from the beginning
+    /// (`E2-T71`).
+    /// </summary>
+    /// <param name="length">The spacing, measured along the curve. Positive.</param>
+    /// <param name="fromParameter">
+    /// Where to start. Clamped into <see cref="Domain"/>: a caller who computed it from a point is
+    /// working with arithmetic that can land a hair outside.
+    /// </param>
+    /// <returns>
+    /// The points from <paramref name="fromParameter"/> onwards, <b>including the starting point
+    /// itself</b>, ordered along the curve. As <see cref="DivideByLength(double)"/>, the remainder
+    /// at the far end is dropped rather than becoming a short piece.
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="length"/> is not positive and finite, or <paramref name="fromParameter"/> is
+    /// not finite.
+    /// </exception>
+    /// <remarks>
+    /// <b>The same division with a different origin, and nothing more.</b> A caller who knows this
+    /// can write <c>Trimmed</c> and then <see cref="DivideByLength(double)"/>; the member exists
+    /// for the caller who does not, and because trimming to divide allocates a curve to throw away.
+    /// </remarks>
+    public Point3d[] DivideByLength(double length, double fromParameter)
+    {
+        if (!double.IsFinite(length) || length <= 0.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(length), length, "A division spacing must be positive and finite.");
+        }
+
+        if (!double.IsFinite(fromParameter))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(fromParameter), fromParameter, "A start parameter must be finite.");
+        }
+
+        double start = LengthAt(Domain.Clamp(fromParameter));
+        double total = Length;
+        List<Point3d> points = [];
+
+        for (int index = 0; ; index++)
+        {
+            double distance = start + (length * index);
+
+            // The same 1e-6 slack DivideByLength(double) uses, and for the same reason: the last
+            // point of a division that lands exactly on the end arrives as `total` plus a few
+            // ulps, and dropping it would make an exact division one point short.
+            if (distance > total + (Math.Max(total, 1.0) * 1e-12))
+            {
+                break;
+            }
+
+            points.Add(Evaluate(ParameterAtLength(Math.Min(distance, total))));
+        }
+
+        return [.. points];
+    }
+
+    /// <summary>
+    /// Walks the curve placing a point every <paramref name="chord"/> of <b>straight-line</b>
+    /// distance from the last one (`E2-T71`).
+    /// </summary>
+    /// <param name="chord">The straight-line spacing. Positive.</param>
+    /// <returns>
+    /// The points, starting at <see cref="StartPoint"/>, each exactly <paramref name="chord"/> from
+    /// its predecessor. The remainder at the far end is dropped.
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="chord"/> is not positive and finite.</exception>
+    /// <remarks>
+    /// <b>A chord is not an arc length, and on every curve that is not a line the two give
+    /// different points.</b> <see cref="DivideByLength(double)"/> walks the curve with a tape
+    /// measure; this asks, from where I am, which point ahead is <paramref name="chord"/> away
+    /// <i>as the crow flies</i>. On a tight arc that point is much further along than an arc-length
+    /// step of the same size, and the tighter the curve the bigger the difference: a chord of
+    /// <c>d</c> on a circle of radius <c>r</c> subtends <c>2·asin(d / 2r)</c> where an arc step of
+    /// <c>d</c> subtends <c>d / r</c>.
+    /// </remarks>
+    public Point3d[] DivideByChordLength(double chord) => DivideByChordLength(chord, Domain.Min);
+
+    /// <summary>
+    /// Walks the curve from a parameter, placing a point every <paramref name="chord"/> of
+    /// straight-line distance (`E2-T71`).
+    /// </summary>
+    /// <param name="chord">The straight-line spacing. Positive.</param>
+    /// <param name="fromParameter">Where to start. Clamped into <see cref="Domain"/>.</param>
+    /// <returns>The points, starting at the point at <paramref name="fromParameter"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="chord"/> is not positive and finite, or <paramref name="fromParameter"/> is
+    /// not finite.
+    /// </exception>
+    /// <remarks>
+    /// <b>Dynamo's member of this shape takes a <i>point</i>, and this takes a parameter on
+    /// purpose.</b> <see cref="ClosestParameter(in Point3d)"/> turns one into the other, and
+    /// leaving it to the caller means a point that is not on the curve is <i>visibly</i> snapped to
+    /// it rather than silently.
+    /// </remarks>
+    public Point3d[] DivideByChordLength(double chord, double fromParameter)
+    {
+        if (!double.IsFinite(chord) || chord <= 0.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(chord), chord, "A chord spacing must be positive and finite.");
+        }
+
+        if (!double.IsFinite(fromParameter))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(fromParameter), fromParameter, "A start parameter must be finite.");
+        }
+
+        double at = Domain.Clamp(fromParameter);
+        List<Point3d> points = [Evaluate(at)];
+
+        while (points.Count < MaximumTessellationPoints && TryStepByChord(chord, at, out double next))
+        {
+            at = next;
+            points.Add(Evaluate(at));
+        }
+
+        return [.. points];
+    }
+
+    /// <summary>
+    /// Divides the curve into <paramref name="segments"/> pieces of <b>equal chord</b> length
+    /// (`E2-T71`).
+    /// </summary>
+    /// <param name="segments">How many pieces. At least one.</param>
+    /// <returns>
+    /// <paramref name="segments"/> + 1 points, including both ends, whose consecutive straight-line
+    /// separations are all equal.
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="segments"/> is less than one.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// No equal-chord division of that many pieces could be found — see the remarks.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>This is not <see cref="DivideEqually(int)"/>, and on anything but a line the two give
+    /// different points.</b> That one makes the <i>arc</i> lengths equal; this makes the
+    /// <i>chords</i> equal, which is what somebody laying out equal-length straight members along a
+    /// curve actually means.
+    /// </para>
+    /// <para>
+    /// <b>There is no marching rule that lands on the far end, so the chord is what is solved
+    /// for.</b> Walk with a chord that is too small and the last step falls short of the end; too
+    /// large and it overshoots. The chord is bisected between <c>|start − end| / segments</c> — a
+    /// floor, because the straight line between the ends is the shortest any chain of chords can
+    /// be — and <c>Length / segments</c> — a ceiling, because <c>n</c> chords of <c>d</c> consume
+    /// at least <c>n·d</c> of arc.
+    /// </para>
+    /// <para>
+    /// <b>It can fail, and it says so rather than returning something near enough.</b> The
+    /// bisection assumes that a longer chord reaches further after the same number of steps, which
+    /// is true of any curve that does not double back inside a single step. On one that does, the
+    /// search can fail to converge, and an <see cref="InvalidOperationException"/> is a better
+    /// answer than a set of points whose separations are only nearly equal.
+    /// </para>
+    /// </remarks>
+    public Point3d[] DivideEquallyByChord(int segments)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(segments, 1);
+
+        Point3d from = Evaluate(Domain.Min);
+        Point3d to = Evaluate(Domain.Max);
+
+        if (segments == 1)
+        {
+            return [from, to];
+        }
+
+        double low = from.DistanceTo(to) / segments;
+        double high = Length / segments;
+
+        // A closed curve's ends coincide, so the floor is zero and carries no information; a
+        // degenerate bracket is no bracket at all, and the ceiling has to do the work alone.
+        low = Math.Max(low, high * 1e-12);
+
+        for (int iteration = 0; iteration < 200; iteration++)
+        {
+            double chord = (low + high) * 0.5;
+            double reached = ReachAfter(chord, segments, out double[] parameters);
+
+            // Converged when the last step lands on the end of the domain, relative to the domain
+            // rather than absolutely - N143's rule, which is why this is not a fixed 1e-12.
+            if (Math.Abs(reached - Domain.Max) <= Math.Max(Math.Abs(Domain.Length), 1.0) * 1e-14)
+            {
+                Point3d[] points = new Point3d[segments + 1];
+
+                for (int index = 0; index <= segments; index++)
+                {
+                    points[index] = Evaluate(index == segments ? Domain.Max : parameters[index]);
+                }
+
+                return points;
+            }
+
+            if (reached < Domain.Max)
+            {
+                low = chord;
+            }
+            else
+            {
+                high = chord;
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"No division of this curve into {segments} equal chords was found. The search assumes "
+            + "a longer chord reaches further, which a curve that doubles back inside one step "
+            + "breaks. DivideEqually divides by arc length and always succeeds.");
+    }
+
+    /// <summary>
+    /// How far along the domain <paramref name="segments"/> steps of a given chord reach.
+    /// </summary>
+    /// <param name="chord">The chord to step by.</param>
+    /// <param name="segments">How many steps.</param>
+    /// <param name="parameters">The parameter each step started from.</param>
+    /// <returns>
+    /// The parameter reached, or <see cref="Interval.Max"/> of the domain when a step ran off the
+    /// end — which is what "overshot" has to look like to the bisection above.
+    /// </returns>
+    private double ReachAfter(double chord, int segments, out double[] parameters)
+    {
+        parameters = new double[segments];
+        double at = Domain.Min;
+
+        for (int step = 0; step < segments; step++)
+        {
+            parameters[step] = at;
+
+            if (!TryStepByChord(chord, at, out double next))
+            {
+                // The step ran off the end: this chord is too long, and saying so is exactly what
+                // reporting the far end does for the caller above.
+                return double.PositiveInfinity;
+            }
+
+            at = next;
+        }
+
+        return at;
+    }
+
+    /// <summary>
+    /// The first parameter past <paramref name="from"/> whose point is <paramref name="chord"/>
+    /// away from the point at <paramref name="from"/>.
+    /// </summary>
+    /// <param name="chord">The straight-line distance to step.</param>
+    /// <param name="from">The parameter to step from.</param>
+    /// <param name="next">The parameter found.</param>
+    /// <returns><see langword="false"/> when the curve ends before reaching that distance.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The bracket is the whole of this, and the Newton nobody writes is the trap.</b> The
+    /// distance from a fixed point is <i>not</i> monotone along a curve that bends back, so a
+    /// solver handed the whole remaining domain can converge on a crossing that is not the first
+    /// one — a point further along, past a lobe the caller wanted divided. So the curve is walked
+    /// forward until the distance first reaches the chord, and only then refined.
+    /// </para>
+    /// <para>
+    /// <b>The walk steps by <i>arc length</i>, not by parameter</b>, because a parameter step means
+    /// different distances on different curves and on different parts of the same one. The step is
+    /// a quarter of the chord, bounded below by the curve's own length so that a huge chord on a
+    /// short curve still samples it: a lobe smaller than that sampling can still be stepped over,
+    /// and that is the stated limit of the method rather than a defect to be tuned away.
+    /// </para>
+    /// </remarks>
+    private bool TryStepByChord(double chord, double from, out double next)
+    {
+        next = from;
+
+        Point3d anchor = Evaluate(from);
+        double total = Length;
+        double startLength = LengthAt(from);
+        double walk = Math.Min(chord * 0.25, total / 256.0);
+
+        if (walk <= 0.0)
+        {
+            return false;
+        }
+
+        double previous = startLength;
+
+        for (double travelled = startLength + walk; ; travelled += walk)
+        {
+            bool past = travelled >= total;
+            double here = past ? total : travelled;
+            double distance = anchor.DistanceTo(Evaluate(ParameterAtLength(here)));
+
+            if (distance >= chord)
+            {
+                next = Refine(anchor, chord, previous, here);
+
+                return true;
+            }
+
+            if (past)
+            {
+                // THE LAST STEP OF A WALK THAT FITS EXACTLY, which rounding would otherwise lose.
+                // Six chords of 1 close a unit circle precisely, and the sixth lands on the end of
+                // the domain where the distance comes back as the chord less an ulp or two - so
+                // without this slack the loop returns with a gap in it, one point short, which is
+                // the opposite of what DivideEqually promises for a closed curve.
+                if (distance >= chord - (Math.Max(chord, 1.0) * 1e-12))
+                {
+                    next = Domain.Max;
+
+                    return true;
+                }
+
+                return false;
+            }
+
+            previous = here;
+        }
+    }
+
+    /// <summary>Bisects the arc length at which the distance from a point reaches a chord.</summary>
+    /// <param name="anchor">The point measured from.</param>
+    /// <param name="chord">The distance to reach.</param>
+    /// <param name="shortOf">An arc length whose point is nearer than the chord.</param>
+    /// <param name="past">An arc length whose point is at least the chord away.</param>
+    /// <returns>The parameter at the crossing.</returns>
+    /// <remarks>
+    /// <b>Bisection rather than Newton, and deliberately.</b> The bracket is at most a quarter of a
+    /// chord wide, so fifty halvings put the answer far below any tolerance a caller has — and
+    /// bisection cannot leave the bracket, which is the one property that matters here after the
+    /// trouble that motivated bracketing in the first place.
+    /// </remarks>
+    private double Refine(in Point3d anchor, double chord, double shortOf, double past)
+    {
+        double low = shortOf;
+        double high = past;
+
+        for (int iteration = 0; iteration < 60; iteration++)
+        {
+            double middle = (low + high) * 0.5;
+
+            if (anchor.DistanceTo(Evaluate(ParameterAtLength(middle))) < chord)
+            {
+                low = middle;
+            }
+            else
+            {
+                high = middle;
+            }
+        }
+
+        return ParameterAtLength((low + high) * 0.5);
+    }
+
+    /// <summary>
     /// Approximates the curve as a polyline whose chords stay within a tolerance of it.
     /// </summary>
     /// <remarks>
