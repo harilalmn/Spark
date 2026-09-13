@@ -169,6 +169,7 @@ static Spark.Geometry.Circle.FromBestFit(System.Collections.Generic.IReadOnlyLis
 static Spark.Geometry.CurveIntersectionPoint.operator !=(Spark.Geometry.CurveIntersectionPoint left, Spark.Geometry.CurveIntersectionPoint right) -> bool
 static Spark.Geometry.CurveIntersectionPoint.operator ==(Spark.Geometry.CurveIntersectionPoint left, Spark.Geometry.CurveIntersectionPoint right) -> bool
 static Spark.Geometry.CurveIntersections.None.get -> Spark.Geometry.CurveIntersections!
+static Spark.Geometry.CurveOffset.Fillet(Spark.Geometry.Curve! first, Spark.Geometry.Curve! second, double radius, in Spark.Geometry.Vector3d normal, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> (Spark.Geometry.Arc! Fillet, Spark.Geometry.Curve! First, Spark.Geometry.Curve! Second)
 static Spark.Geometry.CurveOverlap.operator !=(Spark.Geometry.CurveOverlap left, Spark.Geometry.CurveOverlap right) -> bool
 static Spark.Geometry.CurveOverlap.operator ==(Spark.Geometry.CurveOverlap left, Spark.Geometry.CurveOverlap right) -> bool
 static Spark.Geometry.CurveSurfaceIntersectionPoint.operator !=(Spark.Geometry.CurveSurfaceIntersectionPoint left, Spark.Geometry.CurveSurfaceIntersectionPoint right) -> bool

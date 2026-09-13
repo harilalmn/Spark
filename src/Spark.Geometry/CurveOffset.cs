@@ -181,6 +181,286 @@ public static class CurveOffset
     }
 
     /// <summary>
+    /// The arc of a given radius tangent to two curves, and the two curves trimmed back to meet it
+    /// (`E2-T72`).
+    /// </summary>
+    /// <param name="first">The curve the fillet leaves.</param>
+    /// <param name="second">The curve it arrives at.</param>
+    /// <param name="radius">The fillet radius. Positive.</param>
+    /// <param name="normal">
+    /// The normal of the plane the two curves lie in. <see cref="Curve.PlaneOf(in Tolerance)"/>
+    /// supplies it for a curve that has one; it is asked for rather than inferred because a fillet
+    /// between two <i>straight</i> curves has no plane of its own to read.
+    /// </param>
+    /// <param name="tolerance">The tolerance for the intersection and the offsets.</param>
+    /// <returns>The arc, and the two trimmed curves, in order.</returns>
+    /// <exception cref="ArgumentNullException">Either curve is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="radius"/> is not positive and finite.</exception>
+    /// <exception cref="ArgumentException">
+    /// The curves do not cross, they are not coplanar, or no fillet of that radius fits the corner.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="FilletLines"/> stopped at two lines for a reason that has since expired.</b>
+    /// Its remarks said a general fillet <i>needs curve-curve intersection to know where the corner
+    /// is at all, and a tangency problem solved by iteration — neither of which exists yet</i>.
+    /// <see cref="Curve.IntersectWith(Curve, in Tolerance)"/> arrived in `E2-T11`, and the
+    /// iteration is below. The closed form is kept because two lines is the overwhelmingly common
+    /// case and a closed form is worth having; this is what answers everything else.
+    /// </para>
+    /// <para>
+    /// <b>The method is: the fillet's centre is the point at distance <c>radius</c> from both
+    /// curves</b>, which is where their offsets cross. Offsetting each curve by <c>radius</c> and
+    /// intersecting the two gives it — and there are <b>four</b> such points, one per combination
+    /// of sides, of which exactly one is the fillet a user meant. <b>The nearest to the corner
+    /// wins</b>, which is the rule, stated here rather than left implicit: a fillet is the arc that
+    /// rounds off <i>this</i> corner, and the other three round off the corner's reflections.
+    /// </para>
+    /// <para>
+    /// <b>That intersection is a seed and not the answer, because <see cref="Offset"/> is not
+    /// exact.</b> For anything but a line it fits a NURBS curve through sampled offset points, so a
+    /// centre read straight off it is accurate to the fit rather than to the arithmetic — and a
+    /// fillet is a promise about <i>tangency</i>, which is exactly what an approximate centre
+    /// breaks. So the centre is refined by Newton on the two equations
+    /// <c>distance(c, first) = radius</c> and <c>distance(c, second) = radius</c>, in the plane.
+    /// The gradient of a distance-to-curve is the unit vector from the closest point, which makes
+    /// the Jacobian two rows of two and the step a 2×2 solve. It is `E2-T70` step B's shape:
+    /// bracket by sampling, then converge by Newton.
+    /// </para>
+    /// <para>
+    /// <b>A radius too large for the corner is refused rather than rounded down</b>, and the
+    /// refusal falls out of the geometry: the two offsets simply do not cross. A caller asking for
+    /// a fillet of radius ten in a corner two across has asked for something that does not exist,
+    /// and an arc that overshoots both curves is a worse answer than a message.
+    /// </para>
+    /// </remarks>
+    public static (Arc Fillet, Curve First, Curve Second) Fillet(
+        Curve first, Curve second, double radius, in Vector3d normal, in Tolerance tolerance = default)
+    {
+        ArgumentNullException.ThrowIfNull(first);
+        ArgumentNullException.ThrowIfNull(second);
+
+        if (!double.IsFinite(radius) || radius <= 0.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(radius), radius, "A fillet radius must be positive and finite.");
+        }
+
+        if (!normal.TryNormalise(out Vector3d unitNormal))
+        {
+            throw new ArgumentException(
+                "A fillet needs the normal of the plane its two curves lie in, and this one has no "
+                + "length. Curve.PlaneOf will supply it for a curve that has a plane.",
+                nameof(normal));
+        }
+
+        CurveIntersections crossing = first.IntersectWith(second, tolerance);
+
+        if (crossing.Points.Count == 0)
+        {
+            throw new ArgumentException(
+                "The two curves do not cross, so there is no corner to fillet. Extend them until "
+                + "they meet, or fillet a pair that does.",
+                nameof(second));
+        }
+
+        Point3d corner = crossing.Points[0].Point;
+
+        if (!TryFilletCentre(first, second, radius, corner, unitNormal, tolerance, out Point3d centre))
+        {
+            throw new ArgumentException(
+                $"No fillet of radius {radius.ToString("R", CultureInfo.InvariantCulture)} fits "
+                + "that corner. The two curves offset by it never meet, which is what a radius too "
+                + "large for the corner looks like.",
+                nameof(radius));
+        }
+
+        Point3d tangentOnFirst = first.ClosestPoint(centre);
+        Point3d tangentOnSecond = second.ClosestPoint(centre);
+
+        Arc fillet = Arc.FromThreePoints(
+            tangentOnFirst,
+            MidArcPoint(centre, tangentOnFirst, tangentOnSecond, radius),
+            tangentOnSecond);
+
+        return (
+            fillet,
+            TrimToCorner(first, tangentOnFirst, corner),
+            TrimToCorner(second, tangentOnSecond, corner));
+    }
+
+    /// <summary>
+    /// The point at <paramref name="radius"/> from both curves nearest the corner, refined until it
+    /// is exactly that.
+    /// </summary>
+    /// <param name="first">The first curve.</param>
+    /// <param name="second">The second curve.</param>
+    /// <param name="radius">The fillet radius.</param>
+    /// <param name="corner">Where the two curves cross.</param>
+    /// <param name="normal">The unit plane normal.</param>
+    /// <param name="tolerance">The tolerance for the offsets and their intersection.</param>
+    /// <param name="centre">The fillet centre.</param>
+    /// <returns><see langword="false"/> when no such point exists near the corner.</returns>
+    private static bool TryFilletCentre(
+        Curve first,
+        Curve second,
+        double radius,
+        in Point3d corner,
+        in Vector3d normal,
+        in Tolerance tolerance,
+        out Point3d centre)
+    {
+        centre = Point3d.Origin;
+
+        // The four side combinations. Only one rounds off THIS corner; the other three round off
+        // its reflections, and they are all genuine points at `radius` from both curves — which is
+        // why the choice cannot be made afterwards from the geometry alone and is made here, by
+        // taking the one nearest the corner.
+        double best = double.MaxValue;
+        bool found = false;
+
+        foreach (int firstSign in (int[])[1, -1])
+        {
+            Curve offsetFirst;
+
+            try
+            {
+                offsetFirst = Offset(first, radius * firstSign, normal, tolerance).Curve;
+            }
+            catch (ArgumentException)
+            {
+                // An offset that collapses is a side this corner does not have.
+                continue;
+            }
+
+            foreach (int secondSign in (int[])[1, -1])
+            {
+                Curve offsetSecond;
+
+                try
+                {
+                    offsetSecond = Offset(second, radius * secondSign, normal, tolerance).Curve;
+                }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
+
+                foreach (CurveIntersectionPoint candidate in
+                    offsetFirst.IntersectWith(offsetSecond, tolerance).Points)
+                {
+                    double away = candidate.Point.DistanceTo(corner);
+
+                    if (away < best)
+                    {
+                        best = away;
+                        centre = candidate.Point;
+                        found = true;
+                    }
+                }
+            }
+        }
+
+        return found && Converge(first, second, radius, normal, ref centre);
+    }
+
+    /// <summary>
+    /// Newton on <c>distance(c, first) = radius</c> and <c>distance(c, second) = radius</c>.
+    /// </summary>
+    /// <param name="first">The first curve.</param>
+    /// <param name="second">The second curve.</param>
+    /// <param name="radius">The radius both distances must reach.</param>
+    /// <param name="normal">The unit plane normal, which the centre is kept in.</param>
+    /// <param name="centre">The seed, refined in place.</param>
+    /// <returns><see langword="false"/> when the step is singular and the seed is not already a solution.</returns>
+    /// <remarks>
+    /// <b>The gradient of a distance-to-curve is the unit vector from the closest point</b>, which
+    /// is what makes this two equations in two unknowns rather than a general optimisation. The two
+    /// unknowns are the centre's coordinates <i>in the plane</i>, so the step is taken in a basis
+    /// built from the normal and the answer cannot drift out of the plane over the iterations.
+    /// </remarks>
+    private static bool Converge(
+        Curve first, Curve second, double radius, in Vector3d normal, ref Point3d centre)
+    {
+        // A basis for the plane, taken from Plane's own frame builder rather than derived here:
+        // picking a perpendicular to a normal is exactly what FromOriginNormal already does, and
+        // which perpendicular it picks does not matter to a 2x2 solve.
+        Plane frame = Plane.FromOriginNormal(centre, normal);
+        Vector3d axisU = frame.XAxis;
+        Vector3d axisV = frame.YAxis;
+
+        for (int iteration = 0; iteration < 64; iteration++)
+        {
+            Point3d nearFirst = first.ClosestPoint(centre);
+            Point3d nearSecond = second.ClosestPoint(centre);
+
+            double toFirst = nearFirst.DistanceTo(centre);
+            double toSecond = nearSecond.DistanceTo(centre);
+
+            double errorFirst = toFirst - radius;
+            double errorSecond = toSecond - radius;
+
+            // Relative to the radius, for the reason every convergence test in this kernel is
+            // relative: a fillet a micron across and one a kilometre across must converge by the
+            // same standard ([N143](../../docs/NOTES.md)).
+            if (Math.Abs(errorFirst) <= radius * 1e-14 && Math.Abs(errorSecond) <= radius * 1e-14)
+            {
+                return true;
+            }
+
+            if (toFirst <= 0.0 || toSecond <= 0.0)
+            {
+                // The centre landed on one of the curves. There is no direction to step in.
+                return false;
+            }
+
+            Vector3d awayFromFirst = (centre - nearFirst) / toFirst;
+            Vector3d awayFromSecond = (centre - nearSecond) / toSecond;
+
+            double a = awayFromFirst.Dot(axisU);
+            double b = awayFromFirst.Dot(axisV);
+            double c = awayFromSecond.Dot(axisU);
+            double d = awayFromSecond.Dot(axisV);
+
+            double determinant = (a * d) - (b * c);
+
+            if (determinant == 0.0 || !double.IsFinite(determinant))
+            {
+                // The two gradients are parallel: the curves are tangent to each other here, and a
+                // tangent pair has no corner to round.
+                return false;
+            }
+
+            double stepU = -((errorFirst * d) - (errorSecond * b)) / determinant;
+            double stepV = -((errorSecond * a) - (errorFirst * c)) / determinant;
+
+            centre += (axisU * stepU) + (axisV * stepV);
+        }
+
+        return false;
+    }
+
+    /// <summary>The part of a curve from its far end to the fillet's tangent point.</summary>
+    /// <param name="curve">The curve.</param>
+    /// <param name="tangentPoint">Where the fillet touches it.</param>
+    /// <param name="corner">Where the two curves cross, which is the end being trimmed away.</param>
+    /// <returns>The trimmed curve.</returns>
+    /// <remarks>
+    /// <b>The corner decides which side is kept</b>, not the curve's own direction: the piece
+    /// wanted is the one running away from the corner, and a caller who drew the second curve
+    /// backwards should still get a chain that joins.
+    /// </remarks>
+    private static Curve TrimToCorner(Curve curve, in Point3d tangentPoint, in Point3d corner)
+    {
+        double atTangent = curve.ClosestParameter(tangentPoint);
+        double atCorner = curve.ClosestParameter(corner);
+
+        return atCorner > atTangent
+            ? curve.Trimmed(new Interval(curve.Domain.Min, atTangent))
+            : curve.Trimmed(new Interval(curve.Domain.Max, atTangent));
+    }
+
+    /// <summary>
     /// The arc of a given radius tangent to two lines, and the two lines trimmed back to meet it.
     /// </summary>
     /// <param name="first">The line the fillet leaves.</param>

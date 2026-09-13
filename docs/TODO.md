@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T72` first idea: curve fitting, of which Spark had none)
+**Last updated:** 2026-09-13 (`E2-T72` second idea: the general two-curve fillet)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -374,9 +374,17 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     fit is algebraic then refined geometrically, and the second half is not decoration** —
 >     measured rather than cited, removing the refinement fits a 20° arc of radius 10 as radius
 >     **9.58**. `Arc.FromBestFit` keeps the fit and the sweep apart and **refuses points that double
->     back**. **Residue unchanged at 300**, the first step in five that cost nothing. **Next**: the
->     rest of `E2-T71`/`E2-T72`
->     (one fillet that takes two lines, no periodic NURBS, `PolyCurve`'s exact NURBS conversion),
+>     back**. **Residue unchanged at 300**, the first step in five that cost nothing. ~~**the second idea**~~ **done the same day**:
+>     **`CurveOffset.Fillet` rounds a corner between *any* two curves**. `FilletLines` stopped at
+>     two lines for a reason it wrote down — a general fillet needs curve-curve intersection and an
+>     iterative tangency solve — and `E2-T11` built the first, so the stopping point had expired
+>     and was re-read rather than inherited. The centre is where the two offsets cross, **four
+>     candidates and the nearest to the corner wins**, and that crossing is a **seed**: `Offset` is
+>     exact only for lines, circles and arcs, so the centre is refined by Newton until it is
+>     exactly the radius from both — without which the fillet is tangent only to a fit's accuracy,
+>     and tangency is the whole promise. **Residue unchanged at 300** for the second step running.
+>     **Next**: the rest of `E2-T71`/`E2-T72`
+>     (no periodic NURBS, `PolyCurve`'s exact NURBS conversion, chord stepping, extension),
 >     then
 >     `E2-T66`…`E2-T69`. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks

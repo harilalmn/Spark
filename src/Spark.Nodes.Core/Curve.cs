@@ -226,4 +226,32 @@ public static class Curve
 
         return pieces;
     }
+
+    /// <summary>Rounds the corner where two curves cross, with an arc of a given radius.</summary>
+    /// <param name="first">The curve the fillet leaves.</param>
+    /// <param name="second">The curve it arrives at.</param>
+    /// <param name="radius">The fillet radius. Positive, and small enough to fit the corner.</param>
+    /// <param name="normal">
+    /// The normal of the plane the two curves lie in. It is asked for rather than worked out,
+    /// because two straight curves have no plane of their own to read.
+    /// </param>
+    /// <returns>The fillet arc, then the two curves trimmed back to meet it — three curves that join.</returns>
+    /// <remarks>
+    /// <b>The arc is tangent to both curves, not merely touching them at the right places.</b> A
+    /// radius too large for the corner is an error rather than an arc that overshoots.
+    /// </remarks>
+    [return: NodePort("curves")]
+    [SparkNodeAlias("Arc.ByFillet")]
+    public static IReadOnlyList<Spark.Geometry.Curve> Fillet(
+        Spark.Geometry.Curve first,
+        Spark.Geometry.Curve second,
+        double radius = 1.0,
+        Vector3d normal = default)
+    {
+        (Spark.Geometry.Arc fillet, Spark.Geometry.Curve trimmedFirst, Spark.Geometry.Curve trimmedSecond) =
+            CurveOffset.Fillet(
+                first, second, radius, normal.LengthSquared > 0.0 ? normal : Vector3d.ZAxis);
+
+        return [trimmedFirst, fillet, trimmedSecond];
+    }
 }

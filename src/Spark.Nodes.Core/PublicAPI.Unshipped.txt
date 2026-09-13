@@ -7,6 +7,7 @@ static Spark.Nodes.Core.Circle.FromBestFit(System.Collections.Generic.IReadOnlyL
 static Spark.Nodes.Core.Console.Clear() -> int
 static Spark.Nodes.Core.Console.Write(string! text) -> string!
 static Spark.Nodes.Core.Console.WriteLine(string! text) -> string!
+static Spark.Nodes.Core.Curve.Fillet(Spark.Geometry.Curve! first, Spark.Geometry.Curve! second, double radius = 1, Spark.Geometry.Vector3d normal = default(Spark.Geometry.Vector3d)) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>!
 static Spark.Nodes.Core.Curve.IntersectWith(Spark.Geometry.Curve! curve, Spark.Geometry.Curve! other) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
 static Spark.Nodes.Core.Curve.IntersectWithSurface(Spark.Geometry.Curve! curve, Spark.Geometry.Surface! surface) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
 static Spark.Nodes.Core.Curve.OverlapWith(Spark.Geometry.Curve! curve, Spark.Geometry.Curve! other) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>!

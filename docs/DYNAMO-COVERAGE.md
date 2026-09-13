@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-13 (`E2-T72`: curve fitting; 408 of 545)
+**Last updated:** 2026-09-13 (`E2-T72`: the general two-curve fillet; 409 of 545)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -52,13 +52,13 @@ or from this repository; none is an estimate.
 | | Types | Members | Share of 837 |
 |---|---:|---:|---:|
 | ProtoGeometry public surface | 51 | 837 | 100% |
-| **Reachable in Spark today** | **35** | **408** | **48.7%** |
+| **Reachable in Spark today** | **35** | **409** | **48.9%** |
 | Deliberately not replicated (§5) | 7 + parts of 4 | 123 | 14.7% |
 | Awaiting a decision — T-Splines (§6.2) | 8 | 169 | 20.2% |
-| **Committed and still to build** | — | **137** | **16.4%** |
+| **Committed and still to build** | — | **136** | **16.2%** |
 
 Against the scope we have actually committed to — 837 less the 123 we refuse and the 169 that
-need their own decision, so **545 members** — Spark stands at **408 of 545, or 74.9%**. **Thirteen
+need their own decision, so **545 members** — Spark stands at **409 of 545, or 75.0%**. **Thirteen
 ProtoGeometry types are answered in full**: `Plane`, `UV`, `Ellipse`, `EllipseArc`, `Rectangle`,
 `IndexGroup`, `Topology`, `Vertex`, `Edge`, `Loop` and, all on 2026-09-13, **`Helix`** (`E2-T73`),
 **`Line`** and **`Circle`** (`E2-T72`) — the first three this register asked for and then watched
@@ -77,8 +77,8 @@ get built.
 > **The manifest counts these now, and where it differs from this table the manifest is right**
 > (2026-09-11, `E11-T23`). [`tests/corpus/dynamo-parity.tsv`](../tests/corpus/dynamo-parity.tsv) holds
 > one row per member, generated from the same `ProtoGeometry.dll` metadata, and `Spark.Docs.Verify`
-> checks it against this document on every build. **As of 2026-09-13 it stands at `Done` 408,
-> `Planned` 108, `Not planned` 123, `Needs a decision` 198 and `Unassessed` 0**, which is 837 — and
+> checks it against this document on every build. **As of 2026-09-13 it stands at `Done` 409,
+> `Planned` 107, `Not planned` 123, `Needs a decision` 198 and `Unassessed` 0**, which is 837 — and
 > the table above is now taken from those numbers rather than checked against them.
 > Applying §5's rules gives **123** refused members, not 93 — §5's own lists add to 104, the four
 > primitive solids carry 14 parameter-recovery properties rather than 11, §5 [i]'s three flattened
@@ -87,18 +87,18 @@ get built.
 > `Vector.IsAlmostEqualTo` to §5 [j] and `CoordinateSystem.ByOriginVectors`'s explicit-Z overload to
 > §3.1's ground. **Of the 198 `Needs a decision`, 169 are the T-Splines and 29 are not**: `Q17`'s six
 > oriented-box rows, §6.3's undeducible signatures, and the rest.
-> **All seven sections are now assessed member by member**: §3.1 (113 of 133), §3.2 (**127 of 187**,
+> **All seven sections are now assessed member by member**: §3.1 (113 of 133), §3.2 (**128 of 187**,
 > the largest), §3.3 (48 of 106), §3.4 (24 of 55), §3.5 (31 of 33), §3.6 (41 of 65) and §3.8 (24 of
 > 89). §3.7's 169 T-Spline members are `Q12`'s decision and are not an assessment.
 >
-> **The move from 392 to 408 on 2026-09-13 is the first this register has made by *building*
+> **The move from 392 to 409 on 2026-09-13 is the first this register has made by *building*
 > rather than by *measuring*.** Every earlier change to the headline came from a member-by-member
 > pass finding Spark further ahead than the prose claimed — seven passes, seven under-claims
 > ([N163](NOTES.md)). `Helix`'s seven rows are `Done` because the type was written (`E2-T73`), which
 > is what the register is *for*, and is the shape every remaining move has to have now that no row
 > anywhere is `Unassessed`.
 
-### What the 408 counts, exactly
+### What the 409 counts, exactly
 
 A ProtoGeometry member counts as **reachable** when a Spark user can obtain the same result
 today through a documented member of one of the **delivering assemblies** — `Spark.Geometry`,
@@ -116,9 +116,9 @@ because getting there means working out the sweep angle from two radii, and the 
 the constructor is for. Members that are pure native-session plumbing, or that operate on types
 Spark does not have, are not reachable.
 
-**Where the 408 sit.** Every subsystem except T-Splines — which is the sentence this section could
+**Where the 409 sit.** Every subsystem except T-Splines — which is the sentence this section could
 not say for the first year of its life, when it read *all 99 sit in one subsystem, because that is
-the only subsystem that exists*. Values and frames is 113 of 133, curves 127 of 187, surfaces 48 of
+the only subsystem that exists*. Values and frames is 113 of 133, curves 128 of 187, surfaces 48 of
 106, topology 31 of 33, mesh 41 of 65, solids 24 of 55 and infrastructure 24 of 89. Thirteen types
 are answered in full. What is **not** here is exact solid modelling without a provider (§6.1) and the
 T-Spline paradigm (§6.2), and no count in this document should be read as implying otherwise.
@@ -128,11 +128,11 @@ T-Spline paradigm (§6.2), and no count in this document should be read as imply
 Two warnings, both of which matter for reading the table above honestly.
 
 **A percentage of members is not a percentage of work, and 72% is the most misleading number in
-this document.** A large share of the 408 are the easiest members in the inventory: arithmetic on
+this document.** A large share of the 409 are the easiest members in the inventory: arithmetic on
 six-double structs, decided by algebra and verified by property tests. A large share of the rest are
 `Done` because they name an `IBrepKernel` operation, which is *one line in this register and an
 entire dependency* — `Solid.Difference` is one row of one table and is a multi-year research problem
-if it is ever written rather than delegated (§6.1, ADR-0020). And the 137 still to build are not the
+if it is ever written rather than delegated (§6.1, ADR-0020). And the 136 still to build are not the
 easy ones, because the easy ones are what got done. **Any schedule derived from 72% is wrong by an
 order of magnitude**, in the same way any schedule derived from the old 17% was.
 
@@ -295,7 +295,7 @@ separate concerns and Spark keeps them separate. Similarly `Vector.Scale(x, y, z
 through `Transform.Scale(x, y, z).OfVector(v)`; a non-uniform scale is a transformation, and
 putting it on the vector implies a frame the vector does not carry.
 
-### 3.2 Curves — 11 types, 187 members, 127 reachable
+### 3.2 Curves — 11 types, 187 members, 128 reachable
 
 **All 187 rows were assessed member by member on 2026-09-13** (`E2-T41`, in two steps: `Curve`'s 82,
 then the ten concrete types' 105), against the delivering assemblies rather than by eye
@@ -307,7 +307,7 @@ found.
 |---|---:|---:|---|---|---|
 | `Curve` (base) | 82 | 45 | `Curve` — the contract, settled against this section | Partial | M1 ✓, M3 |
 | `Line` | 6 | 6 | `Line` | **Complete** | M1 ✓ |
-| `Arc` | 14 | 9 | `Arc` | **Partial** | M1 ✓ |
+| `Arc` | 14 | 10 | `Arc` | **Partial** | M1 ✓ |
 | `Circle` | 8 | 8 | `Circle` | **Complete** | M1 ✓ |
 | `Ellipse` | 8 | 8 | `EllipseCurve` | **Complete** | M1 ✓ |
 | `EllipseArc` | 9 | 9 | `EllipseCurve` over a sub-domain | **Complete** | M1 ✓ |
@@ -317,7 +317,7 @@ found.
 | `Polygon` | 9 | 8 | `PolyLine`, closed | **Partial** | M1 ✓ |
 | `Rectangle` | 8 | 8 | A `PolyLine` factory, not a type | **Complete** | M1 ✓ |
 
-**127 of 187**, as `Done` 127, `Planned` 34, `Needs a decision` 18, `Not planned` 8. **`Line` and
+**128 of 187**, as `Done` 128, `Planned` 33, `Needs a decision` 18, `Not planned` 8. **`Line` and
 `Circle` joined the complete types on 2026-09-13** when `E2-T72` gave them best-fit constructors,
 which takes §3.2's complete count from four to six. `Curve` alone is
 **45 of 82** — the forty the assessment found, plus `ToNurbsCurve`, which was *the finding of that

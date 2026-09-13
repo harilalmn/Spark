@@ -1,7 +1,7 @@
 ---
 id: concepts.curves
 title: Curves, parameters and arc length
-nodes: [Line.FromStartPointEndPoint, Circle.FromCenterRadius, Arc.FromThreePoints, Ellipse.FromPlaneRadii, Helix.FromAxis, PolyLine.FromRegularPolygon, PolyCurve.FromJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength, Curve.IntersectWith, Curve.IntersectWithSurface]
+nodes: [Line.FromStartPointEndPoint, Circle.FromCenterRadius, Arc.FromThreePoints, Ellipse.FromPlaneRadii, Helix.FromAxis, Curve.Fillet, PolyLine.FromRegularPolygon, PolyCurve.FromJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength, Curve.IntersectWith, Curve.IntersectWithSurface]
 related: [concepts.geometry-basics, concepts.lacing]
 since: "0.1"
 ---
@@ -518,6 +518,40 @@ uncertain rather than merely imprecise. Spark fits it as well as it can be fitte
 algebraic answer is refined until it minimises the real distance to the points, which stops the
 radius coming out short on short arcs), but no method can recover what the measurements do not
 contain. If your points cover twenty degrees, treat the radius as an estimate.
+
+---
+
+## 12. Rounding a corner
+
+`Curve.Fillet` replaces the sharp corner where two curves cross with an arc of a given radius, and
+hands back the three curves that join:
+
+```csharp
+using Spark.Geometry;
+
+Line wall = new(new Point3d(-4.0, 0.0, 0.0), Point3d.Origin);
+Line returnWall = new(Point3d.Origin, new Point3d(0.0, 4.0, 0.0));
+
+(Arc corner, Curve first, Curve second) =
+    CurveOffset.Fillet(wall, returnWall, 1.5, Vector3d.ZAxis);
+
+double reach = first.Length;    // 2.5 - the wall, trimmed back to where the arc starts
+```
+
+**It works between any two curves**, not just two straight ones — an arc against a line, two arcs,
+a spline against anything. **The arc is genuinely tangent to both**, not merely touching them at
+plausible points, which is the difference between a corner that machines correctly and one that
+only looks right.
+
+Three things to know:
+
+- **You pass the plane's normal.** Two straight lines have no plane of their own to read — which is
+  why `Line.PlaneOf()` returns `null` — so the fillet asks instead of guessing. For curves that do
+  have a plane, `curve.PlaneOf()!.Value.Normal` is the answer.
+- **A radius too big for the corner is an error.** There is no fillet of radius 10 in a corner 2
+  across, and you get a message rather than an arc that overshoots both curves.
+- **It rounds the corner nearest where the curves cross.** Two curves crossing have four corners,
+  and all four have a valid tangent arc; the one you can see is the one you get.
 
 ---
 
