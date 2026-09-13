@@ -251,6 +251,20 @@ public sealed class Arc : Curve
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <b>Exact, through the rational quadratic in <see cref="RationalArcs"/> — the same
+    /// construction <see cref="SurfaceConversion"/> has used since `E2-T19`.</b> The control points are built at their angles in the plane and the knots are then slid back by <see cref="StartAngle"/>, because an arc is parameterised from its own start rather than from the plane's x axis.
+    /// <para>
+    /// <b>The parameterisation is not preserved, and cannot be.</b> A rational quadratic traces the
+    /// curve exactly and walks it by a projective function of the angle rather than by the angle,
+    /// so the two agree as <i>sets of points</i> and disagree about which parameter is where. The
+    /// domain <i>is</i> preserved, so the two have the same ends and the same extent.
+    /// </para>
+    /// </remarks>
+    public override NurbsConversion ToNurbsCurve(in Tolerance tolerance = default) =>
+        new(RationalArcs.Elliptical(_plane, _radius, _radius, _startAngle, _sweep), true);
+
+    /// <inheritdoc/>
     public override Curve Reversed() =>
         new Arc(
             Plane.FromOriginXAxisYAxis(_plane.Origin, _plane.XAxis, -_plane.YAxis),

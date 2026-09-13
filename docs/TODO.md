@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T71` step A: `Curve.ToNurbsCurve`, and a result that says whether it was exact)
+**Last updated:** 2026-09-13 (`E2-T71` step B: the rational curves convert exactly, and the quarter-circle has one copy)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -349,9 +349,15 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     **`ModelWriter` stopped guessing** — it had been setting its `Approximated` flag from which
 >     `switch` branch it fell through, which is wrong in both directions, and sampling at a flat 64
 >     points, which on a three-turn helix is a two-per-cent deviation nobody had measured.
->     **Next**: `E2-T71` step B (`Arc`, `Circle`, `EllipseCurve` — the same quarter-circle
->     arithmetic `SurfaceConversion` has had since `E2-T19`, so the work is lifting that private
->     helper into one copy both call), then the rest of `E2-T71`/`E2-T72`
+>     ~~**step B**~~ **done the same day**: **`Arc`,
+>     `Circle` and `EllipseCurve` convert exactly**, through the quarter-circle arithmetic
+>     `SurfaceConversion` has had since `E2-T19` — which was **private to it** and is now an
+>     internal `RationalArcs` both layers call, because a construction derived twice is a
+>     construction two copies will disagree about. **The ellipse cost nothing**: it is an affine
+>     image of a circle, and an affine map carries a rational B-spline to a rational B-spline.
+>     **One copy proved itself at once** — replacing `cos(θ/2)` with `cos θ` reddens the curve
+>     tests *and* eight surface tests. **`PolyCurve` is the one conversion left**, and needs its
+>     segments' knot vectors merged. **Next**: the rest of `E2-T71`/`E2-T72`
 >     (no curve fitting of any kind, one fillet that takes two lines, no periodic NURBS), then
 >     `E2-T66`…`E2-T69`. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks

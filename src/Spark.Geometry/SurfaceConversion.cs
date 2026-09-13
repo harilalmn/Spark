@@ -16,6 +16,12 @@ namespace Spark.Geometry;
 /// is what a BRep kernel does constantly — quietly destructive.
 /// </para>
 /// <para>
+/// <b>The arithmetic itself lives in <see cref="RationalArcs"/> since `E2-T71` step B</b>, because
+/// the curve layer needs exactly the same control points to convert a <see cref="Circle"/>, an
+/// <see cref="Arc"/> or an <see cref="EllipseCurve"/>, and two derivations of one construction is
+/// how two copies come to disagree.
+/// </para>
+/// <para>
 /// <b>The trick in every case is the rational quarter-circle.</b> Three control points with
 /// weights <c>1, cos(θ/2), 1</c> reproduce a circular arc of sweep <c>θ</c> exactly, for any sweep
 /// under a half turn. Everything here is built from that one fact: a cylinder is an arc extruded, a
@@ -52,8 +58,6 @@ namespace Spark.Geometry;
 /// </remarks>
 public static class SurfaceConversion
 {
-    /// <summary>How many rational spans a sweep needs, at most a half turn each.</summary>
-    private static int Spans(double sweep) => Math.Max(1, (int)Math.Ceiling(Math.Abs(sweep) / (Math.PI / 2.0)));
 
     /// <summary>The NURBS surface that is exactly this plane rectangle.</summary>
     /// <param name="surface">The plane surface.</param>
@@ -85,7 +89,7 @@ public static class SurfaceConversion
     {
         ArgumentNullException.ThrowIfNull(surface);
 
-        (Point2d[] section, double[] weights, KnotVector knots) = Arc(surface.DomainU, surface.Radius);
+        (Point2d[] section, double[] weights, KnotVector knots) = RationalArcs.Arc(surface.DomainU, surface.Radius);
 
         Point3d[,] net = new Point3d[section.Length, 2];
         double[,] netWeights = new double[section.Length, 2];
@@ -116,7 +120,7 @@ public static class SurfaceConversion
     {
         ArgumentNullException.ThrowIfNull(surface);
 
-        (Point2d[] section, double[] weights, KnotVector knots) = Arc(surface.DomainU, 1.0);
+        (Point2d[] section, double[] weights, KnotVector knots) = RationalArcs.Arc(surface.DomainU, 1.0);
 
         Point3d[,] net = new Point3d[section.Length, 2];
         double[,] netWeights = new double[section.Length, 2];
@@ -156,8 +160,8 @@ public static class SurfaceConversion
     {
         ArgumentNullException.ThrowIfNull(surface);
 
-        (Point2d[] around, double[] aroundWeights, KnotVector knotsU) = Arc(surface.DomainU, 1.0);
-        (Point2d[] profile, double[] profileWeights, KnotVector knotsV) = Arc(surface.DomainV, surface.Radius);
+        (Point2d[] around, double[] aroundWeights, KnotVector knotsU) = RationalArcs.Arc(surface.DomainU, 1.0);
+        (Point2d[] profile, double[] profileWeights, KnotVector knotsV) = RationalArcs.Arc(surface.DomainV, surface.Radius);
 
         Point3d[,] net = new Point3d[around.Length, profile.Length];
         double[,] weights = new double[around.Length, profile.Length];
@@ -188,8 +192,8 @@ public static class SurfaceConversion
     {
         ArgumentNullException.ThrowIfNull(surface);
 
-        (Point2d[] around, double[] aroundWeights, KnotVector knotsU) = Arc(surface.DomainU, 1.0);
-        (Point2d[] tube, double[] tubeWeights, KnotVector knotsV) = Arc(surface.DomainV, surface.MinorRadius);
+        (Point2d[] around, double[] aroundWeights, KnotVector knotsU) = RationalArcs.Arc(surface.DomainU, 1.0);
+        (Point2d[] tube, double[] tubeWeights, KnotVector knotsV) = RationalArcs.Arc(surface.DomainV, surface.MinorRadius);
 
         Point3d[,] net = new Point3d[around.Length, tube.Length];
         double[,] weights = new double[around.Length, tube.Length];
@@ -211,72 +215,6 @@ public static class SurfaceConversion
 
         return new NurbsSurface(knotsU, knotsV, net, weights);
     }
-
-    /// <summary>
-    /// The rational control points, weights and knot vector of a circular arc of a given sweep.
-    /// </summary>
-    /// <param name="sweep">The angular domain, in radians.</param>
-    /// <param name="radius">The radius to scale the unit points by.</param>
-    /// <returns>The points in the plane, their weights, and the knot vector over the sweep.</returns>
-    /// <remarks>
-    /// <para>
-    /// <b>Piegl and Tiller A7.1, split into spans of at most a half turn.</b> Each span contributes
-    /// two control points after the first: a corner point on the intersection of the two end
-    /// tangents, weighted <c>cos(θ/2)</c>, and the span's end point on the arc, weighted 1.
-    /// </para>
-    /// <para>
-    /// <b>The corner point is not the midpoint of the arc.</b> It is where the tangents meet, at
-    /// radius <c>r / cos(θ/2)</c> — outside the arc — and putting the midpoint there instead gives a
-    /// curve through the right three points that is not a circle anywhere else. That is the error
-    /// this method exists to not make, and the test for it measures the *middle* of each span
-    /// rather than its ends.
-    /// </para>
-    /// </remarks>
-    private static (Point2d[] Points, double[] Weights, KnotVector Knots) Arc(in Interval sweep, double radius)
-    {
-        int spans = Spans(sweep.Length);
-        double step = sweep.Length / spans;
-        double half = step / 2.0;
-        double cosHalf = Math.Cos(half);
-
-        Point2d[] points = new Point2d[(2 * spans) + 1];
-        double[] weights = new double[points.Length];
-
-        points[0] = OnCircle(sweep.Min, radius);
-        weights[0] = 1.0;
-
-        for (int s = 0; s < spans; s++)
-        {
-            double start = sweep.Min + (s * step);
-            double mid = start + half;
-            double end = start + step;
-
-            // The tangent intersection: on the bisector of the span, at radius r / cos(half).
-            points[(2 * s) + 1] = OnCircle(mid, radius / cosHalf);
-            weights[(2 * s) + 1] = cosHalf;
-
-            points[(2 * s) + 2] = OnCircle(end, radius);
-            weights[(2 * s) + 2] = 1.0;
-        }
-
-        // A clamped degree-2 knot vector with each interior span's knot doubled, so the spans join
-        // with the right continuity rather than being smoothed across.
-        double[] knots = new double[points.Length + 3];
-
-        knots[0] = knots[1] = knots[2] = sweep.Min;
-
-        for (int s = 1; s < spans; s++)
-        {
-            knots[(2 * s) + 1] = knots[(2 * s) + 2] = sweep.Min + (s * step);
-        }
-
-        knots[^3] = knots[^2] = knots[^1] = sweep.Max;
-
-        return (points, weights, new KnotVector(2, knots));
-    }
-
-    private static Point2d OnCircle(double angle, double radius) =>
-        new(radius * Math.Cos(angle), radius * Math.Sin(angle));
 
     /// <summary>A clamped knot vector over a chosen domain rather than over [0, 1].</summary>
     /// <remarks>

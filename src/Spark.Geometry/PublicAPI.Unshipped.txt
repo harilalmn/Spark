@@ -133,9 +133,12 @@ Spark.Geometry.Quaternion.Quaternion(in Spark.Geometry.Vector3d from, in Spark.G
 Spark.Geometry.Ray.Ray(in Spark.Geometry.Point3d from, in Spark.Geometry.Point3d towards) -> void
 Spark.Geometry.Vector3d.Vector3d(double radius, Spark.Geometry.Angle azimuth, Spark.Geometry.Angle polar) -> void
 Spark.Geometry.Vector3d.Vector3d(double radius, Spark.Geometry.Angle azimuth, double height) -> void
+override Spark.Geometry.Arc.ToNurbsCurve(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsConversion!
+override Spark.Geometry.Circle.ToNurbsCurve(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsConversion!
 override Spark.Geometry.CurveIntersectionPoint.GetHashCode() -> int
 override Spark.Geometry.CurveOverlap.GetHashCode() -> int
 override Spark.Geometry.CurveSurfaceIntersectionPoint.GetHashCode() -> int
+override Spark.Geometry.EllipseCurve.ToNurbsCurve(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsConversion!
 override Spark.Geometry.Helix.Domain.get -> Spark.Geometry.Interval
 override Spark.Geometry.Helix.IsClosed.get -> bool
 override Spark.Geometry.Helix.LengthAt(double parameter) -> double

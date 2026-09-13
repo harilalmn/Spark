@@ -186,6 +186,23 @@ public sealed class EllipseCurve : Curve
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <b>Exact, and it costs nothing beyond the circle's own construction.</b> An ellipse is an
+    /// affine image of a circle, and an affine map carries a rational B-spline to a rational
+    /// B-spline — so the control points, the weights and the knots are a circle's, mapped through
+    /// this curve's frame with <c>x</c> scaled by <see cref="XRadius"/> and <c>y</c> by
+    /// <see cref="YRadius"/>. There is no separate elliptical construction here to get wrong.
+    /// <para>
+    /// <b>The parameterisation is not preserved, and cannot be</b> — and on an ellipse that is
+    /// doubly true, since even the original's parameter is the eccentric angle rather than the
+    /// angle at the centre. The two curves agree as <i>sets of points</i>, and the domain is
+    /// carried across so they have the same ends.
+    /// </para>
+    /// </remarks>
+    public override NurbsConversion ToNurbsCurve(in Tolerance tolerance = default) =>
+        new(RationalArcs.Elliptical(_plane, _xRadius, _yRadius, _startAngle, _sweep), true);
+
+    /// <inheritdoc/>
     public override Curve Reversed() =>
         new EllipseCurve(
             Plane.FromOriginXAxisYAxis(_plane.Origin, _plane.XAxis, -_plane.YAxis),

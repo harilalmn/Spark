@@ -111,6 +111,144 @@ public sealed class CurveToNurbsTests
     }
 
     [Fact]
+    public void ACircleConvertsExactlyAsFourRationalSpans()
+    {
+        Circle circle = Circle.FromCenterNormalRadius(
+            new Point3d(1.0, 2.0, 3.0), new Vector3d(1.0, 1.0, 1.0), 2.5);
+
+        NurbsConversion converted = circle.ToNurbsCurve();
+
+        Assert.True(converted.IsExact);
+        Assert.Equal(2, converted.Curve.Degree);
+        Assert.True(converted.Curve.IsRational);
+
+        // Nine, not three: the rational form is valid only to a half turn, so a full circle is
+        // four spans. Three control points would be a curve that agrees at the ends of a half turn
+        // and is not a circle anywhere between them.
+        Assert.Equal(9, converted.Curve.Knots.ControlPointCount);
+        Assert.Equal(circle.Domain, converted.Curve.Domain);
+
+        // Exact means exact: every sampled point is ON the circle to within a few bits, not within
+        // a tolerance. Distance rather than point-for-point, because above degree 1 the
+        // parameterisation is NOT preserved and a positional comparison would fail on a correct
+        // conversion.
+        AssertOnCurve(circle, converted.Curve);
+        Assert.Equal(circle.Length, converted.Curve.Length, 1e-9);
+    }
+
+    [Fact]
+    public void TheWeightIsCosOfHalfTheSpanAndTheMiddleOfEachSpanIsWhatProvesIt()
+    {
+        // `E2-T71` step B: the branch this proves is the weight. cos(θ/2) rather than cos θ, and
+        // the corner point at r/cos(θ/2) rather than at the arc's midpoint — both errors give a
+        // curve through the right END points that bulges wrongly in between, so a test that
+        // sampled only the span boundaries would pass on either of them.
+        Circle circle = Circle.FromCenterRadius(Point3d.Origin, 4.0);
+        NurbsCurve converted = circle.ToNurbsCurve().Curve;
+
+        // The middles of the four spans, in the converted curve's own parameter space.
+        for (int span = 0; span < 4; span++)
+        {
+            double parameter = circle.Domain.Denormalise((span + 0.5) / 4.0);
+            Point3d point = converted.PointAt(parameter);
+
+            Assert.Equal(4.0, point.DistanceTo(Point3d.Origin), 1e-12);
+        }
+
+        // And the control polygon really does reach outside the circle, which is the other half of
+        // the same fact: a corner point ON the circle would be the midpoint error.
+        Point3d[] controlPoints = converted.ControlPoints();
+        Assert.Equal(4.0 / Math.Cos(Math.PI / 4.0), controlPoints[1].DistanceTo(Point3d.Origin), 1e-12);
+        Assert.Equal(Math.Cos(Math.PI / 4.0), converted.Weights()[1], 1e-12);
+    }
+
+    [Fact]
+    public void AnArcConvertsExactlyAndKeepsItsOwnDomain()
+    {
+        Arc arc = Arc.FromPlaneRadiusAngles(
+            Plane.WorldYZ, 3.0, Angle.FromDegrees(37.0), Angle.FromDegrees(220.0));
+
+        NurbsConversion converted = arc.ToNurbsCurve();
+
+        Assert.True(converted.IsExact);
+        Assert.Equal(2, converted.Curve.Degree);
+
+        // An arc is parameterised from its OWN start, not from the plane's x axis, so the knots are
+        // slid back by the start angle. Get that wrong and the curve is the right shape sitting at
+        // the wrong parameters, which nothing but the domain would notice.
+        Assert.Equal(0.0, converted.Curve.Domain.Min, 1e-12);
+        Assert.Equal(arc.SweepAngle.Radians, converted.Curve.Domain.Max, 1e-12);
+
+        Assert.Equal(arc.StartPoint, converted.Curve.StartPoint);
+        Assert.Equal(arc.EndPoint.X, converted.Curve.EndPoint.X, 1e-12);
+        Assert.Equal(arc.EndPoint.Y, converted.Curve.EndPoint.Y, 1e-12);
+        Assert.Equal(arc.EndPoint.Z, converted.Curve.EndPoint.Z, 1e-12);
+
+        AssertOnCurve(arc, converted.Curve);
+        Assert.Equal(arc.Length, converted.Curve.Length, 1e-9);
+    }
+
+    [Fact]
+    public void AnEllipseConvertsExactlyThroughTheSameConstructionAsTheCircle()
+    {
+        // An ellipse is an affine image of a circle and an affine map carries a rational B-spline
+        // to a rational B-spline, so this shares every line of the circle's construction. What the
+        // test has to check is that the two radii went to the two axes and not both to one.
+        EllipseCurve ellipse = EllipseCurve.FromPlaneRadiiAngles(
+            Plane.WorldXY, 5.0, 2.0, Angle.Zero, Angle.FromDegrees(300.0));
+
+        NurbsConversion converted = ellipse.ToNurbsCurve();
+
+        Assert.True(converted.IsExact);
+        Assert.Equal(2, converted.Curve.Degree);
+        Assert.Equal(ellipse.Domain.Max, converted.Curve.Domain.Max, 1e-12);
+
+        AssertOnCurve(ellipse, converted.Curve);
+
+        // A construction that used one radius for both axes would pass every circle test above and
+        // has to fail here. Stated as the ELLIPSE'S OWN EQUATION rather than by looking for the
+        // ends of the axes: (x/a)² + (y/b)² = 1 names both radii and separates them, and needs no
+        // parameter to evaluate at — which matters, because the parameterisation is not preserved
+        // and there is no parameter on the converted curve that can be relied on to be an axis end.
+        for (int index = 0; index <= 400; index++)
+        {
+            Point3d point = converted.Curve.PointAt(converted.Curve.Domain.Denormalise(index / 400.0));
+
+            Assert.Equal(1.0, (point.X * point.X / 25.0) + (point.Y * point.Y / 4.0), 1e-11);
+            Assert.Equal(0.0, point.Z, 1e-12);
+        }
+    }
+
+    [Fact]
+    public void AConvertedCircleIsNotTheSameParameterisation()
+    {
+        // Stated as a test rather than left in a remark, because it is the thing people assume.
+        // The two curves are the same SET of points and visit it differently.
+        Circle circle = Circle.FromCenterRadius(Point3d.Origin, 1.0);
+        NurbsCurve converted = circle.ToNurbsCurve().Curve;
+
+        // NOT an eighth of the way round, which is where the first draft of this test looked and
+        // where the two DO agree: an eighth is the middle of the first of four spans, and a knot
+        // span's midpoint maps to its arc's midpoint by symmetry. The disagreement is everywhere
+        // else, and a tenth of the way round is inside the first span and not at its centre.
+        double tenth = circle.Domain.Denormalise(0.1);
+
+        Assert.True(
+            circle.PointAt(tenth).DistanceTo(converted.PointAt(tenth)) > 1e-3,
+            "the parameterisations agreed, which would mean the conversion is not the rational one.");
+
+        // The places they do agree are worth pinning too, because they are a fact about the
+        // construction rather than a coincidence: the ends of every span, and every span's middle.
+        for (int index = 0; index <= 8; index++)
+        {
+            double parameter = circle.Domain.Denormalise(index / 8.0);
+
+            Assert.Equal(
+                0.0, circle.PointAt(parameter).DistanceTo(converted.PointAt(parameter)), 1e-12);
+        }
+    }
+
+    [Fact]
     public void AHelixIsConvertedApproximatelyAndSaysSo()
     {
         // `E2-T71`: the branch this proves is `IsExact` itself. Make the fallback report `true` and
@@ -172,6 +310,20 @@ public sealed class CurveToNurbsTests
 
         Assert.Contains("exact", line.ToNurbsCurve().ToString(), StringComparison.Ordinal);
         Assert.Contains("approximate", helix.ToNurbsCurve().ToString(), StringComparison.Ordinal);
+    }
+
+    /// <summary>Asserts that every sampled point of one curve lies on the other, exactly.</summary>
+    /// <param name="original">The curve the points must lie on.</param>
+    /// <param name="converted">The curve to sample.</param>
+    private static void AssertOnCurve(Curve original, Curve converted)
+    {
+        for (int index = 0; index <= 200; index++)
+        {
+            Point3d point = converted.PointAt(converted.Domain.Denormalise(index / 200.0));
+            double strayed = original.DistanceTo(point);
+
+            Assert.True(strayed < 1e-11, $"a converted point strayed {strayed}, which is not exact.");
+        }
     }
 
     /// <summary>The worst distance from a sampling of one curve to the other.</summary>

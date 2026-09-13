@@ -376,6 +376,11 @@ Pass a tolerance to trade accuracy for size — a tighter one samples the origin
 gives a heavier curve. It is a sampling target rather than a promise about the worst error, so
 where the error matters, measure it with `DistanceTo` as above.
 
+**A converted circle has nine control points, not three**, and that is not padding: the rational
+form is only valid up to a half turn — at exactly half a turn the middle weight reaches zero — so a
+full circle is four spans joined end to end. An arc of less than 90° is a single span and three
+points.
+
 **One thing that surprises people, and it is true of every exact conversion above degree 1.**
 *Exact* means the converted curve is the **same set of points**. It does **not** mean
 `circle.PointAt(t)` and `converted.Curve.PointAt(t)` are the same point — a rational quadratic
