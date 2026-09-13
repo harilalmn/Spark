@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-14 (`E2-T69`: the four mesh primitives)
+**Last updated:** 2026-09-14 (`E2-T69`: the mesh primitives and two queries)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -476,8 +476,13 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     duplicated seam vertices is still closed if the faces wrap past them, so only a mutation
 >     that made the faces *use* the duplicates turned the tests red. **`E2-T67` is skipped with
 >     its reason** — mass properties belong on `IBrepKernel`, which means a new shim function,
->     which needs the OpenCascade install `E13-T21` is waiting for. **Next**: `E2-T69`'s four
->     queries, of which `Edges()` and `TriangleCentroids()` need nothing that is missing. `Q12`'s T-Splines decision is 169 members
+>     which needs the OpenCascade install `E13-T21` is waiting for. ~~**And two of its queries**~~
+>     **done the same day**: `MeshTopology.Edges()`, where **returning each edge once is the whole
+>     of it** — a halfedge structure holds two per interior edge — and `Mesh.TriangleCentroids()`,
+>     whose name carries a decision Dynamo never had to make, because a Spark face may have four
+>     corners. **Next**: `E2-T68`'s `Explode`, which its row calls the one the topology already
+>     answers. `Nearest` and `Project` stay open: they want a spatial index over faces in the
+>     kernel. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than

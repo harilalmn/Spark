@@ -167,6 +167,55 @@ public sealed class Mesh
     /// <returns>The faces, in index order.</returns>
     public MeshFace[] Faces() => [.. _faces];
 
+    /// <summary>
+    /// The centroid of every face, in face order (`E2-T69`).
+    /// </summary>
+    /// <returns>One point per face: the average of the corners that face actually has.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Dynamo calls this <c>TriangleCentroids</c> and Spark's faces are not all triangles</b>,
+    /// which is a decision this member has to make rather than inherit. A <see cref="MeshFace"/>
+    /// may have four corners, and the answer here is the average of the corners the face has — so
+    /// this is the centroid of each <i>face</i>, and the name is kept for the caller who is looking
+    /// for it.
+    /// </para>
+    /// <para>
+    /// <b>Splitting quads into triangles first was the alternative and it is worse</b>: it would
+    /// return more points than there are faces and destroy the one property a caller actually uses,
+    /// which is that the result pairs index for index with <see cref="Faces"/>.
+    /// </para>
+    /// <para>
+    /// For a triangle this is the true centroid — the intersection of the medians. For a quad it is
+    /// the average of the four corners, which is the centroid of a planar parallelogram and is near
+    /// but not equal to the centroid of a general quadrilateral's area.
+    /// </para>
+    /// </remarks>
+    public Point3d[] TriangleCentroids()
+    {
+        Point3d[] centroids = new Point3d[_faces.Length];
+
+        for (int index = 0; index < _faces.Length; index++)
+        {
+            MeshFace face = _faces[index];
+            double x = 0.0;
+            double y = 0.0;
+            double z = 0.0;
+
+            for (int corner = 0; corner < face.Count; corner++)
+            {
+                Point3d point = _vertices[face[corner]];
+
+                x += point.X;
+                y += point.Y;
+                z += point.Z;
+            }
+
+            centroids[index] = new Point3d(x / face.Count, y / face.Count, z / face.Count);
+        }
+
+        return centroids;
+    }
+
     /// <summary>A copy of the per-vertex normals, or null when there are none.</summary>
     /// <returns>The normals, or null.</returns>
     public Vector3d[]? Normals() => _normals is null ? null : [.. _normals];

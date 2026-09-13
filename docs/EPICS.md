@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-14 (`E2-T69`: the four mesh primitives)
+**Last updated:** 2026-09-14 (`E2-T69`: the mesh primitives and two queries)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1431,9 +1431,9 @@ nothing.
       equivalence is unprovable — and the 89-row review that closed the task found one name match
       that was not the same capability ([N156](NOTES.md)), which is why a green run is not a review.*
 - [x] **Every row in the register is assessed, with a status and a written reason** (**E2-T40**…**E2-T46**,
-      **E11-T30**, closed 2026-09-13). *All 837, across seven member-by-member passes: `Done` 434,
-      `Planned` 82, `Not planned` 123, `Needs a decision` 198, **`Unassessed` 0**. Spark stands at
-      **434 of the 545 members it has committed to**. Every one of the seven passes found Spark
+      **E11-T30**, closed 2026-09-13). *All 837, across seven member-by-member passes: `Done` 436,
+      `Planned` 80, `Not planned` 123, `Needs a decision` 198, **`Unassessed` 0**. Spark stands at
+      **436 of the 545 members it has committed to**. Every one of the seven passes found Spark
       **further ahead than the register claimed**, including §3.1, the one section whose figure was a
       hand count and where the expectation was the opposite — the systematic error was in one
       direction and [N163](NOTES.md) says why. The residue budget fell 278 → 270 over the same period

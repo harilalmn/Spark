@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Spark.Api;
 using Spark.Geometry;
 
@@ -71,6 +72,40 @@ public static class Mesh
     public static Spark.Geometry.Mesh Sphere(
         Spark.Geometry.Plane plane, double radius = 1, int divisions = 16, int stacks = 8) =>
         MeshPrimitives.Sphere(plane, radius, divisions, stacks);
+
+    /// <summary>The centre of every face of a mesh, in face order.</summary>
+    /// <param name="mesh">The mesh.</param>
+    /// <returns>One point per face, pairing index for index with the mesh's faces.</returns>
+    /// <remarks>
+    /// <b>One point per face, including quads.</b> Spark's meshes can have four-sided faces, and the
+    /// centre of one is the average of its four corners rather than of three of them — so the list
+    /// lines up with the faces and can be used to place something on each.
+    /// </remarks>
+    [return: NodePort("points")]
+    [SparkNodeAlias("Mesh.TriangleCentroids")]
+    public static IReadOnlyList<Point3d> FaceCentres(Spark.Geometry.Mesh mesh) =>
+        mesh.TriangleCentroids();
+
+    /// <summary>Every edge of a mesh, once each, as the pairs of points it runs between.</summary>
+    /// <param name="mesh">The mesh.</param>
+    /// <returns>One line per edge.</returns>
+    /// <remarks>
+    /// <b>Each edge appears once</b>, however many faces meet along it — so a closed mesh gives
+    /// about half as many lines as it has face corners, which is what you want for a wireframe.
+    /// </remarks>
+    [return: NodePort("lines")]
+    public static IReadOnlyList<Spark.Geometry.Line> Edges(Spark.Geometry.Mesh mesh)
+    {
+        (int From, int To)[] edges = mesh.Topology.Edges();
+        Spark.Geometry.Line[] lines = new Spark.Geometry.Line[edges.Length];
+
+        for (int index = 0; index < edges.Length; index++)
+        {
+            lines[index] = new Spark.Geometry.Line(mesh.Vertex(edges[index].From), mesh.Vertex(edges[index].To));
+        }
+
+        return lines;
+    }
 
     /// <summary>Makes a cone, or a truncated one, standing on a plane.</summary>
     /// <param name="plane">The plane; its origin is the centre of the base and its normal the axis.</param>

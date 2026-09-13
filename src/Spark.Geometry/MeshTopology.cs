@@ -238,6 +238,53 @@ public sealed class MeshTopology
         return [.. faces];
     }
 
+    /// <summary>
+    /// Every distinct edge of the mesh, once each (`E2-T69`).
+    /// </summary>
+    /// <returns>
+    /// One pair per edge, as the vertex indices it runs between. A paired edge appears once, in the
+    /// direction its first face walks it; a boundary edge appears once, in its only direction.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Returning each edge once is the whole of this member.</b> A halfedge structure holds two
+    /// halfedges per interior edge, and the obvious walk over every face's corners returns each of
+    /// them — so an implementation that looks right gives a closed mesh nearly twice as many edges
+    /// as it has. The rule here is to emit a halfedge only when it has no twin, or when its own
+    /// index is the lower of the pair, which needs no set and no second pass.
+    /// </para>
+    /// <para>
+    /// <b>The count agrees with <see cref="EdgeCount"/> by construction</b>, and the tests assert
+    /// it: the two are computed differently — one counts twins, the other walks and emits — so
+    /// agreement between them is evidence rather than a tautology.
+    /// </para>
+    /// </remarks>
+    public (int From, int To)[] Edges()
+    {
+        List<(int, int)> edges = [];
+
+        for (int f = 0; f < _mesh.FaceCount; f++)
+        {
+            MeshFace face = _mesh.Face(f);
+            int start = _firstHalfedgeOfFace[f];
+
+            for (int corner = 0; corner < face.Count; corner++)
+            {
+                int halfedge = start + corner;
+                int twin = _twin[halfedge];
+
+                // Unpaired, or the lower half of a pair: either way this is the one copy that gets
+                // emitted, and the other is skipped when its turn comes.
+                if (twin < 0 || halfedge < twin)
+                {
+                    edges.Add((face[corner], face[(corner + 1) % face.Count]));
+                }
+            }
+        }
+
+        return [.. edges];
+    }
+
     /// <summary>The vertex pairs of every edge with only one face on it.</summary>
     /// <returns>Each boundary edge once, as its two endpoints in the face's own direction.</returns>
     /// <remarks>
