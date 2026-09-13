@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-13 (`E2-T41` step A: §3.2's `Curve` assessed, 40 of 82 reachable)
+**Last updated:** 2026-09-13 (`E2-T41`: §3.2 assessed in full, 111 of 187 reachable; `Helix` decided)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -63,18 +63,19 @@ need their own decision, so **575 members** — Spark stands at **99 of 575, or 
 > **The manifest counts these now, and where it differs from this table the manifest is right**
 > (2026-09-11, `E11-T23`). [`tests/corpus/dynamo-parity.tsv`](../tests/corpus/dynamo-parity.tsv) holds
 > one row per member, generated from the same `ProtoGeometry.dll` metadata, and `Spark.Docs.Verify`
-> checks it against this document on every build. **As of 2026-09-13 it stands at `Done` 269,
-> `Planned` 93, `Not planned` 121, `Needs a decision` 189 and `Unassessed` 165**, which is 837.
+> checks it against this document on every build. **As of 2026-09-13 it stands at `Done` 322,
+> `Planned` 123, `Not planned` 121, `Needs a decision` 193 and `Unassessed` 78**, which is 837.
 > Applying §5's rules gives **121** refused members, not 93 — §5's own lists add to 104, the four
 > primitive solids carry 14 parameter-recovery properties rather than 11, §5 [i]'s three flattened
 > mesh accessors were counted when `E2-T45` assessed them, `E2-T46` added `IsAlmostEqualTo`,
 > `Approximate` and `ContextCoordinateSystem` as §5 [j], and `E2-T41` counted §5 [i]'s duplicated
 > trim family once its survivor was chosen — so the committed surface is **547**, not 575.
 > **This table's 99 predates the curve, surface, solid, topology, mesh and infrastructure layers;
-> the manifest's 269 replaces it as the review proceeds**, and the sections assessed member by
-> member so far are §3.3 (48 of 106), §3.4 (24 of 55), §3.5 (31 of 33), §3.6 (41 of 65), §3.8
-> (24 of 89) and **§3.2's `Curve` base type (40 of 82)**. **What is left is §3.1 values, §3.2's ten
-> concrete curve types and §3.7's T-Splines decision.**
+> the manifest's 322 replaces it as the review proceeds**, and the sections assessed member by
+> member are §3.2 (**111 of 187**, the largest), §3.3 (48 of 106), §3.4 (24 of 55), §3.5 (31 of 33),
+> §3.6 (41 of 65) and §3.8 (24 of 89). **What is left is §3.1's values — 78 rows over `Point`,
+> `Vector`, `Plane`, `CoordinateSystem`, `BoundingBox` and `UV`, the subsystem this document's
+> original 99 was entirely made of — and §3.7's T-Splines decision.**
 
 ### What the 99 counts, exactly
 
@@ -216,33 +217,53 @@ separate concerns and Spark keeps them separate. Similarly `Vector.Scale(x, y, z
 through `Transform.Scale(x, y, z).OfVector(v)`; a non-uniform scale is a transformation, and
 putting it on the vector implies a frame the vector does not carry.
 
-### 3.2 Curves — 11 types, 187 members, 40 reachable so far
+### 3.2 Curves — 11 types, 187 members, 111 reachable
 
-**`Curve`'s 82 rows were assessed member by member on 2026-09-13** (`E2-T41` step A), against the
-delivering assemblies rather than by eye ([N160](NOTES.md)). The ten concrete curve types are
-`E2-T41` step B and are still `Unassessed`, so this table's *Reachable* column is **measured for
-`Curve` and blank for the rest** — a number nobody derived is how a register starts lying, and the
-blank says which is which.
+**All 187 rows were assessed member by member on 2026-09-13** (`E2-T41`, in two steps: `Curve`'s 82,
+then the ten concrete types' 105), against the delivering assemblies rather than by eye
+([N160](NOTES.md)). Every *Reachable* figure below is counted from the manifest.
 
 | Dynamo type | Members | Reachable | Spark equivalent | Status | Milestone |
 |---|---:|---:|---|---|---|
 | `Curve` (base) | 82 | 40 | `Curve` — the contract, settled against this section | Partial | M1 ✓, M3 |
-| `Line` | 6 | — | `Line` | **Exists** | M1 ✓ |
-| `Arc` | 14 | — | `Arc` | **Partial** | M1 ✓ |
-| `Circle` | 8 | — | `Circle` | **Exists** | M1 ✓ |
-| `Ellipse` | 8 | — | `EllipseCurve` | **Exists** | M1 ✓ |
-| `EllipseArc` | 9 | — | `EllipseCurve` over a sub-domain | **Exists** | M1 ✓ |
-| `Helix` | 7 | — | `Helix` | Needs a decision | M3 |
-| `NurbsCurve` | 15 | — | `NurbsCurve` | Planned | M3 |
-| `PolyCurve` | 21 | — | `PolyCurve` | **Partial** | M1 ✓ |
-| `Polygon` | 9 | — | `PolyLine`, closed | **Partial** | M1 ✓ |
-| `Rectangle` | 8 | — | A `PolyLine` factory, not a type | **Exists** | M1 ✓ |
+| `Line` | 6 | 5 | `Line` | **Exists** | M1 ✓ |
+| `Arc` | 14 | 8 | `Arc` | **Partial** | M1 ✓ |
+| `Circle` | 8 | 7 | `Circle` | **Exists** | M1 ✓ |
+| `Ellipse` | 8 | 8 | `EllipseCurve` | **Complete** | M1 ✓ |
+| `EllipseArc` | 9 | 9 | `EllipseCurve` over a sub-domain | **Complete** | M1 ✓ |
+| `Helix` | 7 | 0 | `Helix` — **decided, and not built** (D27) | Planned | M3 |
+| `NurbsCurve` | 15 | 11 | `NurbsCurve` | **Partial** | M3 ✓ |
+| `PolyCurve` | 21 | 7 | `PolyCurve` | **Partial** | M1 ✓ |
+| `Polygon` | 9 | 8 | `PolyLine`, closed | **Partial** | M1 ✓ |
+| `Rectangle` | 8 | 8 | A `PolyLine` factory, not a type | **Complete** | M1 ✓ |
 
-**`Curve` is 40 `Done`, 20 `Planned`, 14 `Needs a decision` and 8 `Not planned`.** It had five
-`Done` rows before this pass and none of the other 77 had ever been looked at, so the reading that
-mattered — *are the 82 mostly a gap?* — had never been tested. They are not: **the contract this
-section was written to shape now answers half of the type it was written against**, which is the
-sixth assessment in a row to find Spark further ahead than the register claimed.
+**111 of 187**, as `Done` 111, `Planned` 50, `Needs a decision` 18, `Not planned` 8. `Curve` alone is
+**40 of 82**, and it had five `Done` rows before this pass with none of the other 77 ever looked at —
+so the reading that mattered, *is the largest type in the inventory mostly a gap*, had never been
+tested. It is not: **the contract this section was written to shape now answers half of the type it
+was written against.** Three of the ten concrete types are **complete**, and two of those three are
+the same Spark type answering two Dynamo ones.
+
+**The two decisions this section had been carrying are made.** **`Helix` goes in** (D27, `E2-T73`):
+it was `Needs a decision` because it is absent from FR-48 and nobody had decided against it, and it
+is the cheapest type the curve hierarchy can gain — a helix travels at a **constant speed**, so
+`LengthAt`, `ParameterAtLength`, `PointAtLength`, `DivideEqually` and `DivideByLength` are all closed
+form and exactly right, which is true of only five of the seven types Spark already has. It needs no
+kernel and no provider, and AEC users draw it: stairs, ramps, threads, spiral ducts. **`Rectangle`
+and `Polygon` stay factories on `PolyLine`** rather than becoming types, which is what this section
+argued and what Spark built; the rows now record it as built rather than leaving it as an argument.
+The price is visible and worth seeing: `Rectangle.Width` and `Height` are `Done` as
+`PolyLine.SegmentAt(0).Length` and `SegmentAt(1).Length`, because a rectangle that is a closed
+polyline has no width property. That is the trade — no public type to version for ever, and two
+parameter-recovery members that are a segment length instead.
+
+**A rule this section had to state, because it decided sixteen rows.** Composition counts, and §2
+says so — but **composition means the caller passes members' results to another member, and it stops
+counting when the caller has to compute the quantity the member exists to compute.**
+`Line.ByTangency(curve, t)` is `Done` because `Curve.PointAt` and `Curve.TangentAt` feed
+`Line.FromStartPointDirectionLength`. `Arc.ByCenterPointStartPointEndPoint` is `Planned` because
+getting there means working out the sweep angle from two radii, and the sweep angle is what the
+constructor is for.
 
 **What was built from this section, and what was not.** The four parameterisations are now
 two: **by parameter and by length**, both present on the contract, and the pass narrowed §6.3's
@@ -335,18 +356,73 @@ working.** The rule is to enumerate the types that do *not* carry a member rathe
 For surfaces only `NurbsSurface` does. Two rows that look identical, opposite answers, and only the
 enumeration tells them apart.
 
-**`Helix` is marked `Needs a decision` because it is absent from FR-48 and nobody has decided
-against it.** It is a genuine, commonly used Dynamo curve — stairs, ramps, threads — with a
-clean analytic form and seven members. Either it goes into FR-48 or its absence is recorded
-as deliberate. Leaving it unstated is how a gap becomes a surprise at M3.
+**What the ten concrete types came to, and the three findings in them.**
 
-**`Rectangle` and `Polygon` are types in Dynamo and should be factories in Spark.** A
-`Rectangle` that is a subclass of `Polygon` which is a subclass of `PolyCurve` gains nothing
-over a closed `PolyLine` built by `PolyLine.FromRectangle(plane, width, length)`, and it costs a
-public type that must be serialised, versioned, documented and node-ified forever. The four
-capabilities that only live on those types — `Polygon.Center`, `Polygon.Corners`,
-`Polygon.ContainmentTest`, `Polygon.SelfIntersections`, `Polygon.PlaneDeviation` and
-`Polygon.RegularPolygon` — are all planned, on `PolyLine` or in `Spark.Geometry.Planar`.
+*Constructors are where the parity is, and Spark's hold up.* `Circle` is 7 of 8, `Ellipse` 8 of 8,
+`EllipseArc` 9 of 9 and `Rectangle` 8 of 8, almost entirely through factories Spark already had —
+`Circle.FromCenterNormalRadius`, `EllipseCurve.FromPlaneRadiiAngles`, `PolyLine.FromRectangle` and
+their siblings — with `Plane.FromOriginNormal`, `Plane.FromOriginXAxisYAxis` and
+`CoordinateSystem.ToPlane` bridging the frames. **`EllipseCurve` answers two Dynamo types on its
+own**, because an ellipse over a sub-domain is not a second type.
+
+*The first finding: **there is no curve fitting of any kind**.* `Line`, `Arc` and `Circle` each carry
+a `ByBestFitThroughPoints` and none of the three is written, while `Plane.FromBestFit` fits a plane
+and `NurbsCurve.FitPoints` fits a spline. The machinery and the taste for it are both already there;
+the three closed-form fits are simply absent. `E2-T72`.
+
+*The second: **Spark's only fillet takes two lines**.* `CurveOffset.FilletLines(Line, Line, radius)`
+is the whole of it. `Arc.ByFillet` takes two arbitrary curves, `Arc.ByFilletTangentToCurve` a third,
+`PolyCurve.Fillet` fillets every corner of a chain at once, and `PolyCurve.CloseWithLineAndTangentArcs`
+needs the same construction. Four rows, one missing generalisation — and claiming any of them on
+`FilletLines` would be [N156](NOTES.md)'s trap, which is why the row says what it takes.
+
+*The third: **`NurbsCurve.IsPeriodic` is [N156](NOTES.md)'s trap for the third time**, after
+`Surface.IsClosedU`/`IsPeriodicInU` and `Face.SurfaceGeometry()`.* `NurbsCurve.IsClosed` is not it:
+closed is geometric, the two ends meeting in space; periodic is a property of the **knot vector** and
+of the control net wrapping smoothly. Spark's `KnotVector` is clamped — `CreateClamped` is its only
+factory and `IsClamped` is a property — so **three further rows wait on the same thing**:
+`ByControlPoints(points, degree, periodic)`, `ByPoints(points, periodic)` and this one. A fourth,
+`ByPointsTangents`, is the *same* algorithm `§3.3` found missing on `NurbsSurface`, where three of
+the five gaps are interpolation with tangent constraints — so it is one algorithm short on both
+sides of the kernel rather than two.
+
+*`PolyCurve` is the weakest of the ten, at 7 of 21*, and it splits cleanly: **extension** (`ExtendWithArc`,
+`ExtendWithEllipse`) goes with `Curve.Extend`, because nothing in Spark lengthens a curve past its own
+domain; **thickening and grouping** are constructions Spark has no form of; and three rows are §6.3's
+undeducible flags — `Heal(trimLength)`, `CurveAtIndex(index, endOrStart)` and the four-argument
+`ByJoinedCurves`. `PolyCurve.FromJoinedCurves` makes **one** polycurve and **refuses** a chain that
+does not meet, naming the index and the gap; `ByGroupedCurves` makes **several** and is the opposite
+behaviour rather than an overload.
+
+*`Polygon.SelfIntersections()` is `E2-T70`'s finding in a second place.* `Curve.IntersectWith` takes
+**another** curve, so a curve cannot be asked about itself — the same shape as §3.8's *every query
+takes a point, never another geometry*. Region construction rejects a self-intersecting loop and does
+not report where.
+
+**`Helix` was `Needs a decision` and is now `Planned`** (D27). It was absent from FR-48 and nobody had
+decided against it, and the section said plainly that either it goes into FR-48 or its absence is
+recorded as deliberate, because leaving it unstated is how a gap becomes a surprise at M3. It goes in:
+seven members, a clean analytic form, a constant speed that makes every arc-length member closed form,
+and no kernel dependency. `E2-T73`.
+
+**`Rectangle` and `Polygon` are types in Dynamo and are factories in Spark, and that is now
+recorded as built rather than argued.** A `Rectangle` that is a subclass of `Polygon` which is a
+subclass of `PolyCurve` gains nothing over a closed `PolyLine` built by
+`PolyLine.FromRectangle(plane, width, length)`, and it costs a public type that must be serialised,
+versioned, documented and node-ified forever. **Five of the six capabilities that only live on those
+types are reachable today**, and the prediction that they would live *on `PolyLine` or in
+`Spark.Geometry.Planar`* held exactly: `Polygon.Corners` and `Points` are `PolyLine.Points`,
+`RegularPolygon` is `PolyLine.FromRegularPolygon`, **`ContainmentTest` is
+`Spark.Geometry.Planar.Region.Contains`** and **`Center` is `Region.Centroid`** — which is also why
+`Region` came off the exclusions list on 2026-09-13 and its other twelve members are counted from
+then. `PlaneDeviation` is `Plane.FromBestFit` and `Plane.DistanceTo` composed. Only
+`SelfIntersections` is missing.
+
+**`Polygon.Center()` is reachable under either reading of a word Dynamo does not define**, which is
+worth recording because it is the rare case where the ambiguity does not matter. If *center* is the
+area centroid it is `Region.Centroid()`; if it is the mean of the corners it is the average of
+`PolyLine.Points()`. Spark has both, so the register does not have to resolve which Dynamo means —
+and saying which it is would be a guess.
 
 ### 3.3 Surfaces — 5 types, 106 members, 48 reachable
 
@@ -1176,8 +1252,16 @@ before it is *listed*, which is why they do not block this register.
 - **`Geometry.ContextCoordinateSystem`** — what a "context" frame means for arbitrary geometry,
   and how it differs from `BoundingBox.ContextCoordinateSystem`.
 - **`BoundingBox.IsEmpty()`** — degenerate, zero-volume, or never-initialised.
-- **`PolyCurve.Heal(Double trimLength)` and `PolyCurve.CurveAtIndex(index, Boolean endOrStart)`**
-  — the role of `trimLength` and of `endOrStart` alongside an index.
+- **`PolyCurve.Heal(Double trimLength)`, `PolyCurve.CurveAtIndex(index, Boolean endOrStart)` and
+  `PolyCurve.ByJoinedCurves(curves, joinTolerance, Boolean, Double)`** — the role of `trimLength`,
+  of `endOrStart` alongside an index, and of the four-argument join's trailing flag and length, which
+  reads like the same trimming behaviour as `Heal`'s (`E2-T41` step B, 2026-09-13). `SegmentAt(int)`
+  answers `CurveAtIndex`'s index half exactly, so what is open there is the flag and not the
+  capability.
+- **`Arc.ByStartEndAndTangencies(Point, Vector, Point, Vector)`** (`E2-T41` step B, 2026-09-13). An
+  arc has three degrees of freedom in its plane and this gives four constraints, so either the second
+  tangent is advisory, or the result is a biarc rather than an arc, or the call fails when the two
+  disagree. Which it is decides whether Spark needs a member at all.
 - **`Solid.ByRuledLoft(IEnumerable<PolyCurve>, Boolean checkAndRepair)` versus
   `Surface.ByRuledLoft(IEnumerable<Line>)`** — same name, incompatible input types.
 - **`Polygon.PlaneDeviation`** — presumably maximum distance from a best-fit plane, but the fit

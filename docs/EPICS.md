@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T41` step A: §3.2's `Curve` assessed, 40 of 82 reachable)
+**Last updated:** 2026-09-13 (`E2-T41` closes: §3.2 assessed in full, 111 of 187 reachable)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -316,7 +316,7 @@ documented, because CS1591 is an error here, and everything is recorded in
 and `tests/Spark.Geometry.Properties` (38 CsCheck properties), both green.
 
 **What the curve layer settled, and it was settled before it was written.** The contract came
-from [DYNAMO-COVERAGE §3.2](DYNAMO-COVERAGE.md#32-curves--11-types-187-members-40-reachable-so-far)
+from [DYNAMO-COVERAGE §3.2](DYNAMO-COVERAGE.md#32-curves--11-types-187-members-111-reachable)
 rather than from FR-48, because that section had found the gap between them to be structural
 rather than incidental: **arc-length reparameterisation is in the contract**, so *divide this
 curve into twelve equal lengths* is a first-class operation rather than a retrofit. It is
@@ -331,6 +331,17 @@ every `AtDistance` member in Dynamo's four-parameterisation family is `Done` by 
 seven of its nine members by composing `Trimmed`. What the pass found missing is narrower than the
 row had claimed and is `E2-T71`: **no curve-to-NURBS conversion anywhere**, no planarity test and
 so no curve-wide normal, no chord stepping, and nothing that lengthens a curve past its own domain.
+
+**The ten concrete types followed the same day, and the row closed at 111 of 187.** `Ellipse`,
+`EllipseArc` and `Rectangle` are **complete**, and `EllipseCurve` answers two Dynamo types on its own
+because an ellipse over a sub-domain is not a second type. What step B found missing is `E2-T72` and
+it is three ideas rather than twenty-nine items: **no curve fitting of any kind** — `Line`, `Arc` and
+`Circle` each want a best-fit constructor and none exists, though `Plane.FromBestFit` and
+`NurbsCurve.FitPoints` do — **one fillet, and it takes two lines**, and **no periodic NURBS curve**,
+because `KnotVector` is clamped and has only `CreateClamped`. It also settled the layer's last open
+type: **`Helix` goes in** (`D27`, `E2-T73`), which is the cheapest curve this hierarchy can gain,
+since a helix travels at a constant speed and every arc-length member of the contract is closed form
+for it.
 
 **Still not started in this epic.** No surfaces, no meshes, no BRep topology, no `IBrepKernel`,
 no serialization and no interchange. `Spark.Geometry.Io` is still an empty project. No

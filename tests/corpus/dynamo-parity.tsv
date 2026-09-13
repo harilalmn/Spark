@@ -13,20 +13,20 @@ Application	PreloadAsmLibraries(string)	Not planned		§5 [a]: kernel session lif
 Application	ShutDown()	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
 Application	StartUp()	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
 Application	StartUp(ExtensionStartupParams)	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
-Arc	ByBestFitThroughPoints(IEnumerable<Point>)	Unassessed		
-Arc	ByCenterPointRadiusAngle(Point, double, double, double, Vector)	Unassessed		
-Arc	ByCenterPointStartPointEndPoint(Point, Point, Point)	Unassessed		
-Arc	ByCenterPointStartPointSweepAngle(Point, Point, double, Vector)	Unassessed		
-Arc	ByFillet(Curve, Curve, double)	Unassessed		
-Arc	ByFilletTangentToCurve(Curve, Curve, Curve)	Unassessed		
-Arc	ByStartEndAndTangencies(Point, Vector, Point, Vector)	Unassessed		
-Arc	ByStartPointEndPointStartTangent(Point, Point, Vector)	Unassessed		
-Arc	ByThreePoints(Point, Point, Point)	Unassessed		
-Arc	CenterPoint	Unassessed		
-Arc	Radius	Done	Spark.Geometry.Arc.Radius	reviewed 2026-09-12: the same capability under the same name.
-Arc	StartAngle	Done	Spark.Geometry.Arc.StartAngle	reviewed 2026-09-12: the same capability under the same name.
-Arc	SweepAngle	Done	Spark.Geometry.Arc.SweepAngle	reviewed 2026-09-12: the same capability under the same name.
-Arc	ToString()	Done	Spark.Geometry.Arc.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+Arc	ByBestFitThroughPoints(IEnumerable<Point>)	Planned		2026-09-13, E2-T41 step B: no least-squares arc fit, as Line.ByBestFitThroughPoints. E2-T72.
+Arc	ByCenterPointRadiusAngle(Point, double, double, double, Vector)	Done	Spark.Geometry.Arc.FromPlaneRadiusAngles	2026-09-13, E2-T41 step B: composed - Plane.FromOriginNormal turns the centre and the normal into the plane the factory takes. SPARK MAKES THE ANGLE DATUM EXPLICIT and Dynamo leaves it implicit: a centre and a normal do not say where angle zero is, and a plane does.
+Arc	ByCenterPointStartPointEndPoint(Point, Point, Point)	Planned		2026-09-13, E2-T41 step B: Spark has centre/start/SWEEP, not centre/start/END. Getting there means computing the sweep angle from the two radii, which is THE QUANTITY THE CONSTRUCTOR EXISTS TO COMPUTE - so this is a gap and not a composition. E2-T72.
+Arc	ByCenterPointStartPointSweepAngle(Point, Point, double, Vector)	Done	Spark.Geometry.Arc.FromCenterStartPointSweepAngle	2026-09-13, E2-T41 step B: argument for argument, with the normal carried as a Vector3d and the sweep as an Angle (ADR-0011).
+Arc	ByFillet(Curve, Curve, double)	Planned		2026-09-13, E2-T41 step B: N161's enumeration, and it fails: Spark.Geometry.CurveOffset.FilletLines fillets TWO LINES and nothing else. Dynamo takes two arbitrary curves, so the general fillet - arc, circle, NURBS, polycurve - is absent. Claiming this row on FilletLines would be N156's trap. E2-T72.
+Arc	ByFilletTangentToCurve(Curve, Curve, Curve)	Planned		2026-09-13, E2-T41 step B: as ByFillet, with a third tangency constraint. E2-T72.
+Arc	ByStartEndAndTangencies(Point, Vector, Point, Vector)	Needs a decision		2026-09-13, E2-T41 step B: AN ARC HAS THREE DEGREES OF FREEDOM IN ITS PLANE AND THIS GIVES FOUR CONSTRAINTS, so either the second tangent is advisory, or the result is a biarc rather than an arc, or the call fails when they disagree. Which one is not deducible from a signature, and the manifest is metadata. Recorded in §6.3.
+Arc	ByStartPointEndPointStartTangent(Point, Point, Vector)	Planned		2026-09-13, E2-T41 step B: determined, unlike ByStartEndAndTangencies, and absent: Spark builds an arc from three points, from a plane and angles, or from centre/start/sweep, and none of those is this. E2-T72.
+Arc	ByThreePoints(Point, Point, Point)	Done	Spark.Geometry.Arc.FromThreePoints	2026-09-13, E2-T41 step B: the same construction under the same name.
+Arc	CenterPoint	Done	Spark.Geometry.Arc.Center	2026-09-13, E2-T41 step B: the same capability; Spark drops the Point suffix because the type says so.
+Arc	Radius	Done	Spark.Geometry.Arc.Radius	2026-09-13, E2-T41 step B: the same capability under the same name; reviewed again in the member-by-member pass.
+Arc	StartAngle	Done	Spark.Geometry.Arc.StartAngle	2026-09-13, E2-T41 step B: the same capability under the same name, carried as an Angle rather than a bare double (ADR-0011).
+Arc	SweepAngle	Done	Spark.Geometry.Arc.SweepAngle	2026-09-13, E2-T41 step B: as StartAngle.
+Arc	ToString()	Done	Spark.Geometry.Arc.ToString	2026-09-13, E2-T41 step B: .NET plumbing rather than capability - present, and worth nothing.
 BoundingBox	ByCorners(Point, Point)	Unassessed		
 BoundingBox	ByCornersCoordinateSystem(Point, Point, CoordinateSystem)	Unassessed		
 BoundingBox	ByGeometry(Geometry)	Unassessed		
@@ -46,14 +46,14 @@ BoundingBox	ToCuboid()	Unassessed
 BoundingBox	ToJson()	Unassessed		
 BoundingBox	ToPolySurface()	Unassessed		
 BoundingBox	ToString()	Done	Spark.Geometry.BoundingBox.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
-Circle	ByBestFitThroughPoints(IEnumerable<Point>)	Unassessed		
-Circle	ByCenterPointRadius(Point, double)	Unassessed		
-Circle	ByCenterPointRadiusNormal(Point, double, Vector)	Unassessed		
-Circle	ByPlaneRadius(Plane, double)	Unassessed		
-Circle	ByThreePoints(Point, Point, Point)	Unassessed		
-Circle	CenterPoint	Unassessed		
-Circle	Radius	Done	Spark.Geometry.Circle.Radius	reviewed 2026-09-12: the same capability under the same name.
-Circle	ToString()	Done	Spark.Geometry.Circle.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+Circle	ByBestFitThroughPoints(IEnumerable<Point>)	Planned		2026-09-13, E2-T41 step B: no least-squares circle fit, as Line and Arc's. E2-T72.
+Circle	ByCenterPointRadius(Point, double)	Done	Spark.Geometry.Circle.FromCenterRadius	2026-09-13, E2-T41 step B: the same construction; the circle lies in the world XY plane through the centre, which Spark's factory does too.
+Circle	ByCenterPointRadiusNormal(Point, double, Vector)	Done	Spark.Geometry.Circle.FromCenterNormalRadius	2026-09-13, E2-T41 step B: the same construction, the arguments in a different order.
+Circle	ByPlaneRadius(Plane, double)	Done	Spark.Geometry.Circle.FromPlaneRadius	2026-09-13, E2-T41 step B: the same construction under the same name.
+Circle	ByThreePoints(Point, Point, Point)	Done	Spark.Geometry.Circle.FromThreePoints	2026-09-13, E2-T41 step B: the same construction under the same name.
+Circle	CenterPoint	Done	Spark.Geometry.Circle.Center	2026-09-13, E2-T41 step B: as Arc.CenterPoint.
+Circle	Radius	Done	Spark.Geometry.Circle.Radius	2026-09-13, E2-T41 step B: the same capability under the same name; reviewed again in the member-by-member pass.
+Circle	ToString()	Done	Spark.Geometry.Circle.ToString	2026-09-13, E2-T41 step B: .NET plumbing rather than capability - present, and worth nothing.
 CoEdge	Edge	Done	Spark.Geometry.BrepTrim.Edge	reviewed 2026-09-12: BrepTrim.Edge is the edge's index into Brep.Edges rather than an edge object, which is the same capability in an index-based topology (E2-T22, and the CoEdge to BrepTrim rename §4 records).
 CoEdge	EndVertex	Done	Spark.Geometry.BrepLoopView.EndVertex	2026-09-12, E2-T65: as CoEdge.StartVertex. One trim's end is the next trim's start all the way round, which is what makes a loop a circuit.
 CoEdge	Loop	Done	Spark.Geometry.BrepAdjacency.LoopOf	2026-09-12, E2-T65: the loop whose contiguous span of trims contains this one, or -1 for a trim no loop claims.
@@ -234,23 +234,23 @@ Edge	CurveGeometry	Done	Spark.Geometry.BrepEdgeView.Curve	assessed 2026-09-12: t
 Edge	EndVertex	Done	Spark.Geometry.BrepEdge.End	assessed 2026-09-12: as Edge.StartVertex; BrepEdgeView.EndPoint gives the point directly.
 Edge	StartVertex	Done	Spark.Geometry.BrepEdge.Start	assessed 2026-09-12: the start vertex as its index. Index rather than object is E2-T22 and is the deliberate difference, not a shortfall; BrepEdgeView.StartPoint gives the point directly.
 Edge	ToString()	Done	Spark.Geometry.BrepEdge.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
-Ellipse	ByCoordinateSystemRadii(CoordinateSystem, double, double)	Unassessed		
-Ellipse	ByOriginRadii(Point, double, double)	Unassessed		
-Ellipse	ByOriginVectors(Point, Vector, Vector)	Unassessed		
-Ellipse	ByPlaneRadii(Plane, double, double)	Unassessed		
-Ellipse	CenterPoint	Unassessed		
-Ellipse	MajorAxis	Unassessed		
-Ellipse	MinorAxis	Unassessed		
-Ellipse	ToString()	Done	Spark.Geometry.EllipseCurve.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
-EllipseArc	ByPlaneRadiiAngles(Plane, double, double, double, double)	Unassessed		
-EllipseArc	ByPlaneRadiiStartAngleSweepAngle(Plane, double, double, double, double)	Unassessed		
-EllipseArc	CenterPoint	Unassessed		
-EllipseArc	MajorAxis	Unassessed		
-EllipseArc	MinorAxis	Unassessed		
-EllipseArc	Plane	Unassessed		
-EllipseArc	StartAngle	Unassessed		
-EllipseArc	SweepAngle	Unassessed		
-EllipseArc	ToString()	Unassessed		
+Ellipse	ByCoordinateSystemRadii(CoordinateSystem, double, double)	Done	Spark.Geometry.EllipseCurve.FromPlaneRadii	2026-09-13, E2-T41 step B: composed - CoordinateSystem.ToPlane gives the frame the factory takes. Spark keeps the orthonormal frame and the transformation algebra apart (§3.1) and converts between them in one call.
+Ellipse	ByOriginRadii(Point, double, double)	Done	Spark.Geometry.EllipseCurve.FromPlaneRadii	2026-09-13, E2-T41 step B: composed - Plane.FromOriginNormal with the world Z gives the world-XY-aligned frame at the origin.
+Ellipse	ByOriginVectors(Point, Vector, Vector)	Done	Spark.Geometry.EllipseCurve.FromPlaneRadii	2026-09-13, E2-T41 step B: composed - Plane.FromOriginXAxisYAxis takes the two axis directions and the vectors' lengths are the radii. Spark separates the direction from the magnitude where Dynamo carries both in one vector, which is §3.1's argument about frames.
+Ellipse	ByPlaneRadii(Plane, double, double)	Done	Spark.Geometry.EllipseCurve.FromPlaneRadii	2026-09-13, E2-T41 step B: the same construction under the same name. Spark.Nodes.Core.Ellipse.FromPlaneRadii is the node.
+Ellipse	CenterPoint	Done	Spark.Geometry.EllipseCurve.Center	2026-09-13, E2-T41 step B: as Arc.CenterPoint.
+Ellipse	MajorAxis	Done	Spark.Geometry.EllipseCurve.XRadius	2026-09-13, E2-T41 step B: with Plane.XAxis. SPARK DOES NOT SORT THE RADII, and saying XRadius IS the major axis would be N156's trap - the major axis is whichever of XRadius and YRadius is the larger, taken along the matching plane axis, and the caller compares two doubles. The capability is reachable; the identification is not automatic.
+Ellipse	MinorAxis	Done	Spark.Geometry.EllipseCurve.YRadius	2026-09-13, E2-T41 step B: as MajorAxis, and with the same caveat: it is the smaller of the two radii, not YRadius by definition.
+Ellipse	ToString()	Done	Spark.Geometry.EllipseCurve.ToString	2026-09-13, E2-T41 step B: .NET plumbing rather than capability - present, and worth nothing.
+EllipseArc	ByPlaneRadiiAngles(Plane, double, double, double, double)	Done	Spark.Geometry.EllipseCurve.FromPlaneRadiiAngles	2026-09-13, E2-T41 step B: an ellipse over a sub-domain is the same type in Spark, which is why §3.2 has always mapped both Dynamo types to EllipseCurve. The two trailing doubles are a start and a sweep in Spark and a start and an end here, so the caller subtracts - arithmetic on two numbers, not a construction.
+EllipseArc	ByPlaneRadiiStartAngleSweepAngle(Plane, double, double, double, double)	Done	Spark.Geometry.EllipseCurve.FromPlaneRadiiAngles	2026-09-13, E2-T41 step B: argument for argument - this is the overload Spark's factory matches exactly, and Spark carries the two angles as Angle rather than as bare doubles (ADR-0011).
+EllipseArc	CenterPoint	Done	Spark.Geometry.EllipseCurve.Center	2026-09-13, E2-T41 step B: as Ellipse.CenterPoint - one Spark type answers both Dynamo types.
+EllipseArc	MajorAxis	Done	Spark.Geometry.EllipseCurve.XRadius	2026-09-13, E2-T41 step B: as Ellipse.MajorAxis, with the same caveat about which radius is the major one.
+EllipseArc	MinorAxis	Done	Spark.Geometry.EllipseCurve.YRadius	2026-09-13, E2-T41 step B: as Ellipse.MinorAxis.
+EllipseArc	Plane	Done	Spark.Geometry.EllipseCurve.Plane	2026-09-13, E2-T41 step B: the frame the ellipse was built in, kept rather than recovered. It is also one of the three curve types that could answer Curve.IsPlanar today, which that row's N161 enumeration names.
+EllipseArc	StartAngle	Done	Spark.Geometry.EllipseCurve.StartAngle	2026-09-13, E2-T41 step B: the same capability under the same name, as an Angle.
+EllipseArc	SweepAngle	Done	Spark.Geometry.EllipseCurve.SweepAngle	2026-09-13, E2-T41 step B: the same capability under the same name, as an Angle.
+EllipseArc	ToString()	Done	Spark.Geometry.EllipseCurve.ToString	2026-09-13, E2-T41 step B: .NET plumbing rather than capability - present, and worth nothing.
 Face	Edges	Done	Spark.Geometry.BrepAdjacency.EdgesOf	2026-09-12, E2-T65: over all of a face's loops, outer first, each edge once.
 Face	Loops	Done	Spark.Geometry.BrepFaceView.Loop	assessed 2026-09-12: the loops of a face, by position, with BrepFaceView.LoopCount and OuterLoop(). BrepFace.FirstLoop and LoopCount are the same fact in the record.
 Face	SurfaceGeometry()	Planned		assessed 2026-09-12: NOT BrepFaceView.Surface, which is the UNTRIMMED surface the face is a window onto. Dynamo returns the trimmed face. This is the same difference N156 found under PolySurface.Surfaces(), and the faithful answer needs the pcurves a trim does not carry yet. E2-T64.
@@ -318,13 +318,13 @@ GeometryExtension	RadiansToDegrees(double)	Not planned		§5 [f]: marshalling plu
 GeometryExtension	ToEntity(DesignScriptEntity)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
 GeometryExtension	ToPointArray(IPointEntity[][], bool)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
 GeometryExtension	ToPointEntityArray(Point[][], bool)	Not planned		§5 [f]: marshalling plumbing between ProtoGeometry and its native layer; the members with real capability are on Angle and Tolerance.
-Helix	Angle	Unassessed		
-Helix	AxisDirection	Unassessed		
-Helix	AxisPoint	Unassessed		
-Helix	ByAxis(Point, Vector, Point, double, double)	Unassessed		
-Helix	Pitch	Unassessed		
-Helix	Radius	Unassessed		
-Helix	ToString()	Unassessed		
+Helix	Angle	Planned		2026-09-13, E2-T41 step B: THE DECISION §3.2 HAS BEEN CARRYING SINCE IT WAS WRITTEN IS MADE: SPARK GETS A HELIX (D27, E2-T73). It was Needs a decision because it is absent from FR-48 and nobody had decided against it, and leaving that unstated is how a gap becomes a surprise. The argument for is that a helix is the CHEAPEST type the curve hierarchy can gain - it travels at a constant speed, so LengthAt, ParameterAtLength, PointAtLength, DivideEqually and DivideByLength are all closed-form and exactly right, which is true of only five of the seven types Spark already has - and it is a curve AEC users actually draw: stairs, ramps, threads, spiral ducts. It needs no kernel and no provider. Parameter recovery: the total swept angle, which with Pitch gives the height. Carried as an Angle (ADR-0011).
+Helix	AxisDirection	Planned		2026-09-13, E2-T41 step B: THE DECISION §3.2 HAS BEEN CARRYING SINCE IT WAS WRITTEN IS MADE: SPARK GETS A HELIX (D27, E2-T73). It was Needs a decision because it is absent from FR-48 and nobody had decided against it, and leaving that unstated is how a gap becomes a surprise. The argument for is that a helix is the CHEAPEST type the curve hierarchy can gain - it travels at a constant speed, so LengthAt, ParameterAtLength, PointAtLength, DivideEqually and DivideByLength are all closed-form and exactly right, which is true of only five of the seven types Spark already has - and it is a curve AEC users actually draw: stairs, ramps, threads, spiral ducts. It needs no kernel and no provider. Parameter recovery, as AxisPoint.
+Helix	AxisPoint	Planned		2026-09-13, E2-T41 step B: THE DECISION §3.2 HAS BEEN CARRYING SINCE IT WAS WRITTEN IS MADE: SPARK GETS A HELIX (D27, E2-T73). It was Needs a decision because it is absent from FR-48 and nobody had decided against it, and leaving that unstated is how a gap becomes a surprise. The argument for is that a helix is the CHEAPEST type the curve hierarchy can gain - it travels at a constant speed, so LengthAt, ParameterAtLength, PointAtLength, DivideEqually and DivideByLength are all closed-form and exactly right, which is true of only five of the seven types Spark already has - and it is a curve AEC users actually draw: stairs, ramps, threads, spiral ducts. It needs no kernel and no provider. Parameter recovery over the axis, as Arc.CenterPoint is over the circle.
+Helix	ByAxis(Point, Vector, Point, double, double)	Planned		2026-09-13, E2-T41 step B: THE DECISION §3.2 HAS BEEN CARRYING SINCE IT WAS WRITTEN IS MADE: SPARK GETS A HELIX (D27, E2-T73). It was Needs a decision because it is absent from FR-48 and nobody had decided against it, and leaving that unstated is how a gap becomes a surprise. The argument for is that a helix is the CHEAPEST type the curve hierarchy can gain - it travels at a constant speed, so LengthAt, ParameterAtLength, PointAtLength, DivideEqually and DivideByLength are all closed-form and exactly right, which is true of only five of the seven types Spark already has - and it is a curve AEC users actually draw: stairs, ramps, threads, spiral ducts. It needs no kernel and no provider. This is the constructor: axis origin, axis direction, a start point, the pitch and the number of turns.
+Helix	Pitch	Planned		2026-09-13, E2-T41 step B: THE DECISION §3.2 HAS BEEN CARRYING SINCE IT WAS WRITTEN IS MADE: SPARK GETS A HELIX (D27, E2-T73). It was Needs a decision because it is absent from FR-48 and nobody had decided against it, and leaving that unstated is how a gap becomes a surprise. The argument for is that a helix is the CHEAPEST type the curve hierarchy can gain - it travels at a constant speed, so LengthAt, ParameterAtLength, PointAtLength, DivideEqually and DivideByLength are all closed-form and exactly right, which is true of only five of the seven types Spark already has - and it is a curve AEC users actually draw: stairs, ramps, threads, spiral ducts. It needs no kernel and no provider. Parameter recovery: the rise per turn, which with the radius is what makes the speed constant.
+Helix	Radius	Planned		2026-09-13, E2-T41 step B: THE DECISION §3.2 HAS BEEN CARRYING SINCE IT WAS WRITTEN IS MADE: SPARK GETS A HELIX (D27, E2-T73). It was Needs a decision because it is absent from FR-48 and nobody had decided against it, and leaving that unstated is how a gap becomes a surprise. The argument for is that a helix is the CHEAPEST type the curve hierarchy can gain - it travels at a constant speed, so LengthAt, ParameterAtLength, PointAtLength, DivideEqually and DivideByLength are all closed-form and exactly right, which is true of only five of the seven types Spark already has - and it is a curve AEC users actually draw: stairs, ramps, threads, spiral ducts. It needs no kernel and no provider. Parameter recovery, as Arc.Radius.
+Helix	ToString()	Planned		2026-09-13, E2-T41 step B: THE DECISION §3.2 HAS BEEN CARRYING SINCE IT WAS WRITTEN IS MADE: SPARK GETS A HELIX (D27, E2-T73). It was Needs a decision because it is absent from FR-48 and nobody had decided against it, and leaving that unstated is how a gap becomes a surprise. The argument for is that a helix is the CHEAPEST type the curve hierarchy can gain - it travels at a constant speed, so LengthAt, ParameterAtLength, PointAtLength, DivideEqually and DivideByLength are all closed-form and exactly right, which is true of only five of the seven types Spark already has - and it is a curve AEC users actually draw: stairs, ramps, threads, spiral ducts. It needs no kernel and no provider. Every one of Spark's seven concrete curve types overrides ToString, so the eighth will too - which is exactly the enumeration Curve.ToString()'s row rests on, and it has to stay empty.
 HostFactory	Factory	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
 HostFactory	Instance	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
 HostFactory	PersistenceManager	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
@@ -343,12 +343,12 @@ IndexGroup	D	Done	Spark.Geometry.MeshFace.D	2026-09-13, E2-T45: IndexGroup IS Me
 IndexGroup	Equals(object)	Done	Spark.Geometry.MeshFace.Equals	2026-09-13, E2-T45: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 IndexGroup	GetHashCode()	Done	Spark.Geometry.MeshFace.GetHashCode	2026-09-13, E2-T45: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 IndexGroup	ToString()	Done	Spark.Geometry.MeshFace.ToString	2026-09-13, E2-T45: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
-Line	ByBestFitThroughPoints(IEnumerable<Point>)	Unassessed		
-Line	ByStartPointDirectionLength(Point, Vector, double)	Unassessed		
-Line	ByStartPointEndPoint(Point, Point)	Unassessed		
-Line	ByTangency(Curve, double)	Unassessed		
-Line	Direction	Done	Spark.Geometry.Line.Direction	reviewed 2026-09-12: the same capability under the same name.
-Line	ToString()	Done	Spark.Geometry.Line.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+Line	ByBestFitThroughPoints(IEnumerable<Point>)	Planned		2026-09-13, E2-T41 step B: no least-squares line fit. Plane.FromBestFit exists, so the machinery and the taste for it are both there and the curve fit is simply not written - the same hole as Arc and Circle's best-fit rows. E2-T72.
+Line	ByStartPointDirectionLength(Point, Vector, double)	Done	Spark.Geometry.Line.FromStartPointDirectionLength	2026-09-13, E2-T41 step B: the same construction under the same name. Spark.Nodes.Core.Line.FromStartPointDirectionLength is the node.
+Line	ByStartPointEndPoint(Point, Point)	Done	Spark.Geometry.Line.FromStartPointEndPoint	2026-09-13, E2-T41 step B: the same construction under the same name.
+Line	ByTangency(Curve, double)	Done	Spark.Geometry.Line.FromStartPointDirectionLength	2026-09-13, E2-T41 step B: composed - Curve.PointAt and Curve.TangentAt give the point and the direction, and the factory takes them. THE CALLER PASSES MEMBERS' RESULTS TO ANOTHER MEMBER, which is the composition this register counts; they are not asked to compute the tangent themselves.
+Line	Direction	Done	Spark.Geometry.Line.Direction	2026-09-13, E2-T41 step B: the same capability under the same name; reviewed again in the member-by-member pass.
+Line	ToString()	Done	Spark.Geometry.Line.ToString	2026-09-13, E2-T41 step B: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists.
 Loop	CoEdges	Done	Spark.Geometry.BrepLoopView.Trim	assessed 2026-09-12: the trims of a loop by position, with BrepLoopView.TrimCount. They are contiguous from BrepLoop.FirstTrim, which is what makes Next and Previous index arithmetic.
 Loop	Face	Done	Spark.Geometry.BrepAdjacency.FaceOf	2026-09-12, E2-T65: an inner loop answers with its face just as an outer one does, which is the case a lookup that stops at a face's first loop gets wrong.
 Loop	IsExternal	Done	Spark.Geometry.BrepLoopView.Kind	assessed 2026-09-12: BrepLoopKind.Outer is Dynamo's true. An enum rather than a boolean because a third kind is a real possibility and a boolean cannot grow one.
@@ -408,21 +408,21 @@ Mesh	VertexNormals	Done	Spark.Geometry.Mesh.Normals	2026-09-13, E2-T45: normals 
 Mesh	VertexPositions	Done	Spark.Geometry.Mesh.Vertices	2026-09-13, E2-T45: the vertex array. Mesh.Vertex(i) reads one without copying the lot.
 Mesh	VerticesAsThreeNumbers	Not planned		2026-09-13, E2-T45: 5 [i]: Dynamo's flattened accessors exist to feed its list plumbing, and Spark returns spans of typed values - Point3d, MeshFace - which the graph handles (E4-T2). Refusing the flattening is not refusing the data: VertexPositions, Edges and Triangles carry the same information typed.
 Mesh	Volume	Done	Spark.Geometry.Mesh.Volume	reviewed 2026-09-12: the same capability under the same name.
-NurbsCurve	ByControlPoints(IEnumerable<Point>)	Unassessed		
-NurbsCurve	ByControlPoints(IEnumerable<Point>, int)	Unassessed		
-NurbsCurve	ByControlPoints(IEnumerable<Point>, int, bool)	Unassessed		
-NurbsCurve	ByControlPointsWeightsKnots(IEnumerable<Point>, double[], double[], int)	Unassessed		
-NurbsCurve	ByPoints(IEnumerable<Point>)	Unassessed		
-NurbsCurve	ByPoints(IEnumerable<Point>, bool)	Unassessed		
-NurbsCurve	ByPoints(IEnumerable<Point>, int)	Unassessed		
-NurbsCurve	ByPointsTangents(IEnumerable<Point>, Vector, Vector)	Unassessed		
-NurbsCurve	ControlPoints()	Done	Spark.Geometry.NurbsCurve.ControlPoints	reviewed 2026-09-12: the same capability under the same name.
-NurbsCurve	Degree	Done	Spark.Geometry.NurbsCurve.Degree	reviewed 2026-09-12: the same capability under the same name.
-NurbsCurve	IsPeriodic	Unassessed		
-NurbsCurve	IsRational	Done	Spark.Geometry.NurbsCurve.IsRational	reviewed 2026-09-12: the same capability under the same name.
-NurbsCurve	Knots()	Done	Spark.Geometry.NurbsCurve.Knots	reviewed 2026-09-12: the same capability under the same name.
-NurbsCurve	ToString()	Done	Spark.Geometry.NurbsCurve.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
-NurbsCurve	Weights()	Done	Spark.Geometry.NurbsCurve.Weights	reviewed 2026-09-12: the same capability under the same name.
+NurbsCurve	ByControlPoints(IEnumerable<Point>)	Done	Spark.Geometry.NurbsCurve	2026-09-13, E2-T41 step B: composed - KnotVector.CreateClamped(3, points.Count) gives the uniform clamped knot vector Dynamo infers, and the constructor takes it. The capability is a CONSTRUCTOR, and constructors are not members this inventory counts, so the row names the type. SPARK MAKES THE KNOT VECTOR EXPLICIT because a knot vector has invariants a bare array cannot hold - the same argument §3.3 makes for NurbsSurface.
+NurbsCurve	ByControlPoints(IEnumerable<Point>, int)	Done	Spark.Geometry.NurbsCurve	2026-09-13, E2-T41 step B: as ByControlPoints(points), with the degree passed to KnotVector.CreateClamped rather than defaulted.
+NurbsCurve	ByControlPoints(IEnumerable<Point>, int, bool)	Planned		2026-09-13, E2-T41 step B: the bool makes the curve PERIODIC, and Spark's KnotVector is clamped: KnotVector.IsClamped is a property and CreateClamped is the only factory, so there is no periodic knot vector to build one with. It pairs with NurbsCurve.IsPeriodic, and both are N156's distinction - periodic is a property of the knot vector and of the control net wrapping smoothly, and closed is the two ends meeting in space. E2-T72.
+NurbsCurve	ByControlPointsWeightsKnots(IEnumerable<Point>, double[], double[], int)	Done	Spark.Geometry.NurbsCurve	2026-09-13, E2-T41 step B: the explicit constructor, argument for argument - control points, weights, knots and degree. Spark takes the knots as a KnotVector, which carries the degree with them, so the two cannot disagree.
+NurbsCurve	ByPoints(IEnumerable<Point>)	Done	Spark.Geometry.NurbsCurve.InterpolatePoints	2026-09-13, E2-T41 step B: INTERPOLATION rather than the control-point constructor wearing a different name - the curve passes THROUGH the points. Degree 3 by default in both. The result is non-rational, because weights are a modelling choice and inventing them would answer a question nobody asked.
+NurbsCurve	ByPoints(IEnumerable<Point>, bool)	Planned		2026-09-13, E2-T41 step B: the closed/periodic interpolation, which needs the periodic knot vector ByControlPoints(points, degree, bool) needs. E2-T72.
+NurbsCurve	ByPoints(IEnumerable<Point>, int)	Done	Spark.Geometry.NurbsCurve.InterpolatePoints	2026-09-13, E2-T41 step B: as ByPoints(points), with the degree given.
+NurbsCurve	ByPointsTangents(IEnumerable<Point>, Vector, Vector)	Planned		2026-09-13, E2-T41 step B: tangent-constrained interpolation. THE SAME GAP §3.3 FOUND ON NurbsSurface, where three of the five missing members are ByPoints and its two tangent-constrained forms - so it is one algorithm short on both sides of the kernel, not two. E2-T72.
+NurbsCurve	ControlPoints()	Done	Spark.Geometry.NurbsCurve.ControlPoints	2026-09-13, E2-T41 step B: a copy, so the curve stays immutable; the same capability under the same name.
+NurbsCurve	Degree	Done	Spark.Geometry.NurbsCurve.Degree	2026-09-13, E2-T41 step B: the same capability under the same name.
+NurbsCurve	IsPeriodic	Planned		2026-09-13, E2-T41 step B: N156, AND THE THIRD TIME THIS EXACT TRAP HAS BEEN CAUGHT - IsPeriodicInU and IsPeriodicInV were the second, on NurbsSurface. NurbsCurve.IsClosed is not this: closed is geometric, the two ends meeting in space; periodic is a property of the knot vector and of the control net wrapping smoothly. A closed curve need not be periodic and a periodic one is closed. E2-T72.
+NurbsCurve	IsRational	Done	Spark.Geometry.NurbsCurve.IsRational	2026-09-13, E2-T41 step B: the same capability under the same name - whether any weight differs from one.
+NurbsCurve	Knots()	Done	Spark.Geometry.NurbsCurve.Knots	2026-09-13, E2-T41 step B: Spark hands back a KnotVector where Dynamo hands back a double[], for the reason §3.3 gives on NurbsSurface: a knot vector has invariants a bare array cannot hold, and KnotVector.ToArray() gives Dynamo's shape when a caller wants it.
+NurbsCurve	ToString()	Done	Spark.Geometry.NurbsCurve.ToString	2026-09-13, E2-T41 step B: .NET plumbing rather than capability - present, and worth nothing.
+NurbsCurve	Weights()	Done	Spark.Geometry.NurbsCurve.Weights	2026-09-13, E2-T41 step B: a copy, as ControlPoints; the same capability under the same name.
 NurbsSurface	ByControlPoints(Point[][], int, int)	Done	Spark.Geometry.NurbsSurface	2026-09-12, E2-T42 step B: the constructor taking two KnotVectors and a rectangular control-point array. The degrees come from the knot vectors rather than from separate arguments, because a degree and a knot vector that disagree is a state the type should not be able to reach.
 NurbsSurface	ByControlPointsWeightsKnots(Point[][], double[][], double[], double[], int, int)	Done	Spark.Geometry.NurbsSurface	2026-09-12, E2-T42 step B: the overload taking weights beside the control points. Knots arrive inside the KnotVectors rather than as bare arrays, for the same reason.
 NurbsSurface	ByPoints(Point[][], int, int)	Planned		2026-09-12, E2-T42 step B: INTERPOLATION through a grid of points, which is a real algorithm and not the control-point constructor. NurbsSurface.FromCorners takes four corners and is the degenerate case, not this. E2-T66.
@@ -496,27 +496,27 @@ Point	ToString()	Done	Spark.Geometry.Point3d.ToString	reviewed 2026-09-12: .NET 
 Point	X	Done	Spark.Geometry.Point3d.X	reviewed 2026-09-12: the same capability under the same name.
 Point	Y	Done	Spark.Geometry.Point3d.Y	reviewed 2026-09-12: the same capability under the same name.
 Point	Z	Done	Spark.Geometry.Point3d.Z	reviewed 2026-09-12: the same capability under the same name.
-PolyCurve	BasePlane()	Unassessed		
-PolyCurve	ByGroupedCurves(IEnumerable<Curve>, double)	Unassessed		
-PolyCurve	ByGroupedCurves(IEnumerable<Curve>, double, bool, double)	Unassessed		
-PolyCurve	ByJoinedCurves(IEnumerable<Curve>, double)	Unassessed		
-PolyCurve	ByJoinedCurves(IEnumerable<Curve>, double, bool, double)	Unassessed		
-PolyCurve	ByPoints(IEnumerable<Point>, bool)	Unassessed		
-PolyCurve	ByThickeningCurve(Curve, double, Vector)	Unassessed		
-PolyCurve	ByThickeningCurveNormal(Curve, double, Vector)	Unassessed		
-PolyCurve	CloseWithLine()	Unassessed		
-PolyCurve	CloseWithLineAndTangentArcs(double, double)	Unassessed		
-PolyCurve	CurveAtIndex(int, bool)	Unassessed		
-PolyCurve	Curves()	Unassessed		
-PolyCurve	ExtendWithArc(double, double, bool)	Unassessed		
-PolyCurve	ExtendWithEllipse(double, double, double, double, bool)	Unassessed		
-PolyCurve	Fillet(double, bool)	Unassessed		
-PolyCurve	Heal(double)	Unassessed		
-PolyCurve	NumberOfCurves	Unassessed		
-PolyCurve	Offset(double, bool)	Unassessed		
-PolyCurve	OffsetMany(double, bool, Vector)	Unassessed		
-PolyCurve	Points	Unassessed		
-PolyCurve	ToString()	Done	Spark.Geometry.PolyCurve.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+PolyCurve	BasePlane()	Planned		2026-09-13, E2-T41 step B: the plane of a planar polycurve, which presumes planarity - so it is Curve.IsPlanar's gap again rather than a separate one. Plane.FromBestFit would give a plane for ANY polycurve, including one that is not planar, and returning that as a base plane is worse than not having the member. E2-T72.
+PolyCurve	ByGroupedCurves(IEnumerable<Curve>, double)	Planned		2026-09-13, E2-T41 step B: grouping a heap of curves into SEVERAL polycurves. PolyCurve.FromJoinedCurves makes ONE and REFUSES a chain that does not meet, naming the index and the gap - which is the opposite behaviour, deliberately. E2-T72.
+PolyCurve	ByGroupedCurves(IEnumerable<Curve>, double, bool, double)	Planned		2026-09-13, E2-T41 step B: as ByGroupedCurves(curves, tolerance), with the two trailing arguments this section cannot read off metadata. E2-T72.
+PolyCurve	ByJoinedCurves(IEnumerable<Curve>, double)	Done	Spark.Geometry.PolyCurve.FromJoinedCurves	2026-09-13, E2-T41 step B: the same construction, and Spark TAKES THE JOIN TOLERANCE AS A PARAMETER for the same reason Dynamo does (ADR-0010). Nested polycurves are flattened so the parameterisation does not depend on assembly order.
+PolyCurve	ByJoinedCurves(IEnumerable<Curve>, double, bool, double)	Needs a decision		2026-09-13, E2-T41 step B: the two trailing arguments are a flag and a length whose roles a signature does not give, and they read like §6.3's PolyCurve.Heal(trimLength) - trimming behaviour at the joins. Recorded in §6.3 beside it rather than guessed at.
+PolyCurve	ByPoints(IEnumerable<Point>, bool)	Done	Spark.Geometry.PolyLine.FromPoints	2026-09-13, E2-T41 step B: a polycurve through points is a polyline, and the bool is the closed flag: PolyLine.FromPoints and PolyLine.FromClosedPoints are the two answers. Spark uses two factories where Dynamo uses a flag, because a bool argument at a call site is a comment in the wrong place.
+PolyCurve	ByThickeningCurve(Curve, double, Vector)	Planned		2026-09-13, E2-T41 step B: offsetting a curve to both sides and closing the ends - a closed polycurve around a curve. CurveOffset.Offset gives one side and nothing assembles the loop. E2-T72.
+PolyCurve	ByThickeningCurveNormal(Curve, double, Vector)	Planned		2026-09-13, E2-T41 step B: as ByThickeningCurve, thickening along the curve's own normal - which also waits on Curve.IsPlanar. E2-T72.
+PolyCurve	CloseWithLine()	Done	Spark.Geometry.PolyCurve.FromJoinedCurves	2026-09-13, E2-T41 step B: composed - Line.FromStartPointEndPoint(EndPoint, StartPoint) and FromJoinedCurves over the segments and it. The caller passes members' results to another member and computes nothing the members exist to compute.
+PolyCurve	CloseWithLineAndTangentArcs(double, double)	Planned		2026-09-13, E2-T41 step B: closing with a line and two tangent arcs is a fillet construction, and Spark's only fillet is CurveOffset.FilletLines, which takes two lines. It goes with Arc.ByFillet. E2-T72.
+PolyCurve	CurveAtIndex(int, bool)	Needs a decision		2026-09-13, E2-T41 step B: §6.3 names it: what endOrStart selects alongside an index is not deducible. PolyCurve.SegmentAt(int) answers the index half exactly, so this is a question about the flag and not about the capability.
+PolyCurve	Curves()	Done	Spark.Geometry.PolyCurve.Segments	2026-09-13, E2-T41 step B: the pieces, in order; Spark says segments because a polycurve's pieces are its segments and a Curve is what each one is.
+PolyCurve	ExtendWithArc(double, double, bool)	Planned		2026-09-13, E2-T41 step B: extension, which Spark has none of on any curve type - Curve.Trimmed only ever narrows. It goes with Curve.Extend, ExtendStart and ExtendEnd. E2-T72.
+PolyCurve	ExtendWithEllipse(double, double, double, double, bool)	Planned		2026-09-13, E2-T41 step B: as ExtendWithArc. E2-T72.
+PolyCurve	Fillet(double, bool)	Planned		2026-09-13, E2-T41 step B: filleting every corner of a polycurve at once. CurveOffset.FilletLines does ONE corner between TWO LINES, so a polycurve of arcs cannot be filleted and neither can the whole chain in one call. E2-T72.
+PolyCurve	Heal(double)	Needs a decision		2026-09-13, E2-T41 step B: §6.3 names it: the role of trimLength is not deducible. Healing a polycurve is also not IBrepKernel.Heal, which heals a Brep - a near-match worth stating rather than leaving for somebody to assume.
+PolyCurve	NumberOfCurves	Done	Spark.Geometry.PolyCurve.SegmentCount	2026-09-13, E2-T41 step B: the same capability; Spark says segments, as Curves().
+PolyCurve	Offset(double, bool)	Planned		2026-09-13, E2-T41 step B: CurveOffset.Offset takes a curve, a distance and the PLANE NORMAL, and this takes a distance and an unexplained flag. An unmatched flag means the member cannot be asked for, which is the ground Surface.Thicken(double, bool) and BySweep(Curve, Curve, bool) were refused a match on. E2-T72.
+PolyCurve	OffsetMany(double, bool, Vector)	Planned		2026-09-13, E2-T41 step B: as Curve.OffsetMany - CurveOffset.Offset returns one curve. E2-T72.
+PolyCurve	Points	Done	Spark.Geometry.PolyCurve.Segments	2026-09-13, E2-T41 step B: composed - the start point of each segment, and the end point of the last. Spark keeps the points on the segments rather than duplicating them on the polycurve, so the model holds each fact once.
+PolyCurve	ToString()	Done	Spark.Geometry.PolyCurve.ToString	2026-09-13, E2-T41 step B: .NET plumbing rather than capability - present, and worth nothing.
 PolySurface	ByJoinedSurfaces(IEnumerable<Surface>)	Planned		2026-09-12, E11-T30: IBrepKernel.Sew joins BREPS; each surface has to become a face with a loop first. The same gap as Surface.Join. E2-T66.
 PolySurface	ByLoft(IEnumerable<Curve>)	Done	Spark.Api.IBrepKernel.Loft	A loft through an ordered set of profiles. Behind the kernel seam and delivered through it, which the register can now say: E11-T30 made the rename-catcher read Spark.Api and Spark.Nodes.Core beside Spark.Geometry, because section 1 and FR-81 make the subject capability. This row said Planned until 2026-09-12 and the capability had been there since M6.
 PolySurface	ByLoft(IEnumerable<Curve>, Curve)	Planned		2026-09-12, E11-T30: IBrepKernel.Loft has no guide. E2-T66.
@@ -535,25 +535,25 @@ PolySurface	Surfaces()	Planned		2026-09-12: reviewed, DEMOTED, and now assessed.
 PolySurface	ToString()	Done	Spark.Geometry.Brep.ToString	2026-09-12, E2-T42 step B: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 PolySurface	UnconnectedBoundaries()	Done	Spark.Geometry.BrepAdjacency.TrimsOf	2026-09-12, E2-T42 step B: a naked edge is one used by exactly one trim, which TrimsOf answers per edge; Brep.Edge(i).Curve gives its curve. Reachable only since E2-T65 built the reverse index - before it, an edge did not know its trims.
 PolySurface	VertexCount()	Done	Spark.Geometry.Brep.VertexCount	2026-09-12, E2-T42 step B: as EdgeCount().
-Polygon	ByPoints(IEnumerable<Point>)	Unassessed		
-Polygon	Center()	Unassessed		
-Polygon	ContainmentTest(Point)	Unassessed		
-Polygon	Corners()	Unassessed		
-Polygon	PlaneDeviation	Unassessed		
-Polygon	Points	Done	Spark.Geometry.PolyLine.Points	reviewed 2026-09-12: the same capability under the same name.
-Polygon	RegularPolygon(Circle, int)	Unassessed		
-Polygon	SelfIntersections()	Unassessed		
-Polygon	ToString()	Done	Spark.Geometry.PolyLine.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+Polygon	ByPoints(IEnumerable<Point>)	Done	Spark.Geometry.PolyLine.FromClosedPoints	2026-09-13, E2-T41 step B: §3.2 argues that Rectangle and Polygon are types in Dynamo and should be FACTORIES in Spark, and Spark built them that way: a closed PolyLine, with PolyLine.FromRegularPolygon and PolyLine.FromRectangle making the two shapes. The argument is that a Rectangle subclassing a Polygon subclassing a PolyCurve gains nothing over a closed PolyLine and costs a public type that must be serialised, versioned, documented and node-ified for ever. THE ROWS RECORD THAT DECISION AS BUILT, 2026-09-13. The closed polyline through the corners IS the polygon.
+Polygon	Center()	Done	Spark.Geometry.Planar.Region.Centroid	2026-09-13, E2-T41 step B: and the row is reachable under EITHER reading of a word Dynamo does not define. If Center is the area centroid it is Region.FromClosedPolyLines(plane, [polyline]).Centroid(); if it is the mean of the corners it is the average of PolyLine.Points(). Spark has both, so the register does not have to resolve which Dynamo means - and saying which it is would be a guess. NAMING Region.Centroid TAKES Spark.Geometry.Planar.Region OFF THE EXCUSED LIST and its other members are counted in the residue from today.
+Polygon	ContainmentTest(Point)	Done	Spark.Geometry.Planar.Region.Contains	2026-09-13, E2-T41 step B: point-in-polygon, through the planar region a closed polyline makes. Region carries the tolerance as a parameter (ADR-0010) where Dynamo's takes none.
+Polygon	Corners()	Done	Spark.Geometry.PolyLine.Points	2026-09-13, E2-T41 step B: the corners of a closed polyline are its points; the same array Polygon.Points names.
+Polygon	PlaneDeviation	Done	Spark.Geometry.Plane.FromBestFit	2026-09-13, E2-T41 step B: composed - Plane.FromBestFit over the corners, then Plane.DistanceTo for each, and the largest. §6.3 records that Dynamo does not say WHICH FIT it uses; Spark's is least squares and says so, and the choice of fit changes the number rather than the capability.
+Polygon	Points	Done	Spark.Geometry.PolyLine.Points	2026-09-13, E2-T41 step B: the same capability under the same name; reviewed again in the member-by-member pass.
+Polygon	RegularPolygon(Circle, int)	Done	Spark.Geometry.PolyLine.FromRegularPolygon	2026-09-13, E2-T41 step B: §3.2 argues that Rectangle and Polygon are types in Dynamo and should be FACTORIES in Spark, and Spark built them that way: a closed PolyLine, with PolyLine.FromRegularPolygon and PolyLine.FromRectangle making the two shapes. The argument is that a Rectangle subclassing a Polygon subclassing a PolyCurve gains nothing over a closed PolyLine and costs a public type that must be serialised, versioned, documented and node-ified for ever. THE ROWS RECORD THAT DECISION AS BUILT, 2026-09-13. Composed - Circle.Plane and Circle.Radius are the plane and the radius the factory takes, so a circle inscribes a polygon in one call.
+Polygon	SelfIntersections()	Planned		2026-09-13, E2-T41 step B: Curve.IntersectWith takes ANOTHER curve, so a curve cannot be asked about itself - which is E2-T70's finding in a second place: every Spark query takes the other thing, and the degenerate self case is nobody's. Region construction rejects a self-intersecting loop but does not report where. E2-T72.
+Polygon	ToString()	Done	Spark.Geometry.PolyLine.ToString	2026-09-13, E2-T41 step B: .NET plumbing rather than capability - present, and worth nothing.
 ProtoGeometryConfiguration	GeometryFactoryFileName	Not planned		§5 [b]: names the native DLLs ProtoGeometry loads; Spark loads none to do geometry.
 ProtoGeometryConfiguration	PersistentManagerFileName	Not planned		§5 [b]: names the native DLLs ProtoGeometry loads; Spark loads none to do geometry.
-Rectangle	ByCornerPoints(IEnumerable<Point>)	Unassessed		
-Rectangle	ByCornerPoints(Point, Point, Point, Point)	Unassessed		
-Rectangle	ByWidthLength(CoordinateSystem, double, double)	Unassessed		
-Rectangle	ByWidthLength(Plane, double, double)	Unassessed		
-Rectangle	ByWidthLength(double, double)	Unassessed		
-Rectangle	Height	Unassessed		
-Rectangle	ToString()	Unassessed		
-Rectangle	Width	Unassessed		
+Rectangle	ByCornerPoints(IEnumerable<Point>)	Done	Spark.Geometry.PolyLine.FromClosedPoints	2026-09-13, E2-T41 step B: §3.2 argues that Rectangle and Polygon are types in Dynamo and should be FACTORIES in Spark, and Spark built them that way: a closed PolyLine, with PolyLine.FromRegularPolygon and PolyLine.FromRectangle making the two shapes. The argument is that a Rectangle subclassing a Polygon subclassing a PolyCurve gains nothing over a closed PolyLine and costs a public type that must be serialised, versioned, documented and node-ified for ever. THE ROWS RECORD THAT DECISION AS BUILT, 2026-09-13. Four corners, closed, is the rectangle.
+Rectangle	ByCornerPoints(Point, Point, Point, Point)	Done	Spark.Geometry.PolyLine.FromClosedPoints	2026-09-13, E2-T41 step B: §3.2 argues that Rectangle and Polygon are types in Dynamo and should be FACTORIES in Spark, and Spark built them that way: a closed PolyLine, with PolyLine.FromRegularPolygon and PolyLine.FromRectangle making the two shapes. The argument is that a Rectangle subclassing a Polygon subclassing a PolyCurve gains nothing over a closed PolyLine and costs a public type that must be serialised, versioned, documented and node-ified for ever. THE ROWS RECORD THAT DECISION AS BUILT, 2026-09-13. The four-argument form of the same thing.
+Rectangle	ByWidthLength(CoordinateSystem, double, double)	Done	Spark.Geometry.PolyLine.FromRectangle	2026-09-13, E2-T41 step B: composed - CoordinateSystem.ToPlane gives the frame the factory takes.
+Rectangle	ByWidthLength(Plane, double, double)	Done	Spark.Geometry.PolyLine.FromRectangle	2026-09-13, E2-T41 step B: argument for argument. Spark.Nodes.Core.PolyLine.FromRectangle is the node.
+Rectangle	ByWidthLength(double, double)	Done	Spark.Geometry.PolyLine.FromRectangle	2026-09-13, E2-T41 step B: composed - Plane.WorldXY is the frame Dynamo leaves implicit.
+Rectangle	Height	Done	Spark.Geometry.PolyLine.SegmentAt	2026-09-13, E2-T41 step B: as Width: SegmentAt(1).Length. Dynamo says Height for what its own ByWidthLength calls length.
+Rectangle	ToString()	Done	Spark.Geometry.PolyLine.ToString	2026-09-13, E2-T41 step B: .NET plumbing rather than capability - present, and worth nothing.
+Rectangle	Width	Done	Spark.Geometry.PolyLine.SegmentAt	2026-09-13, E2-T41 step B: THE PRICE OF §3.2's OWN ARGUMENT, and it is worth stating rather than hiding: a rectangle that is a closed PolyLine has no Width property, so the width is SegmentAt(0).Length. That is the trade the section chose - no public type to version for ever, and two parameter-recovery members that are a segment length instead.
 Solid	Area	Done	Spark.Geometry.Mesh.Area	2026-09-12, E2-T43: as Volume - the tessellation's area, through Spark.Nodes.Core.Solid.ToMesh. Approximate, and converging with the tolerance. E2-T67.
 Solid	ByJoinedSurfaces(IEnumerable<Surface>)	Planned		2026-09-12, E2-T43: IBrepKernel.Sew joins BREPS, and a surface has to become a face with a loop first, which is BrepBuilder work. The same gap as Surface.Join and PolySurface.ByJoinedSurfaces. E2-T66.
 Solid	ByLoft(IEnumerable<Curve>)	Done	Spark.Api.IBrepKernel.Loft	2026-09-12, E2-T43: profiles lofted, open or closed. Whether the result is a solid is IsSolid, not a type.

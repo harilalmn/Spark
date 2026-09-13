@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-13 (N162: what the residue budget's *direction* says about the pass that moved it)
+**Last updated:** 2026-09-13 (N162, and its correction the same day: what the residue budget's *direction* actually measures)
 
 ---
 
@@ -4966,3 +4966,22 @@ was claimed and how many members came with it — not as an apology, but because
 explanation beside it is indistinguishable from the drift the check was built to catch. The
 exclusions file keeps that history inline for exactly this reason, and it is the only place it is
 written down.
+
+**Corrected the same day, by the step after the one that wrote this note.** The paragraph above
+ended with a prediction — *a section whose capabilities are constructions will cost* — and `E2-T41`
+step B was exactly such a section: 105 rows over ten concrete curve types, almost every one of them a
+constructor. The residue **fell 15**, the largest move it has made in that direction. The prediction
+was wrong, and the reason is worth more than the prediction was: **`Line`, `Arc`, `Circle`,
+`EllipseCurve`, `PolyLine` and `PolyCurve` were already in the register**, so thirty rows naming
+`Circle.FromCenterNormalRadius` and its siblings landed on members the assembly declares. Only one
+type came off the excused list — `Spark.Geometry.Planar.Region`, because `Polygon.ContainmentTest` is
+`Region.Contains` — and it brought twelve members against twenty-seven named.
+
+**So the rule is not about the shape of the capability, it is about the shape of the register.** What
+a pass costs is whether the **types** its `Done` rows name were already accounted for, and nothing
+else. §3.8 cost 27 because `Transform` had never been in the register and six rows suddenly claimed
+it; §3.2 step B saved 15 because the curve types had been there since M1. A section full of
+constructions over types the register already watches is the *cheapest* kind of pass, not the dearest.
+**The prediction is left standing above rather than edited out**, because a note that quietly rewrites
+its own reasoning teaches nothing about how the reasoning failed: it generalised from one observation
+and the second observation broke it.
