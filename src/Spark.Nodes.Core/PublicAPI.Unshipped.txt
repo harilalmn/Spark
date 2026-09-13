@@ -30,3 +30,6 @@ static Spark.Nodes.Core.Solid.Translate(Spark.Geometry.Brep! solid, Spark.Geomet
 static Spark.Nodes.Core.Surface.ToMesh(Spark.Geometry.Surface! surface, double tolerance = 0.01, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Spark.Geometry.Mesh!
 static Spark.Nodes.Core.Vector.FromCylindrical(double radius = 1, Spark.Geometry.Angle azimuth = default(Spark.Geometry.Angle), double height = 0) -> Spark.Geometry.Vector3d
 static Spark.Nodes.Core.Vector.FromSpherical(double radius = 1, Spark.Geometry.Angle azimuth = default(Spark.Geometry.Angle), Spark.Geometry.Angle polar = default(Spark.Geometry.Angle)) -> Spark.Geometry.Vector3d
+static Spark.Nodes.Core.NurbsCurve.InterpolatePoints(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, int degree = 3) -> Spark.Geometry.NurbsCurve!
+static Spark.Nodes.Core.NurbsCurve.InterpolatePointsWithTangents(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, Spark.Geometry.Vector3d startTangent, Spark.Geometry.Vector3d endTangent, int degree = 3) -> Spark.Geometry.NurbsCurve!
+Spark.Nodes.Core.NurbsCurve

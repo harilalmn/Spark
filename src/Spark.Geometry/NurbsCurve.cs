@@ -995,6 +995,180 @@ public sealed class NurbsCurve : Curve
     }
 
     /// <summary>
+    /// The curve of a given degree that passes exactly through a sequence of points, leaves the
+    /// first in a prescribed direction and arrives at the last in another.
+    /// </summary>
+    /// <param name="points">The points to pass through, at least two, no two consecutive equal.</param>
+    /// <param name="startTangent">
+    /// The direction the curve sets off in. Only its direction is used; its length is ignored.
+    /// </param>
+    /// <param name="endTangent">
+    /// The direction the curve arrives in, pointing <i>along</i> the curve rather than back
+    /// towards it. Only its direction is used.
+    /// </param>
+    /// <param name="degree">The degree. At least 2, and at most one more than the number of points.</param>
+    /// <returns>A clamped curve interpolating every point, tangent to both directions.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="points"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="degree"/> is less than 2, or more than the number of points plus one.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// There are fewer than two points, a point is not finite, two consecutive points coincide, or
+    /// a tangent is zero.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <see cref="InterpolatePoints"/> with the two end conditions replaced. That member's system
+    /// says <i>the curve at parameter i is point i</i> and nothing about the ends beyond passing
+    /// through them; this one adds two control points and two equations — the first derivative at
+    /// each end — and solves the same kind of system. The end derivatives of a clamped curve have
+    /// closed forms in the first two and last two control points, so no derivative basis is
+    /// needed: the two extra rows each have two entries.
+    /// </para>
+    /// <para>
+    /// <b>The derivative's length is chosen here, and the choice is visible in the shape.</b> A
+    /// caller passes a direction, but a first derivative has a magnitude as well, and a curve can be
+    /// perfectly tangent to the right direction and still bulge or flatten near its ends if that
+    /// magnitude is wrong — which is a failure no test of tangency can see. The rule is the
+    /// standard one: the derivative is the unit direction scaled by the <b>total chord length</b>
+    /// of the points, because a chord-length-parameterised curve over <c>[0, 1]</c> travels at
+    /// roughly that speed everywhere, so the ends are asked to move at the speed the middle already
+    /// does. Points sampled from a circular arc, given the arc's own end tangents, come back lying
+    /// on the arc between the samples; scale the derivative by three and they do not.
+    /// </para>
+    /// <para>
+    /// <b>The knots are averaged over the chord parameters with the first and last repeated once</b>,
+    /// which for a cubic is Piegl and Tiller's Eq. 9.50 and generalises to any degree. Averaging
+    /// is what keeps the system well conditioned; the repeats give the two extra control points
+    /// somewhere to live.
+    /// </para>
+    /// <para>
+    /// Two points and two tangents give the cubic Hermite curve, whose four control points are
+    /// known in closed form, and that is the case the implementation is checked against.
+    /// </para>
+    /// </remarks>
+    public static NurbsCurve InterpolatePointsWithTangents(
+        IReadOnlyList<Point3d> points,
+        Vector3d startTangent,
+        Vector3d endTangent,
+        int degree = 3)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+        ArgumentOutOfRangeException.ThrowIfLessThan(degree, 2);
+
+        if (points.Count < 2)
+        {
+            throw new ArgumentException(
+                "A curve through points needs at least two of them.", nameof(points));
+        }
+
+        // Two more control points than points, and a curve needs more control points than its
+        // degree, so the degree may exceed the point count by one and no more.
+        if (degree > points.Count + 1)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(degree),
+                degree,
+                $"A degree-{degree} curve with end tangents needs at least {degree - 1} points to "
+                + $"interpolate and was given {points.Count}. Lower the degree, or supply more points.");
+        }
+
+        if (!startTangent.TryNormalise(out Vector3d startDirection))
+        {
+            throw new ArgumentException(
+                "The start tangent is zero, which is no direction at all.", nameof(startTangent));
+        }
+
+        if (!endTangent.TryNormalise(out Vector3d endDirection))
+        {
+            throw new ArgumentException(
+                "The end tangent is zero, which is no direction at all.", nameof(endTangent));
+        }
+
+        double[] parameters = ChordLengthParameters(points);
+
+        double totalChord = 0.0;
+        for (int i = 1; i < points.Count; i++)
+        {
+            totalChord += points[i - 1].DistanceTo(points[i]);
+        }
+
+        Vector3d startDerivative = startDirection * totalChord;
+        Vector3d endDerivative = endDirection * totalChord;
+
+        // The chord parameters with the first and last repeated once: the list the knot averaging
+        // sees has one entry per control point, and the two derivative conditions sit at the ends.
+        int count = points.Count;
+        int controls = count + 2;
+        double[] augmented = new double[controls];
+        augmented[0] = parameters[0];
+        for (int i = 0; i < count; i++)
+        {
+            augmented[i + 1] = parameters[i];
+        }
+
+        augmented[controls - 1] = parameters[count - 1];
+
+        KnotVector knots = AveragedKnots(augmented, degree);
+
+        double[,] matrix = new double[controls, controls];
+        double[,] rightHand = new double[controls, 3];
+
+        // Row 0: the first control point is the first point.
+        matrix[0, 0] = 1.0;
+        SetRow(rightHand, 0, points[0].X, points[0].Y, points[0].Z);
+
+        // Row 1: the derivative at the start is degree / u[degree + 1] times (P1 - P0).
+        double startScale = degree / knots[degree + 1];
+        matrix[1, 0] = -startScale;
+        matrix[1, 1] = startScale;
+        SetRow(rightHand, 1, startDerivative.X, startDerivative.Y, startDerivative.Z);
+
+        // Rows 2 .. count - 1: the curve at parameter k is point k, for the interior points.
+        for (int k = 1; k < count - 1; k++)
+        {
+            int row = k + 1;
+            int span = knots.FindSpan(parameters[k]);
+            double[] basis = knots.BasisFunctions(span, parameters[k]);
+
+            for (int j = 0; j <= degree; j++)
+            {
+                matrix[row, span - degree + j] = basis[j];
+            }
+
+            SetRow(rightHand, row, points[k].X, points[k].Y, points[k].Z);
+        }
+
+        // Row count: the derivative at the end is degree / (1 - u[controls - 1]) times the
+        // difference of the last two control points.
+        double endScale = degree / (1.0 - knots[controls - 1]);
+        matrix[count, controls - 2] = -endScale;
+        matrix[count, controls - 1] = endScale;
+        SetRow(rightHand, count, endDerivative.X, endDerivative.Y, endDerivative.Z);
+
+        // Row count + 1: the last control point is the last point.
+        matrix[controls - 1, controls - 1] = 1.0;
+        SetRow(rightHand, controls - 1, points[^1].X, points[^1].Y, points[^1].Z);
+
+        double[,] solved = SolveInPlace(matrix, rightHand);
+
+        Point3d[] controlPoints = new Point3d[controls];
+        for (int i = 0; i < controls; i++)
+        {
+            controlPoints[i] = new Point3d(solved[i, 0], solved[i, 1], solved[i, 2]);
+        }
+
+        return new NurbsCurve(controlPoints, knots);
+
+        static void SetRow(double[,] rightHand, int row, double x, double y, double z)
+        {
+            rightHand[row, 0] = x;
+            rightHand[row, 1] = y;
+            rightHand[row, 2] = z;
+        }
+    }
+
+    /// <summary>
     /// The curve of a given degree and control-point count that comes closest to a set of points.
     /// </summary>
     /// <param name="points">The points to approximate, at least three, no two consecutive equal.</param>

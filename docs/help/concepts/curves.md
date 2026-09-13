@@ -1,7 +1,7 @@
 ---
 id: concepts.curves
 title: Curves, parameters and arc length
-nodes: [Line.FromStartPointEndPoint, Circle.FromCenterRadius, Arc.FromThreePoints, Ellipse.FromPlaneRadii, Helix.FromAxis, Curve.Fillet, PolyLine.FromRegularPolygon, PolyCurve.FromJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength, Curve.DivideByChordLength, Curve.DivideEquallyByChord, Curve.Extended, Curve.IntersectWith, Curve.IntersectWithSurface]
+nodes: [Line.FromStartPointEndPoint, Circle.FromCenterRadius, Arc.FromThreePoints, Ellipse.FromPlaneRadii, Helix.FromAxis, Curve.Fillet, PolyLine.FromRegularPolygon, PolyCurve.FromJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength, Curve.DivideByChordLength, Curve.DivideEquallyByChord, Curve.Extended, Curve.IntersectWith, Curve.IntersectWithSurface, NurbsCurve.InterpolatePoints, NurbsCurve.InterpolatePointsWithTangents]
 related: [concepts.geometry-basics, concepts.lacing]
 since: "0.1"
 ---
@@ -644,6 +644,66 @@ Curve longerSecond = second.Extended(2.0, 0.0);
 (Arc corner, Curve trimmedFirst, Curve trimmedSecond) =
     CurveOffset.Fillet(longerFirst, longerSecond, 0.5, Vector3d.ZAxis);
 ```
+
+---
+
+## 14. A smooth curve through points, and which way it sets off
+
+`PolyLine.FromPoints` joins points with straight segments. `NurbsCurve.InterpolatePoints` passes a
+smooth curve *through* them. Its control points are solved for and are not the points you gave,
+which is the difference between a curve through your data and a curve merely shaped by it:
+
+```csharp
+using System.Collections.Generic;
+using Spark.Geometry;
+
+List<Point3d> waypoints =
+[
+    new Point3d(0.0, 0.0, 0.0),
+    new Point3d(2.0, 3.0, 0.0),
+    new Point3d(5.0, 3.0, 1.0),
+    new Point3d(9.0, 0.0, 1.0),
+];
+
+NurbsCurve smooth = NurbsCurve.InterpolatePoints(waypoints);
+double miss = smooth.DistanceTo(waypoints[1]);   // 0 - the curve passes through every point
+```
+
+That leaves the curve to choose how it leaves the first point and arrives at the last. When those
+directions matter — a road that has to meet an existing one square-on, a path that must leave a
+wall at right angles — say so:
+
+```csharp
+using System.Collections.Generic;
+using Spark.Geometry;
+
+List<Point3d> waypoints =
+[
+    new Point3d(0.0, 0.0, 0.0),
+    new Point3d(2.0, 3.0, 0.0),
+    new Point3d(5.0, 3.0, 1.0),
+    new Point3d(9.0, 0.0, 1.0),
+];
+
+NurbsCurve steered = NurbsCurve.InterpolatePointsWithTangents(
+    waypoints,
+    Vector3d.YAxis,     // sets off straight up the page
+    Vector3d.XAxis);    // arrives travelling along x
+
+Vector3d atStart = steered.TangentAt(steered.Domain.Min);   // (0, 1, 0)
+Vector3d atEnd = steered.TangentAt(steered.Domain.Max);     // (1, 0, 0)
+```
+
+**Only the direction of each tangent counts.** Its length is ignored, so `Vector3d.YAxis * 5.0`
+steers the same curve as `Vector3d.YAxis`. How *hard* the curve holds the direction is chosen for
+you: the derivative is scaled to the total chord length of the points, which is the speed the middle
+of the curve already travels at, and it is the choice that makes points sampled from an arc, given
+the arc's own end tangents, come back on the arc between the samples. Choose it larger and the ends
+bulge; smaller and they flatten — and both stay perfectly tangent, which is why it is not a knob.
+
+The end tangent points **along** the curve, the way you are travelling as you arrive, not back
+towards it. The degree is 3 unless you say otherwise and must be at least 2: a degree-1 curve is a
+polyline and has no tangent to pin. A zero vector is refused, because it is no direction at all.
 
 ---
 

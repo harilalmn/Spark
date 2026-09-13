@@ -211,3 +211,4 @@ virtual Spark.Geometry.Curve.ToNurbsCurve(in Spark.Geometry.Tolerance tolerance 
 ~override Spark.Geometry.CurveOverlap.ToString() -> string
 ~override Spark.Geometry.CurveSurfaceIntersectionPoint.Equals(object obj) -> bool
 ~override Spark.Geometry.CurveSurfaceIntersectionPoint.ToString() -> string
+static Spark.Geometry.NurbsCurve.InterpolatePointsWithTangents(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, Spark.Geometry.Vector3d startTangent, Spark.Geometry.Vector3d endTangent, int degree = 3) -> Spark.Geometry.NurbsCurve!

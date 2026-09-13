@@ -110,7 +110,7 @@ public sealed class ReferenceCatalog
         // code block is asking for. `System.Console` is still there under its full name.
         "Console = Spark.Nodes.Core.Console",
 
-        // The TEN that collide with Spark.Geometry, pinned to the geometry type a block has always
+        // The ELEVEN that collide with Spark.Geometry, pinned to the geometry type a block has always
         // meant by them, and `Math`, pinned to System's.
         //
         // `E2-T73`: THIS LIST IS HAND-WRITTEN, AND IT WENT STALE THE DAY A TENTH FACADE ARRIVED.
@@ -126,6 +126,7 @@ public sealed class ReferenceCatalog
         "Curve = Spark.Geometry.Curve",
         "Helix = Spark.Geometry.Helix",
         "Line = Spark.Geometry.Line",
+        "NurbsCurve = Spark.Geometry.NurbsCurve",
         "Plane = Spark.Geometry.Plane",
         "PolyCurve = Spark.Geometry.PolyCurve",
         "PolyLine = Spark.Geometry.PolyLine",

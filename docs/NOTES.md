@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-13 (N165: a helix is not a NURBS curve, and the proof is three lines)
+**Last updated:** 2026-09-13 (N166: a constraint can be met exactly and the curve still be wrong)
 
 ---
 
@@ -5137,3 +5137,40 @@ this is the other half of the same shape — **a claim about what is *possible* 
 and it propagates faster than a claim about what exists**, because it reads as background knowledge
 rather than as a measurement. Where a document asserts that something can be done exactly, the
 assertion is worth the three lines that show it.
+
+## N166 — A constraint can be met exactly and the curve still be wrong, because the caller's vector has a length
+
+**The stated property is not the whole specification.** `NurbsCurve.InterpolatePointsWithTangents`
+takes a *direction* at each end. The solver needs a *derivative*, and a derivative has a length the
+caller never gave. Every length produces a curve that is exactly tangent to the direction asked for —
+so the property the member is named for is satisfied by an unbounded family of curves, most of them
+wrong, and a test of that property cannot tell them apart. A wrong length bulges or flattens the
+ends. It looks like a bug in the solver and is not.
+
+**Measured, not argued** (2026-09-13, `E2-T72`), by mutating the implementation the way AGENTS.md
+step 7 asks: five points on a quarter circle of radius 10, the circle's own end tangents, and the
+worst distance of the result from the circle *between* the samples.
+
+| Derivative used | Worst distance from the circle | Tangency tests |
+|---|---:|---|
+| unit direction × total chord length (shipped) | 0.0014 | green |
+| the same, tripled | 0.29 | **green** |
+| the end chords, directions ignored | 0.11 | seven red |
+
+The middle row is the one this note exists for: a curve two hundred times worse, and every assertion
+about the property in the member's name still passes. The bottom row is the ordinary broken
+implementation, and the ordinary tests catch it.
+
+**The rule.** When an argument is a *direction* and the algorithm consumes a *vector*, the missing
+magnitude is a design decision, not an implementation detail, and two things follow. It is written
+in the member's remarks, because the caller cannot discover it from the signature and it changes the
+shape they get. And it is tested through its *consequence* — here, where the curve goes between the
+points, which is the only place a wrong magnitude shows — never through the stated property, which
+is blind to it by construction. The rule chosen is the standard one: the derivative is the unit
+direction scaled by the total chord length, because a chord-length-parameterised curve over
+`[0, 1]` travels at roughly that speed everywhere, so the ends are asked to move at the speed the
+middle already does.
+
+**Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
+needs the same rule, along each parametric direction in turn. It is decided once, here, and the
+surface form inherits it rather than choosing again.

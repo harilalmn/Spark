@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T71`: `PolyCurve.ToNurbsCurve`, and every curve that can convert exactly does)
+**Last updated:** 2026-09-13 (`E2-T72`: the tangent-constrained interpolation)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -408,9 +408,15 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     **every curve type that can convert exactly now does**, and the one that cannot is the one
 >     that provably never will. The work was knot bookkeeping — convert, elevate to a common
 >     degree, join — and **the seam is the branch**: repeat its knot once too few and the curve is
->     smooth where the polycurve has a corner. **Next**: the rest of `E2-T71`
->     (the tangent-constrained interpolation), then
->     `E2-T66`…`E2-T69`. `Q12`'s T-Splines decision is 169 members
+>     smooth where the polycurve has a corner. ~~**the tangent-constrained interpolation**~~ **done the same day**:
+>     `NurbsCurve.InterpolatePointsWithTangents` pins the direction at each end, and **the
+>     decision in it is the derivative's magnitude**, which no test of tangency can see: the unit
+>     direction times the total chord length, proved by sampling an arc with its own tangents and
+>     watching the curve leave the arc between the samples when the derivative is tripled. **It is
+>     the same algorithm `E2-T66` wants on `NurbsSurface`**, now written once. **The curve work
+>     pauses here** — what remains of `E2-T71` and `E2-T72` waits on `E2-T15`'s ray caster or is
+>     `PolyCurve` bookkeeping — and **next** is
+>     `E2-T66`…`E2-T69`, beginning with `Surface.PrincipalDirectionsAt`, which is nearly free. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than
