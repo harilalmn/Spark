@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-13 (N160–N161: a register wrong in the safe direction; a capability complete on every type but one, and the orientation bug it led to)
+**Last updated:** 2026-09-13 (N162: what the residue budget's *direction* says about the pass that moved it)
 
 ---
 
@@ -4921,3 +4921,48 @@ inwards, and it rendered black. **Nothing had reported it**, and the reason is t
 missing `Brep` transform: mirroring is rare enough that nobody had done it, and every cheap check
 passes. The general form is that **orientation is a property no index checks and no validator
 validates**, so it survives every structural test a model has.
+---
+
+## N162 — The residue budget's direction says what kind of assessment you just ran
+
+**The number was designed to catch drift and it turned out to measure something else as well.**
+`tests/corpus/dynamo-parity-exclusions.tsv` carries a residue budget: the count of public
+`Spark.Geometry` members that no parity row names and no rule excuses, checked for **exact**
+equality on every build. Its stated job is to stop a member being added to a mapped type without a
+thought for the register. Six assessment passes in, the *direction* it moves has turned out to be
+the cheapest available summary of what a pass actually did.
+
+**Two things move it, and they move it opposite ways.**
+
+- **Naming a member lowers it by one.** An assessment that works through a type the register
+  already watches converts residue into rows, which is the point of the exercise.
+- **Naming a *type* raises it by that type's whole surface.** A `Done` row may legitimately name a
+  bare type when the capability is a construction — `Surface.ByRevolve` is
+  `new RevolutionSurface(...)`, and a constructor is not a member this inventory counts. But a type
+  a row names is a type that may no longer be excused wholesale, so every one of its *other* members
+  arrives in the residue at once. Constructors are not counted; everything else is, `const` fields
+  included.
+
+**The history bears it out, and it is not a small effect.** `E2-T46` assessed §3.8's 89
+infrastructure rows and the residue went **292 → 319**: three members named, and two types —
+`Transform` with 28 members and `Tessellation` with two — claimed and therefore un-excused.
+`E2-T41` step A assessed §3.2's 82 `Curve` rows, a section of almost the same size, and the residue
+went **321 → 318**: thirteen members named, two types claimed (`CurveOffset` and `ExtrusionSurface`,
+ten members between them). **Same shape of work, a 27-member rise against a 3-member fall**, and the
+difference is entirely whether the section's `Done` rows land on a type the register had already
+accounted for.
+
+**Why this is worth a note rather than a shrug.** The rise is not a defect and the fall is not a
+virtue — `E2-T46` was right to claim `Transform`, because §3.8's whole argument is that Spark puts
+the transformation algebra on one type where Dynamo repeats a member per type, and excusing that
+type wholesale while claiming it was the contradiction the check exists to catch. What the direction
+tells you is **how much unaccounted-for surface the section dragged in with it**, and that is a
+number worth knowing *before* planning the next pass rather than after running it. A section whose
+capabilities are constructions will cost; a section whose capabilities are methods on types already
+in the register will pay.
+
+**The practical rule.** When an assessment's residue rises, the budget entry has to say which type
+was claimed and how many members came with it — not as an apology, but because a rise with no
+explanation beside it is indistinguishable from the drift the check was built to catch. The
+exclusions file keeps that history inline for exactly this reason, and it is the only place it is
+written down.

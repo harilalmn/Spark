@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T70` step A: a solid can be moved, and a mirror no longer turns one inside out)
+**Last updated:** 2026-09-13 (`E2-T41` step A: §3.2's `Curve` assessed, 40 of 82 reachable)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -316,13 +316,21 @@ documented, because CS1591 is an error here, and everything is recorded in
 and `tests/Spark.Geometry.Properties` (38 CsCheck properties), both green.
 
 **What the curve layer settled, and it was settled before it was written.** The contract came
-from [DYNAMO-COVERAGE §3.2](DYNAMO-COVERAGE.md#32-curves--11-types-187-members-partially-reachable)
+from [DYNAMO-COVERAGE §3.2](DYNAMO-COVERAGE.md#32-curves--11-types-187-members-40-reachable-so-far)
 rather than from FR-48, because that section had found the gap between them to be structural
 rather than incidental: **arc-length reparameterisation is in the contract**, so *divide this
 curve into twelve equal lengths* is a first-class operation rather than a retrofit. It is
 analytic on the five constant-speed types and a ten-point Gauss–Legendre integral with a Newton
 inverse on the ellipse — which is also the only curve here whose tests can tell an arc-length
 division from a parameter division, since every other one travels at a constant speed.
+
+**That bet was measured on 2026-09-13** (`E2-T41` step A), when all 82 of `Curve`'s parity rows
+were assessed one by one: **40 are reachable**, and the arc-length half of the contract is why —
+every `AtDistance` member in Dynamo's four-parameterisation family is `Done` by composing
+`ParameterAtLength` with the parameter form, and so is the whole surviving trim and split family,
+seven of its nine members by composing `Trimmed`. What the pass found missing is narrower than the
+row had claimed and is `E2-T71`: **no curve-to-NURBS conversion anywhere**, no planarity test and
+so no curve-wide normal, no chord stepping, and nothing that lengthens a curve past its own domain.
 
 **Still not started in this epic.** No surfaces, no meshes, no BRep topology, no `IBrepKernel`,
 no serialization and no interchange. `Spark.Geometry.Io` is still an empty project. No

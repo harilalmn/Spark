@@ -132,88 +132,88 @@ Cuboid	Height	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES
 Cuboid	Length	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
 Cuboid	ToString()	Done	Spark.Geometry.Brep.ToString	2026-09-12, E2-T43: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Cuboid	Width	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
-Curve	ApproximateWithArcAndLineSegments()	Unassessed		
-Curve	ByBlendBetweenCurves(Curve, Curve, bool, bool, bool)	Unassessed		
-Curve	ByIsoCurveOnSurface(Surface, int, double)	Unassessed		
-Curve	ByParameterLineOnSurface(Surface, UV, UV)	Unassessed		
-Curve	CoordinateSystemAtDistance(double)	Unassessed		
-Curve	CoordinateSystemAtParameter(double)	Unassessed		
-Curve	CoordinateSystemAtSegmentLength(double)	Unassessed		
-Curve	DistanceAtParameter(double)	Unassessed		
-Curve	DivideByDistance(int)	Unassessed		
-Curve	DivideByDistanceFromParameter(double, double)	Unassessed		
-Curve	DivideByLengthFromParameter(double, double)	Unassessed		
-Curve	DivideEqually(int)	Done	Spark.Geometry.Curve.DivideEqually	reviewed 2026-09-12: the same capability under the same name.
-Curve	EndParameter()	Unassessed		
-Curve	EndPoint	Done	Spark.Geometry.Curve.EndPoint	reviewed 2026-09-12: the same capability under the same name.
-Curve	Extend(double, Point)	Unassessed		
-Curve	ExtendEnd(double)	Unassessed		
-Curve	ExtendStart(double)	Unassessed		
-Curve	Extrude(Vector)	Unassessed		
-Curve	Extrude(Vector, double)	Unassessed		
-Curve	Extrude(double)	Unassessed		
-Curve	ExtrudeAsSolid(Vector)	Unassessed		
-Curve	ExtrudeAsSolid(Vector, double)	Unassessed		
-Curve	ExtrudeAsSolid(double)	Unassessed		
-Curve	HorizontalFrameAtParameter(double)	Unassessed		
-Curve	IsClosed	Done	Spark.Geometry.Curve.IsClosed	reviewed 2026-09-12: the same capability under the same name.
-Curve	IsPlanar	Unassessed		
-Curve	Join(Curve)	Unassessed		
-Curve	Join(IEnumerable<Curve>)	Unassessed		
-Curve	Length	Done	Spark.Geometry.Curve.Length	reviewed 2026-09-12: the same capability under the same name.
-Curve	LengthBetweenParameters(double, double)	Unassessed		
-Curve	Normal	Unassessed		
-Curve	NormalAtParameter(double)	Unassessed		
-Curve	NormalAtParameter(double, bool)	Unassessed		
-Curve	Offset(double)	Unassessed		
-Curve	OffsetMany(double, Vector)	Unassessed		
-Curve	ParameterAtChordLength(double, double, bool)	Unassessed		
-Curve	ParameterAtDistance(double)	Unassessed		
-Curve	ParameterAtPoint(Point)	Unassessed		
-Curve	ParameterAtSegmentLength(double)	Unassessed		
-Curve	ParameterSplit(double)	Unassessed		
-Curve	ParameterSplit(double[])	Unassessed		
-Curve	ParameterTrim(double, double)	Unassessed		
-Curve	ParameterTrimEnd(double)	Unassessed		
-Curve	ParameterTrimInterior(double, double)	Unassessed		
-Curve	ParameterTrimSegments(double[])	Unassessed		
-Curve	ParameterTrimStart(double)	Unassessed		
-Curve	Patch()	Unassessed		
-Curve	PlaneAtDistance(double)	Unassessed		
-Curve	PlaneAtParameter(double)	Unassessed		
-Curve	PlaneAtSegmentLength(double)	Unassessed		
-Curve	PointAtChordLength(double, double, bool)	Unassessed		
-Curve	PointAtDistance(double)	Unassessed		
-Curve	PointAtParameter(double)	Unassessed		
-Curve	PointAtSegmentLength(double)	Unassessed		
-Curve	PointsAtChordLengthFromPoint(Point, double)	Unassessed		
-Curve	PointsAtEqualChordLength(int)	Unassessed		
-Curve	PointsAtEqualSegmentLength(int)	Unassessed		
-Curve	PointsAtSegmentLengthFromPoint(Point, double)	Unassessed		
-Curve	Project(Geometry, Vector)	Unassessed		
-Curve	PullOntoPlane(Plane)	Unassessed		
-Curve	PullOntoSurface(Surface)	Unassessed		
-Curve	Reverse()	Unassessed		
-Curve	SegmentLengthAtParameter(double)	Unassessed		
-Curve	SegmentLengthBetweenParameters(double, double)	Unassessed		
-Curve	Simplify(double)	Unassessed		
-Curve	SplitByParameter(double)	Unassessed		
-Curve	SplitByParameter(double[])	Unassessed		
-Curve	SplitByPoints(IEnumerable<Point>)	Unassessed		
-Curve	StartParameter()	Unassessed		
-Curve	StartPoint	Done	Spark.Geometry.Curve.StartPoint	reviewed 2026-09-12: the same capability under the same name.
-Curve	SweepAsSolid(Curve)	Unassessed		
-Curve	SweepAsSolid(Curve, bool)	Unassessed		
-Curve	SweepAsSurface(Curve)	Unassessed		
-Curve	TangentAtParameter(double)	Unassessed		
-Curve	ToNurbsCurve()	Unassessed		
-Curve	ToString()	Unassessed		
-Curve	TrimByEndParameter(double)	Unassessed		
-Curve	TrimByParameter(double, double)	Unassessed		
-Curve	TrimByStartParameter(double)	Unassessed		
-Curve	TrimInteriorByParameter(double, double)	Unassessed		
-Curve	TrimSegmentsByParameter(double[])	Unassessed		
-Curve	TrimSegmentsByParameter(double[], bool)	Unassessed		
+Curve	ApproximateWithArcAndLineSegments()	Needs a decision		2026-09-13, E2-T41 step A: §6.3 groups it with Geometry.Approximate() because it TAKES NO TOLERANCE, which is the ambient-tolerance form ADR-0010 refuses and §5 [j] refused three members on. IT IS NOT REFUSED HERE, and the difference matters: §5 [j] could refuse the form because the capability had a tolerance-taking home in Spark, and a biarc approximation has NO home at all. Refusing this on its signature would file a real gap under a rule about a parameter list. Whether Spark wants arc-and-line approximation is the decision.
+Curve	ByBlendBetweenCurves(Curve, Curve, bool, bool, bool)	Planned		2026-09-13, E2-T41 step A: a blend curve joining two curves. Spark has CurveOffset.FilletLines, which is an ARC between two LINES, and nothing general. The three bools are not deducible from metadata, so the form is open even though the capability is not. E2-T71.
+Curve	ByIsoCurveOnSurface(Surface, int, double)	Done	Spark.Geometry.Surface.IsoCurveU	2026-09-13, E2-T41 step A: with Surface.IsoCurveV. Two members rather than an int selecting a direction, for the reason Surface.GetIsoline gives: a direction argument that is 0 or 1 is a comment in the wrong place.
+Curve	ByParameterLineOnSurface(Surface, UV, UV)	Planned		2026-09-13, E2-T41 step A: a straight line in the surface's PARAMETER space between two UVs, mapped onto the surface. Spark's isocurves hold one parameter fixed, so they are the axis-aligned special case and nothing draws the general one. E2-T71.
+Curve	CoordinateSystemAtDistance(double)	Done	Spark.Geometry.Curve.CoordinateSystemAt	2026-09-13, E2-T41 step A: composed, as PlaneAtDistance: Curve.ParameterAtLength then CoordinateSystemAt.
+Curve	CoordinateSystemAtParameter(double)	Done	Spark.Geometry.Curve.CoordinateSystemAt	2026-09-13, E2-T41 step A: a full frame at a parameter, on the base. Spark keeps the orthonormal frame (Plane) and the transformation algebra (CoordinateSystem) apart and offers both, which is §3.1's argument.
+Curve	CoordinateSystemAtSegmentLength(double)	Needs a decision		2026-09-13, E2-T41 step A: §6.3, as PlaneAtSegmentLength - the measure is the open question, not the frame.
+Curve	DistanceAtParameter(double)	Done	Spark.Geometry.Curve.LengthAt	2026-09-13, E2-T41 step A: arc length from the start of the domain to a parameter, on the base, analytic on the five constant-speed types and Gauss-Legendre on the ellipse. THIS NARROWS §6.3's FOUR-NAMES-TWO-CONCEPTS QUESTION: the DISTANCE pair is arc length, which is what §3.2 has said since the contract was designed against it; what is still not deducible is what SEGMENT LENGTH measures.
+Curve	DivideByDistance(int)	Needs a decision		2026-09-13, E2-T41 step A: §6.3 names it: the NAME says distance and the only parameter is an Int32 called divisions, so either the name or the parameter is misleading. Spark.Geometry.Curve.DivideByLength(double) answers it if the parameter is a length, and Curve.DivideEqually(int) answers it if the parameter is a count. The register will not pick.
+Curve	DivideByDistanceFromParameter(double, double)	Planned		2026-09-13, E2-T41 step A: Curve.DivideByLength divides from the START of the domain and there is no from-a-parameter form. It is Curve.Trimmed then DivideByLength for a caller who knows that, and one member for a caller who does not. E2-T71.
+Curve	DivideByLengthFromParameter(double, double)	Planned		2026-09-13, E2-T41 step A: as DivideByDistanceFromParameter - the same gap under the other of Dynamo's two names for arc length. E2-T71.
+Curve	DivideEqually(int)	Done	Spark.Geometry.Curve.DivideEqually	2026-09-13, E2-T41 step A: equal ARC LENGTH division, on the base. §3.2 predicted that a contract offering only by-parameter division would feel missing to every Dynamo user and that retrofitting it would be dear; it was built into the M1 contract instead, and this row is that prediction paying off.
+Curve	EndParameter()	Done	Spark.Geometry.Curve.Domain	2026-09-13, E2-T41 step A: Domain.Max, as StartParameter.
+Curve	EndPoint	Done	Spark.Geometry.Curve.EndPoint	2026-09-13, E2-T41 step A: on the base, as PointAt(Domain.Max) - reviewed, and the same capability under the same name.
+Curve	Extend(double, Point)	Planned		2026-09-13, E2-T41 step A: extending a curve past its own domain is absent from Spark entirely - Curve.Trimmed only ever narrows. E2-T71.
+Curve	ExtendEnd(double)	Planned		2026-09-13, E2-T41 step A: as Extend. E2-T71.
+Curve	ExtendStart(double)	Planned		2026-09-13, E2-T41 step A: as Extend. E2-T71.
+Curve	Extrude(Vector)	Done	Spark.Geometry.ExtrusionSurface	2026-09-13, E2-T41 step A: an ANALYTIC extrusion surface from a profile and a direction, first-class rather than a NURBS approximation, which is FR-49's whole argument - the same reading that made Surface.ByRevolve name RevolutionSurface. The capability is a constructor, and constructors are not members this inventory counts, so the row names the TYPE and the type may no longer be excused wholesale.
+Curve	Extrude(Vector, double)	Done	Spark.Geometry.ExtrusionSurface	2026-09-13, E2-T41 step A: the second constructor takes the height as an Interval, which says WHERE along the direction the sheet starts and stops rather than only how far.
+Curve	Extrude(double)	Planned		2026-09-13, E2-T41 step A: extrusion along the CURVE'S OWN normal, which needs Curve.Normal - and that is IsPlanar's gap. The direction overloads are Done; this one waits on planarity. E2-T71.
+Curve	ExtrudeAsSolid(Vector)	Done	Spark.Api.IBrepKernel.Extrude	2026-09-13, E2-T41 step A: a closed profile extruded and capped: IBrepKernel.Extrude(profile, direction, cap: true, tolerance). Behind the kernel seam and delivered through it, which the register can say since E11-T30 made the rename-catcher read Spark.Api.
+Curve	ExtrudeAsSolid(Vector, double)	Done	Spark.Api.IBrepKernel.Extrude	2026-09-13, E2-T41 step A: as ExtrudeAsSolid(Vector) with the direction scaled to the distance.
+Curve	ExtrudeAsSolid(double)	Planned		2026-09-13, E2-T41 step A: as Extrude(double) - it waits on Curve.Normal, not on the kernel. E2-T71.
+Curve	HorizontalFrameAtParameter(double)	Needs a decision		2026-09-13, E2-T41 step A: §6.3 names it: a frame whose X presumably lies in the world XY plane, with the tie-break at a VERTICAL TANGENT unstated - and the tie-break is the whole of the specification, because everywhere else it is Curve.PlaneAt rotated. It is a real and commonly wanted capability; what it does at a vertical tangent is the decision.
+Curve	IsClosed	Done	Spark.Geometry.Curve.IsClosed	2026-09-13, E2-T41 step A: abstract on the base, so each curve type answers for itself rather than being probed by comparing its ends. NOT periodicity, which is a property of a knot vector - the distinction N156 exists to hold.
+Curve	IsPlanar	Planned		2026-09-13, E2-T41 step A: genuinely absent, and named as a deliberate M3 deferral when the curve contract was written (E2-T7). Applying N161 - ENUMERATE THE TYPES THAT CANNOT ANSWER IT: Arc, Circle and EllipseCurve carry a Plane and are planar by construction; Line is trivially planar; PolyLine, PolyCurve and NurbsCurve cannot be asked, and neither can a Curve-typed value. E2-T71.
+Curve	Join(Curve)	Done	Spark.Geometry.PolyCurve.FromJoinedCurves	2026-09-13, E2-T41 step A: joining curves end to end within a tolerance gives a PolyCurve. Spark takes the whole sequence and Dynamo takes one more curve at a time; the result is the same curve.
+Curve	Join(IEnumerable<Curve>)	Done	Spark.Geometry.PolyCurve.FromJoinedCurves	2026-09-13, E2-T41 step A: the sequence form, which is the signature Spark has. Spark.Nodes.Core.PolyCurve.FromJoinedCurves is the node.
+Curve	Length	Done	Spark.Geometry.Curve.Length	2026-09-13, E2-T41 step A: total arc length, on the base - reviewed, and the same capability under the same name.
+Curve	LengthBetweenParameters(double, double)	Done	Spark.Geometry.Curve.LengthAt	2026-09-13, E2-T41 step A: composed - LengthAt(b) less LengthAt(a). One member rather than two, because a difference of two arc lengths is not a third concept.
+Curve	Normal	Planned		2026-09-13, E2-T41 step A: a curve-wide normal presumes planarity, so it is IsPlanar's member and shares its gap: Arc.Plane, Circle.Plane and EllipseCurve.Plane give it for three of Spark's seven curve types and the base cannot be asked. Curve.NormalAt is the principal normal AT A PARAMETER and is a different quantity. E2-T71.
+Curve	NormalAtParameter(double)	Done	Spark.Geometry.Curve.NormalAt	2026-09-13, E2-T41 step A: the principal normal, on the base, from the second derivative.
+Curve	NormalAtParameter(double, bool)	Needs a decision		2026-09-13, E2-T41 step A: §6.3 records that what the bool SELECTS is not deducible from a signature, and the manifest is metadata rather than a decompilation. Spark will not add a flag it would have to guess the meaning of. Curve.NormalAt answers the one-argument form.
+Curve	Offset(double)	Done	Spark.Geometry.CurveOffset.Offset	2026-09-13, E2-T41 step A: offset by a distance, exact where a closed form exists and sampled otherwise - the bool in the returned tuple says which, which is a fact Dynamo's signature cannot carry. SPARK ASKS FOR THE PLANE NORMAL and Dynamo infers it, because inferring it means deciding the curve is planar, and Curve.IsPlanar does not exist to be asked (see this section's IsPlanar row).
+Curve	OffsetMany(double, Vector)	Planned		2026-09-13, E2-T41 step A: CurveOffset.Offset returns ONE curve. Offsetting a polycurve whose pieces offset into disjoint runs gives several, and which is right is not a matter of an overload. E2-T71.
+Curve	ParameterAtChordLength(double, double, bool)	Needs a decision		2026-09-13, E2-T41 step A: §6.3 names it by signature: the role of the starting parameter and of the bool is a guess.
+Curve	ParameterAtDistance(double)	Done	Spark.Geometry.Curve.ParameterAtLength	2026-09-13, E2-T41 step A: the inverse of DistanceAtParameter, on the base - Newton on the ellipse and closed form elsewhere. It is the member the whole AtDistance family composes through.
+Curve	ParameterAtPoint(Point)	Done	Spark.Geometry.Curve.ClosestParameter	2026-09-13, E2-T41 step A: for a point ON the curve the two agree exactly, and Spark answers the more general question rather than requiring the caller to have put the point there. Stated rather than assumed, because a near-match claimed silently is N156's trap: the difference is what happens for a point OFF the curve, and Spark projects where Dynamo's contract is unstated.
+Curve	ParameterAtSegmentLength(double)	Needs a decision		2026-09-13, E2-T41 step A: §6.3, as SegmentLengthAtParameter - Curve.ParameterAtLength answers it only if the measure turns out to be arc length.
+Curve	ParameterSplit(double)	Done	Spark.Geometry.Curve.Trimmed	2026-09-13, E2-T41 step A: BOTH halves at a parameter, which is Trimmed(Min, t) and Trimmed(t, Max) - composed. E2-T7 named 'no Split' as a deliberate M1 exclusion and that is still true of the MEMBER; the RESULT has been reachable since the contract was written, and the register's subject is the result (§2).
+Curve	ParameterSplit(double[])	Done	Spark.Geometry.Curve.Trimmed	2026-09-13, E2-T41 step A: n+1 pieces from n parameters, which is Trimmed over consecutive pairs - composed, as ParameterSplit(double).
+Curve	ParameterTrim(double, double)	Done	Spark.Geometry.Curve.Trimmed	2026-09-13, E2-T41 step A: Curve.Trimmed(in Interval) is abstract on the base, so every curve type returns its own kind, and a domain is exactly what these members select. This is the member, argument for argument.
+Curve	ParameterTrimEnd(double)	Done	Spark.Geometry.Curve.Trimmed	2026-09-13, E2-T41 step A: Curve.Trimmed(in Interval) is abstract on the base, so every curve type returns its own kind, and a domain is exactly what these members select. Trimmed(new Interval(Domain.Min, t)).
+Curve	ParameterTrimInterior(double, double)	Done	Spark.Geometry.Curve.Trimmed	2026-09-13, E2-T41 step A: Curve.Trimmed(in Interval) is abstract on the base, so every curve type returns its own kind, and a domain is exactly what these members select. The two END pieces, which is Trimmed twice - COMPOSED, and said so rather than claimed silently.
+Curve	ParameterTrimSegments(double[])	Done	Spark.Geometry.Curve.Trimmed	2026-09-13, E2-T41 step A: Curve.Trimmed(in Interval) is abstract on the base, so every curve type returns its own kind, and a domain is exactly what these members select. Alternate segments of a parameter list, which is Trimmed over consecutive pairs - composed. Which alternation is discarded by default is Dynamo's choice and not a capability Spark lacks.
+Curve	ParameterTrimStart(double)	Done	Spark.Geometry.Curve.Trimmed	2026-09-13, E2-T41 step A: Curve.Trimmed(in Interval) is abstract on the base, so every curve type returns its own kind, and a domain is exactly what these members select. Trimmed(new Interval(t, Domain.Max)).
+Curve	Patch()	Done	Spark.Api.IBrepKernel.Patch	2026-09-13, E2-T41 step A: a patch through a closed boundary. Spark takes the boundary as a list of curves rather than as the receiver; Spark.Nodes.Core.Solid.Patch is the node.
+Curve	PlaneAtDistance(double)	Done	Spark.Geometry.Curve.PlaneAt	2026-09-13, E2-T41 step A: composed - Curve.ParameterAtLength turns the arc-length distance into a parameter and PlaneAt gives the plane there. Composition counts under §2's own rule, which counts Vector.Transform the same way.
+Curve	PlaneAtParameter(double)	Done	Spark.Geometry.Curve.PlaneAt	2026-09-13, E2-T41 step A: the osculating plane at a parameter, on the base.
+Curve	PlaneAtSegmentLength(double)	Needs a decision		2026-09-13, E2-T41 step A: §6.3: what SEGMENT LENGTH measures, as against DISTANCE, is not deducible from a signature. If it is arc length this is PlaneAtDistance again; if it is a chord walk it is a different curve point. The register will not claim a member on a guess about the measure (N156).
+Curve	PointAtChordLength(double, double, bool)	Needs a decision		2026-09-13, E2-T41 step A: §6.3 records that the role of the starting parameter and of the bool in this family is a guess. A CHORD length is unambiguous - the straight line between two points on the curve - so the capability is clear and the form is not.
+Curve	PointAtDistance(double)	Done	Spark.Geometry.Curve.PointAtLength	2026-09-13, E2-T41 step A: arc length from the start, directly on the base. Spark says Length where Dynamo says Distance; §6.3's open question is about SEGMENT length, not this pair.
+Curve	PointAtParameter(double)	Done	Spark.Geometry.Curve.PointAt	2026-09-13, E2-T41 step A: on the abstract base, so every curve type answers it. Spark drops the AtParameter suffix because the parameter is in the signature.
+Curve	PointAtSegmentLength(double)	Needs a decision		2026-09-13, E2-T41 step A: §6.3, as PlaneAtSegmentLength.
+Curve	PointsAtChordLengthFromPoint(Point, double)	Planned		2026-09-13, E2-T41 step A: stepping along the curve from a point on it, placing a point every chordLength. The chord measure is unambiguous and the capability is absent - Spark has no chord stepping at all. E2-T71.
+Curve	PointsAtEqualChordLength(int)	Planned		2026-09-13, E2-T41 step A: equal CHORD division - n points whose straight-line separations are equal - which is a different answer from Curve.DivideEqually's equal arc lengths on every curve that is not a line. Genuinely absent. E2-T71.
+Curve	PointsAtEqualSegmentLength(int)	Needs a decision		2026-09-13, E2-T41 step A: §6.3's measure question again. If SEGMENT LENGTH is arc length then Curve.DivideEqually already answers this exactly; if it is a chord walk then PointsAtEqualChordLength does. Claiming it on the first reading is precisely the guess this register refuses.
+Curve	PointsAtSegmentLengthFromPoint(Point, double)	Needs a decision		2026-09-13, E2-T41 step A: §6.3's measure question, as PointsAtEqualSegmentLength.
+Curve	Project(Geometry, Vector)	Planned		2026-09-13, E2-T41 step A: projecting a curve onto arbitrary geometry along a direction. Absent, and for a surface target it needs surface-surface intersection, which is why §3.2 has always grouped it with PullOntoSurface. E2-T71.
+Curve	PullOntoPlane(Plane)	Planned		2026-09-13, E2-T41 step A: the planar case of the same gap, and the tractable one: pulling a curve onto a plane is a closest-point map with a closed form for every analytic curve Spark has. Absent. E2-T71.
+Curve	PullOntoSurface(Surface)	Planned		2026-09-13, E2-T41 step A: the general case, which needs SSI. E2-T71.
+Curve	Reverse()	Done	Spark.Geometry.Curve.Reversed	2026-09-13, E2-T41 step A: abstract on the base, so each type reverses into its own kind. Spark names it in the past participle because it returns a new curve and changes nothing.
+Curve	SegmentLengthAtParameter(double)	Needs a decision		2026-09-13, E2-T41 step A: §6.3: the other half of the four-names-two-concepts question, and the half that is still open. Curve.LengthAt answers it if SEGMENT LENGTH is arc length, and answers something else entirely if it is not.
+Curve	SegmentLengthBetweenParameters(double, double)	Needs a decision		2026-09-13, E2-T41 step A: §6.3, as SegmentLengthAtParameter. LengthBetweenParameters is the arc-length reading of the same query and is Done.
+Curve	Simplify(double)	Planned		2026-09-13, E2-T41 step A: NOT ON THE BASE. NurbsCurve.Reduced(tolerance) removes knots within a tolerance and PolyLine has nothing, so a Curve-typed value cannot be asked to simplify itself - the same shape of gap as Surface.ToNurbsSurface(). E2-T71.
+Curve	SplitByParameter(double)	Not planned		§5 [i]: Dynamo carries two complete sets of trim and split methods that duplicate each other name-for-name, and Spark ships one. THE SURVIVOR IS CHOSEN HERE, 2026-09-13, and it is the Parameter* set, which §5 [i] itself names as the primary; the capability is assessed on Curve.ParameterSplit and counting this row as well would be counting Autodesk's backwards compatibility as our feature. Until today §5 [i] said the trim family was UNCOUNTED because the choice had not been made - it is made now, and these eight members are counted.
+Curve	SplitByParameter(double[])	Not planned		§5 [i]: Dynamo carries two complete sets of trim and split methods that duplicate each other name-for-name, and Spark ships one. THE SURVIVOR IS CHOSEN HERE, 2026-09-13, and it is the Parameter* set, which §5 [i] itself names as the primary; the capability is assessed on Curve.ParameterSplit and counting this row as well would be counting Autodesk's backwards compatibility as our feature. Until today §5 [i] said the trim family was UNCOUNTED because the choice had not been made - it is made now, and these eight members are counted.
+Curve	SplitByPoints(IEnumerable<Point>)	Done	Spark.Geometry.Curve.ClosestParameter	2026-09-13, E2-T41 step A: composed, and it needs two members: ClosestParameter turns each point into a parameter and Trimmed cuts between consecutive ones. It is the one member of the split family with no TrimBy/SplitBy twin, so it is assessed on its merits rather than refused under §5 [i].
+Curve	StartParameter()	Done	Spark.Geometry.Curve.Domain	2026-09-13, E2-T41 step A: Domain.Min. One member carrying an Interval rather than two carrying its ends, which is what the Interval value type is for.
+Curve	StartPoint	Done	Spark.Geometry.Curve.StartPoint	2026-09-13, E2-T41 step A: on the base, as PointAt(Domain.Min) - reviewed, and the same capability under the same name.
+Curve	SweepAsSolid(Curve)	Done	Spark.Api.IBrepKernel.Sweep	2026-09-13, E2-T41 step A: a profile swept along a rail and capped: IBrepKernel.Sweep(profile, rail, cap: true, tolerance).
+Curve	SweepAsSolid(Curve, bool)	Planned		2026-09-13, E2-T41 step A: IBrepKernel.Sweep does take a bool and it is CAP, which for an AsSolid sweep is already true - so Dynamo's flag means something else and the two cannot be matched. The same near-match Surface.BySweep(Curve, Curve, bool) was refused on, and for the same reason. E2-T66.
+Curve	SweepAsSurface(Curve)	Done	Spark.Api.IBrepKernel.Sweep	2026-09-13, E2-T41 step A: the uncapped sweep: IBrepKernel.Sweep(profile, rail, cap: false, tolerance). One member with a flag rather than two members, which is why Surface.BySweep(Curve, Curve) names the same one.
+Curve	TangentAtParameter(double)	Done	Spark.Geometry.Curve.TangentAt	2026-09-13, E2-T41 step A: the normalised first derivative, on the base beside DerivativeAt, which gives it unnormalised.
+Curve	ToNurbsCurve()	Planned		2026-09-13, E2-T41 step A: THE FINDING OF THIS PASS. Spark has NO curve-to-NURBS conversion anywhere - not on the base, not on a type, not as an extension - while Spark.Geometry.SurfaceConversion converts five of the eight analytic SURFACES exactly. Line, Arc, Circle, EllipseCurve and PolyLine all have exact NURBS forms and none of them is written. E2-T71.
+Curve	ToString()	Done	Spark.Geometry.Line.ToString	2026-09-13, E2-T41 step A: N161 SAYS ENUMERATE THE TYPES THAT DO NOT CARRY IT, AND THERE ARE NONE: all seven of Spark's concrete curve types override it - Line, Arc, Circle, EllipseCurve, NurbsCurve, PolyLine and PolyCurve - so a Curve-typed value prints itself and the abstract base has no need to. Named on Line as one of the seven. THIS IS WHY IT IS DONE WHERE Surface.ToString() IS PLANNED: there, only NurbsSurface overrides.
+Curve	TrimByEndParameter(double)	Not planned		§5 [i]: Dynamo carries two complete sets of trim and split methods that duplicate each other name-for-name, and Spark ships one. THE SURVIVOR IS CHOSEN HERE, 2026-09-13, and it is the Parameter* set, which §5 [i] itself names as the primary; the capability is assessed on Curve.ParameterTrimEnd and counting this row as well would be counting Autodesk's backwards compatibility as our feature. Until today §5 [i] said the trim family was UNCOUNTED because the choice had not been made - it is made now, and these eight members are counted.
+Curve	TrimByParameter(double, double)	Not planned		§5 [i]: Dynamo carries two complete sets of trim and split methods that duplicate each other name-for-name, and Spark ships one. THE SURVIVOR IS CHOSEN HERE, 2026-09-13, and it is the Parameter* set, which §5 [i] itself names as the primary; the capability is assessed on Curve.ParameterTrim and counting this row as well would be counting Autodesk's backwards compatibility as our feature. Until today §5 [i] said the trim family was UNCOUNTED because the choice had not been made - it is made now, and these eight members are counted.
+Curve	TrimByStartParameter(double)	Not planned		§5 [i]: Dynamo carries two complete sets of trim and split methods that duplicate each other name-for-name, and Spark ships one. THE SURVIVOR IS CHOSEN HERE, 2026-09-13, and it is the Parameter* set, which §5 [i] itself names as the primary; the capability is assessed on Curve.ParameterTrimStart and counting this row as well would be counting Autodesk's backwards compatibility as our feature. Until today §5 [i] said the trim family was UNCOUNTED because the choice had not been made - it is made now, and these eight members are counted.
+Curve	TrimInteriorByParameter(double, double)	Not planned		§5 [i]: Dynamo carries two complete sets of trim and split methods that duplicate each other name-for-name, and Spark ships one. THE SURVIVOR IS CHOSEN HERE, 2026-09-13, and it is the Parameter* set, which §5 [i] itself names as the primary; the capability is assessed on Curve.ParameterTrimInterior and counting this row as well would be counting Autodesk's backwards compatibility as our feature. Until today §5 [i] said the trim family was UNCOUNTED because the choice had not been made - it is made now, and these eight members are counted.
+Curve	TrimSegmentsByParameter(double[])	Not planned		§5 [i]: Dynamo carries two complete sets of trim and split methods that duplicate each other name-for-name, and Spark ships one. THE SURVIVOR IS CHOSEN HERE, 2026-09-13, and it is the Parameter* set, which §5 [i] itself names as the primary; the capability is assessed on Curve.ParameterTrimSegments and counting this row as well would be counting Autodesk's backwards compatibility as our feature. Until today §5 [i] said the trim family was UNCOUNTED because the choice had not been made - it is made now, and these eight members are counted.
+Curve	TrimSegmentsByParameter(double[], bool)	Not planned		§5 [i]: Dynamo carries two complete sets of trim and split methods that duplicate each other name-for-name, and Spark ships one. THE SURVIVOR IS CHOSEN HERE, 2026-09-13, and it is the Parameter* set, which §5 [i] itself names as the primary; the capability is assessed on Curve.ParameterTrimSegments and counting this row as well would be counting Autodesk's backwards compatibility as our feature. Until today §5 [i] said the trim family was UNCOUNTED because the choice had not been made - it is made now, and these eight members are counted. The bool overload has no Parameter* twin and is refused with its family: it selects which alternation is discarded, which is a flag on a refused member rather than a capability of its own.
 Cylinder	Axis	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
 Cylinder	ByPointsRadius(Point, Point, double)	Planned		2026-09-12, E2-T43: a cylinder between two points. BrepPrimitives.Cylinder takes a frame, a radius and a height, so the axis has to be turned into a Plane and a length first. Small, and the same shape of gap as Cuboid.ByCorners. E2-T66.
 Cylinder	ByRadiusHeight(CoordinateSystem, double, double)	Done	Spark.Geometry.BrepPrimitives.Cylinder	2026-09-12, E2-T43: from explicit topology, exact, and needing no kernel. The frame is a Plane.

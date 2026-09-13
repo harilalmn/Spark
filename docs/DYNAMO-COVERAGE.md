@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-13 (`E2-T46`: §3.8 assessed, 24 of 89 reachable, and `Brep` cannot be moved)
+**Last updated:** 2026-09-13 (`E2-T41` step A: §3.2's `Curve` assessed, 40 of 82 reachable)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -63,16 +63,18 @@ need their own decision, so **575 members** — Spark stands at **99 of 575, or 
 > **The manifest counts these now, and where it differs from this table the manifest is right**
 > (2026-09-11, `E11-T23`). [`tests/corpus/dynamo-parity.tsv`](../tests/corpus/dynamo-parity.tsv) holds
 > one row per member, generated from the same `ProtoGeometry.dll` metadata, and `Spark.Docs.Verify`
-> checks it against this document on every build. **As of 2026-09-13 it stands at `Done` 234,
-> `Planned` 73, `Not planned` 113, `Needs a decision` 175 and `Unassessed` 242**, which is 837.
-> Applying §5's rules gives **113** refused members, not 93 — §5's own lists add to 104, the four
+> checks it against this document on every build. **As of 2026-09-13 it stands at `Done` 269,
+> `Planned` 93, `Not planned` 121, `Needs a decision` 189 and `Unassessed` 165**, which is 837.
+> Applying §5's rules gives **121** refused members, not 93 — §5's own lists add to 104, the four
 > primitive solids carry 14 parameter-recovery properties rather than 11, §5 [i]'s three flattened
-> mesh accessors were counted when `E2-T45` assessed them, and `E2-T46` added `IsAlmostEqualTo`,
-> `Approximate` and `ContextCoordinateSystem` as §5 [j] — so the committed surface is **555**, not
-> 575. **This table's 99 predates the curve, surface, solid, topology, mesh and infrastructure layers;
-> the manifest's 234 replaces it as the review proceeds**, and the five sections assessed member by
-> member so far are §3.3 (48 of 106), §3.4 (24 of 55), §3.5 (31 of 33), §3.6 (41 of 65) and §3.8
-> (24 of 89). **What is left is §3.1 values, §3.2 curves and §3.7's T-Splines decision.**
+> mesh accessors were counted when `E2-T45` assessed them, `E2-T46` added `IsAlmostEqualTo`,
+> `Approximate` and `ContextCoordinateSystem` as §5 [j], and `E2-T41` counted §5 [i]'s duplicated
+> trim family once its survivor was chosen — so the committed surface is **547**, not 575.
+> **This table's 99 predates the curve, surface, solid, topology, mesh and infrastructure layers;
+> the manifest's 269 replaces it as the review proceeds**, and the sections assessed member by
+> member so far are §3.3 (48 of 106), §3.4 (24 of 55), §3.5 (31 of 33), §3.6 (41 of 65), §3.8
+> (24 of 89) and **§3.2's `Curve` base type (40 of 82)**. **What is left is §3.1 values, §3.2's ten
+> concrete curve types and §3.7's T-Splines decision.**
 
 ### What the 99 counts, exactly
 
@@ -214,38 +216,44 @@ separate concerns and Spark keeps them separate. Similarly `Vector.Scale(x, y, z
 through `Transform.Scale(x, y, z).OfVector(v)`; a non-uniform scale is a transformation, and
 putting it on the vector implies a frame the vector does not carry.
 
-### 3.2 Curves — 11 types, 187 members, partially reachable
+### 3.2 Curves — 11 types, 187 members, 40 reachable so far
 
-| Dynamo type | Members | Spark equivalent | Status | Milestone |
-|---|---:|---|---|---|
-| `Curve` (base) | 82 | `Curve` — the contract, settled against this section | **Partial** | M1 ✓, M3 |
-| `Line` | 6 | `Line` | **Exists** | M1 ✓ |
-| `Arc` | 14 | `Arc` | **Partial** | M1 ✓ |
-| `Circle` | 8 | `Circle` | **Exists** | M1 ✓ |
-| `Ellipse` | 8 | `EllipseCurve` | **Exists** | M1 ✓ |
-| `EllipseArc` | 9 | `EllipseCurve` over a sub-domain | **Exists** | M1 ✓ |
-| `Helix` | 7 | `Helix` | Needs a decision | M3 |
-| `NurbsCurve` | 15 | `NurbsCurve` | Planned | M3 |
-| `PolyCurve` | 21 | `PolyCurve` | **Partial** | M1 ✓ |
-| `Polygon` | 9 | `PolyLine`, closed | **Partial** | M1 ✓ |
-| `Rectangle` | 8 | A `PolyLine` factory, not a type | **Exists** | M1 ✓ |
+**`Curve`'s 82 rows were assessed member by member on 2026-09-13** (`E2-T41` step A), against the
+delivering assemblies rather than by eye ([N160](NOTES.md)). The ten concrete curve types are
+`E2-T41` step B and are still `Unassessed`, so this table's *Reachable* column is **measured for
+`Curve` and blank for the rest** — a number nobody derived is how a register starts lying, and the
+blank says which is which.
 
-> **The member-by-member recount for this section has not been done, and the headline figure in
-> §2 has therefore not moved.** Six of the eleven types now exist and the contract below was
-> built from this section rather than from FR-48 — the `AtLength` family and arc-length division
-> are in, which is the structural half of the gap closing. But *exists* is not *counted*, and
-> writing a number here that nobody derived is precisely how this document would start lying.
-> `E2-T41` carries the recount, and until it is done §2's 92 stands as the last figure anyone
-> actually counted.
+| Dynamo type | Members | Reachable | Spark equivalent | Status | Milestone |
+|---|---:|---:|---|---|---|
+| `Curve` (base) | 82 | 40 | `Curve` — the contract, settled against this section | Partial | M1 ✓, M3 |
+| `Line` | 6 | — | `Line` | **Exists** | M1 ✓ |
+| `Arc` | 14 | — | `Arc` | **Partial** | M1 ✓ |
+| `Circle` | 8 | — | `Circle` | **Exists** | M1 ✓ |
+| `Ellipse` | 8 | — | `EllipseCurve` | **Exists** | M1 ✓ |
+| `EllipseArc` | 9 | — | `EllipseCurve` over a sub-domain | **Exists** | M1 ✓ |
+| `Helix` | 7 | — | `Helix` | Needs a decision | M3 |
+| `NurbsCurve` | 15 | — | `NurbsCurve` | Planned | M3 |
+| `PolyCurve` | 21 | — | `PolyCurve` | **Partial** | M1 ✓ |
+| `Polygon` | 9 | — | `PolyLine`, closed | **Partial** | M1 ✓ |
+| `Rectangle` | 8 | — | A `PolyLine` factory, not a type | **Exists** | M1 ✓ |
+
+**`Curve` is 40 `Done`, 20 `Planned`, 14 `Needs a decision` and 8 `Not planned`.** It had five
+`Done` rows before this pass and none of the other 77 had ever been looked at, so the reading that
+mattered — *are the 82 mostly a gap?* — had never been tested. They are not: **the contract this
+section was written to shape now answers half of the type it was written against**, which is the
+sixth assessment in a row to find Spark further ahead than the register claimed.
 
 **What was built from this section, and what was not.** The four parameterisations are now
-two: **by parameter and by length**, both present on the contract. `AtSegmentLength` and
-`AtChordLength` are not built and are not forgotten — they are the same reparameterisation with
-a different measure, and they cost a member each once someone asks. Of the trimming and
-splitting family, `Trimmed` exists and `Split` does not. None of the modelling members
-(`Extrude`, `Sweep`, `Patch`) exists, as expected — they are M5/M6 and sit behind `IBrepKernel`.
-Of the offset, projection and pull group, none exists; `Offset` is E2-T12 and E2-T14, and
-projection needs SSI.
+two: **by parameter and by length**, both present on the contract, and the pass narrowed §6.3's
+question about them — **the `AtDistance` family *is* arc length and is `Done` by composition
+through `ParameterAtLength`; what remains undeducible is what `AtSegmentLength` measures**, which
+is why all six segment-length members are `Needs a decision` rather than guesses. Of the trimming
+and splitting family, `Trimmed` turns out to answer **all nine** surviving members, seven of them
+by composition. The modelling members are **`Done` behind `IBrepKernel`** — `Extrude`,
+`ExtrudeAsSolid`, `SweepAsSolid`, `SweepAsSurface` and `Patch` all name a kernel operation that has
+worked since M6, which is what `E11-T30` made the register able to say. Of the offset, projection
+and pull group, `Offset` is `Done` through `CurveOffset.Offset` and the other six are not built.
 
 **The one prediction in this section that was tested, and held.** It said a Spark contract
 offering only *by parameter* would feel missing to every Dynamo user, because *divide a curve
@@ -261,36 +269,71 @@ than every Spark value type put together bar `Transform`.** FR-48 names fifteen 
 the curve contract. That is not wrong, but it is not parity either, and the gap is where this
 section earns its keep. The 82 break down roughly as follows.
 
-*Evaluation and frames (about 20 members).* `PointAtParameter`, `TangentAtParameter`,
-`NormalAtParameter`, `PlaneAtParameter`, `CoordinateSystemAtParameter`,
-`HorizontalFrameAtParameter`, and the `AtDistance` / `AtSegmentLength` / `AtChordLength`
-variants of each. FR-48 covers the parameter-based half. **The distinct finding: Dynamo
-exposes four parameterisations of the same query** — by parameter, by distance, by segment
-length and by chord length — and a Spark contract offering only *by parameter* will feel
-missing to every Dynamo user, because *divide a curve into equal lengths* is the single most
-common thing anyone does to a curve. This is cheap once arc-length reparameterisation exists
-and expensive if retrofitted, so it belongs in the M1 contract rather than after it.
+*Evaluation and frames — 24 members, 13 reachable.* `PointAt*`, `TangentAtParameter`,
+`NormalAt*`, `PlaneAt*`, `CoordinateSystemAt*`, `HorizontalFrameAtParameter` and the four
+length ↔ parameter conversions. **The distinct finding stood and was the reason the contract has
+an `AtLength` family at all: Dynamo exposes four parameterisations of the same query** — by
+parameter, by distance, by segment length and by chord length. Spark ships two of the four, and
+the two it ships cover **every `AtParameter` and every `AtDistance` member**, the latter by
+composing `ParameterAtLength` with the parameter form. The other eleven are the **six
+segment-length members and two chord-length members** (`Needs a decision`, §6.3 — the measure is
+not deducible), `NormalAtParameter(param, side)` (§6.3 — what `side` selects),
+`HorizontalFrameAtParameter` (§6.3 — the tie-break at a vertical tangent *is* the specification)
+and `IsPlanar` with `Normal`, which are a pair: **a curve-wide normal presumes planarity, and
+`Curve.IsPlanar` does not exist**. Three of Spark's seven curve types can answer it today —
+`Arc.Plane`, `Circle.Plane`, `EllipseCurve.Plane` — and `PolyLine`, `PolyCurve`, `NurbsCurve` and
+a `Curve`-typed value cannot ([N161](NOTES.md)).
 
-*Division and sampling (about 10).* `DivideEqually`, `DivideByDistance`,
-`DivideByDistanceFromParameter`, `DivideByLengthFromParameter`, `PointsAtEqualChordLength`,
-`PointsAtEqualSegmentLength`, `PointsAtChordLengthFromPoint`, `PointsAtSegmentLengthFromPoint`.
-All fall out of arc-length reparameterisation. None is in FR-48 and all of them should be.
+*Division and sampling — 8 members, 1 reachable.* `DivideEqually` is `Done` and is the member
+this section argued for. `DivideByDistance(Int32 divisions)` is `Needs a decision` for the reason
+§6.3 gives — *the name says distance and the parameter says count*, and Spark has a member for
+each reading, so picking one would be inventing the answer. Two `FromParameter` forms and
+`PointsAtEqualChordLength` and `PointsAtChordLengthFromPoint` are `Planned`: **Spark has no chord
+stepping at all**. The two segment-length forms are `Needs a decision` with the rest of that family.
 
-*Trimming and splitting (about 16).* `ParameterSplit`, `SplitByParameter`, `SplitByPoints`,
-`ParameterTrim`, `ParameterTrimStart`, `ParameterTrimEnd`, `ParameterTrimInterior`,
-`ParameterTrimSegments`, and a `TrimBy*` family that duplicates the `Parameter*` family
-name-for-name. **Dynamo carries two complete sets of trim methods that appear to do the same
-thing** — `Curve.ParameterTrim(a, b)` and `Curve.TrimByParameter(a, b)` — which reads as a
-deprecated set kept for compatibility. Spark should ship one set. Counting both towards parity
-would be counting Autodesk's backwards compatibility as our feature.
+*Trimming and splitting — 17 members, 9 reachable and 8 refused.* **§5 [i]'s duplicated family had
+its survivor chosen on 2026-09-13, and this is where the choice was made**: the `Parameter*` set
+survives, the `TrimBy*`/`SplitBy*` set is refused as Dynamo's own backwards compatibility, and
+those eight members are now **counted** in §5 rather than left uncounted. Of the nine that
+survive, **all nine are `Done` and seven of them by composition** — `Curve.Trimmed(in Interval)`
+is abstract on the base, so a split is `Trimmed` twice, an interior trim is `Trimmed` twice, and
+`SplitByPoints` is `ClosestParameter` and then `Trimmed`. `E2-T7` recorded *no `Split`* as a
+deliberate M1 exclusion and that is still true of the **member**; the **result** has been reachable
+since the contract was written, and this register's subject is the result.
 
-*Modelling (9).* `Extrude` ×3, `ExtrudeAsSolid` ×3, `SweepAsSolid` ×2, `SweepAsSurface`,
-`Patch`. These are surface and solid construction hanging off the curve type; they are M5/M6
-and sit behind `IBrepKernel` (ADR-0003). See §6.1.
+*Modelling — 9 members, 6 reachable.* `Extrude` ×3, `ExtrudeAsSolid` ×3, `SweepAsSolid` ×2,
+`SweepAsSurface`, `Patch`. They sit behind `IBrepKernel` (ADR-0003) and have worked since M6:
+`IBrepKernel.Extrude`, `Sweep` and `Patch` take the profile as an argument where Dynamo takes it as
+the receiver. **The two direction-taking `Extrude` overloads are `Spark.Geometry.ExtrusionSurface`,
+a first-class analytic extrusion rather than a NURBS approximation** (FR-49), which is the same
+reading that made `Surface.ByRevolve` name `RevolutionSurface`. The three that are not reachable
+are the two `(double)` overloads — they extrude along the **curve's own normal** and so wait on
+`IsPlanar`, not on the kernel — and `SweepAsSolid(Curve, bool)`, whose flag cannot be matched to
+`IBrepKernel.Sweep`'s, which is `cap` and is already true for a solid sweep.
 
-*Offset, projection and pull (7).* `Offset`, `OffsetMany`, `Project`, `PullOntoPlane`,
-`PullOntoSurface`, `Simplify`, `ApproximateWithArcAndLineSegments`. Planar offset is E2-T12 and
-E2-T14; projection onto a surface needs SSI.
+*Offset, projection and pull — 7 members, 1 reachable.* `Offset` is `Done` through
+`CurveOffset.Offset`, which is exact where a closed form exists and sampled otherwise and **says
+which in its result** — a fact Dynamo's signature cannot carry. It asks for the plane normal where
+Dynamo infers it, because inferring it means deciding the curve is planar. `OffsetMany`, `Project`,
+`PullOntoPlane`, `PullOntoSurface` and `Simplify` are `Planned`;
+`ApproximateWithArcAndLineSegments` is `Needs a decision` and **is deliberately not refused under
+§5 [j]**, though its signature qualifies: [j] could refuse `Geometry.Approximate()`'s missing
+tolerance because the capability had a tolerance-taking home in Spark, and a biarc approximation
+has no home at all. Refusing it would file a real gap under a rule about a parameter list.
+
+**`ToNurbsCurve()` is the finding of the pass.** Spark has **no curve-to-NURBS conversion
+anywhere** — not on the base, not on a type, not as an extension — while
+`Spark.Geometry.SurfaceConversion` converts five of the eight analytic **surfaces** exactly.
+`Line`, `Arc`, `Circle`, `EllipseCurve` and `PolyLine` all have exact NURBS forms and none of them
+is written, so the half of the kernel that was built first is the half missing the conversion.
+`E2-T71`.
+
+**`ToString()` is `Done`, and `Surface.ToString()` is `Planned`, and the difference is [N161](NOTES.md)
+working.** The rule is to enumerate the types that do *not* carry a member rather than to accept
+*some do*. For curves the enumeration is empty — `Line`, `Arc`, `Circle`, `EllipseCurve`,
+`NurbsCurve`, `PolyLine` and `PolyCurve` all override it, so a `Curve`-typed value prints itself.
+For surfaces only `NurbsSurface` does. Two rows that look identical, opposite answers, and only the
+enumeration tells them apart.
 
 **`Helix` is marked `Needs a decision` because it is absent from FR-48 and nobody has decided
 against it.** It is a genuine, commonly used Dynamo curve — stairs, ramps, threads — with a
@@ -853,7 +896,7 @@ compiler finds every call site. **The day after 1.0 it would have been an
 
 ## 5. What we will deliberately not replicate
 
-**93 members, 11.1% of the inventory, by this document's count — 113 by the manifest's** (`E11-T23`: the lists below add to 104, and the primitives' parameter-recovery properties are 14, not the 11 [h] says; `E2-T45` then counted [i]'s three flattened mesh accessors, and `E2-T46` added three more under [f]'s ground — see [j]). Each with a reason and with what a Spark user does
+**93 members, 11.1% of the inventory, by this document's count — 121 by the manifest's** (`E11-T23`: the lists below add to 104, and the primitives' parameter-recovery properties are 14, not the 11 [h] says; `E2-T45` then counted [i]'s three flattened mesh accessors, `E2-T46` added three more under [f]'s ground — see [j] — and `E2-T41` counted [i]'s eight duplicated trim and split members once their survivor had been chosen). Each with a reason and with what a Spark user does
 instead. These were evaluated on their merits rather than accepted as a list.
 
 **[a] `Application` (6) and `HostFactory` (6) — kernel session lifetime.** `StartUp`,
@@ -939,8 +982,13 @@ methods duplicate its `Parameter*` methods name-for-name, and `Mesh`'s
 Dynamo's list plumbing. Spark ships one trim family and returns typed spans. **The three mesh
 accessors were counted on 2026-09-13**, when `E2-T45`'s member-by-member pass reached them —
 refusing the flattening is not refusing the data, and `VertexPositions`, `Edges` and `Triangles`
-carry the same information typed. *(The trim family is still uncounted, because which of the two
-families is the survivor is a design choice we have not made.)*
+carry the same information typed. **The trim family was counted on 2026-09-13**, when `E2-T41`
+step A reached it and made the choice this entry had been waiting on: **the `Parameter*` set is the
+survivor** — it is the set this entry itself names as primary — and the eight `TrimBy*` / `SplitBy*`
+members are refused here. The capability is assessed on the `Parameter*` rows, where all nine
+surviving members are `Done`, seven of them by composing `Curve.Trimmed(in Interval)`.
+`SplitByPoints` has no twin in either set and was assessed on its merits rather than refused with
+the family.
 
 **[j] `Geometry`'s three members that compare against an ambient tolerance or a creation context —
 3 members.** `IsAlmostEqualTo(Geometry)` and `Approximate()` take **no tolerance**, so the tolerance
@@ -1098,10 +1146,14 @@ Honest gaps in this document, from signatures that do not determine behaviour. E
 checking against a running Dynamo before the corresponding Spark member is designed — not
 before it is *listed*, which is why they do not block this register.
 
-- **`Curve`'s four length parameterisations.** `DistanceAtParameter`,
-  `SegmentLengthAtParameter`, `ParameterAtDistance` and `ParameterAtSegmentLength` are four
-  names for what look like two concepts. Which pair is arc length from the start and which is
-  something else is not deducible.
+- **`Curve`'s four length parameterisations — half answered on 2026-09-13** (`E2-T41` step A).
+  `DistanceAtParameter`, `SegmentLengthAtParameter`, `ParameterAtDistance` and
+  `ParameterAtSegmentLength` are four names for what look like two concepts. **The `Distance` pair
+  is arc length from the start**, which is what §3.2 has assumed since the curve contract was
+  designed against it, and both members are now `Done` on `Curve.LengthAt` and
+  `Curve.ParameterAtLength`. **What `SegmentLength` measures is still not deducible**, and it is
+  why six members carrying that word are `Needs a decision` rather than claimed: if it is arc length
+  they are duplicates of members Spark already has, and if it is a chord walk they are not.
 - **`Curve.DivideByDistance(Int32 divisions)`.** The name says distance, the only parameter is
   named `divisions` and is an `Int32`. Either the name or the parameter is misleading.
 - **`Curve.NormalAtParameter(param, Boolean side)`** — what `side` selects.
@@ -1112,7 +1164,11 @@ before it is *listed*, which is why they do not block this register.
 - **`Surface.CurvatureAtParameter(u, v)` returning a `CoordinateSystem`** (§3.3).
 - **`Geometry.Approximate()` and `Curve.ApproximateWithArcAndLineSegments()`** take no
   tolerance, so the tolerance comes from somewhere unstated — very likely the ambient session
-  scale factor, which is exactly what ADR-0010 refuses.
+  scale factor, which is exactly what ADR-0010 refuses. **They were separated on 2026-09-13**
+  (`E2-T41` step A): `Approximate()` is refused under §5 [j] because the capability has a
+  tolerance-taking home in Spark, and `ApproximateWithArcAndLineSegments()` is `Needs a decision`
+  because it has none — refusing a biarc approximation on the shape of its parameter list would
+  file a real gap under a rule about a signature.
 - **`Geometry.FromObject(Int64)`, `FromSolidDef(String)`, `ToSolidDef()`** — undocumented
   shapes, probably Autodesk-internal. Not planned regardless (§5 [g]).
 - **`DesignScriptEntity.BaseTessellationGuid` and `InstanceInfoAvailable`** — unclear, and not

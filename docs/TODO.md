@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T70` step A: a solid can be moved)
+**Last updated:** 2026-09-13 (`E2-T41` step A: §3.2's `Curve` assessed, 40 of 82)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -278,9 +278,21 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     `Solid.Translate`, `Rotate` and `Mirror` as nodes. No provider needed, a resident shape
 >     materialises, and **every face flips when the transform reverses handedness** — which also
 >     fixed the same bug live in `Mesh.TransformedBy`, where a mirror had been leaving every face
->     wound backwards while its normals pointed the other way. **Next**: `E2-T70` step B, the
->     geometry-to-geometry queries, or `E2-T41` curves, the largest at 187 members; then `E2-T40`'s
->     value layer. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
+>     wound backwards while its normals pointed the other way. ~~**`E2-T41` step A**~~ **done 2026-09-13**: §3.2's `Curve`
+>     base type, all 82 rows, **40 reachable** from five `Done` and 77 never looked at. **The
+>     residue fell for the first time since `E2-T42` step B** — 321 to 318 — because a pass that
+>     names thirteen members of a type the register already watched buys more than it pays, where
+>     §3.8's pass claimed a type nobody had accounted for and cost 27. **It made three calls rather
+>     than deferring them**: §5 [i]'s duplicated trim family finally has a survivor (the
+>     `Parameter*` set) and its eight refusals are counted; §6.3's four-parameterisations question
+>     is half answered (`AtDistance` *is* arc length; `AtSegmentLength` is still undeducible, so six
+>     members stay `Needs a decision`); and `ApproximateWithArcAndLineSegments` is **not** refused
+>     under §5 [j] though its signature qualifies, because a biarc approximation has no
+>     tolerance-taking home in Spark to be refused *in favour of*. Twenty gaps are **`E2-T71`**, the
+>     largest being that **Spark has no curve-to-NURBS conversion anywhere** while surfaces have had
+>     one since M5. **Next**: `E2-T41` step B, the ten concrete curve types (105 rows, and `Helix`
+>     is the decision the section has carried since it was written), or `E2-T70` step B, the
+>     geometry-to-geometry queries; then `E2-T40`'s value layer. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than
 >     machinery.
