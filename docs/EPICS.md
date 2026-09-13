@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-12 (`E2-T44` and `E2-T65`: topology parity at 31 of 33)
+**Last updated:** 2026-09-13 (`E2-T45`: mesh parity at 41 of 65, and `IndexGroup` at 10 of 10)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -245,6 +245,18 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       adaptive-precision exact predicates (**E2-T27**). *Moved to **1.x** by ADR-0020, with
       `Capabilities` greying it meanwhile. Reduced, not eliminated: OCCT is poor at mesh
       booleans and Dynamo has them.*
+- [x] **The mesh layer is measured against Dynamo's, not assumed to match it** (**E2-T45**) —
+      done 2026-09-13. §3.6 goes from *0 reachable* to **41 of 65**, almost none of it new code,
+      and `IndexGroup` is **10 of 10** because it *is* `MeshFace`. *What the measurement was for
+      is the part that is not a number.* It confirmed the standing finding — repair and remeshing
+      are absent from FR-51, `E2-T20` and `E2-T27` alike — and **corrected it**: six members, not
+      eight, because `CloseCracks()` is `Mesh.Welded(tolerance)` and `MakeHollow` is a decision
+      rather than a gap (`Q16`). It found two things the register was saying wrongly, both in the
+      safe direction: interchange read as absent because the rename-catcher was not reading
+      `Spark.Geometry.Io`, and `GeometryJson` was excused on a §5 [g] refusal that §5 [g] does not
+      make. **The residue rose, 285 to 292**, because naming a member of an excused type brings
+      that type's whole surface into the count — which is the register working, and looks exactly
+      like the register rotting unless somebody writes down which it was.
 - [ ] Serialization carries **per-type `schemaVersion`**, so a `NurbsCurve` at v2 and a
       `Mesh` at v1 coexist, with migrations applied JSON-to-JSON (**E2-T29**).
 - [ ] A reflection-driven round-trip test enumerates every concrete geometry type, so a new

@@ -33,11 +33,14 @@ namespace Spark.Docs.Verify;
 /// </para>
 /// <para>
 /// <b>The two directions deliberately read different things</b> (<c>E11-T30</c>). The rename-catcher
-/// reads <b>every assembly that delivers geometry</b> - <c>Spark.Geometry</c>, <c>Spark.Api</c> and
-/// <c>Spark.Nodes.Core</c> - because §1 and FR-81 make the register's subject *capability*, and loft,
-/// sweep, thicken and the booleans are delivered through <c>Spark.Api.IBrepKernel</c>. Scoping it to
-/// one assembly made twenty §3.3 rows say <i>Planned</i> about capabilities that already worked, which
-/// is the register lying in the safe direction (<c>docs/NOTES.md</c> N158).
+/// reads <b>every assembly that delivers geometry</b> - <c>Spark.Geometry</c>, <c>Spark.Api</c>,
+/// <c>Spark.Geometry.Io</c> and <c>Spark.Nodes.Core</c> - because §1 and FR-81 make the register's
+/// subject *capability*, and loft, sweep, thicken and the booleans are delivered through
+/// <c>Spark.Api.IBrepKernel</c>. Scoping it to one assembly made twenty §3.3 rows say <i>Planned</i>
+/// about capabilities that already worked, which is the register lying in the safe direction
+/// (<c>docs/NOTES.md</c> N158); <c>Spark.Geometry.Io</c> was added on 2026-09-13 (<c>E2-T45</c>) for
+/// the same reason and in the same shape, because <c>Mesh.ImportFile</c> and <c>Mesh.ExportMeshes</c>
+/// are STL, PLY, OBJ and glTF and they live there.
 /// </para>
 /// <para>
 /// <b>The reverse direction stays on <c>Spark.Geometry</c> alone</b>, and that is not an oversight.
@@ -54,11 +57,13 @@ public sealed class DynamoParityChecks
     /// <summary>
     /// <b>The assemblies that deliver geometry to a Spark user</b>, in the order a reader should think
     /// of them (<c>E11-T30</c>). <c>Spark.Api</c> is here because <c>IBrepKernel</c> is, and with it
-    /// loft, sweep, thicken and the booleans; <c>Spark.Nodes.Core</c> because the node families over
-    /// the kernel are how a graph reaches them. Adding an assembly here widens what <i>Done</i> may
-    /// name and nothing else - the reverse direction is scoped separately, on purpose.
+    /// loft, sweep, thicken and the booleans; <c>Spark.Geometry.Io</c> because interchange is a
+    /// capability and OBJ, STL, PLY and glTF are ours rather than the kernel's (FR-58, <c>E2-T45</c>);
+    /// <c>Spark.Nodes.Core</c> because the node families over the kernel are how a graph reaches them.
+    /// Adding an assembly here widens what <i>Done</i> may name and nothing else - the reverse
+    /// direction is scoped separately, on purpose.
     /// </summary>
-    private static readonly string[] Delivering = ["Spark.Geometry", "Spark.Api", "Spark.Nodes.Core"];
+    private static readonly string[] Delivering = ["Spark.Geometry", "Spark.Api", "Spark.Geometry.Io", "Spark.Nodes.Core"];
 
     private static readonly string Root = RepositoryRoot();
 
@@ -329,7 +334,11 @@ public sealed class DynamoParityChecks
                 + (residue.Count > 12 ? $"\n  ... and {residue.Count - 12} more" : string.Empty));
         }
 
-        Assert.Empty(problems);
+        // Not Assert.Empty: it renders the collection, which truncates each entry to about fifty
+        // characters - and the entry above is a paragraph telling the reader what to do, including
+        // the number to write into the budget. A check whose instruction is swallowed by its own
+        // assertion helper is a check nobody can act on (E2-T45).
+        Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
     private static List<Exclusion> ReadExclusions()

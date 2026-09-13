@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-12 (`E2-T43`: §3.4 assessed, 24 of 55 reachable)
+**Last updated:** 2026-09-13 (`E2-T45`: §3.6 assessed, 41 of 65 reachable, and `IndexGroup` at 10 of 10)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -63,13 +63,14 @@ need their own decision, so **575 members** — Spark stands at **99 of 575, or 
 > **The manifest counts these now, and where it differs from this table the manifest is right**
 > (2026-09-11, `E11-T23`). [`tests/corpus/dynamo-parity.tsv`](../tests/corpus/dynamo-parity.tsv) holds
 > one row per member, generated from the same `ProtoGeometry.dll` metadata, and `Spark.Docs.Verify`
-> checks it against this document on every build. Applying §5's rules to it gives **107** refused
-> members, not 93 — §5's own lists add to 104, and the four primitive solids carry 14
-> parameter-recovery properties, not 11 — so the committed surface is **561**, not 575. It also records
-> 89 members present in Spark by an exact name match. **Those 89 were reviewed on 2026-09-12** (§7):
-> 88 are the same capability and stay `Done`, one — `PolySurface.Surfaces()` — was demoted because the
-> name hid a real difference, and 473 are not yet assessed. This table's 99 predates the curve, surface
-> and mesh layers; the manifest's count replaces it as the review proceeds.
+> checks it against this document on every build. **As of 2026-09-13 it stands at `Done` 210,
+> `Planned` 68, `Not planned` 110, `Needs a decision` 174 and `Unassessed` 275**, which is 837.
+> Applying §5's rules gives **110** refused members, not 93 — §5's own lists add to 104, the four
+> primitive solids carry 14 parameter-recovery properties rather than 11, and §5 [i]'s three flattened
+> mesh accessors were counted when `E2-T45` assessed them — so the committed surface is **558**, not
+> 575. **This table's 99 predates the curve, surface, solid, topology and mesh layers; the manifest's
+> 210 replaces it as the review proceeds**, and the four sections assessed member by member so far are
+> §3.3 (48 of 106), §3.4 (24 of 55), §3.5 (31 of 33) and §3.6 (41 of 65).
 
 ### What the 99 counts, exactly
 
@@ -534,44 +535,95 @@ are how a user gets from topology back to geometry, and they are the reason a to
 subsystem is useful at all rather than an implementation detail. They are cheap in the
 index-based model and must not be forgotten.
 
-### 3.6 Mesh — 2 types, 65 members, 0 reachable
+### 3.6 Mesh — 2 types, 65 members, 41 reachable
 
-| Dynamo type | Members | Spark equivalent | Status | Milestone |
-|---|---:|---|---|---|
-| `Mesh` | 55 | `Mesh` | Planned | M5, M6 |
-| `IndexGroup` | 10 | Face records on `Mesh` | Planned | M5 |
+**Assessed member by member on 2026-09-13** (`E2-T45`), against the assembly rather than by eye, and
+this section moved further in one step than any other: **from *0 reachable* to 41 of 65**. Almost none
+of that is new code. Most of it is the register finally reading the mesh layer that has existed since
+M5, plus one assembly — `Spark.Geometry.Io` — that the rename-catcher was not looking at.
 
-FR-51 and E2-T20 describe `Mesh` as *indexed vertices, tri and quad faces, optional normals,
-UVs and colours, and lazily built halfedge adjacency*. That is the data structure. Dynamo's
-55 members are mostly **operations**, and reading them is the useful part of this section.
+| Dynamo type | Members | Reachable | Spark equivalent | Status | Milestone |
+|---|---:|---:|---|---|---|
+| `Mesh` | 55 | 31 | `Mesh`, `MeshTopology`, `Spark.Geometry.Io`, `Spark.Api.IBrepKernel` | Partial | M5, M6 |
+| `IndexGroup` | 10 | 10 | `MeshFace` | **Done** | M5 |
 
-*Construction (9).* `ByPointsFaceIndices`, `ByPointsIndexGroups`, `ByPointsIndices`,
-`ByVerticesAndIndices`, `ByGeometry`, plus primitive generators `Cone`, `Cuboid`, `Sphere`,
-`Plane`. All planned; the four `By*` overloads collapse to two in Spark.
+**`IndexGroup` is `MeshFace`, and the section used to say the type was not needed.** That was wrong in
+a small way worth correcting: Spark does have the type, it is `MeshFace`, and all ten of `IndexGroup`'s
+members are there. Two differences, neither a gap. Dynamo's corners are `UInt32` and `Count` is 3 or 4;
+Spark's are `int`, and a triangle carries `D = MeshFace.NoVertex` (`-1`) rather than a repeated `C`,
+because the repeat convention makes a degenerate quad indistinguishable from a triangle and gives four
+edges where there are three (`E2-T20`). **And these indices are safe where a `Brep`'s are not**: a mesh
+index is managed from end to end and never crosses the kernel seam, which is exactly the difference
+[N159](NOTES.md) had to find the hard way under `Solid.HollowOpen`.
 
-*Query and access (16).* `VertexPositions`, `VertexNormals`, `FaceIndices`, `VertexCount`,
-`TriangleCount`, `EdgeCount`, `Area`, `Volume`, `BoundingBox`, `TriangleCentroids`,
-`TriangleNormals`, `Triangles`, `Edges`, `VertexIndicesByTri`, `Nearest`, `Project`. All
-planned. The three flattened accessors — `VerticesAsThreeNumbers`, `EdgesAsSixNumbers`,
-`TrianglesAsNineNumbers` — exist for Dynamo's list plumbing and are **Not planned**; Spark
-returns spans of typed values and the graph handles them (E4-T2).
+**The finding this section was carrying was *eight repair and remeshing members missing*, and it is
+confirmed with one correction.** `Repair`, `MakeWatertight`, `Remesh`, `Reduce`, `Smooth` and `Explode`
+appear nowhere in FR-51, `E2-T20` or `E2-T27`, and nothing in the assembly answers them — checked,
+because `E2-T42`'s row made this same kind of claim about surface curvature and was wrong.
+**`CloseCracks()` is the exception: it is already there, as `Mesh.Welded(tolerance)`**, which merges
+coincident vertices and closes the topology. It does *more* than Dynamo's, which touches only
+near-coincident boundary vertices — and it costs something real, because a vertex carries one normal
+and a welded box shades like a ball. So seven, not eight, and they are `E2-T68`. **`Explode()` is the
+cheapest of the seven by a wide margin** — a connected-component walk is one pass over
+`MeshTopology.AdjacentFaces` — and it is still not written.
 
-*Repair and remeshing (8).* `Repair`, `MakeWatertight`, `CloseCracks`, `Remesh`, `Reduce`,
-`Smooth`, `Explode`, `MakeHollow`. **This is the finding of this section.** Not one of these
-appears anywhere in FR-51, E2-T20 or E2-T27, and they are not small: mesh repair and
-decimation are their own literature. A Dynamo user importing an STL reaches for `Repair` and
-`Reduce` immediately. They are planned here and need to be planned in the PRD.
+**`MakeWatertight` deserves its own sentence, because `Welded` looks like it and is not.** Welding
+merges coincident vertices; it does not fill a hole. `MeshTopology.IsClosed` *reports* watertightness
+and does not produce it. Dynamo's remeshes through a voxel field, which is a different and much larger
+thing, and calling `Welded` watertightness would be exactly the [N156](NOTES.md) error a third time.
 
-*Booleans (3).* `BooleanUnion`, `BooleanDifference`, `BooleanIntersection` — E2-T27, M6, and
-the mechanism by which Spark ships working booleans before exact ones exist (ADR-0002).
+**The transformation family is `Mesh.TransformedBy` and this is the first section to apply §3.8's
+argument.** Seven of Dynamo's `Mesh` members — `Translate` ×3, `Rotate`, `Scale` ×2, `Mirror` — are one
+Spark member taking a `Transform` factory. `Transform.Rotation(axis, Angle.FromDegrees(45))` for
+`mesh.Rotate(axis, 45)` is more to type and it is the shape ADR-0011 and ADR-0004 both point at: the
+angle carries its unit in the type. §3.8 notes that the `By*` façade should carry the short forms as
+node-friendly statics, and that is still the right answer for the node library.
 
-*Fabrication (2).* `GenerateSupport` and `MakeHollow` are 3D-printing features. **Needs a
-decision** whether Spark wants them; they are a product direction, not a kernel primitive.
+**Interchange is `Done`, and finding that out changed the harness.** `Mesh.ImportFile` and
+`Mesh.ExportMeshes` are STL, PLY, OBJ and glTF, all four ours and all four managed (FR-58, `E2-T34`,
+`E2-T35`) — Dynamo's one member writes one format. They read as absent because the rename-catcher read
+three assemblies and interchange lives in a fourth, `Spark.Geometry.Io`. **That is `E11-T30`'s
+correction in the same shape, for the same reason** ([N158](NOTES.md)): the register's subject is
+*capability*, so the check must read every assembly that delivers one. `Spark.Geometry.Io` joined the
+list on 2026-09-13.
 
-*Interchange (2).* `ImportFile`, `ExportMeshes` — FR-58, E2-T34/T35.
+**`ToJson`/`FromJson` were excused on a false premise, and that is the second correction.** The
+exclusions file had `GeometryJson` down as a whole type Dynamo has no counterpart for, *"refused in
+§5 [g]"* — but §5 [g] refuses **SAT, SAB and native pointers**, and §3.8 says plainly that
+`ToJson`/`FromJson` are planned under FR-57. `GeometryJson.Serialize` and `Deserialize` answer them,
+one serializer over every geometry type rather than a member per type, each value self-describing with
+its own version (`E2-T29`). A true rule reaching a false conclusion, like `Surface.Repair()` the day
+before.
 
-**`IndexGroup` is a tri-or-quad index record with an `A`/`B`/`C`/`D`/`Count` shape.** Spark's
-`Mesh` carries tri and quad faces directly, so the type is not needed; its capability is.
+**What is genuinely missing, beyond the seven, is two small families and one decision.**
+
+*The mesh primitives (4) — `Cuboid`, `Sphere`, `Cone`, `Plane`.* A Brep primitive tessellated is the
+nearest route and it does not reach them: **a mesh primitive's point is its subdivision counts**, which
+give a grid to deform, and a tessellation's density comes from a tolerance instead. Two of the four
+have no Brep primitive to tessellate either (`E2-T66`).
+
+*The mesh queries (4) — `Nearest`, `Project`, `TriangleCentroids`, `Edges()`.* `Nearest` and `Project`
+need the same missing piece: **a spatial index over faces in the kernel rather than in the viewport.**
+`Spark.Viewport`'s picker does ray-triangle over a BVH and is a renderer; `PointKdTree` (`E2-T16`)
+answers point-to-*point*. `MeshTopology` counts edges and hands out only the boundary ones, so `Edges()`
+is a smaller gap than it looks — the halfedge arrays exist and are internal. All four are `E2-T69`.
+
+*The fabrication pair (2) — `MakeHollow` and `GenerateSupport`.* 3D-printing features rather than kernel
+primitives, and **needs a decision** (`Q16`) about whether Spark wants a fabrication direction at all.
+Drifting into one is how a kernel acquires a taxonomy it owns for ever — the same argument §5 [d] makes
+about panelling. Note that `MakeHollow` collides with nothing: `IBrepKernel.Shell` hollows a *solid* to
+a wall thickness and is a different operation on a different representation.
+
+**The three mesh booleans are `E2-T27` and 1.x**, under ADR-0020: the exact Brep booleans arrive first
+and take the urgency away. *Reduced, not eliminated* — OCCT is poor at mesh booleans and Dynamo has
+them. **`Intersect(Plane)` and `PlaneCut` go with them**, because nothing in Spark cuts a *mesh* at all:
+`IBrepKernel.Split` and `Trim` take `Brep` tools and cut a `Brep`.
+
+**The three flattened accessors stay refused** — `VerticesAsThreeNumbers`, `EdgesAsSixNumbers`,
+`TrianglesAsNineNumbers`, §5 [i]. They exist to feed Dynamo's list plumbing; Spark returns spans of
+typed values and the graph handles them (`E4-T2`). Refusing the flattening is not refusing the data.
+**This pass is what §5 [i] was waiting for**, so these three now count in the refusals, which is why the
+manifest's *Not planned* total moves from 107 to 110.
 
 ### 3.7 T-Splines — 8 types, 169 members, 0 reachable
 
@@ -815,9 +867,11 @@ what R12's validation rule requires.
 **[i] Dynamo's duplicated trim family and flattened mesh accessors.** `Curve`'s `TrimBy*`
 methods duplicate its `Parameter*` methods name-for-name, and `Mesh`'s
 `VerticesAsThreeNumbers` / `EdgesAsSixNumbers` / `TrianglesAsNineNumbers` exist to feed
-Dynamo's list plumbing. Spark ships one trim family and returns typed spans. *(Not counted in
-the 93 pending the member-by-member pass of §7, because which of the two trim families is the
-survivor is a design choice we have not made.)*
+Dynamo's list plumbing. Spark ships one trim family and returns typed spans. **The three mesh
+accessors were counted on 2026-09-13**, when `E2-T45`'s member-by-member pass reached them —
+refusing the flattening is not refusing the data, and `VertexPositions`, `Edges` and `Triangles`
+carry the same information typed. *(The trim family is still uncounted, because which of the two
+families is the survivor is a design choice we have not made.)*
 
 ---
 
@@ -1010,22 +1064,28 @@ is well formed, that its totals agree with this document, and that every Done ro
 exists. **The fourth, the reverse direction, landed 2026-09-12**, and with it the review of the 89
 Done rows that had been seeded by a bare name match.
 
-**The reverse direction excuses by rule, never member by member.** `Spark.Geometry` declares **877**
-public members by the manifest's own counting rule, and **790** of them are named by no parity row —
+**The reverse direction excuses by rule, never member by member.** `Spark.Geometry` declares **894**
+public members by the manifest's own counting rule (measured 2026-09-13; the **877** this line carried
+and the 895 the exclusions file carried were both stale, and disagreed with each other, which is what
+an unchecked number does), and **747** of them are named by no parity row —
 a file holding 790 hand-written excuses would be exactly the drifting artefact this section exists to
 prevent. So [`tests/corpus/dynamo-parity-exclusions.tsv`](../tests/corpus/dynamo-parity-exclusions.tsv)
-carries **47 rules**: five member names that are .NET plumbing rather than capability (`Equals`,
-`GetHashCode`, `ToString`, `Deconstruct` and the operators), and **42 whole types Dynamo has no
+carries **39 rules**: five member names that are .NET plumbing rather than capability (`Equals`,
+`GetHashCode`, `ToString`, `Deconstruct` and the operators), and **34 whole types Dynamo has no
 counterpart for** — `Transform`, `Tolerance`, `Interval`, `Angle`, `Quaternion`, `Ray`, the analytic
 surfaces, the Brep views and the planar layer, each with the §2 or §3 sentence that says why. **A type
 some parity row names may not be excused wholesale**, and the check enforces that rather than trusting
 it, because otherwise the file would be a way to make the check green.
 
-**What no rule reaches is counted, not waved through.** **278** members sit on types that *do* map to a
+**What no rule reaches is counted, not waved through.** **292** members sit on types that *do* map to a
 Dynamo type, so each is either a member some `Unassessed` row will name once it is assessed or a
 genuine gap — and the budget at the foot of the exclusions file is checked for **exact** equality, not
-as a ceiling. The number therefore falls as rows are assessed and cannot quietly climb back; a rise
-means a member was added to a mapped type with no thought for this register.
+as a ceiling. The number therefore falls as rows are assessed and cannot quietly climb back.
+**A rise has two causes and the file's history has to say which**: a member was added to a mapped type
+with no thought for this register, or — as on 2026-09-12 and again on 2026-09-13 — an assessment named
+a member of a type that had been excused wholesale, so that type's whole surface came into the count.
+The second is the register doing its job and looks exactly like the first until somebody writes down
+which it was.
 
 **The review found one row in 89 where the name lied.** `PolySurface.Surfaces()` had matched
 `Brep.Surfaces()`, which hands back the *untrimmed* face surface table in index order where Dynamo

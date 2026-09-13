@@ -333,16 +333,16 @@ HostFactory	ShutDown()	Not planned		§5 [a]: kernel session lifetime - ProtoGeom
 HostFactory	StartUp(double)	Not planned		§5 [a]: kernel session lifetime - ProtoGeometry starts and stops a native kernel; Spark's geometry is values with no session, so there is nothing to start.
 IProtoGeometryConfiguration	GeometryFactoryFileName	Not planned		§5 [b]: names the native DLLs ProtoGeometry loads; Spark loads none to do geometry.
 IProtoGeometryConfiguration	PersistentManagerFileName	Not planned		§5 [b]: names the native DLLs ProtoGeometry loads; Spark loads none to do geometry.
-IndexGroup	A	Unassessed		
-IndexGroup	B	Unassessed		
-IndexGroup	ByIndices(UInt32, UInt32, UInt32)	Unassessed		
-IndexGroup	ByIndices(UInt32, UInt32, UInt32, UInt32)	Unassessed		
-IndexGroup	C	Unassessed		
-IndexGroup	Count	Unassessed		
-IndexGroup	D	Unassessed		
-IndexGroup	Equals(object)	Unassessed		
-IndexGroup	GetHashCode()	Unassessed		
-IndexGroup	ToString()	Unassessed		
+IndexGroup	A	Done	Spark.Geometry.MeshFace.A	2026-09-13, E2-T45: IndexGroup IS MeshFace: a tri-or-quad face record. Two differences, both said rather than assumed. Dynamo's corners are UInt32 and Count is 3 or 4; Spark's are int and a triangle carries D = MeshFace.NoVertex (-1), because repeating C makes a degenerate quad indistinguishable from a triangle and gives four edges where there are three (E2-T20). And per N159 these indices are MANAGED and never cross the kernel seam, which is exactly why they are safe where a Brep face index is not (E13-T22).
+IndexGroup	B	Done	Spark.Geometry.MeshFace.B	2026-09-13, E2-T45: IndexGroup IS MeshFace: a tri-or-quad face record. Two differences, both said rather than assumed. Dynamo's corners are UInt32 and Count is 3 or 4; Spark's are int and a triangle carries D = MeshFace.NoVertex (-1), because repeating C makes a degenerate quad indistinguishable from a triangle and gives four edges where there are three (E2-T20). And per N159 these indices are MANAGED and never cross the kernel seam, which is exactly why they are safe where a Brep face index is not (E13-T22).
+IndexGroup	ByIndices(UInt32, UInt32, UInt32)	Done	Spark.Geometry.MeshFace	2026-09-13, E2-T45: the three- and four-corner constructors of MeshFace. The row names the TYPE because the capability is a constructor and a constructor is not a member this inventory counts.
+IndexGroup	ByIndices(UInt32, UInt32, UInt32, UInt32)	Done	Spark.Geometry.MeshFace	2026-09-13, E2-T45: the three- and four-corner constructors of MeshFace. The row names the TYPE because the capability is a constructor and a constructor is not a member this inventory counts.
+IndexGroup	C	Done	Spark.Geometry.MeshFace.C	2026-09-13, E2-T45: IndexGroup IS MeshFace: a tri-or-quad face record. Two differences, both said rather than assumed. Dynamo's corners are UInt32 and Count is 3 or 4; Spark's are int and a triangle carries D = MeshFace.NoVertex (-1), because repeating C makes a degenerate quad indistinguishable from a triangle and gives four edges where there are three (E2-T20). And per N159 these indices are MANAGED and never cross the kernel seam, which is exactly why they are safe where a Brep face index is not (E13-T22).
+IndexGroup	Count	Done	Spark.Geometry.MeshFace.Count	2026-09-13, E2-T45: IndexGroup IS MeshFace: a tri-or-quad face record. Two differences, both said rather than assumed. Dynamo's corners are UInt32 and Count is 3 or 4; Spark's are int and a triangle carries D = MeshFace.NoVertex (-1), because repeating C makes a degenerate quad indistinguishable from a triangle and gives four edges where there are three (E2-T20). And per N159 these indices are MANAGED and never cross the kernel seam, which is exactly why they are safe where a Brep face index is not (E13-T22).
+IndexGroup	D	Done	Spark.Geometry.MeshFace.D	2026-09-13, E2-T45: IndexGroup IS MeshFace: a tri-or-quad face record. Two differences, both said rather than assumed. Dynamo's corners are UInt32 and Count is 3 or 4; Spark's are int and a triangle carries D = MeshFace.NoVertex (-1), because repeating C makes a degenerate quad indistinguishable from a triangle and gives four edges where there are three (E2-T20). And per N159 these indices are MANAGED and never cross the kernel seam, which is exactly why they are safe where a Brep face index is not (E13-T22).
+IndexGroup	Equals(object)	Done	Spark.Geometry.MeshFace.Equals	2026-09-13, E2-T45: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+IndexGroup	GetHashCode()	Done	Spark.Geometry.MeshFace.GetHashCode	2026-09-13, E2-T45: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
+IndexGroup	ToString()	Done	Spark.Geometry.MeshFace.ToString	2026-09-13, E2-T45: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Line	ByBestFitThroughPoints(IEnumerable<Point>)	Unassessed		
 Line	ByStartPointDirectionLength(Point, Vector, double)	Unassessed		
 Line	ByStartPointEndPoint(Point, Point)	Unassessed		
@@ -354,59 +354,59 @@ Loop	Face	Done	Spark.Geometry.BrepAdjacency.FaceOf	2026-09-12, E2-T65: an inner 
 Loop	IsExternal	Done	Spark.Geometry.BrepLoopView.Kind	assessed 2026-09-12: BrepLoopKind.Outer is Dynamo's true. An enum rather than a boolean because a third kind is a real possibility and a boolean cannot grow one.
 Loop	ToString()	Done	Spark.Geometry.BrepLoop.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Mesh	Area	Done	Spark.Geometry.Mesh.Area	reviewed 2026-09-12: the same capability under the same name.
-Mesh	BooleanDifference(Mesh)	Unassessed		
-Mesh	BooleanIntersection(Mesh)	Unassessed		
-Mesh	BooleanUnion(Mesh)	Unassessed		
+Mesh	BooleanDifference(Mesh)	Planned		2026-09-13, E2-T45: E2-T27, and 1.x rather than 1.0 under ADR-0020: the exact Brep booleans arrive first and take the urgency away. Do not read that as elimination - OCCT is poor at mesh booleans and Dynamo has them, so Capabilities greys the operation out meanwhile (FR-53, FR-54).
+Mesh	BooleanIntersection(Mesh)	Planned		2026-09-13, E2-T45: E2-T27, and 1.x rather than 1.0 under ADR-0020: the exact Brep booleans arrive first and take the urgency away. Do not read that as elimination - OCCT is poor at mesh booleans and Dynamo has them, so Capabilities greys the operation out meanwhile (FR-53, FR-54).
+Mesh	BooleanUnion(Mesh)	Planned		2026-09-13, E2-T45: E2-T27, and 1.x rather than 1.0 under ADR-0020: the exact Brep booleans arrive first and take the urgency away. Do not read that as elimination - OCCT is poor at mesh booleans and Dynamo has them, so Capabilities greys the operation out meanwhile (FR-53, FR-54).
 Mesh	BoundingBox()	Done	Spark.Geometry.Mesh.BoundingBox	reviewed 2026-09-12: a method in Dynamo and a property in Spark, which is the naming rule and not a gap.
-Mesh	ByGeometry(Geometry, double, int)	Unassessed		
-Mesh	ByPointsFaceIndices(IEnumerable<Point>, IEnumerable<IndexGroup>)	Unassessed		
-Mesh	ByPointsIndexGroups(IEnumerable<Point>, IEnumerable<IndexGroup>)	Unassessed		
-Mesh	ByPointsIndices(IEnumerable<Point>, IEnumerable<int>)	Unassessed		
-Mesh	ByVerticesAndIndices(IEnumerable<Point>, IEnumerable<int>)	Unassessed		
-Mesh	CloseCracks()	Unassessed		
-Mesh	Cone(Point, double, double, double, int, bool)	Unassessed		
-Mesh	Cuboid(Point, double, double, double, int, int, int)	Unassessed		
-Mesh	EdgeCount	Unassessed		
-Mesh	Edges()	Unassessed		
-Mesh	EdgesAsSixNumbers	Unassessed		
-Mesh	Explode()	Unassessed		
-Mesh	ExportMeshes(string, IEnumerable<Mesh>)	Unassessed		
-Mesh	ExtrudePolyCurve(PolyCurve, double, Vector, bool)	Unassessed		
-Mesh	FaceIndices	Unassessed		
-Mesh	FromJson(string)	Unassessed		
-Mesh	GenerateSupport(double, double, double, double, double)	Unassessed		
-Mesh	ImportFile(string)	Unassessed		
-Mesh	Intersect(Plane)	Unassessed		
-Mesh	MakeHollow(int, double, double, double, double)	Unassessed		
-Mesh	MakeWatertight()	Unassessed		
-Mesh	Mirror(Plane)	Unassessed		
-Mesh	Nearest(Point)	Unassessed		
-Mesh	Plane(Point, double, double, int, int)	Unassessed		
-Mesh	PlaneCut(Plane, bool)	Unassessed		
-Mesh	Project(Point, Vector)	Unassessed		
-Mesh	Reduce(double)	Unassessed		
-Mesh	Remesh()	Unassessed		
-Mesh	Repair()	Unassessed		
-Mesh	Rotate(Vector, double)	Unassessed		
-Mesh	Scale(double)	Unassessed		
-Mesh	Scale(double, double, double)	Unassessed		
-Mesh	Smooth(double)	Unassessed		
-Mesh	Sphere(Point, double, int, bool)	Unassessed		
-Mesh	ToJson()	Unassessed		
+Mesh	ByGeometry(Geometry, double, int)	Done	Spark.Api.IBrepKernel.Tessellate	2026-09-13, E2-T45: any shape meshed at a tolerance. Spark.Nodes.Core.Solid.ToMesh and Surface.ToMesh are the nodes over it. Dynamo's int is a level-of-detail knob; Spark takes a Tolerance, which is the ADR-0010 choice - a measurable quantity rather than a dimensionless dial.
+Mesh	ByPointsFaceIndices(IEnumerable<Point>, IEnumerable<IndexGroup>)	Done	Spark.Geometry.Mesh	2026-09-13, E2-T45: Dynamo spells one capability four ways - points plus face records, points plus index groups, points plus a flat index list, vertices plus indices. Spark has one constructor, Mesh(vertices, faces), and an overload carrying normals, UVs and colours. The row names the TYPE because a constructor is not a member this inventory counts.
+Mesh	ByPointsIndexGroups(IEnumerable<Point>, IEnumerable<IndexGroup>)	Done	Spark.Geometry.Mesh	2026-09-13, E2-T45: Dynamo spells one capability four ways - points plus face records, points plus index groups, points plus a flat index list, vertices plus indices. Spark has one constructor, Mesh(vertices, faces), and an overload carrying normals, UVs and colours. The row names the TYPE because a constructor is not a member this inventory counts.
+Mesh	ByPointsIndices(IEnumerable<Point>, IEnumerable<int>)	Done	Spark.Geometry.Mesh	2026-09-13, E2-T45: Dynamo spells one capability four ways - points plus face records, points plus index groups, points plus a flat index list, vertices plus indices. Spark has one constructor, Mesh(vertices, faces), and an overload carrying normals, UVs and colours. The row names the TYPE because a constructor is not a member this inventory counts. The flat-index form groups its triples caller-side into MeshFaces, which is the same choice as 5 [i]: Spark takes typed values where Dynamo takes a number stream.
+Mesh	ByVerticesAndIndices(IEnumerable<Point>, IEnumerable<int>)	Done	Spark.Geometry.Mesh	2026-09-13, E2-T45: Dynamo spells one capability four ways - points plus face records, points plus index groups, points plus a flat index list, vertices plus indices. Spark has one constructor, Mesh(vertices, faces), and an overload carrying normals, UVs and colours. The row names the TYPE because a constructor is not a member this inventory counts.
+Mesh	CloseCracks()	Done	Spark.Geometry.Mesh.Welded	2026-09-13, E2-T45: THE ONE OF THE EIGHT THAT IS ALREADY THERE, and the row's claim is corrected for it. Welded(tolerance) merges coincident vertices and closes the topology, which is what closing a crack is; it does MORE than Dynamo's, which touches only near-coincident boundary vertices. The difference is worth saying: welding costs shading, because a vertex carries one normal and a welded box shades like a ball - so it is an operation to ask for when you need the TOPOLOGY (a volume, an STL, a watertightness check) and not when you need the shading.
+Mesh	Cone(Point, double, double, double, int, bool)	Planned		2026-09-13, E2-T45: no mesh primitive family exists. The nearest route is a Brep primitive tessellated - BrepPrimitives.Box or Cylinder then IBrepKernel.Tessellate - and it does not reach this member: a mesh primitive's point is its SUBDIVISION COUNTS, which produce a grid to deform, and a tessellation's density comes from a tolerance instead. E2-T66 for the missing Brep primitives; the mesh family is its own gap, E2-T69. And there is no cone primitive at all to tessellate (E2-T66).
+Mesh	Cuboid(Point, double, double, double, int, int, int)	Planned		2026-09-13, E2-T45: no mesh primitive family exists. The nearest route is a Brep primitive tessellated - BrepPrimitives.Box or Cylinder then IBrepKernel.Tessellate - and it does not reach this member: a mesh primitive's point is its SUBDIVISION COUNTS, which produce a grid to deform, and a tessellation's density comes from a tolerance instead. E2-T66 for the missing Brep primitives; the mesh family is its own gap, E2-T69.
+Mesh	EdgeCount	Done	Spark.Geometry.MeshTopology.EdgeCount	2026-09-13, E2-T45: on the halfedge view, reached by Mesh.Topology and built lazily. Read Mesh.Welded(tolerance) first if the mesh came from a face-by-face tessellation, or every shared edge is counted twice.
+Mesh	Edges()	Planned		2026-09-13, E2-T45: MeshTopology counts edges (EdgeCount) and hands out only the BOUNDARY ones (NakedEdges()). There is no enumeration of every edge, which is a smaller gap than it looks - the halfedge arrays exist and are internal - but it is a gap. E2-T69.
+Mesh	EdgesAsSixNumbers	Not planned		2026-09-13, E2-T45: 5 [i]: Dynamo's flattened accessors exist to feed its list plumbing, and Spark returns spans of typed values - Point3d, MeshFace - which the graph handles (E4-T2). Refusing the flattening is not refusing the data: VertexPositions, Edges and Triangles carry the same information typed.
+Mesh	Explode()	Planned		2026-09-13, E2-T45: absent, and confirmed absent: FR-51 describes the DATA STRUCTURE, E2-T20 built it, and E2-T27 is the mesh boolean - none of the three mentions repair or remeshing. The connected-component walk is one pass over MeshTopology.AdjacentFaces, so this is the cheapest of the eight by a wide margin, and there is still no member. E2-T68.
+Mesh	ExportMeshes(string, IEnumerable<Mesh>)	Done	Spark.Geometry.Io.ObjWriter.WriteMeshesToFile	2026-09-13, E2-T45: OBJ write, with StlFile.WriteToFile, PlyFile.WriteToFile and GltfWriter.WriteToFile beside it - four formats where Dynamo's one member writes one (FR-58, E2-T34/T35). spark export is the command-line door.
+Mesh	ExtrudePolyCurve(PolyCurve, double, Vector, bool)	Done	Spark.Api.IBrepKernel.Extrude	2026-09-13, E2-T45: a profile extruded along a direction, capped or not - Dynamo's distance and vector are Spark's one vector. The result is a Brep and IBrepKernel.Tessellate makes the mesh, which is two calls for Dynamo's one and is the same capability by the exact route rather than the approximate one.
+Mesh	FaceIndices	Done	Spark.Geometry.Mesh.Faces	2026-09-13, E2-T45: the face array, as MeshFace values rather than as IndexGroups - the same record under the other name.
+Mesh	FromJson(string)	Done	Spark.Geometry.GeometryJson.Deserialize	2026-09-13, E2-T45: as ToJson, the other direction.
+Mesh	GenerateSupport(double, double, double, double, double)	Needs a decision		2026-09-13, E2-T45: 3.6: a 3D-PRINTING feature rather than a kernel primitive, and the decision is whether Spark wants a fabrication direction at all. It is not a gap until that is answered, and answering it by drifting into it is how a kernel acquires a taxonomy it owns for ever - the same argument as 5 [d] on panelling. Q16.
+Mesh	ImportFile(string)	Done	Spark.Geometry.Io.StlFile.ReadFile	2026-09-13, E2-T45: STL and PLY read, both ours and both managed (FR-58, E2-T34). This row is why Spark.Geometry.Io joined the rename-catcher's delivering assemblies this step: mesh interchange is a capability Spark delivers, and scoping the check to three assemblies made it read as absent - the same correction as N158, in the same shape.
+Mesh	Intersect(Plane)	Planned		2026-09-13, E2-T45: nothing in Spark cuts a MESH. IBrepKernel.Split and Trim take Brep tools and cut a Brep; a plane is not a Brep and a mesh is not one either. It sits behind the same work as the mesh booleans (E2-T27) and arrives with them. This one returns the section curves rather than the cut halves.
+Mesh	MakeHollow(int, double, double, double, double)	Needs a decision		2026-09-13, E2-T45: 3.6: a 3D-PRINTING feature rather than a kernel primitive, and the decision is whether Spark wants a fabrication direction at all. It is not a gap until that is answered, and answering it by drifting into it is how a kernel acquires a taxonomy it owns for ever - the same argument as 5 [d] on panelling. Q16. The name collides with nothing in Spark: IBrepKernel.Shell hollows a SOLID to a wall thickness and is a different operation on a different representation.
+Mesh	MakeWatertight()	Planned		2026-09-13, E2-T45: absent, and confirmed absent: FR-51 describes the DATA STRUCTURE, E2-T20 built it, and E2-T27 is the mesh boolean - none of the three mentions repair or remeshing. Welded closes coincident vertices and does NOT fill holes; MeshTopology.IsClosed only reports the answer. Dynamo's remeshes through a voxel field, which is a different and larger thing. E2-T68.
+Mesh	Mirror(Plane)	Done	Spark.Geometry.Mesh.TransformedBy	2026-09-13, E2-T45: 3.8's argument, and this is the first section to apply it: Spark has ONE mechanism - a Transform factory applied through Mesh.TransformedBy - where Dynamo repeats twelve members on every geometry type. Transform.Mirror(plane).
+Mesh	Nearest(Point)	Planned		2026-09-13, E2-T45: no closest-point-on-mesh member anywhere in Spark.Geometry. Spark.Viewport's picker does ray-triangle over a BVH, which is a renderer and not the kernel, and Point.PruneDuplicates' k-d tree (E2-T16) answers point-to-POINT rather than point-to-surface. E2-T69.
+Mesh	Plane(Point, double, double, int, int)	Planned		2026-09-13, E2-T45: no mesh primitive family exists. The nearest route is a Brep primitive tessellated - BrepPrimitives.Box or Cylinder then IBrepKernel.Tessellate - and it does not reach this member: a mesh primitive's point is its SUBDIVISION COUNTS, which produce a grid to deform, and a tessellation's density comes from a tolerance instead. E2-T66 for the missing Brep primitives; the mesh family is its own gap, E2-T69. PlaneSurface tessellated is the nearest, with the same difference.
+Mesh	PlaneCut(Plane, bool)	Planned		2026-09-13, E2-T45: nothing in Spark cuts a MESH. IBrepKernel.Split and Trim take Brep tools and cut a Brep; a plane is not a Brep and a mesh is not one either. It sits behind the same work as the mesh booleans (E2-T27) and arrives with them.
+Mesh	Project(Point, Vector)	Planned		2026-09-13, E2-T45: no projection of a point onto a mesh along a direction. The same gap as Nearest and the same missing piece behind it: a spatial index over faces in the kernel rather than in the viewport. E2-T69.
+Mesh	Reduce(double)	Planned		2026-09-13, E2-T45: absent, and confirmed absent: FR-51 describes the DATA STRUCTURE, E2-T20 built it, and E2-T27 is the mesh boolean - none of the three mentions repair or remeshing. Decimation is its own literature - quadric error metrics - and is what a user reaches for the moment a scanned STL arrives. E2-T68.
+Mesh	Remesh()	Planned		2026-09-13, E2-T45: absent, and confirmed absent: FR-51 describes the DATA STRUCTURE, E2-T20 built it, and E2-T27 is the mesh boolean - none of the three mentions repair or remeshing. E2-T68.
+Mesh	Repair()	Planned		2026-09-13, E2-T45: absent, and confirmed absent: FR-51 describes the DATA STRUCTURE, E2-T20 built it, and E2-T27 is the mesh boolean - none of the three mentions repair or remeshing. IBrepKernel.Heal repairs a BREP and cannot be pointed at a mesh. E2-T68.
+Mesh	Rotate(Vector, double)	Done	Spark.Geometry.Mesh.TransformedBy	2026-09-13, E2-T45: 3.8's argument, and this is the first section to apply it: Spark has ONE mechanism - a Transform factory applied through Mesh.TransformedBy - where Dynamo repeats twelve members on every geometry type. Transform.Rotation(axis, Angle.FromDegrees(a)) - and the angle is a TYPE rather than a bare double, which is ADR-0011.
+Mesh	Scale(double)	Done	Spark.Geometry.Mesh.TransformedBy	2026-09-13, E2-T45: 3.8's argument, and this is the first section to apply it: Spark has ONE mechanism - a Transform factory applied through Mesh.TransformedBy - where Dynamo repeats twelve members on every geometry type. Transform.Scale(factor).
+Mesh	Scale(double, double, double)	Done	Spark.Geometry.Mesh.TransformedBy	2026-09-13, E2-T45: 3.8's argument, and this is the first section to apply it: Spark has ONE mechanism - a Transform factory applied through Mesh.TransformedBy - where Dynamo repeats twelve members on every geometry type. Transform.Scale(x, y, z).
+Mesh	Smooth(double)	Planned		2026-09-13, E2-T45: absent, and confirmed absent: FR-51 describes the DATA STRUCTURE, E2-T20 built it, and E2-T27 is the mesh boolean - none of the three mentions repair or remeshing. E2-T68.
+Mesh	Sphere(Point, double, int, bool)	Planned		2026-09-13, E2-T45: no mesh primitive family exists. The nearest route is a Brep primitive tessellated - BrepPrimitives.Box or Cylinder then IBrepKernel.Tessellate - and it does not reach this member: a mesh primitive's point is its SUBDIVISION COUNTS, which produce a grid to deform, and a tessellation's density comes from a tolerance instead. E2-T66 for the missing Brep primitives; the mesh family is its own gap, E2-T69. And there is no sphere primitive at all to tessellate (E2-T66).
+Mesh	ToJson()	Done	Spark.Geometry.GeometryJson.Serialize	2026-09-13, E2-T45: FR-57: one serializer over every geometry type rather than a member per type, each value self-describing with its own type and schemaVersion, and an unknown version refused rather than guessed at (E2-T29).
 Mesh	ToString()	Done	Spark.Geometry.Mesh.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
-Mesh	Translate(Vector)	Unassessed		
-Mesh	Translate(Vector, double)	Unassessed		
-Mesh	Translate(double, double, double)	Unassessed		
-Mesh	TriangleCentroids()	Unassessed		
-Mesh	TriangleCount	Unassessed		
-Mesh	TriangleNormals()	Unassessed		
-Mesh	Triangles()	Unassessed		
-Mesh	TrianglesAsNineNumbers	Unassessed		
+Mesh	Translate(Vector)	Done	Spark.Geometry.Mesh.TransformedBy	2026-09-13, E2-T45: 3.8's argument, and this is the first section to apply it: Spark has ONE mechanism - a Transform factory applied through Mesh.TransformedBy - where Dynamo repeats twelve members on every geometry type. Transform.Translation(vector).
+Mesh	Translate(Vector, double)	Done	Spark.Geometry.Mesh.TransformedBy	2026-09-13, E2-T45: 3.8's argument, and this is the first section to apply it: Spark has ONE mechanism - a Transform factory applied through Mesh.TransformedBy - where Dynamo repeats twelve members on every geometry type. Transform.Translation(direction * distance) - Dynamo's second argument scales the first.
+Mesh	Translate(double, double, double)	Done	Spark.Geometry.Mesh.TransformedBy	2026-09-13, E2-T45: 3.8's argument, and this is the first section to apply it: Spark has ONE mechanism - a Transform factory applied through Mesh.TransformedBy - where Dynamo repeats twelve members on every geometry type. Transform.Translation(x, y, z).
+Mesh	TriangleCentroids()	Planned		2026-09-13, E2-T45: no member. The data is fully exposed - Face(i) and Vertex(i) - but the convenience is not, and unlike TriangleCount there is no member to derive it from in one step. Small, and it belongs with Nearest and Project on a mesh-query pass. E2-T69.
+Mesh	TriangleCount	Done	Spark.Geometry.Mesh.FaceCount	2026-09-13, E2-T45: FaceCount less QuadCount is the triangle count, and Triangulated().FaceCount is the count after splitting. Two members rather than one because Spark's mesh carries quads as quads (E2-T20) and the distinction is the caller's to make.
+Mesh	TriangleNormals()	Done	Spark.Geometry.Mesh.FaceNormal	2026-09-13, E2-T45: per face rather than as an array, and Newell's normal for a quad rather than the first triangle's, so a warped quad's normal does not flip with the starting corner (E2-T20).
+Mesh	Triangles()	Done	Spark.Geometry.Mesh.Triangulated	2026-09-13, E2-T45: Spark has no Triangle type and needs none: a triangle-only mesh plus Face(i) and Vertex(i) is the same information, indexed once rather than copied three times per face.
+Mesh	TrianglesAsNineNumbers	Not planned		2026-09-13, E2-T45: 5 [i]: Dynamo's flattened accessors exist to feed its list plumbing, and Spark returns spans of typed values - Point3d, MeshFace - which the graph handles (E4-T2). Refusing the flattening is not refusing the data: VertexPositions, Edges and Triangles carry the same information typed.
 Mesh	VertexCount	Done	Spark.Geometry.Mesh.VertexCount	reviewed 2026-09-12: the same capability under the same name.
-Mesh	VertexIndicesByTri()	Unassessed		
-Mesh	VertexNormals	Unassessed		
-Mesh	VertexPositions	Unassessed		
-Mesh	VerticesAsThreeNumbers	Unassessed		
+Mesh	VertexIndicesByTri()	Done	Spark.Geometry.Mesh.Faces	2026-09-13, E2-T45: as FaceIndices, read through Mesh.Triangulated() when the caller wants triangles only.
+Mesh	VertexNormals	Done	Spark.Geometry.Mesh.Normals	2026-09-13, E2-T45: normals are OPTIONAL in Spark and Normals() returns null when there are none, which a mesh read from an STL has. Mesh.WithVertexNormals computes them, area-weighted.
+Mesh	VertexPositions	Done	Spark.Geometry.Mesh.Vertices	2026-09-13, E2-T45: the vertex array. Mesh.Vertex(i) reads one without copying the lot.
+Mesh	VerticesAsThreeNumbers	Not planned		2026-09-13, E2-T45: 5 [i]: Dynamo's flattened accessors exist to feed its list plumbing, and Spark returns spans of typed values - Point3d, MeshFace - which the graph handles (E4-T2). Refusing the flattening is not refusing the data: VertexPositions, Edges and Triangles carry the same information typed.
 Mesh	Volume	Done	Spark.Geometry.Mesh.Volume	reviewed 2026-09-12: the same capability under the same name.
 NurbsCurve	ByControlPoints(IEnumerable<Point>)	Unassessed		
 NurbsCurve	ByControlPoints(IEnumerable<Point>, int)	Unassessed		

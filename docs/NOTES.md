@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-12 (N156–N159: a name match that lied; an exact-match budget; a register scoped to an assembly; an index that crossed a seam)
+**Last updated:** 2026-09-13 (N160: a register can only be wrong in the safe direction)
 
 ---
 
@@ -4824,3 +4824,48 @@ can verify, or make the near side prove the two orders agree — and if neither 
 whole-set call is safe, which is exactly the shape the product had stumbled into.
 
 `E13-T22`, pinned by `SolidNodeTests` and blocked on `E13-T21` for the shim rebuild.
+
+---
+
+## N160 — A register can only be wrong in the safe direction, and that is why nobody catches it
+
+`E2-T45` assessed the 65 mesh rows and found two members of the parity harness saying *absent* about
+capabilities Spark has shipped for weeks. Neither was a mistake anybody made carelessly, and both
+have the same shape as `N158`, which is why this note is about the shape rather than the two bugs.
+
+**The first: the rename-catcher read four assemblies and interchange lives in a fifth.**
+`Mesh.ImportFile` and `Mesh.ExportMeshes` are STL, PLY, OBJ and glTF, and all four are in
+`Spark.Geometry.Io`. The check's `Delivering` list held `Spark.Geometry`, `Spark.Api` and
+`Spark.Nodes.Core`, so two rows that should have been `Done` since M5 could only be marked `Planned`.
+This is exactly `E11-T30`'s correction, one assembly along.
+
+**The second: an exclusion with a true premise and a false conclusion.** The exclusions file had
+`Spark.Geometry.GeometryJson` down as a whole type Dynamo has no counterpart for — *"Dynamo's is
+SAT/SAB and `FromJson`/`ToJson`, refused in §5 [g]"*. The premise is true: §5 [g] does refuse SAT and
+SAB. The conclusion is false, because §5 [g] does not mention `ToJson` at all, and §3.8 of the same
+document says plainly that `ToJson`/`FromJson` are **planned** under FR-57. Both halves of the
+sentence were written by someone reading the right paragraph and finishing it in their head.
+`Surface.Repair()` was the same error a day earlier (`N158`), and `PolySurface.Surfaces()` (`N156`)
+is its mirror — a name that matched where the capability did not.
+
+**The asymmetry is the point.** A register that claims too much is caught the moment somebody tries
+the member: the name is not there, the rename-catcher goes red, a user reports it. **A register that
+claims too little is never caught by anything**, because nothing in the world contradicts *we have
+not built this yet*. It reads as modest, it survives every test, and its only symptom is work
+scheduled that is already done. Four subsystem assessments in three days have produced four of these
+and zero of the opposite kind — §3.3 read *0 reachable* while the kernel lofted and swept, §3.4 read
+*0* while `--graph solids` drilled holes, §3.6 read *0* while the viewport rendered meshes it had
+written to disk.
+
+**So the practice, and it is the only one that works:** an assessment reads the **assembly**, never
+the document, and never the last assessment. The document is the thing under test.
+
+**A second-order effect worth knowing before it surprises somebody.** The reverse direction's residue
+budget went **up**, 285 to 292, on a step that assessed 60 rows. That is not drift. Naming
+`MeshTopology.EdgeCount` from a parity row means `MeshTopology` is a type the register has claimed,
+so it may no longer be excused wholesale, so its other nine members come into the count. Assessment
+moves members from *excused by rule* into *named or counted*, and the second bucket is the one with a
+number on it. **A rise therefore has two causes that look identical** — a member added to a mapped
+type with no thought for the register, and an assessment doing precisely what it should — and the
+only thing that tells them apart is the history written into the budget row at the time. Write it
+then, or it cannot be reconstructed later.

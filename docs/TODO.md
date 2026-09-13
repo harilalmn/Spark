@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-12 (`E10-T17` / `E11-T31`: the dashboard, generated and gated)
+**Last updated:** 2026-09-13 (`E2-T45`: the mesh section assessed, 41 of 65)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -259,8 +259,16 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     from *0 reachable* - and most of that is `E11-T30` rather than new code, because every one of
 >     `Solid`'s 16 reachable operations names `Spark.Api.IBrepKernel`. The real gap there is that
 >     `BrepPrimitives` has **no sphere and no cone** (`E2-T66`), and that volume and area are
->     measured on the tessellation rather than exactly (`E2-T67`). **Next**: `E2-T45` mesh,
->     `E2-T46` infrastructure, and `E2-T41` curves last, which is the largest at 187 members. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
+>     measured on the tessellation rather than exactly (`E2-T67`). ~~**`E2-T45`**~~ **done
+>     2026-09-13**: §3.6 assessed, **41 of 65** from *0 reachable*, and `IndexGroup` **10 of 10**
+>     because it *is* `MeshFace`. The standing finding is **confirmed with one correction** —
+>     `CloseCracks()` is already `Mesh.Welded(tolerance)`, so six repair members are missing rather
+>     than eight (`E2-T68`), and the fabrication pair is a decision rather than a gap (`Q16`).
+>     Four mesh primitives and four mesh queries are `E2-T69`. **Two harness corrections came out
+>     of it**, both the register lying in the safe direction again: `Spark.Geometry.Io` was not on
+>     the rename-catcher's list, so STL, PLY, OBJ and glTF read as absent, and `GeometryJson` was
+>     excused on a §5 [g] refusal §5 [g] does not make. **Next**: `E2-T46` infrastructure, then
+>     `E2-T41` curves, which is the largest at 187 members. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than
 >     machinery.
