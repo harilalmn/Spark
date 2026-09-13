@@ -14180,5 +14180,11 @@ for — so their other nineteen members arrived in the count. **That is the thir
 arithmetic has run**, after `E2-T42`'s `RevolutionSurface` and `E2-T45`'s `MeshTopology`, and I
 walked into it again. The check caught it on the commit, which is what it is for.
 
+**And the step committed red, which is its own lesson** ([N167](NOTES.md)). The verification was
+chained behind a `grep` of the test output — and `grep` exits 0 when it *finds* something, so
+matching `[FAIL]` reported success. The docs harness was failing for the reason above and the
+commit went in anyway. Caught on the next run and fixed in the commit after; the rule is that a
+runner's exit code is the gate and a grep of its output is a report.
+
 **Cost.** One session, and a short one. Eight overrides, one factory, sixteen tests, one node.
 `E2-T66` has one item left.

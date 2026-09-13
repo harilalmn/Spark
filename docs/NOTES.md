@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-13 (N166: a constraint can be met exactly and the curve still be wrong)
+**Last updated:** 2026-09-13 (N167: a grep that finds a failure reports success)
 
 ---
 
@@ -5174,3 +5174,31 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N167 — A grep that finds a failure reports success, and it let a red commit through
+
+**What happened, 2026-09-13.** A step was verified and committed with one shell line:
+
+```
+(cd tests/Spark.Docs.Verify/bin/Debug/net10.0 && ./Spark.Docs.Verify.exe | grep -E "Total:|\[FAIL\]") && git commit ...
+```
+
+`Spark.Docs.Verify` was **red**. The commit went in anyway. `grep` exits 0 when it *finds* a
+match, and `[FAIL]` was a match — so the gate that was meant to stop a failing suite reported
+success precisely because the suite had failed. The more thorough the filter, the more reliably
+it passes.
+
+**The rule.** A test run's exit code is the gate; a grep of its output is a *report*. Never chain
+a commit behind a grep of test output. Either read the result and then commit as a separate
+action — which is what the protocol's step 5 and step 9 always meant by *verify, then commit* —
+or gate on the runner's own exit status and keep the grep for display:
+
+```
+./Spark.Docs.Verify.exe > run.txt; status=$?; grep -E "Total:|\[FAIL\]" run.txt; exit $status
+```
+
+**Why it is worth a note rather than a shrug.** The same shape hides in every `cmd | grep … &&
+next`, and it fails in the direction that does damage: it is silent when things are fine and
+silent when they are not. It cost one bad commit, caught on the next run and fixed in the commit
+after — but a session that had stopped there would have left `main` red with a green-looking
+transcript.
