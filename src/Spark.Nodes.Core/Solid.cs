@@ -259,7 +259,7 @@ public static class Solid
     /// <param name="tolerance">The largest distance the mesh may stray from the solid.</param>
     /// <returns>The mesh.</returns>
     [return: NodePort("mesh")]
-    public static Mesh ToMesh(Brep solid, double tolerance = 0.01) =>
+    public static Spark.Geometry.Mesh ToMesh(Brep solid, double tolerance = 0.01) =>
         Unwrap(BrepKernel.Current.Tessellate(
             solid, new Tolerance(tolerance, Angle.FromDegrees(1), 1e-12)));
 

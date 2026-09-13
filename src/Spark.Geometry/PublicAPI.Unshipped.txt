@@ -265,3 +265,8 @@ override Spark.Geometry.RuledSurface.ToString() -> string!
 static Spark.Geometry.Brep.FromSurface(Spark.Geometry.Surface! surface) -> Spark.Geometry.Brep!
 Spark.Geometry.Surface.Join(Spark.Geometry.Surface! other) -> Spark.Geometry.Brep!
 static Spark.Geometry.Surface.Join(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Surface!>! surfaces) -> Spark.Geometry.Brep!
+Spark.Geometry.MeshPrimitives
+static Spark.Geometry.MeshPrimitives.Plane(in Spark.Geometry.Plane plane, double width = 1, double length = 1, int xDivisions = 1, int yDivisions = 1) -> Spark.Geometry.Mesh!
+static Spark.Geometry.MeshPrimitives.Cuboid(in Spark.Geometry.Plane plane, double width = 1, double length = 1, double height = 1, int xDivisions = 1, int yDivisions = 1, int zDivisions = 1) -> Spark.Geometry.Mesh!
+static Spark.Geometry.MeshPrimitives.Sphere(in Spark.Geometry.Plane plane, double radius = 1, int divisions = 16, int stacks = 8) -> Spark.Geometry.Mesh!
+static Spark.Geometry.MeshPrimitives.Cone(in Spark.Geometry.Plane plane, double baseRadius = 1, double topRadius = 0, double height = 1, int divisions = 16, bool capped = true) -> Spark.Geometry.Mesh!

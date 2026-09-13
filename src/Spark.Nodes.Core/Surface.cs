@@ -292,7 +292,7 @@ public static class Surface
     /// </param>
     /// <returns>The mesh.</returns>
     [return: NodePort("mesh")]
-    public static Mesh ToMesh(
+    public static Spark.Geometry.Mesh ToMesh(
         Spark.Geometry.Surface surface, double tolerance = 0.01, CancellationToken cancellationToken = default) =>
         surface.ToMesh(new Tolerance(tolerance, Angle.FromDegrees(1), 1e-12), cancellationToken);
 

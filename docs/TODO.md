@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-14 (`E2-T66`: `Surface.Join`, and the row closes)
+**Last updated:** 2026-09-14 (`E2-T69`: the four mesh primitives)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -469,7 +469,15 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     position on cone apexes. **Joining makes one shape out of several sheets and does not make
 >     them watertight**, because merging coincident geometry needs a tolerance and is the kernel's
 >     sew. **Next**: `E2-T67`…`E2-T69` — `BrepPrimitives` has no sphere and no cone, there is no
->     `Solid.Centroid`, and six mesh-repair members are missing. `Q12`'s T-Splines decision is 169 members
+>     `Solid.Centroid`, and six mesh-repair members are missing. ~~**`E2-T69`'s primitives**~~
+>     **done 2026-09-14**: `MeshPrimitives` with `Plane`, `Cuboid`, `Sphere` and `Cone`, each
+>     taking **subdivision counts** rather than a tolerance, which is the distinction the row was
+>     filed on. **The branch is the seam**, and it took two attempts to mutate: a sphere with
+>     duplicated seam vertices is still closed if the faces wrap past them, so only a mutation
+>     that made the faces *use* the duplicates turned the tests red. **`E2-T67` is skipped with
+>     its reason** — mass properties belong on `IBrepKernel`, which means a new shim function,
+>     which needs the OpenCascade install `E13-T21` is waiting for. **Next**: `E2-T69`'s four
+>     queries, of which `Edges()` and `TriangleCentroids()` need nothing that is missing. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than

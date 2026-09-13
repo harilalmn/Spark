@@ -43,3 +43,8 @@ static Spark.Nodes.Core.Surface.Project(Spark.Geometry.Surface! surface, Spark.G
 static Spark.Nodes.Core.Surface.ProjectCurve(Spark.Geometry.Surface! surface, Spark.Geometry.Curve! curve, Spark.Geometry.Vector3d direction = default(Spark.Geometry.Vector3d)) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>!
 static Spark.Nodes.Core.Surface.LoftSequence(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>! curves) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.RuledSurface!>!
 static Spark.Nodes.Core.Surface.Join(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Surface!>! surfaces) -> Spark.Geometry.Brep!
+Spark.Nodes.Core.Mesh
+static Spark.Nodes.Core.Mesh.PlaneGrid(Spark.Geometry.Plane plane, double width = 1, double length = 1, int xDivisions = 1, int yDivisions = 1) -> Spark.Geometry.Mesh!
+static Spark.Nodes.Core.Mesh.Cuboid(Spark.Geometry.Plane plane, double width = 1, double length = 1, double height = 1, int xDivisions = 1, int yDivisions = 1, int zDivisions = 1) -> Spark.Geometry.Mesh!
+static Spark.Nodes.Core.Mesh.Sphere(Spark.Geometry.Plane plane, double radius = 1, int divisions = 16, int stacks = 8) -> Spark.Geometry.Mesh!
+static Spark.Nodes.Core.Mesh.Cone(Spark.Geometry.Plane plane, double baseRadius = 1, double topRadius = 0, double height = 1, int divisions = 16, bool capped = true) -> Spark.Geometry.Mesh!

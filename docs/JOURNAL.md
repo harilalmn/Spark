@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: the four mesh primitives, and E2-T67 skipped with a reason)
+**Last updated:** 2026-09-14 (`E2-T69`: the four mesh primitives, and a mutation that was too weak)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T69`'s first family — the four mesh primitives: `Plane`, `Cuboid`, `Sphere`, `Cone`.** **Written ahead 2026-09-14, before any code.** **First, a correction to this journal**: the previous *Next action* named `E2-T67` as *`BrepPrimitives` has no sphere and no cone*. That is not what `E2-T67` is. `E2-T67` is **mass properties from the kernel**, and its own row says it is **blocked in practice by `E13-T21`** — the member belongs on `IBrepKernel`, which means a new shim function, which means rebuilding native code against an OpenCascade install that is gone. So it is skipped with the reason rather than started. **`E2-T69` is pure managed work and needs nothing that is missing.** **The row's own distinction is the whole design**: a mesh primitive is *not* a Brep primitive tessellated, because **its argument is a subdivision count and not a tolerance** — a caller asking for a sphere of 12 divisions wants a grid they can deform, where a tessellation gives whatever density the tolerance implies. So these build their grids directly. **The seam and the poles are the traps**: a sphere's last column of vertices must be the first column rather than a duplicate at the same place, or the mesh has a crack down it that every render hides and every topology query finds; and its poles are single vertices, so the top and bottom rings are triangles where everything between them is quads. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`Surface.Join` — `E2-T66`'s last item, and the row closes at eighteen members over six steps.** **The row's own blocker is what the step removed**: it said a surface has to become a face with a loop first, so the step is **`Brep.FromSurface`** — one face bounded by the surface's four iso-curve boundaries — and the join on top of it. **Joining makes one shape out of several sheets and does not make them watertight**, because merging coincident geometry needs a tolerance and is the kernel's sew. **A degenerate boundary is dropped rather than refused**, so a whole sphere's loop closes with three edges. **The branch is the winding**: a reversed face turns eight tests red while every count stays right. **Three other guards fired on the same commit and every one was right** — the alias check caught `Surface.Join` aliased to its own node name, constructor parity asked for `Brep(Surface)` (exempted, with the reason), and the residue check caught `Brep.FromSurface`. Residue **341 → 342**. 17 tests, **3592 → 3609**. **Before it:** `ToString` on every surface type and the sequence loft. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3609** tests over **ten** executables with zero failures and zero skips — **verified by each runner's exit code rather than by grepping its output** ([N167](NOTES.md)) — docs harness green with the residue budget exact at 342, and the help-sample compiler green. No stashes. |
-| **Next action** | **Write `src/Spark.Geometry/MeshPrimitives.cs`** with `Plane`, `Cuboid`, `Sphere` and `Cone`, each taking a `Plane` frame as Spark's own primitives do rather than Dynamo's bare point, and each taking subdivision counts. Then `tests/Spark.Geometry.Tests/MeshPrimitiveTests.cs`, the nodes, the four parity rows, the public API, the register counts (430 → 434), the dashboard and the log. |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the seam**, not the shape. A sphere whose last column of vertices duplicates its first *looks* perfect, renders perfectly, has the right vertex positions and the right face count, and is **two surfaces that meet nowhere**: the assertion is `MeshTopology.IsClosed`, which is false the moment a seam is duplicated and which no test of positions can substitute for. **The poles are the second claim**: the top and bottom rings must be triangles and everything between quads, so a count of quads against triangles is asserted rather than a total. **Every primitive is checked against its own analytic truth** — every sphere vertex at the radius, every cuboid vertex on the box, a cone's apex a single vertex — which the construction does not supply. **The subdivision counts must matter**: asking for more divisions gives more faces, in the ratio the grid implies, which an implementation ignoring its arguments would fail. The three gates, and the residue budget **exact** at 342 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Twenty-six steps landed across 2026-09-13 and 2026-09-14. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **`E2-T66` is closed and `E2-T69` is half done.** `E2-T67` is **skipped with its reason**: mass properties belong on `IBrepKernel`, which means a new shim function, which needs the OpenCascade install `E13-T21` waits on. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **The four mesh primitives — `E2-T69`'s first family, in a new `MeshPrimitives`.** **The row's own distinction was the whole design**: a mesh primitive's argument is a **subdivision count** and not a tolerance, so these build their grids directly rather than tessellating a solid — and two of the four had no solid to tessellate anyway. **The branch is the seam, and the first mutation was too weak to prove it**: duplicating the sphere's seam *vertices* leaves the mesh closed, because the faces still wrap past them with a modulo. Only a mutation that made the faces **use** the duplicates turned the tests red — on all four sizes, naming the naked-edge counts. **Second time this run a first mutation proved nothing**, and the lesson is the same as `E2-T66`'s knot tolerance: a mutation has to change the answer, not merely the code. **A cuboid's six sides deliberately do not share vertices**, so it is *not* closed — the truthful answer about that vertex set, with `Welded` there for the other trade. **Three guards fired again**, including the `Mesh` node type shadowing the kernel's exactly as `NurbsCurve` did two days ago. Residue **unchanged at 342**, all four members named by their rows. 18 tests, **3609 → 3627**. **Before it:** `Surface.Join`, which closed `E2-T66`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3627** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 342, and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T69`'s remaining queries — `MeshTopology.Edges()` and `Mesh.TriangleCentroids()`, the two that need nothing that is missing.** **`Edges()` is the smallest member in the row and the halfedge arrays are already there**: `MeshTopology` counts every edge in `EdgeCount` and hands out only the boundary ones in `NakedEdges()`, so the enumeration exists and is not exposed. **Return each edge once**, which is the whole difficulty — a halfedge structure holds two per interior edge, and the naive walk returns every one twice. `NakedEdges()` is the worked example of getting that right and should be read first. **`TriangleCentroids()` is the average of each face's corners**, and the trap is the **quad**: Spark's `MeshFace` may have four corners, so a member named for triangles has to say what it does with them — either it triangulates first, or it averages four corners and is misnamed. **Decide and write it down.** **`Nearest` and `Project` stay open** and their reason is already in the row: they want a spatial index over *faces* in the kernel, where `Spark.Viewport` has one in a renderer and `PointKdTree` answers point-to-point. That is its own step and probably its own row. **Then** `E2-T68`'s `Explode`, which the row calls the one the topology already answers. |
+| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and for `Edges()` the branch is **the count, not the contents**: an implementation returning every halfedge gives each interior edge twice, and every test that checks *are these edges real* passes on it. So the assertion is that the count equals `EdgeCount`, on a closed mesh where the two differ by a factor of nearly two, and that no pair appears twice in either direction. **For `TriangleCentroids` the branch is the quad**: a mesh of quads must give the documented answer, and the test names which it is — an implementation ignoring the fourth corner returns a point that is plausible, wrong, and inside the face. The three gates, and the residue budget **exact** at 342 or moved with the reason written in the exclusions history. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -14248,3 +14248,54 @@ sequence loft, and the join. Every one of them was a row somebody had written a 
 months earlier, and in four cases the reason turned out to name the whole of the work.
 
 **Cost.** One session. One factory, two overloads, one exemption, seventeen tests, one node.
+
+### 2026-09-14 — The four mesh primitives, and a mutation that proved nothing
+
+**What.** `MeshPrimitives` with `Plane`, `Cuboid`, `Sphere` and `Cone`. Eighteen tests, four
+nodes in a new `Mesh` node file, four rows to `Done`, and the register at **434 of 545**.
+
+**`E2-T67` was skipped, and skipping it is the right call rather than an omission.** It was the
+next row by number, and its own text says it is **blocked in practice by `E13-T21`**: mass
+properties belong on `IBrepKernel`, a new kernel member means a new shim function, and the shim
+cannot be rebuilt because the OpenCascade install is gone. The previous *Next action* had also
+misnamed that row — it called `E2-T67` *`BrepPrimitives` has no sphere and no cone*, which is a
+sentence from `E2-T66`'s text. Reading the row rather than trusting the note is what caught it.
+
+**The row's own distinction turned out to be the whole design.** `E2-T45` filed these with the
+observation that a mesh primitive is *not* a Brep primitive tessellated, because **its argument
+is a subdivision count and not a tolerance**. That is exactly right and it decides everything:
+these build their grids directly, they are quad-dominant, and the caller gets a net they can
+index into rather than whatever density a tolerance implied.
+
+**The branch is the seam, and my first mutation was too weak to prove it.** A sphere's last
+column of vertices must *be* its first column. I mutated the ring loop to emit a duplicate
+column — and every test stayed green, because the face indexing still wrapped with a modulo and
+never referred to the duplicates. The mesh had unused vertices and identical topology. Only the
+second mutation, which also changed the faces to *use* the copies, split the seam: four sphere
+sizes red, each naming its naked-edge count.
+
+**That is the second time in this run a first mutation proved nothing** — the other was
+`E2-T66`'s knot tolerance, which turned out to be guarded somewhere other than where I claimed.
+The lesson is the same both times and worth stating plainly: **a mutation has to change the
+answer, not merely the code.** A mutation that leaves the output identical has tested the
+mutation, not the test.
+
+**A cuboid is deliberately not closed.** Its six sides do not share vertices, because a box's
+edges are creases: one shared vertex would mean one normal where the surface has two, and every
+renderer would round the corner off. So `IsClosed` is false for it, which is the truthful answer
+about that vertex set, and `Mesh.Welded` is there for a caller who wants the other trade. Both
+halves are in the remarks, because a reader who finds `IsClosed` false on a box will otherwise
+file a bug.
+
+**Three guards fired, and one of them was two days old.** The node type `Mesh` shadows
+`Spark.Geometry.Mesh` and broke two existing node files that returned the kernel type
+unqualified — which is the `NurbsCurve` collision of two days ago, in the same place, caught by
+the same compiler. The code-block catalog needed `Mesh` pinned, which is the guard written after
+`Helix` walked into it. And three aliases named their own nodes.
+
+**Residue unchanged at 342.** `MeshPrimitives` is a new public type, but all four of its members
+are named by the rows they satisfy, so the type is claimed and costs nothing — the opposite of
+two steps ago, where naming one member of an excused type cost nineteen.
+
+**Cost.** One session. One type, four members, four nodes, eighteen tests, and a mutation run
+twice because the first one did nothing.
