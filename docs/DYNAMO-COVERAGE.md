@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-13 (`E2-T45`: §3.6 assessed, 41 of 65 reachable, and `IndexGroup` at 10 of 10)
+**Last updated:** 2026-09-13 (`E2-T46`: §3.8 assessed, 24 of 89 reachable, and `Brep` cannot be moved)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -63,14 +63,16 @@ need their own decision, so **575 members** — Spark stands at **99 of 575, or 
 > **The manifest counts these now, and where it differs from this table the manifest is right**
 > (2026-09-11, `E11-T23`). [`tests/corpus/dynamo-parity.tsv`](../tests/corpus/dynamo-parity.tsv) holds
 > one row per member, generated from the same `ProtoGeometry.dll` metadata, and `Spark.Docs.Verify`
-> checks it against this document on every build. **As of 2026-09-13 it stands at `Done` 210,
-> `Planned` 68, `Not planned` 110, `Needs a decision` 174 and `Unassessed` 275**, which is 837.
-> Applying §5's rules gives **110** refused members, not 93 — §5's own lists add to 104, the four
-> primitive solids carry 14 parameter-recovery properties rather than 11, and §5 [i]'s three flattened
-> mesh accessors were counted when `E2-T45` assessed them — so the committed surface is **558**, not
-> 575. **This table's 99 predates the curve, surface, solid, topology and mesh layers; the manifest's
-> 210 replaces it as the review proceeds**, and the four sections assessed member by member so far are
-> §3.3 (48 of 106), §3.4 (24 of 55), §3.5 (31 of 33) and §3.6 (41 of 65).
+> checks it against this document on every build. **As of 2026-09-13 it stands at `Done` 234,
+> `Planned` 73, `Not planned` 113, `Needs a decision` 175 and `Unassessed` 242**, which is 837.
+> Applying §5's rules gives **113** refused members, not 93 — §5's own lists add to 104, the four
+> primitive solids carry 14 parameter-recovery properties rather than 11, §5 [i]'s three flattened
+> mesh accessors were counted when `E2-T45` assessed them, and `E2-T46` added `IsAlmostEqualTo`,
+> `Approximate` and `ContextCoordinateSystem` as §5 [j] — so the committed surface is **555**, not
+> 575. **This table's 99 predates the curve, surface, solid, topology, mesh and infrastructure layers;
+> the manifest's 234 replaces it as the review proceeds**, and the five sections assessed member by
+> member so far are §3.3 (48 of 106), §3.4 (24 of 55), §3.5 (31 of 33), §3.6 (41 of 65) and §3.8
+> (24 of 89). **What is left is §3.1 values, §3.2 curves and §3.7's T-Splines decision.**
 
 ### What the 99 counts, exactly
 
@@ -641,44 +643,107 @@ manifest's *Not planned* total moves from 107 to 110.
 **169 members — 20.2% of the whole inventory, and `TSplineSurface` alone is 94, larger than
 `Curve`.** This is not a gap to be filled in passing. §6.2 makes the argument in full.
 
-### 3.8 Infrastructure — 8 types, 89 members, 0 reachable
+### 3.8 Infrastructure — 8 types, 89 members, 24 reachable
 
-| Dynamo type | Members | Spark equivalent | Status | Milestone |
-|---|---:|---|---|---|
-| `Geometry` (abstract base) | 47 | No common base — see below | Mixed | M5, M6 |
-| `DesignScriptEntity` (abstract base) | 8 | No common base — see §5 [e] | Mixed | — |
-| `GeometryExtension` (static) | 15 | `Angle`, `Tolerance` — see §5 [f] | Not planned | — |
-| `Application` | 6 | None — see §5 [a] | Not planned | — |
-| `HostFactory` | 6 | None — see §5 [a] | Not planned | — |
-| `ProtoGeometryConfiguration` | 2 | None — see §5 [b] | Not planned | — |
-| `IProtoGeometryConfiguration` | 2 | None — see §5 [b] | Not planned | — |
-| `Core.EntityTags` | 3 | Graph provenance — see §5 [c] | Not planned | — |
+**Assessed member by member on 2026-09-13** (`E2-T46`), against the assembly. **56 of the 89 were
+already refused** under §5's rules and are not re-argued here; the 33 that were open are
+`Geometry`'s 29 and `DesignScriptEntity`'s four, and **24 of them are reachable today**.
+
+| Dynamo type | Members | Reachable | Spark equivalent | Status | Milestone |
+|---|---:|---:|---|---|---|
+| `Geometry` (abstract base) | 47 | 20 | No common base — see below | Partial | M5, M6 |
+| `DesignScriptEntity` (abstract base) | 8 | 4 | No common base — see §5 [e] | Partial | — |
+| `GeometryExtension` (static) | 15 | 0 | `Angle`, `Tolerance` — see §5 [f] | Not planned | — |
+| `Application` | 6 | 0 | None — see §5 [a] | Not planned | — |
+| `HostFactory` | 6 | 0 | None — see §5 [a] | Not planned | — |
+| `ProtoGeometryConfiguration` | 2 | 0 | None — see §5 [b] | Not planned | — |
+| `IProtoGeometryConfiguration` | 2 | 0 | None — see §5 [b] | Not planned | — |
+| `Core.EntityTags` | 3 | 0 | Graph provenance — see §5 [c] | Not planned | — |
 
 **Spark has no `Geometry` base class and should not acquire one.** ADR-0002's value types are
-`readonly struct`s; a common abstract base would box every one of them and cost them their
-reason for existing. The capability on `Geometry` still has to land somewhere, and the 47
-members split three ways.
+`readonly struct`s; a common abstract base would box every one of them and cost them their reason
+for existing. **So each row names the member on the type that actually carries it**, and the reading
+rule has to be stated once rather than argued 29 times: **a `Geometry` row is `Done` when Spark
+delivers the capability on the types that carry it, and this section says which types are missing.**
+Anything else would make a base-class member unanswerable by a design that has no base class, which
+is refusing the design rather than measuring it.
 
-*Transformation (12) — planned, and the destination is already built.* `Transform` ×2,
-`Translate` ×3, `Rotate` ×2, `Scale` ×4, `Mirror`, `Scale1D`, `Scale2D`. In Spark these are
-`Transform` factories applied through `Of*`, which is one mechanism instead of twelve members
-repeated on every geometry type. Note what this changes for a Dynamo user: `curve.Rotate(p, a,
-45)` becomes `Transform.Rotation(axis, Angle.FromDegrees(45), p).OfCurve(curve)`. That is more
-verbose and it is the shape ADR-0011 and ADR-0004 both point at. **The `By*` façade should
+*Transformation — **14**, not the 12 this section used to claim, and all 14 are `Done`.* `Transform`
+×2, `Translate` ×3, `Rotate` ×2, `Scale` ×4, `Mirror`, `Scale1D`, `Scale2D` — that list has always
+summed to 14, and the heading said 12. In Spark they are `Transform` factories applied through each
+type's `TransformedBy`, which is one mechanism instead of a member repeated on every geometry type.
+`curve.Rotate(p, axis, 45)` becomes `Transform.Rotation(axis, Angle.FromDegrees(45), p)` applied to
+the curve: more verbose, and the shape ADR-0011 and ADR-0004 both point at. **The `By*` façade should
 carry the short forms as node-friendly statics** so the node library reads the way an AEC user
-expects even though the kernel reads the way a C# developer expects.
+expects even though the kernel reads the way a C# developer expects. Three of the 14 —
+`Scale(Plane, …)`, `Scale1D`, `Scale2D` — are a **composition** rather than a member: change basis,
+scale, change back, joined with `Transform`'s own `*`. That is three calls for Dynamo's one and is
+exactly what the façade is for.
 
-*Measurement and intersection (10) — planned, mostly M5/M6.* `BoundingBox`,
-`OrientedBoundingBox`, `ClosestPointTo`, `DistanceTo`, `DoesIntersect`, `Intersect`,
-`IntersectAll`, `Split`, `Trim`, `Explode`. Five of these are in §6.1's exact-boolean count.
-`OrientedBoundingBox` is the same open question as §3.1's.
+**The cost of claiming that family is visible, and it should be.** Six parity rows now name
+`Transform`'s members, so `Transform` may no longer be excused wholesale from the reverse direction,
+and its other 28 members joined the residue — **the largest single move that number has ever made**
+(292 → 319). It is the price of the claim rather than drift: a type the register says answers
+fourteen Dynamo members is a type whose whole surface the register has to account for.
 
-*Serialisation and interop (25) — split.* `ToJson`/`FromJson` (2) are planned in Spark's own
-format under FR-57. **The remaining 18 are `Not planned`** and are listed in §5 [g]: the
-SAT/SAB family is ACIS's format and reading it requires the ACIS kernel, and
-`FromNativePointer`/`ToNativePointer`/`FromObject` marshal to a native kernel session Spark
-does not have. `Approximate`, `DeserializeFromSAB`, `UpdateDisplay` and `ToSolidDef` complete
-that set. Spark's interchange answer is STEP (FR-59) and OBJ/STL/PLY/glTF (FR-58).
+**`Brep` has no transform at all, and that is the finding of this section.** `TransformedBy` is on
+`Curve`, `Surface`, `Mesh`, `PointCloud`, `PolyCurve`, `PolyLine` and every analytic surface —
+**and not on `Brep`**, and there is no `Transform` operation on `IBrepKernel` either, and no node.
+So a user can union two solids and cannot **move** one. The register would never have found this
+from the `Geometry` rows, because they are `Done` on the strength of the types that do have it; it
+was found by asking which types *do not*. `E2-T70`.
+
+*Measurement and intersection (10) — six `Done`, three `Planned`, one needing a decision.*
+`BoundingBox` is on `Curve`, `Surface`, `Brep`, `Mesh` and `PointCloud` (`Surface`'s is sampled and
+cached rather than exact, which is the same class of answer as `Solid.Volume`'s — `E2-T67`).
+`Split`, `Trim` and `Explode` are `Done`: the first two are `IBrepKernel.Split` and `Trim`, which
+take the *keep* point rather than a side index, and `Explode` is `PolyCurve.Segments()` and
+`Brep.Faces()`.
+
+**What is missing here is one thing wearing four names.** `ClosestPointTo`, `DistanceTo`,
+`DoesIntersect` and `Intersect`/`IntersectAll` all fail for the same reason: **Spark's queries take a
+*point*, never another geometry.** `Curve.ClosestPoint`, `Surface.ClosestPoint`, `Plane.ClosestPoint`,
+`BoundingBox.ClosestPoint` and `Ray.ClosestPointTo` all take a `Point3d`, and `E2-T62`/`E2-T63` spent
+two whole steps making the surface one correct on a fold — so the point case is not merely present,
+it is hard-won. Geometry-to-geometry is absent. The same hole shows in the intersectors: **curve/curve
+is done and exact** (`Curve.IntersectWith`, `E2-T11`) and **solid/solid is the kernel's**, but
+**curve/surface and surface/surface have nothing at all**, and cutting a curve with a surface is a
+thing AEC graphs do constantly. `E2-T70`.
+
+`OrientedBoundingBox` **needs a decision**, and it is §3.1's, reached from the other side: not
+whether to give `BoundingBox` a frame, but whether Spark wants a separate `OrientedBox` type.
+`BoundingBox.ByCornersCoordinateSystem`, `BoundingBox.ContextCoordinateSystem` and `ByMinimumVolume`
+all push the same way, and a minimum-volume box is a materially harder computation than an
+axis-aligned one.
+
+*Serialisation and interop (25) — split, and one of the two halves moved.* `ToJson`/`FromJson` are
+**`Done`**: `GeometryJson.Serialize` and `Deserialize`, one serializer over every geometry type with
+a per-type `schemaVersion` and an unknown version refused rather than guessed at (FR-57, `E2-T29`).
+`E2-T45` had already proved this the day before by taking `GeometryJson` off the excused types, where
+it sat under a §5 [g] refusal that §5 [g] does not make. **The remaining 18 stay `Not planned`** and
+are §5 [g]'s: the SAT/SAB family is ACIS's format and reading it needs the ACIS kernel, and
+`FromNativePointer`/`ToNativePointer`/`FromObject` marshal into a native kernel session Spark does
+not have. Spark's interchange answer is STEP (FR-59) and OBJ/STL/PLY/glTF (FR-58).
+
+*Three refused on principle rather than on effort, and the ground matters.* `IsAlmostEqualTo` and
+`Approximate` both take **no tolerance**, so they compare against an *ambient* one — which is
+precisely what ADR-0010 forbids, and precisely the ground §5 [f] refuses `GeometryExtension.EqualsTo`
+on while accepting `Equals(x, y, tolerance)`. **The capability is present under an explicit
+tolerance**: `EqualsWithin(other, in Tolerance)` on `Point3d`, `Point2d`, `Plane`,
+`CoordinateSystem`, `BoundingBox`, `Interval`, `Angle` and `Quaternion`, and
+`Surface.ApproximateWithTolerance` / `NurbsCurve.ApproximatePoints`. Only the form is refused.
+`ContextCoordinateSystem` is refused on a different ground — §5 [c]'s: a context frame is a fact
+about where a value was *created*, so holding it requires geometry to have identity and history, and
+two `Point3d`s with the same coordinates are the same value. §6.3 also records that nobody has
+established what a context frame means for arbitrary geometry.
+
+**`DesignScriptEntity.Tessellate` was listed as planned and had landed.** §5 [e] says it *"is
+planned — it lands in `Spark.Api` and `Spark.Viewport` as `RenderPackage`"*. The shape Spark actually
+built is the same shape Dynamo has, one assembly earlier: **`Tessellation.Tessellate(surface,
+ITessellationSink, tolerance)`** — the caller provides the sink, `MeshBuilder` implements it, and
+`Spark.Viewport`'s `SceneBuilder` consumes the result. Dynamo's `TessellationParameters` bag is
+Spark's `Tolerance`, which is ADR-0010 once more. Geometry still has no screen awareness, which is
+why the member is not *on* the geometry — and that was the part §5 [e] got right.
 
 ---
 
@@ -784,7 +849,7 @@ compiler finds every call site. **The day after 1.0 it would have been an
 
 ## 5. What we will deliberately not replicate
 
-**93 members, 11.1% of the inventory, by this document's count — 107 by the manifest's** (`E11-T23`: the lists below add to 104, and the primitives' parameter-recovery properties are 14, not the 11 [h] says). Each with a reason and with what a Spark user does
+**93 members, 11.1% of the inventory, by this document's count — 113 by the manifest's** (`E11-T23`: the lists below add to 104, and the primitives' parameter-recovery properties are 14, not the 11 [h] says; `E2-T45` then counted [i]'s three flattened mesh accessors, and `E2-T46` added three more under [f]'s ground — see [j]). Each with a reason and with what a Spark user does
 instead. These were evaluated on their merits rather than accepted as a list.
 
 **[a] `Application` (6) and `HostFactory` (6) — kernel session lifetime.** `StartUp`,
@@ -872,6 +937,16 @@ accessors were counted on 2026-09-13**, when `E2-T45`'s member-by-member pass re
 refusing the flattening is not refusing the data, and `VertexPositions`, `Edges` and `Triangles`
 carry the same information typed. *(The trim family is still uncounted, because which of the two
 families is the survivor is a design choice we have not made.)*
+
+**[j] `Geometry`'s three members that compare against an ambient tolerance or a creation context —
+3 members.** `IsAlmostEqualTo(Geometry)` and `Approximate()` take **no tolerance**, so the tolerance
+comes from somewhere unstated — almost certainly the session scale factor — and that is exactly the
+ground [f] refuses `EqualsTo(a, b)` on. **Only the form is refused**: the capability is
+`EqualsWithin(other, in Tolerance)` on eight value types, and `Surface.ApproximateWithTolerance` /
+`NurbsCurve.ApproximatePoints`. **A Spark user passes the tolerance they meant** (ADR-0010).
+`ContextCoordinateSystem` is [c]'s argument rather than [f]'s: a context frame records where a value
+was *created*, which requires geometry to have identity and history, and two `Point3d`s with the same
+coordinates are the same value. *(Counted, 2026-09-13, `E2-T46`.)*
 
 ---
 
@@ -1067,17 +1142,17 @@ Done rows that had been seeded by a bare name match.
 **The reverse direction excuses by rule, never member by member.** `Spark.Geometry` declares **894**
 public members by the manifest's own counting rule (measured 2026-09-13; the **877** this line carried
 and the 895 the exclusions file carried were both stale, and disagreed with each other, which is what
-an unchecked number does), and **747** of them are named by no parity row —
+an unchecked number does), and **735** of them are named by no parity row —
 a file holding 790 hand-written excuses would be exactly the drifting artefact this section exists to
 prevent. So [`tests/corpus/dynamo-parity-exclusions.tsv`](../tests/corpus/dynamo-parity-exclusions.tsv)
-carries **39 rules**: five member names that are .NET plumbing rather than capability (`Equals`,
-`GetHashCode`, `ToString`, `Deconstruct` and the operators), and **34 whole types Dynamo has no
+carries **37 rules**: five member names that are .NET plumbing rather than capability (`Equals`,
+`GetHashCode`, `ToString`, `Deconstruct` and the operators), and **32 whole types Dynamo has no
 counterpart for** — `Transform`, `Tolerance`, `Interval`, `Angle`, `Quaternion`, `Ray`, the analytic
 surfaces, the Brep views and the planar layer, each with the §2 or §3 sentence that says why. **A type
 some parity row names may not be excused wholesale**, and the check enforces that rather than trusting
 it, because otherwise the file would be a way to make the check green.
 
-**What no rule reaches is counted, not waved through.** **292** members sit on types that *do* map to a
+**What no rule reaches is counted, not waved through.** **319** members sit on types that *do* map to a
 Dynamo type, so each is either a member some `Unassessed` row will name once it is assessed or a
 genuine gap — and the budget at the foot of the exclusions file is checked for **exact** equality, not
 as a ceiling. The number therefore falls as rows are assessed and cannot quietly climb back.

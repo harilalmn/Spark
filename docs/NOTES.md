@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-13 (N160: a register can only be wrong in the safe direction)
+**Last updated:** 2026-09-13 (N160–N161: a register wrong in the safe direction; a capability complete on every type but one)
 
 ---
 
@@ -4869,3 +4869,39 @@ number on it. **A rise therefore has two causes that look identical** — a memb
 type with no thought for the register, and an assessment doing precisely what it should — and the
 only thing that tells them apart is the history written into the budget row at the time. Write it
 then, or it cannot be reconstructed later.
+
+---
+
+## N161 — A capability can be complete on every type but one, and a base-class register cannot see it
+
+`E2-T46` assessed `Geometry`'s 47 members and marked the whole 14-member transformation family
+`Done`, correctly: `Transform.Translation`, `Rotation`, `Scale`, `Mirror`, `ChangeBasis` and
+`PlaneToPlane` exist, and `TransformedBy` applies them. **And a `Brep` cannot be moved.**
+
+`TransformedBy` is on `Curve`, `Surface`, `Mesh`, `PointCloud`, `PolyCurve`, `PolyLine` and all seven
+analytic surfaces. It is not on `Brep`. `IBrepKernel` has no transform operation — the list is
+`Union`, `Difference`, `Intersection`, `Extrude`, `Revolve`, `Loft`, `Sweep`, `Patch`, `Fillet`,
+`Chamfer`, `Shell`, `Split`, `Trim`, `Offset`, `Thicken`, `Draft`, `Sew`, `Heal`, `ReadFile`,
+`WriteFile`, `Tessellate` — and `Spark.Nodes.Core` has no node for it. A user can union two solids,
+fillet every edge, hollow the result and write it to STEP, and cannot translate it by a vector.
+
+**The register could not have found this, and it is worth understanding why before trusting the next
+green run.** A parity row asks *is this capability reachable*, and for a member on an abstract base
+the honest answer is *yes, on the types that carry it*. Dynamo puts `Translate` on `Geometry`, so one
+row covers eleven Spark types; eleven of twelve answering is indistinguishable from twelve of twelve
+at the granularity the register has. **A per-type matrix would show it and a per-member list cannot**,
+and the register is a per-member list on purpose, because a matrix of 837 members against 66 types is
+the artefact nobody maintains.
+
+**So the practice that actually catches this class of gap**: when a row is `Done` because *some*
+types carry the member, **enumerate the types that do not, in the section, in writing**. It costs a
+sentence and it is the only step in the assessment where the answer is not already in the manifest.
+§3.8 now carries that sentence for the transformation family.
+
+**And a second-order note for whoever fixes it (`E2-T70`), because a transform on a `Brep` is not a
+matrix multiply.** A `Brep` may be **resident in the provider** (ADR-0021): the authoritative shape
+is OCCT's and the managed arrays are materialised lazily. Multiplying the managed points while the
+provider holds the real shape produces a `Brep` whose two halves disagree — which is the exact bug
+ADR-0021 was written to prevent, and it will not show up in a test that only reads the managed side.
+The transform either goes through the kernel, or it invalidates residency, and choosing between those
+is the whole of the task.

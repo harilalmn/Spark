@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T45`: mesh parity at 41 of 65, and `IndexGroup` at 10 of 10)
+**Last updated:** 2026-09-13 (`E2-T46`: infrastructure parity at 24 of 89, and a solid that cannot be moved)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -257,6 +257,17 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       make. **The residue rose, 285 to 292**, because naming a member of an excused type brings
       that type's whole surface into the count — which is the register working, and looks exactly
       like the register rotting unless somebody writes down which it was.
+- [x] **The `Geometry` base class's capability is measured, not assumed to be covered by the value
+      types** (**E2-T46**) — done 2026-09-13. §3.8 at **24 of 89**, the transformation family at
+      **14 members rather than the 12 it claimed**, and all 14 `Done` through `Transform` applied by
+      each type's `TransformedBy`. *This criterion is ticked for finding the hole rather than for the
+      count.* **`Brep` has no transform**: not in `Spark.Geometry`, not on `IBrepKernel`, not in the
+      node library — so a solid can be unioned, filleted, hollowed and exported, and cannot be
+      **moved** (**E2-T70**). The `Geometry` rows could never have shown it, because they are `Done`
+      on the strength of the types that *do* answer them; it came from asking which types do not.
+      And **every query takes a point, never another geometry**, which makes `ClosestPointTo`,
+      `DistanceTo`, `DoesIntersect` and `Intersect` one gap under four names — curve/curve is exact
+      (**E2-T11**) and solid/solid is the kernel's, and **curve/surface has nothing at all**.
 - [ ] Serialization carries **per-type `schemaVersion`**, so a `NurbsCurve` at v2 and a
       `Mesh` at v1 coexist, with migrations applied JSON-to-JSON (**E2-T29**).
 - [ ] A reflection-driven round-trip test enumerates every concrete geometry type, so a new

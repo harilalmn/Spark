@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T45`: the mesh section assessed, 41 of 65)
+**Last updated:** 2026-09-13 (`E2-T45` and `E2-T46`: mesh 41 of 65, infrastructure 24 of 89)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -267,8 +267,15 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     Four mesh primitives and four mesh queries are `E2-T69`. **Two harness corrections came out
 >     of it**, both the register lying in the safe direction again: `Spark.Geometry.Io` was not on
 >     the rename-catcher's list, so STL, PLY, OBJ and glTF read as absent, and `GeometryJson` was
->     excused on a §5 [g] refusal §5 [g] does not make. **Next**: `E2-T46` infrastructure, then
->     `E2-T41` curves, which is the largest at 187 members. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
+>     excused on a §5 [g] refusal §5 [g] does not make. ~~**`E2-T46`**~~ **done the same day**: §3.8
+>     assessed, **24 of 89** — 56 of them were already refused under §5 — and the transformation
+>     family is **14 members, not the 12 the section claimed**, all of them `Done`. **Two findings,
+>     and the first is the worst thing this register has turned up**: **`Brep` has no transform at
+>     all**, so a user can union two solids and cannot *move* one (`E2-T70`); and **every query takes
+>     a point, never another geometry**, so `ClosestPointTo`, `DistanceTo`, `DoesIntersect` and
+>     `Intersect` are one gap wearing four names, with curve/surface intersection missing entirely.
+>     **Next**: `E2-T41` curves, the largest at 187 members, then `E2-T40`'s value layer; `Q12`'s
+>     T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than
 >     machinery.
