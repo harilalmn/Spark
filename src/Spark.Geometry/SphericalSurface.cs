@@ -114,6 +114,30 @@ public sealed class SphericalSurface : Surface
 
     /// <inheritdoc/>
     /// <remarks>
+    /// A sphere offsets to a concentric sphere of radius <c>r + d</c>. A distance of <c>-r</c> or
+    /// less would turn it inside out and is refused.
+    /// </remarks>
+    public override Surface Offset(double distance)
+    {
+        if (!double.IsFinite(distance))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(distance), distance, "An offset distance must be finite.");
+        }
+
+        if (_radius + distance <= 0.0)
+        {
+            throw new ArgumentException(
+                $"Offsetting a sphere of radius {_radius} by {distance} leaves no sphere: the "
+                + "result would have a radius of zero or less.",
+                nameof(distance));
+        }
+
+        return new SphericalSurface(_frame, _radius + distance, DomainU, DomainV);
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
     /// <b>A sphere survives a rigid motion and a uniform scale, and nothing else.</b> Under a
     /// non-uniform scale it becomes an ellipsoid, and the kernel has no ellipsoid — so it refuses
     /// rather than returning a sphere of some averaged radius, which would be wrong in a way

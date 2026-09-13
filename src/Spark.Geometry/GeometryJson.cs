@@ -284,6 +284,12 @@ public static class GeometryJson
                 Member(writer, "second", v.Second);
                 break;
 
+            case OffsetSurface v:
+                Open(writer, nameof(OffsetSurface));
+                Member(writer, "basis", v.Basis);
+                Number(writer, "distance", v.Distance);
+                break;
+
             case Brep v:
                 Open(writer, nameof(Brep));
 
@@ -657,6 +663,8 @@ public static class GeometryJson
                 ReadInterval(element, "sweep")),
             nameof(RuledSurface) => new RuledSurface(
                 ReadCurve(element, "first"), ReadCurve(element, "second")),
+            nameof(OffsetSurface) => new OffsetSurface(
+                (Surface)Read(element.GetProperty("basis")), Number(element, "distance")),
             nameof(Brep) => ReadBrep(element),
             nameof(MeshFace) => new MeshFace(
                 element.GetProperty("a").GetInt32(),

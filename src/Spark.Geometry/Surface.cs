@@ -720,6 +720,40 @@ public abstract class Surface
             + "ToNurbsSurface; a type that reaches this has not.");
 
     /// <summary>
+    /// A surface at a constant distance from this one, along this one's own normal (`E2-T66`).
+    /// </summary>
+    /// <param name="distance">
+    /// How far to move it. Positive follows the normal, negative goes the other way, and zero gives
+    /// a surface that evaluates to this one.
+    /// </param>
+    /// <returns>The offset surface.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="distance"/> is not finite.</exception>
+    /// <exception cref="ArgumentException">
+    /// The offset would turn the surface inside out — a sphere or a cylinder offset inwards by more
+    /// than its radius, or a torus by more than its minor radius.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>An offset is exact for every surface</b>, which is worth saying because the curve side is
+    /// not: <see cref="CurveOffset"/> fits, because the offset of a polynomial curve is not
+    /// polynomial and a <see cref="NurbsCurve"/> is a representation. A <see cref="Surface"/> is an
+    /// evaluatable type, so the general answer is an <see cref="OffsetSurface"/> and it is the true
+    /// offset rather than an approximation to it. Approximation arrives only if that surface is
+    /// asked for a NURBS form.
+    /// </para>
+    /// <para>
+    /// <b>The analytic types return their own kind</b> — a plane offsets to a plane, a sphere to a
+    /// sphere of radius <c>r + d</c>, a cylinder and a torus likewise — because a caller who put a
+    /// sphere in would rather have a sphere back than a wrapper around one. <b>A cone deliberately
+    /// does not</b>: its true offset is the same cone trimmed at a <i>different</i> height, because
+    /// the ends move along the axis as well as outwards, so a cone with the original height range
+    /// would be the wrong patch. The wrapper is exactly right where that shortcut would be quietly
+    /// wrong.
+    /// </para>
+    /// </remarks>
+    public virtual Surface Offset(double distance) => new OffsetSurface(this, distance);
+
+    /// <summary>
     /// The two principal curvatures at a parameter pair, smallest first.
     /// </summary>
     /// <param name="u">A parameter in <see cref="DomainU"/>.</param>

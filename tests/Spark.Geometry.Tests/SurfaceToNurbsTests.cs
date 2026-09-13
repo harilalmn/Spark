@@ -31,6 +31,9 @@ public sealed class SurfaceToNurbsTests
     /// <summary>
     /// <b>The guard.</b> The base member refuses, so every concrete surface type has to answer for
     /// itself — and a tenth surface type that forgets fails here rather than at a caller.
+    /// <b>Declaring that you have no NURBS form counts as answering</b>: <c>OffsetSurface</c> does
+    /// exactly that, and the point of the guard is that the answer is written down on the type
+    /// rather than inherited by accident.
     /// </summary>
     [Fact]
     public void EveryConcreteSurfaceTypeSaysWhetherItConverts()

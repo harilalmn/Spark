@@ -148,6 +148,23 @@ public sealed class PlaneSurface : Surface
         new(SurfaceConversion.ToNurbsSurface(this), true, true);
 
     /// <inheritdoc/>
+    /// <remarks>A plane offsets to a parallel plane, over the same two domains.</remarks>
+    public override Surface Offset(double distance)
+    {
+        if (!double.IsFinite(distance))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(distance), distance, "An offset distance must be finite.");
+        }
+
+        return new PlaneSurface(
+            Spark.Geometry.Plane.FromOriginXAxisYAxis(
+                _plane.Origin + (_plane.Normal * distance), _plane.XAxis, _plane.YAxis),
+            _domainU,
+            _domainV);
+    }
+
+    /// <inheritdoc/>
     /// <remarks>
     /// A plane survives every transform there is — including a non-uniform scale, which shears the
     /// rectangle but leaves it planar. **The domains are not rescaled**, because the transformed

@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T66`: `Surface.ToNurbsSurface` on the base)
+**Last updated:** 2026-09-13 (`E2-T66`: `Surface.Offset`)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -432,7 +432,15 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     carry `PreservesParameterisation` beside `IsExact`, and a ruled surface between a line and a
 >     circle reports itself inexact for that reason and no other. **Next**: the rest of `E2-T66`
 >     in the row's order — `Offset`, `ApproximateWithTolerance`, `ProjectInputOnto`, the two
->     `Join`s, `ByRuledLoft` over a sequence, `ToString` on the base. `Q12`'s T-Splines decision is 169 members
+>     `Join`s, `ByRuledLoft` over a sequence, `ToString` on the base. ~~**`Surface.Offset`**~~
+>     **done the same day**, and **it is exact for every surface**, which the curve side is not:
+>     `CurveOffset` fits because a `NurbsCurve` is a *representation* that cannot hold the answer,
+>     while `Surface` is an *evaluatable type*, so `OffsetSurface` carries `S + d·N` exactly and
+>     approximation arrives only if something asks it for a NURBS form — which it refuses, naming
+>     `ApproximateWithTolerance`. The analytic types return their own kind; **the cone deliberately
+>     does not**, because its true offset is the same cone trimmed at a *different* height.
+>     **Next**: `ApproximateWithTolerance`, `ProjectInputOnto`, the two `Join`s, `ByRuledLoft`
+>     over a sequence, `ToString` on the base. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than

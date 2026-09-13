@@ -168,6 +168,22 @@ public static class Surface
         return [minimum, maximum];
     }
 
+    /// <summary>A surface at a constant distance from another, along its own normal.</summary>
+    /// <param name="surface">The surface to offset.</param>
+    /// <param name="distance">
+    /// How far to move it. Positive follows the surface's normal, negative goes the other way.
+    /// </param>
+    /// <returns>The offset surface.</returns>
+    /// <remarks>
+    /// <b>Exact for every surface</b>, unlike a curve offset: a plane gives a plane, a sphere a
+    /// bigger or smaller sphere, and everything else a surface that follows the original at the
+    /// distance asked for. Offsetting a sphere or a cylinder inwards by more than its radius would
+    /// turn it inside out and is an error rather than a surface.
+    /// </remarks>
+    [return: NodePort("surface")]
+    public static Spark.Geometry.Surface Offset(Spark.Geometry.Surface surface, double distance = 1.0) =>
+        surface.Offset(distance);
+
     /// <summary>The area of a surface.</summary>
     /// <param name="surface">The surface.</param>
     /// <returns>The area.</returns>

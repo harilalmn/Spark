@@ -95,6 +95,30 @@ public sealed class CylindricalSurface : Surface
 
     /// <inheritdoc/>
     /// <remarks>
+    /// A cylinder offsets to a coaxial cylinder of radius <c>r + d</c> over the same height. A
+    /// distance of <c>-r</c> or less would turn it inside out and is refused.
+    /// </remarks>
+    public override Surface Offset(double distance)
+    {
+        if (!double.IsFinite(distance))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(distance), distance, "An offset distance must be finite.");
+        }
+
+        if (_radius + distance <= 0.0)
+        {
+            throw new ArgumentException(
+                $"Offsetting a cylinder of radius {_radius} by {distance} leaves no cylinder: the "
+                + "result would have a radius of zero or less.",
+                nameof(distance));
+        }
+
+        return new CylindricalSurface(_frame, _radius + distance, DomainU, DomainV);
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
     /// A cylinder survives a rigid motion and a uniform scale. A non-uniform one turns its circular
     /// section into an ellipse, which the kernel has no type for, so it refuses.
     /// </remarks>

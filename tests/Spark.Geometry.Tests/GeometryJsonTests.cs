@@ -148,6 +148,10 @@ public sealed class GeometryJsonTests
         [typeof(RuledSurface)] = new RuledSurface(
             new Line(new Point3d(0.0, 0.0, 0.0), new Point3d(3.0, 0.0, 0.0)),
             new Line(new Point3d(0.0, 4.0, 1.0), new Point3d(3.0, 4.0, 1.0))),
+        [typeof(OffsetSurface)] = new OffsetSurface(
+            new ConicalSurface(
+                Plane.WorldXY, 1.0, Angle.FromRadians(0.3), new Interval(0.0, 4.0)),
+            0.35),
     };
 
     /// <summary>

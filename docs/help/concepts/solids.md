@@ -1,7 +1,7 @@
 ---
 id: concepts.solids
 title: Solids
-nodes: [Surface.PrincipalCurvatures, Surface.PrincipalDirections, Surface.ToNurbs]
+nodes: [Surface.PrincipalCurvatures, Surface.PrincipalDirections, Surface.ToNurbs, Surface.Offset]
 related: [concepts.geometry-basics, concepts.curves, concepts.files]
 since: "0.1"
 ---
@@ -280,6 +280,41 @@ bool sameSheet = converted.IsExact;   // false - the rails are exact and the rul
 
 Where a conversion cannot be exact, pass a tolerance: it is a sampling target for the profile
 curve, not a proved bound, and tightening it tightens the surface.
+
+## A surface at a constant distance from another
+
+`Offset` moves a surface along its own normal, by the distance you give it:
+
+```csharp
+using Spark.Geometry;
+
+SphericalSurface globe = new(Plane.WorldXY, 3.0);
+
+Surface thicker = globe.Offset(0.5);      // a sphere of radius 3.5
+Surface thinner = globe.Offset(-0.5);     // a sphere of radius 2.5
+```
+
+**Positive follows the surface's normal and negative goes the other way**, which is the only
+convention there is to get wrong, so it is worth saying once.
+
+**An offset is exact for every surface, and a curve offset is not.** That asymmetry surprises
+people, and the reason is not geometry: the offset of a NURBS curve is genuinely not a NURBS
+curve, so `CurveOffset` has to fit one and hand you an approximation. A surface in Spark is
+something that can be evaluated rather than a particular representation, so the offset of any
+surface is just another surface and no accuracy is lost. You only meet an approximation if you
+ask an offset surface for its NURBS form, and it will tell you it has none rather than inventing
+one.
+
+A plane offsets to a plane, a sphere to a sphere, a cylinder and a torus likewise — you get the
+same kind of surface back. Everything else, including a cone, gives you a surface that follows
+the original at the distance you asked for.
+
+**Offsetting inwards by more than the surface has to give is an error**, not a surface turned
+inside out: a sphere of radius two offset by −2 has nothing left to be, and says so.
+
+**An offset bigger than the surface's tightest curve will fold**, crossing itself near the tight
+parts, exactly as an offset curve does. That is a property of offsetting rather than of Spark,
+and it is why an offset far larger than the detail on a surface is rarely what you want.
 
 ## Where the provider comes from, and what to do when it is missing
 

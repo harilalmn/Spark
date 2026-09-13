@@ -101,6 +101,30 @@ public sealed class ToroidalSurface : Surface
         new(SurfaceConversion.ToNurbsSurface(this), true, false);
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// A torus offsets to a torus with the same major radius and a minor radius of <c>r + d</c>.
+    /// A distance of <c>-r</c> or less would turn the tube inside out and is refused.
+    /// </remarks>
+    public override Surface Offset(double distance)
+    {
+        if (!double.IsFinite(distance))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(distance), distance, "An offset distance must be finite.");
+        }
+
+        if (_minor + distance <= 0.0)
+        {
+            throw new ArgumentException(
+                $"Offsetting a torus of minor radius {_minor} by {distance} leaves no torus: the "
+                + "tube would have a radius of zero or less.",
+                nameof(distance));
+        }
+
+        return new ToroidalSurface(_frame, _major, _minor + distance, DomainU, DomainV);
+    }
+
+    /// <inheritdoc/>
     /// <remarks>A torus survives a rigid motion and a uniform scale, and nothing else.</remarks>
     public override Surface TransformedBy(in Transform transform)
     {
