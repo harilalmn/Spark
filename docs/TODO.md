@@ -341,8 +341,9 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     thing that noticed was the help-sample compiler — because the topic happened to name the type.
 >     That list is now derived by reflection. **Next**: `E2-T71`/`E2-T72`
 >     (no curve fitting of any kind, one fillet that takes two lines, no periodic NURBS, no
->     curve-to-NURBS conversion — and a `Helix` is now the sharpest case for the last of those,
->     since it has an exact rational form and the STEP writer exports one from 64 samples), then
+>     curve-to-NURBS conversion — and a `Helix` is what decides the shape of the last of those,
+>     since a helix is provably **not** exactly representable as a NURBS while every other Spark
+>     curve is ([N165](NOTES.md)), so the conversion has to say which answer it gave), then
 >     `E2-T66`…`E2-T69`. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register

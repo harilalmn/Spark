@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-13 (N164: a hand-written list of collisions is a list that goes stale, and the compiler that caught it was three documents away)
+**Last updated:** 2026-09-13 (N165: a helix is not a NURBS curve, and the proof is three lines)
 
 ---
 
@@ -5084,3 +5084,56 @@ pin and watching it go red, naming `Helix`.
 was *load-bearing*: *the nine that collide* was the only statement anywhere of how many there were.
 **A count in a comment is a test that never runs.** Where a number is worth writing down, the thing
 that computes it is worth writing instead.
+
+---
+
+## N165 — A helix is not a NURBS curve, and the proof is three lines
+
+**The claim I wrote first, in four documents, was wrong.** Closing `E2-T73` I recorded that
+`Spark.Geometry.Occt.ModelWriter` exports a `Helix` by interpolating 64 samples, and that this was
+the sharpest case yet for `Curve.ToNurbsCurve` **because a helix has an exact rational B-spline
+form — a circle's knot structure with the control points lifted linearly along the axis.** That
+sounds right, it is the kind of thing everyone half-remembers about NURBS, and it is false.
+
+**The proof.** A NURBS curve is
+
+> `C(t) = ( X(t)/W(t), Y(t)/W(t), Z(t)/W(t) )`
+
+with `X`, `Y`, `Z` and `W` all piecewise **polynomial** in `t`. A helix is the point set
+`(r·cos θ, r·sin θ, c·θ)`. Suppose some NURBS curve traces it, under a reparameterisation
+`θ = φ(t)`. Then:
+
+1. From the third coordinate, `c·φ(t) = Z(t)/W(t)`, so **`φ` is a rational function of `t`** — and a
+   non-constant one, since the curve is traced.
+2. From the first, `r·cos(φ(t)) = X(t)/W(t)`, so **`cos ∘ φ` is rational too**.
+3. But `cos` is transcendental, and a transcendental function composed with a non-constant rational
+   map is never rational. Contradiction.
+
+So no exact representation exists — not at degree 2, not at any degree, not with any knot vector.
+
+**Where the half-memory comes from, and it is a real fact next door.** The *circle* is exactly a
+rational quadratic, and the standard construction uses the tangent half-angle: on a 90° span the
+control points are `(1,0)`, `(1,1)`, `(0,1)` with weights `1, √2⁄2, 1`, and the parameter runs with
+`tan(θ/2)` rather than with `θ`. **That is exactly what breaks the lift.** The helix needs the rise
+to be linear in the *angle*, and the rational parameterisation is linear in the half-angle's
+tangent, so "lift the control points linearly" produces a curve that is close to a helix and is not
+one — closest at the span ends, worst in the middle, and wrong by an amount nobody would notice in a
+picture.
+
+**What it changes, which is more than a footnote.** `Curve.ToNurbsCurve` (`E2-T71`) was framed as
+five closed-form conversions and a virtual on the base. `Line`, `Arc`, `Circle`, `EllipseCurve` and
+`PolyLine` do all convert exactly. `Helix` cannot, ever. So the member **cannot return a bare
+`NurbsCurve`**: a caller handed one has no way to tell an exact conversion from a good
+approximation, and the difference decides whether a downstream boolean is right or merely plausible.
+`ModelWriter` already faces this and answers it with an `Approximated` flag on the writer;
+`ToNurbsCurve` needs the same honesty in its result, and the shape of that is `E2-T71`'s to settle.
+
+**And the lesson about the claim itself.** It was written in a journal log entry, copied into the
+PRD's FR-48 row, into TODO's next-step note and into the journal's *Next action* — **four places,
+inside one step, before anyone checked it.** Nothing in this repository could have caught it: it is
+a statement about mathematics, not about the assembly, so no test, no residue budget and no
+rename-catcher touches it. [N163](NOTES.md) says an under-claim is invisible because nothing fails;
+this is the other half of the same shape — **a claim about what is *possible* fails nothing either,
+and it propagates faster than a claim about what exists**, because it reads as background knowledge
+rather than as a measurement. Where a document asserts that something can be done exactly, the
+assertion is worth the three lines that show it.
