@@ -27,24 +27,24 @@ Arc	Radius	Done	Spark.Geometry.Arc.Radius	2026-09-13, E2-T41 step B: the same ca
 Arc	StartAngle	Done	Spark.Geometry.Arc.StartAngle	2026-09-13, E2-T41 step B: the same capability under the same name, carried as an Angle rather than a bare double (ADR-0011).
 Arc	SweepAngle	Done	Spark.Geometry.Arc.SweepAngle	2026-09-13, E2-T41 step B: as StartAngle.
 Arc	ToString()	Done	Spark.Geometry.Arc.ToString	2026-09-13, E2-T41 step B: .NET plumbing rather than capability - present, and worth nothing.
-BoundingBox	ByCorners(Point, Point)	Unassessed		
-BoundingBox	ByCornersCoordinateSystem(Point, Point, CoordinateSystem)	Unassessed		
-BoundingBox	ByGeometry(Geometry)	Unassessed		
-BoundingBox	ByGeometry(IEnumerable<Geometry>)	Unassessed		
-BoundingBox	ByGeometryCoordinateSystem(Geometry, CoordinateSystem)	Unassessed		
-BoundingBox	ByGeometryCoordinateSystem(IEnumerable<Geometry>, CoordinateSystem)	Unassessed		
-BoundingBox	ByMinimumVolume(IEnumerable<Geometry>)	Unassessed		
+BoundingBox	ByCorners(Point, Point)	Done	Spark.Geometry.BoundingBox.FromPoints	2026-09-13, E2-T40: with the constructor, which takes the two corners directly. FromPoints takes any set and is the general form of the same thing.
+BoundingBox	ByCornersCoordinateSystem(Point, Point, CoordinateSystem)	Needs a decision		§3.1 asked this as an open question and the pass leaves it open, because it is one question and not five: Spark's BoundingBox is STRICTLY WORLD-AXIS-ALIGNED, and Dynamo's can be expressed in an arbitrary frame, which makes it an oriented box in disguise. The honest question is not whether to put a frame on BoundingBox but whether Spark wants a separate OrientedBox type, and Geometry.OrientedBoundingBox pushes the same way. This is the corners form of it.
+BoundingBox	ByGeometry(Geometry)	Done	Spark.Geometry.Curve.BoundingBox	2026-09-13, E2-T40: N161's ENUMERATION, AND IT IS ALL BUT EMPTY: Curve, Surface, Brep, Mesh and PointCloud each carry a BoundingBox, and Surface's is virtual with NurbsSurface and PlaneSurface overriding it - so every geometry Spark has answers this except Spark.Geometry.Planar.Region, which is a planar set rather than a shape and has no box.
+BoundingBox	ByGeometry(IEnumerable<Geometry>)	Done	Spark.Geometry.BoundingBox.Union	2026-09-13, E2-T40: the box of each, folded with Union. Spark has one Union rather than a second ByGeometry overload, because the union of boxes is not a property of geometry.
+BoundingBox	ByGeometryCoordinateSystem(Geometry, CoordinateSystem)	Needs a decision		§3.1 asked this as an open question and the pass leaves it open, because it is one question and not five: Spark's BoundingBox is STRICTLY WORLD-AXIS-ALIGNED, and Dynamo's can be expressed in an arbitrary frame, which makes it an oriented box in disguise. The honest question is not whether to put a frame on BoundingBox but whether Spark wants a separate OrientedBox type, and Geometry.OrientedBoundingBox pushes the same way. This is the one-geometry form of it.
+BoundingBox	ByGeometryCoordinateSystem(IEnumerable<Geometry>, CoordinateSystem)	Needs a decision		§3.1 asked this as an open question and the pass leaves it open, because it is one question and not five: Spark's BoundingBox is STRICTLY WORLD-AXIS-ALIGNED, and Dynamo's can be expressed in an arbitrary frame, which makes it an oriented box in disguise. The honest question is not whether to put a frame on BoundingBox but whether Spark wants a separate OrientedBox type, and Geometry.OrientedBoundingBox pushes the same way. This is the many-geometry form of it.
+BoundingBox	ByMinimumVolume(IEnumerable<Geometry>)	Needs a decision		§3.1 asked this as an open question and the pass leaves it open, because it is one question and not five: Spark's BoundingBox is STRICTLY WORLD-AXIS-ALIGNED, and Dynamo's can be expressed in an arbitrary frame, which makes it an oriented box in disguise. The honest question is not whether to put a frame on BoundingBox but whether Spark wants a separate OrientedBox type, and Geometry.OrientedBoundingBox pushes the same way. AND IT IS THE HARDEST OF THE FIVE: a minimum-volume box is not a bounding box in a given frame, it is a search for the frame, and it needs the OrientedBox decision made before it can even be stated.
 BoundingBox	Contains(Point)	Done	Spark.Geometry.BoundingBox.Contains	reviewed 2026-09-12: the same capability under the same name.
-BoundingBox	ContextCoordinateSystem	Unassessed		
-BoundingBox	FromJson(string)	Unassessed		
+BoundingBox	ContextCoordinateSystem	Needs a decision		§3.1 asked this as an open question and the pass leaves it open, because it is one question and not five: Spark's BoundingBox is STRICTLY WORLD-AXIS-ALIGNED, and Dynamo's can be expressed in an arbitrary frame, which makes it an oriented box in disguise. The honest question is not whether to put a frame on BoundingBox but whether Spark wants a separate OrientedBox type, and Geometry.OrientedBoundingBox pushes the same way. It is the property that gives the game away - a box that knows which frame it was expressed in is an oriented box. NOT Geometry.ContextCoordinateSystem, which is refused under §5 [j] on a different ground: that one asks where a VALUE was created, which needs geometry to have identity.
+BoundingBox	FromJson(string)	Done	Spark.Geometry.GeometryJson.Deserialize	2026-09-13, E2-T40: one serialisation entry point for every geometry type (FR-57).
 BoundingBox	Intersection(BoundingBox)	Done	Spark.Geometry.BoundingBox.Intersection	reviewed 2026-09-12: the same capability under the same name.
 BoundingBox	Intersects(BoundingBox)	Done	Spark.Geometry.BoundingBox.Intersects	reviewed 2026-09-12: the same capability under the same name.
-BoundingBox	IsEmpty()	Unassessed		
-BoundingBox	MaxPoint	Unassessed		
-BoundingBox	MinPoint	Unassessed		
-BoundingBox	ToCuboid()	Unassessed		
-BoundingBox	ToJson()	Unassessed		
-BoundingBox	ToPolySurface()	Unassessed		
+BoundingBox	IsEmpty()	Done	Spark.Geometry.BoundingBox.Empty	2026-09-13, E2-T40: §6.3 records that this could mean degenerate, zero-volume or never-initialised, and REACHABLE UNDER ALL THREE READINGS: BoundingBox.Empty is the never-initialised sentinel and compares equal to it, Volume is zero for the zero-volume reading, and IsValid answers the degenerate one. The register does not have to resolve which Dynamo means.
+BoundingBox	MaxPoint	Done	Spark.Geometry.BoundingBox.Max	2026-09-13, E2-T40: the same capability; Spark drops the Point suffix because the type says so, as Arc.CenterPoint.
+BoundingBox	MinPoint	Done	Spark.Geometry.BoundingBox.Min	2026-09-13, E2-T40: as MaxPoint.
+BoundingBox	ToCuboid()	Done	Spark.Geometry.BrepPrimitives.Box	2026-09-13, E2-T40: composed - a Plane at Min and the three lengths off Diagonal. The result is a Brep, which is §3.4's mapping for Cuboid.
+BoundingBox	ToJson()	Done	Spark.Geometry.GeometryJson.Serialize	2026-09-13, E2-T40: one serialisation entry point for every geometry type (FR-57).
+BoundingBox	ToPolySurface()	Done	Spark.Geometry.BrepPrimitives.Box	2026-09-13, E2-T40: THE SAME MEMBER AS ToCuboid, and that is the answer rather than an evasion: Spark has one Brep, and open or closed is a PROPERTY of it rather than a second type - which is exactly what §3.3 maps PolySurface to. Dynamo needs two members because it has two types.
 BoundingBox	ToString()	Done	Spark.Geometry.BoundingBox.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Circle	ByBestFitThroughPoints(IEnumerable<Point>)	Planned		2026-09-13, E2-T41 step B: no least-squares circle fit, as Line and Arc's. E2-T72.
 Circle	ByCenterPointRadius(Point, double)	Done	Spark.Geometry.Circle.FromCenterRadius	2026-09-13, E2-T41 step B: the same construction; the circle lies in the world XY plane through the centre, which Spark's factory does too.
@@ -75,29 +75,29 @@ Cone	RadiusRatio	Not planned		2026-09-12, E2-T43: The four primitives are FACTOR
 Cone	StartPoint	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
 Cone	StartRadius	Not planned		2026-09-12, E2-T43: The four primitives are FACTORIES rather than types in Spark (3.4), so there is no object to read this back off. Section 5 refuses the 14 parameter-recovery properties for that reason: a Brep made by a factory is a Brep, and asking it for the radius it was built from is asking it to remember its own history, which the value model does not do. 
 Cone	ToString()	Done	Spark.Geometry.Brep.ToString	2026-09-12, E2-T43: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
-CoordinateSystem	ByCylindricalCoordinates(CoordinateSystem, double, double, double)	Unassessed		
-CoordinateSystem	ByMatrix(double[])	Unassessed		
-CoordinateSystem	ByOrigin(Point)	Unassessed		
-CoordinateSystem	ByOrigin(double, double)	Unassessed		
-CoordinateSystem	ByOrigin(double, double, double)	Unassessed		
-CoordinateSystem	ByOriginVectors(Point, Vector, Vector)	Unassessed		
-CoordinateSystem	ByOriginVectors(Point, Vector, Vector, Vector)	Unassessed		
-CoordinateSystem	ByPlane(Plane)	Unassessed		
-CoordinateSystem	BySphericalCoordinates(CoordinateSystem, double, double, double)	Unassessed		
-CoordinateSystem	Determinant	Unassessed		
-CoordinateSystem	FromJson(string)	Unassessed		
+CoordinateSystem	ByCylindricalCoordinates(CoordinateSystem, double, double, double)	Done	Spark.Geometry.CoordinateSystem.FromOrigin	2026-09-13, E2-T40: REACHABLE UNDER EITHER READING OF A SIGNATURE THAT DOES NOT SAY WHICH IT MEANS. If the returned frame is merely POSITIONED at the cylindrical point, it is Point3d.FromCylindrical then FromOrigin; if it is also ORIENTED to the cylindrical directions, it is Vector3d.FromCylindrical for the axes then FromOriginXAxisYAxis. Spark has both, so the register does not have to resolve which Dynamo means - and saying which would be a guess.
+CoordinateSystem	ByMatrix(double[])	Done	Spark.Geometry.Transform	2026-09-13, E2-T40: a frame from sixteen numbers is a Transform in Spark, and the constructor takes them one at a time rather than as an array, so a caller cannot pass fifteen. CoordinateSystem.FromPlane comes back the other way when the matrix really is a rigid frame.
+CoordinateSystem	ByOrigin(Point)	Done	Spark.Geometry.CoordinateSystem.FromOrigin	2026-09-13, E2-T40: the world basis moved to a point; the same construction under the same name.
+CoordinateSystem	ByOrigin(double, double)	Done	Spark.Geometry.CoordinateSystem.FromOrigin	2026-09-13, E2-T40: composed - the Point3d constructor with Z zero, then FromOrigin.
+CoordinateSystem	ByOrigin(double, double, double)	Done	Spark.Geometry.CoordinateSystem.FromOrigin	2026-09-13, E2-T40: as ByOrigin(double, double).
+CoordinateSystem	ByOriginVectors(Point, Vector, Vector)	Done	Spark.Geometry.CoordinateSystem.FromOriginXAxisYAxis	2026-09-13, E2-T40: the same construction under the same name; Spark derives Z and orthonormalises, so the result is a frame rather than whatever two arbitrary vectors describe.
+CoordinateSystem	ByOriginVectors(Point, Vector, Vector, Vector)	Not planned		§3.1: Spark DERIVES Z from X and Y, and an independent Z is how a caller gets a left-handed or non-orthogonal frame by accident. 2026-09-13, E2-T40: counted in this pass rather than left implicit, and it is the same argument as §5 [h]'s scale family one member further on: a CoordinateSystem in Spark is an orthonormal right-handed frame, and every way of making it something else belongs on Transform. CoordinateSystem.FromOriginZAxis is there for a caller who has a Z and wants the frame built around it.
+CoordinateSystem	ByPlane(Plane)	Done	Spark.Geometry.CoordinateSystem.FromPlane	2026-09-13, E2-T40: the same construction under the same name; ToPlane is the way back.
+CoordinateSystem	BySphericalCoordinates(CoordinateSystem, double, double, double)	Done	Spark.Geometry.CoordinateSystem.FromOrigin	2026-09-13, E2-T40: as ByCylindricalCoordinates, with Point3d.FromSpherical and Vector3d.FromSpherical. THIS ROW AND THE ONE ABOVE SAID PLANNED IN §3.1's PROSE AND WERE ALREADY REACHABLE - the factories landed on 2026-09-10 and the section was not re-read.
+CoordinateSystem	Determinant	Done	Spark.Geometry.Transform.Determinant	2026-09-13, E2-T40: composed through CoordinateSystem.ToTransform. It is ALWAYS +1 for a Spark CoordinateSystem, because the frame is orthonormal and right-handed by construction - so the member is worth more on Transform, where the answer varies, and §3.2's Brep.TransformedBy uses exactly that to know when to flip every face.
+CoordinateSystem	FromJson(string)	Done	Spark.Geometry.GeometryJson.Deserialize	2026-09-13, E2-T40: one serialisation entry point for every geometry type (FR-57).
 CoordinateSystem	Identity()	Done	Spark.Geometry.CoordinateSystem.Identity	reviewed 2026-09-12: the same capability under the same name.
-CoordinateSystem	Inverse()	Unassessed		
-CoordinateSystem	IsEqualTo(CoordinateSystem)	Unassessed		
+CoordinateSystem	Inverse()	Done	Spark.Geometry.CoordinateSystem.ToLocal	2026-09-13, E2-T40: THE INVERSE OF A FRAME IS THE MAP BACK INTO IT, and that is what ToLocal is - with ToWorld the forward map. For a general matrix it is Transform.TryGetInverse, which can fail and says so in its name; for an orthonormal frame it cannot, which is why this one does not.
+CoordinateSystem	IsEqualTo(CoordinateSystem)	Done	Spark.Geometry.CoordinateSystem.EqualsWithin	2026-09-13, E2-T40: with Equals for exact equality. NOT §5 [j]'s refusal, and the difference is worth stating: IsAlmostEqualTo takes no tolerance and needs one, IsEqualTo is exact and does not.
 CoordinateSystem	IsScaledOrtho	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
-CoordinateSystem	IsSingular	Unassessed		
+CoordinateSystem	IsSingular	Done	Spark.Geometry.CoordinateSystem.IsValid	2026-09-13, E2-T40: A SPARK CoordinateSystem CANNOT BE SINGULAR - it is orthonormal by construction, so the answer is always false and IsValid is the invariant that says so. Reachable by being guaranteed rather than by being computed, which is the same shape as §3.3's PolySurface.BySolid being Done because Spark needs no member for it. Transform.Determinant is the member for a matrix that can be singular.
 CoordinateSystem	IsUniscaledOrtho	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
-CoordinateSystem	Mirror(Plane)	Unassessed		
+CoordinateSystem	Mirror(Plane)	Done	Spark.Geometry.Transform.Mirror	2026-09-13, E2-T40: a mirror is not a rigid frame - it reverses handedness - so it is a Transform and not a CoordinateSystem, which is §3.1's split doing its job. Spark.Nodes.Core's Solid.Mirror and the rest apply it.
 CoordinateSystem	Origin	Done	Spark.Geometry.CoordinateSystem.Origin	reviewed 2026-09-12: the same capability under the same name.
-CoordinateSystem	PostMultiplyBy(CoordinateSystem)	Unassessed		
-CoordinateSystem	PreMultiplyBy(CoordinateSystem)	Unassessed		
-CoordinateSystem	Rotate(Plane, double)	Unassessed		
-CoordinateSystem	Rotate(Point, Vector, double)	Unassessed		
+CoordinateSystem	PostMultiplyBy(CoordinateSystem)	Done	Spark.Geometry.Transform.Multiply	2026-09-13, E2-T40: composition of transformations, through ToTransform. One member and the star operator, with the caller choosing the order, rather than two members named for the order.
+CoordinateSystem	PreMultiplyBy(CoordinateSystem)	Done	Spark.Geometry.Transform.Multiply	2026-09-13, E2-T40: as PostMultiplyBy, with the arguments the other way round.
+CoordinateSystem	Rotate(Plane, double)	Done	Spark.Geometry.Transform.Rotation	2026-09-13, E2-T40: about the plane's normal through its origin. The angle is an Angle in Spark, so a caller cannot pass degrees where radians were meant (ADR-0011).
+CoordinateSystem	Rotate(Point, Vector, double)	Done	Spark.Geometry.Transform.Rotation	2026-09-13, E2-T40: about an axis through a point, which is the signature Transform.Rotation takes.
 CoordinateSystem	Scale(Plane, double, double, double)	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
 CoordinateSystem	Scale(Point, Point, Point)	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
 CoordinateSystem	Scale(double)	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
@@ -105,22 +105,22 @@ CoordinateSystem	Scale(double, double, double)	Not planned		§5 [h], §3.1: a sc
 CoordinateSystem	Scale1D(Point, Point, Point)	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
 CoordinateSystem	Scale2D(Plane, Point, Point)	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
 CoordinateSystem	ScaleFactor()	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
-CoordinateSystem	ToJson()	Unassessed		
+CoordinateSystem	ToJson()	Done	Spark.Geometry.GeometryJson.Serialize	2026-09-13, E2-T40: one serialisation entry point for every geometry type (FR-57).
 CoordinateSystem	ToString()	Done	Spark.Geometry.CoordinateSystem.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
-CoordinateSystem	Transform(CoordinateSystem)	Unassessed		
-CoordinateSystem	Transform(CoordinateSystem, CoordinateSystem)	Unassessed		
-CoordinateSystem	Translate(Vector)	Unassessed		
-CoordinateSystem	Translate(Vector, double)	Unassessed		
-CoordinateSystem	Translate(double, double, double)	Unassessed		
+CoordinateSystem	Transform(CoordinateSystem)	Done	Spark.Geometry.CoordinateSystem.ToWorld	2026-09-13, E2-T40: with ToLocal, and Transform.OfPoint and OfVector for a general map.
+CoordinateSystem	Transform(CoordinateSystem, CoordinateSystem)	Done	Spark.Geometry.Transform.PlaneToPlane	2026-09-13, E2-T40: from one frame to another, which is exactly PlaneToPlane through ToPlane - and Transform.ChangeBasis is the same map expressed the other way.
+CoordinateSystem	Translate(Vector)	Done	Spark.Geometry.Transform.Translation	2026-09-13, E2-T40: a translation is a transformation, so it is on Transform. §3.8 makes the same point for the whole family: Spark has one mechanism where Dynamo repeats a member per type.
+CoordinateSystem	Translate(Vector, double)	Done	Spark.Geometry.Transform.Translation	2026-09-13, E2-T40: composed - Vector3d.Multiply scales the direction to the distance, then Translation. Spark keeps the direction and the magnitude apart, which is the same argument §3.2's Ellipse.ByOriginVectors turns on.
+CoordinateSystem	Translate(double, double, double)	Done	Spark.Geometry.Transform.Translation	2026-09-13, E2-T40: as Translate(Vector), with the Vector3d constructor in front of it.
 CoordinateSystem	XAxis	Done	Spark.Geometry.CoordinateSystem.XAxis	reviewed 2026-09-12: the same capability under the same name.
 CoordinateSystem	XScaleFactor	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
-CoordinateSystem	XYPlane	Unassessed		
+CoordinateSystem	XYPlane	Done	Spark.Geometry.CoordinateSystem.ToPlane	2026-09-13, E2-T40: a frame's XY plane IS the frame as a Plane, which is what ToPlane returns.
 CoordinateSystem	YAxis	Done	Spark.Geometry.CoordinateSystem.YAxis	reviewed 2026-09-12: the same capability under the same name.
 CoordinateSystem	YScaleFactor	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
-CoordinateSystem	YZPlane	Unassessed		
+CoordinateSystem	YZPlane	Done	Spark.Geometry.Plane.FromOriginXAxisYAxis	2026-09-13, E2-T40: composed - the frame's Origin with its YAxis and ZAxis. One member covers all three of these rows because a plane built from two of a frame's axes is the plane those axes span.
 CoordinateSystem	ZAxis	Done	Spark.Geometry.CoordinateSystem.ZAxis	reviewed 2026-09-12: the same capability under the same name.
 CoordinateSystem	ZScaleFactor	Not planned		§5 [h], §3.1: a scaled frame is a Transform in Spark; CoordinateSystem stays orthonormal and unscaled.
-CoordinateSystem	ZXPlane	Unassessed		
+CoordinateSystem	ZXPlane	Done	Spark.Geometry.Plane.FromOriginXAxisYAxis	2026-09-13, E2-T40: as YZPlane, with ZAxis and XAxis.
 Core.EntityTags	AddTag(string, object)	Not planned		§5 [c]: needs a geometry instance to have identity, which a Spark value does not (PRD principle 3); carry data alongside the geometry instead.
 Core.EntityTags	LookupTag(string)	Not planned		§5 [c]: needs a geometry instance to have identity, which a Spark value does not (PRD principle 3); carry data alongside the geometry instead.
 Core.EntityTags	Parent	Not planned		§5 [c]: needs a geometry instance to have identity, which a Spark value does not (PRD principle 3); carry data alongside the geometry instead.
@@ -465,31 +465,31 @@ PanelSurfaceBoundaryCondition	Keep	Not planned		§5 [d]: a panelling design feat
 PanelSurfaceBoundaryCondition	Remove	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
 PanelSurfaceBoundaryCondition	RemoveVertices	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
 PanelSurfaceBoundaryCondition	Trim	Not planned		§5 [d]: a panelling design feature rather than a kernel primitive - a candidate for a first-party node package over the surface API.
-Plane	ByBestFitThroughPoints(IEnumerable<Point>)	Unassessed		
-Plane	ByLineAndPoint(Line, Point)	Unassessed		
-Plane	ByOriginNormal(Point, Vector)	Unassessed		
-Plane	ByOriginNormalXAxis(Point, Vector, Vector)	Unassessed		
-Plane	ByOriginXAxisYAxis(Point, Vector, Vector)	Unassessed		
-Plane	ByThreePoints(Point, Point, Point)	Unassessed		
+Plane	ByBestFitThroughPoints(IEnumerable<Point>)	Done	Spark.Geometry.Plane.FromBestFit	2026-09-13, E2-T40: a least-squares fit, and Spark says which fit it is where Dynamo does not - which is also what makes Polygon.PlaneDeviation reachable in §3.2.
+Plane	ByLineAndPoint(Line, Point)	Done	Spark.Geometry.Plane.FromLineAndPoint	2026-09-13, E2-T40: the same construction under the same name.
+Plane	ByOriginNormal(Point, Vector)	Done	Spark.Geometry.Plane.FromOriginNormal	2026-09-13, E2-T40: the same construction under the same name. It is the member §3.2's Arc.ByCenterPointRadiusAngle composes through, because a centre and a normal do not say where angle zero is and a plane does.
+Plane	ByOriginNormalXAxis(Point, Vector, Vector)	Done	Spark.Geometry.Plane.FromOriginNormalXAxis	2026-09-13, E2-T40: added 2026-08-29 in this task's earlier pass, as one of the three omissions the section named.
+Plane	ByOriginXAxisYAxis(Point, Vector, Vector)	Done	Spark.Geometry.Plane.FromOriginXAxisYAxis	2026-09-13, E2-T40: the same construction under the same name; Spark derives Z from the two axes rather than taking it, which is the argument CoordinateSystem.ByOriginVectors(Point, Vector, Vector, Vector) is refused on.
+Plane	ByThreePoints(Point, Point, Point)	Done	Spark.Geometry.Plane.FromThreePoints	2026-09-13, E2-T40: the same construction under the same name.
 Plane	Normal	Done	Spark.Geometry.Plane.Normal	reviewed 2026-09-12: the same capability under the same name.
 Plane	Offset(double)	Done	Spark.Geometry.Plane.Offset	reviewed 2026-09-12: both move the plane along its own normal by the distance.
 Plane	Origin	Done	Spark.Geometry.Plane.Origin	reviewed 2026-09-12: the same capability under the same name.
-Plane	ToCoordinateSystem()	Unassessed		
+Plane	ToCoordinateSystem()	Done	Spark.Geometry.CoordinateSystem.FromPlane	2026-09-13, E2-T40: the conversion lives on the destination type in Spark and on the source in Dynamo; CoordinateSystem.ToPlane is the way back. §3.1's whole argument is that these are two types and not one, so both directions are explicit.
 Plane	ToString()	Done	Spark.Geometry.Plane.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Plane	XAxis	Done	Spark.Geometry.Plane.XAxis	reviewed 2026-09-12: the same capability under the same name.
-Plane	XY()	Unassessed		
-Plane	XZ()	Unassessed		
+Plane	XY()	Done	Spark.Geometry.Plane.WorldXY	2026-09-13, E2-T40: a property rather than a method, and named World... because a plane called XY on a type called Plane says nothing about whose XY it is.
+Plane	XZ()	Done	Spark.Geometry.Plane.WorldXZ	2026-09-13, E2-T40: as XY().
 Plane	YAxis	Done	Spark.Geometry.Plane.YAxis	reviewed 2026-09-12: the same capability under the same name.
-Plane	YZ()	Unassessed		
+Plane	YZ()	Done	Spark.Geometry.Plane.WorldYZ	2026-09-13, E2-T40: as XY().
 Point	Add(Vector)	Done	Spark.Geometry.Point3d.Add	reviewed 2026-09-12: the same capability under the same name.
-Point	AsVector()	Unassessed		
-Point	ByCartesianCoordinates(CoordinateSystem, double, double, double)	Unassessed		
-Point	ByCoordinates(double, double)	Unassessed		
-Point	ByCoordinates(double, double, double)	Unassessed		
-Point	ByCylindricalCoordinates(CoordinateSystem, double, double, double)	Unassessed		
-Point	BySphericalCoordinates(CoordinateSystem, double, double, double)	Unassessed		
+Point	AsVector()	Done	Spark.Geometry.Point3d.ToVector3d	2026-09-13, E2-T40: the same value read as a direction from the origin; there is an explicit conversion operator in both directions beside it.
+Point	ByCartesianCoordinates(CoordinateSystem, double, double, double)	Done	Spark.Geometry.CoordinateSystem.ToWorld	2026-09-13, E2-T40: a point given in a frame's coordinates, mapped out to the world. §2 names this row as its worked example of composition counting, and the pass confirms it: the local point is a Point3d and ToWorld is the map.
+Point	ByCoordinates(double, double)	Done	Spark.Geometry.Point3d	2026-09-13, E2-T40: the constructor, with Z zero - Dynamo's two-argument form returns a three-dimensional point on the world XY plane, not a Point2d. Constructors are not members this inventory counts, so the row names the type. Spark.Nodes.Core.Point.FromCoordinates is the node, with all three defaulted.
+Point	ByCoordinates(double, double, double)	Done	Spark.Geometry.Point3d	2026-09-13, E2-T40: the constructor, argument for argument.
+Point	ByCylindricalCoordinates(CoordinateSystem, double, double, double)	Done	Spark.Geometry.Point3d.FromCylindrical	2026-09-13, E2-T40: composed - FromCylindrical gives the point in the frame's own coordinates and CoordinateSystem.ToWorld places it. Added 2026-09-10 in this task's earlier pass; Spark names factories From..., so the Dynamo name is the mapping rather than the member.
+Point	BySphericalCoordinates(CoordinateSystem, double, double, double)	Done	Spark.Geometry.Point3d.FromSpherical	2026-09-13, E2-T40: as ByCylindricalCoordinates. THE ONE DECISION IN THE FAMILY IS THE CONVENTION: Spark's second angle is the POLAR angle from +Z, not an elevation from the XY plane, and it is documented on the member rather than left to be discovered.
 Point	Origin()	Done	Spark.Geometry.Point3d.Origin	reviewed 2026-09-12: the same capability under the same name.
-Point	Project(Geometry, Vector)	Unassessed		
+Point	Project(Geometry, Vector)	Planned		2026-09-13, E2-T40: projecting a point onto arbitrary geometry along a direction. Plane.ClosestPoint is the NEAREST point, which is a different question, and anything else needs the ray caster E2-T15 carries. It is the same gap as Curve.Project and is filed with it, in E2-T71, because a projection that works for a point works for the points a curve is sampled at.
 Point	PruneDuplicates(IEnumerable<Point>, double)	Done	Spark.Geometry.Point3d.PruneDuplicates	reviewed 2026-09-12: same capability, over IReadOnlyList rather than IEnumerable, on the k-d tree (E2-T16).
 Point	Subtract(Vector)	Done	Spark.Geometry.Point3d.op_Subtraction	reviewed 2026-09-12 and RE-POINTED: the name match was a false friend. Dynamo subtracts a vector from a point and gets a point; Spark.Geometry.Point3d.Subtract takes two points and gets the vector between them. The capability is the operator, Point3d - Vector3d, which returns a point.
 Point	ToString()	Done	Spark.Geometry.Point3d.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
@@ -803,37 +803,37 @@ Topology	Edges	Done	Spark.Geometry.Brep.Edges	assessed 2026-09-12: the edge tabl
 Topology	Faces	Done	Spark.Geometry.Brep.Faces	assessed 2026-09-12: the face table, one BrepFace per face; Brep.Face(i) gives a navigator over it.
 Topology	ToString()	Done	Spark.Geometry.Brep.ToString	assessed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 Topology	Vertices	Done	Spark.Geometry.Brep.Vertices	assessed 2026-09-12: the vertex table; Brep.VertexPoint(i) gives the point a vertex stands at.
-UV	ByCoordinates(double, double)	Unassessed		
+UV	ByCoordinates(double, double)	Done	Spark.Geometry.UV	2026-09-13, E2-T40: the constructor, argument for argument. UV is 6 of 6 and is the only type in this section that was complete before the pass and is complete after it.
 UV	Equals(object)	Done	Spark.Geometry.UV.Equals	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 UV	GetHashCode()	Done	Spark.Geometry.UV.GetHashCode	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 UV	ToString()	Done	Spark.Geometry.UV.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
 UV	U	Done	Spark.Geometry.UV.U	reviewed 2026-09-12: the same capability under the same name.
 UV	V	Done	Spark.Geometry.UV.V	reviewed 2026-09-12: the same capability under the same name.
 Vector	Add(Vector)	Done	Spark.Geometry.Vector3d.Add	reviewed 2026-09-12: the same capability under the same name.
-Vector	AngleAboutAxis(Vector, Vector)	Unassessed		
-Vector	AngleBetween(Vector)	Unassessed		
-Vector	AngleBetween(Vector, Vector)	Unassessed		
-Vector	AngleWithVector(Vector)	Unassessed		
-Vector	AsPoint()	Unassessed		
-Vector	ByCoordinates(double, double, double)	Unassessed		
-Vector	ByCoordinates(double, double, double, bool)	Unassessed		
-Vector	ByTwoPoints(Point, Point)	Unassessed		
+Vector	AngleAboutAxis(Vector, Vector)	Done	Spark.Geometry.Vector3d.SignedAngleTo	2026-09-13, E2-T40: the SIGNED angle, which needs an axis to be signed about - and Spark takes the axis for exactly that reason. Vector3d.AngleTo is the unsigned one.
+Vector	AngleBetween(Vector)	Done	Spark.Geometry.Vector3d.AngleTo	2026-09-13, E2-T40: the unsigned angle between two directions, as an Angle rather than a bare double (ADR-0011).
+Vector	AngleBetween(Vector, Vector)	Done	Spark.Geometry.Vector3d.SignedAngleTo	2026-09-13, E2-T40: the two-argument form takes the axis, so it is the signed angle - as AngleAboutAxis.
+Vector	AngleWithVector(Vector)	Done	Spark.Geometry.Vector3d.AngleTo	2026-09-13, E2-T40: A SECOND NAME FOR AngleBetween(Vector), and Spark ships one member. Unlike §5 [i]'s trim family this is a single duplicate rather than two complete sets, so it is counted rather than refused - the capability is there under one name and the second name is not a second capability.
+Vector	AsPoint()	Done	Spark.Geometry.Point3d	2026-09-13, E2-T40: the explicit conversion operator from Vector3d, and the constructor beside it. EXPLICIT AND NOT IMPLICIT, deliberately: a point and a direction are different things and converting between them should be visible at the call site.
+Vector	ByCoordinates(double, double, double)	Done	Spark.Geometry.Vector3d	2026-09-13, E2-T40: the constructor, argument for argument.
+Vector	ByCoordinates(double, double, double, bool)	Done	Spark.Geometry.Vector3d.Normalised	2026-09-13, E2-T40: composed - the constructor then Normalised, which is what the trailing normalized flag asks for. Spark has no flag because a member that sometimes normalises is two members wearing one name.
+Vector	ByTwoPoints(Point, Point)	Done	Spark.Geometry.Point3d.Subtract	2026-09-13, E2-T40: the difference of two points IS the vector between them, and the minus operator spells it.
 Vector	Cross(Vector)	Done	Spark.Geometry.Vector3d.Cross	reviewed 2026-09-12: the same capability under the same name.
 Vector	Dot(Vector)	Done	Spark.Geometry.Vector3d.Dot	reviewed 2026-09-12: the same capability under the same name.
-Vector	FromJson(string)	Unassessed		
-Vector	IsAlmostEqualTo(Vector)	Unassessed		
-Vector	IsParallel(Vector)	Unassessed		
+Vector	FromJson(string)	Done	Spark.Geometry.GeometryJson.Deserialize	2026-09-13, E2-T40: Spark serialises through one entry point for every geometry type rather than a FromJson per type - FR-57 and the .spark format - so one member answers the ten FromJson/ToJson rows in this document.
+Vector	IsAlmostEqualTo(Vector)	Not planned		§5 [j]: it takes NO TOLERANCE, so the tolerance comes from somewhere unstated - the ambient session scale factor - and that is exactly the form ADR-0010 refuses. 2026-09-13, E2-T40: COUNTED HERE, WHICH TAKES §5 [j] FROM THREE MEMBERS TO FOUR: [j] was written against Geometry's IsAlmostEqualTo, Approximate and ContextCoordinateSystem, and this is the same member on the same ground one type down. Only the FORM is refused - the capability is Vector3d.EqualsWithin(other, in Tolerance), on eight value types, and a Spark user passes the tolerance they meant.
+Vector	IsParallel(Vector)	Done	Spark.Geometry.Vector3d.IsParallelTo	2026-09-13, E2-T40: the same capability under all but the same name, and Spark's takes a Tolerance (ADR-0010) where Dynamo's does not.
 Vector	Length	Done	Spark.Geometry.Vector3d.Length	reviewed 2026-09-12: the same capability under the same name.
-Vector	Normalized()	Unassessed		
-Vector	Reverse()	Unassessed		
+Vector	Normalized()	Done	Spark.Geometry.Vector3d.Normalised	2026-09-13, E2-T40: the same capability; the spelling is Spark's house English. TryNormalise is beside it for the zero vector, which is the case Normalised cannot answer.
+Vector	Reverse()	Done	Spark.Geometry.Vector3d.Negate	2026-09-13, E2-T40: the same capability, and the unary minus operator spells it. Spark says Negate because reversing a vector is negating it and the arithmetic name is the honest one.
 Vector	Rotate(Plane, double)	Done	Spark.Geometry.Vector3d.Rotate	reviewed 2026-09-12: Spark rotates about an axis vector, and for a plane that axis is its normal. The same capability, reached as vector.Rotate(plane.Normal, angle).
 Vector	Rotate(Vector, double)	Done	Spark.Geometry.Vector3d.Rotate	reviewed 2026-09-12: the same capability under the same name.
-Vector	Scale(double)	Unassessed		
-Vector	Scale(double, double, double)	Unassessed		
+Vector	Scale(double)	Done	Spark.Geometry.Vector3d.Multiply	2026-09-13, E2-T40: uniform scale is multiplication by a scalar, and the star operator spells it.
+Vector	Scale(double, double, double)	Done	Spark.Geometry.Transform.Scale	2026-09-13, E2-T40: composed, and DELIBERATELY NOT ON THE VECTOR: a non-uniform scale is a transformation, so it is Transform.Scale and Transform.OfVector. §2 names this row as one of its two worked examples of composition counting, and §3.1's split between an orthonormal frame and the transformation algebra is the reason it reads that way.
 Vector	Subtract(Vector)	Done	Spark.Geometry.Vector3d.Subtract	reviewed 2026-09-12: the same capability under the same name.
-Vector	ToJson()	Unassessed		
+Vector	ToJson()	Done	Spark.Geometry.GeometryJson.Serialize	2026-09-13, E2-T40: as FromJson - one entry point for every geometry type.
 Vector	ToString()	Done	Spark.Geometry.Vector3d.ToString	reviewed 2026-09-12: .NET plumbing rather than capability - present, and worth nothing. Counted because the member exists, not because it closes a gap.
-Vector	Transform(CoordinateSystem)	Unassessed		
+Vector	Transform(CoordinateSystem)	Done	Spark.Geometry.CoordinateSystem.ToWorld	2026-09-13, E2-T40: with ToLocal for the other direction, and Transform.OfVector when the map is a general transformation rather than a frame. §2's other worked example of composition.
 Vector	X	Done	Spark.Geometry.Vector3d.X	reviewed 2026-09-12: the same capability under the same name.
 Vector	XAxis()	Done	Spark.Geometry.Vector3d.XAxis	reviewed 2026-09-12: the same capability under the same name.
 Vector	Y	Done	Spark.Geometry.Vector3d.Y	reviewed 2026-09-12: the same capability under the same name.

@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-13 (`E2-T41`: §3.2 assessed in full, 111 of 187 reachable; `Helix` decided)
+**Last updated:** 2026-09-13 (`E2-T40`: §3.1 assessed, 113 of 133; **no row is `Unassessed`**; the headline is 392 of 545)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -52,52 +52,80 @@ or from this repository; none is an estimate.
 | | Types | Members | Share of 837 |
 |---|---:|---:|---:|
 | ProtoGeometry public surface | 51 | 837 | 100% |
-| Reachable in Spark today | 6 | **99** | **11.8%** |
-| Deliberately not replicated (§5) | 7 + parts of 2 | 93 | 11.1% |
+| **Reachable in Spark today** | **34** | **392** | **46.8%** |
+| Deliberately not replicated (§5) | 7 + parts of 4 | 123 | 14.7% |
 | Awaiting a decision — T-Splines (§6.2) | 8 | 169 | 20.2% |
-| **Committed and still to build** | **30** | **480** | **57.3%** |
+| **Committed and still to build** | — | **153** | **18.3%** |
 
-Against the scope we have actually committed to — 837 less the 93 we refuse and the 169 that
-need their own decision, so **575 members** — Spark stands at **99 of 575, or 17.2%**.
+Against the scope we have actually committed to — 837 less the 123 we refuse and the 169 that
+need their own decision, so **545 members** — Spark stands at **392 of 545, or 71.9%**. **Ten
+ProtoGeometry types are answered in full**: `Plane`, `UV`, `Ellipse`, `EllipseArc`, `Rectangle`,
+`IndexGroup`, `Topology`, `Vertex`, `Edge` and `Loop`.
+
+> **These figures are counted, not estimated, and 2026-09-13 is the first day that is true of all of
+> them.** Every row of the manifest now carries a status and a written reason; **none is
+> `Unassessed`**. The table above previously read *99 reachable, 11.8%* — a hand count made in prose
+> before the curve, surface, solid, topology and mesh layers existed — and the seven member-by-member
+> passes that replaced it each found Spark **further ahead than the register claimed**, without
+> exception, including the one section (§3.1) where the expectation was the opposite. The register's
+> systematic error was in one direction, and [N158](NOTES.md) and [N160](NOTES.md) are why: a
+> register that reads one assembly, or reads its own prose, is wrong **safely** — it under-claims,
+> and nobody chases an under-claim.
 
 > **The manifest counts these now, and where it differs from this table the manifest is right**
 > (2026-09-11, `E11-T23`). [`tests/corpus/dynamo-parity.tsv`](../tests/corpus/dynamo-parity.tsv) holds
 > one row per member, generated from the same `ProtoGeometry.dll` metadata, and `Spark.Docs.Verify`
-> checks it against this document on every build. **As of 2026-09-13 it stands at `Done` 322,
-> `Planned` 123, `Not planned` 121, `Needs a decision` 193 and `Unassessed` 78**, which is 837.
-> Applying §5's rules gives **121** refused members, not 93 — §5's own lists add to 104, the four
+> checks it against this document on every build. **As of 2026-09-13 it stands at `Done` 392,
+> `Planned` 124, `Not planned` 123, `Needs a decision` 198 and `Unassessed` 0**, which is 837 — and
+> the table above is now taken from those numbers rather than checked against them.
+> Applying §5's rules gives **123** refused members, not 93 — §5's own lists add to 104, the four
 > primitive solids carry 14 parameter-recovery properties rather than 11, §5 [i]'s three flattened
-> mesh accessors were counted when `E2-T45` assessed them, `E2-T46` added `IsAlmostEqualTo`,
-> `Approximate` and `ContextCoordinateSystem` as §5 [j], and `E2-T41` counted §5 [i]'s duplicated
-> trim family once its survivor was chosen — so the committed surface is **547**, not 575.
-> **This table's 99 predates the curve, surface, solid, topology, mesh and infrastructure layers;
-> the manifest's 322 replaces it as the review proceeds**, and the sections assessed member by
-> member are §3.2 (**111 of 187**, the largest), §3.3 (48 of 106), §3.4 (24 of 55), §3.5 (31 of 33),
-> §3.6 (41 of 65) and §3.8 (24 of 89). **What is left is §3.1's values — 78 rows over `Point`,
-> `Vector`, `Plane`, `CoordinateSystem`, `BoundingBox` and `UV`, the subsystem this document's
-> original 99 was entirely made of — and §3.7's T-Splines decision.**
+> mesh accessors were counted when `E2-T45` assessed them, `E2-T46` added three under §5 [j],
+> `E2-T41` counted §5 [i]'s duplicated trim family once its survivor was chosen, and `E2-T40` added
+> `Vector.IsAlmostEqualTo` to §5 [j] and `CoordinateSystem.ByOriginVectors`'s explicit-Z overload to
+> §3.1's ground. **Of the 198 `Needs a decision`, 169 are the T-Splines and 29 are not**: `Q17`'s six
+> oriented-box rows, §6.3's undeducible signatures, and the rest.
+> **All seven sections are now assessed member by member**: §3.1 (113 of 133), §3.2 (**111 of 187**,
+> the largest), §3.3 (48 of 106), §3.4 (24 of 55), §3.5 (31 of 33), §3.6 (41 of 65) and §3.8 (24 of
+> 89). §3.7's 169 T-Spline members are `Q12`'s decision and are not an assessment.
 
-### What the 99 counts, exactly
+### What the 392 counts, exactly
 
 A ProtoGeometry member counts as **reachable** when a Spark user can obtain the same result
-today through a documented member of `Spark.Geometry`. It does **not** require the same name
-or the same owning type: `Vector.Transform(cs)` is counted because `CoordinateSystem.ToWorld`
-and `Transform.OfVector` between them do the job, and `CoordinateSystem.Translate` is counted
-because `Transform.Translation` does. Members that are pure serialisation, native-session
-plumbing, or that operate on types Spark does not yet have, are counted as not reachable.
+today through a documented member of one of the **delivering assemblies** — `Spark.Geometry`,
+`Spark.Api`, `Spark.Geometry.Io` and `Spark.Nodes.Core` (`E11-T30`, §7). It does **not** require the
+same name or the same owning type: `Vector.Transform(cs)` is counted because
+`CoordinateSystem.ToWorld` and `Transform.OfVector` between them do the job, and
+`CoordinateSystem.Translate` is counted because `Transform.Translation` does.
 
-All 99 sit in one subsystem — values and frames — because that is the only subsystem that
-exists. **There are no curves, surfaces, solids, meshes or topology in `Spark.Geometry`**, and
-nothing in this document should be read as implying otherwise.
+**Composition counts, and it has a boundary** (`E2-T41` step B, 2026-09-13, where sixteen rows turned
+on it). Composition means **the caller passes members' results to another member**:
+`Line.ByTangency(curve, t)` is reachable because `Curve.PointAt` and `Curve.TangentAt` feed
+`Line.FromStartPointDirectionLength`. It **stops** counting when the caller has to compute the
+quantity the member exists to compute: `Arc.ByCenterPointStartPointEndPoint` is *not* reachable,
+because getting there means working out the sweep angle from two radii, and the sweep angle is what
+the constructor is for. Members that are pure native-session plumbing, or that operate on types
+Spark does not have, are not reachable.
+
+**Where the 392 sit.** Every subsystem except T-Splines — which is the sentence this section could
+not say for the first year of its life, when it read *all 99 sit in one subsystem, because that is
+the only subsystem that exists*. Values and frames is 113 of 133, curves 111 of 187, surfaces 48 of
+106, topology 31 of 33, mesh 41 of 65, solids 24 of 55 and infrastructure 24 of 89. Ten types are
+answered in full. What is **not** here is exact solid modelling without a provider (§6.1) and the
+T-Spline paradigm (§6.2), and no count in this document should be read as implying otherwise.
 
 ### Why member counts are not fungible, and must not be read as effort
 
 Two warnings, both of which matter for reading the table above honestly.
 
-**A percentage of members is not a percentage of work.** The 99 reachable members are the
-easiest 99 in the whole inventory: arithmetic on six-double structs, decided by algebra and
-verified by property tests. `Solid.Difference` is one row of one table and is a multi-year
-research problem (§6.1). Any schedule derived from 16% is wrong by an order of magnitude.
+**A percentage of members is not a percentage of work, and 72% is the most misleading number in
+this document.** A large share of the 392 are the easiest members in the inventory: arithmetic on
+six-double structs, decided by algebra and verified by property tests. A large share of the rest are
+`Done` because they name an `IBrepKernel` operation, which is *one line in this register and an
+entire dependency* — `Solid.Difference` is one row of one table and is a multi-year research problem
+if it is ever written rather than delegated (§6.1, ADR-0020). And the 153 still to build are not the
+easy ones, because the easy ones are what got done. **Any schedule derived from 72% is wrong by an
+order of magnitude**, in the same way any schedule derived from the old 17% was.
 
 **Parity is not a subset relation, and Spark's surface is already larger where it exists.**
 The six ProtoGeometry types Spark covers declare 133 members between them. Spark's six
@@ -115,20 +143,41 @@ Eight sections in dependency order. Each carries one row per ProtoGeometry type,
 count from the inventory, our equivalent, its status and the milestone from
 [PRD §11](PRD.md#11-release-plan) at which we expect it.
 
-### 3.1 Values and frames — 6 types, 133 members, 99 reachable
+### 3.1 Values and frames — 6 types, 133 members, 113 reachable
 
-| Dynamo type | Members | Spark equivalent | Status | Milestone |
-|---|---:|---|---|---|
-| `Point` | 15 | `Point3d` | Done (13/15) | M1 |
-| `Vector` | 31 | `Vector3d` | Done (29/31) | M1 |
-| `UV` | 6 | `UV` | Done (6/6) | M1 |
-| `Plane` | 16 | `Plane` | **Done (16/16)** | M1 |
-| `CoordinateSystem` | 46 | `CoordinateSystem` + `Transform` | Done (27/46) | M1 |
-| `BoundingBox` | 19 | `BoundingBox` | Done (8/19) | M1 |
+**Assessed member by member on 2026-09-13** (`E2-T40`), and it is the **last** section of §3 to be:
+with it, **no row anywhere in the manifest is `Unassessed`**.
 
-`Done` here means the type exists, is reviewed and is accepted — not that every member of the
-Dynamo type is present. The bracketed fraction is the honest number and the prose below covers
-every one of the 38 that are not.
+| Dynamo type | Members | Reachable | Was claimed | Spark equivalent | Status | Milestone |
+|---|---:|---:|---:|---|---|---|
+| `Point` | 15 | 14 | 13 | `Point3d` | Partial | M1 ✓ |
+| `Vector` | 31 | 30 | 29 | `Vector3d` | Partial | M1 ✓ |
+| `UV` | 6 | 6 | 6 | `UV` | **Complete** | M1 ✓ |
+| `Plane` | 16 | 16 | 16 | `Plane` | **Complete** | M1 ✓ |
+| `CoordinateSystem` | 46 | 33 | 27 | `CoordinateSystem` + `Transform` | Partial | M1 ✓ |
+| `BoundingBox` | 19 | 14 | 8 | `BoundingBox` | Partial | M1 ✓ |
+
+> **The 99 was 14 low, and this is the section where that matters most.** Every other section in §3
+> started from *0 reachable* and the assessment could only move it up. This one started from a number
+> **somebody counted by hand, in prose, a year ago** — the number the whole document's headline was
+> built on — so the pass was a *check* rather than a first count, and the expectation going in was
+> that it would find **over**-claims. It found the opposite, for the seventh section running.
+>
+> **Where the 14 went.** Six are `CoordinateSystem`, and they are the transformation family: the
+> section's own prose said `Rotate`, `Mirror`, `Translate`, `PreMultiplyBy`, `PostMultiplyBy` and
+> `Determinant` were the *shape difference* that made Spark split the type in two, and then counted
+> the split as a gap — but a capability delivered on `Transform` is still delivered, which is
+> `E11-T30`'s finding ([N158](NOTES.md)) reaching the one section that predates it. Six more are
+> `BoundingBox`, where `MinPoint`, `MaxPoint`, `ByCorners`, `ByGeometry` ×2 and `IsEmpty` were never
+> counted at all. The last two are `ByCylindricalCoordinates` and `BySphericalCoordinates` on
+> `CoordinateSystem`, which the prose below still calls *planned* — the factories landed on
+> 2026-09-10 and nobody re-read the sentence.
+
+**What the 113 leaves.** One `Planned` (`Point.Project`, which needs `E2-T15`'s ray caster and is the
+same gap as `Curve.Project`), **14 refused** and **5 `Needs a decision` — and all five are one
+question**, which is now `Q17`: whether Spark wants an `OrientedBox` type. `Done` in the table above
+means the type exists and is reviewed; the *Reachable* column is the count from the manifest, and
+*Was claimed* is what this section said before anybody counted.
 
 **`CoordinateSystem` is the largest genuine shape difference in this subsystem, and it is
 deliberate.** Dynamo's `CoordinateSystem` is a general affine frame: it can be scaled, sheared
@@ -142,17 +191,31 @@ scale family (`XScaleFactor`, `YScaleFactor`, `ZScaleFactor`, `IsScaledOrtho`,
 `IsUniscaledOrtho`, `ScaleFactor()`, `Scale` ×4, `Scale1D`, `Scale2D`), and they are
 **Not planned**: a scaled frame is a `Transform` in Spark, and giving `CoordinateSystem` a
 scale would mean every downstream operation that takes a frame has to decide what a non-unit
-axis length means. The other seven are `ByMatrix` (planned — it is a `Transform` constructor
-away), `ByCylindricalCoordinates` and `BySphericalCoordinates` (planned), `ByOriginVectors`
-with an explicit Z axis (Not planned — Spark derives Z, and an independent Z is how you get a
-left-handed or non-orthogonal frame by accident), and `FromJson`/`ToJson` (planned as part of
-FR-57, in Spark's own format).
+axis length means. The other seven were described here as *planned* and **six of the seven are
+`Done`**, which the member-by-member pass found on 2026-09-13: `ByMatrix` is the `Transform`
+constructor, which takes its sixteen numbers one at a time so a caller cannot pass fifteen;
+`ByCylindricalCoordinates` and `BySphericalCoordinates` have been reachable since the `FromCylindrical`
+and `FromSpherical` factories landed on 2026-09-10, and are reachable **under either reading** of a
+signature that does not say whether the returned frame is merely *positioned* at the point or also
+*oriented* to its directions, because Spark has both; and `FromJson`/`ToJson` are
+`GeometryJson.Deserialize` and `Serialize`, **one entry point for every geometry type** rather than a
+pair per type (FR-57) — which is why one member answers the ten `FromJson`/`ToJson` rows in this
+document. Only `ByOriginVectors` with an explicit Z axis is refused, and it is refused for the same
+reason as the scale family: Spark **derives** Z, and an independent Z is how a caller gets a
+left-handed or non-orthogonal frame by accident. `CoordinateSystem.FromOriginZAxis` is there for
+somebody who has a Z and wants the frame built around it.
 
-**`BoundingBox` is the weakest row and it is weak for a good reason.** Eleven of its 19
-members are uncovered, and nine of those need geometry that does not exist —
-`ByGeometry` ×2, `ByGeometryCoordinateSystem` ×2, `ByMinimumVolume`, `ToCuboid`,
-`ToPolySurface`, plus `FromJson`/`ToJson`. Three are real gaps in a type we have already
-shipped, and they are the useful finding of this section:
+**`BoundingBox` was called the weakest row here and it is not, and the reason it read that way is
+worth keeping.** It said eleven of nineteen were uncovered because nine of them *need geometry that
+does not exist* — and that sentence was written when there were no curves, surfaces, solids or
+meshes. There are now: `Curve`, `Surface`, `Brep`, `Mesh` and `PointCloud` each carry a
+`BoundingBox`, so `ByGeometry` and its sequence form are `Done`, `ToCuboid` and `ToPolySurface` are
+both `BrepPrimitives.Box` — **the same member for both, because Spark has one `Brep` and open or
+closed is a property of it rather than a second type** — and `FromJson`/`ToJson` are
+`GeometryJson`'s. **`BoundingBox` is 14 of 19.** Applying [N161](NOTES.md) to `ByGeometry`, the
+enumeration of Spark geometry that *cannot* answer it is a single entry:
+`Spark.Geometry.Planar.Region`, which is a planar set rather than a shape. Of the three members this
+section called real gaps, one was closed and the other two are `Q17`:
 
 - **`Intersection(BoundingBox)`** — **added 2026-08-29** (`E2-T40`). It was described here as
   four lines and it is; what it is *not* is four lines of its own arithmetic. Each axis is
@@ -165,7 +228,13 @@ shipped, and they are the useful finding of this section:
   `BoundingBox` is strictly world-axis-aligned. **Needs a decision**, and the honest question
   is not whether to add a frame to `BoundingBox` but whether Spark wants a separate
   `OrientedBox` type. `Geometry.OrientedBoundingBox` and `BoundingBox.ByMinimumVolume` push
-  the same way. Recorded as an open question rather than silently absorbed.
+  the same way. **Filed as `Q17` on 2026-09-13**, because it had been *recorded as an open question*
+  in prose for a year without being anywhere a decision gets taken. **Six rows turn on it** — these
+  two, `ByGeometryCoordinateSystem` ×2, `ByMinimumVolume` and §3.8's
+  `Geometry.OrientedBoundingBox` — and they are the **only** five `Needs a decision` rows left in
+  this section. `ByMinimumVolume` is the hardest of them and cannot even be stated until `Q17` is
+  answered: a minimum-volume box is not a bounding box in a given frame, it is a **search** for the
+  frame.
 
 **`Point` and `Vector` are nearly complete.** `ByCylindricalCoordinates` and
 `BySphericalCoordinates` were **added 2026-09-10** (`E2-T40`) as `FromCylindrical` and
@@ -972,7 +1041,7 @@ compiler finds every call site. **The day after 1.0 it would have been an
 
 ## 5. What we will deliberately not replicate
 
-**93 members, 11.1% of the inventory, by this document's count — 121 by the manifest's** (`E11-T23`: the lists below add to 104, and the primitives' parameter-recovery properties are 14, not the 11 [h] says; `E2-T45` then counted [i]'s three flattened mesh accessors, `E2-T46` added three more under [f]'s ground — see [j] — and `E2-T41` counted [i]'s eight duplicated trim and split members once their survivor had been chosen). Each with a reason and with what a Spark user does
+**93 members, 11.1% of the inventory, by this document's count — 123 by the manifest's** (`E11-T23`: the lists below add to 104, and the primitives' parameter-recovery properties are 14, not the 11 [h] says; `E2-T45` then counted [i]'s three flattened mesh accessors, `E2-T46` added three more under [f]'s ground — see [j] — `E2-T41` counted [i]'s eight duplicated trim and split members once their survivor had been chosen, and `E2-T40` added `Vector.IsAlmostEqualTo` to [j] and `CoordinateSystem.ByOriginVectors`'s explicit-Z overload on §3.1's ground). Each with a reason and with what a Spark user does
 instead. These were evaluated on their merits rather than accepted as a list.
 
 **[a] `Application` (6) and `HostFactory` (6) — kernel session lifetime.** `StartUp`,
@@ -1066,15 +1135,19 @@ surviving members are `Done`, seven of them by composing `Curve.Trimmed(in Inter
 `SplitByPoints` has no twin in either set and was assessed on its merits rather than refused with
 the family.
 
-**[j] `Geometry`'s three members that compare against an ambient tolerance or a creation context —
-3 members.** `IsAlmostEqualTo(Geometry)` and `Approximate()` take **no tolerance**, so the tolerance
+**[j] Members that compare against an ambient tolerance or a creation context — 4 members.**
+`Geometry.IsAlmostEqualTo(Geometry)` and `Approximate()` take **no tolerance**, so the tolerance
 comes from somewhere unstated — almost certainly the session scale factor — and that is exactly the
 ground [f] refuses `EqualsTo(a, b)` on. **Only the form is refused**: the capability is
 `EqualsWithin(other, in Tolerance)` on eight value types, and `Surface.ApproximateWithTolerance` /
 `NurbsCurve.ApproximatePoints`. **A Spark user passes the tolerance they meant** (ADR-0010).
 `ContextCoordinateSystem` is [c]'s argument rather than [f]'s: a context frame records where a value
 was *created*, which requires geometry to have identity and history, and two `Point3d`s with the same
-coordinates are the same value. *(Counted, 2026-09-13, `E2-T46`.)*
+coordinates are the same value. *(Counted, 2026-09-13, `E2-T46`.)* **`Vector.IsAlmostEqualTo(Vector)`
+joined them on 2026-09-13** (`E2-T40`): the same member on the same ground one type down, and the
+capability is `Vector3d.EqualsWithin(other, in Tolerance)`. `CoordinateSystem.IsEqualTo` is **not**
+refused beside it, and the difference is the whole of [j]: *almost* equal with no tolerance has to
+get one from somewhere unstated, and exact equality does not.
 
 ---
 
@@ -1251,7 +1324,11 @@ before it is *listed*, which is why they do not block this register.
   planned regardless (§5 [e]).
 - **`Geometry.ContextCoordinateSystem`** — what a "context" frame means for arbitrary geometry,
   and how it differs from `BoundingBox.ContextCoordinateSystem`.
-- **`BoundingBox.IsEmpty()`** — degenerate, zero-volume, or never-initialised.
+- **`BoundingBox.IsEmpty()`** — degenerate, zero-volume, or never-initialised. **Answered as
+  reachable under all three readings on 2026-09-13** (`E2-T40`), which is the second row in the
+  register to settle that way: `BoundingBox.Empty` is the never-initialised sentinel, `Volume` is
+  zero for the second, and `IsValid` answers the degenerate one. The ambiguity stands; it just does
+  not decide anything.
 - **`PolyCurve.Heal(Double trimLength)`, `PolyCurve.CurveAtIndex(index, Boolean endOrStart)` and
   `PolyCurve.ByJoinedCurves(curves, joinTolerance, Boolean, Double)`** — the role of `trimLength`,
   of `endOrStart` alongside an index, and of the four-argument join's trailing flag and length, which

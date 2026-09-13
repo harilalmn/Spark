@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T41` closes: §3.2 assessed in full, 111 of 187; `Helix` decided)
+**Last updated:** 2026-09-13 (`E2-T40` re-measured: the register is fully assessed, 392 of 545)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -301,10 +301,21 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     written, and **`Rectangle` and `Polygon` stay `PolyLine` factories**, recorded as built. Step
 >     B's twenty-nine gaps are **`E2-T72`**, and they are three missing ideas: **no curve fitting of
 >     any kind**, **one fillet that takes two lines only**, and **no periodic NURBS curve** — which is
->     [N156](NOTES.md)'s trap for the third time. **Next**: `E2-T40`'s value layer, which is the last
->     assessment left — 78 rows over `Point`, `Vector`, `Plane`, `CoordinateSystem`, `BoundingBox` and
->     `UV`, the subsystem the coverage document's original 99 was entirely made of — or `E2-T70` step
->     B, the geometry-to-geometry queries. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
+>     [N156](NOTES.md)'s trap for the third time. ~~**`E2-T40`**~~ **re-measured the same day, and the register is
+>     finished**: §3.1 is **113 of 133**, not the 95 the row claimed, and **no row anywhere in the
+>     manifest is `Unassessed`**. This was the one section whose number was counted by hand rather
+>     than started from zero, so the expectation was over-claims; it under-claimed, **for the seventh
+>     section running**. Six of the eighteen are `CoordinateSystem`'s transformation family — the
+>     section called the `CoordinateSystem`/`Transform` split a *shape difference* and then counted it
+>     as a gap, which is [N158](NOTES.md) reaching the one section that predates it — and six are
+>     `BoundingBox`, which became reachable the moment there was geometry to bound. **`Q17` is filed**:
+>     does Spark want an `OrientedBox`, which is the only question left in §3.1 and §3.8 outside the
+>     T-Splines. **The headline is now 392 of 545 committed members, 72%**, taken from the manifest
+>     rather than checked against it — and it is the most misleading number in the document, because
+>     the easy members are what got done. **Next**: the register is out of assessments, so the work is
+>     the gaps it found — `E2-T70` step B (the geometry-to-geometry queries, the largest),
+>     `E2-T71`/`E2-T72` (the curve gaps), `E2-T73` (`Helix`), `E2-T66`…`E2-T69` — and `Q12`'s
+>     T-Splines decision, which is 169 members and the denominator of every figure above. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than
 >     machinery.

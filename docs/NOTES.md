@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-13 (N162, and its correction the same day: what the residue budget's *direction* actually measures)
+**Last updated:** 2026-09-13 (N163: seven assessments, seven under-claims, and why a register's error has a direction)
 
 ---
 
@@ -4985,3 +4985,58 @@ constructions over types the register already watches is the *cheapest* kind of 
 **The prediction is left standing above rather than edited out**, because a note that quietly rewrites
 its own reasoning teaches nothing about how the reasoning failed: it generalised from one observation
 and the second observation broke it.
+---
+
+## N163 — A register's error has a direction, and it is always the safe one
+
+**Seven member-by-member passes over the Dynamo parity register, and every one of them found Spark
+further ahead than the register claimed.** Not roughly balanced, not mostly: seven for seven, over
+837 rows and eleven days.
+
+| Section | Claimed | Measured | |
+|---|---:|---:|---|
+| §3.3 surfaces | 0 | 48 of 106 | `E2-T42`, `E11-T30` |
+| §3.4 solids | 0 | 24 of 55 | `E2-T43` |
+| §3.5 topology | 0 | 31 of 33 | `E2-T44` |
+| §3.6 mesh | 0 | 41 of 65 | `E2-T45` |
+| §3.8 infrastructure | 0 | 24 of 89 | `E2-T46` |
+| §3.2 curves | 0 | 111 of 187 | `E2-T41` |
+| §3.1 values and frames | **99** | **113 of 133** | `E2-T40` |
+
+**The last row is the one that makes this a note rather than a coincidence.** The first six all
+started from *0 reachable*, so an assessment could only move them up and finding a gain proves
+nothing. §3.1 was different: its 99 was a real count, made by hand, in prose, and it was the number
+the whole document's headline rested on. The pass over it was a **check**, and the honest expectation
+going in — written into the journal before the work started, so it could not be revised afterwards —
+was that it would find **over**-claims. It found fourteen more reachable members.
+
+**Three mechanisms, and each one is safe in the same direction.**
+
+1. **A register that reads one assembly under-claims.** §3.3 said `Planned` for twenty capabilities
+   that had worked since M6, because the check read `Spark.Geometry.dll` and loft, sweep, thicken and
+   the booleans are delivered through `Spark.Api.IBrepKernel` ([N158](NOTES.md), `E11-T30`).
+2. **A register that reads its own prose under-claims.** §3.1 still called
+   `ByCylindricalCoordinates` *planned* three days after the factory landed, because nobody re-read
+   the sentence ([N160](NOTES.md)). The fix is to read the assembly every time, and it is a rule
+   because it is not a habit.
+3. **A register whose subject is *capability* under-claims when the shape differs.** This is the
+   subtlest and it produced the largest single error. §3.1 argued at length that Spark splits
+   Dynamo's `CoordinateSystem` into an orthonormal frame and a `Transform` carrying the algebra —
+   and then counted the split as six missing members. **A capability delivered somewhere else is
+   still delivered.** The same shape appears in §3.8, where one `Transform` factory answers a member
+   Dynamo repeats on eleven types, and in §3.2, where `Curve.Trimmed` twice answers a `Split` that
+   was recorded as a deliberate exclusion.
+
+**Why the error cannot run the other way, which is the actual point.** An over-claim is a row saying
+*Done* about a member that is not there, and the rename-catcher turns red on it the moment anyone
+builds. An **under**-claim is a row saying `Planned` about a capability that works — and **nothing
+fails**. No check, no build, no test. It costs a capability nobody knows they have and, worse, a
+schedule padded for work already finished. `Surface.Repair()` sat at `Not planned` for months on a
+true premise that had reached a false conclusion ([N158](NOTES.md)).
+
+**So the practice, and it is cheap.** The reverse direction of the check — every public member named
+by a row, excused by a rule, or counted against an exact residue budget — exists precisely because
+the forward direction can only catch the error that was never going to happen. **Keep the budget
+exact rather than a ceiling**, because a ceiling lets an under-claim sit for ever. And when a pass
+finds a section further ahead than claimed, **do not congratulate the code**: ask which of the three
+mechanisms above hid it, and whether the same one is hiding something else.
