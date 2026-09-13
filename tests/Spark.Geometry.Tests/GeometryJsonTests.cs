@@ -47,6 +47,18 @@ public sealed class GeometryJsonTests
             Plane.WorldXY, 3.0, Angle.FromDegrees(15.0), Angle.FromDegrees(220.0)),
         [typeof(EllipseCurve)] = EllipseCurve.FromPlaneRadiiAngles(
             Plane.WorldYZ, 4.0, 2.0, Angle.Zero, Angle.FromDegrees(300.0)),
+
+        // A tilted axis, an origin that is NOT level with the start point, and more than one turn.
+        // A helix about the world z axis starting in the xy plane would survive a round trip that
+        // dropped the axis frame altogether, and the axis point is written where the type reports
+        // it rather than where this line puts it — so a sample that used the same height for both
+        // could not tell the two apart (`E2-T73`).
+        [typeof(Helix)] = Helix.FromAxis(
+            new Point3d(1.0, 1.0, -5.0),
+            new Vector3d(0.0, 1.0, 1.0),
+            new Point3d(3.5, 1.0, 2.0),
+            1.75,
+            Angle.FromDegrees(930.0)),
         // Rational, degree 3, with an interior knot and unequal weights. A non-rational curve
         // over a uniform 0..1 vector would round-trip even if the weights or the knots were being
         // dropped, which is the failure a sample exists to catch.

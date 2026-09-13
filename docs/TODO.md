@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T70` closes: a curve can be cut by a surface)
+**Last updated:** 2026-09-13 (`E2-T73`: `Helix`, the eighth curve type, and the first gap the register found and then closed)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -310,7 +310,7 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     as a gap, which is [N158](NOTES.md) reaching the one section that predates it — and six are
 >     `BoundingBox`, which became reachable the moment there was geometry to bound. **`Q17` is filed**:
 >     does Spark want an `OrientedBox`, which is the only question left in §3.1 and §3.8 outside the
->     T-Splines. **The headline is now 392 of 545 committed members, 72%**, taken from the manifest
+>     T-Splines. **The headline is now 399 of 545 committed members, 73%**, taken from the manifest
 >     rather than checked against it — and it is the most misleading number in the document, because
 >     the easy members are what got done. ~~**`E2-T70` step B**~~ **done the same day, and `E2-T70`
 >     closes**: `Curve.IntersectWith(Surface)`, which had **no member anywhere**. It brackets a
@@ -322,10 +322,28 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     nanometre — and that assertion caught a design error before it shipped: the refinement was
 >     stopping as soon as the residual was inside the tolerance, and *the tolerance decides what
 >     counts as meeting, not how accurately the answer is reported*. **Surface/surface stays behind
->     the seam** (ADR-0002), so `Geometry.Intersect` stays `Planned`. **Next**: `E2-T73` (`Helix`,
->     decided in `D27` and the cheapest type the curve hierarchy can gain), then `E2-T71`/`E2-T72`
+>     the seam** (ADR-0002), so `Geometry.Intersect` stays `Planned`. ~~**`E2-T73`**~~ **done the
+>     same day it was filed — `Helix`, the eighth curve type, and the first row in this whole run
+>     that *builds* what the register found rather than measuring it**. Seven parity rows move from
+>     `Planned` to `Done`, so §3.2 goes 111 → **118 of 187** and the headline 392 → **399 of 545**.
+>     It cost exactly what `D27` said it would, because a helix travels at a **constant speed**:
+>     every arc-length member is closed form rather than iterative. **Three conventions, each
+>     borrowed from this layer rather than invented**: a negative sweep flips the axis (`Arc`'s),
+>     `AxisPoint` is reported beside the *start* rather than where the caller put the origin
+>     (`Arc.StartAngle`'s), and a **zero pitch is refused with a message naming `Arc`**
+>     (`Circle.Trimmed`'s). A negative pitch is *not* refused — that is handedness. **Two branches
+>     proved red by removing them**, and the one that mattered is **the axial factor in
+>     `TransformedBy`**: `CircularArcs.TransformFrame` hands back the *radial* factor, the two are
+>     equal under a uniform scale, and a helix of the right shape and the wrong height would have
+>     passed anything that did not stretch along the axis. **And it found a live defect nothing else
+>     could see** ([N164](NOTES.md)): `ReferenceCatalog`'s pin list against `CS0104` is written by
+>     hand, a tenth colliding façade made `Helix` ambiguous in **every code block**, and the only
+>     thing that noticed was the help-sample compiler — because the topic happened to name the type.
+>     That list is now derived by reflection. **Next**: `E2-T71`/`E2-T72`
 >     (no curve fitting of any kind, one fillet that takes two lines, no periodic NURBS, no
->     curve-to-NURBS conversion), then `E2-T66`…`E2-T69`. `Q12`'s T-Splines decision is 169 members
+>     curve-to-NURBS conversion — and a `Helix` is now the sharpest case for the last of those,
+>     since it has an exact rational form and the STEP writer exports one from 64 samples), then
+>     `E2-T66`…`E2-T69`. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than

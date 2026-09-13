@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T70` closes: curve/surface intersection)
+**Last updated:** 2026-09-13 (`E2-T73`: `Helix`, the eighth curve type)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -316,7 +316,7 @@ documented, because CS1591 is an error here, and everything is recorded in
 and `tests/Spark.Geometry.Properties` (38 CsCheck properties), both green.
 
 **What the curve layer settled, and it was settled before it was written.** The contract came
-from [DYNAMO-COVERAGE §3.2](DYNAMO-COVERAGE.md#32-curves--11-types-187-members-111-reachable)
+from [DYNAMO-COVERAGE §3.2](DYNAMO-COVERAGE.md#32-curves--11-types-187-members-118-reachable)
 rather than from FR-48, because that section had found the gap between them to be structural
 rather than incidental: **arc-length reparameterisation is in the contract**, so *divide this
 curve into twelve equal lengths* is a first-class operation rather than a retrofit. It is
@@ -347,9 +347,12 @@ it is three ideas rather than twenty-nine items: **no curve fitting of any kind*
 `Circle` each want a best-fit constructor and none exists, though `Plane.FromBestFit` and
 `NurbsCurve.FitPoints` do — **one fillet, and it takes two lines**, and **no periodic NURBS curve**,
 because `KnotVector` is clamped and has only `CreateClamped`. It also settled the layer's last open
-type: **`Helix` goes in** (`D27`, `E2-T73`), which is the cheapest curve this hierarchy can gain,
-since a helix travels at a constant speed and every arc-length member of the contract is closed form
-for it.
+type: **`Helix` goes in** (`D27`), which is the cheapest curve this hierarchy can gain, since a
+helix travels at a constant speed and every arc-length member of the contract is closed form for it
+— **and `E2-T73` built it the same day**, so the eighth curve type exists, its seven parity rows are
+`Done`, and §3.2 stands at **118 of 187**. That is the first move this register has made by
+building rather than by measuring, and it is the shape the remaining ones have to have now that no
+row anywhere is `Unassessed`.
 
 **Still not started in this epic.** No surfaces, no meshes, no BRep topology, no `IBrepKernel`,
 no serialization and no interchange. `Spark.Geometry.Io` is still an empty project. No
@@ -1428,9 +1431,9 @@ nothing.
       equivalence is unprovable — and the 89-row review that closed the task found one name match
       that was not the same capability ([N156](NOTES.md)), which is why a green run is not a review.*
 - [x] **Every row in the register is assessed, with a status and a written reason** (**E2-T40**…**E2-T46**,
-      **E11-T30**, closed 2026-09-13). *All 837, across seven member-by-member passes: `Done` 392,
+      **E11-T30**, closed 2026-09-13). *All 837, across seven member-by-member passes: `Done` 399,
       `Planned` 124, `Not planned` 123, `Needs a decision` 198, **`Unassessed` 0**. Spark stands at
-      **392 of the 545 members it has committed to**. Every one of the seven passes found Spark
+      **399 of the 545 members it has committed to**. Every one of the seven passes found Spark
       **further ahead than the register claimed**, including §3.1, the one section whose figure was a
       hand count and where the expectation was the opposite — the systematic error was in one
       direction and [N163](NOTES.md) says why. The residue budget fell 278 → 270 over the same period

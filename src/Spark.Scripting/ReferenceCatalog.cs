@@ -110,13 +110,21 @@ public sealed class ReferenceCatalog
         // code block is asking for. `System.Console` is still there under its full name.
         "Console = Spark.Nodes.Core.Console",
 
-        // The nine that collide with Spark.Geometry, pinned to the geometry type a block has always
+        // The TEN that collide with Spark.Geometry, pinned to the geometry type a block has always
         // meant by them, and `Math`, pinned to System's.
+        //
+        // `E2-T73`: THIS LIST IS HAND-WRITTEN, AND IT WENT STALE THE DAY A TENTH FACADE ARRIVED.
+        // Adding `Spark.Nodes.Core.Helix` beside `Spark.Geometry.Helix` made `Helix` ambiguous in
+        // every code block, and nothing here noticed - the help-sample compiler did, three
+        // documents later. `CodeBlockLibraryReachTests.EveryCollidingNameIsPinned` now derives the
+        // set by reflection and fails the build when this list and the two assemblies disagree,
+        // which is the guard that should have existed when the list was first written.
         "Math = System.Math",
         "Arc = Spark.Geometry.Arc",
         "BoundingBox = Spark.Geometry.BoundingBox",
         "Circle = Spark.Geometry.Circle",
         "Curve = Spark.Geometry.Curve",
+        "Helix = Spark.Geometry.Helix",
         "Line = Spark.Geometry.Line",
         "Plane = Spark.Geometry.Plane",
         "PolyCurve = Spark.Geometry.PolyCurve",

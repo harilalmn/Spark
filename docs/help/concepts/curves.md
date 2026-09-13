@@ -1,7 +1,7 @@
 ---
 id: concepts.curves
 title: Curves, parameters and arc length
-nodes: [Line.FromStartPointEndPoint, Circle.FromCenterRadius, Arc.FromThreePoints, Ellipse.FromPlaneRadii, PolyLine.FromRegularPolygon, PolyCurve.FromJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength, Curve.IntersectWith, Curve.IntersectWithSurface]
+nodes: [Line.FromStartPointEndPoint, Circle.FromCenterRadius, Arc.FromThreePoints, Ellipse.FromPlaneRadii, Helix.FromAxis, PolyLine.FromRegularPolygon, PolyCurve.FromJoinedCurves, Curve.PointAtParameter, Curve.PointAtLength, Curve.DivideEqually, Curve.DivideByLength, Curve.IntersectWith, Curve.IntersectWithSurface]
 related: [concepts.geometry-basics, concepts.lacing]
 since: "0.1"
 ---
@@ -10,9 +10,9 @@ since: "0.1"
 **Owner:** `geometry-kernel`
 **Last updated:** 2026-09-13
 
-> **Scope.** Seven curve types exist today: `Line`, `Arc`, `Circle`, `EllipseCurve`,
-> `NurbsCurve`, `PolyLine` and `PolyCurve`, and an eighth — `Helix` — is decided and not yet
-> built. Curve intersection, offsetting and the closest-point queries are all here; **projection
+> **Scope.** Eight curve types exist today: `Line`, `Arc`, `Circle`, `EllipseCurve`, `Helix`,
+> `NurbsCurve`, `PolyLine` and `PolyCurve`. Curve intersection, offsetting and the closest-point
+> queries are all here; **projection
 > and pull are not**, and neither is a planarity test. Surfaces, meshes and solids arrived at M5
 > and M6. Every example below was run against the assembly.
 
@@ -36,8 +36,8 @@ Every curve has a **domain** — the range of numbers you can hand it — and as
 point at a parameter walks that range. Every curve also has a **length**, and asking for the
 point at a length walks the curve itself with a tape measure.
 
-On a line and on a circle these two agree, because those curves travel at a constant speed. On
-an **ellipse** they do not: the curve moves quickly past the ends of the long axis and slowly
+On a line, a circle and a helix these two agree, because those curves travel at a constant
+speed. On an **ellipse** they do not: the curve moves quickly past the ends of the long axis and slowly
 past the ends of the short one, so equal steps in parameter cover unequal distances. (An
 ellipse's *quarter* marks do agree, because its four quadrants are congruent — which is why
 the example below uses an eighth rather than a quarter.)
@@ -98,6 +98,7 @@ Ask, do not assume:
 | `Circle` | 0 → 2π | radians from the plane's x axis |
 | `Arc` | 0 → sweep | radians from the arc's **own** start |
 | `EllipseCurve` | 0 → sweep | the eccentric angle, not the angle at the center |
+| `Helix` | 0 → sweep | radians turned about the axis, so 2π is one whole turn |
 | `PolyLine` | 0 → n | one unit per segment, so whole numbers are the vertices |
 | `PolyCurve` | 0 → n | one unit per segment, so whole numbers are the joints |
 
@@ -142,6 +143,15 @@ Arc bend = Arc.FromThreePoints(
 // rectangle is a factory rather than a class of its own.
 PolyLine hexagon = PolyLine.FromRegularPolygon(Plane.WorldXY, 2.0, 6);
 PolyLine frame = PolyLine.FromRectangle(Plane.WorldXY, 4.0, 3.0);
+
+// Turning and rising at once. The start point says where it begins and how far out it is; the
+// pitch says how much it climbs each turn.
+Helix spiral = Helix.FromAxis(
+    Point3d.Origin,
+    Vector3d.ZAxis,
+    new Point3d(1.5, 0.0, 0.0),
+    0.5,
+    Angle.FromDegrees(1080.0));   // three turns
 
 // Chained. The join tolerance is passed, never assumed, and a chain that does not meet
 // within it is refused rather than silently accepted with a gap in it.
@@ -246,6 +256,74 @@ double reach = beforeTheWall.Length;   // 1.0 - the line stops at the wall
 
 **Surface against surface is not here.** That is a much harder problem and it belongs to the
 solid modelling kernel, not to this layer — see [Solids](solids.md).
+
+---
+
+## 8. A helix, and the one curve where §1's warning does not bite
+
+A **helix** turns about an axis at a fixed radius while rising along it at a fixed rate. It is
+what you reach for when a graph has to lay out a spiral stair, a ramp, a thread or a spiral duct.
+
+It is also the curve that makes §1's distinction easiest to see the *other* way round, because a
+helix travels at a **constant speed**: a point that has gone a third of the way along it has also
+turned a third of the way round it and climbed a third of the way up it. So dividing by length
+and dividing by parameter give the same points — which on an ellipse they emphatically do not.
+
+A stair, then. Sixteen risers up a 3-metre storey, at a going that puts the treads on a
+1.2 m radius:
+
+```csharp
+using Spark.Geometry;
+
+// One full turn, climbing three metres. The start point is where the bottom riser sits, and its
+// distance from the axis is the radius — you do not pass the radius separately.
+Helix flight = Helix.FromAxis(
+    Point3d.Origin,
+    Vector3d.ZAxis,
+    new Point3d(1.2, 0.0, 0.0),
+    3.0,
+    Angle.FullTurn);
+
+Point3d[] nosings = flight.DivideEqually(16);   // 17 points: sixteen risers, both ends
+
+double rise = nosings[1].Z - nosings[0].Z;      // 0.1875 - every riser the same, by construction
+double walk = flight.Length;                    // 8.11 - the distance actually walked
+```
+
+**`walk` is the number a stair needs and the one a plan drawing cannot give you.** A helix
+unrolls to the hypotenuse of a right triangle whose legs are the arc it turned through
+(`2π × 1.2 = 7.54`) and the height it climbed (`3.0`) — so the walking line is longer than
+either. Spark computes it in closed form rather than by adding up chords.
+
+Three things about the type that are worth knowing before you rely on it:
+
+- **The pitch is the rise per *turn*, and it may be negative.** A negative pitch is a left-handed
+  helix — it descends as it turns anticlockwise. It may **not** be zero: a helix that does not
+  rise is an arc, and asking for one gets you an error that says so rather than a degenerate
+  helix.
+- **A negative sweep flips the axis rather than running the domain backwards.** Turning the other
+  way about `+Z` is the same curve as turning this way about `-Z`, so that is what you get, and
+  `AxisDirection` reports the axis it settled on. This is exactly what `Arc` does with a negative
+  sweep.
+- **`AxisPoint` is reported beside the start, not where you put the origin.** Only the axis
+  *line* is part of the curve — the start point is what fixes the height — so an origin higher or
+  lower on the same line describes the same helix and gets normalised to the same one.
+
+```csharp
+using Spark.Geometry;
+
+// The same flight, with the axis origin given a hundred metres below. Same curve.
+Helix elsewhere = Helix.FromAxis(
+    new Point3d(0.0, 0.0, -100.0),
+    Vector3d.ZAxis,
+    new Point3d(1.2, 0.0, 0.0),
+    3.0,
+    Angle.FullTurn);
+
+Point3d axisPoint = elsewhere.AxisPoint;   // (0, 0, 0) - beside the start, not (0, 0, -100)
+double pitch = elsewhere.Pitch;            // 3
+double radius = elsewhere.Radius;          // 1.2 - taken from the start point
+```
 
 ---
 

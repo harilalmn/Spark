@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-13 (`E2-T70` step B: curve/surface intersection; the register is fully assessed, 392 of 545)
+**Last updated:** 2026-09-13 (`E2-T73`: `Helix` built, the first gap this register found and then watched close; 399 of 545)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -52,15 +52,16 @@ or from this repository; none is an estimate.
 | | Types | Members | Share of 837 |
 |---|---:|---:|---:|
 | ProtoGeometry public surface | 51 | 837 | 100% |
-| **Reachable in Spark today** | **34** | **392** | **46.8%** |
+| **Reachable in Spark today** | **35** | **399** | **47.7%** |
 | Deliberately not replicated (§5) | 7 + parts of 4 | 123 | 14.7% |
 | Awaiting a decision — T-Splines (§6.2) | 8 | 169 | 20.2% |
-| **Committed and still to build** | — | **153** | **18.3%** |
+| **Committed and still to build** | — | **146** | **17.4%** |
 
 Against the scope we have actually committed to — 837 less the 123 we refuse and the 169 that
-need their own decision, so **545 members** — Spark stands at **392 of 545, or 71.9%**. **Ten
+need their own decision, so **545 members** — Spark stands at **399 of 545, or 73.2%**. **Eleven
 ProtoGeometry types are answered in full**: `Plane`, `UV`, `Ellipse`, `EllipseArc`, `Rectangle`,
-`IndexGroup`, `Topology`, `Vertex`, `Edge` and `Loop`.
+`IndexGroup`, `Topology`, `Vertex`, `Edge`, `Loop` and, since 2026-09-13, **`Helix`** — the first of
+the eleven that this register asked for and then watched get built (`E2-T73`).
 
 > **These figures are counted, not estimated, and 2026-09-13 is the first day that is true of all of
 > them.** Every row of the manifest now carries a status and a written reason; **none is
@@ -75,8 +76,8 @@ ProtoGeometry types are answered in full**: `Plane`, `UV`, `Ellipse`, `EllipseAr
 > **The manifest counts these now, and where it differs from this table the manifest is right**
 > (2026-09-11, `E11-T23`). [`tests/corpus/dynamo-parity.tsv`](../tests/corpus/dynamo-parity.tsv) holds
 > one row per member, generated from the same `ProtoGeometry.dll` metadata, and `Spark.Docs.Verify`
-> checks it against this document on every build. **As of 2026-09-13 it stands at `Done` 392,
-> `Planned` 124, `Not planned` 123, `Needs a decision` 198 and `Unassessed` 0**, which is 837 — and
+> checks it against this document on every build. **As of 2026-09-13 it stands at `Done` 399,
+> `Planned` 117, `Not planned` 123, `Needs a decision` 198 and `Unassessed` 0**, which is 837 — and
 > the table above is now taken from those numbers rather than checked against them.
 > Applying §5's rules gives **123** refused members, not 93 — §5's own lists add to 104, the four
 > primitive solids carry 14 parameter-recovery properties rather than 11, §5 [i]'s three flattened
@@ -85,11 +86,18 @@ ProtoGeometry types are answered in full**: `Plane`, `UV`, `Ellipse`, `EllipseAr
 > `Vector.IsAlmostEqualTo` to §5 [j] and `CoordinateSystem.ByOriginVectors`'s explicit-Z overload to
 > §3.1's ground. **Of the 198 `Needs a decision`, 169 are the T-Splines and 29 are not**: `Q17`'s six
 > oriented-box rows, §6.3's undeducible signatures, and the rest.
-> **All seven sections are now assessed member by member**: §3.1 (113 of 133), §3.2 (**111 of 187**,
+> **All seven sections are now assessed member by member**: §3.1 (113 of 133), §3.2 (**118 of 187**,
 > the largest), §3.3 (48 of 106), §3.4 (24 of 55), §3.5 (31 of 33), §3.6 (41 of 65) and §3.8 (24 of
 > 89). §3.7's 169 T-Spline members are `Q12`'s decision and are not an assessment.
+>
+> **The move from 392 to 399 on 2026-09-13 is the first this register has made by *building*
+> rather than by *measuring*.** Every earlier change to the headline came from a member-by-member
+> pass finding Spark further ahead than the prose claimed — seven passes, seven under-claims
+> ([N163](NOTES.md)). `Helix`'s seven rows are `Done` because the type was written (`E2-T73`), which
+> is what the register is *for*, and is the shape every remaining move has to have now that no row
+> anywhere is `Unassessed`.
 
-### What the 392 counts, exactly
+### What the 399 counts, exactly
 
 A ProtoGeometry member counts as **reachable** when a Spark user can obtain the same result
 today through a documented member of one of the **delivering assemblies** — `Spark.Geometry`,
@@ -107,10 +115,10 @@ because getting there means working out the sweep angle from two radii, and the 
 the constructor is for. Members that are pure native-session plumbing, or that operate on types
 Spark does not have, are not reachable.
 
-**Where the 392 sit.** Every subsystem except T-Splines — which is the sentence this section could
+**Where the 399 sit.** Every subsystem except T-Splines — which is the sentence this section could
 not say for the first year of its life, when it read *all 99 sit in one subsystem, because that is
-the only subsystem that exists*. Values and frames is 113 of 133, curves 111 of 187, surfaces 48 of
-106, topology 31 of 33, mesh 41 of 65, solids 24 of 55 and infrastructure 24 of 89. Ten types are
+the only subsystem that exists*. Values and frames is 113 of 133, curves 118 of 187, surfaces 48 of
+106, topology 31 of 33, mesh 41 of 65, solids 24 of 55 and infrastructure 24 of 89. Eleven types are
 answered in full. What is **not** here is exact solid modelling without a provider (§6.1) and the
 T-Spline paradigm (§6.2), and no count in this document should be read as implying otherwise.
 
@@ -119,11 +127,11 @@ T-Spline paradigm (§6.2), and no count in this document should be read as imply
 Two warnings, both of which matter for reading the table above honestly.
 
 **A percentage of members is not a percentage of work, and 72% is the most misleading number in
-this document.** A large share of the 392 are the easiest members in the inventory: arithmetic on
+this document.** A large share of the 399 are the easiest members in the inventory: arithmetic on
 six-double structs, decided by algebra and verified by property tests. A large share of the rest are
 `Done` because they name an `IBrepKernel` operation, which is *one line in this register and an
 entire dependency* — `Solid.Difference` is one row of one table and is a multi-year research problem
-if it is ever written rather than delegated (§6.1, ADR-0020). And the 153 still to build are not the
+if it is ever written rather than delegated (§6.1, ADR-0020). And the 146 still to build are not the
 easy ones, because the easy ones are what got done. **Any schedule derived from 72% is wrong by an
 order of magnitude**, in the same way any schedule derived from the old 17% was.
 
@@ -286,11 +294,13 @@ separate concerns and Spark keeps them separate. Similarly `Vector.Scale(x, y, z
 through `Transform.Scale(x, y, z).OfVector(v)`; a non-uniform scale is a transformation, and
 putting it on the vector implies a frame the vector does not carry.
 
-### 3.2 Curves — 11 types, 187 members, 111 reachable
+### 3.2 Curves — 11 types, 187 members, 118 reachable
 
 **All 187 rows were assessed member by member on 2026-09-13** (`E2-T41`, in two steps: `Curve`'s 82,
 then the ten concrete types' 105), against the delivering assemblies rather than by eye
-([N160](NOTES.md)). Every *Reachable* figure below is counted from the manifest.
+([N160](NOTES.md)). Every *Reachable* figure below is counted from the manifest. **`Helix` was then
+built the same day** (`E2-T73`), which is why the figure is 118 rather than the 111 the assessment
+found.
 
 | Dynamo type | Members | Reachable | Spark equivalent | Status | Milestone |
 |---|---:|---:|---|---|---|
@@ -300,25 +310,30 @@ then the ten concrete types' 105), against the delivering assemblies rather than
 | `Circle` | 8 | 7 | `Circle` | **Exists** | M1 ✓ |
 | `Ellipse` | 8 | 8 | `EllipseCurve` | **Complete** | M1 ✓ |
 | `EllipseArc` | 9 | 9 | `EllipseCurve` over a sub-domain | **Complete** | M1 ✓ |
-| `Helix` | 7 | 0 | `Helix` — **decided, and not built** (D27) | Planned | M3 |
+| `Helix` | 7 | 7 | `Helix` | **Complete** | M1 ✓ |
 | `NurbsCurve` | 15 | 11 | `NurbsCurve` | **Partial** | M3 ✓ |
 | `PolyCurve` | 21 | 7 | `PolyCurve` | **Partial** | M1 ✓ |
 | `Polygon` | 9 | 8 | `PolyLine`, closed | **Partial** | M1 ✓ |
 | `Rectangle` | 8 | 8 | A `PolyLine` factory, not a type | **Complete** | M1 ✓ |
 
-**111 of 187**, as `Done` 111, `Planned` 50, `Needs a decision` 18, `Not planned` 8. `Curve` alone is
+**118 of 187**, as `Done` 118, `Planned` 43, `Needs a decision` 18, `Not planned` 8. `Curve` alone is
 **40 of 82**, and it had five `Done` rows before this pass with none of the other 77 ever looked at —
 so the reading that mattered, *is the largest type in the inventory mostly a gap*, had never been
 tested. It is not: **the contract this section was written to shape now answers half of the type it
-was written against.** Three of the ten concrete types are **complete**, and two of those three are
-the same Spark type answering two Dynamo ones.
+was written against.** **Four** of the ten concrete types are **complete**, and two of those four
+are the same Spark type answering two Dynamo ones.
 
-**The two decisions this section had been carrying are made.** **`Helix` goes in** (D27, `E2-T73`):
-it was `Needs a decision` because it is absent from FR-48 and nobody had decided against it, and it
-is the cheapest type the curve hierarchy can gain — a helix travels at a **constant speed**, so
-`LengthAt`, `ParameterAtLength`, `PointAtLength`, `DivideEqually` and `DivideByLength` are all closed
-form and exactly right, which is true of only five of the seven types Spark already has. It needs no
-kernel and no provider, and AEC users draw it: stairs, ramps, threads, spiral ducts. **`Rectangle`
+**The two decisions this section had been carrying are made, and one of them is already built.**
+**`Helix` went in** (D27) and **was written the same day** (`E2-T73`): it was `Needs a decision`
+because it is absent from FR-48 and nobody had decided against it, and it is the cheapest type the
+curve hierarchy can gain — a helix travels at a **constant speed**, so `LengthAt`,
+`ParameterAtLength`, `PointAtLength`, `DivideEqually` and `DivideByLength` are all closed form and
+exactly right, which was true of only five of the seven types Spark had before it. It needs no
+kernel and no provider, and AEC users draw it: stairs, ramps, threads, spiral ducts. All seven rows
+are now `Done`, with two names that do not match Dynamo's and the difference recorded rather than
+smoothed over: Spark's total sweep is `SweepAngle`, as it already is on `Arc`, and `AxisPoint`
+reports the point on the axis **level with the start** rather than the origin the caller passed,
+because only the axis *line* is in the curve. **`Rectangle`
 and `Polygon` stay factories on `PolyLine`** rather than becoming types, which is what this section
 argued and what Spark built; the rows now record it as built rather than leaving it as an argument.
 The price is visible and worth seeing: `Rectangle.Width` and `Height` are `Done` as

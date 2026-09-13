@@ -18,7 +18,7 @@ namespace Spark.UI.Tests;
 /// <c>using Circle = Spark.Geometry.Circle;</c> is ordinary C#. <c>ScriptCompletion</c> passed the
 /// same strings to <c>CSharpCompilationOptions.Usings</c>, which is the global-usings list and
 /// takes <b>namespace names</b> — so every alias was discarded without a diagnostic while
-/// <c>using Spark.Nodes.Core;</c> survived, and all ten aliased names became ambiguous
+/// <c>using Spark.Nodes.Core;</c> survived, and all twelve aliased names became ambiguous
 /// (<c>CS0104</c>) in the workspace that answers the editor.
 /// </para>
 /// <para>
@@ -41,9 +41,10 @@ public sealed class CatalogueCompletionTests
     }
 
     /// <summary>
-    /// <b>The aliased names bind, and this is the whole row.</b> Ten names collide between
-    /// <c>Spark.Geometry</c> and <c>Spark.Nodes.Core</c>; the alias is what settles each one, and
-    /// before this row none of them reached the editor.
+    /// <b>The aliased names bind, and this is the whole row.</b> Ten type names collide between
+    /// <c>Spark.Geometry</c> and <c>Spark.Nodes.Core</c> — <c>Helix</c> is the tenth, added by
+    /// `E2-T73` — and <c>Console</c> and <c>Math</c> collide with <c>System</c>'s. The alias is
+    /// what settles each one, and before this row none of them reached the editor.
     /// </summary>
     [Theory]
     [InlineData("new Circle(")]

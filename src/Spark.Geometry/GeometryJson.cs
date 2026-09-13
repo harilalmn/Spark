@@ -202,6 +202,15 @@ public static class GeometryJson
                 Number(writer, "sweepAngle", v.SweepAngle.Radians);
                 break;
 
+            case Helix v:
+                Open(writer, nameof(Helix));
+                Member(writer, "axisPoint", v.AxisPoint);
+                Member(writer, "axisDirection", v.AxisDirection);
+                Member(writer, "startPoint", v.StartPoint);
+                Number(writer, "pitch", v.Pitch);
+                Number(writer, "sweepAngle", v.SweepAngle.Radians);
+                break;
+
             case EllipseCurve v:
                 Open(writer, nameof(EllipseCurve));
                 Member(writer, "plane", v.Plane);
@@ -600,6 +609,12 @@ public static class GeometryJson
                 ReadPlane(element, "plane"),
                 Number(element, "radius"),
                 Angle.FromRadians(Number(element, "startAngle")),
+                Angle.FromRadians(Number(element, "sweepAngle"))),
+            nameof(Helix) => Helix.FromAxis(
+                Point(element, "axisPoint"),
+                Vector(element, "axisDirection"),
+                Point(element, "startPoint"),
+                Number(element, "pitch"),
                 Angle.FromRadians(Number(element, "sweepAngle"))),
             nameof(EllipseCurve) => EllipseCurve.FromPlaneRadiiAngles(
                 ReadPlane(element, "plane"),

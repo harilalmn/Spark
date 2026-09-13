@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-13 (N163: seven assessments, seven under-claims, and why a register's error has a direction)
+**Last updated:** 2026-09-13 (N164: a hand-written list of collisions is a list that goes stale, and the compiler that caught it was three documents away)
 
 ---
 
@@ -5040,3 +5040,47 @@ the forward direction can only catch the error that was never going to happen. *
 exact rather than a ceiling**, because a ceiling lets an under-claim sit for ever. And when a pass
 finds a section further ahead than claimed, **do not congratulate the code**: ask which of the three
 mechanisms above hid it, and whether the same one is hiding something else.
+
+---
+
+## N164 — A hand-written list of name collisions goes stale, and the thing that catches it is not where you would look
+
+**What happened.** `E2-T73` added `Spark.Geometry.Helix` and, beside it, the ordinary node façade
+`Spark.Nodes.Core.Helix` — the same pairing that already exists for `Arc`, `Circle`, `Line`, `Plane`,
+`Surface` and five others. Everything built. Every one of the 3,368 tests passed. The type was
+**broken in every code block in the application**, and nothing said so.
+
+**Why.** A code block's prelude imports `Spark.Geometry` *and* `Spark.Nodes.Core`, so every type name
+the two share is `CS0104` — ambiguous — unless the prelude also carries
+`using Helix = Spark.Geometry.Helix;` to pin it. `ReferenceCatalog.NodeLibraryImports` holds those
+pins, and it is **a literal array written by hand**. Its comment said *the nine that collide with
+`Spark.Geometry`*. There were ten.
+
+**What actually caught it, and this is the part worth keeping.** Not the geometry suite, which does
+not compile code blocks. Not `CodeBlockLibraryReachTests`, whose collision test is
+`[InlineData]` over four names somebody thought of in `E6-T30` and which therefore can only ever
+re-prove that *those* four are pinned. It was the **help-sample compiler** — the check that compiles
+every fenced `csharp` block in `docs/help/` against the real API — and only because the step's help
+topic happened to include a worked example that named the type. **Had the façade shipped
+undocumented, it would have shipped broken**, and the first report would have come from a user
+typing `Helix` into a code block and being told it is ambiguous between two things they did not know
+existed.
+
+**The shape of the fault, stated generally.** *A list that enumerates a relationship between two
+artefacts, maintained by hand, is wrong the moment either artefact changes — and its failure is
+silent by construction, because the list is what would have to notice.* The same shape is why
+`ConstructorParityTests` is a reflection diff rather than a list of examples ([`E2-T59`]), why
+`SolutionMembershipTests` walks `tests/` rather than trusting `Spark.slnx` ([`E11-T28`]), and why the
+parity residue budget is checked for **exact** equality rather than as a ceiling
+([N162](NOTES.md), [N163](NOTES.md)). Three of those four guards existed. The fourth did not, and
+the gap was a `private static readonly string[]`.
+
+**The fix.** `CodeBlockLibraryReachTests.EveryCollidingNameIsPinned` derives the colliding set by
+reflection — the public top-level type names of `Spark.Nodes.Core` intersected with those of
+`Spark.Geometry` — and fails with the unpinned names in the message. Proved by deleting the `Helix`
+pin and watching it go red, naming `Helix`.
+
+**And the cheaper lesson underneath it.** The hand-written comment was not merely out of date, it
+was *load-bearing*: *the nine that collide* was the only statement anywhere of how many there were.
+**A count in a comment is a test that never runs.** Where a number is worth writing down, the thing
+that computes it is worth writing instead.
