@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-13 (`E2-T66`: the surface fit and the grid interpolation)
+**Last updated:** 2026-09-13 (`E2-T66`: projection along a direction)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -447,8 +447,15 @@ from the code (`E10-T5`, `E10-T11`), and the in-product renderer is built (`E10-
 >     never refined would report perfection — measuring there instead turns five tests red.
 >     **And a mutation corrected the write-up for the second step running**: averaging the
 >     parameters across the grid is *not* what makes it interpolate, and the remark now says so.
->     **Next**: `ProjectInputOnto`, the two `Join`s, `ByRuledLoft` over a sequence, `ToString` on
->     the base. `Q12`'s T-Splines decision is 169 members
+>     ~~**`ProjectInputOnto`**~~ **done the same day**, as `Surface.Project` for a point and for
+>     a curve. **It is not `ClosestPoint`**, which is the row's whole point, and the test is on a
+>     *tilted* plane because on an untilted one the two answers coincide and an implementation
+>     that simply returned the nearest point would pass. **Mostly reuse**: a projection is a line
+>     crossed with a surface, and `Curve.IntersectWith(Surface)` arrived in `E2-T70`.
+>     **The finding is in the curve case**: tessellating the curve is the wrong sampling rule,
+>     because what bends is the *shadow*, not the curve — a straight line tessellates to two
+>     points and its shadow cut the chord through a pipe. **Next**: the two `Join`s, `ByRuledLoft`
+>     over a sequence, and `ToString` on the base, which is the last of `E2-T66`. `Q12`'s T-Splines decision is 169 members
 >     and needs the client, not a step. `Q12`'s T-Splines decision is not a commit. ~~**`E11-T23`**~~ **done 2026-09-12**: the manifest and its first three checks
 >     landed 2026-09-11, the reverse direction and the 89-row review on 2026-09-12, so the register
 >     now has a guard in both directions and the remaining rows are assessment rather than

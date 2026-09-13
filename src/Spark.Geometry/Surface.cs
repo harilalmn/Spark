@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Spark.Geometry;
 
@@ -718,6 +719,208 @@ public abstract class Surface
         throw new NotSupportedException(
             $"{GetType().Name} has no NURBS form written. Every surface type Spark ships overrides "
             + "ToNurbsSurface; a type that reaches this has not.");
+
+    /// <summary>
+    /// Where a point lands on this surface when it travels in a given direction (`E2-T66`).
+    /// </summary>
+    /// <param name="point">The point to project.</param>
+    /// <param name="direction">Which way it travels. Its length is ignored.</param>
+    /// <param name="tolerance">How precisely to locate the hits.</param>
+    /// <returns>
+    /// Every point of this surface on the line through <paramref name="point"/>, ordered along
+    /// <paramref name="direction"/> starting from the point itself. Empty when the line misses.
+    /// </returns>
+    /// <exception cref="ArgumentException"><paramref name="direction"/> has no length.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>This is not <see cref="ClosestPoint(in Point3d, out double, out double)"/>, and the
+    /// difference is the point of the member.</b> The closest point on a surface is the one you
+    /// reach by the shortest route; a projection is the one you reach by travelling in the
+    /// direction you were given. On a tilted plane those are different points, and an
+    /// implementation that answered the first would be wrong in a way that only a tilted test can
+    /// see.
+    /// </para>
+    /// <para>
+    /// <b>A projection can miss, and can hit more than once.</b> Projecting through a cylinder
+    /// along a diameter hits twice, and that is the answer rather than a problem to resolve — so
+    /// this returns an ordered collection and an empty one is an answer, not an error. The ordering
+    /// is <i>along the direction from the point</i>, so the first entry is what a caller means by
+    /// <i>the</i> projection when they expect one, including when the point is behind the surface
+    /// and every hit is at a negative multiple of the direction.
+    /// </para>
+    /// <para>
+    /// <b>Built on <see cref="Curve.IntersectWith(Surface, in Tolerance)"/> rather than on new
+    /// intersection machinery</b>: a projection is a line crossed with a surface, and the line is
+    /// sized from this surface's bounding box so that it reaches across whatever it is asked about.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyList<Point3d> Project(
+        in Point3d point, in Vector3d direction, in Tolerance tolerance = default)
+    {
+        if (!direction.TryNormalise(out Vector3d along))
+        {
+            throw new ArgumentException(
+                "A projection needs a direction to travel in.", nameof(direction));
+        }
+
+        BoundingBox box = BoundingBox;
+
+        // Long enough to cross the surface from anywhere outside it, and centred on the point so
+        // that hits behind it are found too - a projection has a direction, not a side.
+        double reach = box.Diagonal.Length + box.Center.DistanceTo(point) + 1.0;
+        Line ray = new(point - (along * reach), point + (along * reach));
+
+        CurveSurfaceIntersections hits = ray.IntersectWith(this, tolerance);
+
+        if (hits.Points.Count == 0)
+        {
+            return [];
+        }
+
+        List<(double Along, Point3d Point)> found = [];
+
+        foreach (CurveSurfaceIntersectionPoint hit in hits.Points)
+        {
+            found.Add(((hit.Point - point).Dot(along), hit.Point));
+        }
+
+        found.Sort(static (first, second) => first.Along.CompareTo(second.Along));
+
+        Point3d[] ordered = new Point3d[found.Count];
+        for (int index = 0; index < found.Count; index++)
+        {
+            ordered[index] = found[index].Point;
+        }
+
+        return ordered;
+    }
+
+    /// <summary>
+    /// Where a curve lands on this surface when it travels in a given direction (`E2-T66`).
+    /// </summary>
+    /// <param name="curve">The curve to project.</param>
+    /// <param name="direction">Which way it travels. Its length is ignored.</param>
+    /// <param name="tolerance">How finely the curve is sampled, and how precisely hits are located.</param>
+    /// <returns>
+    /// The projected curve, in as many pieces as its shadow has runs on this surface. Empty when
+    /// the shadow misses entirely.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="curve"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="direction"/> has no length.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Approximate, and it says so by construction.</b> The exact projection of a curve onto a
+    /// surface is a surface-surface intersection — the curve swept along the direction, crossed
+    /// with the surface — which Spark does not have; <c>Curve.Project</c> and
+    /// <c>Curve.PullOntoSurface</c> are the register's rows for that and remain open. This samples,
+    /// projects each sample with <see cref="Project(in Point3d, in Vector3d, in Tolerance)"/>, and
+    /// interpolates. Every point returned is genuinely on the surface, because every one of them
+    /// was found there; what is approximate is the path between them.
+    /// </para>
+    /// <para>
+    /// <b>It breaks into pieces wherever the shadow leaves the surface</b>, rather than joining up
+    /// across the gap. A curve whose shadow runs off the edge of a patch and back on has two
+    /// separate projections, and a single curve through all the hits would cross territory the
+    /// surface does not occupy — inventing geometry, which is worse than returning two answers.
+    /// </para>
+    /// <para>
+    /// <b>The first hit is taken where there are several</b>, measured along the direction from the
+    /// sample. A curve projected onto a cylinder from outside lands on the near side, which is what
+    /// a caller means; the far side is reachable by projecting the other way.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyList<Curve> Project(
+        Curve curve, in Vector3d direction, in Tolerance tolerance = default)
+    {
+        ArgumentNullException.ThrowIfNull(curve);
+
+        if (!direction.TryNormalise(out Vector3d along))
+        {
+            throw new ArgumentException(
+                "A projection needs a direction to travel in.", nameof(direction));
+        }
+
+        // Sampled uniformly rather than tessellated, and that is not a shortcut - it is the
+        // correction to the obvious mistake. A tessellation subdivides where the CURVE bends, and a
+        // straight line needs no subdivision at all: it tessellates to its two ends. But its SHADOW
+        // on a curved surface bends, so two samples give a straight chord cutting through the
+        // surface rather than a curve lying on it. What has to be resolved is the surface's
+        // curvature, which the curve knows nothing about.
+        Point3d[] samples = new Point3d[ProjectionSamples];
+        for (int index = 0; index < ProjectionSamples; index++)
+        {
+            samples[index] = curve.PointAt(curve.Domain.Denormalise(index / (double)(ProjectionSamples - 1)));
+        }
+
+        List<List<Point3d>> runs = [];
+        List<Point3d>? current = null;
+
+        foreach (Point3d sample in samples)
+        {
+            IReadOnlyList<Point3d> hits = Project(sample, along, tolerance);
+
+            if (hits.Count == 0)
+            {
+                // The shadow has left the surface. Whatever run was being built ends here rather
+                // than being joined to the next one across a gap.
+                current = null;
+                continue;
+            }
+
+            if (current is null)
+            {
+                current = [];
+                runs.Add(current);
+            }
+
+            current.Add(hits[0]);
+        }
+
+        List<Curve> pieces = [];
+
+        foreach (List<Point3d> run in runs)
+        {
+            // A run of one sample is a point rather than a curve, and a point is not a projection
+            // of a curve - it is the shadow grazing the surface at a single place.
+            if (run.Count < 2)
+            {
+                continue;
+            }
+
+            pieces.Add(run.Count == 2
+                ? new Line(run[0], run[1])
+                : NurbsCurve.InterpolatePoints(Distinct(run), Math.Min(3, Distinct(run).Count - 1)));
+        }
+
+        return pieces;
+
+        // Two consecutive samples can project to the same point where the curve doubles back, and
+        // an interpolation refuses that. Dropping the repeat keeps the curve rather than the error.
+        static List<Point3d> Distinct(List<Point3d> run)
+        {
+            List<Point3d> kept = [run[0]];
+
+            for (int index = 1; index < run.Count; index++)
+            {
+                if (run[index].DistanceTo(kept[^1]) > 0.0)
+                {
+                    kept.Add(run[index]);
+                }
+            }
+
+            return kept;
+        }
+    }
+
+    /// <summary>
+    /// How many points are sampled along a curve before its projection is interpolated.
+    /// </summary>
+    /// <remarks>
+    /// The same fixed-and-generous choice <see cref="CurveOffset.OffsetSamples"/> makes, for the
+    /// same reason: sampling is cheap, and the alternative is an adaptive rule that has to know how
+    /// fast the <i>surface</i> bends under a curve that may be straight.
+    /// </remarks>
+    public const int ProjectionSamples = 200;
 
     /// <summary>
     /// The NURBS surface that follows this one to within a tolerance, and how closely it actually

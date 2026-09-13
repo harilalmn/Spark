@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-13 (`E2-T66`: write-ahead for projection along a direction)
+**Last updated:** 2026-09-13 (`E2-T66`: projection, and what actually bends)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T66`'s fifth item — `Surface.Project`, projection along a direction.** **Written ahead 2026-09-13, before any code.** **It is not `ClosestPoint`, which is the whole of the row**: the nearest point on a surface and the point you reach travelling in a given direction are different questions, and on a tilted plane they are provably different points. **The machinery exists and this step is mostly reuse**: projecting a point along a direction *is* intersecting a line through it with the surface, and `Curve.IntersectWith(Surface)` arrived in `E2-T70` — so the line is built long enough to cross the surface's bounding box, and the hits come back from an intersector that is already tested. **A projection can miss and can hit twice** — a cylinder along a diameter — so the answer is an ordered collection, and empty is an answer rather than an error. **The curve case is approximate and says so**: sample, project each sample, and interpolate through the hits, **broken into pieces wherever the curve's shadow leaves the surface**, because a projection that silently bridges a gap would invent surface that is not there. `Curve.Project` and `PullOntoSurface` stay `Planned`: those are the *exact* forms and they need surface-surface intersection, which this does not pretend to be. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`Surface.ApproximateWithTolerance`, with `NurbsSurface.InterpolatePoints` underneath it — `E2-T66`'s fourth item, two rows and one algorithm.** **The order was forced rather than chosen**: an approximation *is* sample a grid and interpolate it, so the grid interpolation had to exist first, and it is `NurbsSurface.ByPoints`'s own row. It is Piegl and Tiller's A9.4 — the same banded solve along `u` for every row and then along `v` for every column — with three `NurbsCurve` helpers made internal rather than written twice. **The branch is where the deviation is measured**: at the samples an interpolating surface is exact by construction, so a coarse grid would report perfection. Moving the measurement onto the samples turns **five** tests red. **And a mutation corrected the write-up for the second step running**: averaging the parameters across the grid is *not* what makes it interpolate — replacing it with the first row's leaves everything green — so the remark now records that as **unguarded rather than assumed safe**. Residue **319 → 320**, the smallest rise yet while building, because both new members were asked for by name in the register. 16 tests, **3543 → 3559**. **Before it:** `Surface.Offset`, which is exact where a curve offset is not. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3559** tests over **ten** executables with zero failures and zero skips, docs harness green — all fourteen checks, with the residue budget exact at 320 — and the help-sample compiler green. No stashes. |
-| **Next action** | **Write `Surface.Project(in Point3d, in Vector3d, in Tolerance)` returning the ordered hit points**, and `Surface.Project(Curve, in Vector3d, in Tolerance)` returning the projected pieces, both in `src/Spark.Geometry/Surface.cs`. Then `tests/Spark.Geometry.Tests/SurfaceProjectionTests.cs`, the node, the parity row, the public API, the register counts (425 → 426), the dashboard and the log. |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **that it is a projection and not a nearest point**. The assertion is on a **tilted** plane, where `ClosestPoint` gives a provably different answer; a test on a surface the direction happens to meet perpendicularly cannot tell the two apart, and would pass for an implementation that simply called `ClosestPoint`. **The multiplicity is its own claim**: projecting through a cylinder along a diameter returns **two** points, ordered along the direction, and an implementation returning only the first would pass every single-hit test. **A miss returns an empty collection and does not throw.** **The curve case is checked for its gap**: a curve whose shadow runs off the edge of a patch comes back as more than one piece, and every point of every piece is on the surface. The three gates, and the residue budget **exact** at 320 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Twenty-three steps landed today; the last sixteen build what the register found rather than measuring it. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **The curve work is paused** — what remains of `E2-T71` waits on `E2-T15`'s ray caster, and what remains of `E2-T72` is small `PolyCurve` and `Arc` bookkeeping — and **`E2-T66` is under way**, with three items left in it. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`Surface.Project` — `E2-T66`'s fifth item, projection along a direction, for a point and for a curve.** **It is not `ClosestPoint`, which is the whole of the row**: projecting straight down from `(2, 0, 6)` onto the tilted plane `z = x` lands at `(2, 0, 2)` where the nearest point is `(4, 0, 4)`. On an untilted plane the two coincide, so the test has to be tilted — and the mutation that answered with `ClosestPoint` turned **seven** tests red. **Mostly reuse**: a projection is a line crossed with a surface, and `Curve.IntersectWith(Surface)` arrived in `E2-T70`. Hits are ordered **along the direction** rather than by distance; returning only the nearest turns two red; joining the shadow across a gap turns one red. **The finding was a wrong premise of mine**: the first version tessellated the curve, and a straight line tessellates to its two ends — so its shadow across a pipe was the chord *through* the pipe. **What bends is the shadow, not the curve.** Sampling is now fixed and generous, as `CurveOffset` already chose. Residue **320 → 321**. 17 tests, **3559 → 3576**. **Before it:** the surface fit and the grid interpolation. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3576** tests over **ten** executables with zero failures and zero skips, docs harness green — all fourteen checks, with the residue budget exact at 321 — and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T66`'s last three items together — `Surface.Join` (× 2), `ByRuledLoft` over a sequence, and `ToString` on the base.** **They are one step because each is small and none is an algorithm**: `ToString` on `Surface` is the `E2-T41`-style gap where only `NurbsSurface` overrides it, so a general surface prints its type name — the fix is an override per concrete type saying what the surface *is*, which is nine one-liners and a test that every type carries one ([N161](NOTES.md) is the note for exactly this shape of gap). **`ByRuledLoft` over a sequence** is `RuledSurface` over consecutive pairs: N curves give N−1 surfaces in Spark against one in Dynamo, which [DYNAMO-COVERAGE §3.3](DYNAMO-COVERAGE.md) already records as a *different result* rather than a missing one — so the honest member returns the list, and the row says why it is not one surface. **`Surface.Join` is the one with a decision in it**: `Brep.Join` joins Breps and a surface has to become a face with a loop first, so either this is a composition over the kernel seam or it is refused with the reason written down. **Read `BrepBuilder` first** and take whichever the code supports; do not invent a second joining path. **That closes `E2-T66`**, and the next row is `E2-T67`…`E2-T69` — `BrepPrimitives` has no sphere and no cone, there is no `Solid.Centroid`, and six mesh-repair members are missing. |
+| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7). For `ToString`, the branch is **that each type says what it is rather than what it inherits**: a reflection test requiring every concrete surface type to declare its own override, which is the same guard `ToNurbsSurface` already has and which catches the tenth type. For `ByRuledLoft`, the branch is **the count**: N curves give N−1 surfaces, and an implementation returning one surface or N would pass any test that only checked the first. For `Join`, whichever way it goes, the claim has to be tested — a composition by round-tripping a joined pair, a refusal by its message naming what to do instead. The three gates, and the residue budget **exact** at 321 or moved with the reason written in the exclusions history. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -14074,3 +14074,62 @@ a row names.
 
 **Cost.** One session. Two public members, three helpers promoted to internal, sixteen tests,
 one node, and a mutation that rewrote a paragraph.
+
+### 2026-09-13 — Projection, and what actually bends
+
+**What.** `Surface.Project`, for a point and for a curve. Seventeen tests, two nodes, the row to
+`Done`, and the register at **426 of 545**.
+
+**The row's whole point is that this is not `ClosestPoint`, and the test had to be tilted to say
+so.** The closest point on a surface is the shortest way onto it; a projection is where you
+arrive travelling the way you were pointed. On a plane square to the direction those are the
+same place — so a test built on a flat ground plane would pass for an implementation that simply
+returned the nearest point. On `z = x`, projecting straight down from `(2, 0, 6)` lands at
+`(2, 0, 2)` and the nearest point is `(4, 0, 4)`, both computed by hand. The mutation that
+answered with `ClosestPoint` turned seven tests red.
+
+**The member is mostly reuse, which is the good kind of step.** A projection is a line crossed
+with a surface, and `Curve.IntersectWith(Surface)` has existed since `E2-T70`. So the line is
+sized from the surface's own bounding box, the hits come from an intersector that is already
+tested, and the new code is the ordering and the bookkeeping.
+
+**Two orderings that are easy to get wrong, and both are tested.** Hits come back ordered
+**along the direction** from the point, not by distance from it — so a point inside a cylinder
+gets the hit behind it first and the one ahead second. And a miss is an empty answer rather
+than an exception, because a projection that misses is a fact about the geometry.
+
+**The finding was a premise of mine that was wrong, and it took a failing test to see it.** The
+curve overload first sampled the curve with `Tessellate`. A tessellation subdivides where the
+**curve** bends — and a straight line does not bend, so it tessellates to its two ends. Its
+shadow across a pipe, interpolated through two points, was the straight chord *through* the
+pipe rather than a curve lying on it, and the test measuring the radius read 2.87 instead of 3.
+**What bends is the shadow, not the curve, and the curve knows nothing about the surface's
+curvature.** The sampling is therefore fixed and generous at 200 points — the same choice
+`CurveOffset.OffsetSamples` made, for a reason I had to rediscover rather than read.
+
+**The shadow breaks where it leaves the surface**, rather than being joined across the gap. A
+line projected across a torus from above lands on the tube, misses over the hole, and lands
+again: two curves, not one. Joining them would draw a curve across a place the surface is not,
+and the mutation that joins them turns that test red.
+
+**Three mutations** (AGENTS.md step 7):
+
+| Mutation | Result |
+|---|---|
+| answer with the closest point | seven red |
+| return only the nearest hit | two red |
+| join the shadow across gaps | one red |
+
+**The curve case is approximate and says so.** The exact projection of a curve is a
+surface-surface intersection, which Spark does not have — `Curve.Project` and
+`Curve.PullOntoSurface` are the register's rows for that and stay open. But every point returned
+was *found* on the surface rather than computed towards it, so what is approximate is only the
+path between them, which is a much smaller claim than *this curve is approximately on the
+surface*.
+
+**Residue 320 → 321**, the one member being `ProjectionSamples` — the second public constant of
+its kind after `ApproximationSampleLimit`, and both exist because a resolution had to be chosen
+rather than derived, and a caller should be able to read it instead of guessing.
+
+**Cost.** One session. Two overloads, one constant, seventeen tests, two nodes, and a premise
+corrected by a number that was 2.87 when it should have been 3.

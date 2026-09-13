@@ -250,3 +250,6 @@ override Spark.Geometry.ToroidalSurface.Offset(double distance) -> Spark.Geometr
 const Spark.Geometry.Surface.ApproximationSampleLimit = 129 -> int
 Spark.Geometry.Surface.ApproximateWithTolerance(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance), int degreeU = 3, int degreeV = 3) -> (Spark.Geometry.NurbsSurface! Surface, double Deviation, bool Fits)
 static Spark.Geometry.NurbsSurface.InterpolatePoints(Spark.Geometry.Point3d[,]! points, int degreeU = 3, int degreeV = 3) -> Spark.Geometry.NurbsSurface!
+const Spark.Geometry.Surface.ProjectionSamples = 200 -> int
+Spark.Geometry.Surface.Project(in Spark.Geometry.Point3d point, in Spark.Geometry.Vector3d direction, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
+Spark.Geometry.Surface.Project(Spark.Geometry.Curve! curve, in Spark.Geometry.Vector3d direction, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>!

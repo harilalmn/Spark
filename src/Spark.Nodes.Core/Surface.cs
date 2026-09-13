@@ -199,6 +199,42 @@ public static class Surface
     public static NurbsSurface Approximate(Spark.Geometry.Surface surface, double tolerance = 0.01) =>
         surface.ApproximateWithTolerance(new Tolerance(tolerance, Angle.FromDegrees(1), 1e-12)).Surface;
 
+    /// <summary>Where a point lands on a surface when it travels in a given direction.</summary>
+    /// <param name="surface">The surface to project onto.</param>
+    /// <param name="point">The point to project.</param>
+    /// <param name="direction">Which way it travels. Its length is ignored.</param>
+    /// <returns>
+    /// Every place the point lands, ordered along the direction. Empty when it misses, and more
+    /// than one where the surface is hit more than once.
+    /// </returns>
+    /// <remarks>
+    /// <b>Not the same as the closest point.</b> The closest point is the shortest way onto the
+    /// surface; this is where you arrive travelling the way you were pointed, and on anything but a
+    /// surface square to that direction they are different places.
+    /// </remarks>
+    [return: NodePort("points")]
+    [SparkNodeAlias("Surface.ProjectInputOnto")]
+    public static IReadOnlyList<Point3d> Project(
+        Spark.Geometry.Surface surface, Point3d point, Vector3d direction = default) =>
+        surface.Project(point, direction.LengthSquared > 0.0 ? direction : -Vector3d.ZAxis);
+
+    /// <summary>Where a curve lands on a surface when it travels in a given direction.</summary>
+    /// <param name="surface">The surface to project onto.</param>
+    /// <param name="curve">The curve to project.</param>
+    /// <param name="direction">Which way it travels. Its length is ignored.</param>
+    /// <returns>
+    /// The curve's shadow on the surface, in as many pieces as it has runs there.
+    /// </returns>
+    /// <remarks>
+    /// <b>The shadow breaks wherever it runs off the surface</b>, rather than being joined across
+    /// the gap: a curve projected across a torus from above lands on both sides of the hole and
+    /// comes back as two curves, because a single one would cross a place the surface is not.
+    /// </remarks>
+    [return: NodePort("curves")]
+    public static IReadOnlyList<Spark.Geometry.Curve> ProjectCurve(
+        Spark.Geometry.Surface surface, Spark.Geometry.Curve curve, Vector3d direction = default) =>
+        surface.Project(curve, direction.LengthSquared > 0.0 ? direction : -Vector3d.ZAxis);
+
     /// <summary>The area of a surface.</summary>
     /// <param name="surface">The surface.</param>
     /// <returns>The area.</returns>
