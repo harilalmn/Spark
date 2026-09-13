@@ -41,3 +41,4 @@ static Spark.Nodes.Core.Surface.Offset(Spark.Geometry.Surface! surface, double d
 static Spark.Nodes.Core.Surface.Approximate(Spark.Geometry.Surface! surface, double tolerance = 0.01) -> Spark.Geometry.NurbsSurface!
 static Spark.Nodes.Core.Surface.Project(Spark.Geometry.Surface! surface, Spark.Geometry.Point3d point, Spark.Geometry.Vector3d direction = default(Spark.Geometry.Vector3d)) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
 static Spark.Nodes.Core.Surface.ProjectCurve(Spark.Geometry.Surface! surface, Spark.Geometry.Curve! curve, Spark.Geometry.Vector3d direction = default(Spark.Geometry.Vector3d)) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>!
+static Spark.Nodes.Core.Surface.LoftSequence(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Curve!>! curves) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.RuledSurface!>!

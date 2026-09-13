@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace Spark.Geometry;
 
@@ -143,6 +144,11 @@ public sealed class ExtrusionSurface : Surface
             _profile.TransformedBy(transform),
             transform.OfVector(_direction),
             ScaledHeight(transform));
+
+    /// <inheritdoc/>
+    public override string ToString() => string.Create(
+        CultureInfo.InvariantCulture,
+        $"ExtrusionSurface({_profile} swept {DomainV.Length:0.###} along {_direction})");
 
     /// <inheritdoc/>
     protected override Point3d Evaluate(double u, double v) => _profile.PointAt(u) + (_direction * v);

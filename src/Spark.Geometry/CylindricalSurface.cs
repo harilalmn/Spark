@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace Spark.Geometry;
 
@@ -135,6 +136,11 @@ public sealed class CylindricalSurface : Surface
             _domainU,
             new Interval(_domainV.Min * scale, _domainV.Max * scale));
     }
+
+    /// <inheritdoc/>
+    public override string ToString() => string.Create(
+        CultureInfo.InvariantCulture,
+        $"CylindricalSurface(radius {_radius:0.###}, height {DomainV.Length:0.###} at {_frame.Origin})");
 
     /// <inheritdoc/>
     protected override Point3d Evaluate(double u, double v) =>

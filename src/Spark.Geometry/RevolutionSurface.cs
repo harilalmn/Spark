@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace Spark.Geometry;
 
@@ -140,6 +141,11 @@ public sealed class RevolutionSurface : Surface
             transform.OfPoint(_origin),
             transform.OfVector(_axis),
             _domainU);
+
+    /// <inheritdoc/>
+    public override string ToString() => string.Create(
+        CultureInfo.InvariantCulture,
+        $"RevolutionSurface({_profile} turned {Angle.FromRadians(_domainU.Length).Degrees:0.##}° about {_axis})");
 
     /// <inheritdoc/>
     protected override Point3d Evaluate(double u, double v) =>

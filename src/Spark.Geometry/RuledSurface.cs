@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 
 namespace Spark.Geometry;
 
@@ -42,6 +44,54 @@ public sealed class RuledSurface : Surface
 
         _first = first;
         _second = second;
+    }
+
+    /// <summary>
+    /// The ruled surfaces between each consecutive pair of a sequence of curves (`E2-T66`).
+    /// </summary>
+    /// <param name="curves">The curves, in order, at least two.</param>
+    /// <returns>
+    /// One surface fewer than there are curves: the first between curves 0 and 1, the next between
+    /// 1 and 2, and so on.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="curves"/>, or one of them, is null.</exception>
+    /// <exception cref="ArgumentException">There are fewer than two curves.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>This returns a list where Dynamo's <c>ByRuledLoft</c> returns one surface, and that is a
+    /// different result rather than a missing capability</b> — which is what
+    /// <c>DYNAMO-COVERAGE</c> §3.3 recorded when the row was assessed. N curves genuinely describe
+    /// N − 1 ruled patches; presenting them as one surface would mean either a
+    /// <see cref="Brep"/> of N − 1 faces, which is <see cref="Brep.Join"/>'s job and not this
+    /// type's, or a single NURBS surface lofted through all of them, which is a
+    /// <i>different construction</i> that does not rule straight between consecutive curves.
+    /// </para>
+    /// <para>
+    /// <b>Two curves is the degenerate case and gives exactly one surface</b>, identical to the
+    /// constructor — so a caller with a pair loses nothing by coming through here.
+    /// </para>
+    /// </remarks>
+    public static IReadOnlyList<RuledSurface> FromLoft(IReadOnlyList<Curve> curves)
+    {
+        ArgumentNullException.ThrowIfNull(curves);
+
+        if (curves.Count < 2)
+        {
+            throw new ArgumentException(
+                $"A ruled loft needs at least two curves to rule between and was given {curves.Count}.",
+                nameof(curves));
+        }
+
+        RuledSurface[] surfaces = new RuledSurface[curves.Count - 1];
+
+        for (int index = 0; index < surfaces.Length; index++)
+        {
+            surfaces[index] = new RuledSurface(
+                curves[index] ?? throw new ArgumentNullException(nameof(curves)),
+                curves[index + 1] ?? throw new ArgumentNullException(nameof(curves)));
+        }
+
+        return surfaces;
     }
 
     /// <summary>The curve at <c>v = 0</c>.</summary>
@@ -117,6 +167,11 @@ public sealed class RuledSurface : Surface
     /// <inheritdoc/>
     public override Surface TransformedBy(in Transform transform) =>
         new RuledSurface(_first.TransformedBy(transform), _second.TransformedBy(transform));
+
+    /// <inheritdoc/>
+    public override string ToString() => string.Create(
+        CultureInfo.InvariantCulture,
+        $"RuledSurface({_first} to {_second})");
 
     /// <inheritdoc/>
     protected override Point3d Evaluate(double u, double v) =>

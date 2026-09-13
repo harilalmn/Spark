@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace Spark.Geometry;
 
@@ -140,6 +141,11 @@ public sealed class ToroidalSurface : Surface
             _domainU,
             _domainV);
     }
+
+    /// <inheritdoc/>
+    public override string ToString() => string.Create(
+        CultureInfo.InvariantCulture,
+        $"ToroidalSurface(major {_major:0.###}, minor {_minor:0.###} at {_frame.Origin})");
 
     /// <inheritdoc/>
     protected override Point3d Evaluate(double u, double v)

@@ -107,6 +107,18 @@ public static class Surface
     public static RuledSurface Loft(Spark.Geometry.Curve first, Spark.Geometry.Curve second) =>
         new(first, second);
 
+    /// <summary>Rules straight lines between each consecutive pair of a list of curves.</summary>
+    /// <param name="curves">The curves, in order, at least two.</param>
+    /// <returns>
+    /// One surface fewer than there are curves. <b>Not a single surface</b>: three curves describe
+    /// two ruled patches, and joining them into one is a different construction.
+    /// </returns>
+    [SparkNode(Kind = NodeMemberKind.Create)]
+    [return: NodePort("surfaces")]
+    [SparkNodeAlias("Surface.ByRuledLoft")]
+    public static IReadOnlyList<RuledSurface> LoftSequence(IReadOnlyList<Spark.Geometry.Curve> curves) =>
+        RuledSurface.FromLoft(curves);
+
     /// <summary>The point on a surface at a pair of parameters, as fractions of its domains.</summary>
     /// <param name="surface">The surface.</param>
     /// <param name="u">A fraction of the way along the first direction.</param>

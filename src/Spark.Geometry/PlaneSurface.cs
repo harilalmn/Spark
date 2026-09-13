@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace Spark.Geometry;
 
@@ -195,6 +196,11 @@ public sealed class PlaneSurface : Surface
             new Interval(_domainU.Min * scaleX, _domainU.Max * scaleX),
             new Interval(_domainV.Min * scaleY, _domainV.Max * scaleY));
     }
+
+    /// <inheritdoc/>
+    public override string ToString() => string.Create(
+        CultureInfo.InvariantCulture,
+        $"PlaneSurface({_domainU.Length:0.###} × {_domainV.Length:0.###} at {_plane.Origin})");
 
     /// <inheritdoc/>
     protected override Point3d Evaluate(double u, double v) =>

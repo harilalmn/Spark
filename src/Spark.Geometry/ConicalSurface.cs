@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace Spark.Geometry;
 
@@ -152,6 +153,11 @@ public sealed class ConicalSurface : Surface
             _domainU,
             new Interval(_domainV.Min * scale, _domainV.Max * scale));
     }
+
+    /// <inheritdoc/>
+    public override string ToString() => string.Create(
+        CultureInfo.InvariantCulture,
+        $"ConicalSurface(base radius {_radius:0.###}, half-angle {HalfAngle.Degrees:0.##}°, height {DomainV.Length:0.###})");
 
     /// <inheritdoc/>
     protected override Point3d Evaluate(double u, double v)

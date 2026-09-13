@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace Spark.Geometry;
 
@@ -156,6 +157,11 @@ public sealed class SphericalSurface : Surface
             _domainU,
             _domainV);
     }
+
+    /// <inheritdoc/>
+    public override string ToString() => string.Create(
+        CultureInfo.InvariantCulture,
+        $"SphericalSurface(radius {_radius:0.###} at {_frame.Origin})");
 
     /// <inheritdoc/>
     protected override Point3d Evaluate(double u, double v)
