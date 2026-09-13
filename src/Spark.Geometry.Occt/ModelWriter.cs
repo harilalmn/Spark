@@ -441,7 +441,7 @@ internal sealed class ModelWriter
                 return;
 
             case ConicalSurface cone:
-                WriteNurbsSurface(cone.ToNurbsSurface());
+                WriteNurbsSurface(cone.ToNurbsSurface().Surface);
                 return;
 
             default:

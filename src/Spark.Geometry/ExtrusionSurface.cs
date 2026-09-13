@@ -92,6 +92,52 @@ public sealed class ExtrusionSurface : Surface
     public override double Area => base.Area;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <para>
+    /// The profile's NURBS curve swept along the direction: degree <c>p × 1</c>, the profile's knots
+    /// along <c>u</c> and a clamped degree-1 vector over the height along <c>v</c>, with the
+    /// profile's control points at the bottom of the height in one row and the same points
+    /// translated to the top in the other. The weights are the profile's in both rows, so a
+    /// rational profile sweeps to a rational surface that is exact for the same reason the profile
+    /// is.
+    /// </para>
+    /// <para>
+    /// <b>Exact exactly when the profile converts exactly</b>, and parameterised like the original
+    /// exactly when the profile is: an extruded <see cref="Helix"/> is an approximation, an
+    /// extruded <see cref="Arc"/> is the same sheet visited at different parameters, and an
+    /// extruded <see cref="Line"/> is the same sheet at the same parameters.
+    /// </para>
+    /// </remarks>
+    public override NurbsSurfaceConversion ToNurbsSurface(in Tolerance tolerance = default)
+    {
+        NurbsConversion profile = _profile.ToNurbsCurve(tolerance);
+        NurbsCurve curve = profile.Curve;
+
+        Point3d[] points = curve.ControlPoints();
+        double[] weights = curve.Weights();
+        Vector3d bottom = _direction * _domainV.Min;
+        Vector3d top = _direction * _domainV.Max;
+
+        Point3d[,] net = new Point3d[points.Length, 2];
+        double[,] netWeights = new double[points.Length, 2];
+
+        for (int i = 0; i < points.Length; i++)
+        {
+            net[i, 0] = points[i] + bottom;
+            net[i, 1] = points[i] + top;
+            netWeights[i, 0] = weights[i];
+            netWeights[i, 1] = weights[i];
+        }
+
+        KnotVector knotsV = new(1, [_domainV.Min, _domainV.Min, _domainV.Max, _domainV.Max]);
+
+        return new NurbsSurfaceConversion(
+            new NurbsSurface(curve.Knots, knotsV, net, netWeights),
+            profile.IsExact,
+            profile.PreservesParameterisation);
+    }
+
+    /// <inheritdoc/>
     public override Surface TransformedBy(in Transform transform) =>
         new ExtrusionSurface(
             _profile.TransformedBy(transform),

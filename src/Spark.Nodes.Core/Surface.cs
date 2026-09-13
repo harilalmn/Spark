@@ -204,15 +204,23 @@ public static class Surface
         Spark.Geometry.Surface surface, double tolerance = 0.01, CancellationToken cancellationToken = default) =>
         surface.ToMesh(new Tolerance(tolerance, Angle.FromDegrees(1), 1e-12), cancellationToken);
 
-    /// <summary>The exact NURBS surface a sphere is.</summary>
-    /// <param name="surface">The sphere.</param>
-    /// <returns>A rational NURBS surface tracing the same sheet.</returns>
+    /// <summary>The NURBS surface that is the same sheet as any surface.</summary>
+    /// <param name="surface">The surface.</param>
+    /// <param name="tolerance">
+    /// How closely to follow the original where the conversion cannot be exact. Ignored wherever it
+    /// can.
+    /// </param>
+    /// <returns>A NURBS surface tracing the same sheet, exactly wherever the surface allows it.</returns>
     /// <remarks>
-    /// Exact rather than fitted: a sphere is a rational quadric. What is <i>not</i> preserved is the
-    /// parameterisation — a rational quadratic's parameter is a projective function of the angle —
-    /// so the corners line up and the interior does not.
+    /// Exact rather than fitted for every analytic surface, for an extrusion, a revolution and a
+    /// ruled surface built from curves that convert exactly, and for a NURBS surface itself. What
+    /// is <i>not</i> preserved is the parameterisation wherever a circle is involved — a rational
+    /// quadratic's parameter is a projective function of the angle — so the corners line up and the
+    /// interior does not. The kernel member says which case you are in; this node hands back the
+    /// surface alone.
     /// </remarks>
     [SparkNode(Kind = NodeMemberKind.Action)]
     [return: NodePort("surface")]
-    public static NurbsSurface ToNurbs(SphericalSurface surface) => surface.ToNurbsSurface();
+    public static NurbsSurface ToNurbs(Spark.Geometry.Surface surface, double tolerance = 0.01) =>
+        surface.ToNurbsSurface(new Tolerance(tolerance, Angle.FromDegrees(1), 1e-12)).Surface;
 }

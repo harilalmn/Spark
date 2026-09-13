@@ -38,13 +38,29 @@ public sealed class NurbsConversion
     /// <param name="isExact">
     /// Whether <paramref name="curve"/> traces exactly the same points as the original.
     /// </param>
+    /// <param name="preservesParameterisation">
+    /// Whether <paramref name="curve"/> also visits those points at the same parameters as the
+    /// original, so that <c>PointAt</c> agrees between the two and not only the curves. Implies
+    /// <paramref name="isExact"/>.
+    /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="curve"/> is <see langword="null"/>.</exception>
-    public NurbsConversion(NurbsCurve curve, bool isExact)
+    /// <exception cref="ArgumentException">
+    /// The parameterisation is claimed preserved on a conversion that is not exact.
+    /// </exception>
+    public NurbsConversion(NurbsCurve curve, bool isExact, bool preservesParameterisation = false)
     {
         ArgumentNullException.ThrowIfNull(curve);
 
+        if (preservesParameterisation && !isExact)
+        {
+            throw new ArgumentException(
+                "A conversion cannot keep the parameterisation of a curve it does not reproduce.",
+                nameof(preservesParameterisation));
+        }
+
         Curve = curve;
         IsExact = isExact;
+        PreservesParameterisation = preservesParameterisation;
     }
 
     /// <summary>The NURBS curve.</summary>
@@ -63,6 +79,18 @@ public sealed class NurbsConversion
     /// kind of claim this type exists to stop being made silently.
     /// </remarks>
     public bool IsExact { get; }
+
+    /// <summary>
+    /// Whether <see cref="Curve"/> visits the same points at the same parameters as the original,
+    /// so that <c>PointAt</c> agrees between the two and not only the set of points (`E2-T66`).
+    /// </summary>
+    /// <remarks>
+    /// True for a <see cref="Line"/>, a <see cref="PolyLine"/>, a <see cref="NurbsCurve"/> and a
+    /// <see cref="PolyCurve"/> of those; false for anything with a rational arc in it, and for every
+    /// approximation. It matters to whatever pairs two curves parameter by parameter — a
+    /// <see cref="RuledSurface"/> does — and to nothing else.
+    /// </remarks>
+    public bool PreservesParameterisation { get; }
 
     /// <summary>A readable description, for diagnostics.</summary>
     /// <returns>Whether the conversion was exact, and the curve's degree and control-point count.</returns>

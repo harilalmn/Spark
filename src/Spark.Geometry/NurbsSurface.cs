@@ -311,6 +311,10 @@ public sealed class NurbsSurface : Surface
     }
 
     /// <inheritdoc/>
+    /// <remarks>This surface, unchanged: a NURBS surface is its own conversion.</remarks>
+    public override NurbsSurfaceConversion ToNurbsSurface(in Tolerance tolerance = default) => new(this, true, true);
+
+    /// <inheritdoc/>
     /// <remarks>
     /// <b>A NURBS surface survives every affine transform</b>, which is the property that makes it
     /// the universal representation: transforming the control net transforms the surface exactly,

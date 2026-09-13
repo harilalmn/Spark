@@ -95,7 +95,24 @@ Spark.Geometry.MeshFace.Reversed() -> Spark.Geometry.MeshFace
 Spark.Geometry.NurbsConversion
 Spark.Geometry.NurbsConversion.Curve.get -> Spark.Geometry.NurbsCurve!
 Spark.Geometry.NurbsConversion.IsExact.get -> bool
-Spark.Geometry.NurbsConversion.NurbsConversion(Spark.Geometry.NurbsCurve! curve, bool isExact) -> void
+Spark.Geometry.NurbsConversion.NurbsConversion(Spark.Geometry.NurbsCurve! curve, bool isExact, bool preservesParameterisation = false) -> void
+Spark.Geometry.NurbsConversion.PreservesParameterisation.get -> bool
+Spark.Geometry.NurbsSurfaceConversion
+Spark.Geometry.NurbsSurfaceConversion.IsExact.get -> bool
+Spark.Geometry.NurbsSurfaceConversion.NurbsSurfaceConversion(Spark.Geometry.NurbsSurface! surface, bool isExact, bool preservesParameterisation) -> void
+Spark.Geometry.NurbsSurfaceConversion.PreservesParameterisation.get -> bool
+Spark.Geometry.NurbsSurfaceConversion.Surface.get -> Spark.Geometry.NurbsSurface!
+override Spark.Geometry.NurbsSurfaceConversion.ToString() -> string!
+virtual Spark.Geometry.Surface.ToNurbsSurface(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsSurfaceConversion!
+override Spark.Geometry.PlaneSurface.ToNurbsSurface(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsSurfaceConversion!
+override Spark.Geometry.CylindricalSurface.ToNurbsSurface(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsSurfaceConversion!
+override Spark.Geometry.ConicalSurface.ToNurbsSurface(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsSurfaceConversion!
+override Spark.Geometry.SphericalSurface.ToNurbsSurface(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsSurfaceConversion!
+override Spark.Geometry.ToroidalSurface.ToNurbsSurface(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsSurfaceConversion!
+override Spark.Geometry.ExtrusionSurface.ToNurbsSurface(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsSurfaceConversion!
+override Spark.Geometry.RevolutionSurface.ToNurbsSurface(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsSurfaceConversion!
+override Spark.Geometry.RuledSurface.ToNurbsSurface(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsSurfaceConversion!
+override Spark.Geometry.NurbsSurface.ToNurbsSurface(in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.NurbsSurfaceConversion!
 Spark.Geometry.NurbsCurve.IsPeriodic.get -> bool
 Spark.Geometry.NurbsCurve.NurbsCurve(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! controlPoints, int degree = 3, System.Collections.Generic.IReadOnlyList<double>? weights = null) -> void
 Spark.Geometry.NurbsCurve.NurbsCurve(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points) -> void

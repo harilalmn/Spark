@@ -129,6 +129,14 @@ public sealed class ConicalSurface : Surface
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Exact as a sheet, through <see cref="SurfaceConversion"/>, and not as a parameterisation:
+    /// the rational quadratic walks a circle by a projective function of the angle.
+    /// </remarks>
+    public override NurbsSurfaceConversion ToNurbsSurface(in Tolerance tolerance = default) =>
+        new(SurfaceConversion.ToNurbsSurface(this), true, false);
+
+    /// <inheritdoc/>
     /// <remarks>A cone survives a rigid motion and a uniform scale; the half-angle is unchanged.</remarks>
     public override Surface TransformedBy(in Transform transform)
     {

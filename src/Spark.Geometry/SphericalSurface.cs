@@ -106,6 +106,14 @@ public sealed class SphericalSurface : Surface
 
     /// <inheritdoc/>
     /// <remarks>
+    /// Exact as a sheet, through <see cref="SurfaceConversion"/>, and not as a parameterisation:
+    /// the rational quadratic walks a circle by a projective function of the angle.
+    /// </remarks>
+    public override NurbsSurfaceConversion ToNurbsSurface(in Tolerance tolerance = default) =>
+        new(SurfaceConversion.ToNurbsSurface(this), true, false);
+
+    /// <inheritdoc/>
+    /// <remarks>
     /// <b>A sphere survives a rigid motion and a uniform scale, and nothing else.</b> Under a
     /// non-uniform scale it becomes an ellipsoid, and the kernel has no ellipsoid — so it refuses
     /// rather than returning a sphere of some averaged radius, which would be wrong in a way

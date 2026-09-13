@@ -144,7 +144,7 @@ public sealed class GeometryJsonTests
         // A rational sample, because a non-rational one round-trips through the weightless path and
         // would never exercise the weights at all.
         [typeof(NurbsSurface)] = new SphericalSurface(
-            Plane.WorldXY, 2.5, new Interval(0.2, 3.0), new Interval(-0.5, 1.1)).ToNurbsSurface(),
+            Plane.WorldXY, 2.5, new Interval(0.2, 3.0), new Interval(-0.5, 1.1)).ToNurbsSurface().Surface,
         [typeof(RuledSurface)] = new RuledSurface(
             new Line(new Point3d(0.0, 0.0, 0.0), new Point3d(3.0, 0.0, 0.0)),
             new Line(new Point3d(0.0, 4.0, 1.0), new Point3d(3.0, 4.0, 1.0))),
@@ -216,6 +216,10 @@ public sealed class GeometryJsonTests
             + "sample - and a flag saying whether that curve is the original or an approximation to "
             + "it. Serialising the pair would save a claim about a conversion alongside its result, "
             + "and the claim is only true of the curve it was computed from (`E2-T71`)",
+        [typeof(NurbsSurfaceConversion)] =
+            "the surface-side twin of NurbsConversion: a NurbsSurface - which has a sample - and two "
+            + "claims about how it relates to the surface it was computed from, true only of that "
+            + "surface (`E2-T66`)",
     };
 
     [Fact]

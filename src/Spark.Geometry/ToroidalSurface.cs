@@ -93,6 +93,14 @@ public sealed class ToroidalSurface : Surface
             * ((_major * _domainV.Length) + (_minor * (Math.Sin(_domainV.Max) - Math.Sin(_domainV.Min))));
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Exact as a sheet, through <see cref="SurfaceConversion"/>, and not as a parameterisation:
+    /// the rational quadratic walks a circle by a projective function of the angle.
+    /// </remarks>
+    public override NurbsSurfaceConversion ToNurbsSurface(in Tolerance tolerance = default) =>
+        new(SurfaceConversion.ToNurbsSurface(this), true, false);
+
+    /// <inheritdoc/>
     /// <remarks>A torus survives a rigid motion and a uniform scale, and nothing else.</remarks>
     public override Surface TransformedBy(in Transform transform)
     {

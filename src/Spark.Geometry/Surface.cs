@@ -683,6 +683,43 @@ public abstract class Surface
     }
 
     /// <summary>
+    /// Turns this surface into a NURBS surface, and says whether the result is the <i>same
+    /// sheet</i> or an approximation to it, and whether it is visited at the same parameters
+    /// (`E2-T66`).
+    /// </summary>
+    /// <param name="tolerance">
+    /// How closely an <i>approximate</i> conversion should follow the original. Ignored by every
+    /// exact conversion, because an exact conversion has no error to trade against; where it is
+    /// used it is passed straight to the conversion of the curve the surface is built from, and it
+    /// is a sampling target rather than a proved bound on the deviation.
+    /// </param>
+    /// <returns>The NURBS surface, and the two claims about it.</returns>
+    /// <exception cref="NotSupportedException">
+    /// The surface type has no NURBS form written. Every type Spark ships overrides this, and a
+    /// test enforces it; the base refuses rather than guessing, because there is no surface
+    /// interpolation to approximate with yet and a silent sample-and-fit would be a claim nobody
+    /// checked.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// The surface-side twin of <see cref="Curve.ToNurbsCurve(in Tolerance)"/>. The five analytic
+    /// types convert exactly through <see cref="SurfaceConversion"/>; a <see cref="NurbsSurface"/>
+    /// is its own conversion; an <see cref="ExtrusionSurface"/>, a <see cref="RevolutionSurface"/>
+    /// and a <see cref="RuledSurface"/> convert exactly when the curves they are built from do,
+    /// and say so when they do not.
+    /// </para>
+    /// <para>
+    /// <b>Exact means the same set of points.</b> Most exact conversions do <i>not</i> visit them at
+    /// the same parameters, and <see cref="NurbsSurfaceConversion.PreservesParameterisation"/> is
+    /// the separate, stronger claim — see that type's remarks.
+    /// </para>
+    /// </remarks>
+    public virtual NurbsSurfaceConversion ToNurbsSurface(in Tolerance tolerance = default) =>
+        throw new NotSupportedException(
+            $"{GetType().Name} has no NURBS form written. Every surface type Spark ships overrides "
+            + "ToNurbsSurface; a type that reaches this has not.");
+
+    /// <summary>
     /// The two principal curvatures at a parameter pair, smallest first.
     /// </summary>
     /// <param name="u">A parameter in <see cref="DomainU"/>.</param>

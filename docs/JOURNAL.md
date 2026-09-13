@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-13 (`E2-T66`: write-ahead for Surface.ToNurbsSurface on the base)
+**Last updated:** 2026-09-13 (`E2-T66`: `Surface.ToNurbsSurface`, and *exact* turning out to be two claims)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T66`'s second item — `Surface.ToNurbsSurface` on the base, and the three conversions that did not exist.** **Written ahead 2026-09-13, before any code.** `SurfaceConversion` converts plane, cylinder, cone, sphere and torus exactly; `ExtrusionSurface`, `RevolutionSurface` and `RuledSurface` have none, so a `Surface`-typed value cannot be asked. The shape mirrors `Curve.ToNurbsCurve`: a virtual on the base returning the surface *and* whether it is exact, the analytic five delegating to what exists. An extrusion is the profile curve swept linearly, degree `p × 1`; a ruled surface is two rails at a common degree and a common knot vector with degree 1 across, where **the knot merge is the branch**; a revolution is the profile swept by the rational quadratic circle. A profile that does not convert exactly makes the surface inexact, as with `PolyCurve`. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`Surface.PrincipalDirections` — `E2-T66`'s first item, the eigenvectors `PrincipalCurvatures` had been computing and throwing away.** **It was nearly free and it was**: the two members now share one private copy of the fundamental forms, and `PrincipalCurvatures`' body is three lines. Each direction is the null vector of whichever row of `II − κI` is better conditioned, mapped through the first derivatives; the second is the normal crossed with the first, so the pair is exactly orthonormal. **The umbilic is written down rather than thrown**: sphere, plane — the normalised `u` derivative and the normal crossed with it. **The branch is the pairing, and the mutation proved it**: swap the two directions and the cylinder, torus and saddle tests go red while every test of orthogonality and tangency stays green; return `du` and `dv` in place of the eigenvectors and the torus and the saddle go red, for different reasons — the torus through the pairing alone, the saddle because its principal directions are its diagonals, and it is the one surface in the suite whose parametric directions are not principal at all, which is the finding worth keeping. Two nodes, since the curvature family had none, and a section in the solids topic. Residue **unchanged at 303**. 15 tests, **3478 → 3493**. **Before it:** `NurbsCurve.InterpolatePointsWithTangents`, whose decision was the derivative's magnitude ([N166](NOTES.md)). |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3493** tests over **ten** executables with zero failures and zero skips, docs harness green — all fourteen checks, with the residue budget exact at 303 — and the help-sample compiler green. No stashes. |
-| **Next action** | **`E2-T66`'s second item — `Surface.ToNurbsSurface` on the base, so a `Surface`-typed value can be asked at all.** `SurfaceConversion` converts five of the eight analytic types exactly — plane, cylinder, cone, sphere, torus — and `ExtrusionSurface`, `RevolutionSurface` and `RuledSurface` have no conversion, so nothing can be asked of the base. **Read `SurfaceConversion` and `Curve.ToNurbsCurve` first, and mirror the curve's shape**: a virtual on `Surface` returning the surface *and* whether it is exact, as `NurbsConversion` does for curves, with the analytic five delegating to what exists. **The three missing ones are all exact when their curves are**: an extrusion is the profile's NURBS curve swept linearly — degree `p × 1`, the second row of control points translated; a ruled surface is two rails brought to a common degree and a common knot vector — elevate, then insert knots into each until the vectors agree, which is `PolyCurve.ToNurbsCurve`'s counting in a second place — with degree 1 across; a revolution is the profile swept by the rational quadratic circle, which is the torus conversion's structure with an arbitrary profile. A profile that does not convert exactly — a helix — makes the surface inexact, as with `PolyCurve`. **Then** the rest of `E2-T66` in the row's order: `Offset`, `ApproximateWithTolerance`, `ProjectInputOnto`, the two `Join`s, `ByRuledLoft` over a sequence, `ToString` on the base. |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is the **knot merge** in the ruled case: a ruled surface between a line and a circle has rails of different degree and different knots, and skipping the merge produces a surface that is right at the rails and wrong between the circle's knots, which a test sampling at the knots cannot see. So sample a grid strictly between the knots against the original surface, to 1e-9 when the conversion claims exactness. **`IsExact` must be honest**: an extrusion of a helix reports false and stays within the sampling tolerance. Each of the three new conversions round-trips over a grid against its original; the five existing ones still reach the base member; the three gates, residue **exact** at 303 or moved with the reason in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Twenty steps landed today; the last thirteen build what the register found rather than measuring it. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **The curve work is paused** — what remains of `E2-T71` waits on `E2-T15`'s ray caster, and what remains of `E2-T72` is small `PolyCurve` and `Arc` bookkeeping — and **`E2-T66` is under way**, in the order its row gives. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`Surface.ToNurbsSurface` on the base — `E2-T66`'s second item — and *exact* turning out to be two claims wearing one name.** A virtual returning a `NurbsSurfaceConversion`, the five analytic types delegating to `SurfaceConversion`, a `NurbsSurface` returning itself, and **extrusion, revolution and ruled newly written**: a profile swept linearly at degree `p × 1`; Piegl and Tiller's A8.1 for the revolution; two rails elevated and knot-merged with degree 1 across. **The base refuses rather than sampling**, and a reflection test makes every concrete surface type override it. **The finding**: a ruling joins its two rails at *equal parameters*, so two rails that are each exactly the right curve under a different parameterisation rule a **different sheet** — right along both edges and wrong between. `NurbsConversion` gained `PreservesParameterisation` beside `IsExact`, the surface twin carries both, and a ruled surface between a line and a circle is inexact for that reason alone. **Three mutations, and one of them corrected me**: the one-way merge refuses (3 red); a ruled surface calling itself exact on `IsExact` alone goes red (2); and matching knots with `==` *inside the merge* goes **green** — the tolerance that protects it is `KnotVector.Multiplicity`'s, and mutating that turns four control points into five. The test was rewritten to pin the count. Residue **303 → 310**, and every one of the seven is the shape of the answer rather than new capability: the result type's three members, `NurbsConversion`'s new flag, and the three overrides on surface types the register does not excuse. 24 tests, **3493 → 3517**. **Before it:** `Surface.PrincipalDirections`, whose branch was the pairing. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3517** tests over **ten** executables with zero failures and zero skips, docs harness green — all fourteen checks, with the residue budget exact at 310 — and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T66`'s third item — `Surface.Offset`, a surface at a constant distance from another.** **Read `CurveOffset` first**: the curve side already decides the questions this repeats — which side positive means, what happens where the offset self-intersects, and that an exact offset exists only for some types. **The shape**: a virtual on `Surface` as `ToNurbsSurface` now is, returning a `Surface`. **An offset is exact for the analytic types and for nothing else**: a plane offsets to a plane, a sphere of radius `r` to a sphere of radius `r + d`, a cylinder and a cone to the same with a changed radius, a torus to a torus with a changed minor radius. **Everything else is the honest hard case** — the true offset of a NURBS surface is not a NURBS surface — so it is an approximation, and the member has to say so or refuse. **Mirror `ToNurbsSurface`'s answer**: return the surface *and* whether it is exact, rather than a bare surface that hides the difference; `SurfaceOffset` beside `NurbsSurfaceConversion` is the shape. **The trap is the sign convention**, which must be the surface's own normal and must be stated, and **the degeneracy**: offsetting a cylinder inwards by more than its radius, or a sphere by more than `r`, turns it inside out, and `ConicalSurface` past its apex is the same failure. Those are refusals with reasons, not surfaces. **Then** the rest of `E2-T66`: `ApproximateWithTolerance`, `ProjectInputOnto`, the two `Join`s, `ByRuledLoft` over a sequence, `ToString` on the base. |
+| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the direction**, not the distance. A sphere offset by `d` has radius `r + d` and a test of *radius* alone passes for the inward offset too if the sign is wrong, so the assertion is that a point of the offset is the original point plus `d` times the original normal, at several parameters on an **asymmetric** patch. **The degeneracies are their own tests**: a cylinder offset inwards by its radius, a sphere by `−r`, a cone past its apex — each refused with a reason rather than returned inside out. **Exactness is asserted as exactness**, type for type: an offset plane is a `PlaneSurface`, an offset sphere a `SphericalSurface`, and the analytic five keep their types rather than becoming NURBS. The three gates, and the residue budget **exact** at 310 or moved with the reason written in the exclusions history. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -13908,3 +13908,69 @@ satisfies, and the helper record is private.
 
 **Cost.** One session, and a short one. One member, one helper, two nodes, fifteen tests, one help
 section, and a mutation script run twice.
+
+### 2026-09-13 — `Surface.ToNurbsSurface`, and *exact* turning out to be two claims
+
+**What.** `Surface.ToNurbsSurface` on the base, so a `Surface`-typed value can be asked at all,
+and the three types that had no conversion — extrusion, revolution, ruled — now have one. A new
+result type, `NurbsSurfaceConversion`. Twenty-four tests. The `Surface.ToNurbs` node, which took a
+sphere and now takes a surface, and a section in the solids topic. Both `ToNurbsSurface` rows move
+to `Done`, and the register stands at **422 of 545**.
+
+**The three new conversions are each one idea.** An extrusion is the profile's NURBS curve with a
+second row of control points translated by the sweep: degree `p × 1`, the profile's weights in
+both rows. A revolution is Piegl and Tiller's A8.1 — each profile control point swept by the
+rational circle, in its own plane perpendicular to the axis, at its own radius, with the weights
+multiplying. A ruled surface is two rails brought to one degree and one knot vector and laid into
+a net two rows deep. None of them needed new arithmetic: `RationalArcs` had the circle,
+`WithDegreeElevated` and `WithKnotInserted` had the merge.
+
+**The finding is that *exact* was two claims wearing one name, and the ruled surface is where
+they come apart.** A ruling joins its two rails at **equal parameters**. An `Arc` converts to a
+rational quadratic that traces the same curve and visits it in a different order — which the
+curve side has documented since `E2-T71` and which nothing had yet *depended* on. So two rails
+that are each exactly right rule a **different sheet**: correct along both edges, wrong
+everywhere between them. `NurbsConversion` gained `PreservesParameterisation` beside `IsExact`,
+the surface twin carries both, and a ruled surface is exact only when both rails keep theirs. A
+ruled surface between a line and a circle reports itself inexact, and that is not a gap: it is
+the honest answer.
+
+**The base refuses rather than sampling.** There is no surface interpolation to approximate with
+— `InterpolatePoints` is a curve member — so a fallback would have had to invent one, and a
+silently invented approximation is the claim `NurbsConversion` exists to stop. Instead a
+reflection test requires every concrete surface type to declare its own override, so a tenth
+type cannot ship quietly wrong.
+
+**Three mutations, and one of them corrected me** (AGENTS.md step 7):
+
+| Mutation | Result |
+|---|---|
+| the merge runs one way only | three red, by refusing |
+| a ruled surface is exact when both rails are | two red |
+| knots matched with `==` inside the merge | **green** |
+
+The third is the one worth keeping. I had written that the merge's own tolerance was
+load-bearing, and it is not: the comparison that protects it is
+`KnotVector.Multiplicity`'s, which has taken a tolerance since it was written and says why in its
+own remarks. Mutating *that* to `==` turns four control points into five — two knots a single unit
+in the last place apart, and a zero-length span in both rails. The test now pins the count, the
+remark names the right member, and this is the first test in the repository that proves that
+tolerance earns its place. **A claim about which line matters is a claim, and this one was wrong
+until it was mutated.**
+
+**Two smaller things.** `ToNurbsSurface` takes a tolerance, as the curve member does, and it
+reaches only the profile conversion — an extruded helix measured against its *profile* tightens
+from 1e-1 to 1e-4 with it. Measuring that same deviation through `Surface.ClosestPoint` instead
+reports 0.038 however fine the conversion is, because the seed grid is 16 × 16 and the helix
+turns through 540°: the test measures on the curve, and says so, because an assertion that cannot
+move is not an assertion.
+
+**Residue 303 → 310**, ending six steps of no movement, and the whole rise is the price of an
+honest answer: three members on `NurbsSurfaceConversion`, `PreservesParameterisation` on
+`NurbsConversion`, and the `ToNurbsSurface` overrides on the three surface types the register does
+not excuse wholesale. Returning a bare `NurbsSurface` would have cost nothing here and a great
+deal later.
+
+**Cost.** One session. One virtual, nine overrides, one result type, two internal curve helpers,
+twenty-four tests, one help section, one node widened, and a mutation that made me rewrite a
+paragraph I had already written.

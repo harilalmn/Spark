@@ -98,7 +98,7 @@ public sealed class NurbsSurfaceTests
     [Fact]
     public void TheBoundingBoxComesFromTheControlNet()
     {
-        NurbsSurface surface = new SphericalSurface(Plane.WorldXY, 2.0).ToNurbsSurface();
+        NurbsSurface surface = new SphericalSurface(Plane.WorldXY, 2.0).ToNurbsSurface().Surface;
         BoundingBox box = surface.BoundingBox;
 
         foreach (Point3d point in Grid(surface))
@@ -136,7 +136,7 @@ public sealed class NurbsSurfaceTests
     public void APlaneConvertsPointForPoint()
     {
         PlaneSurface plane = new(Plane.WorldXY, new Interval(-1, 2), new Interval(0.5, 4));
-        NurbsSurface converted = plane.ToNurbsSurface();
+        NurbsSurface converted = plane.ToNurbsSurface().Surface;
 
         for (int i = 0; i <= 7; i++)
         {
@@ -159,7 +159,7 @@ public sealed class NurbsSurfaceTests
     [MemberData(nameof(Cylinders))]
     public void AConvertedCylinderSatisfiesTheCylindersEquation(CylindricalSurface cylinder)
     {
-        foreach (Point3d point in Grid(cylinder.ToNurbsSurface()))
+        foreach (Point3d point in Grid(cylinder.ToNurbsSurface().Surface))
         {
             Vector3d offset = point - cylinder.Frame.Origin;
             double height = offset.Dot(cylinder.Axis);
@@ -181,7 +181,7 @@ public sealed class NurbsSurfaceTests
     {
         ConicalSurface cone = new(Plane.WorldXY, 1.0, Angle.FromRadians(0.4), new Interval(0.0, 4.0));
 
-        foreach (Point3d point in Grid(cone.ToNurbsSurface()))
+        foreach (Point3d point in Grid(cone.ToNurbsSurface().Surface))
         {
             Vector3d offset = point - cone.Frame.Origin;
             double height = offset.Dot(cone.Frame.Normal);
@@ -196,7 +196,7 @@ public sealed class NurbsSurfaceTests
     [MemberData(nameof(Spheres))]
     public void AConvertedSphereSatisfiesTheSpheresEquation(SphericalSurface sphere)
     {
-        foreach (Point3d point in Grid(sphere.ToNurbsSurface()))
+        foreach (Point3d point in Grid(sphere.ToNurbsSurface().Surface))
         {
             Assert.Equal(sphere.Radius, point.DistanceTo(sphere.Center), Exact);
         }
@@ -211,7 +211,7 @@ public sealed class NurbsSurfaceTests
     {
         ToroidalSurface torus = new(Plane.WorldXY, 5.0, 1.5);
 
-        foreach (Point3d point in Grid(torus.ToNurbsSurface()))
+        foreach (Point3d point in Grid(torus.ToNurbsSurface().Surface))
         {
             Vector3d offset = point - torus.Frame.Origin;
             double height = offset.Dot(torus.Frame.Normal);
@@ -232,7 +232,7 @@ public sealed class NurbsSurfaceTests
     [MemberData(nameof(Spheres))]
     public void TheCornersAndDomainsLineUp(SphericalSurface sphere)
     {
-        NurbsSurface converted = sphere.ToNurbsSurface();
+        NurbsSurface converted = sphere.ToNurbsSurface().Surface;
 
         Assert.Equal(sphere.DomainU.Min, converted.DomainU.Min, Exact);
         Assert.Equal(sphere.DomainU.Max, converted.DomainU.Max, Exact);
@@ -263,7 +263,7 @@ public sealed class NurbsSurfaceTests
     public void TheParameterisationIsNotPreservedAndThatIsExpected()
     {
         SphericalSurface sphere = new(Plane.WorldXY, 2.0);
-        NurbsSurface converted = sphere.ToNurbsSurface();
+        NurbsSurface converted = sphere.ToNurbsSurface().Surface;
 
         // A quarter of the way into the first span is not 22.5 degrees along the arc.
         double u = sphere.DomainU.Denormalise(0.25 / 4.0);
@@ -282,7 +282,7 @@ public sealed class NurbsSurfaceTests
     public void AConvertedSpheresAreaIsStillFourPiRSquared() =>
         Assert.Equal(
             4.0 * Math.PI * 4.0,
-            new SphericalSurface(Plane.WorldXY, 2.0).ToNurbsSurface().Area,
+            new SphericalSurface(Plane.WorldXY, 2.0).ToNurbsSurface().Surface.Area,
             1e-4);
 
     /// <summary>
@@ -294,7 +294,7 @@ public sealed class NurbsSurfaceTests
     public void AConvertedCylindersNormalsAgree()
     {
         CylindricalSurface cylinder = new(Plane.WorldXY, 2.0, new Interval(0.0, 5.0));
-        NurbsSurface converted = cylinder.ToNurbsSurface();
+        NurbsSurface converted = cylinder.ToNurbsSurface().Surface;
 
         for (int i = 1; i < 8; i++)
         {

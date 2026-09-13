@@ -1760,7 +1760,7 @@ public sealed class NurbsCurve : Curve
     /// sort of quiet loss a caller converting a whole model to one representation would never see.
     /// </remarks>
     public override NurbsConversion ToNurbsCurve(in Tolerance tolerance = default) =>
-        new(this, true);
+        new(this, true, true);
 
     /// <inheritdoc/>
     public override Curve Reversed()
@@ -2105,4 +2105,115 @@ public sealed class NurbsCurve : Curve
         return result;
     }
 
+    /// <summary>
+    /// The same curve over a different parameter interval: the knots mapped affinely, nothing else
+    /// touched (`E2-T66`).
+    /// </summary>
+    /// <param name="domain">The interval the curve should be parameterised over.</param>
+    /// <returns>The same curve, reparameterised.</returns>
+    /// <remarks>
+    /// Internal because it is a step inside other operations rather than an operation: nothing
+    /// about the curve changes but the numbers a caller uses to name its points.
+    /// </remarks>
+    internal NurbsCurve Reparameterised(in Interval domain)
+    {
+        Interval current = Domain;
+        double[] knots = Knots.ToArray();
+
+        for (int i = 0; i < knots.Length; i++)
+        {
+            knots[i] = domain.Min + ((knots[i] - current.Min) / current.Length * domain.Length);
+        }
+
+        return new NurbsCurve(ControlPoints(), new KnotVector(Degree, knots), Weights());
+    }
+
+    /// <summary>
+    /// Two curves rewritten over [0, 1] at one degree and on one knot vector, still exactly the
+    /// curves they were (`E2-T66`) — what a ruled surface, and later a loft, needs before it can
+    /// put their control points into one net.
+    /// </summary>
+    /// <param name="first">The first curve.</param>
+    /// <param name="second">The second curve.</param>
+    /// <returns>The two curves, compatible, with equal control-point counts.</returns>
+    /// <remarks>
+    /// <para>
+    /// Degree elevation first, then knot insertion: each interior knot of either vector is
+    /// inserted into the other until the multiplicities agree. Both operations are exact, so the
+    /// result is the same pair of curves with more control points than either needs.
+    /// </para>
+    /// <para>
+    /// <b>Knots are matched within a tolerance, and that is load-bearing rather than tidy.</b> The
+    /// two vectors are reparameterised onto <c>[0, 1]</c> before they are compared, so a knot one
+    /// third of the way along a curve over <c>[0, 3]</c> and the same knot on a curve over
+    /// <c>[0, 7]</c> arrive one unit in the last place apart. Matched exactly they are two knots,
+    /// and the merge manufactures a zero-length span in both curves. The comparison that catches
+    /// this is <see cref="KnotVector.Multiplicity(double, in Tolerance)"/>'s, which has compared
+    /// with a tolerance since it was written and says why in its own remarks.
+    /// </para>
+    /// </remarks>
+    internal static (NurbsCurve First, NurbsCurve Second) MadeCompatible(NurbsCurve first, NurbsCurve second)
+    {
+        NurbsCurve a = first.Reparameterised(Interval.Unit);
+        NurbsCurve b = second.Reparameterised(Interval.Unit);
+
+        int degree = Math.Max(a.Degree, b.Degree);
+
+        if (a.Degree < degree)
+        {
+            a = a.WithDegreeElevated(degree - a.Degree);
+        }
+
+        if (b.Degree < degree)
+        {
+            b = b.WithDegreeElevated(degree - b.Degree);
+        }
+
+        b = WithInteriorKnotsOf(b, a);
+        a = WithInteriorKnotsOf(a, b);
+
+        if (a.Knots.ControlPointCount != b.Knots.ControlPointCount)
+        {
+            throw new InvalidOperationException(
+                "The two curves could not be brought onto one knot vector, which should not be possible "
+                + "for two clamped curves of one degree over one domain.");
+        }
+
+        return (a, b);
+
+        static NurbsCurve WithInteriorKnotsOf(NurbsCurve target, NurbsCurve source)
+        {
+            double[] knots = source.Knots.ToArray();
+            Interval domain = source.Knots.Domain;
+            int index = 0;
+
+            while (index < knots.Length)
+            {
+                double knot = knots[index];
+                int run = 1;
+
+                while (index + run < knots.Length && Tolerance.Default.AreEqual(knots[index + run], knot))
+                {
+                    run++;
+                }
+
+                bool interior = !Tolerance.Default.AreEqual(knot, domain.Min)
+                    && !Tolerance.Default.AreEqual(knot, domain.Max);
+
+                if (interior)
+                {
+                    int have = target.Knots.Multiplicity(knot);
+
+                    if (run > have)
+                    {
+                        target = target.WithKnotInserted(knot, run - have);
+                    }
+                }
+
+                index += run;
+            }
+
+            return target;
+        }
+    }
 }

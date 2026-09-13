@@ -1,7 +1,7 @@
 ---
 id: concepts.solids
 title: Solids
-nodes: [Surface.PrincipalCurvatures, Surface.PrincipalDirections]
+nodes: [Surface.PrincipalCurvatures, Surface.PrincipalDirections, Surface.ToNurbs]
 related: [concepts.geometry-basics, concepts.curves, concepts.files]
 since: "0.1"
 ---
@@ -224,6 +224,62 @@ refusing, and the two curvatures are equal there, which is how to tell.
 The nodes take the parameters as fractions from 0 to 1 across each direction of the surface, as every
 surface node does, and hand back each pair as a two-item list; the kernel members take the surface's
 own parameters.
+
+## Turning any surface into a NURBS surface
+
+Every kernel, every interchange format and most downstream operations want one kind of surface, so
+`ToNurbsSurface` turns any of Spark's nine into a NURBS surface — and tells you two things about
+the result rather than one:
+
+```csharp
+using Spark.Geometry;
+
+SphericalSurface globe = new(Plane.WorldXY, 3.0);
+
+NurbsSurfaceConversion converted = globe.ToNurbsSurface();
+
+NurbsSurface asNurbs = converted.Surface;
+bool sameSheet = converted.IsExact;                          // true - a sphere is a rational quadric
+bool samePoints = converted.PreservesParameterisation;       // false - see below
+```
+
+**`IsExact` means the same set of points.** A plane, a cylinder, a cone, a sphere and a torus are
+all rational, so each converts to the last bit, with no tolerance and no sampling. An extrusion, a
+revolution and a ruled surface convert exactly when the curves they are built from do.
+
+**`PreservesParameterisation` is the second, stronger claim**, and it is the one that surprises
+people. A rational quadratic traces a circular arc exactly and walks it by a projective function of
+the angle rather than by the angle, so a converted sphere is the *same sheet* visited at *different
+parameters*: the corners line up and `PointAt(u, v)` does not. A plane's bilinear form keeps both.
+
+| Surface | Converted | Same parameters |
+|---|---|---|
+| `PlaneSurface` | **exactly** | yes |
+| `NurbsSurface` | itself | yes |
+| `CylindricalSurface`, `ConicalSurface`, `SphericalSurface`, `ToroidalSurface` | **exactly** | no |
+| `ExtrusionSurface`, `RevolutionSurface` | as exactly as its profile converts | as its profile does |
+| `RuledSurface` | **only if both rails keep their parameters** | only if neither rail is rational |
+
+**The ruled surface is the row worth reading twice.** A ruling joins its two rails at *equal
+parameters*. If a rail converts to the same curve visited in a different order — which is exactly
+what happens to an arc — then the rulings join different pairs of points, and the sheet between them
+is a different sheet even though both edges are perfectly right. So a ruled surface between a line
+and a circle reports `IsExact` as false, and that is not a gap waiting to be filled: it is the
+honest answer.
+
+```csharp
+using Spark.Geometry;
+
+RuledSurface skirt = new(
+    new Line(new Point3d(-2.0, 0.0, 5.0), new Point3d(2.0, 0.0, 5.0)),
+    Circle.FromCenterRadius(Point3d.Origin, 2.0));
+
+NurbsSurfaceConversion converted = skirt.ToNurbsSurface();
+bool sameSheet = converted.IsExact;   // false - the rails are exact and the rulings are not
+```
+
+Where a conversion cannot be exact, pass a tolerance: it is a sampling target for the profile
+curve, not a proved bound, and tightening it tightens the surface.
 
 ## Where the provider comes from, and what to do when it is missing
 

@@ -141,6 +141,14 @@ public sealed class PlaneSurface : Surface
 
     /// <inheritdoc/>
     /// <remarks>
+    /// Exact, and the parameterisation is kept: a bilinear patch over the same two domains, through
+    /// <see cref="SurfaceConversion"/>.
+    /// </remarks>
+    public override NurbsSurfaceConversion ToNurbsSurface(in Tolerance tolerance = default) =>
+        new(SurfaceConversion.ToNurbsSurface(this), true, true);
+
+    /// <inheritdoc/>
+    /// <remarks>
     /// A plane survives every transform there is — including a non-uniform scale, which shears the
     /// rectangle but leaves it planar. **The domains are not rescaled**, because the transformed
     /// axes are no longer unit length and the parameterisation stays a distance along *those* axes,

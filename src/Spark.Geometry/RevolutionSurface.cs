@@ -82,6 +82,58 @@ public sealed class RevolutionSurface : Surface
     public override bool IsClosedV => _profile.IsClosed;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <para>
+    /// Piegl and Tiller's construction (their algorithm A8.1): each control point of the profile's
+    /// NURBS curve is swept by the rational circle of the sweep, in its own plane perpendicular to
+    /// the axis and at its own distance from it, and the weights multiply. The knots are the
+    /// circle's along <c>u</c> and the profile's along <c>v</c>, so both domains are the original's.
+    /// </para>
+    /// <para>
+    /// <b>Exact exactly when the profile converts exactly</b>, and never parameterised like the
+    /// original, because the rational circle is not: a revolved <see cref="Helix"/> is an
+    /// approximation, and everything else is the same sheet visited at different parameters. A
+    /// profile control point on the axis sweeps to a point, which is the degeneracy this type
+    /// documents and the conversion carries across unchanged.
+    /// </para>
+    /// </remarks>
+    public override NurbsSurfaceConversion ToNurbsSurface(in Tolerance tolerance = default)
+    {
+        NurbsConversion profile = _profile.ToNurbsCurve(tolerance);
+        NurbsCurve curve = profile.Curve;
+
+        (Point2d[] around, double[] aroundWeights, KnotVector knotsU) = RationalArcs.Arc(_domainU, 1.0);
+        Point3d[] points = curve.ControlPoints();
+        double[] weights = curve.Weights();
+
+        Point3d[,] net = new Point3d[around.Length, points.Length];
+        double[,] netWeights = new double[around.Length, points.Length];
+
+        for (int j = 0; j < points.Length; j++)
+        {
+            Vector3d offset = points[j] - _origin;
+            Vector3d axial = _axis * offset.Dot(_axis);
+            Vector3d radial = offset - axial;
+            double radius = radial.Length;
+
+            // On the axis there is no radial direction and nothing to sweep: the whole row collapses
+            // onto the point, which is what the surface does there too.
+            Vector3d first = radius > 0.0 ? radial / radius : Vector3d.Zero;
+            Vector3d second = _axis.Cross(first);
+            Point3d centre = _origin + axial;
+
+            for (int i = 0; i < around.Length; i++)
+            {
+                net[i, j] = centre + (first * (around[i].X * radius)) + (second * (around[i].Y * radius));
+                netWeights[i, j] = aroundWeights[i] * weights[j];
+            }
+        }
+
+        return new NurbsSurfaceConversion(
+            new NurbsSurface(knotsU, curve.Knots, net, netWeights), profile.IsExact, false);
+    }
+
+    /// <inheritdoc/>
     public override Surface TransformedBy(in Transform transform) =>
         new RevolutionSurface(
             _profile.TransformedBy(transform),

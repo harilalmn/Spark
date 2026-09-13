@@ -348,7 +348,7 @@ public sealed class PolyLine : Curve
             knots[index] = Math.Clamp(index - 1, 0, _points.Length - 1);
         }
 
-        return new NurbsConversion(new NurbsCurve(1, _points, knots), true);
+        return new NurbsConversion(new NurbsCurve(1, _points, knots), true, true);
     }
 
     /// <inheritdoc/>

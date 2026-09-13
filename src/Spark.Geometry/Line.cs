@@ -257,7 +257,7 @@ public sealed class Line : Curve
     /// <see cref="NurbsConversion"/>.
     /// </remarks>
     public override NurbsConversion ToNurbsCurve(in Tolerance tolerance = default) =>
-        new(new NurbsCurve(1, [_start, _end], [0.0, 0.0, 1.0, 1.0]), true);
+        new(new NurbsCurve(1, [_start, _end], [0.0, 0.0, 1.0, 1.0]), true, true);
 
     /// <inheritdoc/>
     /// <remarks>

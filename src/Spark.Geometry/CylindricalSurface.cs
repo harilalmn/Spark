@@ -87,6 +87,14 @@ public sealed class CylindricalSurface : Surface
 
     /// <inheritdoc/>
     /// <remarks>
+    /// Exact as a sheet, through <see cref="SurfaceConversion"/>, and not as a parameterisation:
+    /// the rational quadratic walks a circle by a projective function of the angle.
+    /// </remarks>
+    public override NurbsSurfaceConversion ToNurbsSurface(in Tolerance tolerance = default) =>
+        new(SurfaceConversion.ToNurbsSurface(this), true, false);
+
+    /// <inheritdoc/>
+    /// <remarks>
     /// A cylinder survives a rigid motion and a uniform scale. A non-uniform one turns its circular
     /// section into an ellipse, which the kernel has no type for, so it refuses.
     /// </remarks>

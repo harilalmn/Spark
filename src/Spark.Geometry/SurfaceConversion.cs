@@ -44,7 +44,7 @@ namespace Spark.Geometry;
 /// quarter circle is the arc's midpoint; a quarter of the way along is <i>not</i> 22.5°. Every
 /// point of the converted surface is on the original and every point of the original is on the
 /// converted one — the two are the same set of points — but
-/// <c>sphere.PointAt(u, v)</c> and <c>sphere.ToNurbsSurface().PointAt(u, v)</c> are different
+/// <c>sphere.PointAt(u, v)</c> and <c>sphere.ToNurbsSurface().Surface.PointAt(u, v)</c> are different
 /// points.
 /// </para>
 /// <para>

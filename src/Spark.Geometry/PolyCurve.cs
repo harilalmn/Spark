@@ -252,6 +252,7 @@ public sealed class PolyCurve : Curve
     {
         NurbsCurve[] pieces = new NurbsCurve[_segments.Length];
         int degree = 1;
+        bool preserved = true;
 
         for (int index = 0; index < _segments.Length; index++)
         {
@@ -269,6 +270,7 @@ public sealed class PolyCurve : Curve
 
             pieces[index] = converted.Curve;
             degree = Math.Max(degree, converted.Curve.Degree);
+            preserved &= converted.PreservesParameterisation;
         }
 
         for (int index = 0; index < pieces.Length; index++)
@@ -279,7 +281,9 @@ public sealed class PolyCurve : Curve
             }
         }
 
-        return new NurbsConversion(Join(pieces, degree), true);
+        // Each piece lands on its own unit of the domain by the same affine map the polycurve
+        // itself uses, so the joined curve keeps the parameterisation exactly when every piece did.
+        return new NurbsConversion(Join(pieces, degree), true, preserved);
     }
 
     /// <summary>Joins clamped curves of one degree end to end, over this polycurve's domain.</summary>

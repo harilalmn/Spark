@@ -64,6 +64,57 @@ public sealed class RuledSurface : Surface
     public override bool IsClosedV => false;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <para>
+    /// The two rails as NURBS curves, brought to a common degree by elevation and to a common knot
+    /// vector by insertion — both exact operations — over <c>[0, 1]</c>, and joined by a degree-1
+    /// direction across: the control net is the first rail's control points in one row and the
+    /// second's in the other. Every isocurve across is then the straight segment between the two
+    /// rails, which is what a ruled surface is.
+    /// </para>
+    /// <para>
+    /// <b>Exact exactly when both rails convert exactly <i>and</i> keep their parameterisation.</b>
+    /// The second condition is the one that is easy to miss. A ruling joins the two rails at
+    /// <i>equal parameters</i>, so if a rail's NURBS form visits the same points in a different
+    /// order — an <see cref="Arc"/> does — the rulings join different pairs of points and the sheet
+    /// is a different sheet, even though each rail is the same curve. Then this reports
+    /// <see cref="NurbsSurfaceConversion.IsExact"/> as <see langword="false"/> and the caller has
+    /// the measuring to do. The parameter <i>across</i> a ruling is kept only when neither rail is
+    /// rational, because with weights the straight segment is walked projectively.
+    /// </para>
+    /// </remarks>
+    public override NurbsSurfaceConversion ToNurbsSurface(in Tolerance tolerance = default)
+    {
+        NurbsConversion first = _first.ToNurbsCurve(tolerance);
+        NurbsConversion second = _second.ToNurbsCurve(tolerance);
+
+        (NurbsCurve a, NurbsCurve b) = NurbsCurve.MadeCompatible(first.Curve, second.Curve);
+
+        Point3d[] pointsA = a.ControlPoints();
+        Point3d[] pointsB = b.ControlPoints();
+        double[] weightsA = a.Weights();
+        double[] weightsB = b.Weights();
+
+        Point3d[,] net = new Point3d[pointsA.Length, 2];
+        double[,] weights = new double[pointsA.Length, 2];
+
+        for (int i = 0; i < pointsA.Length; i++)
+        {
+            net[i, 0] = pointsA[i];
+            net[i, 1] = pointsB[i];
+            weights[i, 0] = weightsA[i];
+            weights[i, 1] = weightsB[i];
+        }
+
+        bool railsKeepTheirParameters = first.PreservesParameterisation && second.PreservesParameterisation;
+
+        return new NurbsSurfaceConversion(
+            new NurbsSurface(a.Knots, KnotVector.CreateClamped(1, 2), net, weights),
+            first.IsExact && second.IsExact && railsKeepTheirParameters,
+            railsKeepTheirParameters && !a.IsRational && !b.IsRational);
+    }
+
+    /// <inheritdoc/>
     public override Surface TransformedBy(in Transform transform) =>
         new RuledSurface(_first.TransformedBy(transform), _second.TransformedBy(transform));
 
