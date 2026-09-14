@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-13 (N167: a grep that finds a failure reports success)
+**Last updated:** 2026-09-14 (N168: a link that works and lands in the wrong place)
 
 ---
 
@@ -1861,7 +1861,7 @@ holding, and the failure was total: **no viewport image at all**, with the messa
 read-back: neither backend produced a frame.*
 
 **The cause was not what it looked like.** The obvious suspect was the software fallback, which by
-design commits only after 1.5 seconds have passed with no GL callback ([N64](#n64)) — longer
+design commits only after 1.5 seconds have passed with no GL callback ([N64](#n64--two-backends-one-capture-flag-and-a-screenshot-that-photographed-the-wrong-one)) — longer
 than the capture waited. But the fallback was never reached: the real answer was that **OpenGL
 came up perfectly well, just later than one second** on a machine that had been running builds all
 day. The fixed delay had always been a race and had simply always won.
@@ -2465,7 +2465,7 @@ headless dispatcher and was deleted rather than left in the suite, which fails A
 **The symptom.** A test that shows `InspectorPane` with a `MainWindowViewModel` as its data context
 hangs. It does not fail and it does not time out with a message: the run sits there until the
 harness kills it. This killed `InspectorLayoutTests`, which was deleted rather than left in the
-suite, and it is why the `App.axaml` fix in [N89](#n89) was verified by a person's eyes and nothing
+suite, and it is why the `App.axaml` fix in [N89](#n89--a-control-with-no-registered-theme-has-no-template-and-renders-nothing) was verified by a person's eyes and nothing
 else.
 
 **The cause, bisected.** Not the session, the window, the pane's construction, the data context,
@@ -5174,6 +5174,55 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N168 — A link that works and lands in the wrong place
+
+**2026-09-14, `E11-T7`.** The documentation check `EveryRelativeLinkResolves` has verified since it
+was written that a linked *file* exists. It says in its own code, without embarrassment, *we are
+checking that the file exists, not the heading*. Adding the heading half found **twelve distinct
+broken anchors across twenty-four citations**, every one of them in a document that had been read,
+edited and reviewed many times since the anchor went stale.
+
+**They were invisible because a stale anchor is not a broken link.** The page opens. The file is
+right. The reader lands at the top instead of at the section named, assumes they mis-clicked, and
+scrolls. Nobody files that, and a reviewer reading a diff cannot see it at all, because the link
+text is still correct — it is the *target's heading* that moved, in a different file, possibly years
+earlier.
+
+**All twelve were the residue of renames.** `## E11 — Testing and quality` became
+`## E11 — Quality and verification`, and the citations kept the old slug; the same epic had *three*
+different stale spellings in one document, from three successive renames. `#e3--the-file-format`
+pointed at what is now `## E3 — Graph engine`. Two `NOTES.md` citations used a shorthand — `#n64` —
+that GitHub has never produced, because its slug is the whole heading including the title after the
+dash. Nobody wrote any of these wrong; they were right when written.
+
+**The lesson generalises past anchors.** A citation has two halves — *where* and *what* — and a
+check that verifies only the first passes forever while the second rots. The same shape appears in
+this repository's ADR check, which knows it and says so: it verifies that a cited ADR **exists** and
+records that it cannot verify the citation is *about* the right thing. The difference is that an
+anchor's *what* **is** machine-checkable, and simply had not been checked.
+
+**And the gate for a gate is a gate.** A checker over real documents that finds nothing looks
+identical to a checker that checks nothing — which is [N167](#n167--a-grep-that-finds-a-failure-reports-success-and-it-let-a-red-commit-through)'s
+lesson in a different costume. So the anchor check ships with a test that runs it over a synthetic
+document whose anchor is deliberately wrong and fails if it is not reported. That test is the one
+that goes red when the condition is inverted; the check over the repository stays perfectly green.
+
+**Writing the note broke the check, twice, and both breakages are instructive.** The first: a
+literal image link written as an example, inside backticks, was reported as a missing file —
+the checker stripped fenced blocks and had never considered inline code spans. The second was
+the fix for the first. Removing a code span's *contents* seems right for link scanning and is
+wrong for headings, because GitHub keeps the words inside backticks when it makes a slug: it
+turned N34's own heading into an anchor with two invented hyphens and reported a citation that
+had always been correct as broken. **A stripper that is right for finding links is wrong for
+naming sections**, so there are two of them, and the difference is written where both are
+defined.
+
+**What this does not cover, stated so nobody assumes it does.** There are currently **no image or
+asset references anywhere in the documentation** — zero — so asset integrity is covered by
+construction rather than by effort: the existing link regular expression matches `![alt](path)` as
+readily as `[text](path)`, and will check the first image the day one appears. Renderer parity
+against a golden corpus, the other half of `E11-T7`, needs the help renderer and is not this.
 
 ## N167 — A grep that finds a failure reports success, and it let a red commit through
 

@@ -973,7 +973,7 @@ measured, so what a row cannot fit it does without, rather than overlapping the 
 
 Double-clicking empty canvas opens a search box at the pointer
 ([`concepts.finding-nodes`](finding-nodes.md)). It is `surface.float` with a 1 px
-`border.control` frame and a soft drop shadow — the elevation [§4](#4-elevation-and-depth)
+`border.control` frame and a soft drop shadow — the elevation [§3](#3-elevation)
 reserves for menus, popups and autocomplete — because it floats over a canvas that sits only
 1.2:1 away from it and needs an edge to be readable at all.
 

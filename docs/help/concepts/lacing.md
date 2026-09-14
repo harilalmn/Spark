@@ -14,7 +14,7 @@ it raises carries a help topic.
 **Last updated:** 2026-09-02
 
 > This topic is both an end-user help page and the executable specification for Spark's
-> replication engine. The [case table](#the-case-table) at the end is consumed directly as
+> replication engine. The [case table](#6-the-case-table) at the end is consumed directly as
 > xunit `[Theory]` data by `tests/Spark.Engine.Tests`. If the table and the implementation
 > disagree, the table is right.
 

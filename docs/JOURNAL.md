@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: the anchors nobody was checking)
+**Last updated:** 2026-09-14 (`E11-T7`: twelve anchors nobody was checking)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E11-T7` — link and asset integrity, and specifically the half that does not exist: **anchors**.** **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*, and 2026-09-14: *do not stop until all epics are completed*.** **The board was read before this was chosen**, rather than taking the next parity row: 350 task rows are `Done`, 18 `Open`, 9 `In progress` and 7 `Blocked` — and four of the seven blocked ones are CI jobs that cannot run because GitHub Actions is switched off for this repository (`E13-T19`), which is the client's setting and not work. **This row was picked because the gap is exact and the evidence is this run.** `EveryRelativeLinkResolves` already checks that a linked *file* exists, and says in its own code *we are checking that the file exists, not the heading*. I have spent this run hand-editing anchors like `#32-curves--11-types-141-reachable` every time a count changed. **A stale anchor is silent rot**: the link still works, it just lands at the top of the page. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`Curve.Simplified` — a virtual on the base with three overrides, following the pattern its row named.** **The base case is the interesting part**: it returns **itself**, where `Surface.ToNurbsSurface` approximates — because an analytic curve is already the smallest description of itself, and converting one to NURBS would make it *less* simple. Asserted with `Assert.Same`, since *unchanged* and *rebuilt identically* are different promises. **The branch is Douglas–Peucker rather than a neighbour walk.** The obvious version **drifts**: on a finely sampled arc every removal is individually acceptable and the accumulation flattens the arc — and a vertex-count test cannot see it, so the assertion is every original vertex's distance to the *result*. The mutation reddens four. **One limitation found and pinned**: `Reduced` removes **knots, not degree**, so a degree-elevated line comes back unchanged. Residue **343 → 346**, three overrides, with the reason in the exclusions history. 12 tests, **3849 → 3861**. **Before it:** `Curve.PulledOntoPlane`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3861** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at **346**, and the help-sample compiler green. No stashes. |
-| **Next action** | **Add anchor resolution to `Spark.Docs.Verify`.** For every Markdown link carrying a `#`, slug the target document's headings and check the anchor is among them — including **same-document** links, which the current check skips entirely. **The slug rules are GitHub's and they have to be got exactly right**, because this repository's anchors exercise the awkward parts: `### 3.2 Curves — 11 types, 187 members, 141 reachable` becomes `32-curves--11-types-187-members-141-reachable`, where the dot in *3.2* vanishes and the em dash leaves a **double** hyphen behind. Lowercase, drop everything that is not alphanumeric, space or hyphen, then spaces to hyphens. **A repeated heading gets a numeric suffix** and that has to be handled or the second one is unreachable. |
-| **Verify with** | **A gate that passes by checking nothing is the failure this project already has a note about** ([N167](NOTES.md)), so the verification is in two parts and the second matters more. **(1) The gate over the repository**, which either passes or finds real rot — and if it finds any, fixing it is part of this step. **(2) A test that the checker is not vacuous**, run against a **synthetic** fixture in a temporary directory: a link to a heading that does not exist must be reported, and the same link to a heading that does must not. Without that, a checker with an inverted condition or an empty loop passes the repository perfectly. **(3) The slug rules themselves**, as a table of heading against expected anchor, taking its awkward cases from anchors that really appear in these documents rather than from invented ones. The three gates, and the residue budget **exact** at 346. |
+| **Working on** | **Nothing — between steps.** Forty-four steps landed across 2026-09-13 and 2026-09-14. **Run parameters from the client: 2026-09-11 *go non stop till all Epics are done*, then *finish everything - we release only after that*; 2026-09-14 *do not stop until all epics are completed*.** **The board stands at 350 task rows `Done`, 18 `Open`, 9 `In progress`, 7 `Blocked`** — and **four of the seven blocked ones are CI jobs that cannot run because GitHub Actions is switched off for this repository** (`E13-T19`), which is the client's setting rather than work anybody can do here. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`E11-T7`'s link and anchor integrity — and it found twelve broken anchors on its first run.** `EveryRelativeLinkResolves` has always checked that a linked *file* exists, and says in its own code that it is *not checking the heading*. This is the heading half. **Twelve distinct broken anchors across twenty-four citations**, every one the residue of a rename — one epic carried **three** different stale spellings from three successive renames. All fixed. **A stale anchor is not a broken link**: the page opens, the reader lands at the top, nobody reports it and a diff cannot show it ([N168](NOTES.md)). **The check ships with a test that it is not vacuous**, over a synthetic document — because a checker that finds nothing looks exactly like one that checks nothing ([N167](NOTES.md)), and the mutation proves it: inverting the condition leaves the repository check **green** and reddens only that test. **Writing the note broke the check twice**, and both breakages are in N168. Residue **unchanged at 346**. 11 tests, **3861 → 3872**. **Before it:** `Curve.Simplified`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3872** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 346, and the help-sample compiler green. No stashes. |
+| **Next action** | **`E11-T17` — the `tests/corpus/` regression corpus, which half exists and has no rule.** **Look before building**: `tests/corpus/` already holds the Dynamo parity manifest and its exclusions, both of which are consumed by the docs harness. So the folder is real and the row is about what it is *for* — *grows with every bug found*, and *holds the real old-version graphs the migration golden-file tests need*. **Those are two different things and the row should say so.** A corpus of **inputs that once broke something** is a discipline, not code: it needs a place, a naming rule, and a test that walks it. A corpus of **old-version graphs** is a migration fixture and waits on there being old versions to keep. **Decide what can be built today and write the other half's reason into the row.** The first is buildable now: every `.sparkz` in a corpus folder should open, evaluate and round-trip, and that test is worth having before there is anything in the folder, because it is what makes adding a case free. |
+| **Verify with** | **A gate that walks an empty folder passes by doing nothing, which is this run's recurring failure** ([N167](NOTES.md), [N168](NOTES.md)) — so whatever is built must come with at least one real case in the corpus **and** a test that the walker would fail on a broken one. **The first case is free**: this run has produced graphs the app can open, and any one of them is a regression case the day something breaks it. The three gates, and the residue budget **exact** at 346. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -15190,3 +15190,63 @@ different question.
 run the budget has moved for that reason and the reason is recorded each time.
 
 **Cost.** One session. One virtual, three overrides, twelve tests, one node, one mutation.
+
+### 2026-09-14 — Twelve anchors nobody was checking
+
+**What.** `E11-T7`'s link and anchor integrity. Eleven tests, twelve broken anchors found and
+fixed across twenty-four citations, [N168](NOTES.md), and one real gap closed in a check that
+already existed.
+
+**The board was read before this was chosen**, which the previous step had asked for. 350 task
+rows are `Done`, 18 `Open`, 9 `In progress` and 7 `Blocked` — and **four of the seven blocked
+ones are CI jobs that cannot run because GitHub Actions is switched off for this repository**
+(`E13-T19`). That is the client's setting, not work, and it is worth knowing before reading the
+blocked list as a backlog.
+
+**This row was picked because its gap was exact and its evidence was this run.**
+`EveryRelativeLinkResolves` has checked since it was written that a linked *file* exists, and
+says so in its own code without embarrassment: *we are checking that the file exists, not the
+heading*. Meanwhile I have spent this entire run hand-editing anchors like
+`#32-curves--11-types-141-reachable` every time a count in a heading changed.
+
+**Twelve distinct broken anchors, across twenty-four citations, in documents that have been
+read and edited hundreds of times.** Every one was the residue of a rename.
+`## E11 — Testing and quality` became `## E11 — Quality and verification`, and the citations
+kept the old slug — that epic alone carried **three** different stale spellings from three
+successive renames, all in one document. `#e3--the-file-format` pointed at what is now
+`## E3 — Graph engine`. Two `NOTES.md` citations used `#n64`, a shorthand GitHub has never
+produced, because the slug is the whole heading including its title.
+
+**They were invisible because a stale anchor is not a broken link.** The page opens. The file
+is right. The reader lands at the top instead of the section named, assumes they mis-clicked,
+and scrolls. Nobody files it, and a reviewer reading a diff cannot see it at all, because the
+link text is still correct — it is the *target's heading* that moved, in a different file,
+possibly years earlier.
+
+**The gate ships with a gate, and that is the part I would keep if I could keep one thing.** A
+checker run over real documents that finds nothing looks *identical* to a checker that checks
+nothing — [N167](NOTES.md) in a different costume. So there is a test that runs the same code
+over a synthetic document whose anchor is deliberately wrong. The mutation proves the point
+exactly: invert the condition and `EveryAnchorResolves` stays **green** over the whole
+repository while that one test goes red.
+
+**Writing the note broke the check twice, and both are recorded.** First, a literal image link
+written as an example inside backticks was reported as a missing file — the stripper handled
+fenced blocks and had never considered inline code spans. Then the fix for that broke it the
+other way: removing a code span's *contents* is right for scanning links and wrong for slugging
+headings, because GitHub keeps the words inside backticks. It turned N34's own heading into an
+anchor with two invented hyphens and reported a citation that had always been correct as
+broken. **A stripper that is right for finding links is wrong for naming sections**, so there
+are two, with the difference written where both are defined and a regression test on the real
+heading that caught it.
+
+**One half of the row is done and the other is named.** Asset integrity turns out to be covered
+by construction — the link expression matches an image link as readily as a text one — and
+there are currently **zero** image references in the documentation, so a separate asset check
+would be a test that passes by doing nothing. Markdown renderer parity against a golden corpus
+needs the help renderer, `E8-T14`, and is not testable before it.
+
+**Residue unchanged at 346.**
+
+**Cost.** One session. One check, eleven tests, twelve documentation faults fixed, one note,
+and two self-inflicted breakages worth more than the check.

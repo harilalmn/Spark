@@ -6,7 +6,7 @@
 
 ## Context
 
-M2 needed undo and redo (`E8-T9`, [FR-63](../PRD.md#8-functional-requirements)). Two things
+M2 needed undo and redo (`E8-T9`, [FR-63](../PRD.md#6-functional-requirements)). Two things
 about Spark's shape were already settled before the question was asked, and between them they
 decide most of it.
 

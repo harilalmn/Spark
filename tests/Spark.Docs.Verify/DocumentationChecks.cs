@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Spark.Docs.Verify;
@@ -255,10 +256,59 @@ public sealed class DocumentationChecks
             {
                 lines[i] = string.Empty;
             }
+            else
+            {
+                lines[i] = WithoutLinksInCode(lines[i]);
+            }
         }
 
         return string.Join('\n', lines);
     }
+
+    /// <summary>The line with link punctuation inside backticks made harmless.</summary>
+    /// <param name="line">The line.</param>
+    /// <returns>The line, with brackets and parentheses inside code spans blanked.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>A link inside a code span is not a link, and this check learned that from its own
+    /// documentation.</b> Writing a literal image link in a note <i>about</i> link checking made
+    /// the checker report the path as a missing file: the stripper only ever handled fenced
+    /// blocks, so an inline span went through as prose.
+    /// </para>
+    /// <para>
+    /// <b>It blanks the punctuation rather than the span, and the first version got that
+    /// wrong.</b> Removing a code span's <i>contents</i> breaks two things at once: a heading like
+    /// <c>N34 — Dock's ToolContent</c> loses the word that its anchor is made of, and an ADR
+    /// citation written in backticks stops being seen by the check that verifies ADRs exist.
+    /// Blanking only the four characters that make a link keeps every word where it was.
+    /// </para>
+    /// </remarks>
+    private static string WithoutLinksInCode(string line)
+    {
+        if (!line.Contains('`', StringComparison.Ordinal))
+        {
+            return line;
+        }
+
+        StringBuilder prose = new(line.Length);
+        bool inside = false;
+
+        foreach (char character in line)
+        {
+            if (character == '`')
+            {
+                inside = !inside;
+                prose.Append(character);
+                continue;
+            }
+
+            prose.Append(
+                inside && character is '[' or ']' or '(' or ')' ? ' ' : character);
+        }
+
+        return prose.ToString();
+    }
+
 
     /// <summary>
     /// Whether a topic contains a worked example: a fenced code block, a pipe table, or a section
