@@ -179,4 +179,17 @@ public static class Mesh
     [return: NodePort("point")]
     public static Point3d? Project(Spark.Geometry.Mesh mesh, Point3d point, Vector3d direction) =>
         mesh.Project(point, direction);
+
+    /// <summary>Removes a mesh's rubbish: degenerate faces, duplicate faces, orphaned vertices.</summary>
+    /// <param name="mesh">The mesh.</param>
+    /// <returns>The repaired mesh, or the same one when there was nothing to repair.</returns>
+    /// <remarks>
+    /// <b>It does not weld and it does not fill holes.</b> Coincident-but-separate vertices are
+    /// <c>Weld</c>'s question, because closing them needs a tolerance; holes are
+    /// <c>MakeWatertight</c>'s. Repair is the pass that needs no judgement, which is why it takes
+    /// no settings.
+    /// </remarks>
+    [return: NodePort("mesh")]
+    [SparkNodeAlias("Mesh.Repair")]
+    public static Spark.Geometry.Mesh Repaired(Spark.Geometry.Mesh mesh) => mesh.Repair();
 }

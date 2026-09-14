@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: mesh hygiene, and two algorithms that are not it)
+**Last updated:** 2026-09-14 (`E2-T68`: mesh hygiene, and a bug my own test caught)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T68`'s `Mesh.Repair()` — mesh hygiene, and the decision about which of the four members Spark should actually have.** **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **The four are not four members of one size, and the rows already said so.** `Repair` and `MakeWatertight` are **hygiene** — degenerate faces, duplicate faces, orphaned vertices, and holes small enough to fan shut — all of it expressible over what exists: `MeshTopology` reports `IsClosed` and hands out `NakedEdges()`, and `Mesh.Carry` already renumbers a channel through a vertex remap. **`Remesh` and `Reduce` are not hygiene**: the rows name a **voxel field** for one and **quadric error metrics** for the other, each its own literature and its own project. **This step builds `Repair`**, the next builds `MakeWatertight`, and the other two get sharpened reasons rather than half-versions wearing their names. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`Mesh.Project` — a ray cast at a mesh, and `E2-T69` is closed.** It reuses `ClosestPoint`'s loop with **Möller–Trumbore** in place of the region test. **The return type is `Point3d?` and it was decided before writing**: a miss has no point, and the query point, the nearest point or a sentinel are each a wrong answer wearing the shape of a right one. **The branch is the rejection of hits behind the start**, which bites hardest where it is least visible — on a closed mesh a ray meets twice, so the fixtures start **inside** a sphere. **Two things my write-ahead called decisions turned out not to be branches**, both proved by mutations that stayed green: the non-negative rule is **one** guard and not two, and the explicit parallel-ray check is for **clarity rather than correctness**. Both are now written into the remarks as such. Residue **unchanged at 343**. 17 tests, **3803 → 3820**. **Before it:** `Mesh.ClosestPoint`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3820** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
-| **Next action** | **Write `Mesh.Repair()`, returning a new mesh.** Three passes, in this order: drop faces that are **degenerate** (a repeated vertex index, or no area); drop faces that are **duplicates** of one already kept — same set of vertices, which catches both windings and is the definition to write down; then drop **unused** vertices and **renumber** everything that indexes them. **The renumber is the branch and it fails silently.** Dropping a vertex from the middle shifts every index above it, so faces that are not renumbered point at the wrong points — still valid indices, still a mesh that loads, drawn wrong. `Carry` is the helper that already does this for `Explode`, so the fix is reuse rather than new code. **A clean mesh must come back unchanged**, which is what stops a repair from being a rebuild. |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the renumber**. A mesh with an unused vertex in the *middle* of its list is the fixture: dropping it without renumbering leaves every later face pointing one place too high, so the assertion is that the surviving faces still name the **same points** they did before, compared by coordinate rather than by index. **The channels move with the vertices**, asserted on a mesh carrying normals and colours, because a repair that renumbers the faces and forgets the channels is the same bug one level down. **A clean mesh is unchanged**, by vertex count, face count and every coordinate. **Each kind of rubbish gets its own test** — repeated index, zero area, duplicate face, orphan vertex — so a failure names which pass broke. The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Forty steps landed across 2026-09-13 and 2026-09-14. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **`E2-T66` and `E2-T69` are closed; `E2-T72` is `Blocked` with its three remainders named.** **`E2-T68` has three left** — `MakeWatertight`, and the two that are algorithms rather than passes. `E2-T67` is skipped with its reason — the shim cannot be rebuilt without the OpenCascade install `E13-T21` waits on. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`Mesh.Repair` — mesh hygiene, and the decision about which of `E2-T68`'s four members are hygiene at all.** **Three passes in an order where each creates work for the next**: degenerate faces, then duplicates, then the vertices nothing indexes any more. **Two faces are duplicates when they use the same *set* of vertices**, which catches the opposite winding and is written down rather than inferred. **The branch is the renumbering and it fails quietly** — an unrenumbered face points at a *different* vertex, which is a valid index and a mesh that loads — so the tests compare by **coordinate**, because an index-based test cannot see the defect at all. **One real bug, caught by my own *a clean mesh is unchanged* test**: numbering survivors by first use permutes a mesh needing no repair, because a sphere's faces do not visit its vertices in index order. **`Remesh` and `Reduce` got sharpened reasons rather than half-versions.** Residue **unchanged at 343**. 10 tests, **3820 → 3830**. **Before it:** `Mesh.Project`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3830** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T68`'s `Mesh.MakeWatertight()` — the boundary walk, and the last of the task that is a pass rather than a project.** **`MeshTopology.NakedEdges()` is the whole input**: it returns the boundary edges as `(From, To)` pairs, and a hole is a **cycle** among them. Chain each edge to the one whose `From` is this one's `To`, close the loop, and fan it shut from its first vertex. **Weld first, and say why in the remarks.** A *crack* — two coincident but separate vertices along a seam — shows up as naked edges that no fan can close, because the two sides of the crack are different vertices. A member promising *watertight* that ignores cracks is not promising it, so this one takes a tolerance and welds before it walks. **A fan is topological, not beautiful**, and that has to be written down: a non-planar or non-convex boundary fanned from one vertex gives triangles that overlap in space while closing the surface perfectly. Closing the hole is the promise; a nice patch is not. |
+| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the walk finding *every* loop**. A mesh with **two separate holes** must come back closed, and an implementation that finds one cycle and stops passes every test on a mesh with one hole. **`MeshTopology.IsClosed` is the oracle** and it already exists, so the assertion is that one line. **A mesh that is already closed comes back unchanged**, which stops the member being a rebuild. **A cracked mesh is closed too**, which is what the weld is for and fails without it. **Nothing is left naked**, asserted through `NakedEdgeCount`. The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -14983,3 +14983,58 @@ real geometry rather than bookkeeping.
 
 **Cost.** One session. One member, seventeen tests, one node, three mutations — one that
 proved the branch and two that proved there was no branch.
+
+### 2026-09-14 — Mesh hygiene, and a bug my own test caught
+
+**What.** `Mesh.Repair`. Ten tests, a node, a row to `Done`, two rows given sharper reasons,
+and the register at **451 of 545**.
+
+**The decision came before the code: which of `E2-T68`'s four members are hygiene at all.** The
+rows had the answer and it needed reading rather than deriving. `Repair` and `MakeWatertight`
+are **passes over the data a mesh already has** — degenerate faces, duplicates, orphans, holes
+— and everything they need exists: `MeshTopology` reports `IsClosed` and hands out
+`NakedEdges()`, and `Mesh.Carry` already renumbers a channel through a vertex remap.
+**`Remesh` and `Reduce` are algorithms**: a voxel field for one, quadric edge collapse for the
+other, each with its own literature. Building a smaller thing under either name would be
+exactly the near-match this register exists to refuse, so both rows now say what they actually
+require instead of saying they are missing.
+
+**`Repair` is three passes, and the order is load-bearing.** Degenerate faces first — a face
+naming one vertex twice, or whose corners enclose no area. Then duplicates, because removing
+degenerates can leave two identical faces where there were three. Then the vertices nothing
+indexes any more, which only **exist** once the first two passes have run.
+
+**Two faces are duplicates when they use the same set of vertices**, and that definition is
+written into the remarks rather than left to be inferred from behaviour. It catches a face
+repeated with the **opposite winding**, which is the commonest way a mesh ends up with two, and
+it means a mesh whose front and back are separate coincident faces loses one of them. That is
+what repair is for: a caller who wanted both had a two-sided surface and not a mesh.
+
+**The branch is the renumbering, and what makes it worth calling the branch is how it fails.**
+Dropping a vertex from the **middle** of the list shifts every index above it. A face that is
+not renumbered then points at a *different* vertex — still a valid index, still a mesh that
+loads and draws, and the geometry is wrong. So every assertion compares surviving faces by
+**coordinate** rather than by index: an index-based test cannot see this defect at all. The
+mutation reddens three tests, and leaving the normals behind reddens the one that watches the
+channels.
+
+**And one real bug, caught by the least interesting test in the file.** The first version
+numbered surviving vertices *in the order the faces reach them*, with a comment claiming that
+preserved an untouched mesh's ordering. It does the opposite. A sphere's faces do not visit its
+vertices in index order, so a mesh needing no repair came back **permuted**, and the early
+return that should have handed it straight back never fired. `ACleanMeshIsUnchanged` failed on
+a mesh with nothing wrong with it, which is exactly the kind of test that feels like padding
+until it catches something. Numbering in ascending **original** order is what makes an
+untouched mesh map to itself, and the corrected reasoning is in the code beside it — including
+why the obvious version is wrong, since the obvious version is what the next reader will think
+of.
+
+**What it deliberately does not do is written down too.** It does not weld, because closing
+coincident-but-separate vertices needs a tolerance and this member takes none; and it does not
+fill holes, which is `MakeWatertight`'s. **Repair is the pass that needs no judgement, which is
+why it needs no parameters** — and that is the sentence that decides what belongs in it.
+
+**Residue unchanged at 343.**
+
+**Cost.** One session. One member, ten tests, one node, two mutations, and one bug found by a
+test I nearly did not write.

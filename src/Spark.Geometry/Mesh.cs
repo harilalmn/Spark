@@ -471,6 +471,169 @@ public sealed class Mesh
     }
 
     /// <summary>
+    /// The mesh with its rubbish removed: degenerate faces, duplicate faces and orphaned vertices
+    /// (`E2-T68`).
+    /// </summary>
+    /// <returns>
+    /// The repaired mesh. A mesh that was already clean comes back unchanged rather than rebuilt.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Three passes, and the order matters because each one creates work for the next.</b>
+    /// Degenerate faces go first — a face naming the same vertex twice, or whose corners are
+    /// collinear and so enclose no area. Then duplicates, because removing degenerates can leave
+    /// two identical faces where there were three. Then the vertices nothing indexes any more,
+    /// which only exist once the first two passes have run.
+    /// </para>
+    /// <para>
+    /// <b>Two faces are duplicates when they use the same <i>set</i> of vertices</b>, which is the
+    /// definition written down rather than left to be inferred. It catches a face repeated with the
+    /// opposite winding — the commonest way a mesh ends up with two — and it means a mesh whose
+    /// front and back are separate coincident faces loses one of them. That is what repair is for;
+    /// a caller who wanted both had a two-sided surface and not a mesh.
+    /// </para>
+    /// <para>
+    /// <b>The renumbering is the part that fails quietly.</b> Dropping a vertex from the middle of
+    /// the list shifts every index above it, so a face that is not renumbered points at a
+    /// <i>different</i> vertex — a valid index, a mesh that loads, and geometry that is wrong. The
+    /// renumbering here reuses <c>Carry</c>, the same helper <see cref="Explode"/> uses, so the
+    /// normals, texture coordinates and colours move with the vertices rather than being left
+    /// behind.
+    /// </para>
+    /// <para>
+    /// <b>This does not weld and it does not fill holes.</b> Coincident-but-separate vertices are
+    /// <see cref="Welded(double)"/>'s question, because closing them needs a tolerance and this
+    /// member takes none; holes are <c>MakeWatertight</c>'s. Repair is the pass that needs no
+    /// judgement, which is why it needs no parameters.
+    /// </para>
+    /// </remarks>
+    public Mesh Repair()
+    {
+        List<MeshFace> kept = [];
+        HashSet<string> seen = [];
+
+        foreach (MeshFace face in _faces)
+        {
+            if (IsDegenerate(face))
+            {
+                continue;
+            }
+
+            if (!seen.Add(FaceKey(face)))
+            {
+                continue;
+            }
+
+            kept.Add(face);
+        }
+
+        // WHICH VERTICES ANYTHING STILL INDEXES, NUMBERED IN ASCENDING ORIGINAL ORDER. Numbering
+        // them in the order the faces happen to reach them would renumber a mesh that needs no
+        // repair at all - a sphere's faces do not visit its vertices in index order - so the
+        // "nothing changed" case would quietly permute the mesh and the early return below would
+        // never fire. Ascending order makes an untouched mesh map to itself.
+        bool[] indexed = new bool[_vertices.Length];
+        foreach (MeshFace face in kept)
+        {
+            for (int corner = 0; corner < face.Count; corner++)
+            {
+                indexed[face[corner]] = true;
+            }
+        }
+
+        Dictionary<int, int> renumbered = [];
+        for (int vertex = 0; vertex < indexed.Length; vertex++)
+        {
+            if (indexed[vertex])
+            {
+                renumbered[vertex] = renumbered.Count;
+            }
+        }
+
+        if (kept.Count == _faces.Length && renumbered.Count == _vertices.Length)
+        {
+            return this;
+        }
+
+        Point3d[] vertices = new Point3d[renumbered.Count];
+        foreach ((int original, int index) in renumbered)
+        {
+            vertices[index] = _vertices[original];
+        }
+
+        MeshFace[] faces = new MeshFace[kept.Count];
+        for (int index = 0; index < kept.Count; index++)
+        {
+            MeshFace face = kept[index];
+
+            faces[index] = face.Count == 3
+                ? new MeshFace(
+                    renumbered[face[0]], renumbered[face[1]], renumbered[face[2]])
+                : new MeshFace(
+                    renumbered[face[0]], renumbered[face[1]], renumbered[face[2]], renumbered[face[3]]);
+        }
+
+        return new Mesh(
+            vertices,
+            faces,
+            Carry(_normals, renumbered, renumbered.Count),
+            Carry(_textureCoordinates, renumbered, renumbered.Count),
+            Carry(_colours, renumbered, renumbered.Count));
+    }
+
+    /// <summary>Whether a face encloses no area, either by repeating a vertex or by being flat.</summary>
+    /// <param name="face">The face.</param>
+    /// <returns>Whether it is degenerate.</returns>
+    /// <remarks>
+    /// <b>A repeated index and a collinear triple are the same defect seen twice</b> — one in the
+    /// indices and one in the coordinates — so both are tested here rather than one being left for
+    /// a caller to notice. A quad is degenerate only when <i>both</i> of its triangles are, because
+    /// a quad with three collinear corners is still a triangle and still a surface.
+    /// </remarks>
+    private bool IsDegenerate(MeshFace face)
+    {
+        for (int corner = 0; corner < face.Count; corner++)
+        {
+            for (int other = corner + 1; other < face.Count; other++)
+            {
+                if (face[corner] == face[other])
+                {
+                    return true;
+                }
+            }
+        }
+
+        for (int corner = 2; corner < face.Count; corner++)
+        {
+            Vector3d first = _vertices[face[corner - 1]] - _vertices[face[0]];
+            Vector3d second = _vertices[face[corner]] - _vertices[face[0]];
+
+            if (first.Cross(second).LengthSquared > 0.0)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>A face's identity for duplicate detection: its vertices, sorted.</summary>
+    /// <param name="face">The face.</param>
+    /// <returns>A key equal for two faces using the same vertices in any order.</returns>
+    private static string FaceKey(MeshFace face)
+    {
+        int[] corners = new int[face.Count];
+        for (int corner = 0; corner < face.Count; corner++)
+        {
+            corners[corner] = face[corner];
+        }
+
+        Array.Sort(corners);
+
+        return string.Join(',', corners);
+    }
+
+    /// <summary>
     /// The point on the mesh's surface nearest a given point (`E2-T69`).
     /// </summary>
     /// <param name="point">The point to measure from. It need not be near the mesh.</param>

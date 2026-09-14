@@ -64,3 +64,4 @@ static Spark.Nodes.Core.Curve.FilletTangentTo(Spark.Geometry.Curve! first, Spark
 static Spark.Nodes.Core.NurbsCurve.InterpolatePointsPeriodic(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, int degree = 3) -> Spark.Geometry.NurbsCurve!
 static Spark.Nodes.Core.Mesh.ClosestPoint(Spark.Geometry.Mesh! mesh, Spark.Geometry.Point3d point) -> Spark.Geometry.Point3d
 static Spark.Nodes.Core.Mesh.Project(Spark.Geometry.Mesh! mesh, Spark.Geometry.Point3d point, Spark.Geometry.Vector3d direction) -> Spark.Geometry.Point3d?
+static Spark.Nodes.Core.Mesh.Repaired(Spark.Geometry.Mesh! mesh) -> Spark.Geometry.Mesh!
