@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E10-T12`: changelog fragments)
+**Last updated:** 2026-09-15 (`E2-T32`: the arc-bounds harvest)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -302,7 +302,13 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       run ([N139](NOTES.md)). **Union volume still waits on solids**, which is the one clause of
       this criterion that is not yet met.*
 - [ ] The C2VGeometry test harvest is **timeboxed to one week with a hard stop**; anything
-      needing a `Shape` is discarded without argument (**E2-T32**).
+      needing a `Shape` is discarded without argument (**E2-T32**). *Started 2026-09-15 and the
+      first file paid for the pass: `CircularArcs.Bounds` had no test of its sweep half, so every
+      arc could have been reporting the bounding box of its whole circle and all 3,947 tests would
+      have agreed. 22 tests harvested, 15 of them red against that mutation. **The criterion's
+      unstated premise — an instant regression net — has expired**; what a foreign suite is worth
+      now is assertions from outside this tree's habits, which is why it stays timeboxed and
+      selective rather than being dropped. [N175](NOTES.md).*
 - [ ] Clipper2 stays isolated behind a single internal file, and CI asserts no native
       binaries in the published output ([E1-T20](#e1--foundations-build-and-ci)). *Not
       referenced at all at present: the `PackageReference` came out on 2026-08-27 once it

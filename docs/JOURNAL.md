@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-15 (`E10-T12`: the rule had nowhere to point, and releases said nothing about what changed)
+**Last updated:** 2026-09-15 (`E2-T32`: every arc bounded its whole circle, and 3,947 tests did not mind)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **`E2-T32`, part way — the harvest's first file is landed and the rest of the assessment is not.** **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E10-T12` `Done`, and the rule it implements had been pointing at nothing since the day it was written.** `CONTRIBUTING.md` asks every contributor for **a changelog fragment**; there was **no directory, no format and nothing that read one**, and no `CHANGELOG.md` either — the row was about avoiding merge conflicts in a file that does not exist. It survived because **two pull requests exist in this repository's history** and 206 commits went straight to `main`: a rule is only tested when somebody follows it. [N174](NOTES.md). **The stated motive is the weaker half and is not what this was built on** — what was true is that **every release from `v0.1.0` to `v2026.9.0` shipped with install instructions and nothing about what had changed**, because `--generate-notes` was dropped in `E12-T22` and nothing replaced it. Now: `changelog.d/` with a README that is the specification, `scripts/assemble-changelog.py`, and `release.yml` splicing the section in at `{CHANGELOG}`. **The file name is the whole format.** **`ChangelogFragmentChecks` runs the assembler as a subprocess rather than reimplementing it** — the first test here to start a process, and `ci.yml` now asks for Python explicitly. **Five mutations, five killed, one of them against `release.yml` itself.** **A malformed fragment stops the release rather than being skipped.** 11 tests, **3936 → 3947**. Residue **unchanged at 346**. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3947** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **55** checks with the residue budget exact at 346. **The tree this step inherited was not clean and the journal said it was**: an untracked `ZzProbeTests.cs` ending in `Assert.Fail` made `Spark.Geometry.Tests` red, and was deleted as debris from an abandoned investigation that nothing in the register names. `.gitignore` gained `scripts/__pycache__/`. No stashes. |
-| **Next action** | **`E2-T32` — harvest the DoodleSharp geometry tests, and the timebox is the row's own: one week, hard stop ([R10](PRD.md#12-risks)).** 897 `Fact` and 58 `Theory` exist there; roughly 400 are pure maths on values and are retargetable, and **anything needing a `Shape` is discarded without argument**. **Check the premise before harvesting, the way `E10-T12` and `E5-T11` were checked**: this suite is 3,947 tests over ten executables with property-based coverage on the kernel, which is not the thin net the row was written against, so the question is no longer *does this give us a regression net* but **which of the 400 assert something this tree does not already assert** — and the answer to that is what decides whether the week is spent at all. Start by counting the overlap rather than by porting. **Then**: `E2-T27`, `E1-T22`, `E10-T14`. |
-| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the change is reverted, proved by reverting it (AGENTS.md step 7), mutating **what the guard guards**. The three gates, the residue budget **exact** at 346, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **And run `git status` before believing the journal's *Working tree* row** — this step inherited a red suite from an untracked file the journal knew nothing about. **No tag, no release.** |
+| **Last completed step** | **`E2-T32` first pass, and it found a hole nothing else could have.** **`CircularArcs.Bounds` was untested on its sweep half**: forcing `Includes` to return `true`, so that every arc reports the bounding box of its **whole circle**, left **all 3,947 tests green over all ten executables**. The only bounding-box test on the family was about a *full circle*, where every extremum is included and the sweep test is vacuous. **Containment does not catch it and tightness does** — the whole circle's box contains every point of the arc, so the obvious sampled test passes against the fault. **22 tests in `ArcBoundsTests`, 15 red against that mutation**, three further mutations of the extremum arithmetic killed. **A fourth survived and corrected a comment**: the 1e-12 slack in `Includes` claimed to be load-bearing and is not, because `Bounds` seeds with both end points. [N175](NOTES.md). **Two environment facts in this file were false** — DoodleSharp *is* on this machine, and `gh` *does* work — and one of them would have closed the row as unworkable. **3936 → 3969** across the two steps. Residue **unchanged at 346**. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3969** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **55** checks with the residue budget exact at 346. **`E10-T12`'s CI run was green on both runners**, which is the half a local gate cannot prove: `ChangelogFragmentChecks` starts a Python subprocess and it works on ubuntu-latest too. No stashes. |
+| **Next action** | **Finish `E2-T32`'s assessment, in the order that puts the untested subsystems first.** Left: `RegionTests` (23, no `Shape` references at all — and `Spark.Geometry/Planar` plus the Clipper2 dependency is the least-harvested part of this tree), `EllipseParameterisationTests` (6), `CurveIntersectionTests` (2), `DoodleSharpGeometryIntersectionTests` (2), `PolygonSliceTests` (12, mostly `Shape`-bound), and the **mirroring, splitting and `ParameterAtPoint` half of `SweepAndOrientationTests`** — the same file that paid for the first pass, and the half not yet read. **Use the method that worked**: pick the claim, mutate the production code that implements it, and only write a test if the mutation survives. It is faster than reading two suites side by side and it produces evidence rather than an opinion. **Then**: `E2-T27`, `E1-T22`, `E10-T14`. |
+| **Verify with** | **A harvested test must be red against something before it is kept**, and the way to find out is to mutate the production code rather than to reason about it — three of this step's four mutations died and the fourth rewrote a comment. **Assert tightness, not containment**, which is the general form of what this step cost: a box that is too big contains every sample, and so does every test that only samples. The three gates, the residue budget **exact at 346**, the dashboard regenerated, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **No tag, no release.** |
 | **Blocked on** | **Four things need a human, and the fourth is new.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -128,19 +128,30 @@ Discovered the hard way, and each one costs an hour if rediscovered.
   unaided. That was the cheapest thing that could have failed before M1.6, and it did not.
   **OCCT is a different order of magnitude** — 47 toolkits against zlib's one — so this says the
   pipeline works, not that the OCCT build will.
-- **RCS, CADScript and DoodleSharp are not on this machine**, and neither is C2VGeometry. Five `E6`
-  rows say *port X from RCS* or *from CADScript* — `E6-T1`, `E6-T2`, `E6-T3`, `E6-T4`, `E6-T13`.
-  **Porting is a strategy, not the deliverable**, so those are written from scratch here against
-  the behaviour the rows describe. Where a row names a specific lesson from the original — the
-  non-locking read, the uncleaned registry pinning a collectible context — that lesson is the part
-  worth keeping and it is in the row.
+- **THIS SAID RCS, CADScript AND DoodleSharp ARE NOT ON THIS MACHINE, AND IT IS WRONG.** Corrected
+  2026-09-15 by looking, while starting `E2-T32`. All three are beside this repository —
+  `C:/Work/Nicety/Projects/{RCS,CADScript,DoodleSharp}` — and **C2VGeometry is inside DoodleSharp**
+  at `DoodleSharp/C2VGeometry`, which is where `docs/PRD.md` §11 says it is. DoodleSharp's `Tests/`
+  holds **915 `Fact` and 64 `Theory`**, which is the corpus `E2-T32` exists to harvest; the row's
+  897/58 is the count on the day it was written. **A resumer acting on the old sentence would have
+  closed `E2-T32` as unworkable**, which is the whole cost of an environment fact nobody re-checks.
+  What survives of the paragraph is the judgement, and it is unchanged: five `E6` rows say *port X
+  from RCS* or *from CADScript* — `E6-T1`, `E6-T2`, `E6-T3`, `E6-T4`, `E6-T13` — and **porting is a
+  strategy, not the deliverable**, so those are written from scratch against the behaviour the rows
+  describe. Where a row names a specific lesson from the original — the non-locking read, the
+  uncleaned registry pinning a collectible context — that lesson is the part worth keeping and it
+  is in the row. The same rule governs the harvest: an assertion is worth taking, a translation is
+  not.
 - **Idle build servers exhaust this machine's memory over a long session**, and the OS then kills the
   gate run: on 2026-09-11 about fifteen idle MSBuild worker nodes and the compiler server held some
   5 GB, leaving 2.9 GB of 15.7 GB free, and a full gate run was stopped for low memory. They are
   kept alive by node reuse, one set per build. **Build with `-nodeReuse:false` in long runs, and
   run `dotnet build-server shutdown` when memory is low** — it stops only build servers, which come
   back on the next build, and freed 4 GB at once.
-- **No `gh` CLI**, so CI results cannot be read from here. A run's outcome has to be pasted in.
+- **THIS SAID THERE IS NO `gh` CLI, AND IT IS WRONG.** Corrected 2026-09-15: `gh run list` and
+  `gh run watch` both answer from this machine and are authenticated, which is how `E10-T12`'s CI
+  run was read rather than pasted in. `gh api` is also how the `E1-T28` branch-protection state in
+  *Blocked on* was established. **Read CI from here rather than asking for it.**
 - **The nightly benchmark workflow has never run on a hosted runner.** `E8-T15` closes on its
   first green run, and the canvas step is the part that might not survive a runner with no GPU.
 - **Git identity is set per-repository** — `harilalmn <146122512+harilalmn@users.noreply.github.com>`,
@@ -16135,3 +16146,81 @@ it stays there until something ships.
 **Cost.** One session. Most of it went on the question the write-ahead did not settle — whether
 the assembler is tested by being run or by being re-derived — and the answer turned on which of
 the two has a committed artefact to reconcile against.
+
+### 2026-09-15 — `E2-T32`: every arc bounded its whole circle, and 3,947 tests did not mind
+
+**What.** `tests/Spark.Geometry.Tests/ArcBoundsTests.cs` — 22 tests over partial arcs, arcs on
+tilted planes, turned ellipses and partial ellipses — plus a corrected comment in
+`CircularArcs.Includes` and [N175](NOTES.md).
+
+**Two environment facts in this file were false, and one of them would have closed the row.** It
+said *RCS, CADScript and DoodleSharp are not on this machine*. All three are beside this
+repository; DoodleSharp's `Tests/` holds **915 `Fact` and 64 `Theory`**, which is the corpus
+`E2-T32` exists to harvest, and C2VGeometry is inside it exactly where `docs/PRD.md` §11 says. It
+also said *no `gh` CLI*, and `gh run list`, `gh run watch` and `gh api` all answer from here —
+`E10-T12`'s CI run was read rather than pasted in. Both corrected in place with the old text
+quoted, because how a fact went stale is worth more than the fact.
+
+**The row's premise has expired, and the argument that replaced it is better.** *Roughly 400
+retargetable tests give an instant regression net* was written when this repository had almost no
+tests. It has 3,947. Duplication is now the default outcome of a harvest, so the yield has to be
+argued file by file — and what a foreign suite is actually worth is not coverage but **inputs and
+assertions from outside this tree's habits**, which is precisely `E5-T11`'s finding of the day
+before, arriving from the other direction.
+
+**Four files assessed as yielding nothing, and the reasons are on the row so nobody re-derives
+them.** `VXYZPolarConstructorTests` — Spark's `PolarConstructionTests` is strictly stronger.
+`RotationAngleUnitTests` — eleven tests about degrees-versus-radians bugs that Spark's `Angle` type
+makes unrepresentable, against a `Vector3d.AngleTo` whose remarks already name the seed library's
+`acos` form as the thing it replaced. `VPointArithmeticTests` — `VPoint` registers on a canvas
+singleton, discarded by the row's own rule. `NewConvenienceApiTests` and most of
+`PolygonSliceTests` — `Shape` and `Canvas` throughout.
+
+**Then `SweepAndOrientationTests` paid for the pass on its fifth test.** `CircularArcs.Bounds`
+solves each world axis's extremum analytically and takes it **if it lies on the sweep** — and
+nothing tested the second half. Forcing `Includes` to return `true`, so that every arc reports the
+bounding box of its **entire circle**, left **all 3,947 tests green across all ten executables**.
+The only bounding-box test on the family was `ACirclesBoundingBoxIsExactOnATiltedPlane`, and a full
+circle includes every extremum, so the sweep test it runs through is vacuous.
+
+**Containment is not the assertion; tightness is.** The whole circle's box *contains* every point
+of the arc, so sampling the curve and checking each point is inside passes against the broken
+implementation — which is how a test of this could be written and prove nothing.
+`AssertBoundsAreTightAround` asserts both directions, and only the second one fails. **15 of the 22
+go red against that mutation**; the six that do not are the full-turn cases, where the mutation is
+a no-op, and they are kept because they are the boundary of the rule. Three further mutations of
+the extremum arithmetic — the far end point dropped from the seed, one of the two opposed extrema
+per axis ignored, the `atan2` arguments swapped — are all killed.
+
+**Why nobody would have noticed in use.** A box that is too large is conservative rather than
+wrong: selection still selects, culling still draws, a BVH query returns a superset that the narrow
+phase filters. The symptom is that things are slower and a rubber-band catches more than it should,
+which is a complaint rather than a bug report.
+
+**A fourth mutation survived, and it is the better half of the finding.** `Includes` carries a
+1e-12 slack whose comment said dropping it *would lose a bound the box needs*. Removing it left
+everything green — including the twenty-two written the same day about exactly these bounds — and
+it cannot be otherwise: **`Bounds` seeds its box with both end points**, so an angle only the slack
+admits is within 1e-12 radians of an end and contributes a point within `r * 1e-12` of one the box
+already holds. The slack stays, because that argument is a property of the *caller*, and the
+comment now says what is true. An arc from 30 degrees sweeping 60 is the case where it bites —
+its end is exactly the `+y` extremum and the offset overshoots the sweep by 2.2e-16 — and it is
+pinned as a test with a remark saying, plainly, that it cannot be made to fail by removing the
+slack alone.
+
+**Verified.** Build clean, zero warnings. **3,947 → 3,969**, ten executables, zero failures and
+zero skips. `dotnet format` clean. The mutation evidence above was run against the whole suite, not
+only the geometry project. Dashboard regenerated.
+
+**`E10-T12`'s CI run came back green on both runners**, which is the part that could not be checked
+locally: `ChangelogFragmentChecks` starts a Python subprocess, and it works on ubuntu-latest as
+well as on windows-latest.
+
+**The row stays `In progress` with what is left named**, which is what that column means here:
+`EllipseParameterisationTests`, `CurveIntersectionTests`, `DoodleSharpGeometryIntersectionTests`,
+`RegionTests`, `PolygonSliceTests`, and the mirroring, splitting and `ParameterAtPoint` half of
+`SweepAndOrientationTests`.
+
+**Cost.** One session. The assessment of four files that yielded nothing took longer than the one
+that yielded everything, and writing down why they yielded nothing is the only thing that stops the
+next session spending it again.

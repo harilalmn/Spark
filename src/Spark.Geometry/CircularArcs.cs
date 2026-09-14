@@ -108,8 +108,18 @@ internal static class CircularArcs
             delta += turn;
         }
 
-        // The slack matters at the ends: an extremum landing exactly on the start of the sweep
-        // arrives as -1e-17 rather than as zero, and dropping it would lose a bound the box needs.
+        // THE SLACK IS DEFENSIVE, NOT LOAD-BEARING, AND THIS SAID OTHERWISE UNTIL E2-T32. It read
+        // "dropping it would lose a bound the box needs", and a mutation that removed it left all
+        // 1,510 geometry tests green - including the twenty-one written the same day specifically
+        // about these bounds. The reason is that it cannot be otherwise: `Bounds` seeds its box
+        // with BOTH end points, and an angle that only the slack admits is within 1e-12 radians of
+        // an end, so the point it contributes is within r * 1e-12 of a point the box already holds.
+        // No box can move by more than that, and nothing can observe it.
+        //
+        // It stays because the argument above depends on a caller that seeds with the end points,
+        // which is a property of `Bounds` rather than of this method - and because an extremum that
+        // lands on an end genuinely does arrive as -1e-17 rather than as zero, so a future caller
+        // that did not seed would need exactly this. See N175.
         return delta <= sweep + 1e-12 || delta >= turn - 1e-12;
     }
 

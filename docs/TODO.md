@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E10-T12`: releases that say what changed)
+**Last updated:** 2026-09-15 (`E2-T32`: the harvest's first file)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -901,11 +901,20 @@ Only then the writing:
       independently; an unknown version is refused by name rather than read approximately; and
       non-finite numbers are written as strings, because a value a caller can legally hold must be
       saveable.
-- [ ] **The C2VGeometry test harvest, timeboxed to one week with a hard stop** — `E2-T32`.
+- [ ] **The C2VGeometry test harvest, timeboxed to one week with a hard stop** — `E2-T32`,
+      **started 2026-09-15 and the first file paid for the pass.** `CircularArcs.Bounds` had no
+      test of its sweep half: forcing every extremum to count, so that every arc reports the box of
+      its whole circle, left **all 3,947 tests green**. 22 tests harvested into `ArcBoundsTests`,
+      15 red against that mutation. [N175](NOTES.md). **What is left**:
+      `EllipseParameterisationTests`, `CurveIntersectionTests`,
+      `DoodleSharpGeometryIntersectionTests`, `RegionTests`, `PolygonSliceTests` and the rest of
+      `SweepAndOrientationTests`. Four files are assessed as yielding nothing and the reasons are
+      on the `E2-T32` row, so nobody re-derives them.
       Harvest only pure-maths-on-values tests; anything needing a `Shape` is discarded without
       argument. **Harvest the assertions, not the generators** — a harvested test whose inputs
       never approach the boundary it checks is a test that cannot fail, which is the trap this
-      project has already fallen into twice.
+      project has already fallen into twice. **And assert tightness, not containment**, which is
+      the sharper form of the same rule: a box that is too big contains every sample.
 - [x] **Close the value-layer parity gaps** — `E2-T40`, **closed 2026-09-10**. Three small ones
       went on 2026-08-29 (`BoundingBox.Intersection`, `Plane.Offset`, `Plane.FromOriginNormalXAxis`);
       polar construction on `Point3d` and `Vector3d` and the two `Plane` fits followed on

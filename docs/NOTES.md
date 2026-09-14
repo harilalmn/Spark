@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N174: a rule with nothing behind it survives because nobody tries it)
+**Last updated:** 2026-09-15 (N175: every arc bounded its whole circle, and 3,947 tests did not mind)
 
 ---
 
@@ -5216,6 +5216,48 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N175 — Every arc bounded its whole circle, and 3,947 tests did not mind
+
+**2026-09-15, `E2-T32`.** `CircularArcs.Bounds` computes an exact bounding box for a circle, an arc
+or an ellipse on any frame: for each world axis it solves for the angle where that axis's extent is
+extreme, and takes it **if it lies on the sweep**. Forcing `CircularArcs.Includes` to return
+`true` — so that every extremum counts and every arc reports the box of its **entire circle** —
+left **all 3,947 tests green**, across all ten executables.
+
+**The only bounding-box test on the whole family was about a full circle**,
+`ACirclesBoundingBoxIsExactOnATiltedPlane`. A full circle includes every extremum, so the sweep
+test it runs through is vacuous: the assertion is about the other half of the method.
+
+**Containment is not the assertion; tightness is.** The box of the whole circle *contains* every
+point of the arc, so the obvious test — sample the curve, check each point is inside — passes
+against the broken implementation. `ArcBoundsTests.AssertBoundsAreTightAround` asserts both
+directions: the box holds every sample, **and no face of it stands off the samples** by more than
+the sampling error. Only the second one fails.
+
+**Why it would never have been noticed in use.** A box that is too large is *conservative*, not
+wrong: selection still selects, culling still draws, a BVH query still returns a superset and the
+narrow phase filters it. The symptom is that things get slower and a rubber-band selection catches
+more than it should — which is a complaint, not a bug report, and nobody bisects a complaint.
+
+**A fourth mutation survived, and it corrected a comment.** `Includes` carries a 1e-12 slack whose
+comment claimed that dropping it *would lose a bound the box needs*. Removing it left everything
+green, including the twenty-two tests written the same day about exactly these bounds — and the
+reason is structural rather than lucky: **`Bounds` seeds its box with both end points**, so an
+angle that only the slack admits is within 1e-12 radians of an end, and the point it contributes is
+within `r * 1e-12` of a point the box already holds. No box can move by more than that. The slack
+stays — a future caller that did not seed with the end points would need it, and an extremum landing
+on an end genuinely does arrive as `-1e-17` rather than as zero — but the comment now says what is
+true. **An arc from 30 degrees sweeping 60 is the case**: its end is exactly the `+y` extremum, and
+the offset from the start overshoots the sweep by 2.2e-16.
+
+**The general form.** This was found by harvesting assertions from a **different repository** —
+DoodleSharp's `SweepAndOrientationTests`, written there because the bug had actually shipped. The
+value of a foreign test suite is not its coverage, which duplicates; it is that **somebody else's
+bugs are the ones your conventions do not produce**. That is the same finding as [N173](#n173--an-abstract-class-can-have-a-public-constructor-and-new-on-it-does-not-compile)
+one day earlier, where a library nobody here wrote crashed the importer in four minutes, and it is
+the argument for `E2-T32` that the row itself does not make: not *an instant regression net*, which
+3,947 tests no longer need, but **inputs and assertions from outside this tree's habits**.
 
 ## N174 — A rule with nothing behind it survives because nobody ever tries it
 
