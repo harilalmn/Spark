@@ -1144,9 +1144,14 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   deliberately *skips* them — `IsHelpTopicId` exists so that runtime-generated topics with no file
   are not demanded on disk (`E10-T5`) — so nothing anywhere would have noticed this, and nothing
   would notice the next one. **A topic id resolving to nothing is exactly the class of fault the
-  whole documentation harness exists to catch, and it is the one hole in it.** Worth a check that
-  reads the topic-id constants in `DiagnosticCodes` and asks the help system to serve each
-  (`E10`).
+  whole documentation harness exists to catch, and it was the one hole in it.** **Closed
+  2026-09-14** by `HelpTopicResolutionTests` in `Spark.UI.Tests`, which builds the library the way
+  `MainWindowViewModel.Help()` builds it and asserts that every code in `DiagnosticCodes.All`
+  resolves to a topic the library can serve, and that every `related` id in the assembled library
+  does too — including the ones the **generators** write in C# rather than in front matter, which
+  no file-level check can reach. Five mutations, five killed; see
+  [E10-T11](TASKS.md#e10--documentation), where the **surviving** one is written up, because it
+  said the library under test was narrower than the application.
 - **Coordinates are unitless.** No `UnitSystem`, no unit types, no conversion. Import and
   export assume the file's own units and document that they do. PRD decision **D12**. This
   does **not** remove scale-aware tolerance, which is numerical robustness rather than

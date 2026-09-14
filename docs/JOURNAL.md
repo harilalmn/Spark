@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (a limit is not a census, and the gate had been running all along)
+**Last updated:** 2026-09-14 (the mutation that survived said the library was narrower than the application)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Fifty-three steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Fifty-four steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E11-T14` `Done` — and the job it is about had been running the whole time.** Three descriptions of `docs-freshness` were written in one day and **the first two were false**. *It has never executed once, because this project has never opened a pull request* — it has opened two, and `gh pr list --state all` says so. *Of the 200 runs this repository has ever had, not one was a pull request* — that was `gh run list --limit 200` against a repository with **234** runs, and the sixteen `pull_request` runs are the **oldest sixteen**, so the window cut off exactly the counter-example. **Documentation freshness is a green job in all sixteen**, with real output. It went quiet when the pull requests did, and stayed quiet for seventeen days of pushes to `main`. **The rule moved out of `ci.yml` to `scripts/check-docs-freshness.sh`**, because inline workflow shell can only be exercised by triggering the workflow — which is how it came to sleep — and **six cases were then proven in throwaway worktrees**, exit codes read rather than wording. **[N172](NOTES.md)** is the note. **Four more documents still said the nightly had never run on a hosted runner**, five days after it had: README, TODO, EPICS and ADR-0023. All four corrected. Residue **unchanged at 346**; tests **unchanged at 3878** — no C# was touched. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3878** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at 28 checks with the residue budget exact at 346. **The anchor check built two steps ago caught this step's own broken link** (`#e11--documentation-and-help`, twice, for a heading that reads *Quality and verification*). No stashes. |
-| **Next action** | **Take `E11-T11`, the golden-file infrastructure**, or `E2-T64`'s `Curve2d` with the no-consumer finding written into it: `BrepTrim` carries `(int Edge, bool IsReversed)` and no pcurve, so building `Curve2d` alone closes neither of its two parity rows. **And one small row this step uncovered and deliberately did not take**: the docs harness **does not check that a help topic id names a real topic**. `IsHelpTopicId` *skips* them by design, so that runtime-generated topics with no file are not demanded on disk (`E10-T5`) — which means nothing anywhere would notice a diagnostic code pointing at a topic that does not exist. `docs/TODO.md` claimed `concepts.evaluation` was exactly that; the file exists, so the claim was stale, **but the hole it named is real** and is the one gap in the harness. A check that reads the topic-id constants in `DiagnosticCodes` and asks the help system to serve each would close it (`E10`). |
-| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7), the three gates, and the residue budget **exact** at 346. **And before citing any number about this repository's history, make the query prove its own completeness** ([N172](NOTES.md)). **No tag, no release.** |
+| **Last completed step** | **The topic-id hole in the documentation harness, closed** — `E10-T11`'s claim had been enforced by nobody. `HelpTopicResolutionTests` builds the help library **the way `MainWindowViewModel.Help()` builds it** and asserts every `SPK####` code resolves through `TopicFor` to a topic the library can serve, and every `related` id in the assembled library does too — including the ones the **generators write in C#**, which no file-level check can reach. The harness's *skip* of topic ids is right (generated pages have no file, `E10-T5`); the **absence of a positive check beside it** was the hole, and `Spark.Docs.Verify` cannot close it because it references no Spark project by design. **Five mutations, five killed — and the fifth is the finding.** Breaking the `related` arm taken when a node has **no code example** left everything green: the importer gives every imported node one, so the whole core library takes the other arm and that branch is unreachable from it. A fifth test builds a bare `NodeDefinition` and kills it. **The surviving mutation said the library under test was narrower than the application.** 5 tests, **3878 → 3883**. Residue **unchanged at 346** — no production code was touched. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3883** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at 28 checks with the residue budget exact at 346. No stashes. |
+| **Next action** | **Take `E11-T11`, the golden-file infrastructure**, or `E2-T64`'s `Curve2d` with the no-consumer finding written into it: `BrepTrim` carries `(int Edge, bool IsReversed)` and no pcurve, so building `Curve2d` alone closes neither of its two parity rows — that finding belongs in the row whichever is taken. **One small thing was found and deliberately not fixed**, recorded in `E10-T11`: `NodeReference` asks `!string.IsNullOrWhiteSpace(definition.CodeExample)` before rendering the example block and `CodeExample is null` for the `related` ids, so a whitespace-only example would render nothing and still claim `concepts.code-blocks`. **Nothing produces one today**, so it is an observation, not a defect — and changing it without a case that distinguishes them would be a change no test could justify. |
+| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7) — **and when a mutation survives, ask what it says about the fixture rather than reaching for the next mutation**. The three gates, the residue budget **exact** at 346, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **No tag, no release.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -15614,3 +15614,62 @@ gate is worth most on the author who built it.**
 **Cost.** One session. Seven corrections, one script, six proofs, and the uncomfortable part
 recorded rather than smoothed: **five of the seven false claims were mine, and two of those
 were written as corrections of the other three.**
+
+### 2026-09-14 — The mutation that survived said the library was narrower than the application
+
+**What.** The one hole in the documentation harness, closed. Five tests, no production code,
+and a surviving mutation worth more than the four that died.
+
+**The hole was found by correcting a stale sentence.** `docs/TODO.md` said
+`concepts.evaluation` was a topic id with no file behind it. The file exists — written
+2026-08-31, precisely because five diagnostic codes pointed at it and it did not. **The second
+half of the bullet was still true**: nothing checks that a topic id names a real topic.
+
+**The harness cannot close it, and that is by design rather than by oversight.**
+`DocumentationChecks.IsHelpTopicId` *skips* topic ids, because generated topics —
+`diagnostics.SPK1010`, a page per node — have no file on disk, and demanding one would mean
+committing generated pages, which `E10-T5` exists to avoid. **The skip is right. The absence
+of any positive check beside it was the hole.** And `Spark.Docs.Verify` could not fill it even
+if it wanted to: it deliberately references no Spark project, so it sees files and not the
+catalog, and a topic id is only meaningful against the catalog.
+
+So the check went to `Spark.UI.Tests`, which can reach all of it, and it builds the library
+**the way `MainWindowViewModel.Help()` builds it** — `docs/help/` from disk, a page per node,
+the node index, a page per code with its index, in that order. **A check that assembled a
+different library would be checking a different application.**
+
+**What it asserts**: every code in `DiagnosticCodes.All` resolves through `TopicFor` to a topic
+the library can serve; every `related` id in the *assembled* library resolves — which reaches
+the ids the generators write in C# rather than in front matter, and which
+`HelpTopicSchemaTests` cannot see because it reads the thirteen concept files as text; the
+library actually holds both kinds of topic; and the check itself is not vacuous, shown against
+a library with `concepts.evaluation` taken out.
+
+**Then the mutations, and the fourth one survived.** Breaking `related: ["concepts.lacing"]`
+in `NodeReference.For` — a topic id that now names nothing — left all four tests green.
+
+**The reason is the whole value of the step.** That arm is taken when a node has **no code
+example**, and the importer gives every imported node one, so the entire core library takes the
+other arm and the branch is unreachable from it. It is live for custom nodes and code blocks,
+which is to say for the nodes a user makes. **A fifth test builds a bare `NodeDefinition` and
+kills the mutation.** Mutating the *other* arm had killed a test immediately, which is exactly
+how a fixture that covers half a ternary looks from the inside: three green mutations and a
+feeling of thoroughness.
+
+**A mutation that survives is worth more than four that die.** The four confirmed what the
+tests claim. The one said the library under test was narrower than the application — which no
+assertion in the suite was ever going to say, because every assertion was written against the
+same fixture.
+
+**One inconsistency is recorded rather than quietly fixed.** `NodeReference` asks
+`!string.IsNullOrWhiteSpace(definition.CodeExample)` before rendering the example block, and
+`CodeExample is null` for the `related` ids. A whitespace-only example would therefore render
+nothing and still claim `concepts.code-blocks` as related. **Nothing produces one today**, so
+it is an observation and not a defect, and changing it without a case that distinguishes the
+two would be a change no test could justify.
+
+**Residue unchanged at 346 — no production code was touched. 5 tests, 3878 → 3883. No tag, no
+release.**
+
+**Cost.** One session. The check the harness was missing, and a reminder that the answer to a
+surviving mutation is a question about the fixture, not another mutation.
