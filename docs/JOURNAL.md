@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: the gate that has never once run)
+**Last updated:** 2026-09-14 (three CI runs, three real faults, none of them local)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E11-T14` — the `docs-freshness` job, which has never run in this project's history.** **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public again so CI runs.** **The first CI run since 2026-09-09 reported it `skipped`, which is how this was found.** The job is `if: github.event_name == 'pull_request'`, and **this project has never opened a pull request** — every commit of the marathon is a push to `main`. AGENTS.md already knew: *every commit was a push to `main`, so it never ran*. So the gate that enforces the client's standing documentation instruction has enforced nothing, ever. **Two CI failures are in flight at the same time and are not this step.** The ubuntu one is fixed ([N169](NOTES.md)); the Windows one has been made able to explain itself ([N170](NOTES.md)) and its cause is still open. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **CI turned back on, because the client made the repository public.** *I made the repository public, so that actions wont have usage limit and wont cost me anything* — verified rather than assumed: `harilalmn/Spark` reports `PUBLIC`. **Two things were off, not one**, and that is the part worth carrying: Actions was disabled at the repository **and** all three workflows had been reduced to `workflow_dispatch`, deliberately, so that flipping the setting back could not start a billable run by accident. Both undone — and the triggers were **restored from `3d8fab6^` rather than retyped**, because a trigger somebody remembers is a trigger somebody gets wrong. **`release.yml` was not touched.** It never had an automatic trigger, and the standing instruction is no tag and no release until the register is worked out. **`E13-T19` predicted this exactly** and is recorded as reversed rather than reopened. Four blocked rows reopened with what each *actually* still needs. No test change, **3875**. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3875** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 346, and the help-sample compiler green. No stashes. **Pushed**, which is the first CI run this work has had. |
-| **Next action** | **Make `docs-freshness` run on a push to `main` as well as on a pull request**, comparing against the push's own before-commit rather than a branch base. **The two events need different ranges and that is the whole of the work**: a pull request compares `origin/<base>...HEAD`, and a push compares `github.event.before..HEAD` — which is the commit the branch was at, and is exactly right for a push of one commit or of sixty-three. **The first push of a branch has no before-commit** — it is all zeros — and that case has to be handled rather than producing a range that means *everything since the beginning of time*. **Do not weaken the rule to make it pass.** It will now fire on real pushes, and if the marathon's own commits trip it, that is the gate working. |
-| **Verify with** | **A run on GitHub where the job actually executes** — not `skipped`, which is what it has reported for its whole life. That is the only verification that means anything here, because the failure being fixed *is* that it never ran. **And it has to be seen to pass for the right reason**: the commit that carries this change touches `.github/` and `docs/`, so it should pass by having documentation, not by the rule not matching. A run that passes because the pattern matched nothing is the same vacuous gate [N167](NOTES.md) and [N168](NOTES.md) are about, in a third costume. |
+| **Working on** | **Nothing — between steps.** Fifty steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*, then *finish everything - we release only after that*; 2026-09-14 *do not stop until all epics are completed*, and the repository is **public** again so CI runs.** |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`E11-T14` — and three CI runs that each found something this machine could not.** **The gate had never once run.** `docs-freshness` was `if: pull_request` from the day it was written and **this project has never opened a pull request** — every commit is a push to `main`. It reported `skipped` on the first restored run, which is how anybody noticed; the register had been counting it as coverage. It now runs on a push too, comparing against `github.event.before`, and **it has run and passed for the right reason** — the correct range, the real file list, and documentation actually touched. **Two genuine faults came out of the same three runs.** Ubuntu: a package test asserting a Windows-only answer unconditionally ([N169](NOTES.md)). Windows: four console tests whose helper **discarded the compilation result** ([N170](NOTES.md)), hiding the real fault — `ReferenceCatalog` assembled its prelude from *what the process had already loaded*, so on a machine that ran the classes in another order **`Console` in a code block meant System's** ([N171](NOTES.md)). That one is production code, and the third time that fault has been found in that one method. Residue **unchanged at 346**. **3875 → 3876**. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3876** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 346. **Pushed, and CI runs on every push to `main` again.** No stashes. |
+| **Next action** | **Read the CI run for `b9d2bf6` and confirm both legs are green**, then take the next row. **Do not assume it passed.** Two of the three runs so far were red, both for reasons no local gate could see, and the third is the first that should be clean on both operating systems. **If it is green, the queue is `E1-T21` and `E8-T15`** — the nightly's results committed as a git time series, which is the half neither row ever had — and `E11-T15`'s headless UI smoke test, which `E1-T19` waits on. **One thing found while reading the docs-freshness log is worth a row or a sentence**: its `needs_docs` pattern covers `Spark.Api`, `Spark.Geometry`, `Spark.Geometry.Io` and `Spark.Nodes.Core`, and **not `Spark.Scripting`** — whose public surface a code block is written against. The commit that fixed `ReferenceCatalog` would not have tripped the gate. |
+| **Verify with** | **A green run on GitHub, both legs** — the local gates have been green throughout and were green for all three faults above, so they are not evidence for this. **And whatever is taken next is verified the usual way**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7), the three gates, and the residue budget **exact** at 346. **No tag, no release.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -15403,3 +15403,72 @@ difference between a backlog and a list.
 
 **Cost.** One session. One setting, two trigger blocks, five documents, five task rows — and
 the first push in five days, which is where the actual verification starts.
+
+### 2026-09-14 — Three CI runs, three real faults, none of them visible here
+
+**What.** `E11-T14`, and the two defects the first restored CI runs found. Three notes —
+[N169](NOTES.md), [N170](NOTES.md), [N171](NOTES.md) — one production fix, two test fixes, and
+a gate that ran for the first time in this project's life.
+
+**The headline is uncomfortable and worth stating plainly: five days of work passed every
+local gate on every commit, and the first two CI runs were red.** Not narrowly — the build,
+the format check and 3,875 tests were green here on every one of sixty-three commits. They
+were green because one machine agreed with itself.
+
+**Ubuntu found one thing.** `ARefOnlyPackageWithAPlatformMonikerIsFound` asserts that a
+`ref/net10.0-windows7.0` package is discovered. On Linux it is **genuinely not compatible** —
+NuGet's own reducer says so — so finding it would have been the bug. The test asserted a
+Windows answer unconditionally and had never run anywhere else. Both arms are asserted now
+rather than the awkward one skipped: **a skip records that a platform was not tested; an
+assertion records what it is supposed to do**, and only one of those survives somebody
+changing the resolver.
+
+**Windows found something much better, in two stages, and the first stage was my own fault.**
+Four console tests failed reporting an **empty console** and naming no cause. The helper they
+share ran a code block and threw the result away — so *a script that does not compile* and *a
+script that runs and prints nothing* produced identical failures, from a machine I cannot
+attach a debugger to. One line, `_ = block.Invoke(...)`, cost a full round trip through CI.
+`ScriptNodeFactory.Diagnose` already existed and already returned the compiler's errors.
+
+**With the diagnostic in place the real fault named itself in one line**: `CS0815 Cannot assign
+void to an implicitly-typed variable`, on `var removed = Console.Clear();`. Spark's `Clear`
+returns the count removed. System's returns void. **`Console` in a code block meant System's.**
+
+**And the mechanism is a prelude assembled from a running process.** `ReferenceCatalog` emits
+the node library's imports — including the pin that makes `Console` Spark's — only when
+`Spark.Nodes.Core` is among the references, and the references came from sweeping
+`AppDomain.CurrentDomain.GetAssemblies()`. That is **whatever has already loaded**, which in a
+test run means *which class ran first*. Two machines scheduled them differently and compiled
+blocks in two different languages.
+
+**What a user would have seen is worse than a failing test, because nothing fails.**
+`Console.WriteLine("x")` compiles perfectly against `System.Console` and writes to a terminal a
+windowed application does not have. The line never appears in the Console pane and there is no
+error anywhere to explain it.
+
+**It is the third time that fault has been found in that one method, and the first two are
+recorded in its own comments** — `Microsoft.CSharp`, then `System.Linq.Expressions`, each
+fixed by anchoring *that assembly* rather than hoping the sweep found it. **The lesson was
+written down twice and applied twice, member by member, instead of once to the rule.**
+`Spark.Nodes.Core` could not take the same fix — `Spark.Scripting` does not reference it and
+must not — so it is found beside the running assembly instead, which moves the decision from
+*what has already run* to **what is deployed**.
+
+**Two hypotheses were tested and discarded before that one, and cheaply, which is the part of
+the method worth keeping.** A duplicate-identity theory was killed by a fifteen-line probe that
+forced two copies of one assembly into the process and watched Roslyn accept them. A
+Debug-versus-Release theory died by building and running Release locally. Neither cost a CI
+round trip, and neither turned into a fix for a problem that did not exist.
+
+**`E11-T14` itself: the gate had never once run.** `docs-freshness` was
+`if: github.event_name == 'pull_request'`, and this project has never opened a pull request.
+AGENTS.md already recorded the fact in passing, which is the worst place for it — **the
+register counted the job as coverage**. It now runs on a push too, against
+`github.event.before`, with a first-push case that checks the head commit alone rather than
+producing a range meaning *everything since the beginning of time*. It has run and passed **for
+the right reason**: correct range, real file list, documentation genuinely touched.
+
+**Residue unchanged at 346. No tag, no release.**
+
+**Cost.** One session, three CI runs, and a standing argument settled: the local gates are not
+wrong, they are **narrow**, and the narrowness is invisible from inside.
