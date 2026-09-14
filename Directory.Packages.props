@@ -85,6 +85,20 @@
     <PackageVersion Include="Avalonia.Headless.XUnit" Version="[12.1.1]" />
     <!-- Property-based testing on the kernel. Non-negotiable from M1 — see ADR-0018. -->
     <PackageVersion Include="CsCheck" Version="[4.8.0]" />
+
+    <!--
+      E5-T11. NOT A DEPENDENCY OF ANYTHING SPARK SHIPS, AND THE ONLY ASSEMBLY IN THIS SOLUTION
+      NOBODY HERE WROTE.
+      `Spark.Packages.Tests` references it with ExcludeAssets="all", so it never reaches a compile
+      surface or an output folder: it is restored, and a test reads the assembly off disk. That is
+      the point of the row - "the only honest way to know zero-config actually works" is to point
+      the importer at a library whose authors had never heard of Spark.
+      Chosen because it is widely known in this field, is pure managed, has no dependency at all on
+      net10.0 (its single System.ValueTuple dependency is .NET Framework 4.6.1 only), and ships
+      five lib folders - net461, net48, net5.0, net6.0, netstandard2.0 - so PackageFrameworks has a
+      real reduction to make rather than one folder to find.
+    -->
+    <PackageVersion Include="MathNet.Numerics" Version="[5.0.0]" />
   </ItemGroup>
 
   <ItemGroup Label="Benchmarking">

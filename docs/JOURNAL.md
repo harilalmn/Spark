@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (the rule had nothing to stand on, and git had the fixture)
+**Last updated:** 2026-09-14 (the first foreign assembly crashed the importer in four minutes)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Fifty-nine steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Sixty steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E11-T17` `Done` — and the half that mattered was a rule with nothing behind it.** `AGENTS.md` has promised since M0 that every migration ships *with a golden-file test against a real old-version graph in `tests/corpus/`*. **There was no such graph.** Compatibility was tested against JSON typed inside test methods, which proves the alias *mechanism* and cannot prove that **the real library's aliases cover the renames this project actually made**. **Git had the fixture.** `tests/corpus/graphs/curves-2026-08-28.spark` is `docs/examples/curves.spark` exactly as it stood at `a30e98c`; **eight of its eleven node keys no longer exist**, so opening it resolves eight aliases at once from a file an older build really wrote. **And the corpus got a definition**, because the two that existed disagreed and one said the directory did not exist while it held eleven files. `CorpusIndexChecks` fails a file with no row and a row with no file — **a corpus rots by holding a fixture whose purpose nobody remembers, not by holding a wrong one.** **Six mutations, six killed**, including removing `Circle.ByCentreRadius`'s alias from `Spark.Nodes.Core` — the mutation no test could kill before this row. 7 tests, **3924 → 3931**. Residue **unchanged at 346**. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3931** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **44** checks with the residue budget exact at 346. No stashes. |
-| **Next action** | **`E5-T11` — import a well-known third-party NuGet package in CI and assert a sane node count with no crashes**, which the row calls *the only honest way to know zero-config actually works*. `Spark.Packages` exists and its 119 tests pass; what the row asks for is a package **nobody here wrote**, which is the difference between testing the importer and testing the claim — the same difference this step just made for aliases. **Check first whether CI can reach nuget.org at all**, and whether a package should be pinned by version and hash rather than resolved, because a test that depends on the internet is a test that goes red for reasons that are not about Spark. **Then**: `E10-T12`, `E2-T32`, `E2-T27`, `E1-T22`, `E10-T14`. |
-| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7) — **and mutate the thing the guard guards**, which here meant deleting an alias from the shipping node library rather than editing the test. The three gates, the residue budget **exact** at 346, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **No tag, no release.** |
+| **Last completed step** | **`E5-T11` `Done`, and the row was right in the sharpest possible way: it found a crash in four minutes.** **Nothing here had ever imported an assembly built outside this repository** — thirty-five `NodeImporter.Import` call sites, every one pointed at our own code or at fixture types declared beside the assertion. **`MathNet.Numerics` imports to 3,621 nodes with no attribute, no manifest and no cooperation** — `NodeImporter`'s central claim tested for the first time against a library that has never heard of Spark. **And on the first attempt it threw**: `Can't compile a NewExpression with a constructor declared on an abstract class`, **at import time**, taking the whole assembly with it. An abstract class can have a public constructor; nothing written here has one. [N173](NOTES.md). **It also exercises the framework picker for the first time**: five real lib folders, net10.0 reduced to `net6.0`, where every hand-built fixture offers one folder and so proves the plumbing without proving the choice. **Restored rather than downloaded**, so the check does not depend on the internet. **Four mutations, four killed, every one against production code.** 5 tests, **3931 → 3936**. Residue **unchanged at 346**. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3936** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **44** checks with the residue budget exact at 346. **`Directory.Packages.props` gained its first entry that is not a dependency of anything Spark ships**, referenced with `ExcludeAssets="all"` so it reaches no compile surface and no output folder. No stashes. |
+| **Next action** | **`E10-T12`, per-PR changelog fragments** — *avoids a single changelog file becoming a merge-conflict magnet* — and **check first whether the premise still holds**, because the shape of this project has changed under it: 206 commits pushed straight to `main`, two pull requests ever, and a release process that publishes from a developer machine. **A fragment directory solves a conflict this project does not currently have**, and the honest answers are *build it for the contributors 1.0 is meant to attract* or *say plainly that it is not 1.0 work* — the same shape as `E2-T64`, and the decision is the step. **Then**: `E2-T32` (harvest the DoodleSharp geometry tests, timeboxed to a week by [R10]), `E2-T27`, `E1-T22`, `E10-T14`. |
+| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7), mutating **what the guard guards**. The three gates, the residue budget **exact** at 346, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **And when a suite is made entirely of its own project's code, it cannot find the shapes its own conventions never produce** — which is what this step cost four minutes to learn. **No tag, no release.** |
 | **Blocked on** | **Four things need a human, and the fourth is new.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -15983,3 +15983,73 @@ removed and every test would have stayed green.
 
 **Cost.** One session. The useful part was noticing that the fixture the rule needed already
 existed in the repository's own history, and had done for seventeen days.
+
+### 2026-09-14 — The first foreign assembly crashed the importer in four minutes
+
+**What.** `E5-T11` to `Done`. One `PackageReference`, five tests, one production fix, one
+note, four mutations.
+
+**The row's claim was that this test is *the only honest way to know zero-config actually
+works*, and it was right for a reason sharper than it stated.** `NodeImporter`'s header says
+*zero configuration is the whole design: a public static method is a node with no attribute on
+it at all*. That claim is **specifically about assemblies whose authors have never heard of
+Spark** — and every assembly it had ever been pointed at was written here. Thirty-five call
+sites: `Spark.Nodes.Core`, `Spark.Viewport`, `Spark.Geometry`, or a list of fixture types
+declared in the test beside the assertion. Even the package suite's `.nupkg` fixtures are
+built around our own assemblies.
+
+**MathNet.Numerics 5.0.0 imports to 3,621 nodes with no configuration of any kind.** No
+attribute, no manifest, no cooperation. That is the claim, met.
+
+**And the first attempt threw.** `InvalidOperationException: Can't compile a NewExpression
+with a constructor declared on an abstract class` — out of `Expression.Compile()`, at
+**import** time, which takes the whole assembly down and every node in it.
+
+**Two true facts that meet nowhere in the type system.** `Type.GetConstructors()` on an
+abstract class returns its public constructors, and they genuinely are public — that is how a
+derived class in another assembly chains to them. And `ConstructorInfo` carries no hint of it:
+the check is on `DeclaringType.IsAbstract`, which nothing about building an `Expression.New`
+obliges you to consult. **Nothing written here has a public constructor on an abstract
+class**, so it was invisible for the importer's entire life. MathNet has several, because that
+is an ordinary way to write a hierarchy meant to be extended.
+
+**The fix is one guard with a stated reason**, refusing the constructor the way every other
+unimportable member is refused. Five lines. **The four minutes were the whole value of the
+row**, and they had been available for the price of one `PackageReference` since M0.
+
+**It exercises the framework picker for the first time too.** MathNet ships `net461`,
+`net48`, `net5.0`, `net6.0` and `netstandard2.0`. Every hand-built fixture in the package
+suite offers **one** lib folder, which proves the plumbing and cannot prove the *choice*,
+because there is nothing to choose between. `PackageFrameworks` reduces net10.0 to `net6.0` —
+and `netstandard2.0` also loads, so a test that merely asked for *an* assembly would have
+passed on the wrong one and given a reader an older surface.
+
+**Restored, not downloaded, and that is the design rather than a convenience.** A
+`PackageReference` with `ExcludeAssets="all"` and `GeneratePathProperty="true"` puts the
+package on disk without putting it on any compile surface or in any output folder; the path
+reaches the test through an `AssemblyMetadata` attribute. **A test that fetches from
+nuget.org goes red when nuget.org is slow**, which is a result about the internet.
+`NuGetFeedTests` handles that by asserting nothing when the feed is unreachable — right for a
+feed probe, useless for an acceptance test that is supposed to fail when Spark is wrong.
+
+**`PackageManager` is deliberately not under test, and the row now says so.** Its `Load`
+imports only the assemblies named in `tools/spark.json`, so an arbitrary package is refused
+**by design** — importing nodes from libraries whose authors never intended them is exactly
+what that gate prevents, and going around it in a test would be testing the opposite of the
+rule. The claim under test is the importer's.
+
+**Four mutations, four killed, every one against production code**: the abstract guard removed
+and the crash returns; the guard's reason blanked; the framework picker made to fall back to
+the package folder; the importer's type loop emptied.
+
+**The general form, because it is not really about constructors.** A test suite made entirely
+of its own project's code cannot find the shapes its own conventions never produce. That is
+not a gap in coverage — every line was covered — it is a gap in the **inputs**, and no
+coverage number can show it. The cheap fix is one real foreign artefact, and this repository
+has now done it twice in a day: a graph from its own history for the alias path, and somebody
+else's library for the importer.
+
+**Residue unchanged at 346. 5 tests, 3931 → 3936. No tag, no release.**
+
+**Cost.** One session. The defect took four minutes to surface and five lines to fix, and had
+been reachable since M0.

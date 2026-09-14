@@ -380,6 +380,25 @@ public static class NodeImporter
         List<Candidate> candidates,
         List<ExcludedMember> exclusions)
     {
+        // AN ABSTRACT CLASS CAN HAVE A PUBLIC CONSTRUCTOR, AND `new` ON IT DOES NOT COMPILE.
+        //
+        // `GetConstructors()` returns it because it is genuinely public - it exists for derived
+        // classes to chain to - and nothing about the ConstructorInfo says the declaring type
+        // cannot be instantiated. `NodeInvoker.ForConstructor` builds an `Expression.New` over it,
+        // and `Compile()` throws `Can't compile a NewExpression with a constructor declared on an
+        // abstract class` at IMPORT time, which takes the whole assembly down with it.
+        //
+        // Nothing in Spark.Nodes.Core has one, so this was invisible for the entire life of the
+        // importer and surfaced on the first assembly nobody here wrote (`E5-T11`): MathNet's
+        // `DistributionBase`, `Matrix<T>` and their kin. That is the whole argument for that row.
+        if (type.IsAbstract)
+        {
+            exclusions.Add(new ExcludedMember(
+                constructor,
+                "an abstract class cannot be constructed: its public constructor exists for derived classes to chain to."));
+            return;
+        }
+
         if (constructor.ContainsGenericParameters)
         {
             exclusions.Add(new ExcludedMember(

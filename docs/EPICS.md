@@ -586,8 +586,12 @@ everybody else. This is enforced by `Spark.Architecture.Tests`, not by disciplin
 
 **Acceptance criteria**
 
-- [ ] Importing a well-known third-party NuGet package with **no Spark attributes at all**
+- [x] Importing a well-known third-party NuGet package with **no Spark attributes at all**
       produces a sane node count with no crashes — acceptance-tested in CI (**E5-T11**).
+      *`MathNet.Numerics` 5.0.0 → **3,621 nodes**, no attribute and no manifest. It found a crash
+      on the first attempt: an abstract class can carry a public constructor, `Expression.Compile`
+      refuses `new` on one, and nothing written here has one ([N173](NOTES.md)). Restored as a
+      build-time fixture rather than downloaded, so the check does not depend on the internet.*
 - [x] `[SparkNode]`, `[NodePort]`, `[NodeIgnore]` and the replication attributes refine what
       reflection infers, for those who want them (**E5-T1**).
 - [ ] Member-kind rules are implemented as specified: setters excluded, `out` parameters

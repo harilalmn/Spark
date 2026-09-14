@@ -20,4 +20,29 @@
     <ProjectReference Include="../../src/Spark.Nodes.Core/Spark.Nodes.Core.csproj" />
   </ItemGroup>
 
+  <!--
+    E5-T11. THE ONE ASSEMBLY IN THIS SOLUTION NOBODY HERE WROTE.
+
+    `ExcludeAssets="all"` means this is not a reference: nothing compiles against MathNet, nothing
+    copies it to an output folder, and the reference graph is unchanged. What it does is put the
+    package on disk during restore, and `GeneratePathProperty` hands the test its location.
+
+    RESTORED RATHER THAN DOWNLOADED, AND THAT IS THE WHOLE DESIGN OF THIS FIXTURE. A test that
+    fetches from nuget.org goes red when nuget.org is slow, which is a result about the internet
+    and not about Spark - `NuGetFeedTests` handles that by asserting nothing when the feed is
+    unreachable, which is right for a feed probe and useless for an acceptance test. Restore has
+    already happened by the time a test runs, it is cached on CI, and a missing package fails the
+    build rather than skipping a check.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MathNet.Numerics" ExcludeAssets="all" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>MathNetPackageRoot</_Parameter1>
+      <_Parameter2>$(PkgMathNet_Numerics)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>

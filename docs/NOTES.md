@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-14 (N132 contained two of the bytes it is about, and the scan is a check now)
+**Last updated:** 2026-09-14 (N173: an abstract class can have a public constructor)
 
 ---
 
@@ -5216,6 +5216,52 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N173 — An abstract class can have a public constructor, and `new` on it does not compile
+
+**2026-09-14, `E5-T11`.** The node importer crashed on the first assembly this project had ever
+pointed it at that somebody else wrote. Not a wrong node, not a missing one: an
+`InvalidOperationException` out of `Expression.Compile()` — **`Can't compile a NewExpression with a
+constructor declared on an abstract class`** — which takes the whole import down and every node in
+the assembly with it.
+
+**The mechanism is two true facts that do not meet anywhere in the type system.**
+
+- `Type.GetConstructors()` on an abstract class returns its **public** constructors, and they
+  genuinely are public: that is how a derived class in another assembly chains to them. There is
+  nothing irregular about the declaration.
+- `ConstructorInfo` carries no hint of it. The check is on `DeclaringType.IsAbstract`, which
+  nothing about building an `Expression.New` obliges you to consult.
+
+So `NodeInvoker.ForConstructor` built the expression happily and `Compile()` refused it — at
+**import** time, not at evaluation time, which is what made it fatal rather than merely wrong.
+
+**Why it survived the entire life of the importer.** Every assembly ever imported was written
+here: `Spark.Nodes.Core`, `Spark.Geometry`, `Spark.Viewport`, and fixture types declared inside the
+test beside the assertion. **Not one of them has a public constructor on an abstract class**, and
+nothing about our own conventions would have produced one. MathNet.Numerics has several
+(`Matrix<T>` and the distribution bases among them), because that is an ordinary way to write a
+class hierarchy in a library meant to be extended.
+
+**The fix is one guard with a stated reason**, refusing the constructor the way every other
+unimportable member is refused:
+
+> *an abstract class cannot be constructed: its public constructor exists for derived classes to
+> chain to.*
+
+**The lesson is about the fixture, not about the bug.** `NodeImporter`'s header says *zero
+configuration is the whole design: a public static method is a node with no attribute on it at
+all*, and that claim is precisely about assemblies whose authors have never heard of Spark. **It
+had only ever been tested against assemblies whose authors wrote it.** A test suite made entirely
+of its own project's code cannot find the shapes its own conventions never produce, and the cost of
+finding out is one `PackageReference` to a well-known library — `E5-T11`'s own words for this were
+*the only honest way to know zero-config actually works*, and it took four minutes to be proved
+right.
+
+**What the same fixture also proves, now that it exists.** MathNet.Numerics imports to **3,621
+nodes** with no configuration of any kind, and `PackageFrameworks` reduces net10.0 to the package's
+`net6.0` folder against five real candidates rather than the single folder every hand-built fixture
+offers.
 
 ## N172 — A limit is not a census, and the truncated query confirms you
 
