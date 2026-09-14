@@ -127,6 +127,164 @@ public sealed class PolyCurve : Curve
         return new PolyCurve([.. flattened]);
     }
 
+    /// <summary>
+    /// Sorts a heap of curves into as many chains as it holds (`E2-T72`).
+    /// </summary>
+    /// <param name="curves">
+    /// The curves, in any order and drawn in any direction. Nested polycurves are flattened.
+    /// </param>
+    /// <param name="tolerance">
+    /// How near two ends must be to count as joined. Its <see cref="Tolerance.Linear"/> component
+    /// is the one that matters.
+    /// </param>
+    /// <returns>
+    /// One polycurve per chain, in the order their first curve appeared in the input. A curve that
+    /// touches nothing comes back as a chain of one.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="curves"/> is <see langword="null"/>, or one of them is.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>This is <see cref="FromJoinedCurves"/>'s measurement put to the opposite use.</b> That
+    /// member builds <i>one</i> chain and <b>refuses</b> a gap, naming the index and the distance;
+    /// this builds <i>several</i> and treats a gap as the <b>boundary between them</b>. Same
+    /// tolerance, opposite conclusion — which is why it is a separate member rather than a flag on
+    /// that one.
+    /// </para>
+    /// <para>
+    /// <b>The work is orientation, not grouping.</b> A heap of curves has no direction: the curve
+    /// that continues a chain may need <b>reversing</b> to do it, and which of its two ends meets
+    /// the chain is found rather than assumed. An implementation that only matches end to start
+    /// chains the links that happen to have been drawn the same way round and leaves the rest as
+    /// singletons — on ordinary input, not awkward input.
+    /// </para>
+    /// <para>
+    /// <b>Each chain is walked forward from its seed's end and then backward from its start</b>, so
+    /// a seed taken from the middle of a chain still produces the whole of it, in order.
+    /// </para>
+    /// <para>
+    /// <b>A junction where three or more curves meet is resolved by input order, which is
+    /// deterministic and arbitrary, and both of those words are meant.</b> A heap that branches is
+    /// a <i>graph</i>, and grouping is not the member to decide what a graph's chains are — so it
+    /// makes a repeatable choice rather than a clever one, and this paragraph is the warning that
+    /// the choice carries no meaning.
+    /// </para>
+    /// <para>
+    /// <b>A chain that returns to its own seed closes and stops.</b> Nothing is dropped: a curve
+    /// touching no other comes back as a chain of one, because a caller who hands in geometry is
+    /// entitled to get all of it back.
+    /// </para>
+    /// </remarks>
+    public static PolyCurve[] FromGroupedCurves(
+        IEnumerable<Curve> curves, in Tolerance tolerance = default)
+    {
+        ArgumentNullException.ThrowIfNull(curves);
+
+        List<Curve> heap = [];
+        foreach (Curve curve in curves)
+        {
+            ArgumentNullException.ThrowIfNull(curve, nameof(curves));
+            heap.Add(curve);
+        }
+
+        double linear = tolerance.Linear;
+        bool[] used = new bool[heap.Count];
+        List<PolyCurve> groups = [];
+
+        for (int seed = 0; seed < heap.Count; seed++)
+        {
+            if (used[seed])
+            {
+                continue;
+            }
+
+            used[seed] = true;
+            LinkedList<Curve> chain = new();
+            chain.AddFirst(heap[seed]);
+
+            Extend(chain, heap, used, linear, forwards: true);
+            Extend(chain, heap, used, linear, forwards: false);
+
+            groups.Add(FromJoinedCurves(chain, tolerance));
+        }
+
+        return [.. groups];
+    }
+
+    /// <summary>Grows a chain from one of its two ends until nothing else joins it.</summary>
+    /// <param name="chain">The chain so far.</param>
+    /// <param name="heap">Every curve handed in.</param>
+    /// <param name="used">Which of them are already in a chain.</param>
+    /// <param name="linear">How near two ends must be to count as joined.</param>
+    /// <param name="forwards">
+    /// <see langword="true"/> to grow from the chain's end, <see langword="false"/> from its start.
+    /// </param>
+    /// <remarks>
+    /// <b>The used-set is what stops a ring.</b> A chain that comes back to its own seed finds only
+    /// curves it has already taken, so the walk ends there rather than going round again — the
+    /// closure falls out of the bookkeeping instead of needing a test of its own in the loop.
+    /// </remarks>
+    private static void Extend(
+        LinkedList<Curve> chain, List<Curve> heap, bool[] used, double linear, bool forwards)
+    {
+        while (true)
+        {
+            Point3d open = forwards ? chain.Last!.Value.EndPoint : chain.First!.Value.StartPoint;
+            int found = -1;
+            bool reversed = false;
+
+            for (int index = 0; index < heap.Count; index++)
+            {
+                if (used[index])
+                {
+                    continue;
+                }
+
+                Curve candidate = heap[index];
+
+                // Which END of the candidate meets the chain is found, not assumed. Growing
+                // forwards the chain wants a curve that STARTS at the open point; growing backwards
+                // it wants one that ENDS there; and either way the other end will do just as well
+                // once the curve is turned round.
+                bool joinsAsDrawn = forwards
+                    ? candidate.StartPoint.DistanceTo(open) <= linear
+                    : candidate.EndPoint.DistanceTo(open) <= linear;
+                bool joinsTurned = forwards
+                    ? candidate.EndPoint.DistanceTo(open) <= linear
+                    : candidate.StartPoint.DistanceTo(open) <= linear;
+
+                if (!joinsAsDrawn && !joinsTurned)
+                {
+                    continue;
+                }
+
+                // Input order, deliberately: the first match wins, so a branch resolves the same
+                // way every run without pretending the resolution means anything.
+                found = index;
+                reversed = !joinsAsDrawn;
+                break;
+            }
+
+            if (found < 0)
+            {
+                return;
+            }
+
+            used[found] = true;
+            Curve link = reversed ? heap[found].Reversed() : heap[found];
+
+            if (forwards)
+            {
+                chain.AddLast(link);
+            }
+            else
+            {
+                chain.AddFirst(link);
+            }
+        }
+    }
+
     /// <summary>The segments of the chain, in order.</summary>
     /// <returns>A copy of the array. The polycurve's own is never handed out.</returns>
     public Curve[] Segments() => [.. _segments];

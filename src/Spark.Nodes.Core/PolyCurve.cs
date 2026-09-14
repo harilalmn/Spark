@@ -27,6 +27,23 @@ public static class PolyCurve
         Spark.Geometry.PolyCurve.FromJoinedCurves(
             curves, new Tolerance(tolerance, Angle.FromDegrees(0.001), 1e-12));
 
+    /// <summary>Sorts a heap of curves into as many chains as it holds.</summary>
+    /// <param name="curves">The curves, in any order and drawn in any direction.</param>
+    /// <param name="tolerance">How near two ends must be to count as joined.</param>
+    /// <returns>One polycurve per chain, in the order their first curve appeared.</returns>
+    /// <remarks>
+    /// <b>This is the join that does not refuse a gap.</b> <c>FromJoinedCurves</c> builds one chain
+    /// and refuses a gap; this builds several and uses a gap as the boundary between them. A curve
+    /// that touches nothing comes back as a chain of one, and a link drawn the other way round is
+    /// turned rather than left out.
+    /// </remarks>
+    [return: NodePort("polycurves")]
+    [SparkNodeAlias("PolyCurve.ByGroupedCurves")]
+    public static Spark.Geometry.PolyCurve[] FromGroupedCurves(
+        IReadOnlyList<Spark.Geometry.Curve> curves, double tolerance = 1e-6) =>
+        Spark.Geometry.PolyCurve.FromGroupedCurves(
+            curves, new Tolerance(tolerance, Angle.FromDegrees(0.001), 1e-12));
+
     /// <summary>Rounds every corner of a chain to a fillet of the same radius.</summary>
     /// <param name="polycurve">The chain.</param>
     /// <param name="radius">The fillet radius. Positive.</param>

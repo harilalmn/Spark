@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: a heap of curves sorted into chains)
+**Last updated:** 2026-09-14 (`E2-T72`: a heap of curves sorted into chains)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T72`'s `PolyCurve.ByGroupedCurves` — a heap of curves sorted into as many chains as it holds.** **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **The previous step's *Next action* named `PolyCurve.BasePlane` and it was already `Done`** — closed on 2026-09-13 by `Curve.PlaneOf`, which a polycurve inherits, exactly as that step predicted it would be. The list it was taken from was written before then and had not been reread. **Reconciled against the manifest rather than the prose**, which is what the manifest is for. **What this row is**: `FromJoinedCurves` builds **one** chain and **refuses** a gap, naming the index and the distance. This builds **several** and uses a gap as the **boundary between them** — the opposite behaviour from the same measurement, which is why it is a separate member and not a flag. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`PolyCurve.ClosedWithLineAndTangentArcs` — an open chain closed by an arc, a run and a second arc, and it is *not* a fillet.** **A fillet rounds a corner that exists; this closes a gap with no corner in it**, which makes it the Dubins curve-straight-curve path with two radii. **Four candidates and not sixteen**, because for each side combination the tangent line is *unique*. **The branch is which candidate**, and **shortest is the wrong rule** — the shortest closure is free to cut straight through the outline it is closing. **Proving that needed a fixture search**: on the obvious L-shaped chain the shortest candidate *happens* to be the clear one, so the first mutation ran **green**. **Two corrections to my own write-ahead**: a radius too large is **not** an error, and the false crossing the tests first reported was `Tessellate` de-duplicating joins by **exact** equality inside a method that already takes a tolerance. Residue **unchanged at 343**. 19 tests, **3718 → 3737**. **Before it:** `PolyCurve.Filleted`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3737** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
-| **Next action** | **Write `PolyCurve.FromGroupedCurves(curves, tolerance)` returning a `PolyCurve[]`.** **The work is orientation, not grouping.** A heap of curves has no direction: the curve that continues a chain may need **reversing** to do it, and which end of it meets the chain is found rather than assumed. Walk **forward** from a seed's end and then **backward** from its start, orienting each link as it is taken, so a chain found from its middle still comes out in order. **A junction where three or more curves meet is the decision.** Grouping cannot resolve a branch, because a branching heap is a **graph** and not a chain — so take the candidate in **input order**, which is deterministic and arbitrary, and **say both of those words in the remarks** rather than implying the choice means something. **A loop has to stop.** A chain that returns to its own seed must close and end, not walk the ring for ever; the guard is the used-set, and the test for it is a ring of four curves. **Groups come back in the order their first curve appeared**, so the result is stable under nothing but the input. |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the reversal**. A heap whose curves are drawn in alternating directions is the ordinary case, not the awkward one, and an implementation that only ever matches *end to start* will chain half of it and leave the rest as singletons. So the fixture is a chain whose links are deliberately drawn in mixed directions, and the assertion is that **one** group comes back, running unbroken. **Shuffled input gives the same groups** as ordered input, which pins the walk rather than the luck of the ordering. **A ring closes and terminates.** **A curve that touches nothing comes back as a group of one**, because dropping it would lose the caller's geometry silently. The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Thirty-four steps landed across 2026-09-13 and 2026-09-14. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **`E2-T66` is closed; `E2-T68`, `E2-T69` and `E2-T72` are each part done.** `E2-T67` is skipped with its reason — the shim cannot be rebuilt without the OpenCascade install `E13-T21` waits on. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`PolyCurve.FromGroupedCurves` — a heap of curves sorted into as many chains as it holds.** **It is `FromJoinedCurves`' measurement put to the opposite use**: that member builds *one* chain and **refuses** a gap, this builds *several* and treats a gap as the **boundary** between them. **The work is orientation, not grouping**, which the row did not say — a heap has no direction, so the curve that continues a chain may need **reversing**, and matching only end to start leaves half an ordinary heap as singletons. Each chain grows forward from its seed and then backward, so a seed from the middle still yields the whole of it; dropping the backward walk reddens two tests. **A branching junction is resolved by input order, which is deterministic and arbitrary**, and the remarks say both words. **Nothing is dropped**: a lonely curve is a chain of one. **The step began by finding its own *Next action* already done** — `BasePlane` closed the day before, by `Curve.PlaneOf`. Residue **unchanged at 343**. 11 tests, **3737 → 3748**. **Before it:** `ClosedWithLineAndTangentArcs`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3748** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T72`'s thickening pair — `PolyCurve.ByThickeningCurve(Curve, double, Vector)` and `ByThickeningCurveNormal`.** **The construction is plain and the decisions are not**: offset the curve to **both** sides by half the thickness and close the two ends, giving a closed polycurve around it. `CurveOffset.Offset` gives one side and `FromJoinedCurves` assembles the loop, so the parts exist — note that the second offset has to be **reversed** to run back the other way, which is the same orientation problem the grouping step just dealt with. **Decision one: the cap.** The signature does not say, so choose and write it down. A straight line between the two offset ends is the predictable answer and the one a caller can reason about; a semicircular cap is prettier and is a different shape. **Decision two: what `Normal` means in the second name.** Both members take a `Vector`, so the difference is not *supplied versus inferred* in any obvious reading. **Work it out before writing either**, and if it cannot be settled from the signature, build the one that is clear and leave the other `Needs a decision` with the reason — which is what §6.3 is for, and better than shipping two members whose difference nobody can state. |
+| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the reversal of the second side**. A thickened curve whose return side is not turned round produces a loop that does not close, and `FromJoinedCurves` refuses it, so the assertion is that the result is closed **and** that its area is the one arithmetic predicts: for a straight curve, thickness times length. **The cap is asserted by type**, so that changing it later is a visible change rather than a silent one. **An offset that collapses** — a thickness wider than twice the smallest radius of curvature — has to be refused rather than returning a self-crossing loop, and `PolyLine.SelfIntersections` can now say which it is. The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -14635,3 +14635,55 @@ on the change.
 
 **Cost.** One session. One member, nineteen tests, one node, three mutations and a fixture
 search.
+
+### 2026-09-14 — A heap of curves sorted into chains
+
+**What.** `PolyCurve.FromGroupedCurves(curves, tolerance)`. Eleven tests, a node, a row to
+`Done`, a second row's reason rewritten, and the register at **444 of 545**.
+
+**The step began by finding its own *Next action* already done.** The previous session left
+`PolyCurve.BasePlane` as the next row, from a list of what remained that had been written on
+2026-09-13 — and `BasePlane` closed later that same day, answered by `Curve.PlaneOf`, which a
+polycurve inherits. The list was prose and the manifest was fact. **Reconciling against the
+manifest took one grep and would have cost an hour of building something that exists**, which
+is the whole argument for the manifest being the register rather than the prose being it.
+
+**The row had already said the interesting thing about this member.** `FromJoinedCurves` builds
+**one** chain and **refuses** a gap, naming the index and the distance. This builds **several**
+and treats a gap as the **boundary between them**. Same measurement, opposite conclusion —
+which is exactly why it is a separate member and not a flag on that one, and the row said so
+in 2026-09-13 without the member existing.
+
+**What the row did not say is that the work is orientation rather than grouping.** A heap of
+curves has no direction. The curve that continues a chain may have been drawn the other way
+round, and which of its two ends meets the chain has to be found rather than assumed. An
+implementation that only matches end to start chains the links that happen to agree and leaves
+the rest as singletons — and that is what **ordinary** input looks like, not awkward input: a
+heap gathered off a drawing has no reason to be consistently oriented. The mutation that drops
+the turned match reddens exactly the test whose links alternate.
+
+**Each chain grows forward from its seed and then backward from its start**, so a seed taken
+from the middle of a chain still produces the whole of it, in order. Dropping the backward walk
+reddens two tests, one of them the shuffled-input test, which is the point of shuffling.
+
+**A branching junction is resolved by input order, which is deterministic and arbitrary, and
+the remarks say both of those words.** A heap that branches is a **graph**, and grouping is not
+the member to decide what a graph's chains are. Choosing the smoothest continuation would be a
+better guess and still a guess, and it would read as though the answer meant something. So the
+member makes a repeatable choice, says it is arbitrary, and the test pins the determinism and
+that **nothing is lost** at a branch — every curve handed in is in some group.
+
+**A ring closes and the walk stops**, which falls out of the used-set rather than needing a
+test inside the loop: a chain that comes back to its own seed finds only curves it has already
+taken.
+
+**The four-argument overload's row was rewritten rather than left alone.** Its reason said the
+two trailing arguments could not be read off metadata, which is still true — but what changed
+is that the **capability** is now built and only the flags are missing, so the row says that
+instead. It stays `Planned` rather than `Done`, because naming the two-argument member there
+would file a guess as a delivery; and `Planned` rather than `Needs a decision`, because the
+work left is small and known.
+
+**Residue unchanged at 343.**
+
+**Cost.** One session, and a short one. One member, eleven tests, one node, two mutations.
