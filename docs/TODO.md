@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E11-T33`: two rows contradicted their own status)
+**Last updated:** 2026-09-15 (`E2-T48`: T-Splines is out, by D30)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -100,6 +100,17 @@ for anything else.
 ---
 
 ## Where the run stands
+
+**T-Splines is out of the parity commitment, decided 2026-09-15** — `E2-T48`,
+[D30](PRD.md#13-decision-log), answering `Q12`. **169 members across 8 types, 20.2% of the whole
+ProtoGeometry surface**, `TSplineSurface` alone at 94 — more than `Curve`, and more than `Surface`
+and `Solid` combined. [DYNAMO-COVERAGE §6.2](DYNAMO-COVERAGE.md#62-t-splines-is-a-second-product-not-a-subsystem)
+made the case the day it was written and the decision had never been taken: it is a subdivision
+modeller with a sculpting-editor API, sharing the word *surface* with BRep/NURBS and little else,
+and `ADR-0003` already calls a subdivision backend *a different decision, not a widening of this
+one*, so nothing is foreclosed. **29 manifest rows are genuinely undecided now, where 198 were.**
+**The denominator does not move**, which reads as though it should: the committed surface was
+already 837 less the 123 refused and these 169, which is 545, and Spark stands at 454 of it.
 
 **A row's own words are checked against its status column, closed 2026-09-15** — `E11-T33`, and
 it exists because the day before I concluded it was not worth having. [N176](NOTES.md) measured one
@@ -1106,7 +1117,7 @@ exclusions is what keeps a walking skeleton from becoming a death march.
 | Q7 | Which public STEP corpus is authoritative, and which third-party viewer is the reference? **Downgraded, not closed.** We no longer write a STEP writer, so this stops being about defending a subset and becomes about validating *our use* of OCCT's — smaller, and still necessary, because *OCCT wrote it* is not evidence that a file we produce is correct. | `E13-T12`, and no longer gating anything upstream |
 | Q8 | Where does the website live, and who maintains it? | `E10-T14` |
 | **Q15** | **ANSWERED AND CLOSED, 2026-08-31 - see D17 and D18.** **(c)** The ubuntu leg survives, managed-only: the rot-guard argument is void under D16, the second-implementation argument stands on its own and never depended on shipping Linux, and building OpenCascade for `linux-x64` would cost an hour per cache miss to guard a platform nobody ships. The leg becomes a standing test of the no-provider configuration for free. *The earlier partial answer follows.* **Answered in part, 2026-08-31 - see D17.** **(a)** The C-ABI shim stays: D16 devalues one of the three things the premium bought and not the other two, and C++/CLI would reverse D7 as well. **(b)** `M1.6-C1`/`C2`'s two-OS requirement is void; Windows alone satisfies them, so **M1.6 is not blocked on WSL**. **(c) is still open** and is the only part that needs anybody: whether the ubuntu CI job survives is a question about a test technique rather than a release commitment. *The original question follows.* **What does D16 reopen?** The client has decided Spark supports **Windows and nothing else, ever** (**D16**). Two things were bought with the cross-platform option that decision gives up. **(a)** [ADR-0020](adr/0020-occt-via-c-abi-shim.md) paid a **15–25% effort premium** for a C-ABI shim over C++/CLI, and the payoff it names is buying back exactly that option — though the shim's *other* reasons, a small chosen ABI surface and upgrade survival, are not about operating systems and still stand. **Ask now: `spark_occt` is unwritten, so this is cheap today and expensive at M6.** **(b)** `M1.6-C1` and `M1.6-C2` require two operating systems, and **that is what blocks M1.6 today**. **(c)** Does the ubuntu CI job survive? Its rot-guard justification is void under D16, but it caught a real defect on its own merits ([NOTES.md N28](NOTES.md)). **Supporting an OS is a release commitment; running CI on one is a test technique** — D16 settled the first only | **Closed.** All three parts answered |
-| Q12 | **Is T-Splines in scope at all?** 169 members across 8 types — **20.2% of the entire ProtoGeometry surface**, with `TSplineSurface` alone at 94, more than `Curve`. It is a subdivision-surface modeller, a different discipline from BRep/NURBS, and its API is a sculpting editor (bevel, bridge, weld, crease, slide, fill hole) with its own file formats and its own topology layer. Recommendation: exclude it and say so publicly, as PRD §9 already does for STEP's scope. `ADR-0003`'s closing note calls a subdivision backend *a different decision, not a widening of this one*, so nothing is foreclosed. **The answer sets the denominator of every coverage figure we quote.** [DYNAMO-COVERAGE §6.2](DYNAMO-COVERAGE.md#62-t-splines-is-a-second-product-not-a-subsystem), `E2-T48` | Every parity figure; M5 planning |
+| Q12 | **Is T-Splines in scope at all?** 169 members across 8 types — **20.2% of the entire ProtoGeometry surface**, with `TSplineSurface` alone at 94, more than `Curve`. It is a subdivision-surface modeller, a different discipline from BRep/NURBS, and its API is a sculpting editor (bevel, bridge, weld, crease, slide, fill hole) with its own file formats and its own topology layer. Recommendation: exclude it and say so publicly, as PRD §9 already does for STEP's scope. `ADR-0003`'s closing note calls a subdivision backend *a different decision, not a widening of this one*, so nothing is foreclosed. **The answer sets the denominator of every coverage figure we quote.** [DYNAMO-COVERAGE §6.2](DYNAMO-COVERAGE.md#62-t-splines-is-a-second-product-not-a-subsystem), `E2-T48` | **Answered 2026-09-15 by [D30](PRD.md#13-decision-log): excluded, as recommended.** The 169 rows are `Not planned`, which leaves 29 undecided where there were 198. **The denominator does not move** — the committed surface was already 837 less the 123 refused and these 169, which is 545 |
 
 *Q6 and Q11 are answered, both by the same client decision, and **the answer to each is the
 opposite of what was recommended**. **Q11** asked whether parity moves exact solid booleans into

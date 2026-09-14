@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E11-T33`: rows are checked against their own status column)
+**Last updated:** 2026-09-15 (`E2-T48`: T-Splines is out, by D30)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1574,7 +1574,11 @@ nothing.
       hand count and where the expectation was the opposite — the systematic error was in one
       direction and [N163](NOTES.md) says why. The residue budget fell 278 → 270 over the same period
       while rising four times for reasons each written down, and it now measures what it says it does:
-      with no `Unassessed` row left, a rise is the only thing that can mean anything.*
+      with no `Unassessed` row left, a rise is the only thing that can mean anything. **Those counts
+      are dated 2026-09-13 and are left as they were**; on 2026-09-15 the manifest reads `Done` 454,
+      `Planned` 62, `Not planned` 292, `Needs a decision` **29**, after thirteen rows were built and
+      [D30](PRD.md#13-decision-log) decided the 169 T-Splines. Spark stands at **454 of 545**, and
+      the 545 is unchanged because those 169 were never inside it.*
 - [x] The `docs-freshness` job fails a diff that changes a public-API baseline or touches
       `src/Spark.Nodes.*` without touching `docs/`, overridable only by an explicit
       `docs: none-needed` commit trailer that is **visible in review**. A silent exemption

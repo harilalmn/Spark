@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-14 (`E2-T71`: asking any curve to simplify itself; 454 of 545)
+**Last updated:** 2026-09-15 (D30 answers Q12: T-Splines is out; 454 of 545, and 29 undecided rows where there were 198)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -54,11 +54,15 @@ or from this repository; none is an estimate.
 | ProtoGeometry public surface | 51 | 837 | 100% |
 | **Reachable in Spark today** | **35** | **454** | **54.2%** |
 | Deliberately not replicated (§5) | 7 + parts of 4 | 123 | 14.7% |
-| Awaiting a decision — T-Splines (§6.2) | 8 | 169 | 20.2% |
+| Excluded by **D30** — T-Splines (§6.2) | 8 | 169 | 20.2% |
 | **Committed and still to build** | — | **91** | **10.9%** |
 
 Against the scope we have actually committed to — 837 less the 123 we refuse and the 169 that
-need their own decision, so **545 members** — Spark stands at **454 of 545, or 83.3%**. **Thirteen
+§6.2 excludes, so **545 members** — Spark stands at **454 of 545, or 83.3%**. *The T-Splines row
+read **awaiting a decision** until 2026-09-15, when [D30](PRD.md#13-decision-log) took the one §6.2
+recommended. **The 545 is unchanged by it**, because those 169 were already outside the
+denominator; what changed is that they now carry a position instead of a question, and the
+manifest's `Needs a decision` count fell from 198 to **29**.* **Thirteen
 ProtoGeometry types are answered in full**: `Plane`, `UV`, `Ellipse`, `EllipseArc`, `Rectangle`,
 `IndexGroup`, `Topology`, `Vertex`, `Edge`, `Loop` and, all on 2026-09-13, **`Helix`** (`E2-T73`),
 **`Line`** and **`Circle`** (`E2-T72`) — the first three this register asked for and then watched
@@ -77,15 +81,20 @@ get built.
 > **The manifest counts these now, and where it differs from this table the manifest is right**
 > (2026-09-11, `E11-T23`). [`tests/corpus/dynamo-parity.tsv`](../tests/corpus/dynamo-parity.tsv) holds
 > one row per member, generated from the same `ProtoGeometry.dll` metadata, and `Spark.Docs.Verify`
-> checks it against this document on every build. **As of 2026-09-13 it stands at `Done` 441,
+> checks it against this document on every build. **As of 2026-09-13 it stood at `Done` 441,
 > `Planned` 75, `Not planned` 123, `Needs a decision` 198 and `Unassessed` 0**, which is 837 — and
-> the table above is now taken from those numbers rather than checked against them.
+> the table above is now taken from those numbers rather than checked against them. **On 2026-09-15
+> it stands at `Done` 454, `Planned` 62, `Not planned` 292 and `Needs a decision` 29**, the same
+> 837: thirteen rows built since, and [D30](PRD.md#13-decision-log) moving the 169 T-Splines from
+> undecided to refused. **Both lines are dated on purpose** — the manifest is the count and these
+> are readings of it, so a reading is stamped rather than edited.
 > Applying §5's rules gives **123** refused members, not 93 — §5's own lists add to 104, the four
 > primitive solids carry 14 parameter-recovery properties rather than 11, §5 [i]'s three flattened
 > mesh accessors were counted when `E2-T45` assessed them, `E2-T46` added three under §5 [j],
 > `E2-T41` counted §5 [i]'s duplicated trim family once its survivor was chosen, and `E2-T40` added
 > `Vector.IsAlmostEqualTo` to §5 [j] and `CoordinateSystem.ByOriginVectors`'s explicit-Z overload to
-> §3.1's ground. **Of the 198 `Needs a decision`, 169 are the T-Splines and 29 are not**: `Q17`'s six
+> §3.1's ground. **That read *of the 198 `Needs a decision`, 169 are the T-Splines and 29 are not*
+> until [D30](PRD.md#13-decision-log) decided the 169 on 2026-09-15; there are 29 now**: `Q17`'s six
 > oriented-box rows, §6.3's undeducible signatures, and the rest.
 > **All seven sections are now assessed member by member**: §3.1 (113 of 133), §3.2 (**141 of 187**,
 > the largest), §3.3 (59 of 106), §3.4 (24 of 55), §3.5 (31 of 33), §3.6 (49 of 65) and §3.8 (24 of
@@ -835,18 +844,18 @@ typed values and the graph handles them (`E4-T2`). Refusing the flattening is no
 **This pass is what §5 [i] was waiting for**, so these three now count in the refusals, which is why the
 manifest's *Not planned* total moves from 107 to 110.
 
-### 3.7 T-Splines — 8 types, 169 members, 0 reachable
+### 3.7 T-Splines — 8 types, 169 members, 0 reachable, and excluded by **D30**
 
 | Dynamo type | Members | Spark equivalent | Status | Milestone |
 |---|---:|---|---|---|
-| `TSplineSurface` | 94 | None | Needs a decision | — |
-| `TSplineTopology` | 26 | None | Needs a decision | — |
-| `TSplineVertex` | 11 | None | Needs a decision | — |
-| `TSplineEdge` | 9 | None | Needs a decision | — |
-| `TSplineFace` | 8 | None | Needs a decision | — |
-| `TSplineInitialSymmetry` | 8 | None | Needs a decision | — |
-| `TSplineReflection` | 8 | None | Needs a decision | — |
-| `TSplineUVNFrame` | 5 | None | Needs a decision | — |
+| `TSplineSurface` | 94 | None | Not planned (**D30**) | — |
+| `TSplineTopology` | 26 | None | Not planned (**D30**) | — |
+| `TSplineVertex` | 11 | None | Not planned (**D30**) | — |
+| `TSplineEdge` | 9 | None | Not planned (**D30**) | — |
+| `TSplineFace` | 8 | None | Not planned (**D30**) | — |
+| `TSplineInitialSymmetry` | 8 | None | Not planned (**D30**) | — |
+| `TSplineReflection` | 8 | None | Not planned (**D30**) | — |
+| `TSplineUVNFrame` | 5 | None | Not planned (**D30**) | — |
 
 **169 members — 20.2% of the whole inventory, and `TSplineSurface` alone is 94, larger than
 `Curve`.** This is not a gap to be filled in passing. §6.2 makes the argument in full.
@@ -1314,10 +1323,23 @@ the way PRD §9 already handles STEP's scope and exact booleans.** Three support
   `Spark.Geometry.Subdivision` remains buildable as a separate assembly with no debt incurred
   by leaving it out now.
 
-**Excluding it also changes the headline number honestly**, which is the other reason to decide
-it rather than leave it: with T-Splines out, the committed surface is 575 members rather than
-744, and *every* future coverage percentage in this document depends on which of those two is
-the denominator. Registered as **Q12**.
+**Excluding it also makes the headline number honest**, which is the other reason to decide it
+rather than leave it: *every* coverage percentage in this document depends on which surface is the
+denominator, and a fifth of it sitting undecided is a fifth every figure has to explain itself
+around.
+
+**Decided 2026-09-15 by [D30](PRD.md#13-decision-log), as recommended**, and the 169 manifest rows
+moved from `Needs a decision` to `Not planned`, each citing this section. `Q12` is answered and
+`E2-T48` is closed.
+
+> **This section's own closing numbers were wrong and are corrected here rather than quietly
+> dropped.** It said *with T-Splines out, the committed surface is 575 members rather than 744*.
+> **Neither figure survives the inventory at the top of this document**: 744 matches no count this
+> file has ever carried, and the committed surface is 837 less the 123 refused and these 169, which
+> is **545** — the number §1's table has been quoting for days while this paragraph said otherwise.
+> They predate the member-by-member pass that produced the 837, and the lesson is the one §7 makes
+> about the manifest: a number written in prose drifts from the number that is counted, which is why
+> the table above is derived and this sentence was not.
 
 ### 6.3 What we could not interpret confidently
 
