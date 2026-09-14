@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-15 (`E2-T48` Done by D30: T-Splines is out, and it is a fifth of ProtoGeometry)
+**Last updated:** 2026-09-15 (`E1-T19` Done: E1 has no open rows left)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Eight steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Nine steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E2-T48` `Done` by [D30](PRD.md#13-decision-log): T-Splines is excluded from the parity commitment.** **169 members across 8 types, 20.2% of the whole ProtoGeometry surface**, `TSplineSurface` alone at 94 — more than `Curve`, and more than `Surface` and `Solid` combined. `DYNAMO-COVERAGE` §6.2 had made the entire case the day it was written and the decision had never been taken: **a register describing an argument rather than holding a position**. All 169 manifest rows moved to `Not planned`, so `Needs a decision` fell from **198 to 29**. **The denominator does not move** — the committed scope was already 837 less the 123 refused and these 169, which is 545, and Spark stands at **454 of 545** exactly as it did this morning. **Three stale numbers came out with it**, including §6.2's own *575 rather than 744*, which had been contradicting §1's table for days. Residue **exact at 346**, which was the thing to watch. |
+| **Last completed step** | **`E1-T19` `Done`, and `E1` now has no `Open` rows at all.** The row had written its own conclusion — *the test is already inside `Spark.UI.Tests` and therefore already runs on both CI legs* — and left the decision, which is the right way to leave a row. **The claim worth verifying was the Linux one**: opening a real `MainWindow` on a runner with **no display server** is the whole of what a headless smoke test asserts, and [N90](NOTES.md) is a month of failing to do it. **Run 34890781633, `Build and test (ubuntu-latest)`: `Spark.UI.Tests.dll` passed, `failed: 0`, in 1m 55s** — quoted with its run id, because *it runs in CI* is exactly the claim this week keeps finding stale. **The test is not vacuous**: it asserts the `DockControl` laid out with real bounds and calls `CaptureRenderedFrame()`, so it is not a window that was constructed and never drawn. **`Done` rather than `Withdrawn`** — nothing was abandoned; a separate job would re-run the same assembly. **Third row this week waiting on something that had already happened.** |
 | **Working tree** | Clean. Build clean with zero warnings, format clean, **3982** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **67** checks with the residue budget exact at 346. No stashes. |
-| **Next action** | **`E1-T19`, the headless UI smoke job — and it unblocked itself on 2026-09-14 without anybody noticing, which is the third time this week a row has been waiting on something that had already happened.** Its note says *nothing in the tree blocks this*, that Actions is off at the client's instruction and its triggers removed, and that **it unblocks itself at the open-source release**. The repository went public on 2026-09-14, CI has run green on every commit since, and `ci.yml` and `nightly.yml` have their triggers back. **So read the row's own acceptance before building**: what a headless UI smoke test must prove that `Spark.UI.Tests`' 1,404 tests do not is *the application starts on a machine with no display and no GPU*, which is a different claim from *the view models work*. **`--screenshot` and `--help-window` already exist** and the nightly already drives the canvas benchmark through a real window on a hosted runner, so check what is genuinely missing rather than adding a job beside one that already does it. **Then**: `E2-T67`, `E2-T38`, `E11-T7`, `E10-T14` — the last four `Open` rows. |
-| **Verify with** | **A CI job is proved by running, and this one can be run**: the repository is public, Actions is on, and `gh run watch` works from here — which the journal's environment facts denied until this morning. **A job that passes by doing nothing is the failure mode**: a headless smoke test that starts the application and exits must be made to fail once, by pointing it at a graph that cannot evaluate or a display that is not there, or it is asserting that `dotnet run` returns zero. The three gates, the residue budget **exact at 346**, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
+| **Next action** | **`E2-T38` — *golden-file geometry tests with readable diff tables* — and check first whether it is already `Done`, because everything it describes appears to exist.** The row's note is one line from M0: *hashes plus summary stats — bounding box, counts, area, volume. A bare hash mismatch tells you nothing.* **`tests/corpus/geometry/*.tsv` holds committed goldens, `GoldenGeometryTests` reads them, and `.gitignore` carries a rule for the `*.actual.tsv` a failing run writes beside its golden** — which only exists if somebody built the diff. **So read `GoldenGeometryTests` and make a failure happen**: corrupt a golden, look at what the message actually says, and close the row only if the table is there and readable. If it is not, that is the work. **Then**: `E2-T67` (mass properties from the kernel, not the tessellation), `E11-T7` (the Markdown renderer parity half), `E10-T14` (the website, waiting on [PRD Q8](PRD.md#14-open-questions)) — the last three `Open` rows. |
+| **Verify with** | **Make the failure happen and read it**, which is the only way to judge a diagnostic: a golden test's message is its entire product on the day it goes red, and no assertion about a message is worth as much as seeing one. **If the row closes, it closes on a pasted failure message**, not on the presence of a file. The three gates, the residue budget **exact at 346**, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
 | **Blocked on** | **Four things need a human, and the fourth is new.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance.* **The nightly benchmark half came off this list on 2026-09-15, and it had come off on 2026-09-14 without anybody noticing.** Run 34841376718 ran the canvas benchmark on `windows-latest` — 2 000 nodes and 1 677 wires over 500 frames, **1.38 ms median of a 16.70 ms budget and 3.04 ms p95 of 33.30 ms**, on a runner with **no GL at all** (`viewport: no GL callback ran`), which is the hard case rather than a lucky one. It was found by `E11-T32`'s criterion sweep, because `E8-T15`'s acceptance box said *unticked because the step has never run on a runner without a GPU* while its register row said `Done` — and `nightly.yml`'s own comment still said the step was unproven on a hosted runner. All three are corrected. **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -16541,3 +16541,51 @@ failures, zero skips.
 **Cost.** One session, almost all of it documentation. **The register has five `Open` rows left**,
 down from nine this morning, and none of the four that closed today needed a line of product code —
 which is the honest shape of this stage rather than a complaint about it.
+
+### 2026-09-15 — `E1-T19` `Done`: the headless smoke already ran, on the leg nobody had checked
+
+**What.** A decision the row had asked for in its own last sentence, closed on evidence from CI, and
+**`E1` now has no `Open` rows at all**.
+
+**The row had written its own conclusion and left the decision.** Its note ended: *the test is
+already inside `Spark.UI.Tests` and therefore already runs on both CI legs — so a separate job would
+re-run it rather than cover anything new. The row should close as satisfied or be re-described as
+something narrower; it is left `Open` for that decision rather than ticked on a technicality.* That
+is the right way to leave a row, and the decision is this step.
+
+**The claim worth verifying was the Linux one, and it is the only part that was not obvious.**
+Opening a real `MainWindow` on a runner with **no display server** is the whole of what a headless
+smoke test asserts, and [N90](NOTES.md) is a month of this repository failing to do it — a wrapping,
+data-bound `TextBlock` in a `Grid` hanging Avalonia's headless `Window.Show()` before the first
+frame. **Run 34890781633, `Build and test (ubuntu-latest)`: `Spark.UI.Tests.dll` passed, `failed:
+0`, in 1m 55s.** Quoted with its run id, because *it runs in CI* is exactly the kind of claim this
+week has repeatedly found stale, and a sentence naming a run somebody can open is the difference.
+
+**And the test is not vacuous, which a smoke test easily can be.** One that constructed a window and
+never drew would pass on a display-less machine for the wrong reason.
+`TheRealMainWindowOpensComposesAndDraws` shows the real `MainWindow`, asserts it became visible,
+asserts the `DockControl` laid out with **real bounds** — the shell would lay out with an empty body,
+so the dock is what says the panes were measured — and calls `CaptureRenderedFrame()` to drive the
+draw path. `TheInspectorPaneShowsHeadlessly` is deliberately separate, so a return of N90's hang
+names the control rather than the application.
+
+**`Done` rather than `Withdrawn`**, and the distinction is not pedantry: nothing here was abandoned.
+The capability the row asked for exists and runs, on both operating systems, on every commit. What
+does not exist is a *separate job*, and adding one would buy a second copy of the same answer.
+
+**Two `E1` acceptance criteria were stale and came out with it.** *CI jobs: build → test → format →
+docs-verify → docs-freshness → headless UI smoke* said *four of the six are written … none has run*.
+All six are answered now, and **two of them by not being jobs** — the docs harness and the headless
+smoke are both test projects the `test` step already runs. *None has run* stopped being true on
+2026-09-14.
+
+**This is the third row this week found waiting on something that had already happened**, after
+`E8-T15`'s canvas benchmark and this row's own blocker. All three were found by picking the row up
+and reading it, which is the one thing the protocol makes you do anyway.
+
+**Verified.** Build clean, zero warnings, format clean, **3982** tests over ten executables, zero
+failures, zero skips. Register: **381 done, 4 open**, and `E1` closed out entirely — its one
+remaining unsettled row is `E1-T28`'s branch protection, `Blocked` on a client decision.
+
+**Cost.** One session, most of it reading a CI log to turn *should close as satisfied* into *closed,
+here is the run id*.

@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E2-T48`: T-Splines is out, by D30)
+**Last updated:** 2026-09-15 (`E1-T19`: the headless smoke already runs on both legs)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -88,10 +88,13 @@ exemption for everything that already exists.
       so they are created alongside the code they test.*
 - [x] CI runs on `windows-latest` and `ubuntu-latest` and is green on the empty solution
       (**E1-T14**). *Written; never run.*
-- [ ] CI jobs: build `-warnaserror` → test → format check → docs-verify → docs-freshness →
-      headless UI smoke (**E1-T15** … **E1-T19**). *Four of the six are written — the docs
-      harness needs no job of its own, since it is a test project the `test` step already
-      runs. The headless UI smoke has nothing to smoke until `Spark.UI` exists. None has run.*
+- [x] CI jobs: build `-warnaserror` → test → format check → docs-verify → docs-freshness →
+      headless UI smoke (**E1-T15** … **E1-T19**). *All six are answered as of 2026-09-15, and
+      **two of them by not being jobs**: the docs harness is a test project the `test` step already
+      runs, and so is the headless UI smoke (`E11-T15`), which therefore runs on **both** legs
+      rather than in one job of its own — `E1-T19` closed on that. **This note said *none has
+      run***, which was true until CI came back on 2026-09-14; every job has run green on every
+      commit since.*
 - [x] A CI check asserts no native binaries appear in `Spark.Geometry`'s published output
       (**E1-T20**). *`dotnet publish` output — nothing here is packaged for nuget.org.*
       `scripts/check-no-native-binaries.sh`, run on both operating systems, and **proven to
@@ -1594,8 +1597,12 @@ nothing.
       a bare `PublicAPI.Unshipped.txt` edit fires.*
 - [x] A headless UI smoke test runs in CI (**E11-T15**). *`MainWindowSmokeTests` opens the real
       `MainWindow`, composes it, draws and closes. It lives in `Spark.UI.Tests`, so it runs on
-      both CI legs already rather than in a job of its own — which is why `E1-T19` is still open
-      as a decision rather than ticked as work.*
+      both CI legs already rather than in a job of its own — **which is how `E1-T19` closed on
+      2026-09-15**: the capability exists and runs, and a separate job would re-run the same
+      assembly for a second copy of the same answer. The Linux leg is the one that matters, because
+      opening a real window on a runner with **no display server** is the whole of what this
+      asserts, and [N90](NOTES.md) is a month of failing to do it: run 34890781633's
+      `Build and test (ubuntu-latest)` ran `Spark.UI.Tests.dll` and reports passed, `failed: 0`.*
 - [ ] Benchmarks run nightly, against committed budgets rather than a committed time series
       (**E11-T16**, [ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md)).
       *Marshalling, evaluation and the canvas do. Replication over 100 000 items is covered only

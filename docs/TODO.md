@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E2-T48`: T-Splines is out, by D30)
+**Last updated:** 2026-09-15 (`E1-T19`: E1 has no open rows left)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -100,6 +100,16 @@ for anything else.
 ---
 
 ## Where the run stands
+
+**The headless UI smoke closes E1 entirely, 2026-09-15** — `E1-T19`, and it had been satisfied
+since the day before without anybody deciding so. The smoke test lives in `Spark.UI.Tests`, which
+`dotnet test Spark.slnx` runs and which CI runs on **both** legs, so a separate job would re-run the
+same assembly for a second copy of the same answer. **The Linux leg is the claim that matters** —
+opening a real `MainWindow` on a runner with no display server is the whole of what a headless smoke
+test asserts, and [N90](NOTES.md) is a month of this repository failing to do it — and run
+34890781633's `Build and test (ubuntu-latest)` reports `Spark.UI.Tests.dll` passed, `failed: 0`.
+**E1 now has no open rows at all.** Its one remaining unsettled row is `E1-T28`'s branch protection,
+`Blocked` on a client decision.
 
 **T-Splines is out of the parity commitment, decided 2026-09-15** — `E2-T48`,
 [D30](PRD.md#13-decision-log), answering `Q12`. **169 members across 8 types, 20.2% of the whole
