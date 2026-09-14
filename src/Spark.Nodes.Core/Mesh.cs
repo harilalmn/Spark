@@ -151,4 +151,18 @@ public static class Mesh
         int divisions = 16,
         bool capped = true) =>
         MeshPrimitives.Cone(plane, baseRadius, topRadius, height, divisions, capped);
+
+    /// <summary>The point on a mesh nearest a given point.</summary>
+    /// <param name="mesh">The mesh.</param>
+    /// <param name="point">The point to measure from. It need not be near the mesh.</param>
+    /// <returns>The nearest point on the surface.</returns>
+    /// <remarks>
+    /// <b>On the surface, not at a vertex.</b> The nearest point on a mesh is almost never one of
+    /// its corners - it is usually somewhere across a face or along an edge, which is why a search
+    /// through the vertices is a different and wrong answer.
+    /// </remarks>
+    [return: NodePort("point")]
+    [SparkNodeAlias("Mesh.Nearest")]
+    public static Point3d ClosestPoint(Spark.Geometry.Mesh mesh, Point3d point) =>
+        mesh.ClosestPoint(point);
 }

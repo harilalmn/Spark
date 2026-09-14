@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: the closest point on a mesh)
+**Last updated:** 2026-09-14 (`E2-T69`: the closest point on a mesh)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T69`'s `Mesh.Nearest(Point)` — the closest point on a mesh, which Spark has nowhere.** **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **`E2-T72` was closed first, as `Blocked` rather than `Open`**, because there is nothing in it a session can pick up: seventeen of its twenty rows are `Done`, and the three left need either a running Dynamo to read two flags off (§6.3) or a capability nobody has asked for — trimming a self-intersecting offset, which `CurveOffset.Offset` says in its own remarks that it does not do. **The task row now names all three and what each waits on**, so the next session does not reopen it looking for work. **The row for this step already records what is absent and what only looks like it.** `Spark.Viewport`'s picker does ray-triangle over a BVH and is a **renderer, not the kernel**; `Point.PruneDuplicates`' k-d tree answers point-to-**point**, not point-to-**surface**. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`E2-T72` closed, and `NurbsCurve.InterpolatePointsPeriodic` before it.** The interpolation is `InterpolatePoints` with the columns taken **modulo the ring** — the wrapped copies of the first `degree` control points are the same unknowns, so two columns land on one and are **accumulated**, which is the periodicity written as arithmetic. Clamping instead of folding reddens ten of fourteen. **Two corrections came out of reading before planning**: `SolveInPlace` is **dense**, so the proposed Sherman–Morrison correction solved a problem this codebase does not have; and **smoothness at the seam is not what the solve buys**, proved by that test staying **green** under a deliberately broken solve. Residue **unchanged at 343**. 14 tests, **3773 → 3787**. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3787** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
-| **Next action** | **Write `Mesh.ClosestPoint(in Point3d)`, named for `Curve.ClosestPoint` so the two read the same.** **The work is the closest point on a *triangle*, and it is not a projection onto its plane.** Projecting and clamping the barycentric coordinates gets the interior right and everything else wrong, which matters because a point outside a mesh is usually nearest an **edge** or a **vertex** rather than a face interior. The triangle splits into seven Voronoi regions — one face, three edges, three vertices — and the region the point falls in decides the answer (Ericson's construction). **Brute force over the triangles, with the cost written down rather than apologised for**, which is the stance `PolyLine.SelfIntersections` took and the reason `SolveInPlace` gives for staying dense: a BVH is the right answer above some size, that size is **measurable**, and the day somebody measures it this implementation is what the replacement checks against. |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the edge and vertex regions**. A point above a face's interior is answered correctly by a plain plane projection, so that case proves nothing; the tests that matter put the query point **beyond an edge** and **beyond a vertex**, where the answer is a point on that edge or the vertex itself, both computable by hand. Replacing the region test with a plane projection must turn those red and leave the interior one green. **A closed mesh gives a surface point at the right radius**, sampled around a sphere, which is the property a caller relies on. **A point exactly on the mesh returns itself.** The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Thirty-eight steps landed across 2026-09-13 and 2026-09-14. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **`E2-T66` is closed and `E2-T72` is `Blocked` with its three remainders named** — two need a running Dynamo, one needs a capability nobody has asked for. **`E2-T69` is one row from done** and **`E2-T68` has four left**. `E2-T67` is skipped with its reason — the shim cannot be rebuilt without the OpenCascade install `E13-T21` waits on. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`Mesh.ClosestPoint` — the nearest point on a mesh, which Spark could not answer anywhere.** **The row's assessment held exactly**: the viewport's picker is a **renderer** and the duplicate-pruning k-d tree answers point-to-**point** where this is point-to-**surface**. **The work is the closest point on a *triangle*, and it is not a projection onto its plane** — a triangle divides space into **seven** Voronoi regions, and the four that are not the face are both where a naive implementation is wrong and the **common** case, because a point outside a mesh is usually nearest an edge or a corner. **The mutation made that case precisely**: removing every region test reddens eight tests while the face-interior test stays **green**, so that test is kept with its comment saying it is not the branch. Every expected answer is hand-computed from a right triangle. Residue **unchanged at 343**. 16 tests, **3787 → 3803**. **Before it:** `E2-T72` closed. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3803** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T69`'s last row — `Mesh.Project(Point, Vector)`, a ray cast at the same faces.** **It is the other half of the step just finished and reuses its loop shape**: walk the faces, fan each quad into triangles, and keep the best hit — but the test is **ray-triangle** rather than closest-point, which is Möller–Trumbore: solve for the barycentric coordinates and the ray parameter in one 3×3 system, rejecting a hit whose coordinates fall outside the triangle. **The decisions are what counts as a hit**, and they have to be made rather than inherited. **Behind the point is not a hit** — a projection along a direction means *forwards* — so a negative ray parameter is rejected, and a caller who wants both directions casts twice. **A ray parallel to a triangle's plane is not a hit** even when it lies *in* that plane, because a grazing hit has no single point and returning one of infinitely many would be a coin flip. **Nearest hit wins**, and that is what makes the member useful on a closed mesh: projecting onto a sphere from outside should land on the near side. **And what to return when nothing is hit** is the real question: a `Point3d` cannot be absent, so the member returns `Point3d?` or a `bool`-and-`out` pair. **Decide and say why.** |
+| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the rejection of hits behind the start**. A ray fired at a sphere from outside hits it twice; an implementation that ignores the sign of the ray parameter, or takes the smallest |t| rather than the smallest non-negative t, lands on the **far** side when the start is inside and behind the caller when it is outside — and both look like perfectly good surface points. So the fixture puts the target **behind** the start and asserts a miss, and puts the start **inside** a closed mesh and asserts the hit is the one in front. **A ray through a triangle's interior** is the hand-computed anchor. **A miss reports a miss** rather than a nearby point, with its own test. The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -14867,3 +14867,62 @@ do.
 
 **Cost.** One session. One member, fourteen tests, one node, one mutation that corrected a
 claim.
+
+### 2026-09-14 — The closest point on a mesh
+
+**What.** `Mesh.ClosestPoint`, and `E2-T72` closed before it. Sixteen tests, a node, a row to
+`Done`, and the register at **449 of 545**.
+
+**The row's assessment held exactly, including the two false friends it named.** Nothing in
+`Spark.Geometry` could answer *where is the nearest point on this mesh*. Two things look as
+though they could and neither does: `Spark.Viewport`'s picker does ray-triangle work over a
+bounding-volume hierarchy, but it is a **renderer** and not the kernel; and the duplicate
+pruning's k-d tree answers point-to-**point**, where this is point-to-**surface**. The nearest
+point on a mesh is almost never one of its vertices, and there is a test that fails if the
+fixture stops distinguishing the two.
+
+**The work is the closest point on a triangle, and the whole of it is that this is not a
+projection onto the triangle's plane.** Projecting and clamping the barycentric coordinates
+gets the interior of a face right and everything else wrong — and everything else is the
+**common** case. A point outside a mesh is usually nearest an **edge** or a **vertex**, because
+that is what being outside a convex-ish shape means. A triangle divides space into **seven**
+Voronoi regions: one over the face, three beyond the edges, three beyond the vertices. Which
+region the point falls in decides the answer, and the regions are ruled out in order by the
+signs of a few dot products — vertices first, being cheapest — with no square root and no
+division until the region is known.
+
+**The mutation made the case precisely, and it is the cleanest one of this run.** Removing
+every region test leaves exactly the naive implementation: a plane projection with clamped
+coordinates. Eight tests go red — every edge case, every vertex case, the quad, the sphere —
+and `APointOverTheInteriorProjectsOntoTheFace` stays **green**. That is the face-interior case
+demonstrating that it proves nothing, so the test is kept and its doc comment says so in the
+first line. A reader who later wonders whether one test is enough has the answer written
+beside it.
+
+**Every expected answer is hand-computed**, from a right triangle with corners at the origin,
+`(4, 0, 0)` and `(0, 4, 0)`: the point `(4, 4, 0)` is beyond the hypotenuse and its answer is
+the hypotenuse's midpoint `(2, 2, 0)`; `(-3, -3, 0)` is beyond a corner and its answer is that
+corner. Neither number was read off the implementation.
+
+**A quad is answered as its two triangles, and the reason is worth one sentence.** It matters
+only when the four corners are not coplanar — and then the two triangles are a real surface and
+the quad is not, so answering against the triangles is answering against the shape that
+actually exists.
+
+**Every face is visited, and the cost is stated rather than apologised for.** O(faces) per
+query is right for the meshes a person inspects and wrong for a hundred-thousand-triangle scan.
+A bounding-volume hierarchy is the answer above some size, **that size is measurable**, and
+this implementation is what the replacement will have to agree with. It is the third time this
+kernel has taken that stance in writing — `PolyLine.SelfIntersections` for its O(n²) and
+`NurbsCurve.SolveInPlace` for staying dense — and the consistency is deliberate.
+
+**Before it, `E2-T72` was closed as `Blocked` rather than `Open`.** Seventeen of its twenty
+rows are `Done`; the three left need a running Dynamo to read two flags off, or a capability
+nobody has asked for. A task with nothing a session can pick up should say so in its status,
+not in a paragraph somebody has to read to the end of. The dashboard's status vocabulary
+refused the word I first reached for, which was the right refusal: `Blocked` already existed
+and already means this.
+
+**Residue unchanged at 343.**
+
+**Cost.** One session. One member, sixteen tests, one node, one mutation.

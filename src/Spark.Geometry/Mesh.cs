@@ -470,6 +470,156 @@ public sealed class Mesh
         return centroids;
     }
 
+    /// <summary>
+    /// The point on the mesh's surface nearest a given point (`E2-T69`).
+    /// </summary>
+    /// <param name="point">The point to measure from. It need not be near the mesh.</param>
+    /// <returns>The nearest point <i>on the surface</i>, which is generally not a vertex.</returns>
+    /// <exception cref="InvalidOperationException">The mesh has no faces to be near.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>Nothing in Spark could answer this before, and two things that look as though they could
+    /// cannot.</b> <c>Spark.Viewport</c>'s picker does ray-triangle work over a bounding-volume
+    /// hierarchy, but it is a <i>renderer</i> and not the kernel; and
+    /// <see cref="Point3d"/>'s duplicate pruning uses a k-d tree that answers
+    /// point-to-<b>point</b>, where this is point-to-<b>surface</b>. The nearest point on a mesh is
+    /// almost never one of its vertices.
+    /// </para>
+    /// <para>
+    /// <b>The work is the closest point on a triangle, and it is not a projection onto its
+    /// plane.</b> Projecting and clamping gets the interior of a face right and everything else
+    /// wrong — and everything else is the common case, because a point outside a mesh is usually
+    /// nearest an <b>edge</b> or a <b>vertex</b>. A triangle divides space into <b>seven</b> Voronoi
+    /// regions: one over the face, three beyond the edges and three beyond the vertices, and which
+    /// region the point falls in decides the answer. The tests that matter are the ones outside the
+    /// face region.
+    /// </para>
+    /// <para>
+    /// <b>A quad is answered as its two triangles</b>, fanned from its first corner. That matters
+    /// only for a quad whose four corners are not coplanar, where the two triangles are a real
+    /// surface and the quad is not — and answering against the triangles is answering against the
+    /// shape that actually exists.
+    /// </para>
+    /// <para>
+    /// <b>Every face is visited, and the cost is stated rather than apologised for.</b> This is
+    /// O(faces) per query, which is right for the meshes a person inspects and wrong for a
+    /// hundred-thousand-triangle scan. A bounding-volume hierarchy is the answer above some size,
+    /// that size is <b>measurable</b>, and the day somebody measures it this implementation is what
+    /// the replacement has to agree with.
+    /// </para>
+    /// </remarks>
+    public Point3d ClosestPoint(in Point3d point)
+    {
+        if (_faces.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "A mesh with no faces has no surface for a point to be near.");
+        }
+
+        Point3d best = _vertices.Length > 0 ? _vertices[0] : point;
+        double bestSquared = double.MaxValue;
+
+        foreach (MeshFace face in _faces)
+        {
+            // Fanned from the first corner: a triangle runs this loop once, a quad twice.
+            for (int corner = 2; corner < face.Count; corner++)
+            {
+                Point3d candidate = ClosestOnTriangle(
+                    point, _vertices[face[0]], _vertices[face[corner - 1]], _vertices[face[corner]]);
+
+                double squared = (candidate - point).LengthSquared;
+
+                if (squared < bestSquared)
+                {
+                    bestSquared = squared;
+                    best = candidate;
+                }
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>The point on a triangle nearest a given point.</summary>
+    /// <param name="point">The point to measure from.</param>
+    /// <param name="a">The triangle's first corner.</param>
+    /// <param name="b">Its second.</param>
+    /// <param name="c">Its third.</param>
+    /// <returns>The nearest point on the triangle, edges and corners included.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Ericson's construction: seven regions, tested in order, each ruled out by the signs of a
+    /// few dot products.</b> The three vertex regions come first because they are the cheapest to
+    /// decide, then the three edges, and what is left is over the face. No square roots and no
+    /// division until the region is known, which is why this is worth writing out rather than
+    /// solving as a small optimisation problem.
+    /// </para>
+    /// <para>
+    /// <b>A degenerate triangle falls through to the face case and its division by a zero
+    /// denominator</b> — which cannot happen here, because a triangle with no area has all three
+    /// of its vertex or edge regions covering the plane, so one of the earlier tests always
+    /// catches it first. That is a property of the ordering rather than luck, and it is the reason
+    /// the ordering is not an implementation detail.
+    /// </para>
+    /// </remarks>
+    private static Point3d ClosestOnTriangle(in Point3d point, in Point3d a, in Point3d b, in Point3d c)
+    {
+        Vector3d ab = b - a;
+        Vector3d ac = c - a;
+        Vector3d ap = point - a;
+
+        double d1 = ab.Dot(ap);
+        double d2 = ac.Dot(ap);
+
+        if (d1 <= 0.0 && d2 <= 0.0)
+        {
+            return a;
+        }
+
+        Vector3d bp = point - b;
+        double d3 = ab.Dot(bp);
+        double d4 = ac.Dot(bp);
+
+        if (d3 >= 0.0 && d4 <= d3)
+        {
+            return b;
+        }
+
+        double faceAB = (d1 * d4) - (d3 * d2);
+
+        if (faceAB <= 0.0 && d1 >= 0.0 && d3 <= 0.0)
+        {
+            return a + (ab * (d1 / (d1 - d3)));
+        }
+
+        Vector3d cp = point - c;
+        double d5 = ab.Dot(cp);
+        double d6 = ac.Dot(cp);
+
+        if (d6 >= 0.0 && d5 <= d6)
+        {
+            return c;
+        }
+
+        double faceAC = (d5 * d2) - (d1 * d6);
+
+        if (faceAC <= 0.0 && d2 >= 0.0 && d6 <= 0.0)
+        {
+            return a + (ac * (d2 / (d2 - d6)));
+        }
+
+        double faceBC = (d3 * d6) - (d5 * d4);
+
+        if (faceBC <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0)
+        {
+            return b + ((c - b) * ((d4 - d3) / ((d4 - d3) + (d5 - d6))));
+        }
+
+        double total = 1.0 / (faceAB + faceAC + faceBC);
+
+        return a + (ab * (faceAC * total)) + (ac * (faceAB * total));
+    }
+
     /// <summary>A copy of the per-vertex normals, or null when there are none.</summary>
     /// <returns>The normals, or null.</returns>
     public Vector3d[]? Normals() => _normals is null ? null : [.. _normals];
