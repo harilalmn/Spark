@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N175: every arc bounded its whole circle, and 3,947 tests did not mind)
+**Last updated:** 2026-09-15 (N175, extended: the second wrapped comparison had the same hole)
 
 ---
 
@@ -5250,6 +5250,29 @@ stays — a future caller that did not seed with the end points would need it, a
 on an end genuinely does arrive as `-1e-17` rather than as zero — but the comment now says what is
 true. **An arc from 30 degrees sweeping 60 is the case**: its end is exactly the `+y` extremum, and
 the offset from the start overshoots the sweep by 2.2e-16.
+
+**The second one was found the same day, by the same method, and it names the shape.** Closing
+`E2-T32` meant looking for every other place in `Spark.Geometry` that does **a wrapped comparison
+deciding whether an angle lies on a sweep**, because that is the one arithmetic Spark's
+representation cannot avoid. There is exactly one other:
+`AnalyticCurveIntersection.Circular.ParameterAt`, which decides whether an intersection angle is on
+an arc. Its main claim was guarded; **both of its tolerance branches were not** — the slack past the
+end and the wrapped slack before the start, each `tolerance / radius` wide, each removable with the
+whole suite staying green. **That slack is load-bearing where `Includes`' was not**, and the
+difference is what makes one a test and the other a corrected comment: nothing else contributes an
+arc's end to an intersection, so an end dropped for being 1e-16 outside its own sweep is an
+intersection the caller never hears about. One test pins both branches and both directions —
+inside the tolerance is the end, a hundred slacks out is nothing —
+and it is `ACrossingJustPastAnArcsEndIsTheEndWhenItIsInsideTheTolerance`.
+
+**Why there are only two places to look.** DoodleSharp's `SweepAndOrientationTests` is a whole file
+about one cause: *a sweep is a start plus a signed offset, not a pair of points on a circle*, and
+folding either end into `[0, 360)` on its own throws away the direction of travel and every sweep
+that crosses zero. **Spark stores start plus signed sweep from the beginning**, so that entire bug
+family is unrepresentable here — splitting an arc across zero, parameterising a backwards-built one,
+mirroring one twice, all correct by construction and confirmed by probe. The family survives only
+where the arithmetic is genuinely needed: **asking whether some *other* angle is on the sweep.**
+Both of those places had holes.
 
 **The general form.** This was found by harvesting assertions from a **different repository** —
 DoodleSharp's `SweepAndOrientationTests`, written there because the bug had actually shipped. The

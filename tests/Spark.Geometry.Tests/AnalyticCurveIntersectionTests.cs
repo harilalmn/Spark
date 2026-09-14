@@ -159,6 +159,70 @@ public sealed class AnalyticCurveIntersectionTests
         Assert.Equal(0.0, point.ParameterB, 9);
     }
 
+    /// <summary>
+    /// <b>A crossing a hair past an arc's end, but inside the tolerance, is that end</b> — and one
+    /// outside the tolerance is nothing. The two halves are one test's worth of claim, because
+    /// either on its own is satisfiable by an implementation that answers the same way every time.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Found by mutation while closing `E2-T32`, not by the harvest.</b> The arc's sweep test in
+    /// <c>AnalyticCurveIntersection</c> admits an angle up to <c>tolerance / radius</c> past either
+    /// end and snaps it to that end; removing that slack — in either direction — left the whole
+    /// suite green. It is the second thing found that day of exactly this shape, after
+    /// <c>CircularArcs.Includes</c> ([N175](NOTES.md)), and the shape is <b>a wrapped comparison
+    /// deciding whether an angle is on a sweep</b>, which is the only place Spark's start-plus-
+    /// signed-sweep representation still has to do the arithmetic the seed library got wrong
+    /// everywhere.
+    /// </para>
+    /// <para>
+    /// <b>The slack here is load-bearing where the other one was not</b>, and that is why this is a
+    /// test and that one is a corrected comment: nothing else contributes the end of an arc to an
+    /// intersection, so an end dropped for being 1e-16 outside its own sweep is an intersection the
+    /// caller never hears about.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void ACrossingJustPastAnArcsEndIsTheEndWhenItIsInsideTheTolerance()
+    {
+        // The arc ends at 90 degrees. A radial line out through 90 degrees + delta meets the
+        // circle once, at an angle the arc does not quite reach.
+        Arc quarter = new(Plane.WorldXY, 10.0, Angle.FromDegrees(0), Angle.FromDegrees(90));
+
+        // tolerance / radius is 1e-7 radians here, so this is half a slack.
+        CurveIntersectionPoint inside = Assert.Single(Intersect(quarter, Radial(5e-8)).Points);
+
+        Assert.Equal(quarter.Domain.Max, inside.ParameterA, 9);
+        Assert.True(inside.Point.DistanceTo(new Point3d(0, 10, 0)) < 1e-5);
+
+        // A hundred times the slack is a miss, and it is what makes the assertion above about the
+        // tolerance rather than about the intersector answering yes to everything.
+        Assert.Empty(Intersect(quarter, Radial(1e-5)).Points);
+
+        // THE OTHER END, AND IT IS A SEPARATE BRANCH RATHER THAN A SYMMETRY. Past the end, the
+        // offset from the start is a shade more than the sweep; before the start it has wrapped and
+        // is a shade less than a full turn, which is a different comparison against a different
+        // bound. Removing either one left the other's test green.
+        CurveIntersectionPoint before = Assert.Single(Intersect(quarter, Radial(-5e-8 - (Math.PI / 2.0))).Points);
+
+        Assert.Equal(quarter.Domain.Min, before.ParameterA, 9);
+        Assert.True(before.Point.DistanceTo(new Point3d(10, 0, 0)) < 1e-5);
+
+        Assert.Empty(Intersect(quarter, Radial(-1e-5 - (Math.PI / 2.0))).Points);
+    }
+
+    /// <summary>A line from the centre out past the circle, at an angle from the arc's end.</summary>
+    /// <param name="past">How far past 90 degrees to aim, in radians.</param>
+    /// <returns>The line.</returns>
+    private static Line Radial(double past)
+    {
+        double angle = (Math.PI / 2.0) + past;
+
+        return new Line(
+            Point3d.Origin,
+            new Point3d(20.0 * Math.Cos(angle), 20.0 * Math.Sin(angle), 0.0));
+    }
+
     /// <summary>Two circles in one plane, overlapping, cross twice.</summary>
     [Fact]
     public void TwoCirclesInOnePlaneCrossTwice()

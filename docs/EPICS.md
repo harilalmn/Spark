@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E2-T32`: the arc-bounds harvest)
+**Last updated:** 2026-09-15 (`E2-T32` closed: the harvest, and both wrapped comparisons)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -301,8 +301,17 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       worse than its own seed grid. It found four defects in `Surface.ClosestPoint` on its first
       run ([N139](NOTES.md)). **Union volume still waits on solids**, which is the one clause of
       this criterion that is not yet met.*
-- [ ] The C2VGeometry test harvest is **timeboxed to one week with a hard stop**; anything
-      needing a `Shape` is discarded without argument (**E2-T32**). *Started 2026-09-15 and the
+- [x] The C2VGeometry test harvest is **timeboxed to one week with a hard stop**; anything
+      needing a `Shape` is discarded without argument (**E2-T32**). *Closed 2026-09-15, inside the
+      timebox, in two passes. **The yield of 979 foreign tests was one file's worth**, and it was
+      worth having: `CircularArcs.Bounds` had no test of its sweep half, so every arc could have
+      been reporting the bounding box of its whole circle with all 3,947 tests agreeing. **The
+      deeper finding is why the yield was so small**: DoodleSharp's sweep file exists because a
+      sweep was stored there as a pair of normalised absolute angles, and Spark stores start plus
+      signed sweep, so that whole bug family is unrepresentable here. It survives only where the
+      wrapped arithmetic is genuinely needed — asking whether some other angle lies on the sweep —
+      and **both of the two places that do it had holes**. [N175](NOTES.md). Started 2026-09-15 and
+      the
       first file paid for the pass: `CircularArcs.Bounds` had no test of its sweep half, so every
       arc could have been reporting the bounding box of its whole circle and all 3,947 tests would
       have agreed. 22 tests harvested, 15 of them red against that mutation. **The criterion's
