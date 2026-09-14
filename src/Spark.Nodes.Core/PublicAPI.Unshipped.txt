@@ -61,3 +61,4 @@ static Spark.Nodes.Core.PolyCurve.FromGroupedCurves(System.Collections.Generic.I
 static Spark.Nodes.Core.PolyCurve.FromThickenedCurve(Spark.Geometry.Curve! curve, double thickness, Spark.Geometry.Vector3d planeNormal, double tolerance = 1E-06) -> Spark.Geometry.PolyCurve!
 static Spark.Nodes.Core.PolyCurve.FromThickenedCurveAlong(Spark.Geometry.Curve! curve, double thickness, Spark.Geometry.Vector3d direction, double tolerance = 1E-06) -> Spark.Geometry.PolyCurve!
 static Spark.Nodes.Core.Curve.FilletTangentTo(Spark.Geometry.Curve! first, Spark.Geometry.Curve! second, Spark.Geometry.Curve! tangentTo, Spark.Geometry.Vector3d normal = default(Spark.Geometry.Vector3d)) -> Spark.Geometry.Arc!
+static Spark.Nodes.Core.NurbsCurve.InterpolatePointsPeriodic(System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>! points, int degree = 3) -> Spark.Geometry.NurbsCurve!

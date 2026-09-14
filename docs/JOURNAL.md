@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: a curve through a ring of points)
+**Last updated:** 2026-09-14 (`E2-T72`: a curve through a ring of points, and the row worked out)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T72`'s last unblocked row — `NurbsCurve.ByPoints(points, periodic)`, a curve through a **ring** of points.** **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **Reading the members first corrected the plan twice, before any code.** **(1) There is no cyclic-solver problem to solve.** My previous *Next action* said a banded solver drops the wrap's corner entries and proposed Sherman–Morrison to get round it. `SolveInPlace` is **dense**, with partial pivoting, and its own remarks say so and say why — *a band solver would be O(n·p²) against this O(n³), which matters at a thousand points and does not at the tens a person draws*. A cyclic matrix goes through it unchanged. The word *banded* in `InterpolatePoints` describes the **matrix**, not the solver. **(2) The branch is not smoothness at the seam.** Smoothness is **free**: `FromPeriodicControlPoints` wraps the ring and uses a uniform knot vector, so the seam is an ordinary interior span and *any* ring of control points gives a smooth curve there. What the cyclic solve buys is that the curve passes **through the points** — including the two either side of the seam, which are the ones a mangled wrap misses. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`CurveOffset.FilletTangentTo` — a fillet whose radius a third curve decides, and the row predicted it exactly: *the same solve with one more row*.** The radius joins the centre's two in-plane coordinates as an unknown, and the extra Jacobian column is the same `−1` in every row — which is what makes the system solvable rather than over-determined. **The seed is the decision**, because three curves have several circles tangent to all of them: the **centroid of the pairwise crossings** puts it inside, so a triangle gives its **incircle**. **The anchor is a 3-4-5 triangle**, inradius `6 / 6 = 1` exactly. Residue **unchanged at 343**. 8 tests, **3765 → 3773**. **Before it:** the thickening pair. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3773** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. **The app was launched for the client at the end of the round** and ran as PID 20348. |
-| **Next action** | **Write `NurbsCurve.InterpolatePointsPeriodic(points, degree = 3)`.** **It is `InterpolatePoints` with the columns taken modulo the ring.** Build the same `N · P = Q`, but evaluate the basis over the **wrapped** knot vector `FromPeriodicControlPoints` uses, and fold each wrapped column back to its ring index with `column % n`, **accumulating** rather than assigning — because the wrapped copies of the first `degree` control points are the same unknowns as the originals, and two columns landing on one unknown is the wrap itself expressed in the matrix. Solve dense, then hand the ring to `FromPeriodicControlPoints` so there is **one** periodic construction in the kernel. **The parameters are uniform, and that is a trade-off to write down rather than hide.** `FromPeriodicControlPoints` uses a **uniform** knot vector, so the parameters that match it are the integers `degree … degree + n − 1`. Chord-length parameters over uniform knots are what makes such a system ill-conditioned. **The points are still interpolated exactly** — that is what the solve guarantees — but the shape *between* them is uniform-parameterised, so very unevenly spaced points bulge. Same distinction as the surface grid step: averaging affects the shape between points, not the interpolation property. |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the wrap in the matrix**, asserted as *every point is interpolated exactly*, the two either side of the seam included. Folding the columns wrongly — clamping instead of taking the modulus — must turn that red. **Smoothness at the seam is asserted and is explicitly *not* the branch**, because it comes free from the wrapped control points; the test says so, so that a later reader does not mistake it for proof of the solve. **The contrast test is the one that says why the member exists**: `InterpolatePoints` through the same ring with the first point repeated gives a curve with a **corner** at the seam, and this one does not — same points, two answers, and the difference is the whole row. **Points on a circle** are the anchor, sampled against a known radius. The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Thirty-seven steps landed across 2026-09-13 and 2026-09-14. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **`E2-T66` is closed and `E2-T72` is down to three rows, none of them buildable today** — two wait on flags no signature explains (§6.3) and one on a capability that does not exist, trimming a self-intersecting offset. **`E2-T68` and `E2-T69` are each part done.** `E2-T67` is skipped with its reason — the shim cannot be rebuilt without the OpenCascade install `E13-T21` waits on. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`NurbsCurve.InterpolatePointsPeriodic` — a curve through a *ring* of points, and it is `InterpolatePoints` with the columns taken modulo the ring.** The wrapped copies of the first `degree` control points are **the same unknowns** as the originals, so two columns land on one unknown and are **accumulated** — that accumulation is the periodicity written down as arithmetic. Clamping instead of folding reddens **ten of fourteen**. **Two corrections came out of reading before planning.** The row proposed working round a banded solver; `SolveInPlace` is **dense** and says so, so there was nothing to work round and no Sherman–Morrison needed. And **smoothness at the seam is not what the solve buys** — it comes free from the wrapped control points, proved by the smoothness test staying **green** under a deliberately broken solve. Residue **unchanged at 343**. 14 tests, **3773 → 3787**. **Before it:** `CurveOffset.FilletTangentTo`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3787** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
+| **Next action** | **Close `E2-T72` in `docs/TASKS.md` and pick the next row from `docs/TODO.md`.** **`E2-T72` has three rows left and none can be built today**, which is a different thing from unfinished: `PolyCurve.ByGroupedCurves`'s four-argument overload and `PolyCurve.Offset(double, bool)` both wait on flags no signature explains (§6.3), and `OffsetMany` waits on **trimming a self-intersecting offset** — a capability `CurveOffset.Offset`'s own remarks say is not built, and which needs self-intersection for a *general* curve where Spark today has it only for `PolyLine`. **Write that state into the task row** so the next session does not reopen it looking for work. **Then take the top of the queue.** `E2-T68`'s remainder — `Repair`, `MakeWatertight`, `Remesh`, `Reduce` — and `E2-T69`'s `Nearest` and `Project` are the two part-done rows; `E2-T69` needs a spatial index over faces, which is the larger and more reusable piece. |
+| **Verify with** | **For the task-row close, the documents**: `E2-T72`'s row has to name the three remaining members and the reason each waits, the docs harness has to stay green with the totals agreeing, and the residue budget **exact** at 343. **For whatever is taken next**, a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7), and the three gates. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -14803,3 +14803,67 @@ the trimming that `CurveOffset.Offset` says it does not do.
 **Residue unchanged at 343.**
 
 **Cost.** One session. One member, eight tests, one node, two mutations.
+
+### 2026-09-14 — A curve through a ring of points, and the row worked out
+
+**What.** `NurbsCurve.InterpolatePointsPeriodic`. Fourteen tests, a node, the row to `Done`,
+and the register at **448 of 545**.
+
+**The member is `InterpolatePoints` with the columns taken modulo the ring, and that one change
+is the whole of it.** Both solve `N · P = Q` for the control points that put the curve on the
+given points. The clamped matrix is banded; this one **wraps**, because the wrapped copies of
+the first `degree` control points are *the same unknowns* as the originals — so two columns
+land on one unknown and are **accumulated** rather than assigned. That accumulation is the
+periodicity, written down as arithmetic. Clamping the columns instead of folding them reddens
+ten of the fourteen tests.
+
+**Reading the members before planning round them saved the entire plan.** The write-ahead I
+inherited said a banded solver drops the wrap's corner entries, and proposed Sherman–Morrison
+— a banded solve run twice with a rank-one correction — to get round it. `SolveInPlace` is
+**dense**, with partial pivoting, and its own remarks say so *and say why*: a band solver would
+be O(n·p²) against this O(n³), *which matters at a thousand points and does not at the tens a
+person draws*. The word *banded* in `InterpolatePoints` describes the **matrix**. A cyclic
+matrix goes through a dense solver unchanged, and the correction was a solution to a problem
+this codebase does not have.
+
+**The second correction is about what a test proves, and it was settled by the mutation rather
+than by argument.** I had named *smoothness at the seam* as the branch. It is not: smoothness
+comes **free**, because `FromPeriodicControlPoints` wraps the ring over a uniform knot vector
+and the seam is then an ordinary interior span — *any* ring of control points is smooth there,
+including a wrong one. Under the deliberately broken solve, `TheSeamIsSmoothAndThatComesFree`
+stayed **green** while ten other tests went red. So the test is kept, and its name and its doc
+comment both say it is not the branch, so that a later reader cannot mistake it for proof that
+the solve is right.
+
+**What the solve actually buys is that the curve passes through the points** — the two either
+side of the seam included, which are exactly the ones a wrong wrap misses while everything
+else still looks perfectly reasonable.
+
+**The parameters are uniform, and that is a trade written into the remarks rather than hidden.**
+`InterpolatePoints` uses chord-length parameters with knots averaged from them; a periodic
+curve here is evaluated over a *uniform* knot vector, and chord-length parameters over uniform
+knots are what make such a system ill-conditioned. So the points are interpolated **exactly** —
+the solve guarantees that — while the shape *between* them is uniformly parameterised, and a
+ring whose points are very unevenly spaced will bulge between the far-apart ones. It is the
+same distinction the surface grid step recorded: the parameterisation affects the shape between
+points, not the interpolation property.
+
+**Two things about the tests are worth keeping.** The **contrast** test is the one that says
+why the member exists: `InterpolatePoints` through the same ring with its first point repeated
+gives a curve that closes and has a **corner** where it closes. Same points, two answers, and
+the difference is the whole row. And the circle anchor asserts that the deviation falls like
+the **fourth power** of the spacing, which is what a cubic interpolant promises — a far better
+claim than any single tolerance. My first two tolerances were invented and both failed; the
+measured ratio was about eighteen for a doubling, which *is* fourth order, so the order became
+the assertion and the two absolute ceilings stayed as order-of-magnitude guards that say in
+their own remarks that they are measured rather than derived.
+
+**`E2-T72` is now three rows from closed and none of the three is buildable today**, which is a
+different thing from unfinished. Two wait on flags no signature explains; one waits on trimming
+a self-intersecting offset, which `CurveOffset.Offset` says in its own remarks that it does not
+do.
+
+**Residue unchanged at 343.**
+
+**Cost.** One session. One member, fourteen tests, one node, one mutation that corrected a
+claim.

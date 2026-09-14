@@ -995,6 +995,116 @@ public sealed class NurbsCurve : Curve
     }
 
     /// <summary>
+    /// The periodic curve of a given degree that passes exactly through a <b>ring</b> of points and
+    /// closes smoothly (`E2-T72`).
+    /// </summary>
+    /// <param name="points">
+    /// The ring, given <b>once</b>: the wrap is this method's job, and a caller who repeats the
+    /// first point at the end asks for a curve through the same point twice.
+    /// </param>
+    /// <param name="degree">The degree. At least 1, and less than the number of points.</param>
+    /// <returns>The curve, passing through every point.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="points"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="degree"/> is less than 1, or not less than the number of points.
+    /// </exception>
+    /// <exception cref="ArgumentException">There are fewer than three points.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>This is <see cref="InterpolatePoints"/> with the columns taken modulo the ring, and that
+    /// one change is the whole of it.</b> Both solve <c>N · P = Q</c> for the control points that
+    /// put the curve on the given points. The clamped version's matrix is banded; this one's
+    /// <b>wraps</b>, because the wrapped copies of the first <paramref name="degree"/> control
+    /// points are <i>the same unknowns</i> as the originals — so two columns land on one unknown
+    /// and are <b>accumulated</b>. That accumulation is the periodicity, written down as arithmetic.
+    /// </para>
+    /// <para>
+    /// <b>The smoothness at the seam is not what the solve buys, and it is worth being clear about
+    /// which half does what.</b> <see cref="FromPeriodicControlPoints"/> wraps the ring over a
+    /// uniform knot vector, so the seam is an ordinary interior span and <i>any</i> ring of control
+    /// points gives a curve that is smooth there. What this member adds is that the curve passes
+    /// <b>through the points</b> — the two either side of the seam included, which are the ones a
+    /// wrong wrap misses while everything else still looks right.
+    /// </para>
+    /// <para>
+    /// <b>The parameters are uniform, which is a trade rather than an oversight.</b>
+    /// <see cref="InterpolatePoints"/> uses chord-length parameters and knots averaged from them;
+    /// a periodic curve here is evaluated over a <i>uniform</i> knot vector, and chord-length
+    /// parameters over uniform knots are what makes such a system ill-conditioned. So the points
+    /// are interpolated <b>exactly</b> — that is what the solve guarantees — while the shape
+    /// <i>between</i> them is uniformly parameterised, and a ring whose points are very unevenly
+    /// spaced will bulge between the far-apart ones.
+    /// </para>
+    /// <para>
+    /// <b>Use <see cref="InterpolatePoints"/> for an open sequence.</b> Given a ring with its first
+    /// point repeated at the end, that member returns a curve that closes and has a <b>corner</b>
+    /// where it closes — which is the difference this member exists for.
+    /// </para>
+    /// </remarks>
+    public static NurbsCurve InterpolatePointsPeriodic(IReadOnlyList<Point3d> points, int degree = 3)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+        ArgumentOutOfRangeException.ThrowIfLessThan(degree, 1);
+
+        int n = points.Count;
+
+        if (n < 3)
+        {
+            throw new ArgumentException(
+                "A ring needs at least three points to be a ring.", nameof(points));
+        }
+
+        if (degree >= n)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(degree),
+                degree,
+                $"A periodic degree-{degree} curve needs more than {degree} points in its ring and "
+                + $"was given {n}. Lower the degree, or supply more points.");
+        }
+
+        // The knot vector the wrapped curve will actually be evaluated over, built here so that the
+        // basis values in the matrix are the ones the finished curve uses. Its domain spans exactly
+        // n knots, one per point, so the parameters are the integers at its span boundaries.
+        KnotVector knots = KnotVector.CreateUniform(degree, n + degree);
+
+        double[,] matrix = new double[n, n];
+
+        for (int i = 0; i < n; i++)
+        {
+            double parameter = degree + i;
+            int span = knots.FindSpan(parameter);
+            double[] basis = knots.BasisFunctions(span, parameter);
+
+            for (int j = 0; j <= degree; j++)
+            {
+                // THE WRAP. A column past the end of the ring is a wrapped copy of one of its first
+                // control points, which is the SAME unknown - so it is added to that unknown's
+                // column rather than written to a column of its own.
+                matrix[i, (span - degree + j) % n] += basis[j];
+            }
+        }
+
+        double[,] rightHand = new double[n, 3];
+        for (int i = 0; i < n; i++)
+        {
+            rightHand[i, 0] = points[i].X;
+            rightHand[i, 1] = points[i].Y;
+            rightHand[i, 2] = points[i].Z;
+        }
+
+        double[,] solved = SolveInPlace(matrix, rightHand);
+
+        Point3d[] ring = new Point3d[n];
+        for (int i = 0; i < n; i++)
+        {
+            ring[i] = new Point3d(solved[i, 0], solved[i, 1], solved[i, 2]);
+        }
+
+        return FromPeriodicControlPoints(ring, degree);
+    }
+
+    /// <summary>
     /// The curve of a given degree that passes exactly through a sequence of points, leaves the
     /// first in a prescribed direction and arrives at the last in another.
     /// </summary>

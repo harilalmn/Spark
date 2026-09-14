@@ -4,7 +4,7 @@ The register behind the client's instruction: *"Make sure we have all geometry e
 methods and properties what is there in Dynamo."* It exists to turn that sentence into
 something checkable.
 
-**Last updated:** 2026-09-14 (`E2-T72`: an arc whose radius a third curve decides; 447 of 545)
+**Last updated:** 2026-09-14 (`E2-T72`: a curve through a ring of points; 448 of 545)
 **Reference surface:** `ProtoGeometry.dll` as installed with Revit 2026
 **Status legend:** `Done` · `Planned` · `Not planned` · `Needs a decision`
 
@@ -52,13 +52,13 @@ or from this repository; none is an estimate.
 | | Types | Members | Share of 837 |
 |---|---:|---:|---:|
 | ProtoGeometry public surface | 51 | 837 | 100% |
-| **Reachable in Spark today** | **35** | **447** | **53.4%** |
+| **Reachable in Spark today** | **35** | **448** | **53.5%** |
 | Deliberately not replicated (§5) | 7 + parts of 4 | 123 | 14.7% |
 | Awaiting a decision — T-Splines (§6.2) | 8 | 169 | 20.2% |
-| **Committed and still to build** | — | **98** | **11.7%** |
+| **Committed and still to build** | — | **97** | **11.6%** |
 
 Against the scope we have actually committed to — 837 less the 123 we refuse and the 169 that
-need their own decision, so **545 members** — Spark stands at **447 of 545, or 82.0%**. **Thirteen
+need their own decision, so **545 members** — Spark stands at **448 of 545, or 82.2%**. **Thirteen
 ProtoGeometry types are answered in full**: `Plane`, `UV`, `Ellipse`, `EllipseArc`, `Rectangle`,
 `IndexGroup`, `Topology`, `Vertex`, `Edge`, `Loop` and, all on 2026-09-13, **`Helix`** (`E2-T73`),
 **`Line`** and **`Circle`** (`E2-T72`) — the first three this register asked for and then watched

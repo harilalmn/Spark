@@ -35,6 +35,22 @@ public static class NurbsCurve
     public static Spark.Geometry.NurbsCurve InterpolatePoints(IReadOnlyList<Point3d> points, int degree = 3) =>
         Spark.Geometry.NurbsCurve.InterpolatePoints(points, degree);
 
+    /// <summary>The closed curve through a ring of points, smooth where it closes.</summary>
+    /// <param name="points">The ring, given once. Do not repeat the first point at the end.</param>
+    /// <param name="degree">The degree. At least 1, and less than the number of points.</param>
+    /// <returns>The periodic curve, passing through every point.</returns>
+    /// <remarks>
+    /// <b>Use this rather than closing an open interpolation.</b> Feeding the same ring to
+    /// <c>InterpolatePoints</c> with its first point repeated gives a curve that closes and has a
+    /// <i>corner</i> where it closes; this one has none. The points are interpolated exactly, while
+    /// the shape between them is uniformly parameterised — so a ring whose points are very unevenly
+    /// spaced will bulge between the far-apart ones.
+    /// </remarks>
+    [return: NodePort("curve")]
+    public static Spark.Geometry.NurbsCurve InterpolatePointsPeriodic(
+        IReadOnlyList<Point3d> points, int degree = 3) =>
+        Spark.Geometry.NurbsCurve.InterpolatePointsPeriodic(points, degree);
+
     /// <summary>
     /// Makes a smooth curve through every point in a list that sets off in one direction and
     /// arrives in another.
