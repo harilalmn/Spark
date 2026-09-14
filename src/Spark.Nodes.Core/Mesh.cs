@@ -165,4 +165,18 @@ public static class Mesh
     [SparkNodeAlias("Mesh.Nearest")]
     public static Point3d ClosestPoint(Spark.Geometry.Mesh mesh, Point3d point) =>
         mesh.ClosestPoint(point);
+
+    /// <summary>Where a ray from a point in a direction first meets the mesh.</summary>
+    /// <param name="mesh">The mesh.</param>
+    /// <param name="point">Where the ray starts.</param>
+    /// <param name="direction">Which way it travels.</param>
+    /// <returns>The nearest hit in front of the start, or nothing when the ray misses.</returns>
+    /// <remarks>
+    /// <b>Forwards only, and a miss is a miss.</b> A face behind the start is not a hit - cast
+    /// twice to search both ways - and a ray that hits nothing returns nothing rather than a
+    /// plausible-looking point the caller would have to know to distrust.
+    /// </remarks>
+    [return: NodePort("point")]
+    public static Point3d? Project(Spark.Geometry.Mesh mesh, Point3d point, Vector3d direction) =>
+        mesh.Project(point, direction);
 }

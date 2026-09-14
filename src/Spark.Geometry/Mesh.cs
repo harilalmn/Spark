@@ -540,6 +540,159 @@ public sealed class Mesh
         return best;
     }
 
+    /// <summary>
+    /// Where a ray from a point in a direction first meets the mesh (`E2-T69`).
+    /// </summary>
+    /// <param name="point">Where the ray starts.</param>
+    /// <param name="direction">Which way it travels. Need not be unit length.</param>
+    /// <returns>
+    /// The nearest hit in front of the start, or <see langword="null"/> when the ray misses.
+    /// </returns>
+    /// <exception cref="ArgumentException"><paramref name="direction"/> has no length.</exception>
+    /// <exception cref="InvalidOperationException">The mesh has no faces to hit.</exception>
+    /// <remarks>
+    /// <para>
+    /// <b>The return type is <see cref="Point3d"/>? because a miss has no point, and saying so is
+    /// the only honest option.</b> Returning the query point, or the nearest point on the mesh, or
+    /// a sentinel far away, are each a wrong answer wearing the shape of a right one — a caller who
+    /// forgets to check gets geometry rather than an error, and it looks plausible. This is the
+    /// shape <see cref="Curve.PlaneOf(in Tolerance)"/> already uses for a question whose honest
+    /// answer is sometimes <i>there isn't one</i>.
+    /// </para>
+    /// <para>
+    /// <b>Behind the start is not a hit.</b> Projecting <i>along</i> a direction means forwards, so
+    /// a negative ray parameter is rejected — and a caller who wants the line rather than the ray
+    /// casts twice, once each way. The distinction matters most where it is least visible: a ray
+    /// fired at a closed mesh from outside meets it twice, and taking the smaller <i>magnitude</i>
+    /// rather than the smallest non-negative value lands on the far side or behind the caller, both
+    /// of which are perfectly good-looking surface points.
+    /// </para>
+    /// <para>
+    /// <b>There is one guard for that and not two.</b> The rejection happens where the hit is
+    /// found, so every parameter reaching the comparison is already non-negative and the nearest is
+    /// simply the smallest — writing that comparison over magnitudes instead would change nothing,
+    /// which was checked by mutating it and watching every test stay green. The alternatives
+    /// described above are what happens when the rejection is <i>absent</i>, not a second decision
+    /// taken elsewhere.
+    /// </para>
+    /// <para>
+    /// <b>A ray parallel to a triangle's plane is not a hit, even when it lies in that plane.</b> A
+    /// grazing pass has no single meeting point, and returning one of infinitely many would be a
+    /// coin flip the caller cannot see. The determinant of the Möller–Trumbore system is what
+    /// detects it, and it is compared against zero rather than against a tolerance: an
+    /// <i>almost</i> parallel ray does have a single answer, far away and correct, and rejecting it
+    /// would be refusing a question that has one.
+    /// </para>
+    /// <para>
+    /// <b>That check is for clarity rather than for correctness, and saying so is more useful than
+    /// implying otherwise.</b> Removing it leaves every test green: a zero determinant makes the
+    /// barycentric coordinates infinite or NaN, and both fail the range tests that follow, so the
+    /// graze is already reported as a miss by IEEE arithmetic alone. It is kept because a reader
+    /// should not have to reason about NaN comparisons to see why a parallel ray misses.
+    /// </para>
+    /// <para>
+    /// <b>Möller–Trumbore, which is the ray-triangle test written as one 3×3 solve</b>: the two
+    /// barycentric coordinates and the ray parameter come out together, and the triangle is missed
+    /// when either coordinate leaves [0, 1] or their sum exceeds one. No plane equation is formed
+    /// and no intersection point is computed for a triangle that is not hit.
+    /// </para>
+    /// <para>
+    /// <b>Every face is visited, as in <see cref="ClosestPoint"/>, and the same note applies</b>: a
+    /// bounding-volume hierarchy is the answer above a size that is measurable, and this is what
+    /// the replacement will have to agree with.
+    /// </para>
+    /// </remarks>
+    public Point3d? Project(in Point3d point, in Vector3d direction)
+    {
+        if (!direction.TryNormalise(out Vector3d along))
+        {
+            throw new ArgumentException(
+                "A projection needs a direction with some length.", nameof(direction));
+        }
+
+        if (_faces.Length == 0)
+        {
+            throw new InvalidOperationException("A mesh with no faces has nothing for a ray to hit.");
+        }
+
+        double nearest = double.MaxValue;
+        bool hit = false;
+
+        foreach (MeshFace face in _faces)
+        {
+            for (int corner = 2; corner < face.Count; corner++)
+            {
+                if (TryHitTriangle(
+                        point,
+                        along,
+                        _vertices[face[0]],
+                        _vertices[face[corner - 1]],
+                        _vertices[face[corner]],
+                        out double travelled)
+                    && travelled < nearest)
+                {
+                    nearest = travelled;
+                    hit = true;
+                }
+            }
+        }
+
+        return hit ? point + (along * nearest) : null;
+    }
+
+    /// <summary>Möller–Trumbore: where a ray meets a triangle, if it does.</summary>
+    /// <param name="from">Where the ray starts.</param>
+    /// <param name="along">Which way it travels. Unit length.</param>
+    /// <param name="a">The triangle's first corner.</param>
+    /// <param name="b">Its second.</param>
+    /// <param name="c">Its third.</param>
+    /// <param name="travelled">How far along the ray the hit is.</param>
+    /// <returns><see langword="false"/> when the ray misses, grazes, or hits behind its start.</returns>
+    private static bool TryHitTriangle(
+        in Point3d from,
+        in Vector3d along,
+        in Point3d a,
+        in Point3d b,
+        in Point3d c,
+        out double travelled)
+    {
+        travelled = 0.0;
+
+        Vector3d ab = b - a;
+        Vector3d ac = c - a;
+        Vector3d across = along.Cross(ac);
+        double determinant = ab.Dot(across);
+
+        if (determinant == 0.0 || !double.IsFinite(determinant))
+        {
+            // Parallel to the triangle's plane, the case of lying in it included.
+            return false;
+        }
+
+        double inverse = 1.0 / determinant;
+        Vector3d toStart = from - a;
+        double u = toStart.Dot(across) * inverse;
+
+        if (u < 0.0 || u > 1.0)
+        {
+            return false;
+        }
+
+        Vector3d other = toStart.Cross(ab);
+        double v = along.Dot(other) * inverse;
+
+        if (v < 0.0 || u + v > 1.0)
+        {
+            return false;
+        }
+
+        travelled = ac.Dot(other) * inverse;
+
+        // BEHIND THE START IS NOT A HIT. Projecting along a direction means forwards, and the
+        // smallest NON-NEGATIVE parameter is the answer rather than the smallest magnitude.
+        return travelled >= 0.0;
+    }
+
     /// <summary>The point on a triangle nearest a given point.</summary>
     /// <param name="point">The point to measure from.</param>
     /// <param name="a">The triangle's first corner.</param>

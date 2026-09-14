@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: a ray cast at a mesh)
+**Last updated:** 2026-09-14 (`E2-T69` closed: a ray cast at a mesh, and two non-branches)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T69`'s last row — `Mesh.Project(Point, Vector)`, a ray cast at a mesh, which closes the task.** **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **It reuses the loop shape `ClosestPoint` just established** — walk the faces, fan each quad into triangles, keep the best — with ray-triangle in place of closest-point. **The return type is the decision made before writing**: a miss has no point, and a `Point3d` cannot be absent, so the member returns **`Point3d?`**. That is the shape `Curve.PlaneOf` already uses for the same reason — a question whose honest answer is sometimes *there isn't one* — and it beats returning the query point, or the nearest point, or a sentinel, each of which is a wrong answer that looks like a right one. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`Mesh.ClosestPoint` — the nearest point on a mesh, which Spark could not answer anywhere.** **The row's assessment held exactly**: the viewport's picker is a **renderer** and the duplicate-pruning k-d tree answers point-to-**point** where this is point-to-**surface**. **The work is the closest point on a *triangle*, and it is not a projection onto its plane** — a triangle divides space into **seven** Voronoi regions, and the four that are not the face are both where a naive implementation is wrong and the **common** case, because a point outside a mesh is usually nearest an edge or a corner. **The mutation made that case precisely**: removing every region test reddens eight tests while the face-interior test stays **green**, so that test is kept with its comment saying it is not the branch. Every expected answer is hand-computed from a right triangle. Residue **unchanged at 343**. 16 tests, **3787 → 3803**. **Before it:** `E2-T72` closed. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3803** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
-| **Next action** | **`E2-T69`'s last row — `Mesh.Project(Point, Vector)`, a ray cast at the same faces.** **It is the other half of the step just finished and reuses its loop shape**: walk the faces, fan each quad into triangles, and keep the best hit — but the test is **ray-triangle** rather than closest-point, which is Möller–Trumbore: solve for the barycentric coordinates and the ray parameter in one 3×3 system, rejecting a hit whose coordinates fall outside the triangle. **The decisions are what counts as a hit**, and they have to be made rather than inherited. **Behind the point is not a hit** — a projection along a direction means *forwards* — so a negative ray parameter is rejected, and a caller who wants both directions casts twice. **A ray parallel to a triangle's plane is not a hit** even when it lies *in* that plane, because a grazing hit has no single point and returning one of infinitely many would be a coin flip. **Nearest hit wins**, and that is what makes the member useful on a closed mesh: projecting onto a sphere from outside should land on the near side. **And what to return when nothing is hit** is the real question: a `Point3d` cannot be absent, so the member returns `Point3d?` or a `bool`-and-`out` pair. **Decide and say why.** |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the rejection of hits behind the start**. A ray fired at a sphere from outside hits it twice; an implementation that ignores the sign of the ray parameter, or takes the smallest |t| rather than the smallest non-negative t, lands on the **far** side when the start is inside and behind the caller when it is outside — and both look like perfectly good surface points. So the fixture puts the target **behind** the start and asserts a miss, and puts the start **inside** a closed mesh and asserts the hit is the one in front. **A ray through a triangle's interior** is the hand-computed anchor. **A miss reports a miss** rather than a nearby point, with its own test. The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Thirty-nine steps landed across 2026-09-13 and 2026-09-14. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **`E2-T66` and `E2-T69` are closed; `E2-T72` is `Blocked` with its three remainders named.** **`E2-T68` is the last part-done one**, with `Repair`, `MakeWatertight`, `Remesh` and `Reduce` left. `E2-T67` is skipped with its reason — the shim cannot be rebuilt without the OpenCascade install `E13-T21` waits on. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`Mesh.Project` — a ray cast at a mesh, and `E2-T69` is closed.** It reuses `ClosestPoint`'s loop with **Möller–Trumbore** in place of the region test. **The return type is `Point3d?` and it was decided before writing**: a miss has no point, and the query point, the nearest point or a sentinel are each a wrong answer wearing the shape of a right one. **The branch is the rejection of hits behind the start**, which bites hardest where it is least visible — on a closed mesh a ray meets twice, so the fixtures start **inside** a sphere. **Two things my write-ahead called decisions turned out not to be branches**, both proved by mutations that stayed green: the non-negative rule is **one** guard and not two, and the explicit parallel-ray check is for **clarity rather than correctness**. Both are now written into the remarks as such. Residue **unchanged at 343**. 17 tests, **3803 → 3820**. **Before it:** `Mesh.ClosestPoint`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3820** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T68`'s four remaining members — `Repair`, `MakeWatertight`, `Remesh`, `Reduce` — and the first thing to do is decide which of them Spark should actually have.** **Read the rows before writing any of it**, because the assessment already warns that they are not four members of one size. `Repair` and `MakeWatertight` are **mesh hygiene** and are tractable: degenerate faces, unused vertices, duplicate faces, and holes small enough to close by fanning a boundary loop — all of it expressible over `MeshTopology`, which already reports `IsClosed` and can walk boundary edges. **`Remesh` is not**: the row says Dynamo's goes through a **voxel field**, *a different and larger thing*, and a member that claims the name while doing something smaller would be the kind of near-match this register exists to refuse. **`Reduce` is a third thing again** — quadric edge collapse, which is a real algorithm and a project of its own. **So the likely shape is: build the hygiene pair, and give `Remesh` and `Reduce` written reasons** rather than half-versions. Decide that against the rows rather than against this sentence, and if the decision goes the other way, say why in the row. |
+| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7). For `Repair` the branch is that **removing a degenerate face must not orphan the vertices it used** — a repair that leaves dangling vertices has made the mesh worse in a way nothing visible reports — so the assertion is on the vertex count and on every face still indexing a vertex that exists. For `MakeWatertight` the branch is the **boundary walk**: a mesh with two separate holes must come back with both closed, and an implementation that finds one loop and stops passes every test on a mesh with one hole. **`MeshTopology.IsClosed` is the oracle** and it already exists. **A mesh that is already clean comes back unchanged**, which is what stops a repair from being a rebuild. The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -14926,3 +14926,60 @@ and already means this.
 **Residue unchanged at 343.**
 
 **Cost.** One session. One member, sixteen tests, one node, one mutation.
+
+### 2026-09-14 — A ray cast at a mesh, and two things that were not branches
+
+**What.** `Mesh.Project`, which closes `E2-T69`. Seventeen tests, a node, the row to `Done`,
+and the register at **450 of 545**.
+
+**It is the same loop as `ClosestPoint` with a different test inside it**, which is what made
+it a short step: walk the faces, fan each quad into triangles, keep the best. Möller–Trumbore
+replaces the seven-region search — the two barycentric coordinates and the ray parameter come
+out of one 3×3 solve, and no plane equation is formed for a triangle that is not hit.
+
+**The return type was the decision, and it was made before writing.** A miss has no point. A
+`Point3d` cannot be absent, so the member returns `Point3d?` — and the alternatives are worse
+than they look: returning the query point, or the nearest point on the mesh, or a sentinel far
+away, each hands a caller who forgets to check **geometry** rather than an error, and the
+geometry looks plausible. It is the shape `Curve.PlaneOf` already uses for a question whose
+honest answer is sometimes *there isn't one*.
+
+**The branch is the rejection of hits behind the start, and it bites where it is least
+visible.** Projecting *along* a direction means forwards. On a single triangle the rule looks
+obvious; on a **closed** mesh a ray meets the surface twice, and an implementation without the
+rule lands on the far side or behind the caller — both perfectly good-looking surface points.
+So one fixture starts at the centre of a sphere and asserts the hit is in front of it, and
+another aims away from a triangle and asserts a miss. Removing the rejection reddens exactly
+those two.
+
+**And then two things I had called decisions turned out not to be branches at all.** Both were
+settled by mutations that stayed **green**, which is the only way to find this out.
+
+**One guard, not two.** The write-ahead said the nearest hit must be the smallest *non-negative*
+parameter rather than the smallest *magnitude*, as though those were two places to get it
+right. They are not: the rejection happens where the hit is found, so every parameter reaching
+the comparison is already non-negative and the two phrasings are identical. Mutating the
+comparison to use magnitudes changed nothing. The remark now says there is one guard, and that
+the alternatives described are what happens when it is **absent** rather than a second decision
+taken elsewhere.
+
+**The parallel-ray check is for clarity, not correctness.** Removing it also left every test
+green — because a zero determinant makes the barycentric coordinates infinite or NaN, and both
+fail the range tests that follow, so IEEE arithmetic already reports the graze as a miss. The
+check is kept, because a reader should not have to reason about NaN comparisons to see why a
+parallel ray misses; but the remark now says that is why it is there, rather than implying it
+is what makes the behaviour correct.
+
+**Both corrections are the same lesson in different clothes.** A write-ahead is a plan, and a
+plan describes what the author expects to matter. The mutation is what says whether it did.
+Three times in this run a claim in a write-ahead has survived into the code as a remark that
+was subtly untrue, and each time the thing that caught it was AGENTS.md step 7 rather than
+rereading.
+
+**`E2-T69` is closed**: four mesh primitives, four mesh queries, and now the two that needed
+real geometry rather than bookkeeping.
+
+**Residue unchanged at 343.**
+
+**Cost.** One session. One member, seventeen tests, one node, three mutations — one that
+proved the branch and two that proved there was no branch.
