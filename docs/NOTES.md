@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-14 (N172: a limit is not a census)
+**Last updated:** 2026-09-14 (N132 contained two of the bytes it is about, and the scan is a check now)
 
 ---
 
@@ -3960,7 +3960,38 @@ just a container. The same two directives are a conflict at one level and an ove
 
 ## N132 — A NUL byte in a source file compiles, and greps as binary
 
-`ScriptDeclarations.cs` carried a literal `U+0000` inside a `char` literal — `all.Append(' ')`
+> **This note contained two of them, from the day it was written until 2026-09-14, and one of the
+> two was inside the scan it prescribes.** So the remedy handed to the next reader was itself
+> corrupted, and `docs/NOTES.md` was a file `grep` would not search — which is exactly the symptom
+> in this note's own title.
+>
+> **It cost something real before it was found.** A census of this file came back with **111
+> entries** when it has **172**: `grep` classified it as binary, stopped reporting, and returned a
+> number that looked like a number. It arrived as a *correction* of a figure that was already right,
+> which is the most persuasive form a wrong answer can take, and it was one command away from being
+> written into the journal. See [N172](#n172--a-limit-is-not-a-census-and-the-truncated-query-confirms-you).
+>
+> **Three more were in the tree and none was the one this note is about.** `C:\dev\vcpkg` had lost
+> its `\v` to a vertical tab in `docs/JOURNAL.md` twice and `docs/TASKS.md` once, and
+> `WorkspaceLayoutTests` had `@"C:\feed"` with its `\f` eaten into a form feed — **twice, on both
+> sides of the same assertion**, so the test compared the corrupted value to itself and could never
+> have failed. A fifth, in `CodeFormatPreferenceTests`, is deliberate: the test writes a NUL to
+> prove an unreadable preference falls back to *on*. That one belongs in the **runtime string**
+> rather than in the **source bytes**, and is now `"\0not a word at all"` — the same byte at run
+> time, in a file tools can read.
+>
+> **The scan is no longer a command somebody remembers.** `ControlCharacterChecks` in
+> `Spark.Docs.Verify` walks every text file in the repository on every run, allowing only tab,
+> newline and carriage return, and reports the path, the offset and the byte. `licences/` is
+> skipped: `LGPL-2.1.txt`'s fifteen form feeds are the FSF's own page separators, and editing a
+> byte of somebody else's licence to satisfy a checker of ours would be the wrong way round.
+>
+> **And the ad-hoc scan run first had an off-by-one that hid two of the five.** It tested
+> `c < 9 or (13 < c < 32)`, which skips 11 and 12 — vertical tab and form feed — the exact two
+> characters that turned out to be in the tree. **The quick version of a check is a check whose
+> bugs nobody looks for**, which is the argument for the check being code that has its own tests.
+
+`ScriptDeclarations.cs` carried a literal `U+0000` inside a `char` literal — `all.Append('\0')`
 where `all.Append(' ')` was meant — written by a shell heredoc whose escaping had mangled a space.
 It survived for a day and through several full gate runs.
 
@@ -3975,7 +4006,7 @@ source through a script now means reading back what landed — and a repository-
 characters costs one command:
 
 ```python
-if b' ' in io.open(path, 'rb').read(): ...
+if b'\0' in io.open(path, 'rb').read(): ...
 ```
 
 ---
@@ -5239,6 +5270,18 @@ runner* — README, TODO, EPICS and ADR-0023 — five days after it had.
 
 **The cheap habit that beats all of it**: when a claim is about whether something has *ever*
 happened, make the query prove its own completeness before you believe its answer.
+
+**It happened a third time the same day, and the tool was `grep`.** A census of `docs/NOTES.md`
+came back with **111** `## N` headings against an actual **172** — because two NUL bytes in
+[N132](#n132--a-nul-byte-in-a-source-file-compiles-and-greps-as-binary) made `grep` treat the file
+as binary and stop reporting. **The wrong number arrived as a correction of a figure that was
+already right**, which is the most persuasive form a wrong answer can take: a claim that agrees
+with you is checked once, and a claim that corrects you is not checked at all. `grep -c` and
+`grep -ac` differ by one flag and by sixty-one entries, and neither says which it did.
+
+**So the rule generalises past paging.** It is not only *ask for more rows than you expect*; it is
+**a tool that can stop early must be made to say that it did not**. A `--limit` is one way to stop
+early. Binary detection is another. Both return success.
 
 ## N171 — `Console` meant System's, on whichever machine ran the tests in the wrong order
 

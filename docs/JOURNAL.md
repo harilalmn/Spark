@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (the rename was justified by a payload that does not exist)
+**Last updated:** 2026-09-14 (the note about NUL bytes contained two NUL bytes)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Fifty-seven steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Fifty-eight steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E2-T64` `Deferred` by [D28](PRD.md#13-decision-log), and taking the decision found a false sentence in a user-facing document.** `Curve2d` is not waiting for time, it is waiting for a caller 1.0 does not contain: `BrepTrim` is `(int Edge, bool IsReversed)`, trims are used only as topology, and a trimmed face is tessellated **behind the OpenCascade seam** where the provider holds its own pcurves. **The alternative — build it anyway, because FR-60 names it — was rejected**: a type with no caller has no test that can fail for a reason a user would recognise, and it fixes a public shape before anything has argued about what that shape should be. **And [DYNAMO-COVERAGE](DYNAMO-COVERAGE.md) told a reader that *Spark's `BrepTrim` holds a `Curve2d`*, then rested the `CoEdge` → `BrepTrim` rename on that payload.** It holds no pcurve. **The conclusion survives and the argument does not** — the rename is justified by convention, which is good enough and is a different reason. `FR-60` corrected with it, and the decision log's *Eighteen decisions* was twenty-eight. No code changed. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3921** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **37** checks with the residue budget exact at 346. **The link check caught two ADR filenames I invented while writing this step** — `0021-brep-residency.md` and `0019-public-api-baselines.md`, for files called `0021-brep-kernel-residency.md` and `0019-deliberate-public-api-change-control.md`. Second time this week. No stashes. |
-| **Next action** | **`E11-T17` — the regression corpus — and it has just been given something to grow into.** The row says `tests/corpus/` *grows with every bug found* and *holds the real old-version graphs the migration golden-file tests need*. `tests/corpus/geometry/` now exists with seven fixtures and the machinery to compare them, so the question the row actually asks is whether **the bugs this project has found are in it** — and [NOTES.md](NOTES.md) has 172 entries to check that against. **Expect the answer to be no**, and expect the useful half of the step to be choosing which of them are corpus-shaped rather than adding all of them. **Then**: `E5-T11` (import a real third-party NuGet package in CI), `E10-T12`, `E2-T32`, `E2-T27`, `E1-T22`, `E10-T14`. |
-| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7). The three gates, the residue budget **exact** at 346, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **And when a document explains *why* something is so, check the *why* and not only the *so***: three claims corrected this week were conclusions whose stated evidence was false. **No tag, no release.** |
+| **Last completed step** | **[N132](NOTES.md) — *A NUL byte in a source file compiles, and greps as binary* — contained two NUL bytes, and one of them was inside the scan it prescribes.** So `docs/NOTES.md` was a file `grep` would not search, which is the symptom in the note's own title. **It had already cost something**: a census of that file returned **111** entries against an actual **172**, because `grep` stopped reporting — and it arrived as a *correction* of a number that was right, one command from being written into this journal. **Five control characters in four files, and none was the one the note is about.** `C:\dev\vcpkg` had lost its `\v` to a vertical tab three times across `JOURNAL` and `TASKS`; `WorkspaceLayoutTests` had `@"C:\feed"` with its `\f` eaten into a form feed **twice, on both sides of the same assertion**, so the test compared the corrupted value to itself and could never have failed. **`ControlCharacterChecks` walks every text file on every run now**, because N132's *one command* had gone unrun for a month. **Six mutations, six killed.** 3 tests, **3921 → 3924**. Residue **unchanged at 346**. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3924** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **40** checks with the residue budget exact at 346. **No text file in the repository contains a control character**, and that is now asserted rather than assumed. No stashes. |
+| **Next action** | **`E11-T17`, the regression corpus, which this step was scoping when it found the NULs.** Two things are real there. **(1)** `AGENTS.md` promises every migration ships *with a golden-file test against a real old-version graph in `tests/corpus/`* and **there is no such graph** — but git has real ones: `docs/examples/curves.spark` at `a30e98c` (2026-08-28) names `Circle.ByCentreRadius` and `PolyLine.ByRegularPolygon`, keys that no longer exist, so opening it exercises the alias path that is presently proved only by string literals inside test files. **(2)** The corpus has **no README**, and the two prose definitions disagree: `CONTRIBUTING.md` says regression inputs, `AGENTS.md` says old-version graphs. Both are true; neither mentions the other. **And `AGENTS.md` still says `tests/corpus/` does not exist.** It has ten files in it. |
+| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7). The three gates, the residue budget **exact** at 346, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **And a number that arrives as a correction gets checked like any other number** — this step's was wrong. **No tag, no release.** |
 | **Blocked on** | **Four things need a human, and the fourth is new.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -11139,7 +11139,7 @@ asked for served it to every coarser request after. It was also a race: two thre
 shape wrote into the same faces ([N151](NOTES.md)).
 
 **The proper fix is two lines of C++ — and this machine can no longer build them.** Rebuilding the
-shim failed: `C:\devcpkg` is gone, `VCPKG_ROOT` is unset, and nothing under `C:\` holds an
+shim failed: `C:\dev\vcpkg` is gone, `VCPKG_ROOT` is unset, and nothing under `C:\` holds an
 OpenCascade CMake config. The staged `artifacts/native/win-x64/` is intact, so everything runs and the
 OCCT tests do not skip; nothing native can change. Reinstalling is about 1.3 hours at full CPU on the
 client's machine and was **not started unasked**. The C++ edit was **reverted rather than committed
@@ -11165,7 +11165,7 @@ way. Then the gates, **3,111 tests over ten executables**, and `--graph solids -
 the viewport still draw.
 
 **Environment fact corrected**, because it would cost the next session an hour: the journal said
-OpenCascade was installed at `C:\devcpkg`, and it is not.
+OpenCascade was installed at `C:\dev\vcpkg`, and it is not.
 
 ### 2026-09-11 — A closest point no longer stops on a saddle (`E2-T62`)
 
@@ -15864,3 +15864,62 @@ right by luck.
 
 **Cost.** One session. One decision, and an argument corrected that nobody would have
 questioned because its conclusion was right.
+
+### 2026-09-14 — The note about NUL bytes contained two NUL bytes
+
+**What.** Five control characters removed from four files, and the scan that
+[N132](NOTES.md) prescribes turned from a sentence into a check. Found while
+scoping `E11-T17`, which is still waiting.
+
+**It was found because it had already done damage.** A census of `docs/NOTES.md` came back
+with **111** `## N` headings. The file has **172**. The reason is the whole story: two NUL
+bytes in N132 made `grep` classify the file as binary and stop reporting, and `grep -c` and
+`grep -ac` differ by one flag and by sixty-one entries, with nothing in either output saying
+which it did.
+
+**The wrong number arrived as a correction of a number that was right.** That is the most
+persuasive form a wrong answer can take: a figure that agrees with you gets checked once, and
+a figure that corrects you gets checked not at all. It was one command away from being written
+into this journal as a fix. **The command that stopped it was the same one that should have
+produced it in the first place** — counting the headings myself.
+
+**N132 is called *A NUL byte in a source file compiles, and greps as binary*.** It had two,
+from the day it was written. One in the prose illustration, where the point was to *show* the
+character. **One inside the fenced code block giving the one-command scan for exactly this**,
+so the remedy it handed the next reader was itself corrupted. The note was the symptom it
+describes.
+
+**Three more were in the tree and none was the one the note is about.** `C:\dev\vcpkg` had
+lost its `\v` to a vertical tab — twice in `docs/JOURNAL.md`, once in `docs/TASKS.md` — in
+sentences explaining where OpenCascade is *not* installed. And `WorkspaceLayoutTests` had
+`@"C:\feed"` with its `\f` eaten into a form feed, **twice, on both sides of the same
+assertion**: the test asserts the parsed value equals the literal, and both were corrupt, so
+**it compared the corrupted value to itself and could never have failed**.
+
+**A fifth is deliberate and stays.** `CodeFormatPreferenceTests` writes a NUL into a
+preference file to prove an unreadable answer falls back to *on*. That belongs in the runtime
+string and not in the source bytes, so it is now `"\0not a word at all"` — the same byte at
+run time, in a file tools can read.
+
+**N132 ends by saying the scan costs one command. Nobody ran it for a month.** So it is a
+check now: `ControlCharacterChecks` walks every text file in the repository on every run,
+allows only tab, newline and carriage return, and reports path, offset and byte. **Six
+mutations, six killed** — a NUL put back into NOTES.md, a form feed put back into a test, the
+predicate forced false, tab and newline no longer exempted, the walk emptied, and the
+`licences/` skip removed.
+
+**`licences/` is skipped, and it is a limit on our authority rather than an exception to the
+rule.** `LGPL-2.1.txt` carries fifteen form feeds and they are correct — the FSF's own page
+separators. Editing a byte of somebody else's licence to satisfy a checker of ours would be
+the wrong way round.
+
+**And the ad-hoc scan I ran first had an off-by-one that hid two of the five.** It tested
+`c < 9 or (13 < c < 32)`, skipping 11 and 12 — vertical tab and form feed — which are exactly
+the two characters that were in the tree. It found the NULs, reported two files, and looked
+complete. **The quick version of a check is a check whose bugs nobody looks for**, which is
+the argument for the check being code with tests of its own rather than a line in a shell.
+
+**Residue unchanged at 346. 3 tests, 3921 → 3924. No tag, no release.**
+
+**Cost.** One session, spent on a defect nobody had reported, in a note about that defect,
+found by a number that was wrong in a way that looked like a correction.

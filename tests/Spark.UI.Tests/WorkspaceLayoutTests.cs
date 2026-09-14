@@ -133,11 +133,11 @@ public sealed class WorkspaceLayoutTests
         Assert.Null(bare.PreparePackage);
 
         StartupOptions full = StartupOptions.Parse(
-            ["--package-source", @"C:eed", "--packages-window", "acme", "--package-prepare", "Acme.Nodes"]);
+            ["--package-source", @"C:\feed", "--packages-window", "acme", "--package-prepare", "Acme.Nodes"]);
 
         Assert.True(full.OpensPackages);
         Assert.Equal("acme", full.PackageQuery);
-        Assert.Equal(@"C:eed", full.PackageSource);
+        Assert.Equal(@"C:\feed", full.PackageSource);
         Assert.Equal("Acme.Nodes", full.PreparePackage);
     }
 
