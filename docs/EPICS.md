@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (the criterion sweep: 22 boxes disagreed with their rows)
+**Last updated:** 2026-09-15 (`E1-T22`: the version gate is tested)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -107,8 +107,16 @@ exemption for everything that already exists.
       2 000-node canvas at 1.38 ms median and 3.04 ms p95 against 16.70 and 33.30. [N28](NOTES.md)
       is the note about why *proven to detect* and *proven to run* were different claims; they are
       now both settled.*
-- [ ] The release workflow refuses to publish when the computed version and the tag
-      disagree (**E1-T22**).
+- [x] The release workflow refuses to publish when the computed version and the tag
+      disagree (**E1-T22**). *Built in `E12-T11` and **tested for the first time on
+      2026-09-15**: `scripts/check-version.ps1` reads the informational version back out of the
+      built assembly rather than out of the build inputs, because the artefact is what ships, and
+      `release.yml` runs it before a single byte is uploaded. Nothing had ever exercised it. Six
+      tests, six mutations, six killed — the sharpest being `FileVersion` compared instead of
+      `ProductVersion`, which drops the prerelease suffix so `1.0.0-rc.1` and `1.0.0` compare
+      equal, which is the one pair the gate exists to tell apart. The case it was built for has
+      its own test: a tagless checkout stamps `0.0.0-alpha.0` and would be published under
+      whatever tag it was handed.*
 - [x] Every workflow declares a concurrency group and caches its packages (**E1-T28**).
       *`ci.yml` cancels a superseded run; `nightly.yml` and `release.yml` do not, and the
       difference is the point — a superseded CI result is a record nobody reads, and a release

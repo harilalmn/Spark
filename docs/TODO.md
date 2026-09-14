@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E11-T32`: the criteria are checked against the register)
+**Last updated:** 2026-09-15 (`E1-T22`: the version gate is tested)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -100,6 +100,14 @@ for anything else.
 ---
 
 ## Where the run stands
+
+**The release version gate is tested, closed 2026-09-15** — `E1-T22`. AGENTS.md calls
+`scripts/check-version.ps1` *the gate that matters* and `release.yml` runs it before a single byte
+is uploaded, and **nothing had ever run it**. Six tests and six killed mutations now do, including
+the one that matters most: comparing `FileVersion` instead of `ProductVersion` drops the prerelease
+suffix, so `1.0.0-rc.1` and `1.0.0` compare equal — the one pair the gate exists to tell apart.
+**The row's note was branch policy rather than the version gate its title names**, and that half
+has moved to `E1-T28`, where the rest of it already lives and where it waits on the client.
 
 **The acceptance criteria are checked against the register, closed 2026-09-15** — `E11-T32`.
 `EPICS.md` states acceptance as check boxes, `TASKS.md` states rows as statuses, and **nothing
