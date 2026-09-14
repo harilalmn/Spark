@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E1-T22`: the version gate is tested)
+**Last updated:** 2026-09-15 (`E11-T33`: two rows contradicted their own status)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -100,6 +100,15 @@ for anything else.
 ---
 
 ## Where the run stands
+
+**A row's own words are checked against its status column, closed 2026-09-15** — `E11-T33`, and
+it exists because the day before I concluded it was not worth having. [N176](NOTES.md) measured one
+phrasing of the rule over 120 commits, found it fires zero times, and I generalised that to the
+whole family. **Two rows had the fault in phrasings the measurement never tried** — `E13-T22` was
+`Open` while its note said *Blocked on `E13-T21`*, and `E12-T16` was `Open` while its title says
+*Crash-reporting decision, **deferred*** — and both had been so in every one of those 120 commits.
+Both are corrected, and the note is corrected with a clause: **measure the rule you would actually
+write, not the loosest member of its family.**
 
 **The release version gate is tested, closed 2026-09-15** — `E1-T22`. AGENTS.md calls
 `scripts/check-version.ps1` *the gate that matters* and `release.yml` runs it before a single byte

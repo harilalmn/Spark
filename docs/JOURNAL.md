@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-15 (`E1-T22` Done: the gate that matters had never been run)
+**Last updated:** 2026-09-15 (`E11-T33`: the rule I dismissed yesterday was wrong about the family, not the rule)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Six steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Seven steps landed on 2026-09-15. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E1-T22` `Done`, and the row had been carrying two unrelated things under one status.** Its **title** is the version gate, built in `E12-T11`; its **note** is branch policy, which is `E1-T28`'s branch protection wearing a different hat and is on *Blocked on* as a client decision. Closed on the title, note moved to `E1-T28` so one row owns it. **And nothing had ever run the gate** — `release.yml` invokes it before a single byte is uploaded and AGENTS.md calls it *the gate that matters*, and no test in the tree mentioned it, which is this week's fourth mechanism everybody relies on and nobody exercises. **Six tests, six mutations, six killed**, the sharpest being **`FileVersion` compared instead of `ProductVersion`** — which is what a careful person reaches for, and which drops the prerelease suffix so that `1.0.0-rc.1` and `1.0.0` compare equal: the one pair the gate exists to tell apart. The shallow-clone case that motivated it has its own test. **3973 → 3979.** Residue **unchanged at 346**. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3979** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **64** checks with the residue budget exact at 346. No stashes. |
-| **Next action** | **`E10-T14`, the website — and it is the last `Open` row that is not blocked on a person, so read [PRD Q8](PRD.md#14-open-questions) before writing a line of HTML.** Q8 is *unanswered*, and an unanswered open question is the thing that decides whether this row is work or a decision: a website for a **closed-source** product published from a **private** repository to a **separate releases repository** is a different object from the one the row was written against. **What already exists and must not be duplicated**: `docs/progress.html`, generated and gated; the README, which is the honest status; the `Spark-Releases` README, which carries the OpenCascade source offer and is the only public page today. **The likely shapes are (a) a decision that 1.0 ships without one, filed like [D20](PRD.md#13-decision-log), or (b) the smallest real page — what Spark is, a download link, and the licence notices** — and the client has never asked for a website, which is evidence about priority rather than about merit. **Ask the register first**: eight `Open` rows remain and this is one of them, so check whether the other seven are really blocked before treating this as next. |
-| **Verify with** | **If it becomes a decision, the decision is the deliverable** — a row in the decision log naming the alternative rejected and why, the way `D20`, `D28` and `D29` are written, and the register row moved to `Deferred` rather than left `Open`. **If it becomes a page, it is checked like every other document here**: relative links resolve, `csharp` fences compile, and it carries a `Last updated` line — the harness already enforces all three, so a page that lies fails the build. The three gates, the residue budget **exact at 346**, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
+| **Last completed step** | **`E11-T33` `Done`, correcting a note one day old.** [N176](NOTES.md) measured *a note opening with a settled-status word against an unsettled status* over 120 commits, found it fires **zero times**, and I generalised that to the whole family. **Two rows had the fault in phrasings the measurement never tried, and had had it in every one of those 120 commits**: `E13-T22` was `Open` while its note said *Blocked on `E13-T21`*, and `E12-T16` was `Open` while its **title** says *deferred* and the decision is recorded in NFR-13 and `D22`. **`E13-T22`'s wrong status was not cosmetic** — this journal's *Blocked on* list is assembled by reading that column, so a row blocked in its note and `Open` in its column is invisible to the one place a person looks. **Two rules, both reading the row's own words**: *blocked on `E<n>-T<m>`* names its blocker, and a title is short enough that a word in it is about the row. **3979 → 3982.** Residue **unchanged at 346**. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3982** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **67** checks with the residue budget exact at 346. No stashes. |
+| **Next action** | **`E2-T48` — *is T-Splines in scope at all?* — because it is the largest thing in the register that is neither built nor decided, and the answer is a decision a session can take.** [`Q12`](PRD.md#14-open-questions), [DYNAMO-COVERAGE §6.2](DYNAMO-COVERAGE.md#62-t-splines-is-a-second-product-not-a-subsystem): **169 members across 8 types, 20.2% of the whole ProtoGeometry surface**, `TSplineSurface` alone being 94. **Read §6.2's own argument first** — its title is *T-Splines is a second product, not a subsystem*, so the document has already made the case and what is missing is the decision row that closes it, the way `D28` closed `E2-T64` and `D29` closed `E2-T27`. **The parity numbers are the thing to get right**: a refusal of 169 members changes what every coverage percentage in that document means, so whatever is decided, the figures it implies are recomputed rather than asserted. **Then**: the five remaining `Open` rows — `E1-T19` (headless UI smoke in CI, which unblocked itself when Actions came back on 2026-09-14), `E2-T67`, `E2-T38`, `E11-T7`, `E10-T14`. |
+| **Verify with** | **A decision is verified by its own record**: a row in the decision log naming the alternative rejected and why, the register row moved off `Open`, and — for this one especially — **every parity figure it changes recomputed from the manifest rather than edited by hand**, because `DynamoParityChecks` and `ProgressDashboardChecks` both re-derive those numbers and will disagree with a figure that was typed. If the decision is to refuse, the refusal is an **exclusion rule** in `tests/corpus/dynamo-parity-exclusions.tsv` with a reason, never a member-by-member list. The three gates, the residue budget **exact at 346**, the dashboard regenerated, and `scripts/check-docs-freshness.sh` over the last commit before pushing. **No tag, no release.** |
 | **Blocked on** | **Four things need a human, and the fourth is new.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance.* **The nightly benchmark half came off this list on 2026-09-15, and it had come off on 2026-09-14 without anybody noticing.** Run 34841376718 ran the canvas benchmark on `windows-latest` — 2 000 nodes and 1 677 wires over 500 frames, **1.38 ms median of a 16.70 ms budget and 3.04 ms p95 of 33.30 ms**, on a runner with **no GL at all** (`viewport: no GL callback ran`), which is the hard case rather than a lucky one. It was found by `E11-T32`'s criterion sweep, because `E8-T15`'s acceptance box said *unticked because the step has never run on a runner without a GPU* while its register row said `Done` — and `nightly.yml`'s own comment still said the step was unproven on a hosted runner. All three are corrected. **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -16438,3 +16438,58 @@ unprompted: closing the row turned `E1-T22`'s box into a disagreement until it w
 
 **Cost.** One session. **The expensive half was reading the row**, and the register is one row
 shorter for it in the only sense that matters — a row that named two unrelated things now names one.
+
+### 2026-09-15 — `E11-T33`: the rule I dismissed yesterday was wrong about the family, not the rule
+
+**What.** `RegisterStatusChecks`, two rows corrected, and [N176](NOTES.md) corrected in place — the
+note that dismissed this check, one day old.
+
+**The dismissal was honest and the generalisation was not.** N176 measured *a note that opens by
+declaring the work done, closed, deferred, withdrawn or superseded, against an unsettled status*
+over 120 commits of `docs/TASKS.md`, found it fires **zero times**, and recorded the rule that
+follows: measure a proposed check against history before writing it. All of that stands. What did
+not stand is the conclusion I drew beside it — that **no** rule of that family was worth having,
+which is an inference from one phrasing to all of them, and is the same over-reach the note exists
+to warn about.
+
+**Two rows had the fault, in forms the measurement never tried, and had had it the whole time.**
+`E13-T22`'s note ends *Blocked on `E13-T21`* — it is waiting on a shim entry point, and the shim
+cannot be rebuilt while the OpenCascade install is gone — under a status of `Open`. `E12-T16`'s
+**title** is *Crash-reporting decision, deferred*, under a status of `Open`, while the decision
+itself is taken and recorded in NFR-13 and [D22](PRD.md#13-decision-log). **Both were like that in
+every one of the 120 commits scanned**, which is the point: this yield is **standing rather than
+churning**, and a row wrong for weeks is exactly the kind nobody notices.
+
+**The cost of `E13-T22`'s wrong status was not cosmetic.** The journal's *Blocked on* list is
+assembled by reading that column, so a row that says it is blocked in its note and `Open` in its
+column is invisible to the one place a person looks for what needs them. It was counted as work
+somebody could pick up, for three days.
+
+**Why these two rules and not the first one.** The first read a **note** for a *settled-status
+word*, which is genuinely ambiguous — `E2-T68`, `E2-T71` and `E2-T72` are multi-part rows whose
+notes say *this sub-item closed*, which is what an `In progress` row is supposed to say, and all
+three were false positives. These read the row's own words unambiguously: *blocked on
+`E<n>-T<m>`* **names the row that blocks it**, and a **title** is short enough that a word in it is
+about the row and nothing else.
+
+**The check produced a false positive within minutes, on the row that describes it, and that is
+the part worth keeping.** `E11-T33`'s own note quotes *blocked on `E13-T21`* while recounting what
+it caught, and the rule matched the quotation — the exact ambiguity the narrowing was supposed to
+remove, arriving nine minutes after the file claimed to have removed it. **The fix is not a filter
+bolted on, it is the rule said properly**: a **settled** row cannot be blocked on anything, so only
+`Open` and `In progress` rows are candidates. What is being checked is *an unfinished row that says
+it is waiting*, not *a row containing a phrase* — and the first wording was about the phrase without
+anybody noticing, because every row that had the phrase was also unsettled. **A check's first
+encounter with a row outside its fixtures is where its actual rule becomes visible.**
+
+**Verified.** Proved to fire against git: over `docs/TASKS.md` at the start of the step it reports
+exactly `E13-T22` and `E12-T16` — before and after the narrowing — and nothing over the tree
+afterwards. Proved non-vacuous by
+asserting it read 400 rows and 300 `Done` ones — the status column is not at a fixed index, and a
+reader that assumed one would find no statuses and pass by finding nothing. Build clean, zero
+warnings, format clean, **3979 → 3982** over ten executables, zero failures and zero skips.
+Register summary re-derived: 379/9/6/5/5/12 over 416 — **six `Open` rows left**, down from nine
+this morning.
+
+**Cost.** One session, and it is the cheapest kind: the finding was free, because it came out of
+reading the queue to choose the next step, which the protocol makes you do anyway.

@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N176: the pattern that caught four rows fires zero times in 120 commits)
+**Last updated:** 2026-09-15 (N176 corrected: the measurement was right about the rule and wrong about the family)
 
 ---
 
@@ -5251,6 +5251,39 @@ proposed rule against history before writing it.* Both candidates took minutes t
 log, and the answer was not guessable: the pattern with four recent instances had a historical
 yield of zero, and the one nobody had mentioned had twenty-two. **A rule's plausibility and its
 yield are unrelated**, and the difference between them is one `git log` away.
+
+**Corrected the next day, and the correction is the more useful half.** Everything above holds for
+the rule that was measured. What did not hold is what was concluded from it — that **no** rule of
+that family was worth having. Surveying the remaining `Open` rows for the following step turned up
+**two with exactly this fault, in phrasings the measurement never tested**: `E13-T22`, whose note
+ended *Blocked on `E13-T21`* under a status of `Open`, and `E12-T16`, whose **title** is
+*Crash-reporting decision, deferred* under a status of `Open`. Both had been that way in **every one
+of those 120 commits**.
+
+**What the second look changes, precisely.** The first rule read a **note** for a *settled-status
+word*, which is ambiguous — a multi-part row's note saying *this sub-item closed* is ordinary and
+correct, and that is where the three false positives came from. The two rules now in
+`RegisterStatusChecks` read the row's own words unambiguously: *blocked on `E<n>-T<m>`* **names the
+row that blocks it**, and a **title** is short enough that a word in it is about the row and nothing
+else. And the yield they have is a different shape: **standing rather than churning** — two rows
+wrong for weeks, which is the kind nobody notices, rather than a stream of rows that get fixed
+anyway.
+
+**So the rule survives with a clause added.** *Measure a proposed rule against history before
+writing it* — **and measure the rule you would actually write, not the loosest member of its
+family.** A zero over one phrasing is evidence about that phrasing. Generalising it to the family is
+the same over-reach this note was written to warn against, committed by the note itself, one day
+after it was written. `E11-T33`.
+
+**And the narrow rule produced a false positive within minutes of being written, on the row that
+describes it.** `E11-T33`'s own note quotes *blocked on `E13-T21`* while recounting what it caught,
+and the rule matched the quotation — the exact ambiguity the narrowing was supposed to remove. **The
+fix is not a filter, it is the rule said properly**: a **settled** row cannot be blocked on
+anything, so only `Open` and `In progress` rows are candidates. What is being checked is *an
+unfinished row that says it is waiting*, not *a row containing a phrase* — and the first wording was
+about the phrase without anybody noticing, because the only rows that had it were also unsettled.
+**A check's first encounter with a row outside its fixtures is where its actual rule becomes
+visible**, and here that took nine minutes.
 
 ## N175 — Every arc bounded its whole circle, and 3,947 tests did not mind
 

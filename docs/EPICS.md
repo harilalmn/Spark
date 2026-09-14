@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E1-T22`: the version gate is tested)
+**Last updated:** 2026-09-15 (`E11-T33`: rows are checked against their own status column)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -1496,6 +1496,15 @@ nothing.
       *Three checks as of 2026-08-31: every code has a generated page, every code's constant
       carries an explanation — a page per code that said nothing would satisfy a count and help
       nobody — and every code's concept-topic target resolves to a topic that exists.*
+- [x] **A register row's own words are checked against its status column** — a note saying it is
+      blocked on a named row means `Blocked`, and a title saying *deferred* means `Deferred`
+      (**E11-T33**). *Built 2026-09-15, the day after [N176](NOTES.md) concluded this family of
+      check was not worth having. The measurement behind that conclusion was right about the rule
+      it tested and wrong about the family: two rows had the fault in phrasings it never tried —
+      `E13-T22` under `Open` while its note said *Blocked on `E13-T21`*, and `E12-T16` under `Open`
+      while its title says *deferred* — and both had been so in every one of the 120 commits
+      scanned. **A standing yield of two beats a historical churn of zero**, because a row wrong
+      for weeks is the kind nobody notices.*
 - [x] **The acceptance criteria above are checked against the register** — where a criterion
       cites exactly one `E<n>-T<m>`, the box is ticked if and only if that row is `Done`
       (**E11-T32**). *Built 2026-09-15 and it found 22 disagreements among the 154 single-row
