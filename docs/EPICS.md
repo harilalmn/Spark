@@ -97,13 +97,16 @@ exemption for everything that already exists.
       `scripts/check-no-native-binaries.sh`, run on both operating systems, and **proven to
       fire**: pointed at `Spark.Desktop` it fails on the Skia and HarfBuzz natives Avalonia
       brings.
-- [ ] Benchmarks run nightly, not per-PR, against **budgets committed in `bench/budgets.jsonc`
+- [x] Benchmarks run nightly, not per-PR, against **budgets committed in `bench/budgets.jsonc`
       rather than results committed as a git time series** (**E1-T21**,
       [ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md)). *The cadence half
       of this criterion is unchanged and the storage half is reversed, for reasons that were not
       knowable before the benchmarks had been run on a shared machine. `nightly.yml` is written,
-      the check is proven to fire, and the whole pipeline is green locally — and **it has never run
-      on a hosted runner**, which [N28](NOTES.md) is the note about.*
+      the check is proven to fire, and **it has now run on hosted runners** — 5, 6, 7 and 8
+      September and again on 2026-09-14, green every time, ending `Every budget holds`, with the
+      2 000-node canvas at 1.38 ms median and 3.04 ms p95 against 16.70 and 33.30. [N28](NOTES.md)
+      is the note about why *proven to detect* and *proven to run* were different claims; they are
+      now both settled.*
 - [ ] The release workflow refuses to publish when the computed version and the tag
       disagree (**E1-T22**).
 - [x] Public-API baselines for `Spark.Api` and `Spark.Geometry` are checked in, so every
@@ -1441,12 +1444,23 @@ nothing.
       direction and [N163](NOTES.md) says why. The residue budget fell 278 → 270 over the same period
       while rising four times for reasons each written down, and it now measures what it says it does:
       with no `Unassessed` row left, a rise is the only thing that can mean anything.*
-- [ ] The `docs-freshness` job fails a diff that changes a public-API baseline or touches
+- [x] The `docs-freshness` job fails a diff that changes a public-API baseline or touches
       `src/Spark.Nodes.*` without touching `docs/`, overridable only by an explicit
       `docs: none-needed` commit trailer that is **visible in review**. A silent exemption
-      is worthless; a loud one is fine (**E11-T14**). *Written in `ci.yml`; being
-      `pull_request`-only it cannot have run, and has not.*
-- [ ] A headless UI smoke test runs in CI (**E11-T15**).
+      is worthless; a loud one is fine (**E11-T14**). *Being `pull_request`-only it ran sixteen
+      times in August, against the two pull requests that are still open, and then not once in the
+      seventeen days of pushes to `main` that followed — this line said it `cannot have run, and
+      has not`, on no evidence. It runs on a push too now, green on run 34842799316. The rule
+      itself moved out of the workflow to `scripts/check-docs-freshness.sh`, because inline
+      workflow shell can only be exercised by triggering the workflow — which is how it came to
+      sleep. **Six cases proven in throwaway worktrees**, exit codes read rather than wording:
+      a contract change with no document fires, with a document passes, with a `docs: none-needed`
+      trailer passes as a loud `::notice`; documents-only passes; a `Spark.Engine` change passes;
+      a bare `PublicAPI.Unshipped.txt` edit fires.*
+- [x] A headless UI smoke test runs in CI (**E11-T15**). *`MainWindowSmokeTests` opens the real
+      `MainWindow`, composes it, draws and closes. It lives in `Spark.UI.Tests`, so it runs on
+      both CI legs already rather than in a job of its own — which is why `E1-T19` is still open
+      as a decision rather than ticked as work.*
 - [ ] Benchmarks run nightly, against committed budgets rather than a committed time series
       (**E11-T16**, [ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md)).
       *Marshalling, evaluation and the canvas do. Replication over 100 000 items is covered only

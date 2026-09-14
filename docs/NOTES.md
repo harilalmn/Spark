@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-14 (N90 no longer reproduces, and two rows come off it)
+**Last updated:** 2026-09-14 (N172: a limit is not a census)
 
 ---
 
@@ -5185,6 +5185,60 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N172 — A limit is not a census, and the truncated query confirms you
+
+**2026-09-14, `E11-T14`.** Three descriptions of the same CI job were written in one day. The first
+two were confident, were copied into three documents each, and were both false — and the second was
+written *specifically to correct the first*, using a command, and was wrong in a more interesting
+way than the thing it replaced.
+
+**Claim one: “the `docs-freshness` job has never executed once, because this project has never
+opened a pull request.”** The second half was read off the shape of the commit log — every commit
+on `main` arrived as a push — which is evidence about `main` and none whatever about pull requests.
+`gh pr list --state all` answers it in one command and says **two**, both opened 2026-08-28, both
+still open.
+
+**Claim two, the correction: “of the 200 runs this repository has ever had, not one was triggered by
+a pull request — 188 pushes, 11 schedules, one dispatch.”** That came from
+
+```
+gh run list --limit 200 --json event
+```
+
+and it is wrong because the repository has **234** runs. The sixteen `pull_request` runs are the
+**oldest sixteen**, so the window cut off precisely the evidence that would have refuted the claim.
+**The numbers looked like a census. They were the most recent 200 rows.**
+
+**What is actually true**: 206 pushes, 16 pull requests, 11 schedules, one dispatch. *Documentation
+freshness* is a green job in all sixteen of those pull-request runs, with real output ending
+`Documentation freshness check passed.` The job was never broken and never unexercised. It went
+quiet when the pull requests did, and stayed quiet for seventeen days of pushes to `main`.
+
+**The rule.** A paged or limited query is a *sample*, and a sample that happens to be ordered by
+recency will systematically hide the oldest counter-example — which, for any question of the form
+*has this ever happened*, is the only evidence that matters. **Ask for more rows than you believe
+exist and confirm the total**, or do not cite the number:
+
+```
+gh run list --limit 400 --json databaseId -q '. | length'   # 234 - so 400 saw all of it
+```
+
+**Why this is worse than the claim it replaced.** The first claim was a guess and read like one.
+The second arrived with a command attached, which is the form this project uses to mean *checked* —
+and it returned exactly the numbers needed to feel confirmed. **A query whose window can silently
+exclude the counter-example is not a check; it is the same assertion wearing a command prompt.**
+
+**It recurred twice more in the same step, which is why it is a note.** Proving the extracted gate
+script, the fifth case appended to `src/Spark.Engine/Evaluator.cs` — a file that does not exist — so
+`git commit -a` committed nothing and the check silently re-read the previous commit's range,
+reporting a result that belonged to another case. Caught only because the exit code was 1 where a
+pass was expected. **Same shape: a probe that never ran the case, reporting cleanly.** And the
+sweep that followed found four *more* documents still saying the nightly *has never run on a hosted
+runner* — README, TODO, EPICS and ADR-0023 — five days after it had.
+
+**The cheap habit that beats all of it**: when a claim is about whether something has *ever*
+happened, make the query prove its own completeness before you believe its answer.
 
 ## N171 — `Console` meant System's, on whichever machine ran the tests in the wrong order
 

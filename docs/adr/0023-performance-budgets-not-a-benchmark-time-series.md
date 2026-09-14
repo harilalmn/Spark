@@ -130,9 +130,12 @@ magnitude out still catches it. The rule that keeps this honest is that the loos
 
 - The canvas benchmark is Windows-only in the nightly, because the Linux runner has no display
   server and driving Avalonia under `xvfb` would measure a software rasteriser nobody ships on.
-- **The canvas step has never run on a hosted runner.** It has been proven to *detect*, not
-  proven to *run*, and [N28](../NOTES.md) is the note about why those are different claims. Its
-  first nightly execution is part of adding it, not a formality afterwards.
+- **The canvas step has now run on a hosted runner** — 8 September at 1.53 ms median and 3.59 ms
+  p95, and 14 September at **1.38 ms median and 3.04 ms p95**, against budgets of 16.70 and 33.30.
+  It was proven to *detect* before it was proven to *run*, and [N28](../NOTES.md) is the note about
+  why those were different claims. *Written here as an open question until 2026-09-14; the answer
+  is the one this ADR predicted — a ratio-and-allocation guard is stable across runners, and these
+  two numbers are a week and a machine apart.*
 
 ## Notes
 

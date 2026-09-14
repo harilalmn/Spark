@@ -88,7 +88,10 @@ Spark is like and what it does not require.*
 > **The benchmarks are guards now, not reports.** A nightly workflow runs the three suites on
 > Windows and Linux and the application's own 2 000-node canvas benchmark on Windows, and fails
 > when a number breaks a budget committed in `bench/budgets.jsonc`. It has been run end to end
-> locally and **has never run on a hosted runner**, which is a real difference and not a formality.
+> locally **and on hosted runners** — 5 to 8 September and again on 2026-09-14, green every time,
+> ending *Every budget holds*, with the 2 000-node canvas at **1.38 ms median and 3.04 ms p95**
+> against budgets of 16.70 and 33.30. That is the difference that mattered: a machine nobody owns
+> agreeing with a laptop, a week apart.
 >
 > What has been run, on Windows, on 2026-08-31:
 > `dotnet build Spark.slnx --no-incremental -warnaserror` is clean over eighteen projects;

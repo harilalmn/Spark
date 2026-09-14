@@ -349,12 +349,18 @@ jobs:
 
     # NO `if:` HERE ANY MORE, AND THAT IS THE POINT OF THIS JOB'S HISTORY.
     #
-    # It was `if: github.event_name == 'pull_request'` from the day it was written, and this
-    # project has never opened a pull request: every commit of the marathon is a push to `main`.
-    # So the gate that enforces the client's standing documentation instruction enforced nothing,
-    # ever, and reported `skipped` on the first run after CI came back (2026-09-14) - which is how
-    # anybody noticed. A gate that cannot fire is worse than no gate, because the register counts
-    # it as coverage.
+    # It was `if: github.event_name == 'pull_request'` from the day it was written. It DID run -
+    # sixteen times, on 2026-08-28 and 2026-08-29, against the two pull requests that are still
+    # open, green every time and with real output - and then it fell silent, because all 206
+    # commits pushed since have gone straight to `main`. Seventeen days of a gate the register
+    # counted as coverage, reported as `skipped` on the first run after CI came back (2026-09-14),
+    # which is how anybody noticed. A gate that cannot fire is worse than no gate.
+    #
+    # The two explanations written for that before this one were both false and both cited with
+    # confidence - "this project has never opened a pull request" (it has two) and "not one of the
+    # 200 runs was a pull request" (there are 234 runs, and the 16 pull_request runs are the oldest
+    # ones, cut off by the --limit). Numbers here come from `gh run list --limit 400`. A limit is
+    # not a census.
 
     # Enforces the client's standing instruction mechanically rather than by request.
     # If a change touches the public API surface or the node library, it must also touch
@@ -387,28 +393,9 @@ jobs:
             range="$PUSHED_FROM..HEAD"
           fi
 
-          echo "Comparing $range"
-          changed=$(git diff --name-only $range)
-
-          echo "Changed files:"
-          echo "$changed" | sed 's/^/  /'
-
-          # Any contract surface, not just the node library. An earlier version keyed only
-          # on Spark.Nodes and the API baselines, so the entire geometry kernel could change
-          # without tripping the gate - which is exactly what happened on its first real use.
-          needs_docs=$(echo "$changed" | grep -E '^(src/Spark\.(Api|Geometry|Geometry\.Io|Nodes\.Core)/.*\.cs|.*PublicAPI\.(Shipped|Unshipped)\.txt)$' || true)
-          touched_docs=$(echo "$changed" | grep -E '^(docs/|README\.md|AGENTS\.md)' || true)
-
-          if [ -n "$needs_docs" ] && [ -z "$touched_docs" ]; then
-            if git log $range --format=%B | grep -qi '^docs: none-needed'; then
-              echo "::notice::Documentation exemption claimed via 'docs: none-needed' trailer."
-              exit 0
-            fi
-            echo "::error::This change touches the public API surface or the node library but no documentation."
-            echo "Update the relevant documents, or add a 'docs: none-needed' trailer to a commit and say why."
-            echo "Offending files:"
-            echo "$needs_docs" | sed 's/^/  /'
-            exit 1
-          fi
-
-          echo "Documentation freshness check passed."
+          # THE RULE ITSELF LIVES IN A SCRIPT, AND THAT IS ALSO THIS JOB'S HISTORY.
+          # It was inline here until 2026-09-14, which meant the only way to exercise it was to
+          # trigger the workflow - and this job went seventeen days without being triggered while
+          # the register counted it as coverage. In `scripts/` it can be run against any range on
+          # any machine, which is how its four cases came to be proven rather than asserted.
+          scripts/check-docs-freshness.sh "$range"

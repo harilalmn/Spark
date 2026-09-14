@@ -807,13 +807,17 @@ Only then the writing:
       order of magnitude out and catch a step change only ([N29](NOTES.md)). Proven to fire before
       being trusted, on eight deliberate breakages including **a case that vanished and a case
       nobody budgeted**, both of which fail the run.
-- [ ] **Watch the first nightly, and treat it as part of adding the guard.** The workflow is green
-      locally end to end and **has never run on a hosted runner**. Two things can only be learnt
-      there: whether a GitHub Windows runner can open a window at all — if it cannot, the honest
-      answers are a headless measurement or deleting that step, never `continue-on-error` — and
-      whether the wall-clock ceilings, set an order of magnitude above one laptop's numbers, are
-      loose enough for a shared machine. `E8-T15` closes on the first green run, not before.
-      [N28](NOTES.md) is why *proven to detect* and *proven to run* are different claims.
+- [x] **Watch the first nightly, and treat it as part of adding the guard** — done 2026-09-14,
+      and it had already happened. Two things could only be learnt on a hosted runner, and both
+      are now answered. **A GitHub Windows runner can open a window**: the 2 000-node canvas
+      measured 500 frames at **1.38 ms median and 3.04 ms p95**, so neither a headless measurement
+      nor deleting the step was needed. **And the ceilings are loose enough**: every budget held on
+      both runners, allocations exact to the byte, and the canvas number is stable across two
+      different machines a week apart (1.53 ms on 8 September, 1.38 ms on 14 September). The
+      workflow ran green on 5, 6, 7 and 8 September before that; **the 9 September failure had no
+      steps at all and was a billing refusal, not a defect**, and the register read it as one for
+      five days. `E8-T15` and `E1-T21` closed on this. [N28](NOTES.md) is why *proven to detect*
+      and *proven to run* were different claims.
 - [x] **Write the M1.6 pass/fail criteria into TASKS.md** — `E13-T1`, done on 2026-08-29. Nine
       criteria, `M1.6-C1` … `M1.6-C9`, in
       [TASKS.md](TASKS.md#m16--the-passfail-criteria-written-before-the-spike). **The bars were the
@@ -1132,11 +1136,17 @@ Not bugs. Recorded so nobody rediscovers them as surprises, or spends an afterno
   drop shadow crosses its threshold, costing 57→40 fps at 2,000 nodes. The design language
   already specifies the fix — a sprite cache keyed on a fixed set of blur radii, eight sprites
   in total. Scoped, specified, and not yet built (`E8`).
-- **`concepts.evaluation` is a help topic id with no file behind it.** Five diagnostic codes
-  resolve to it and `docs/help/concepts/evaluation.md` does not exist, so a user following an
-  `SPK101x` code has nowhere to land. The docs harness does not currently check that a topic id
-  names a real topic, which is why nobody noticed; both halves are worth fixing together
-  (`E10`, `E11-T14`).
+- ~~**`concepts.evaluation` is a help topic id with no file behind it.**~~ **The file exists**
+  — `docs/help/concepts/evaluation.md`, written since this bullet was — so a user following an
+  `SPK101x` code lands somewhere. *Corrected 2026-09-14 by `ls`, in the sweep that found three
+  other claims of this shape in one step.* **The second half of the bullet is still true and is
+  the more useful half**: the docs harness does not check that a topic id names a real topic. It
+  deliberately *skips* them — `IsHelpTopicId` exists so that runtime-generated topics with no file
+  are not demanded on disk (`E10-T5`) — so nothing anywhere would have noticed this, and nothing
+  would notice the next one. **A topic id resolving to nothing is exactly the class of fault the
+  whole documentation harness exists to catch, and it is the one hole in it.** Worth a check that
+  reads the topic-id constants in `DiagnosticCodes` and asks the help system to serve each
+  (`E10`).
 - **Coordinates are unitless.** No `UnitSystem`, no unit types, no conversion. Import and
   export assume the file's own units and document that they do. PRD decision **D12**. This
   does **not** remove scale-aware tolerance, which is numerical robustness rather than

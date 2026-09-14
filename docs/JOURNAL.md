@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (three rows that were never blocked by what the register said)
+**Last updated:** 2026-09-14 (a limit is not a census, and the gate had been running all along)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Fifty-two steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Fifty-three steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E1-T21`, `E8-T15` and `E11-T15` — three rows `Done`, and not one of them was blocked by what the register said it was blocked by.** **`E1-T21` and `E8-T15` wanted a *time series* that [ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md) discarded on 2026-08-29** — and I re-blocked them on it this morning, in the same edit that unblocked them, with the ADR cited two lines away. **The nightly had also been running successfully on hosted runners 5–8 September**; the 9 September failure had **no steps at all** and was a billing refusal, read by the register as a defect. Dispatched by hand today it was green on both runners: *Every budget holds*, and the 2 000-node canvas at **1.38 ms median, 3.04 ms p95** against 16.70 and 33.30. **`E11-T15` waited a month on [N90](NOTES.md)'s headless hang, which no longer happens.** Nothing was changed to achieve that; it was retried. `MainWindowSmokeTests` now opens the **real** `MainWindow`. Residue **unchanged at 346**. 2 tests, **3876 → 3878**. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3878** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 346. **CI green on both legs; the nightly green on both runners.** No stashes. |
-| **Next action** | **Write the note this run has earned, then take the next row.** **Three rows in one session were blocked by their own description rather than by anything in the tree**, and it is the same failure three times: a status written on the day something was true and never re-checked. `E1-T21` and `E8-T15` cited a plan the project had formally replaced; `E11-T15` cited a hang that had stopped happening; and this morning's edit to the first two **re-blocked them on the discarded plan**, which is the failure happening *while writing about itself*. **The cheap check that would have caught all three is the same one**: before believing a blocker, spend one command testing it. `gh run list` for the nightly. A ten-line test for the hang. A grep for the ADR. **None of the three cost more than two minutes and all three had gone unspent for a month.** **Then the queue**: `E11-T11`'s golden-file infrastructure and `E2-T64`'s `Curve2d` are the two open rows with no external dependency — and `E2-T64` was investigated earlier and found to have **no consumer**: `BrepTrim` carries `(int Edge, bool IsReversed)` and no pcurve, so building `Curve2d` alone closes neither of its two parity rows. That finding needs writing into the row whichever is taken. |
-| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7), the three gates, and the residue budget **exact** at 346. **And CI, which now has an opinion**: two of the last four runs found something no local gate could. **No tag, no release.** |
+| **Last completed step** | **`E11-T14` `Done` — and the job it is about had been running the whole time.** Three descriptions of `docs-freshness` were written in one day and **the first two were false**. *It has never executed once, because this project has never opened a pull request* — it has opened two, and `gh pr list --state all` says so. *Of the 200 runs this repository has ever had, not one was a pull request* — that was `gh run list --limit 200` against a repository with **234** runs, and the sixteen `pull_request` runs are the **oldest sixteen**, so the window cut off exactly the counter-example. **Documentation freshness is a green job in all sixteen**, with real output. It went quiet when the pull requests did, and stayed quiet for seventeen days of pushes to `main`. **The rule moved out of `ci.yml` to `scripts/check-docs-freshness.sh`**, because inline workflow shell can only be exercised by triggering the workflow — which is how it came to sleep — and **six cases were then proven in throwaway worktrees**, exit codes read rather than wording. **[N172](NOTES.md)** is the note. **Four more documents still said the nightly had never run on a hosted runner**, five days after it had: README, TODO, EPICS and ADR-0023. All four corrected. Residue **unchanged at 346**; tests **unchanged at 3878** — no C# was touched. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3878** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at 28 checks with the residue budget exact at 346. **The anchor check built two steps ago caught this step's own broken link** (`#e11--documentation-and-help`, twice, for a heading that reads *Quality and verification*). No stashes. |
+| **Next action** | **Take `E11-T11`, the golden-file infrastructure**, or `E2-T64`'s `Curve2d` with the no-consumer finding written into it: `BrepTrim` carries `(int Edge, bool IsReversed)` and no pcurve, so building `Curve2d` alone closes neither of its two parity rows. **And one small row this step uncovered and deliberately did not take**: the docs harness **does not check that a help topic id names a real topic**. `IsHelpTopicId` *skips* them by design, so that runtime-generated topics with no file are not demanded on disk (`E10-T5`) — which means nothing anywhere would notice a diagnostic code pointing at a topic that does not exist. `docs/TODO.md` claimed `concepts.evaluation` was exactly that; the file exists, so the claim was stale, **but the hole it named is real** and is the one gap in the harness. A check that reads the topic-id constants in `DiagnosticCodes` and asks the help system to serve each would close it (`E10`). |
+| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7), the three gates, and the residue budget **exact** at 346. **And before citing any number about this repository's history, make the query prove its own completeness** ([N172](NOTES.md)). **No tag, no release.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -15538,3 +15538,79 @@ a month.**
 
 **Cost.** One session. Two tests, three rows, and rather more learned about the register than
 about the code.
+
+### 2026-09-14 — A limit is not a census, and the gate had been running all along
+
+**What.** `E11-T14` to `Done`. One shell script extracted from a workflow, six cases proven,
+one note, and **seven false claims corrected across six documents** — five of which I had
+written myself, two of them earlier the same day.
+
+**The user's screenshot is what started it.** It showed the Actions page, and in the navigation
+*Pull requests 2*. An hour earlier I had written, into three documents, that **this project has
+never opened a pull request**.
+
+**Claim one was a guess wearing a fact's clothes.** It came from the shape of the commit log —
+every commit on `main` arrived as a push — which is evidence about `main` and none whatever
+about pull requests. `gh pr list --state all` answers it in one command: **two**, both opened
+2026-08-28, both still open.
+
+**Claim two, written specifically to correct claim one, was worse.** *Of the 200 runs this
+repository has ever had, not one was triggered by a pull request — 188 pushes, 11 schedules,
+one dispatch.* That was `gh run list --limit 200`, and the repository has **234** runs. The
+sixteen `pull_request` runs are the **oldest sixteen**, so the window excluded precisely the
+evidence that refutes the claim — and returned exactly the numbers needed to feel confirmed.
+**A query whose window can silently drop the counter-example is not a check; it is the same
+assertion wearing a command prompt.** [N172](NOTES.md).
+
+**What is true is more interesting than either.** 206 pushes, 16 pull requests, 11 schedules,
+one dispatch. *Documentation freshness* is a **green job in all sixteen** pull-request runs, on
+2026-08-28 and 2026-08-29, its log listing the changed files and ending *Documentation
+freshness check passed.* **The job was never broken and never unexercised.** It went quiet when
+the pull requests did, and stayed quiet through seventeen days of pushes to `main` while the
+register counted it as coverage.
+
+**The fix that mattered was not the trigger.** Running on a push too was already done this
+morning and was green (run 34842799316, `Comparing b9d2bf6..HEAD`). But that proves the job
+**runs**; it proves nothing about whether it **detects**, and [N28](NOTES.md) is the note about
+those being different claims. **It could not be proven to detect while it lived inside
+`ci.yml`**: the only way to exercise inline workflow shell is to trigger the workflow, and
+pushing a deliberate violation to `main` to watch a gate go red is not a test, it is a red
+build. **That is the same property that let it sleep.**
+
+So the decision moved to `scripts/check-docs-freshness.sh`, taking a git range as its argument.
+`ci.yml` computes the range for the event and calls it, and holds no copy of the rule — a rule
+in two places is two rules ([N102](NOTES.md)). **Six cases, each in a throwaway worktree
+against a real commit and a real range, exit codes read rather than wording**: a
+`Spark.Geometry` change with no document **fires**; with `docs/NOTES.md` touched **passes**;
+with a `docs: none-needed` trailer **passes and says so loudly**; documents-only **passes**; a
+`Spark.Engine` change — a real project, deliberately outside the four contract projects —
+**passes**; a bare `PublicAPI.Unshipped.txt` edit **fires**.
+
+**The fifth case failed to run and looked like it had passed.** It appended to
+`src/Spark.Engine/Evaluator.cs`, which does not exist, so `git commit -a` committed nothing and
+the check silently re-read the previous range. Caught only because the exit code was 1 where a
+pass was expected. **The same shape as the `--limit`, in the same step, twenty minutes apart.**
+
+**Then the sweep, which found four more.** README, `docs/TODO.md`, `docs/EPICS.md` and
+ADR-0023 all still said the nightly **has never run on a hosted runner** — five days after it
+had, and one step after the row that depended on it was closed. That is the previous step's
+own finding, left half-applied: **closing a row is not the same as retracting the sentences
+that justified it.** `docs/TODO.md` also said `concepts.evaluation` was a topic id with no file
+behind it; the file exists.
+
+**One hole is left open on purpose, because it is real.** The second half of that bullet:
+**the docs harness does not check that a topic id names a real topic.** `IsHelpTopicId`
+deliberately *skips* them, so that runtime-generated topics with no file are not demanded on
+disk (`E10-T5`) — which means nothing anywhere would notice a diagnostic code pointing at a
+topic that does not exist. It is the one gap in a harness whose whole purpose is this class of
+fault, and it is written into *Next action* rather than fixed in a step already this long.
+
+**The anchor check built two steps ago caught this step.** Twice, for
+`#e11--documentation-and-help` against a heading that reads *Quality and verification*. **A
+gate is worth most on the author who built it.**
+
+**Residue unchanged at 346, tests unchanged at 3878 — no C# was touched. No tag, no release.**
+
+**Cost.** One session. Seven corrections, one script, six proofs, and the uncomfortable part
+recorded rather than smoothed: **five of the seven false claims were mine, and two of those
+were written as corrections of the other three.**

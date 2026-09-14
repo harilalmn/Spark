@@ -91,9 +91,12 @@ enforces is a preference:
 Mechanism 1 works, and has been exercised in anger repeatedly: every public member of
 `Spark.Geometry` and `Spark.Nodes.Core` carries an XML doc comment because the build refuses to
 produce an assembly without one. Mechanism 2 exists and runs, in the reduced form described
-above. Mechanism 3 is **written and has never run** — it is `pull_request`-only and every commit
-so far has been a push to `main` (`E11-T14`), so for the moment that third rule rests entirely
-on you.
+above. Mechanism 3 **ran sixteen times in August and then fell silent for seventeen days** — it was
+`pull_request`-only, and every commit since 2026-08-29 has been a push to `main` (`E11-T14`). It
+now runs on a push too, so it is a live gate again rather than a rule resting entirely on you.
+*This paragraph said `has never run` until somebody checked; the correction is written up under
+[What has and has not been proven](#what-has-and-has-not-been-proven) below, because how it was
+got wrong is worth more than the fact.*
 
 There is a **fourth** mechanism that is not on this list because it is not automatable, and
 the geometry kernel's first slice is the reason it gets named at all: **somebody reads it.**
@@ -154,15 +157,18 @@ XML doc = what this member does.*
 2. `dotnet test Spark.slnx` — green. This runs the docs harness and the architecture tests;
    there is no separate command for either.
 3. `dotnet format Spark.slnx --verify-no-changes --severity warn` — clean. Use exactly this
-   form: it is what the `format` job ran when there was CI, and a shorter one can pass locally
-   where the longer one fails. **It is now the only place that check happens** (`E13-T19`).
-   Two further checks were CI's, and are **yours now** — run them when you have touched what they
-   guard, because nothing else will (`E13-T19`):
-   `scripts/check-no-native-binaries.sh` (NFR-5), and the benchmarks when you have changed
-   marshalling, evaluation or the canvas spatial index. **The benchmarks were a nightly guard
-   against committed budgets and are now a manual one** (`E13-T19`): the budgets in
-   `bench/budgets.jsonc` still fail a run that breaks them, but only when somebody starts the run.
-   Run them the way the nightly did:
+   form: it is what the `format` job runs, and a shorter one can pass locally where the longer
+   one fails. *This said **it is now the only place that check happens**, which was true for two
+   days: CI was switched off on 2026-09-12 (`E13-T19`) and came back on 2026-09-14 when the client
+   made the repository public.*
+   Three further checks are CI's again, and are still worth running locally before you push,
+   because a red run is a slower way to learn the same thing:
+   `scripts/check-no-native-binaries.sh` (NFR-5); `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'`,
+   which is the standing instruction above enforced mechanically and is the same script the
+   `docs-freshness` job runs; and the benchmarks when you have changed marshalling, evaluation or
+   the canvas spatial index. **The benchmarks are a nightly guard against committed budgets
+   again** — `nightly.yml`, green on both runners on 2026-09-14 — and the budgets in
+   `bench/budgets.jsonc` fail a run that breaks them. Run them the way the nightly does:
 
    ```
    dotnet run --project bench/Spark.Benchmarks --configuration Release -- --filter '*' --exporters json --artifacts artifacts/benchmarks
@@ -748,10 +754,41 @@ enough *title* to clear the minimum width on its own, so the assertion "wider th
 true either way. The bound is now above what the title alone asks for, and the arithmetic is in the
 test. **An assertion that would also hold with the feature removed is not an assertion.**
 
-**Written, and never executed once.** The `docs-freshness` CI job. It was `pull_request`-only and
-every commit was a push to `main`, so it never ran — and then Actions was switched off entirely
-(`E13-T19`), so it never will unless somebody turns it back on. **A guard that has never run is not
-a guard**, and this one was carried in the documents as though it were for weeks.
+**Asleep for seventeen days, and twice mis-explained — fixed 2026-09-14 (`E11-T14`).** The
+`docs-freshness` CI job is `pull_request`-only. It **last ran on 2026-08-29** and has not run since,
+because every one of the 206 commits pushed after that went straight to `main`. **A guard that
+cannot fire is worse than no guard**, because the register counts it as coverage — and this one was
+carried in the documents as live for two and a half weeks. It now runs on a push as well, against
+`github.event.before`.
+
+> **Read the next two paragraphs before trusting anything you are about to assert about this
+> repository's history.** The sentence above is the *third* explanation written for this job in one
+> day. The first two were confident, were written into three documents each, and were both false.
+>
+> **Attempt one: “the job has never executed once, because this project has never opened a pull
+> request.”** Both halves wrong. Two pull requests were opened on 2026-08-28 and are still open,
+> and `gh pr list --state all` says so in one command. The claim came from the *shape of the commit
+> log* — every commit on `main` is a push — which is evidence about `main` and no evidence at all
+> about pull requests.
+>
+> **Attempt two: “of the 200 runs this repository has ever had, not one was triggered by a pull
+> request — 188 pushes, 11 schedules, one dispatch.”** That census was run with
+> `gh run list --limit 200`, and the repository has **234** runs. The sixteen `pull_request` runs
+> are the **oldest sixteen**, so the limit cut off precisely the evidence that would have refuted
+> the claim. **The correcting command was itself a truncation, and it returned exactly the numbers
+> needed to feel confirmed.**
+>
+> **What is actually true**, from `gh run list --limit 400`: 206 pushes, **16 pull requests**, 11
+> schedules, one dispatch. The sixteen ran on 2026-08-28 and 2026-08-29 against those two open
+> branches; **“Documentation freshness” is a green job in every one of them**, and its log lists the
+> changed files and ends `Documentation freshness check passed.` The job was never broken and never
+> unexercised. It went quiet when the pull requests did.
+>
+> **The lesson is not “check your claims”, which was already written here and did not help.** It is
+> that a *limit* is not a *census*, and a query whose window can silently exclude the counter-example
+> is not a check — it is the same assertion wearing a command prompt. **Ask for more than you
+> expect and confirm the total**, or do not cite the number.
+> [N172](docs/NOTES.md) is the note, and it records two further instances from the same hour.
 
 **Not built at all.** No surfaces, meshes, BRep or solids; no `NurbsCurve`; no `Quaternion`.
 `Spark.Geometry.Io`, `Spark.Scripting`, `Spark.Packages` and `Spark.Cli` are empty
