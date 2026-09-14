@@ -44,3 +44,7 @@ canvas.log
 # Visual regression artefacts. The golden is committed; what a failing run writes beside it is not.
 tests/corpus/viewport/*.actual.png
 tests/corpus/viewport/*.diff.png
+
+# The summary a failing geometry golden writes beside its golden, so the two can be diffed
+# (E11-T11). The golden itself is committed; what a red run produced is not.
+tests/corpus/geometry/*.actual.tsv

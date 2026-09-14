@@ -1,0 +1,23 @@
+# Golden summary for 'plane-grid' - E11-T11. Generated; do not hand-edit.
+# Rewrite it with SPARK_UPDATE_GOLDEN=1, then READ THE DIFF before committing it.
+#
+# Every row but the last is rounded to ten decimal places and is meant to be compared by
+# eye. `hash` is over the EXACT BITS of the canonical detail - every vertex, every control
+# point - so a hash that moves while every other row holds means the shape changed below
+# the printed precision: a reordered vertex, an inserted knot, rearranged arithmetic.
+#
+# The fixture is built from exact arithmetic only. Sin, Cos and Pow are not guaranteed
+# bit-identical across platforms and a hash has no tolerance, so no sphere, cone, arc or
+# circle is a golden fixture here.
+Field	Value
+kind	mesh
+mesh.vertices	15
+mesh.faces	8
+mesh.closed	no
+mesh.naked edges	12
+mesh.area	8
+mesh.volume	n/a (open)
+bbox.min	(-2, -1, 0)
+bbox.max	(2, 1, 0)
+bbox.diagonal	4.472135955
+hash	d74a87329e88716d

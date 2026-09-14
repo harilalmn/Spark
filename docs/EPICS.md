@@ -1419,7 +1419,15 @@ nothing.
       closest-point property was written with evenly-spaced interior fractions and **passed against
       the very defect it was written to catch**, which lives inside half a seed cell of the domain
       edge; its fractions now crowd towards both ends and it goes red against the old behaviour.*
-- [ ] Golden-file geometry tests print readable diff tables on failure (**E11-T11**).
+- [x] Golden-file geometry tests print readable diff tables on failure (**E11-T11**). *Seven
+      fixtures under `tests/corpus/geometry/`, each a readable list of named measurements ending in
+      an exact-bit hash. A failure prints every field — not only the ones that moved, because a
+      changed volume means one thing beside an unchanged face count and another beside a face count
+      that halved — with the golden, the actual and a signed delta, and marks the rows that moved.
+      **A hash that moves alone is explained in words**, because it is the one outcome a reader is
+      likely to misread as a broken check. Fixtures are exact-arithmetic only: no sphere, cone, arc
+      or circle, since a hash has no tolerance and the transcendentals are not bit-identical across
+      platforms.*
 - [x] The lacing case table asserts value and rank separately (**E11-T12**). *It is `E4-T12`'s
       `LacingCaseTests` and `LacingCorpusCoverageTests`; ticked by the 2026-09-11 reconciliation.*
 - [x] The node↔member two-way diff passes in both directions (**E11-T13**). *It is `E5-T6`'s

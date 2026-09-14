@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (the mutation that survived said the library was narrower than the application)
+**Last updated:** 2026-09-14 (golden files that say what moved, and a guard that proved nothing)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Fifty-four steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Fifty-five steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **The topic-id hole in the documentation harness, closed** — `E10-T11`'s claim had been enforced by nobody. `HelpTopicResolutionTests` builds the help library **the way `MainWindowViewModel.Help()` builds it** and asserts every `SPK####` code resolves through `TopicFor` to a topic the library can serve, and every `related` id in the assembled library does too — including the ones the **generators write in C#**, which no file-level check can reach. The harness's *skip* of topic ids is right (generated pages have no file, `E10-T5`); the **absence of a positive check beside it** was the hole, and `Spark.Docs.Verify` cannot close it because it references no Spark project by design. **Five mutations, five killed — and the fifth is the finding.** Breaking the `related` arm taken when a node has **no code example** left everything green: the importer gives every imported node one, so the whole core library takes the other arm and that branch is unreachable from it. A fifth test builds a bare `NodeDefinition` and kills it. **The surviving mutation said the library under test was narrower than the application.** 5 tests, **3878 → 3883**. Residue **unchanged at 346** — no production code was touched. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3883** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at 28 checks with the residue budget exact at 346. No stashes. |
-| **Next action** | **Take `E11-T11`, the golden-file infrastructure**, or `E2-T64`'s `Curve2d` with the no-consumer finding written into it: `BrepTrim` carries `(int Edge, bool IsReversed)` and no pcurve, so building `Curve2d` alone closes neither of its two parity rows — that finding belongs in the row whichever is taken. **One small thing was found and deliberately not fixed**, recorded in `E10-T11`: `NodeReference` asks `!string.IsNullOrWhiteSpace(definition.CodeExample)` before rendering the example block and `CodeExample is null` for the `related` ids, so a whitespace-only example would render nothing and still claim `concepts.code-blocks`. **Nothing produces one today**, so it is an observation, not a defect — and changing it without a case that distinguishes them would be a change no test could justify. |
-| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7) — **and when a mutation survives, ask what it says about the fixture rather than reaching for the next mutation**. The three gates, the residue budget **exact** at 346, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **No tag, no release.** |
+| **Last completed step** | **`E11-T11` `Done` — golden files for geometry, and a diff table that says what moved.** `GeometryGolden` with seven fixtures under `tests/corpus/geometry/`. A summary is named measurements — counts, closedness, naked edges, area, volume, bounding box, length, degree — ending in a hash over the **exact bits**, so the summary is what a reader compares and the hash catches what rounding hides. **A hash that moves alone is explained in words**: the shape changed below the printed precision, which is a real difference and not a different shape. **Every fixture is exact arithmetic**, because a hash has no tolerance — no sphere, cone, arc or circle, and their absence is a decision. **Eight mutations, eight killed — one only after a test was added for it.** Deleting the header assertion left all twenty-eight tests green: **a guard written, committed, and proving nothing**, which is this week's other finding wearing different clothes. 29 tests, **3883 → 3912**. Residue **unchanged at 346** — no production code was touched. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3912** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at 28 checks with the residue budget exact at 346. No stashes. |
+| **Next action** | **Take `E2-T64`'s `Curve2d`, and write the finding into the row before writing any code**: `BrepTrim` carries `(int Edge, bool IsReversed)` and **no pcurve**, so building `Curve2d` alone closes neither of its two parity rows. The row is `Open` and its own description says it is *waiting for its consumer*; the honest options are to build the consumer with it or to say plainly that it is not 1.0 work, and **deciding that is the step**. **Then the remaining open rows with no external dependency**: `E11-T17` (`tests/corpus/` grows with every bug found), `E10-T12`, `E2-T32`, `E2-T27`, `E1-T22`, `E1-T28`, `E10-T14`, `E5-T11`. `E1-T19` stays `Open` deliberately — the smoke test already runs on both CI legs, so a separate job would re-run it rather than cover anything new. |
+| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7) — **and mutate the guards, not only the feature**, which is what caught the untested header assertion here. The three gates, the residue budget **exact** at 346, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **No tag, no release.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -15673,3 +15673,66 @@ release.**
 
 **Cost.** One session. The check the harness was missing, and a reminder that the answer to a
 surviving mutation is a question about the fixture, not another mutation.
+
+### 2026-09-14 — Golden files that say what moved, and a guard that proved nothing
+
+**What.** `E11-T11` to `Done`. `GeometryGolden`, seven fixtures, twenty-nine tests, and eight
+mutations of which one survived long enough to be interesting.
+
+**The row is about the failure message, not the comparison**, and it says so: *hashes plus
+summary stats; failures print bounding box, counts, area and volume*, in the spirit of
+DoodleSharp's ASCII-art rasteriser failures, because **a bare hash mismatch tells you
+nothing**. A check that reports `expected 3f9a…, got 71c2…` has said only that something
+moved — not what, not by how much, not whether it matters.
+
+**So a golden carries both, and they do different jobs.** The summary is rounded to ten decimal
+places and is what a reader compares: a volume that moved by 2.0 is a different shape and one
+that moved by 1e-12 is arithmetic. The hash is over the **exact bits** of the canonical detail
+— every vertex, every knot, every control point and weight — and catches what rounding hides.
+**A hash that moves while every printed row holds is the one outcome a reader is likely to
+misread as a broken check**, so the report says in words what it means: the shape changed
+below the printed precision — a reordered vertex, an inserted knot, rearranged arithmetic — and
+that is a real difference and not a different shape.
+
+**The table prints every field, not only the ones that moved.** A changed volume means one
+thing beside an unchanged face count and another beside a face count that halved, and the
+reader cannot tell which without both. Eleven rows is not a wall of text; a hash alone is not a
+diagnosis.
+
+**Nothing here is a new convention.** `Compare` returns `string?` with null meaning identical,
+so the comparator is testable without touching the disk — that shape is
+`VisualRegressionTests`', and copying it means the two suites read alike. `SPARK_UPDATE_GOLDEN=1`
+rewrites and then **fails anyway**, because a check that rewrites its own expectation can never
+fail ([N19], [N20]). A missing golden is a named failure rather than a silent create. The file
+format is the parity manifest's: a `#` provenance block, then a header row asserted
+**literally**, because a column reordered by hand and read as though it had not moved is worse
+than a file that will not parse.
+
+**The constraint the whole design turns on is that a hash has no tolerance.** `+ - * / sqrt`
+are correctly rounded by IEEE 754 and identical on every machine; `Sin`, `Cos` and `Pow` are
+not, which is the hazard `VisualRegressionTests` documents at length about its own sphere.
+**So there is no sphere, no cone, no arc and no circle among the fixtures**, and that absence
+is a decision rather than an omission: they are covered by property tests that can afford a
+tolerance, and golden files cannot.
+
+**Eight mutations, and the seventh survived.** Deleting the header assertion outright — the
+guard that refuses a golden whose columns have been reordered — left **all twenty-eight tests
+green**. The guard was written, reasoned about in a doc comment, committed, and proved nothing.
+**That is `E11-T14` again, three commits later, in a file written by the person who had just
+written up `E11-T14`.** `AGoldenWithTheWrongHeaderRefusesToParse` closes it, and the lesson
+that generalises is narrower than *test your code*: **mutate the guards, not only the
+feature.** A guard is exactly the code whose absence changes nothing until the day it matters.
+
+**One fixture exists to pin a mistake this project has made three times.**
+`MeshPrimitives.Cuboid` is **not closed** — twenty-four vertices for eight corners, the six
+sides sharing none — so every edge of it is naked and its signed tetrahedron sum is not a
+volume. Three test fixtures were written against the assumption that it was. The summary now
+prints `n/a (open)` rather than a plausible number, a hand-built closed cube sits beside it as
+the fixture the report tests use, and the golden file records both so the next person reads it
+rather than rediscovering it.
+
+**Residue unchanged at 346 — no production code was touched. 29 tests, 3883 → 3912. No tag, no
+release.**
+
+**Cost.** One session, and the most useful twenty minutes of it were spent mutating a guard
+nobody had asked me to doubt.

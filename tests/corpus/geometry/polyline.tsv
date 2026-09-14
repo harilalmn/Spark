@@ -1,0 +1,22 @@
+# Golden summary for 'polyline' - E11-T11. Generated; do not hand-edit.
+# Rewrite it with SPARK_UPDATE_GOLDEN=1, then READ THE DIFF before committing it.
+#
+# Every row but the last is rounded to ten decimal places and is meant to be compared by
+# eye. `hash` is over the EXACT BITS of the canonical detail - every vertex, every control
+# point - so a hash that moves while every other row holds means the shape changed below
+# the printed precision: a reordered vertex, an inserted knot, rearranged arithmetic.
+#
+# The fixture is built from exact arithmetic only. Sin, Cos and Pow are not guaranteed
+# bit-identical across platforms and a hash has no tolerance, so no sphere, cone, arc or
+# circle is a golden fixture here.
+Field	Value
+kind	curve/PolyLine
+curve.closed	yes
+curve.domain	0 to 4
+curve.length	10.3983456377
+curve.start	(0, 0, 0)
+curve.end	(0, 0, 0)
+bbox.min	(0, 0, 0)
+bbox.max	(2, 3, 1)
+bbox.diagonal	3.7416573868
+hash	fe628edbb4b64a48

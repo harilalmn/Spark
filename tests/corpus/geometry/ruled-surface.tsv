@@ -1,0 +1,20 @@
+# Golden summary for 'ruled-surface' - E11-T11. Generated; do not hand-edit.
+# Rewrite it with SPARK_UPDATE_GOLDEN=1, then READ THE DIFF before committing it.
+#
+# Every row but the last is rounded to ten decimal places and is meant to be compared by
+# eye. `hash` is over the EXACT BITS of the canonical detail - every vertex, every control
+# point - so a hash that moves while every other row holds means the shape changed below
+# the printed precision: a reordered vertex, an inserted knot, rearranged arithmetic.
+#
+# The fixture is built from exact arithmetic only. Sin, Cos and Pow are not guaranteed
+# bit-identical across platforms and a hash has no tolerance, so no sphere, cone, arc or
+# circle is a golden fixture here.
+Field	Value
+kind	surface/RuledSurface
+surface.closed u	no
+surface.closed v	no
+surface.area	13.5669711366
+bbox.min	(-0.1126734774, -0.1126734774, -0.1126734774)
+bbox.max	(4.1126734774, 3.1126734774, 2.1126734774)
+bbox.diagonal	5.7626893839
+hash	5a6c2bf2a4c6beab

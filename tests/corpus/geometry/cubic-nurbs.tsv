@@ -1,0 +1,25 @@
+# Golden summary for 'cubic-nurbs' - E11-T11. Generated; do not hand-edit.
+# Rewrite it with SPARK_UPDATE_GOLDEN=1, then READ THE DIFF before committing it.
+#
+# Every row but the last is rounded to ten decimal places and is meant to be compared by
+# eye. `hash` is over the EXACT BITS of the canonical detail - every vertex, every control
+# point - so a hash that moves while every other row holds means the shape changed below
+# the printed precision: a reordered vertex, an inserted knot, rearranged arithmetic.
+#
+# The fixture is built from exact arithmetic only. Sin, Cos and Pow are not guaranteed
+# bit-identical across platforms and a hash has no tolerance, so no sphere, cone, arc or
+# circle is a golden fixture here.
+Field	Value
+kind	curve/NurbsCurve
+curve.closed	no
+curve.domain	0 to 1
+curve.length	7.3234295278
+curve.start	(0, 0, 0)
+curve.end	(6, 0, 2)
+bbox.min	(-0.0000073234, -0.0000073234, -0.0000073234)
+bbox.max	(6.0000073234, 1.0247438266, 2.0000073234)
+bbox.diagonal	6.4070546486
+nurbs.degree	3
+nurbs.control points	5
+nurbs.rational	no
+hash	488a5ad9c5c762d6
