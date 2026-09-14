@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (the third workflow nobody had looked at)
+**Last updated:** 2026-09-14 (the rename was justified by a payload that does not exist)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Fifty-six steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Fifty-seven steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E1-T28` to `Blocked`, with the work done and the decision named.** The row said *NuGet caching is in `ci.yml`; branch protection and a concurrency group are not* — and `ci.yml` had had a concurrency group all along, as had `nightly.yml`. **What was missing was in the third workflow nobody had looked at.** **`release.yml` had neither a group nor a cache, and the group is a correctness gap**: two dispatches of the same tag could run in parallel and the publish step is not idempotent. It now has `group: release-${{ inputs.tag }}` with **`cancel-in-progress: false`** — the opposite of `ci.yml`'s, because a release killed between packing and publishing is an installer that exists and a release that does not. Keyed on the **tag**, since a `workflow_dispatch` always runs on the default branch and `github.ref` would serialise the wrong things. **`WorkflowChecks` guards all three**, because a workflow is the one kind of code here that is not compiled and has no tests of its own. **Six mutations, six killed.** **The third part is the client's decision**: branch protection would refuse every commit this marathon makes. 9 tests, **3912 → 3921**. Residue **unchanged at 346**. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3921** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **37** checks with the residue budget exact at 346. No stashes. |
-| **Next action** | **`E2-T64` needs a decision, not code, and taking it is the step.** The row is `Open` and says it is *waiting for its consumer*: `BrepTrim` carries `(int Edge, bool IsReversed)` and **no pcurve**, nothing in the managed kernel would read one, and a trimmed face is tessellated behind the OCCT seam where the provider holds its own. **The row is right**, so the step is to say whether it is 1.0 work at all rather than to build a 2D curve type for no caller. **Then the rest**: `E11-T17` (`tests/corpus/` grows with every bug found — and it now has a `geometry/` directory to grow into), `E5-T11` (import a real third-party NuGet package in CI), `E10-T12`, `E2-T32`, `E2-T27`, `E1-T22`, `E10-T14`. |
-| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7) — **and mutate what the guard guards, not the guard's own text**, which is what these six did. The three gates, the residue budget **exact** at 346, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **No tag, no release.** |
+| **Last completed step** | **`E2-T64` `Deferred` by [D28](PRD.md#13-decision-log), and taking the decision found a false sentence in a user-facing document.** `Curve2d` is not waiting for time, it is waiting for a caller 1.0 does not contain: `BrepTrim` is `(int Edge, bool IsReversed)`, trims are used only as topology, and a trimmed face is tessellated **behind the OpenCascade seam** where the provider holds its own pcurves. **The alternative — build it anyway, because FR-60 names it — was rejected**: a type with no caller has no test that can fail for a reason a user would recognise, and it fixes a public shape before anything has argued about what that shape should be. **And [DYNAMO-COVERAGE](DYNAMO-COVERAGE.md) told a reader that *Spark's `BrepTrim` holds a `Curve2d`*, then rested the `CoEdge` → `BrepTrim` rename on that payload.** It holds no pcurve. **The conclusion survives and the argument does not** — the rename is justified by convention, which is good enough and is a different reason. `FR-60` corrected with it, and the decision log's *Eighteen decisions* was twenty-eight. No code changed. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3921** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **37** checks with the residue budget exact at 346. **The link check caught two ADR filenames I invented while writing this step** — `0021-brep-residency.md` and `0019-public-api-baselines.md`, for files called `0021-brep-kernel-residency.md` and `0019-deliberate-public-api-change-control.md`. Second time this week. No stashes. |
+| **Next action** | **`E11-T17` — the regression corpus — and it has just been given something to grow into.** The row says `tests/corpus/` *grows with every bug found* and *holds the real old-version graphs the migration golden-file tests need*. `tests/corpus/geometry/` now exists with seven fixtures and the machinery to compare them, so the question the row actually asks is whether **the bugs this project has found are in it** — and [NOTES.md](NOTES.md) has 172 entries to check that against. **Expect the answer to be no**, and expect the useful half of the step to be choosing which of them are corpus-shaped rather than adding all of them. **Then**: `E5-T11` (import a real third-party NuGet package in CI), `E10-T12`, `E2-T32`, `E2-T27`, `E1-T22`, `E10-T14`. |
+| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7). The three gates, the residue budget **exact** at 346, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **And when a document explains *why* something is so, check the *why* and not only the *so***: three claims corrected this week were conclusions whose stated evidence was false. **No tag, no release.** |
 | **Blocked on** | **Four things need a human, and the fourth is new.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -15803,3 +15803,64 @@ build cannot be asked to change — so the comment now says that instead.
 
 **Cost.** One session, most of it spent finding out that two thirds of the row was already
 true and the interesting third was in a file it never named.
+
+### 2026-09-14 — The rename was justified by a payload that does not exist
+
+**What.** `E2-T64` decided rather than deferred again, as [D28](PRD.md#13-decision-log). No
+code. Three documents corrected, and the most interesting correction is to an argument rather
+than to a fact.
+
+**The row was right, and had been right and unacted-on for three days.** `Curve2d` is a 2D
+curve in a face's UV space, for trim pcurves. Nothing in the managed kernel would read one:
+`BrepTrim` is `readonly record struct BrepTrim(int Edge, bool IsReversed)`, trims are used
+only as topology — the loop views, `Brep` validation, `Brep.Join`'s index offsets — and a
+genuinely trimmed face is tessellated **behind the OpenCascade seam**
+([ADR-0021](adr/0021-brep-kernel-residency.md)), where the provider holds pcurves of its own
+and hands back triangles.
+
+**A row that is right and unacted-on is a decision nobody has taken, not a task nobody has
+done.** That is the same shape as `E1-T21` and `E8-T15` sitting five days behind a billing
+refusal and `E11-T15` sitting a month behind a hang that had stopped happening — except that
+here the register's own sentence was correct, and being correct is what let it sit. So the
+step was to write the decision down: **deferred past 1.0, because it has no caller rather than
+because there is no time**, with the alternative recorded — build it anyway, as lines and
+NURBS in UV, because FR-60 names it — and rejected, because a type with no caller has no test
+that can fail for a reason a user would recognise, and because it fixes a public shape
+([ADR-0019](adr/0019-deliberate-public-api-change-control.md)) before anything has argued
+about what that shape should be.
+
+**Taking the decision found the false sentence.** [DYNAMO-COVERAGE](DYNAMO-COVERAGE.md), in
+the section explaining the three renames that are not obvious, said: *Spark's `BrepTrim` holds
+a `Curve2d` (E2-T13), which is why the planar layer is a prerequisite for BRep rather than a
+nicety* — and then rested the rename on it: *`CoEdge` describes the relationship; `BrepTrim`
+describes the payload, and the payload is what users need to reach.*
+
+**There is no payload.** So the correction is not one sentence but an argument: the rename is
+right, and the reason given for it was not. What can honestly be said is the ordinary thing —
+it is what every other kernel calls this entity, so a reader who knows one knows this. **That
+is good enough, and it is a different reason**, and the difference matters because the
+original phrasing would have made a future reader expect a property that is not there.
+
+**This is the week's recurring shape in its purest form.** Every correction this week has been
+a true conclusion resting on false evidence: *the docs-freshness job never ran* (it ran
+sixteen times); *the nightly has never run on a hosted runner* (it had, four times); *N90 hangs
+the headless window* (it stopped); and now *`BrepTrim` holds a `Curve2d`*. **The lesson that
+generalises is narrow and cheap: when a document explains why something is so, check the why
+and not only the so.** A conclusion that survives makes the false premise invisible, because
+nothing downstream ever contradicts it.
+
+**Two smaller things fell out.** `FR-60` read *Partly met* and *waits for its first consumer*,
+which is true and reads as scheduled work; it now says what it is. And the decision log opened
+with *Eighteen decisions* above a table of twenty-eight.
+
+**The link check caught two ADR filenames I invented while writing this.**
+`0021-brep-residency.md` and `0019-public-api-baselines.md`, for files actually called
+`0021-brep-kernel-residency.md` and `0019-deliberate-public-api-change-control.md`. **Second
+time this week**, and both times the gate found it rather than a reader. An ADR's number is
+memorable and its filename is not, which is precisely the shape of citation a person gets
+right by luck.
+
+**Residue unchanged at 346. Tests unchanged at 3921 — no code changed. No tag, no release.**
+
+**Cost.** One session. One decision, and an argument corrected that nobody would have
+questioned because its conclusion was right.

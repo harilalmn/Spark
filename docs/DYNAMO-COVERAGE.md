@@ -1019,10 +1019,20 @@ a method body, where a `using` directive is a syntax error. See [N94](NOTES.md).
 **`CoEdge` → `BrepTrim`.** A co-edge is one face's use of a shared edge; an edge between two
 faces has two of them, running in opposite directions. Dynamo names it for its topological
 role. Most kernels name it for what the data actually is — the **trim**, because the entity
-carries the curve in the face's own UV parameter space that bounds the face there. Spark's
-`BrepTrim` holds a `Curve2d` (E2-T13), which is why the planar layer is a prerequisite for
-BRep rather than a nicety. `CoEdge` describes the relationship; `BrepTrim` describes the
-payload, and the payload is what users need to reach.
+carries the curve in the face's own UV parameter space that bounds the face there.
+`CoEdge` describes the relationship; `BrepTrim` describes the payload.
+
+> **Corrected 2026-09-14 (`E2-T64`), and the correction weakens the argument rather than the
+> conclusion.** This paragraph said *Spark's `BrepTrim` holds a `Curve2d` (E2-T13), which is why
+> the planar layer is a prerequisite for BRep rather than a nicety*, and then rested the rename on
+> it: *the payload is what users need to reach*. **`BrepTrim` is
+> `readonly record struct BrepTrim(int Edge, bool IsReversed)` and holds no pcurve at all.** So the
+> name describes a payload this kernel does not carry, and the strongest thing that can honestly be
+> said for it is the ordinary one: it is what every other kernel calls this entity, so a reader who
+> knows one knows this. **That is a good enough reason and it is a different reason**, and
+> [D28](PRD.md#13-decision-log) settles why the payload is not coming before 1.0: a managed pcurve
+> has no managed consumer, because a trimmed face is tessellated behind the OpenCascade seam where
+> the provider holds pcurves of its own.
 
 **`Solid`, `PolySurface` and `Topology` all → `Brep`.** Three Dynamo types become one because
 Dynamo's distinction is by closure and Spark's is by representation. §3.4 gives the reason:
