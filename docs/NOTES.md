@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-14 (N170: a test that discarded the answer it needed)
+**Last updated:** 2026-09-14 (N171: a prelude that depended on what had already run)
 
 ---
 
@@ -5175,6 +5175,47 @@ middle already does.
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
 
+## N171 — `Console` meant System's, on whichever machine ran the tests in the wrong order
+
+**2026-09-14, `E11-T14`.** Four `ConsoleFromCodeTests` failed on a hosted Windows runner and passed
+on the development machine. With the diagnostics that [N170](#n170--a-test-that-discarded-the-one-value-that-could-explain-its-failure)
+added, the cause named itself: **`CS0815 Cannot assign void to an implicitly-typed variable`**, on a
+block reading `var removed = Console.Clear();`.
+
+**Spark's `Console.Clear()` returns the number of lines it removed. `System.Console.Clear()` returns
+void.** So on that machine, in that run, `Console` in a code block meant **System's**.
+
+**The mechanism is a prelude assembled from a running process.** `ReferenceCatalog.PreludeFor`
+emits the node library's imports — including the pin `Console = Spark.Nodes.Core.Console` — only
+when `Spark.Nodes.Core` is among the references, and the references were discovered by sweeping
+`AppDomain.CurrentDomain.GetAssemblies()`. That set is **whatever the process has already loaded**,
+which in a test run is decided by *which class ran first*. Two machines scheduled the classes
+differently and got different languages.
+
+**What a user would have seen is worse than a failing test, because nothing fails.** A block saying
+`Console.WriteLine("x")` compiles perfectly against `System.Console` and writes to a terminal a
+windowed application does not have. The line simply never appears in the Console pane, and there is
+no error anywhere to explain it.
+
+**This is the third time this exact fault has been found in this one method, and the first two are
+recorded in its own comments.** `Microsoft.CSharp` was missing until a script using an input port
+failed with *Missing compiler required member*. `System.Linq.Expressions` was missing until a test
+class *that had loaded neither* compiled one. Both were fixed by anchoring the assembly with a
+`typeof(...)` rather than hoping the sweep found it — and both comments say, in effect, *a catalogue
+built early enough is missing things*. **The lesson was written down twice and applied twice,
+member by member, instead of once to the rule.**
+
+**`Spark.Nodes.Core` could not take the same fix**, which is why it was left out: `Spark.Scripting`
+does not reference it and must not — the node library is imported the way any third party's library
+would be. So it is now found **beside the running assembly**, by file name, which moves the decision
+from *what has already run* to **what is deployed**. A host that does not ship the node library
+still gets a prelude without it, which is what `E6-T30` intended; a host that does ship it gets the
+same answer on the first block as on the hundredth, which `E6-T30` assumed and did not get.
+
+**The general rule, stated once so it need not be learned a fourth time: a set built by asking a
+live process what it has loaded is not a set, it is a snapshot.** Anything derived from it inherits
+the timing. If the answer is supposed to depend on the deployment, ask the deployment.
+
 ## N170 — A test that discarded the one value that could explain its failure
 
 **2026-09-14.** Four of the five `ConsoleFromCodeTests` failed on Windows CI and pass on this
@@ -5201,8 +5242,12 @@ the block*. A reference set assembled from a snapshot of a running process is no
 the two candidates both follow from that: a reference that is missing because nothing has loaded it
 yet, or a duplicate simple name because two copies of one assembly are loaded from different paths.
 
-**Either way the lesson holds independently of which it turns out to be**: the helper's silence is
-what made a five-minute question into a round trip through CI, and the fix is the same change.
+**It turned out to be neither, and the diagnostic said so in one line**: the reference set was not
+missing a framework assembly and had no duplicate identity - it was missing **the node library**, so
+the prelude quietly dropped the pin that makes `Console` mean Spark's. The whole of
+[N171](#n171--console-meant-systems-on-whichever-machine-ran-the-tests-in-the-wrong-order) followed
+from the message this change made visible. **The helper's silence is what made a one-line answer
+into two round trips through CI.**
 
 ## N169 — The second machine found exactly one thing, and it was in a test
 

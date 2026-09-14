@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using Spark.Api;
@@ -122,6 +123,40 @@ public sealed class CodeBlockLibraryReachTests
             + "ReferenceCatalog.NodeLibraryImports, so a code block naming one gets CS0104: "
             + string.Join(", ", unpinned)
             + ". Add \"<name> = Spark.Geometry.<name>\" to that list.");
+    }
+
+    /// <summary>
+    /// <b>The node library reaches a block because it is <i>deployed</i>, not because something
+    /// happened to load it first.</b>
+    /// </summary>
+    /// <remarks>
+    /// The prelude's pins - <c>Console</c> loudest among them - are emitted only when
+    /// <c>Spark.Nodes.Core</c> is among the references, and until 2026-09-14 the only way it got
+    /// there was a sweep of what the process had already loaded. Two machines that scheduled the
+    /// test classes differently therefore compiled blocks in two different languages
+    /// ([N171](../../docs/NOTES.md)).
+    /// </remarks>
+    [Fact]
+    public void TheNodeLibraryIsFoundBecauseItIsDeployedAndNotBecauseSomethingLoadedIt()
+    {
+        // The prelude only carries the node library's imports when Spark.Nodes.Core is among the
+        // references, and until 2026-09-14 the only way it got there was the sweep of assemblies
+        // the process had already loaded. A catalogue built before anything touched it therefore
+        // dropped every pin - loudest of all Console, which then meant System's: a code block's
+        // output went to a terminal a windowed application does not have, and a block saying
+        // "var n = Console.Clear();" stopped compiling, because System's Clear returns void.
+        // Nothing reported any of it.
+        //
+        // THIS TEST IS WEAKER HERE THAN IT IS ON CI, AND THAT IS WORTH KNOWING. Locally the
+        // assembly is loaded long before this runs, so the assertion passes either way; what it
+        // guards against is the anchor being removed. The witness that the bug was real is CI,
+        // where a different test order left it unloaded and four console tests failed
+        // ([N171](../../docs/NOTES.md)).
+        Assert.True(
+            File.Exists(Path.Combine(AppContext.BaseDirectory, "Spark.Nodes.Core.dll")),
+            "the node library is not deployed beside this test, so this assertion proves nothing.");
+
+        Assert.Contains("using Console = Spark.Nodes.Core.Console;", new ReferenceCatalog().Prelude());
     }
 
     /// <summary>

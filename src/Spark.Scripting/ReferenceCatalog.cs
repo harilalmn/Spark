@@ -99,15 +99,9 @@ public sealed class ReferenceCatalog
         // application has no terminal, so `System.Console.WriteLine` writes where nobody can look -
         // whereas Spark's puts the line in the Console pane, which is what somebody typing it in a
         // code block is asking for. `System.Console` is still there under its full name.
-
-        // `E8-T80`: AND `Console`, PINNED THE OTHER WAY - TO SPARK'S, NOT SYSTEM'S.
         //
-        // Every block imports `System`, so the node library's `Console` would be `CS0104` against
-        // `System.Console` without a pin. The direction is the opposite of `Math`'s and for the
-        // same reason `Math`'s goes the way it does: what would the user mean? A windowed
-        // application has no terminal, so `System.Console.WriteLine` writes where nobody can look -
-        // whereas Spark's puts the line in the Console pane, which is what somebody typing it in a
-        // code block is asking for. `System.Console` is still there under its full name.
+        // The pin only reaches a block when this whole list does, which is what made it possible
+        // for `Console` to quietly mean System's - see the node-library anchor in `Build`.
         "Console = Spark.Nodes.Core.Console",
 
         // The TWELVE that collide with Spark.Geometry, pinned to the geometry type a block has always
@@ -458,6 +452,31 @@ public sealed class ReferenceCatalog
         // on a line they did not write. Found by a test that happened to build one early.
         TryAdd(byPath, typeof(Spark.Api.SparkNodeAttribute).Assembly.Location);
         TryAdd(byPath, typeof(Spark.Geometry.Point3d).Assembly.Location);
+
+        // AND THE NODE LIBRARY, BY FILE RATHER THAN BY TYPE - THE SAME FAULT AS THE TWO ABOVE,
+        // MET A THIRD TIME AND IN THE OPPOSITE DIRECTION (`E11-T14`, 2026-09-14).
+        //
+        // Those two are anchored because a catalogue built before anything touched them would
+        // promise an import for an assembly it had no reference to. `Spark.Nodes.Core` has the
+        // mirror problem: `PreludeFor` only emits the node library's imports WHEN THE ASSEMBLY IS
+        // AMONG THE REFERENCES, so a catalogue built before anything loaded it silently drops
+        // them - and the loudest of those is `Console = Spark.Nodes.Core.Console`. Without the
+        // pin, `Console` in a code block means `System.Console`: the user's `Console.WriteLine`
+        // goes to a terminal a windowed application does not have, and `var n = Console.Clear();`
+        // stops compiling because System's returns void. Nothing reports any of it.
+        //
+        // It cannot be anchored by `typeof` like the other two, because `Spark.Scripting` does not
+        // reference `Spark.Nodes.Core` and must not - the node library is imported the way any
+        // third party's would be. So it is found beside the running assembly instead, which makes
+        // the decision depend on WHAT IS DEPLOYED rather than on WHAT HAS ALREADY RUN. A host that
+        // does not ship the node library still gets a prelude without it, which is what `E6-T30`
+        // wanted; a host that does ship it gets the same answer on the first block as on the
+        // hundredth, which is what `E6-T30` assumed and did not get.
+        //
+        // Found by CI on 2026-09-14 ([N171](../../docs/NOTES.md)): four console tests failed on a
+        // hosted Windows runner and passed here, because the two machines happened to run the
+        // test classes in a different order.
+        TryAdd(byPath, Path.Combine(AppContext.BaseDirectory, NodeLibrary + ".dll"));
 
         // Everything already loaded, which covers the framework, Spark.Api and Spark.Geometry
         // without anybody naming them. Dynamic assemblies have no location and are skipped.
