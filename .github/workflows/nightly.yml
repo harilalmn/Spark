@@ -101,11 +101,20 @@ jobs:
       # it cannot be a BenchmarkDotNet case. Windows only: the Linux runner has no display server,
       # and driving Avalonia under xvfb would measure a software rasteriser nobody ships on.
       #
-      # UNPROVEN ON A HOSTED RUNNER as of this commit — it has only ever been run on a developer
-      # machine, where it takes 0.87 ms median at 2,000 nodes. If the first nightly cannot open a
-      # window, the honest fixes are to make the measurement headless or to delete this step. Do
-      # not reach for continue-on-error: a step allowed to fail is not a guard, and the budgets
-      # file would then be checking something nobody runs.
+      # PROVEN ON A HOSTED RUNNER ON 2026-09-14, AND THIS COMMENT SAID THE OPPOSITE UNTIL E11's
+      # criterion sweep of 2026-09-15 went looking. It read "UNPROVEN ON A HOSTED RUNNER as of this
+      # commit — it has only ever been run on a developer machine", which was the open question
+      # E8-T15 was held on. Run 34841376718 answers it: windows-latest opened a window, drew 2 000
+      # nodes and 1 677 wires over 500 frames at 813x620, and the budget check passed —
+      # `canvas: median 1.38 ms of 16.70 ms`, `canvas: p95 3.04 ms of 33.30 ms`. The runner has no
+      # GL (`viewport: no GL callback ran`), which is what makes it the hard case rather than a
+      # lucky one. Wall clock there is 41 ms a frame and is NOT what ADR-0013 is judged on: the
+      # wall-clock floor does not scale with node count, so it measures the compositor rather than
+      # this control.
+      #
+      # If a future runner cannot open a window, the honest fixes are to make the measurement
+      # headless or to delete this step. Do not reach for continue-on-error: a step allowed to fail
+      # is not a guard, and the budgets file would then be checking something nobody runs.
       - name: Canvas benchmark, 2 000 nodes
         if: runner.os == 'Windows'
         shell: bash

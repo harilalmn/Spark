@@ -3,7 +3,7 @@
 What to do next, in priority order. Full context in [EPICS.md](EPICS.md), full inventory in
 [TASKS.md](TASKS.md), the reasoning in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E2-T27` deferred by D29)
+**Last updated:** 2026-09-15 (`E11-T32`: the criteria are checked against the register)
 
 **`v2026.8.1` shipped on 2026-09-08, and `v0.1.0` on 2026-09-02 — the first tag in the repository. M0 through M7 have all landed.** The version scheme moved from semantic to calendar at `v2026.8.1`, at the client's instruction. The application opens, a graph evaluates,
 and geometry appears in the viewport — curves, surfaces, meshes, and **solids that are
@@ -100,6 +100,19 @@ for anything else.
 ---
 
 ## Where the run stands
+
+**The acceptance criteria are checked against the register, closed 2026-09-15** — `E11-T32`.
+`EPICS.md` states acceptance as check boxes, `TASKS.md` states rows as statuses, and **nothing
+reconciled the two**: of the 154 criteria citing exactly one row, **22 disagreed with it** — two
+boxes ticked whose rows were `Blocked` and `Withdrawn`, twenty unticked whose rows had been `Done`
+for as long as three weeks. Seventeen were the documents lagging and are ticked; five are allowed
+to disagree and say why in `tests/corpus/epic-criterion-exemptions.tsv`, because a criterion can be
+one third of a row or broader than it. **One of the twenty was not lag at all**: `E8-T15` was held
+on a canvas benchmark that had *never run on a runner without a GPU*, and it ran on 2026-09-14 —
+1.38 ms median of a 16.70 ms budget over 500 frames on windows-latest with no GL — and nobody had
+gone back to look. **The check that was planned instead fires zero times in 120 commits** and was
+abandoned on that measurement rather than on an opinion; [N176](NOTES.md) records the rule it
+leaves behind, which is to measure a proposed check against history before writing it.
 
 **The progress dashboard is generated and gated, closed 2026-09-12** — `E10-T17` and `E11-T31`,
 asked for by the client and then made a standing instruction: *keep the dashboard updated whenever

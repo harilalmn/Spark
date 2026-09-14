@@ -1,0 +1,30 @@
+# The acceptance-criterion exemptions (E11, out of the register sweep of 2026-09-15).
+#
+# EPICS.md states acceptance criteria as check boxes; TASKS.md states register rows as statuses.
+# Where a criterion cites EXACTLY ONE row, the two are claims about the same thing, and
+# AcceptanceCriterionChecks asserts they agree: the box is ticked if and only if the row is Done.
+# 154 criteria cite exactly one row. 22 disagreed when the check was written; 17 were the documents
+# lagging the work and were ticked, and the five below are the ones where disagreeing is correct.
+#
+# A CRITERION IS NOT ITS ROW. That is the whole reason this file exists. A criterion may be a part
+# of a row, so it is met while the row is not; or broader than the row, so the row is Done and the
+# criterion is not. Either way the reason is written here rather than hidden in the predicate, and
+# a reason that stops being true fails the check: an exemption whose row and box now agree is a
+# STALE exemption and is reported, so this file cannot become the place fixed problems go to be
+# forgotten.
+#
+# KEYED ON THE CRITERION, NOT ON THE ROW, because a row can be cited by several criteria and they
+# do not all need excusing - E2-T28 is cited by three and exactly one of them is here. Match must
+# select exactly one criterion citing Row, or the check fails rather than guessing.
+#
+# Row       the register row the criterion cites.
+# Expect    the state the box is expected to be in: Ticked or Unticked.
+# Match     a distinctive substring of the criterion, which must select exactly one of them.
+# Reason    why, in a sentence a stranger can check.
+
+Row	Expect	Match	Reason
+E1-T28	Ticked	declares a concurrency group	The criterion is one third of the row. Concurrency groups and package caching are done on all three workflows and asserted by WorkflowChecks; the row is Blocked on branch protection, which is a client decision and a different third of it.
+E1-T24	Ticked	cannot publish to nuget.org by accident	The criterion is met and the row is Withdrawn, which is not a contradiction: IsPackable is false everywhere and no packaging metadata exists, while what D11 withdrew is the separate idea of reserving NuGet IDs. The criterion says "withdrawn" in its own text.
+E2-T28	Unticked	grey out unsupported operations	D29 corrected this claim on 2026-09-15: nothing greys anything, because there is no mesh-boolean node to grey and the only reader of IBrepKernel.Capabilities in the tree is the solid-file export. The flag set exists and works; what it does is make NOT claiming an operation a positive statement a provider has to make.
+E5-T4	Unticked	One node per overload	Half met, and the criterion says so in its own text: the importer produces one node per overload and disambiguates by parameter names, and the library panel does not group them under one entry with a flyout. The row is Done for the importer half.
+E13-T12	Unticked	third-party viewer, never our own reader	Acceptance needs a public STEP corpus and a third-party viewer. The reader and writer are Done; the viewer needs a person and is on the journal's Blocked on list.

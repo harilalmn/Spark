@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-15 (N175, extended: the second wrapped comparison had the same hole)
+**Last updated:** 2026-09-15 (N176: the pattern that caught four rows fires zero times in 120 commits)
 
 ---
 
@@ -5216,6 +5216,41 @@ middle already does.
 **Where it comes up next.** `NurbsSurface.ByPointsTangents` (`E2-T66`) takes the same directions and
 needs the same rule, along each parametric direction in turn. It is decided once, here, and the
 surface form inherits it rather than choosing again.
+
+## N176 — The pattern that caught four rows in a row fires zero times in 120 commits
+
+**2026-09-15, out of `E2-T27`.** Four rows in four days turned out to be reconciliations rather
+than builds, and the fourth — `E2-T27`, whose note said ADR-0020 had deferred it while its status
+column read `Open` — suggested a rule worth mechanising: **a register row whose note argues with
+its own status column.** The journal's *Next action* said to build it as a check rather than sweep
+414 rows by hand, on `E10-T17`'s argument that a sweep done once goes stale the next day.
+
+**It was measured before it was written, and the measurement killed it.** The general form — *a
+note that opens by declaring the work `done`, `closed`, `deferred`, `withdrawn` or `superseded`,
+against a status of `Open`, `In progress` or `Blocked`* — was run over **120 commits of
+`docs/TASKS.md`** and flagged **nothing, in any of them**. The version that caught `E2-T27` did it
+with a phrase list containing *moves from M6 to 1.x*, which is that row's own wording. That is a
+check fitted to its single fixture, and [N13](#n13--sparkdocsverify-deliberately-contains-no-stub-for-a-check-it-cannot-yet-run)
+already names what it would have become.
+
+**A broader phrase list is worse, not better, and that is also measured.** Adding *closed 20* — an
+obvious generalisation — flagged three rows, and **all three were false positives** of the same
+kind: `E2-T68`, `E2-T71` and `E2-T72` are multi-part rows whose notes say *this sub-item closed
+2026-09-13*, which is exactly what an `In progress` row is supposed to say. A rule that fires only
+on false positives trains the reader to ignore it.
+
+**The invariant standing next to it had 22 real findings.** `EPICS.md` states acceptance as check
+boxes and `TASKS.md` states rows as statuses; **154 criteria cite exactly one row**, and on the day
+this was written **22 of them disagreed with the row they cite** — two boxes ticked whose rows were
+`Blocked` and `Withdrawn`, and twenty unticked whose rows had been `Done` for up to three weeks.
+`AcceptanceCriterionChecks` asserts it now, and one of the twenty was not lag at all: **`E8-T15`
+had been waiting on a measurement that ran on 2026-09-14** and nobody had gone back to look.
+
+**The rule, and it is about how to choose a check rather than about this check.** *Measure a
+proposed rule against history before writing it.* Both candidates took minutes to run over the git
+log, and the answer was not guessable: the pattern with four recent instances had a historical
+yield of zero, and the one nobody had mentioned had twenty-two. **A rule's plausibility and its
+yield are unrelated**, and the difference between them is one `git log` away.
 
 ## N175 — Every arc bounded its whole circle, and 3,947 tests did not mind
 

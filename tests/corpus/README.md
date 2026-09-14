@@ -2,7 +2,7 @@
 
 **Status:** Current.
 **Owner:** `test-engineer`
-**Last updated:** 2026-09-14 (`E11-T17`: the first real old-version graph, and this file)
+**Last updated:** 2026-09-15 (the acceptance-criterion exemptions)
 
 This directory holds inputs the suites read: files that are checked in, compared against, and
 read by tests that live elsewhere. It is **deliberately not an MSBuild project**, which
@@ -31,6 +31,7 @@ exist.** It holds four kinds of thing:
 |---|---|---|---|
 | `dynamo-parity.tsv` | Manifest | `Spark.Docs.Verify.DynamoParityChecks`, `NodeClaimChecks`, `ProgressDashboardChecks` | Enumerated from Dynamo's ProtoGeometry surface; carries the **residue budget**, asserted exactly |
 | `dynamo-parity-exclusions.tsv` | Manifest | `Spark.Docs.Verify.DynamoParityChecks` | Members deliberately not ported, each with a reason |
+| `epic-criterion-exemptions.tsv` | Manifest | `Spark.Docs.Verify.AcceptanceCriterionChecks` | The acceptance criteria in `EPICS.md` that are allowed to disagree with the register row they cite, each with a reason. Written out of the sweep of 2026-09-15, which found 22 disagreements among the 154 criteria citing exactly one row; 17 were the documents lagging and were ticked, five are here |
 | `viewport/reference-scene.png` | Golden | `Spark.Viewport.Tests.VisualRegressionTests` | Rendered by the software rasteriser on Windows (`E9-T12`). Regenerate with `SPARK_UPDATE_GOLDEN=1` |
 | `geometry/closed-cube.tsv` | Golden | `Spark.Geometry.Tests.GoldenGeometryTests` | A hand-built closed cube — shared vertices, area 24, volume 8 |
 | `geometry/cuboid.tsv` | Golden | `Spark.Geometry.Tests.GoldenGeometryTests` | `MeshPrimitives.Cuboid`, which is **not closed**: twenty-four vertices for eight corners |

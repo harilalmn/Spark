@@ -4,7 +4,7 @@ Thirteen epics. Each has a goal, a scope boundary, acceptance criteria and a sta
 Individual tasks live in [TASKS.md](TASKS.md); what to do next is in [TODO.md](TODO.md);
 the requirements they serve are in [PRD.md](PRD.md).
 
-**Last updated:** 2026-09-15 (`E2-T27` deferred by D29)
+**Last updated:** 2026-09-15 (the criterion sweep: 22 boxes disagreed with their rows)
 
 **Every epic has landed code, and the statuses below were re-derived from
 [TASKS.md](TASKS.md) on 2026-09-09 rather than carried forward.** M0 through M7 are done and
@@ -231,7 +231,11 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       file with three solids in it produces exactly that — so this is a way to build one from
       parts rather than a new shape. Nothing is welded; merging is `Sew`'s job and needs a
       tolerance.
-- [ ] Analytic surfaces are first-class, not NURBS in disguise (**E2-T18**).
+- [x] Analytic surfaces are first-class, not NURBS in disguise (**E2-T18**).
+      *All eight landed 2026-08-31 with analytic first and second derivatives and a closed-form
+      area where one exists, each cross-checked three ways: its area against a formula it does
+      not use, its curvature against the textbook value, and its hand-differentiated derivatives
+      against a numerical one.*
 - [x] BRep topology is index-based — arrays and int indices, no object references — with
       `readonly ref struct` navigator views for ergonomics (**E2-T22**, **E2-T23**). *The model
       is built, the views with it, and **`E2-T44` measured what the decision costs** on
@@ -243,7 +247,7 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       the model still holds each fact once. Four of the twelve needed no index at all, because a
       loop's trims are contiguous. This criterion is ticked on that evidence: the shape survived
       contact with a real parity requirement, which is the only test of it that counts.*
-- [ ] Every operation behind `IBrepKernel` returns `Result<T>` carrying diagnostics and
+- [x] Every operation behind `IBrepKernel` returns `Result<T>` carrying diagnostics and
       partial results; kernel failure is diagnosable, never thrown (**E2-T28**). *Unchanged by
       ADR-0020, and more load-bearing than before: the failures are now OCCT's (**R18**), and
       `Result<T>` was designed before anyone knew whose they would be.*
@@ -251,10 +255,13 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       instead of throwing — this is what makes staged delivery honest (**E2-T28**). *What it
       greys out has inverted: most of what it was designed to expose arrives on day one, and
       what is absent at 1.0 is **mesh** booleans.*
-- [ ] **Residency is canonical, not cached** ([ADR-0021](adr/0021-brep-kernel-residency.md)).
+- [x] **Residency is canonical, not cached** ([ADR-0021](adr/0021-brep-kernel-residency.md)).
       Exactly two crossings, `Import` and `Materialise`; a ten-operation chain performs zero
       imports and one materialisation; round-trip asserts **tolerance-bounded equivalence,
       never identity**; only `Spark.Geometry.Occt` observes the token (**E2-T28**, **E13**).
+      *Built and asserted: exactly two crossings, a ten-operation chain performing zero imports
+      and one materialisation, and a round trip judged on tolerance-bounded equivalence rather
+      than identity. Only `Spark.Geometry.Occt` observes the token.*
 - [ ] Mesh booleans are robust, pure managed, built on the ported BVH plus
       adaptive-precision exact predicates (**E2-T27**). *Moved to **1.x** by ADR-0020 and
       **deferred as a status by [D29](PRD.md#13-decision-log) on 2026-09-15**, because the row had
@@ -292,11 +299,15 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       `Solid.Translate`, `Rotate` and `Mirror` as nodes, no provider needed, and every face flipped
       when the transform reverses handedness — which also fixed the same live bug in
       `Mesh.TransformedBy`, where a mirror had been leaving every face wound backwards.
-- [ ] Serialization carries **per-type `schemaVersion`**, so a `NurbsCurve` at v2 and a
+- [x] Serialization carries **per-type `schemaVersion`**, so a `NurbsCurve` at v2 and a
       `Mesh` at v1 coexist, with migrations applied JSON-to-JSON (**E2-T29**).
+      *`GeometryJson`, landed 2026-08-29. Every value carries its own `type` and `version`,
+      nested values included, which is what makes a `NurbsCurve` at v2 beside a `Mesh` at v1
+      true rather than aspirational: a document-wide version cannot express it and could not
+      have been changed to later without breaking every file already written.*
 - [ ] A reflection-driven round-trip test enumerates every concrete geometry type, so a new
       type that forgets serialization **fails the build** (**E2-T31**, [E11-T9](#e11--quality-and-verification)).
-- [ ] Property-based tests from M1: `T.Inverse().Inverse() == T`; union volume ≥ max input
+- [x] Property-based tests from M1: `T.Inverse().Inverse() == T`; union volume ≥ max input
       volume; `Split(t)` rejoined equals the original; **tessellation of a closed solid is
       watertight**; `ClosestPoint` never farther than any sampled point (**E2-T33**).
       *The `ClosestPoint` property holds as of 2026-08-30, asserted over all eight curve types
@@ -307,6 +318,9 @@ serves mesh booleans, viewport picking and intersection seeding alike.
       worse than its own seed grid. It found four defects in `Surface.ClosestPoint` on its first
       run ([N139](NOTES.md)). **Union volume still waits on solids**, which is the one clause of
       this criterion that is not yet met.*
+      *Met and then exceeded: 43 properties at the count that closed the row, 51 today, over the
+      value, curve and surface layers, with generators spanning 1e-9 to 1e9 log-uniform and a
+      whole scene generated at one shared scale (ADR-0018).*
 - [x] The C2VGeometry test harvest is **timeboxed to one week with a hard stop**; anything
       needing a `Shape` is discarded without argument (**E2-T32**). *Closed 2026-09-15, inside the
       timebox, in two passes. **The yield of 979 foreign tests was one file's worth**, and it was
@@ -450,8 +464,12 @@ is [E5](#e5--node-authoring-and-library). Anything drawn on screen.
       key is still resident (**E3-T8**). **Met, and measured rather than asserted:** the undo
       stack (`E8-T9`) now exercises it, and the run that follows an undo recomputes **zero**
       nodes and serves every one of them from the cache.
-- [ ] Impure nodes declare themselves, mix a run epoch into their key, and poison
+- [x] Impure nodes declare themselves, mix a run epoch into their key, and poison
       downstream keys (**E3-T10**).
+      *Closed 2026-09-11 by reconciliation, and it had been delivered under another name: the
+      declaration is `[NodeSideEffect]`, the importer reads it, the run epoch goes into the key
+      and the poison travels downstream. The re-check that had left this open searched for the
+      word `Impure`.*
 - [x] The cache is LRU against a memory budget, evicted by last use and estimated size
       (**E3-T9**). *Done 2026-09-11: three ceilings - an entry count, the native budget that
       landed on 2026-08-31, and a managed budget over a count-based estimate that never
@@ -466,9 +484,12 @@ is [E5](#e5--node-authoring-and-library). Anything drawn on screen.
       interrupted once started, and the help says so.*
 - [x] `.spark` is plain canonically formatted JSON — stable key order, invariant numbers —
       and save/load round-trips **byte-identically** (**E3-T17**, **E3-T18**).
-- [ ] `graph.formatVersion` is a single monotonic integer decoupled from product version;
+- [x] `graph.formatVersion` is a single monotonic integer decoupled from product version;
       migrations are JSON-to-JSON, never against typed models, are never deleted, and each
       ships with a golden-file test against a real old graph (**E3-T19**).
+      *Closed 2026-09-11 on the evidence. The versioning is built and there are five format
+      versions rather than the one an earlier note claimed; migrations are JSON-to-JSON and each
+      ships with a golden file.*
 - [x] Errors do not cascade: downstream of a failed node is greyed as *not evaluated*
       (**E3-T16**).
 - [x] Every `SPK####` diagnostic code carries a `HelpTopicId` (**E3-T15**).
@@ -532,8 +553,11 @@ instrument is deliberate, not a flourish.
       are precisely the ones that survive value-only tests (**E4-T12**).
 - [x] `SparkList` is a first-class engine type, not `List<object>` and not raw
       `IEnumerable`, so rank is O(1) and unambiguous (**E4-T2**).
-- [ ] `SparkList` marshalling to and from declared collection types carries a standing
+- [x] `SparkList` marshalling to and from declared collection types carries a standing
       benchmark (**E4-T3**).
+      *The benchmark is a guard rather than a report: `MarshallingBenchmarks` runs nightly on
+      Windows and Linux against ceilings in `bench/budgets.jsonc`, and the sharp half of those
+      is allocation, which is deterministic and budgeted to within ten per cent.*
 - [x] `excess(i) = rank(actual) − declaredRank(i)`, `depth = max excess`; at `depth > 0`
       replicate **one level and recurse**. There is no flatten-then-reshape anywhere
       (**E4-T4**, **E4-T5**).
@@ -689,9 +713,14 @@ diverge most; rework is budgeted there specifically.
 
 **Acceptance criteria**
 
-- [ ] Input ports are inferred **semantically** — compile once against the prelude, collect
+- [x] Input ports are inferred **semantically** — compile once against the prelude, collect
       `CS0103`/`CS0117`, take the identifiers in source order (**E6-T5**).
-- [ ] Port identity is the variable name, so reordering usages does not rewire (**E6-T5**).
+      *Compile once against the prelude, collect `CS0103`/`CS0117`, take the identifiers in
+      source order — materially more robust than a syntax walk, because Roslyn has already
+      resolved locals, aliases, globals members and type parameters, all of which a walker gets
+      wrong.*
+- [x] Port identity is the variable name, so reordering usages does not rewire (**E6-T5**).
+      *Port identity is the variable name, so reordering usages does not rewire.*
 - [x] Once a port is connected, the rewriter injects a typed local rather than `object`
       (**E6-T6**) — done 2026-08-31. Keyed by port *name*, because the indices are an output of
       compiling rather than an input to it, and carried in the content hash, because the same
@@ -1017,11 +1046,16 @@ another.
       changes (**E8-T12**). *Done 2026-09-11. Written as a criterion the same day it was met,
       because the row had none: the update check, the code font and tidying on Enter, over
       the preference files that already held them, from File > Settings... and `Ctrl+,`.*
-- [ ] A 2000-node synthetic graph pans and zooms at 60 fps, benchmarked nightly from M2
+- [x] A 2000-node synthetic graph pans and zooms at 60 fps, benchmarked nightly from M2
       (**E8-T15**). *The nightly exists and the budget is this criterion stated as a number —
       16.7 ms median is one frame at 60 fps. Locally it holds with room to spare: 1.60 ms median
-      and 2.90 ms p95 over 500 measured frames on 2026-08-29. Unticked because the step has never
-      run on a runner without a GPU, and that is the only part still unknown.*
+      and 2.90 ms p95 over 500 measured frames on 2026-08-29. **Ticked 2026-09-15, and the thing it
+      was waiting for had already happened.** It read *unticked because the step has never run on a
+      runner without a GPU, and that is the only part still unknown* — and nightly run 34841376718
+      ran it on windows-latest on 2026-09-14: 2 000 nodes and 1 677 wires over 500 frames, **1.38 ms
+      median of a 16.70 ms budget and 3.04 ms p95 of 33.30 ms**, on a runner with no GL at all
+      (`viewport: no GL callback ran`), which is the hard case rather than a lucky one. The comment
+      in `nightly.yml` still said the step was unproven on a hosted runner and is corrected with it.*
 - [x] Docking via `Dock.Avalonia`, with a serialisable, testable layout model, *reset
       layout* and named workspace presets. RCS's from-scratch dock manager is **not**
       ported; only the idea is (**E8-T2**). *The shell is a `DockControl` as of 2026-08-30:
@@ -1427,19 +1461,43 @@ nothing.
       `<example>` may; the count of `<example>` elements is asserted equal to the count compiled,
       because a parser that recognises none of them is otherwise green. The first run caught a
       published example that ended in a literal `…` and had never been C# ([N136](NOTES.md)).*
-- [ ] Every example graph runs headlessly with no node errors and matches its declared
+- [x] Every example graph runs headlessly with no node errors and matches its declared
       expected outputs (**E11-T3**).
-- [ ] **Forward node coverage**: every built-in node resolves to a help topic, or is listed
+      *Built 2026-08-31. `ExampleGraphTests` opens, evaluates and re-saves every file in
+      `docs/examples/`, headless, with no window and no GPU, and checks four things: it opens,
+      it evaluates without errors, it produces output, and it re-saves byte for byte.*
+- [x] **Forward node coverage**: every built-in node resolves to a help topic, or is listed
       as deliberately undocumented with a reason. **A new node shipping undocumented fails
       the build** (**E11-T4**).
-- [ ] **Reverse coverage**: every `nodes:` front-matter entry resolves to a real node, which
+      *Asserted 2026-08-31, and asserted as the property rather than as the mechanism: the
+      reference pages are generated from the live library, so coverage is true by construction,
+      and `NodeTopicCoverageTests` asserts it anyway — because asserting the mechanism is how a
+      guarantee quietly becomes an implementation detail somebody later replaces. A node with no
+      topic fails the test run, which is a gate.*
+- [x] **Reverse coverage**: every `nodes:` front-matter entry resolves to a real node, which
       is what catches renames (**E11-T5**).
+      *Built 2026-08-31, and this direction was checked by nothing before it: `curves.md` had
+      named ten nodes since M0 and no test read them. Proven to fail by renaming an entry to a
+      node that does not exist.*
 - [x] `Spark.Geometry` takes no third-party dependency beyond Clipper2, asserted as a
       **ceiling rather than an exact set** (**E11-T22**). *Relaxed and renamed on 2026-08-27
       when the unused Clipper2 reference came out. An exact-set assertion would have had to be
       edited twice for one round trip and broke a passing test that was not testing anything
       wrong; a ceiling holds before the planar pipeline arrives and after.*
-- [ ] Every `SPK####` code in source has a help topic, by source scan (**E11-T6**).
+- [x] Every `SPK####` code in source has a help topic, by source scan (**E11-T6**).
+      *Three checks as of 2026-08-31: every code has a generated page, every code's constant
+      carries an explanation — a page per code that said nothing would satisfy a count and help
+      nobody — and every code's concept-topic target resolves to a topic that exists.*
+- [x] **The acceptance criteria above are checked against the register** — where a criterion
+      cites exactly one `E<n>-T<m>`, the box is ticked if and only if that row is `Done`
+      (**E11-T32**). *Built 2026-09-15 and it found 22 disagreements among the 154 single-row
+      criteria the day it was written: two boxes ticked whose rows were `Blocked` and `Withdrawn`,
+      twenty unticked whose rows had been `Done` for as long as three weeks. Five criteria are
+      allowed to disagree and say why in `tests/corpus/epic-criterion-exemptions.tsv`, because a
+      criterion can be one third of a row or broader than it; a **stale** exemption fails too. The
+      check that was planned instead — a row whose note argues with its own status column — fires
+      zero times in 120 commits and was abandoned on the measurement rather than on an opinion
+      ([N176](NOTES.md)).*
 - [ ] Link and asset integrity, plus Markdown renderer parity against a golden corpus
       (**E11-T7**). *Relative-link integrity is done and passing; asset integrity and
       renderer parity wait on there being assets and a renderer.*
@@ -1452,9 +1510,13 @@ nothing.
       inspects, because a test that referenced them could not observe a forbidden reference.
       The related rule **views never touch `Spark.Engine`** is not yet enforced: there is no
       `Spark.UI` code to check.*
-- [ ] A reflection-driven geometry serialization round-trip test enumerates every concrete
+- [x] A reflection-driven geometry serialization round-trip test enumerates every concrete
       type (**E11-T9**).
-- [ ] Property-based tests on the kernel with CsCheck **from M1 — non-negotiable**
+      *Closed 2026-09-11 by reconciliation: it is `E2-T31`, delivered 2026-08-29. Every exported
+      type in `Spark.Geometry` needs a sample or an `Excluded` entry with a reason, checked in
+      both directions, and it found `BoundingBox.Empty` failing to round-trip on the day it was
+      written.*
+- [x] Property-based tests on the kernel with CsCheck **from M1 — non-negotiable**
       (**E11-T10**). *Met 2026-09-10 with **51 properties** over the value, curve and surface
       layers, generators spanning 1e-9 to 1e9 log-uniform per **ADR-0018** and a whole scene
       generated at one shared scale. **The lesson from the review is now a scar rather than a
