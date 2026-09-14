@@ -26,11 +26,16 @@ guard on 2026-09-09.** The budgets in `bench/budgets.jsonc` still fail a run tha
 allocation tightly, ratios sharply, wall-clock loosely and for stated reasons
 ([ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md), [N29](NOTES.md)) — but
 only when somebody starts the run, and [AGENTS.md](../AGENTS.md#before-you-commit) gives the two
-commands. The nightly workflow that used to start it **has still never run on a hosted
-runner**, but it can again: its `cron` came back on 2026-09-14 with the repository going public, so
-the first scheduled run is simply the next 03:17 UTC. `E1-T21`, `E8-T15` and `E11-T14` came off
-`Blocked` the same day — **and none of them became easy**, because each was blocked on the
-switch-off *and* wants something the workflow does not do yet. Their rows say which.
+commands. **The nightly ran on hosted runners four nights running, 5 to 8 September, and
+every budget held** — which this paragraph twice said it had never done, the second time on
+2026-09-14 when somebody edited the sentence without checking the claim inside it. The run of
+8 September judged [ADR-0013](adr/0013-immediate-mode-node-canvas.md) on a 2 000-node canvas at
+**1.53 ms median and 3.59 ms p95**, and its check verb ended *Every budget holds.* The run of
+9 September failed with **no steps at all**: the repository had gone private and the run was refused
+for billing, not for a broken budget. The `cron` came back on 2026-09-14 with the repository going
+public. `E1-T21`, `E8-T15` and `E11-T14` came off `Blocked` the same day — and two of the three
+turned out to have been **satisfied a week earlier**, which is what reading the run history said and
+the register did not.
 
 Three distinctions still do the work in what follows:
 
