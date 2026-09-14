@@ -521,6 +521,57 @@ public abstract class Curve
         return CurveSurfaceIntersection.Intersect(this, surface, tolerance);
     }
 
+    /// <summary>
+    /// The curve pulled flat onto a plane, each of its points moving to the nearest point of that
+    /// plane (`E2-T71`).
+    /// </summary>
+    /// <param name="plane">The plane to pull onto.</param>
+    /// <param name="tolerance">
+    /// The tolerance for converting this curve to a NURBS curve first. It matters only for a curve
+    /// that does not convert exactly — see the remarks.
+    /// </param>
+    /// <returns>The pulled curve, which lies wholly in the plane.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>This is an orthogonal projection, which is an affine map, and that is the whole of why it
+    /// can be exact.</b> An affine map commutes with a rational curve's blend, because the weights
+    /// are a <b>partition of unity</b>: the projected curve is the curve of the projected control
+    /// points, with the <i>same</i> weights and the <i>same</i> knots. So there is no case per
+    /// curve type and no sampling — one projection per control point, and the shape follows.
+    /// </para>
+    /// <para>
+    /// <b>The exactness travels with the conversion.</b> This goes through
+    /// <see cref="ToNurbsCurve(in Tolerance)"/>, which is exact for seven of Spark's eight curve
+    /// types, so the pull is exact for those seven. A <see cref="Helix"/> is
+    /// <i>provably</i> not a NURBS curve at any degree ([N165](../../docs/NOTES.md)), so its pull
+    /// is as good as its conversion and no better.
+    /// </para>
+    /// <para>
+    /// <b>The result is a NURBS curve even where a simpler type would do.</b> A pulled
+    /// <see cref="Line"/> is still a straight line and comes back as a degree-1 NURBS curve rather
+    /// than as a <see cref="Line"/>; a pulled <see cref="Circle"/> is generally an ellipse and comes
+    /// back as the rational quadratic that describes one. The return type is <see cref="Curve"/> so
+    /// that a later version which keeps the simpler types is not a breaking change.
+    /// </para>
+    /// <para>
+    /// <b>Pulling is not projecting along a direction.</b> This moves every point to the
+    /// <i>nearest</i> point of the plane, which is along the plane's own normal; Dynamo's
+    /// <c>Project</c> takes a direction and is a different member with a different answer.
+    /// </para>
+    /// </remarks>
+    public Curve PulledOntoPlane(in Plane plane, in Tolerance tolerance = default)
+    {
+        NurbsCurve source = ToNurbsCurve(tolerance).Curve;
+        Point3d[] controlPoints = source.ControlPoints();
+
+        for (int index = 0; index < controlPoints.Length; index++)
+        {
+            controlPoints[index] = plane.ClosestPoint(controlPoints[index]);
+        }
+
+        return new NurbsCurve(controlPoints, source.Knots, source.IsRational ? source.Weights() : null);
+    }
+
     /// <summary>The distance from a point to the nearest point on the curve.</summary>
     /// <param name="point">The point to measure from.</param>
     /// <returns>The distance, never negative.</returns>

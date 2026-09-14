@@ -66,3 +66,4 @@ static Spark.Nodes.Core.Mesh.ClosestPoint(Spark.Geometry.Mesh! mesh, Spark.Geome
 static Spark.Nodes.Core.Mesh.Project(Spark.Geometry.Mesh! mesh, Spark.Geometry.Point3d point, Spark.Geometry.Vector3d direction) -> Spark.Geometry.Point3d?
 static Spark.Nodes.Core.Mesh.Repaired(Spark.Geometry.Mesh! mesh) -> Spark.Geometry.Mesh!
 static Spark.Nodes.Core.Mesh.MadeWatertight(Spark.Geometry.Mesh! mesh, double tolerance = 0) -> Spark.Geometry.Mesh!
+static Spark.Nodes.Core.Curve.PulledOntoPlane(Spark.Geometry.Curve! curve, Spark.Geometry.Plane plane, double tolerance = 1E-06) -> Spark.Geometry.Curve!

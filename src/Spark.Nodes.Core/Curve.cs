@@ -342,4 +342,20 @@ public static class Curve
     public static Spark.Geometry.Curve Extended(
         Spark.Geometry.Curve curve, double atStart = 0.0, double atEnd = 1.0) =>
         curve.Extended(atStart, atEnd);
+
+    /// <summary>Pulls a curve flat onto a plane.</summary>
+    /// <param name="curve">The curve.</param>
+    /// <param name="plane">The plane to pull onto.</param>
+    /// <param name="tolerance">The tolerance for converting the curve first.</param>
+    /// <returns>The pulled curve, lying wholly in the plane.</returns>
+    /// <remarks>
+    /// <b>Pulling is not projecting along a direction.</b> Every point moves to the NEAREST point
+    /// of the plane, which is along the plane's own normal. A pulled line is still straight and a
+    /// pulled circle is generally an ellipse.
+    /// </remarks>
+    [return: NodePort("curve")]
+    [SparkNodeAlias("Curve.PullOntoPlane")]
+    public static Spark.Geometry.Curve PulledOntoPlane(
+        Spark.Geometry.Curve curve, Spark.Geometry.Plane plane, double tolerance = 1e-6) =>
+        curve.PulledOntoPlane(plane, new Tolerance(tolerance, Angle.FromDegrees(0.001), 1e-12));
 }

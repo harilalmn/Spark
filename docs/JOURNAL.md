@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: a curve pulled flat onto a plane)
+**Last updated:** 2026-09-14 (`E2-T71`: a curve pulled flat, and a weaker test than it looked)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T71` family (5) — `Curve.PullOntoPlane(Plane)`, which the row itself calls the tractable one.** **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **The stock-take the previous step asked for found this rather than a blocked row.** Family (5)'s other members are still genuinely blocked — `Project` and `PullOntoSurface` want surface-surface intersection — but **`PullOntoPlane` was never blocked at all**, and its own reason says so: *the tractable one, a closest-point map with a closed form for every analytic curve Spark has*. **And there is a better route than the closed forms.** Orthogonal projection onto a plane is an **affine** map, and an affine map commutes with a rational curve's blend because the weights are a **partition of unity** — so projecting the control points and keeping the weights and knots projects the *curve*, exactly. `ToNurbsCurve` is exact for seven of the eight curve types, so this member is exact wherever that is, and the arithmetic is one projection per control point rather than a case per type. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`Mesh.MadeWatertight` — closing the holes in a mesh, and a fan that turned out not to be valid.** **It welds before it walks**, because a *crack* is not a hole: the two sides are different vertices, so the boundary never meets itself and no patch can close it. **The patch is wound against its boundary**, and getting that wrong fails as a **different** defect with the same symptom — non-manifold rather than open — so the tests assert `NakedEdgeCount` and `NonManifoldEdgeCount` separately. **The find is that a fan from a boundary vertex is not merely ugly but invalid**: its chords can duplicate an edge the mesh already has, which three faces off a box does. The patch is hubbed on a **new** vertex instead, which cannot collide with anything. **A triangular hole is the one case needing no hub.** **`Repair` was renamed `Repaired`** to match every other `Mesh` member returning a modified mesh. Residue **unchanged at 343**. 9 tests, **3830 → 3839**. **Before it:** `Mesh.Repaired`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3839** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
-| **Next action** | **Write `Curve.PulledOntoPlane(in Plane plane, in Tolerance tolerance = default)`.** Convert through `ToNurbsCurve`, project each control point with `Plane.ClosestPoint`, and rebuild with the **same weights and the same knots**. **The exactness travels with the conversion** — a `Helix` is provably not a NURBS curve ([N165](NOTES.md)) so its pull is approximate, and everything else is exact — which the remarks have to say rather than letting a caller assume. **Return `Curve`, not `NurbsCurve`**, so that a later version free to keep a `Line` a `Line` is not a breaking change. |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **affine versus linear**. A plane through the **origin** is answered correctly by the linear part alone, so a fixture using one proves nothing; the fixture has to use a plane **offset** from the origin, where dropping the translation lands the curve on the parallel plane through the origin instead — the right shape in the wrong place. **Every sampled point lies on the plane**, which is the definition and catches a pull that is not a pull at all. **The projection of a circle onto a tilted plane is an ellipse** with the right major and minor axes, which is the hand-computable anchor: the major axis is unchanged and the minor is the radius times the cosine of the tilt. **A curve already on the plane comes back unmoved.** The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Forty-two steps landed across 2026-09-13 and 2026-09-14. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **`E2-T66` and `E2-T69` are closed; `E2-T72` is `Blocked`; `E2-T68` is down to its two algorithms; `E2-T71`'s family (5) is open again and one row lighter.** `E2-T67` is skipped — the shim cannot be rebuilt without the OpenCascade install `E13-T21` waits on. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`Curve.PulledOntoPlane` — a curve pulled flat, found by a stock-take rather than by the queue.** **Family (5) was recorded as waiting on `E2-T15`'s ray caster; this row never was**, and its own reason said so. **The route is better than the one the row predicted.** Orthogonal projection onto a plane is an **affine** map, and an affine map commutes with a rational curve's blend because the weights are a **partition of unity** — so projecting the control points and keeping the weights and knots projects the curve **exactly**. No case per type, no sampling. **The branch is affine against linear**: a plane through the origin is answered by the linear part alone, so every fixture uses an **offset** plane; the mutation reddens seven. **And the weights turned out to be guarded by exactly one test** — dropping them left even the ellipse-extent anchor green, because a quarter-circle Bézier's width is `r(1 − t²)` whose extreme sits at the endpoint either way. Residue **unchanged at 343**. 10 tests, **3839 → 3849**. **Before it:** `Mesh.MadeWatertight`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3849** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T71`'s `Curve.Simplify(double)`, which its row says already exists one level down.** **Read the row first**: it records `NurbsCurve.Reduced` as the same capability *not on the base*, and calls it **the same shape of gap as `Surface.ToNurbsSurface`** — which was closed by putting a virtual on the base and letting the types that can do better override it. That is the pattern to follow rather than to reinvent. **The likely shape**: `Curve.Simplified(tolerance)` on the base, converting through `ToNurbsCurve` and calling `Reduced`, with `NurbsCurve` overriding to skip the conversion. **Check what `Reduced` actually promises before assuming it fits** — a simplification that moves the curve by more than the tolerance is a different member from one that does not, and the base's contract has to state which this is. **If the row turns out to be stale too**, say so in it, as three rows this run have needed. |
+| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is likely the **tolerance being honoured**: a simplification that ignores its tolerance and removes whatever it can still returns a plausible curve, so the assertion is the **deviation** between the original and the result, sampled, against the tolerance asked for. **A curve with nothing to remove comes back unchanged**, which stops the member being a rebuild. **The control-point count actually falls** on a curve that is more finely described than it needs to be — a degree-elevated line is the fixture that cannot argue. The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -15091,3 +15091,52 @@ and would have cost a deprecation later.
 
 **Cost.** One session. One member, one rename, nine tests, one node, three mutations, and two
 wrong theories before a probe.
+
+### 2026-09-14 — A curve pulled flat, and a test weaker than it looked
+
+**What.** `Curve.PulledOntoPlane`. Ten tests, a node, a row to `Done`, and the register at
+**453 of 545**.
+
+**The step before this one asked for a stock-take rather than another row, and the stock-take
+paid for itself immediately.** `E2-T71`'s family (5) — projection and pull — has been recorded
+since it was filed as waiting on `E2-T15`'s ray caster. **`PullOntoPlane` never was**, and its
+own reason said so in the sentence after: *the tractable one, a closest-point map with a closed
+form for every analytic curve Spark has*. A family's headline can be true of the family and
+false of a member in it.
+
+**And the route is better than the row predicted.** It expected a closed form per curve type.
+There is a single construction instead, and the reason is worth stating properly:
+**orthogonal projection onto a plane is an affine map, and an affine map commutes with a
+rational curve's blend because the weights are a partition of unity.** Write `C(u)` as the
+weighted sum of control points over the weighted sum of weights; apply an affine `A`; the
+denominator passes straight through, and what comes out is the curve of the `A(Pᵢ)` with the
+same weights and the same knots. So the whole member is one projection per control point, and
+the shape follows. The exactness travels with `ToNurbsCurve` — seven of eight types, with the
+`Helix` the one that cannot ([N165](NOTES.md)).
+
+**The branch is affine against linear, and it is the sort that hides behind a convenient
+fixture.** A projection onto a plane through the **origin** is a linear map; onto any other
+plane it is affine, with a translation in it. Keep only the linear part and the curve lands on
+the parallel plane through the origin — **the right shape in the wrong place**. Every fixture
+in the file therefore uses an offset plane, and the class remark says why, because a plane
+through the origin is the first thing anyone reaches for. The mutation reddens seven of the ten
+tests.
+
+**The finding of the step is that one of my assertions was much weaker than it looked.**
+Dropping the weights — the thing the partition-of-unity argument turns on — left **every test
+green**, including the hand-computed anchor that measures the pulled circle's extent along two
+axes to 1e-6. The arithmetic says why: on a quarter-circle Bézier the width works out to
+`r(1 − t²)`, whose extreme is at `t = 0` whether the curve is rational or not, so the rational
+and non-rational curves have **the same bounding extent** and a different shape between the
+ends. A bounding measurement is a weaker assertion than it looks. A test that asserts the
+pulled curve is still rational, with the same weights, now guards it — and both the surprise
+and the arithmetic are in that test's own remarks, because the next person to write an extent
+assertion should know what it cannot see.
+
+**That is the fourth time this run a mutation has corrected a belief about what a test
+proves**, and every one of them looked fine until the mutation ran.
+
+**Residue unchanged at 343.**
+
+**Cost.** One session. One member, ten tests, one node, two mutations — one that proved the
+branch and one that proved a test was not testing what I thought.

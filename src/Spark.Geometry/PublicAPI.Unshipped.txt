@@ -289,3 +289,4 @@ Spark.Geometry.Mesh.ClosestPoint(in Spark.Geometry.Point3d point) -> Spark.Geome
 Spark.Geometry.Mesh.Project(in Spark.Geometry.Point3d point, in Spark.Geometry.Vector3d direction) -> Spark.Geometry.Point3d?
 Spark.Geometry.Mesh.Repaired() -> Spark.Geometry.Mesh!
 Spark.Geometry.Mesh.MadeWatertight(double tolerance = 0) -> Spark.Geometry.Mesh!
+Spark.Geometry.Curve.PulledOntoPlane(in Spark.Geometry.Plane plane, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.Curve!
