@@ -44,14 +44,37 @@ on:
 permissions:
   contents: write
 
+# E1-T28. THE OPPOSITE SETTING TO `ci.yml`'S, AND THE OPPOSITE REASONING.
+#
+# `ci.yml` cancels a superseded run because a superseded commit's result is a record nobody reads.
+# Nothing about a release is superseded and nothing about it is only a record: this workflow builds
+# a kernel, packs an installer, and calls `gh release create`. `cancel-in-progress: true` here would
+# mean a run killed between packing and publishing - an artefact that exists and a release that
+# does not, or worse, a release created and its assets never uploaded.
+#
+# The group is keyed on the tag rather than on `github.ref`, because the ref is the same for every
+# dispatch: `workflow_dispatch` runs on the default branch whatever tag it is handed. Two dispatches
+# naming the SAME tag therefore queue behind each other, which is the race worth preventing, and two
+# naming different tags run in parallel, which is harmless.
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+
 env:
   # Named here so the release notes and installer/spark.iss cannot disagree about which runtime a
   # user is being asked to install.
   SPARK_DOTNET: '10'
 
-  # E12-T22. Where the binaries go. Not where this workflow runs: the source repository is private
-  # and a private repository's releases are private with it, so the downloadable artefacts live in
-  # a public repository that holds no source.
+  # E12-T22. Where the binaries go. Not where this workflow runs.
+  #
+  # THE ORIGINAL REASON EXPIRED ON 2026-09-14 AND THE DESTINATION DID NOT. This said "the source
+  # repository is private and a private repository's releases are private with it", which was true
+  # from 2026-09-09 and stopped being true when the client made the repository public again. The
+  # split survives the reason that created it: `v2026.9.0` and every release before it already live
+  # in `Spark-Releases`, and a download URL is the one thing a shipped build cannot be asked to
+  # change - the in-application update check (`E12-T21`) resolves against that repository, and so
+  # does every link already handed to anybody. Moving releases back would break exactly the users
+  # who installed during the private week.
   SPARK_RELEASE_REPO: 'harilalmn/Spark-Releases'
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
@@ -78,6 +101,20 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+
+      # E1-T28. The same key `ci.yml` uses, deliberately: the restore is identical, so a release
+      # built minutes after a green CI run finds the packages already there. Central package
+      # management means `Directory.Packages.props` is the whole of the input, so the key is exact
+      # rather than a heuristic - and `restore-keys` still gives a warm start after a version bump.
+      #
+      # Minutes, not correctness. Said plainly because this workflow's OpenCascade cache above is
+      # the opposite - an hour a miss - and the two should not be read as the same kind of saving.
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-windows-latest-${{ hashFiles('**/Directory.Packages.props') }}
+          restore-keys: nuget-windows-latest-
 
       # FIRST, BECAUSE `v0.1.1` FOUND OUT LAST.
       #

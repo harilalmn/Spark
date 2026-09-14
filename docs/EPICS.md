@@ -109,6 +109,15 @@ exemption for everything that already exists.
       now both settled.*
 - [ ] The release workflow refuses to publish when the computed version and the tag
       disagree (**E1-T22**).
+- [x] Every workflow declares a concurrency group and caches its packages (**E1-T28**).
+      *`ci.yml` cancels a superseded run; `nightly.yml` and `release.yml` do not, and the
+      difference is the point — a superseded CI result is a record nobody reads, and a release
+      cancelled between packing and publishing is an installer that exists and a release that does
+      not. `release.yml` had neither a group nor a cache until 2026-09-14. Asserted by
+      `WorkflowChecks` in the docs harness, because a workflow is the one kind of code here that
+      is not compiled and has no tests of its own. **Branch protection is the third part of that
+      row and is the client's decision**: requiring a green pull request on `main` would refuse
+      every commit of this marathon.*
 - [x] Public-API baselines for `Spark.Api` and `Spark.Geometry` are checked in, so every
       change to the public surface is a reviewed line in a text file (**E1-T23**). *A review
       aid, not a compatibility guarantee — ADR-0019. Delivered wider than asked: all four

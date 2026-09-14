@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (golden files that say what moved, and a guard that proved nothing)
+**Last updated:** 2026-09-14 (the third workflow nobody had looked at)
 **Protocol version:** 2
 
 ---
@@ -17,13 +17,13 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Fifty-five steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Fifty-six steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **`E11-T11` `Done` — golden files for geometry, and a diff table that says what moved.** `GeometryGolden` with seven fixtures under `tests/corpus/geometry/`. A summary is named measurements — counts, closedness, naked edges, area, volume, bounding box, length, degree — ending in a hash over the **exact bits**, so the summary is what a reader compares and the hash catches what rounding hides. **A hash that moves alone is explained in words**: the shape changed below the printed precision, which is a real difference and not a different shape. **Every fixture is exact arithmetic**, because a hash has no tolerance — no sphere, cone, arc or circle, and their absence is a decision. **Eight mutations, eight killed — one only after a test was added for it.** Deleting the header assertion left all twenty-eight tests green: **a guard written, committed, and proving nothing**, which is this week's other finding wearing different clothes. 29 tests, **3883 → 3912**. Residue **unchanged at 346** — no production code was touched. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3912** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at 28 checks with the residue budget exact at 346. No stashes. |
-| **Next action** | **Take `E2-T64`'s `Curve2d`, and write the finding into the row before writing any code**: `BrepTrim` carries `(int Edge, bool IsReversed)` and **no pcurve**, so building `Curve2d` alone closes neither of its two parity rows. The row is `Open` and its own description says it is *waiting for its consumer*; the honest options are to build the consumer with it or to say plainly that it is not 1.0 work, and **deciding that is the step**. **Then the remaining open rows with no external dependency**: `E11-T17` (`tests/corpus/` grows with every bug found), `E10-T12`, `E2-T32`, `E2-T27`, `E1-T22`, `E1-T28`, `E10-T14`, `E5-T11`. `E1-T19` stays `Open` deliberately — the smoke test already runs on both CI legs, so a separate job would re-run it rather than cover anything new. |
-| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7) — **and mutate the guards, not only the feature**, which is what caught the untested header assertion here. The three gates, the residue budget **exact** at 346, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **No tag, no release.** |
-| **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
+| **Last completed step** | **`E1-T28` to `Blocked`, with the work done and the decision named.** The row said *NuGet caching is in `ci.yml`; branch protection and a concurrency group are not* — and `ci.yml` had had a concurrency group all along, as had `nightly.yml`. **What was missing was in the third workflow nobody had looked at.** **`release.yml` had neither a group nor a cache, and the group is a correctness gap**: two dispatches of the same tag could run in parallel and the publish step is not idempotent. It now has `group: release-${{ inputs.tag }}` with **`cancel-in-progress: false`** — the opposite of `ci.yml`'s, because a release killed between packing and publishing is an installer that exists and a release that does not. Keyed on the **tag**, since a `workflow_dispatch` always runs on the default branch and `github.ref` would serialise the wrong things. **`WorkflowChecks` guards all three**, because a workflow is the one kind of code here that is not compiled and has no tests of its own. **Six mutations, six killed.** **The third part is the client's decision**: branch protection would refuse every commit this marathon makes. 9 tests, **3912 → 3921**. Residue **unchanged at 346**. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3921** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **37** checks with the residue budget exact at 346. No stashes. |
+| **Next action** | **`E2-T64` needs a decision, not code, and taking it is the step.** The row is `Open` and says it is *waiting for its consumer*: `BrepTrim` carries `(int Edge, bool IsReversed)` and **no pcurve**, nothing in the managed kernel would read one, and a trimmed face is tessellated behind the OCCT seam where the provider holds its own. **The row is right**, so the step is to say whether it is 1.0 work at all rather than to build a 2D curve type for no caller. **Then the rest**: `E11-T17` (`tests/corpus/` grows with every bug found — and it now has a `geometry/` directory to grow into), `E5-T11` (import a real third-party NuGet package in CI), `E10-T12`, `E2-T32`, `E2-T27`, `E1-T22`, `E10-T14`. |
+| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7) — **and mutate what the guard guards, not the guard's own text**, which is what these six did. The three gates, the residue budget **exact** at 346, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **No tag, no release.** |
+| **Blocked on** | **Four things need a human, and the fourth is new.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
 **Step status vocabulary**, and it means exactly this:
@@ -15736,3 +15736,70 @@ release.**
 
 **Cost.** One session, and the most useful twenty minutes of it were spent mutating a guard
 nobody had asked me to doubt.
+
+### 2026-09-14 — The third workflow nobody had looked at
+
+**What.** `E1-T28` re-measured, its real gap closed, and the half that needs the client named
+rather than quietly dropped.
+
+**The row described a repository that had moved on.** *NuGet caching is in `ci.yml`; branch
+protection and a concurrency group are not.* Two of those three clauses were wrong: `ci.yml`
+has had a concurrency group for as long as it has had a cache, and `nightly.yml` has one too,
+with a comment explaining why it does **not** cancel. **Checking took one grep.** This is the
+fourth row this week whose description was the only thing blocking it.
+
+**And the real gap was in the file the row never mentions.** `release.yml` had neither a
+concurrency group nor a NuGet cache. The group is not a saving: two `workflow_dispatch` runs
+naming the same tag could proceed in parallel, and `gh release create` is not idempotent.
+
+**The setting is the opposite of `ci.yml`'s and so is the reasoning.** `ci.yml` cancels a
+superseded run because a superseded commit's result is a record nobody reads. **Nothing about
+a release is superseded and nothing about it is only a record**: it builds a kernel, packs an
+installer and publishes. A run cancelled between those last two is an artefact that exists and
+a release that does not — or a release created whose assets never arrived. So
+`cancel-in-progress: false`.
+
+**The group is keyed on the tag rather than on `github.ref`, and that is not a detail.** A
+`workflow_dispatch` runs on the default branch whatever tag it is handed, so `github.ref` is
+identical for every dispatch: it would serialise two releases of *different* tags, which is
+harmless and pointless, while failing to serialise two of the *same* tag, which is the race
+worth preventing. `release-${{ inputs.tag }}` gets both the right way round.
+
+**A workflow is the one kind of code here that nothing checks.** Not compiled, no tests of its
+own, and the only way to exercise it is to trigger it — which is exactly how `E11-T14`'s job
+slept for seventeen days while the register counted it as coverage. So `WorkflowChecks` in the
+docs harness asserts the claims: every workflow declares a top-level concurrency group, each
+cancels or does not as it should, each caches NuGet.
+
+**It is a text check rather than a YAML parse, deliberately.** This harness has no package
+references at all — that is its design, so that it cannot constrain what it observes — and a
+YAML library to assert three keys is a poor trade. The narrowness has a cost worth naming: a
+reader that found a `concurrency:` nested under a *job* and reported it as top-level would be
+worse than no reader, so `TheReaderNoticesAMissingConcurrencyBlock` gives it exactly that case
+and requires a null.
+
+**Six mutations, six killed, and they mutate the workflows rather than the checks.** Deleting
+`release.yml`'s concurrency block, flipping each of the three `cancel-in-progress` values,
+removing the cache step, and — the one that is about the reader rather than the rule — making
+the block reader never stop at column zero. **A guard tested only by breaking its own text
+proves that the test runs, not that the guard guards.**
+
+**The third part of the row is a decision and is left to the client.**
+`gh api repos/harilalmn/Spark/branches/main/protection` returns *Branch not protected* and
+`rulesets` is empty, so nothing is configured. **Requiring a green pull request on `main`
+would refuse every commit this marathon makes** — the standing instruction is *go non stop*,
+and 206 commits have gone straight to `main` by design. Applying it stops the work; dropping
+it loses a rule that was asked for. It is one `gh api -X PUT` on the day the marathon ends and
+somebody else contributes, and the row now says so instead of reading as unfinished work.
+
+**One stale comment fell out of the same file.** `release.yml` said the binaries live
+elsewhere because *the source repository is private and a private repository's releases are
+private with it*. That stopped being true on 2026-09-14. **The destination survives the reason
+that created it** — every release to date already lives in `Spark-Releases`, the
+in-application update check resolves against it, and a download URL is the one thing a shipped
+build cannot be asked to change — so the comment now says that instead.
+
+**Residue unchanged at 346. 9 tests, 3912 → 3921. No tag, no release.**
+
+**Cost.** One session, most of it spent finding out that two thirds of the row was already
+true and the interesting third was in a file it never named.
