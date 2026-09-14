@@ -279,3 +279,4 @@ Spark.Geometry.PolyLine.SelfIntersections(in Spark.Geometry.Tolerance tolerance 
 static Spark.Geometry.Arc.FromCenterStartEnd(in Spark.Geometry.Point3d center, in Spark.Geometry.Point3d startPoint, in Spark.Geometry.Point3d endPoint) -> Spark.Geometry.Arc!
 static Spark.Geometry.Arc.FromStartEndStartTangent(in Spark.Geometry.Point3d startPoint, in Spark.Geometry.Point3d endPoint, in Spark.Geometry.Vector3d startTangent) -> Spark.Geometry.Arc!
 Spark.Geometry.PolyCurve.Filleted(double radius, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.PolyCurve!
+Spark.Geometry.PolyCurve.ClosedWithLineAndTangentArcs(double startRadius, double endRadius, in Spark.Geometry.Tolerance tolerance = default(Spark.Geometry.Tolerance)) -> Spark.Geometry.PolyCurve!

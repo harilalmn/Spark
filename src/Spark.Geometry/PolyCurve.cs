@@ -194,7 +194,16 @@ public sealed class PolyCurve : Curve
         foreach (Curve segment in _segments)
         {
             Point3d[] part = segment.Tessellate(tolerance);
-            int first = points.Count > 0 && points[^1] == part[0] ? 1 : 0;
+
+            // WITHIN THE TOLERANCE, NOT EXACTLY. FromJoinedCurves already accepts segments whose
+            // ends sit up to `tolerance.Linear` apart, so an exact test here leaves a near-zero
+            // segment at every join that was computed rather than typed — which is every join a
+            // fillet or a tangent closure makes. Anything reading the result as a polyline then
+            // sees the two sides of that stub as non-consecutive and reports the join as a
+            // crossing. The tolerance is already a parameter of this method; using it is the whole
+            // fix.
+            int first = points.Count > 0
+                && points[^1].DistanceTo(part[0]) <= tolerance.Linear ? 1 : 0;
             for (int index = first; index < part.Length; index++)
             {
                 points.Add(part[index]);
@@ -478,6 +487,346 @@ public sealed class PolyCurve : Curve
         }
 
         return FromJoinedCurves(rounded, tolerance);
+    }
+
+    /// <summary>
+    /// Returns an open chain closed by an arc, a straight run and a second arc, all tangent
+    /// (`E2-T72`).
+    /// </summary>
+    /// <param name="startRadius">The radius of the arc that arrives at the chain's start. Positive.</param>
+    /// <param name="endRadius">The radius of the arc that leaves the chain's end. Positive.</param>
+    /// <param name="tolerance">
+    /// The tolerance for finding the plane and for testing the closure against the chain.
+    /// </param>
+    /// <returns>The closed chain.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Either radius is not positive and finite.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// The chain is already closed, it is not planar, or no closure of those two radii exists —
+    /// which is what radii too large for the gap look like.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>This is not a fillet, and the difference is the whole construction.</b> A fillet rounds a
+    /// corner that exists; this closes a gap that has <i>no corner in it</i>. The chain arrives at
+    /// its end travelling in some direction and has to leave again, turn, run straight, turn again
+    /// and arrive at its own start travelling in the direction the chain sets off in — so the
+    /// unknowns are which side of each end its arc's centre sits on, and the constraint is that one
+    /// straight line is tangent to both arcs. It is the Dubins <i>curve-straight-curve</i> path
+    /// with two different radii.
+    /// </para>
+    /// <para>
+    /// <b>There are exactly four candidates, not the sixteen the shape of the problem suggests.</b>
+    /// Each centre is on one of two sides, which is four combinations — and for each combination
+    /// the tangent line is <b>unique</b> rather than one of the four a pair of circles generally
+    /// has. Writing <c>v</c> for the vector between the two centres and <c>k</c> for the signed
+    /// difference of the radii, the direction of travel <c>d</c> must satisfy
+    /// <c>v·(n×d) = k</c> and <c>v·d = L</c> with the run length <c>L</c> not negative, and that
+    /// second condition picks one of the two roots. A combination is feasible when
+    /// <c>|k| ≤ |v|</c>.
+    /// </para>
+    /// <para>
+    /// <b>The shortest closure is the wrong rule, and it is worth saying why, because it is the
+    /// obvious one.</b> Shortest is Dubins' answer to Dubins' question — the least distance a
+    /// vehicle travels — and this is closing an <i>outline</i>. The shortest closure is free to cut
+    /// straight through the shape it is closing. So the candidates that do not cross the chain are
+    /// preferred, and the shortest of <i>those</i> is taken. When every candidate crosses, the
+    /// shortest is returned anyway: a crossing closure is still an answer and an exception is not.
+    /// </para>
+    /// <para>
+    /// <b>The crossing test is exact and not sampled</b>, run against the chain's own segments
+    /// through <see cref="Curve.IntersectWith(Curve, in Tolerance)"/>. Contacts at the chain's own
+    /// start and end are excluded by proximity, because the closure meets it at both of those
+    /// points <i>by construction</i> and finding them proves nothing.
+    /// </para>
+    /// <para>
+    /// <b>As with <see cref="Filleted"/>, the result closes to within rounding and
+    /// <see cref="Curve.IsClosed"/> will still say <see langword="false"/></b> — closure is exact
+    /// equality by doctrine (ADR-0010), and every point of this construction is evaluated.
+    /// </para>
+    /// </remarks>
+    public PolyCurve ClosedWithLineAndTangentArcs(
+        double startRadius, double endRadius, in Tolerance tolerance = default)
+    {
+        CheckClosureRadius(startRadius, nameof(startRadius));
+        CheckClosureRadius(endRadius, nameof(endRadius));
+
+        if (IsClosed)
+        {
+            throw new InvalidOperationException(
+                "This chain is already closed, so there is no gap to close.");
+        }
+
+        Plane plane = PlaneOf(tolerance)
+            ?? throw new InvalidOperationException(
+                "A chain can only be closed with tangent arcs in a plane, and this one is not "
+                + "planar.");
+
+        Vector3d normal = plane.Normal;
+        Point3d start = StartPoint;
+        Point3d end = EndPoint;
+        Vector3d arriving = TangentAt(Domain.Min);
+        Vector3d leaving = TangentAt(Domain.Max);
+
+        List<Curve>? best = null;
+        double bestLength = double.MaxValue;
+        bool bestIsClear = false;
+
+        foreach (int endSide in (int[])[1, -1])
+        {
+            foreach (int startSide in (int[])[1, -1])
+            {
+                if (!TryClosure(
+                    end, leaving, endRadius, endSide,
+                    start, arriving, startRadius, startSide,
+                    normal, out List<Curve>? candidate, out double length))
+                {
+                    continue;
+                }
+
+                bool clear = !CrossesAnything(candidate!, _segments, tolerance);
+
+                // A candidate that keeps clear of the chain beats one that does not, whatever their
+                // lengths; between two of the same kind the shorter wins.
+                if ((clear && !bestIsClear) || (clear == bestIsClear && length < bestLength))
+                {
+                    best = candidate;
+                    bestLength = length;
+                    bestIsClear = clear;
+                }
+            }
+        }
+
+        if (best is null)
+        {
+            throw new InvalidOperationException(
+                "No closure of those two radii exists for this chain. The arcs are too large for "
+                + "the gap between its ends, which is what makes every one of the four candidates "
+                + "infeasible at once.");
+        }
+
+        List<Curve> closed = [.. _segments];
+        closed.AddRange(best);
+
+        return FromJoinedCurves(closed, tolerance);
+    }
+
+    /// <summary>One of the four candidate closures, or the news that it does not exist.</summary>
+    /// <param name="end">Where the chain ends.</param>
+    /// <param name="leaving">The direction it is travelling there.</param>
+    /// <param name="endRadius">The radius of the arc that leaves it.</param>
+    /// <param name="endSide">Which side of the end its centre sits on, as a sign.</param>
+    /// <param name="start">Where the chain starts.</param>
+    /// <param name="arriving">The direction it sets off in there.</param>
+    /// <param name="startRadius">The radius of the arc that arrives at it.</param>
+    /// <param name="startSide">Which side of the start its centre sits on, as a sign.</param>
+    /// <param name="normal">The unit plane normal.</param>
+    /// <param name="pieces">The arc, the run and the second arc, in order.</param>
+    /// <param name="length">Their total length, which is what candidates are ranked by.</param>
+    /// <returns><see langword="false"/> when this combination of sides has no closure.</returns>
+    /// <remarks>
+    /// <b>A degenerate piece is dropped rather than built.</b> The straight run vanishes when the
+    /// two arcs touch, and an arc vanishes when its tangent point is already its end point —
+    /// building either would make a zero-length segment, which is not a curve.
+    /// </remarks>
+    private static bool TryClosure(
+        in Point3d end,
+        in Vector3d leaving,
+        double endRadius,
+        int endSide,
+        in Point3d start,
+        in Vector3d arriving,
+        double startRadius,
+        int startSide,
+        in Vector3d normal,
+        out List<Curve>? pieces,
+        out double length)
+    {
+        pieces = null;
+        length = double.MaxValue;
+
+        Point3d fromCentre = end + (normal.Cross(leaving) * (endSide * endRadius));
+        Point3d toCentre = start + (normal.Cross(arriving) * (startSide * startRadius));
+
+        Vector3d between = toCentre - fromCentre;
+        double signedRadii = (startSide * startRadius) - (endSide * endRadius);
+        double span = between.Length;
+
+        if (span <= 0.0 || Math.Abs(signedRadii) > span)
+        {
+            // The arcs are too large for the gap: the tangent line the two would need does not
+            // exist, which is this combination of sides having no closure at all.
+            return false;
+        }
+
+        // d turns v through the angle whose sine is -k/|v|, on the branch where the cosine is
+        // positive so that the run goes forwards rather than backwards.
+        Vector3d alongSpan = between / span;
+        Vector3d acrossSpan = normal.Cross(alongSpan);
+        double sine = -signedRadii / span;
+        double cosine = Math.Sqrt(Math.Max(0.0, 1.0 - (sine * sine)));
+        Vector3d travel = (alongSpan * cosine) + (acrossSpan * sine);
+
+        Vector3d offset = normal.Cross(travel);
+        Point3d leavesAt = fromCentre - (offset * (endSide * endRadius));
+        Point3d arrivesAt = toCentre - (offset * (startSide * startRadius));
+
+        double run = between.Dot(travel);
+
+        if (run < 0.0)
+        {
+            return false;
+        }
+
+        pieces = [];
+        length = 0.0;
+
+        if (!AddTurn(pieces, ref length, fromCentre, end, leavesAt, normal * endSide, endRadius))
+        {
+            return false;
+        }
+
+        if (run > 0.0)
+        {
+            pieces.Add(new Line(leavesAt, arrivesAt));
+            length += run;
+        }
+
+        return AddTurn(pieces, ref length, toCentre, arrivesAt, start, normal * startSide, startRadius);
+    }
+
+    /// <summary>Adds one of the two turns, unless it has nothing to turn through.</summary>
+    /// <param name="pieces">The pieces so far.</param>
+    /// <param name="length">Their running total length.</param>
+    /// <param name="centre">The arc's centre.</param>
+    /// <param name="from">Where the arc begins.</param>
+    /// <param name="to">Where it ends.</param>
+    /// <param name="axis">The rotation axis, whose sign is the direction of the turn.</param>
+    /// <param name="radius">The arc's radius.</param>
+    /// <returns><see langword="false"/> when the arc cannot be built at all.</returns>
+    private static bool AddTurn(
+        List<Curve> pieces,
+        ref double length,
+        in Point3d centre,
+        in Point3d from,
+        in Point3d to,
+        in Vector3d axis,
+        double radius)
+    {
+        if (!(from - centre).TryNormalise(out Vector3d atStart)
+            || !(to - centre).TryNormalise(out Vector3d atEnd))
+        {
+            return false;
+        }
+
+        // Measured in the direction of the turn, so a turn of more than a half circle is a sweep of
+        // more than pi rather than the smaller angle the other way round.
+        double swept = Math.Atan2(axis.Cross(atStart).Dot(atEnd), atStart.Dot(atEnd));
+
+        if (swept < 0.0)
+        {
+            swept += 2.0 * Math.PI;
+        }
+
+        if (swept == 0.0)
+        {
+            return true;
+        }
+
+        pieces.Add(Arc.FromCenterStartPointSweepAngle(centre, from, axis, Angle.FromRadians(swept)));
+        length += radius * swept;
+        return true;
+    }
+
+    /// <summary>
+    /// Whether a candidate closure crosses the chain, or crosses itself.
+    /// </summary>
+    /// <param name="closure">The candidate's pieces, in order.</param>
+    /// <param name="segments">The chain's own segments.</param>
+    /// <param name="tolerance">The tolerance for the intersections and for the exclusion.</param>
+    /// <returns><see langword="true"/> when the closed outline would cross itself.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Both halves of that question matter, and the second one is easy to forget.</b> A closure
+    /// that keeps clear of the chain can still cross <i>itself</i> — its first arc can sweep round
+    /// far enough to meet its second — and a candidate that does is no better than one that cuts
+    /// through the shape.
+    /// </para>
+    /// <para>
+    /// <b>Only the closure's pieces are compared, never the chain against itself</b>, which keeps
+    /// this linear in the length of the chain rather than quadratic. A chain that already crossed
+    /// itself before this member ran is the caller's, and closing it is not the moment to object.
+    /// </para>
+    /// <para>
+    /// <b>Curves that share an end are meant to meet there</b>, so a hit that sits on an end of
+    /// both is not a crossing. That rule needs no index bookkeeping and says exactly what it means:
+    /// pieces join end to end, and anything else they do to each other is a crossing.
+    /// </para>
+    /// </remarks>
+    private static bool CrossesAnything(List<Curve> closure, Curve[] segments, in Tolerance tolerance)
+    {
+        double excluded = Math.Max(tolerance.Linear, 1e-9);
+
+        for (int index = 0; index < closure.Count; index++)
+        {
+            Curve piece = closure[index];
+
+            foreach (Curve other in segments)
+            {
+                if (Meet(piece, other, excluded, tolerance))
+                {
+                    return true;
+                }
+            }
+
+            for (int later = index + 1; later < closure.Count; later++)
+            {
+                if (Meet(piece, closure[later], excluded, tolerance))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether two curves meet anywhere but at an end they share.</summary>
+    /// <param name="first">The first curve.</param>
+    /// <param name="second">The second.</param>
+    /// <param name="excluded">How near an end a hit may be and still count as a join.</param>
+    /// <param name="tolerance">The intersection tolerance.</param>
+    /// <returns><see langword="true"/> when they cross.</returns>
+    private static bool Meet(Curve first, Curve second, double excluded, in Tolerance tolerance)
+    {
+        foreach (CurveIntersectionPoint hit in first.IntersectWith(second, tolerance).Points)
+        {
+            if (!AtAnEndOf(first, hit.Point, excluded) || !AtAnEndOf(second, hit.Point, excluded))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether a point sits on one of a curve's two ends.</summary>
+    /// <param name="curve">The curve.</param>
+    /// <param name="point">The point.</param>
+    /// <param name="excluded">How near counts as on.</param>
+    /// <returns>Whether it does.</returns>
+    private static bool AtAnEndOf(Curve curve, in Point3d point, double excluded) =>
+        curve.StartPoint.DistanceTo(point) <= excluded || curve.EndPoint.DistanceTo(point) <= excluded;
+
+    /// <summary>Rejects a closure radius that is not a radius.</summary>
+    /// <param name="radius">The radius.</param>
+    /// <param name="name">Which parameter it came from.</param>
+    private static void CheckClosureRadius(double radius, string name)
+    {
+        if (!double.IsFinite(radius) || radius <= 0.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                name, radius, "A closing arc's radius must be positive and finite.");
+        }
     }
 
     /// <summary>One corner rounded, or the news that this radius does not fit it.</summary>

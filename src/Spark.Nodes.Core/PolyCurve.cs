@@ -42,4 +42,25 @@ public static class PolyCurve
     public static Spark.Geometry.PolyCurve Filleted(
         Spark.Geometry.PolyCurve polycurve, double radius, double tolerance = 1e-6) =>
         polycurve.Filleted(radius, new Tolerance(tolerance, Angle.FromDegrees(0.001), 1e-12));
+
+    /// <summary>Closes an open chain with an arc, a straight run and a second arc, all tangent.</summary>
+    /// <param name="polycurve">The open chain.</param>
+    /// <param name="startRadius">The radius of the arc arriving at the chain's start. Positive.</param>
+    /// <param name="endRadius">The radius of the arc leaving the chain's end. Positive.</param>
+    /// <param name="tolerance">The tolerance for the plane and for the crossing test.</param>
+    /// <returns>The closed chain.</returns>
+    /// <remarks>
+    /// <b>Of the four closures that exist, the one that does not cut through the shape is taken</b>,
+    /// and the shortest of those — because the shortest closure overall is free to cross the outline
+    /// it is closing. The chain has to be planar and has to be open.
+    /// </remarks>
+    [return: NodePort("polycurve")]
+    [SparkNodeAlias("PolyCurve.CloseWithLineAndTangentArcs")]
+    public static Spark.Geometry.PolyCurve ClosedWithLineAndTangentArcs(
+        Spark.Geometry.PolyCurve polycurve,
+        double startRadius,
+        double endRadius,
+        double tolerance = 1e-6) =>
+        polycurve.ClosedWithLineAndTangentArcs(
+            startRadius, endRadius, new Tolerance(tolerance, Angle.FromDegrees(0.001), 1e-12));
 }

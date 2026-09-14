@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: closing a chain with a line and two tangent arcs)
+**Last updated:** 2026-09-14 (`E2-T72`: closing a chain, and a fixture that proves nothing)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T72`'s `PolyCurve.CloseWithLineAndTangentArcs(double, double)` — closing an open chain smoothly.** **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **The row's premise expired and the row has to be reread rather than followed.** It says the member waits because *Spark's only fillet is `CurveOffset.FilletLines`, which takes two lines* — untrue twice over now. But it is **not** a fillet: a fillet rounds a corner that exists, and this closes a gap that has **no corner in it**, between an open chain's end and its start. **Worked out before writing anything, and the answer is smaller than the write-ahead before it guessed.** Each arc's centre sits on the normal at its end, one of two sides — four sign combinations. For each combination the tangent line is **unique**, not one of four: with `v = C₂ − C₁` and `k = s₂r₂ − s₁r₁`, the travel direction `d` must satisfy `v·(n×d) = k` and `v·d = L ≥ 0`, which fixes `sin φ = −k/|v|` on the branch where the cosine is positive. So there are **four candidates and no more**, feasible when `|k| ≤ |v|`. It is the Dubins CSC construction with two radii. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`PolyCurve.Filleted` — every corner of a chain rounded at once, and the row was right that it is a composition rather than an algorithm.** **The chain is the whole of the work**: each `CurveOffset.Fillet` call trims *both* of the curves it is given, so the segment between two rounded corners is trimmed **twice** and the second trim has to act on the result of the first. Rounding against the original neighbours turns **eight of fifteen** tests red. **What the row did not predict is the orientation**, and the first run of the tests found it: `CurveOffset.Fillet` returns each trimmed piece running *away from the corner* — the right contract for a pair, and it means the second piece arrives running **backwards** along the chain, leaving a gap the width of the whole segment. Each piece is now turned to meet its arc. **Three more decisions**: the plane is **inferred** here where that member has to ask; a corner too tight is **left sharp** rather than losing the chain; and a rounded closed chain closes to under 1e-15 while `IsClosed` still says `false`, which is ADR-0010's doctrine rather than a defect. Residue **unchanged at 343**. 15 tests, **3703 → 3718**. **Before it:** two `Arc` constructors. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3718** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
-| **Next action** | **Write `PolyCurve.ClosedWithLineAndTangentArcs(startRadius, endRadius, tolerance)`.** Build all four candidates, drop the infeasible ones, and **choose among the survivors**. **The choice is the decision this row leaves open**, and shortest-wins is the Dubins answer to a different question — Dubins is steering a vehicle, this is closing an outline, and the shortest closure is free to cut straight through the shape it is closing. So: **prefer the candidates that do not cross the existing chain, and take the shortest of those**; fall back to the shortest overall when every one of them crosses, because a crossing closure is still better than an exception. **Test the crossing against the chain's own segments with `Curve.IntersectWith`, not against a tessellation** — it is exact, and it sidesteps the trap that the closure meets the chain at `S` and `E` *by construction*, so those two contacts have to be excluded by proximity rather than found and puzzled over. **Drop a degenerate piece rather than building it**: a zero-length line when the two circles touch, a zero sweep when the tangent point is the end point itself. |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **which of the four**. A fixture whose ends point in the same direction makes two candidates plausible and only one sensible, so the assertion is that the closed chain does not cross itself, which `PolyLine.SelfIntersections` can now answer two steps after it was written — on a tessellation whose last point is **snapped to its first**, because the chain closes to a few ulps and a polyline that is not exactly closed reports a false crossing at its own first corner. Taking the shortest candidate unconditionally must turn that test red, or the criterion is not worth its code and the member should say so instead. **Tangency at all four new joins**, asserted either side. **The two radii are different in every fixture**, because equal radii make `k` zero and hide a sign. **Radii too large for the gap are refused**, with their own test. The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Thirty-three steps landed across 2026-09-13 and 2026-09-14. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **`E2-T66` is closed; `E2-T68`, `E2-T69` and `E2-T72` are each part done.** `E2-T67` is skipped with its reason — the shim cannot be rebuilt without the OpenCascade install `E13-T21` waits on. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`PolyCurve.ClosedWithLineAndTangentArcs` — an open chain closed by an arc, a run and a second arc, and it is *not* a fillet.** **A fillet rounds a corner that exists; this closes a gap with no corner in it**, which makes it the Dubins curve-straight-curve path with two radii. Worked out before any code: **four candidates and not sixteen**, because for each of the four side combinations the tangent line is *unique*. **The branch is which candidate**, and **shortest is the wrong rule** — the shortest closure is free to cut straight through the outline it is closing. **Proving that needed a fixture search**, which is the lesson of the step: on the obvious L-shaped chain the shortest candidate *happens* to be the clear one, so the first mutation ran **green** and the criterion was unguarded until two fixtures were found by enumerating candidates over random chains. **Two corrections to my own write-ahead**: a radius too large is **not** an error, and the false crossing the tests first reported was `Tessellate` de-duplicating joins by **exact** equality inside a method that already takes a tolerance. Residue **unchanged at 343**. 19 tests, **3718 → 3737**. **Before it:** `PolyCurve.Filleted`. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3737** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T72`'s `PolyCurve.BasePlane`, which `Curve.PlaneOf` already answers.** **Read the row before writing anything, because it may be `Done` already.** `E2-T71` family (2) built `Curve.PlaneOf(in Tolerance)` on the base and the note there says in as many words that *returning the whole frame answers `PolyCurve.BasePlane` with the same member*. If that holds, this is a row to close **by naming the member that answers it**, not by writing a new one — and the register's own rule is that a capability delivered elsewhere is `Done` with the delivering member named. **The one thing to check is the difference between the questions.** `PlaneOf` returns `null` for a curve that lies in infinitely many planes — a straight line — so a polycurve of two collinear segments has no base plane by that member's rule. Decide whether Dynamo's `BasePlane` means the same thing and **say so in the row** either way. **Then what is left of `E2-T72`** is `PolyCurve` thickening and grouping, the flagged offset, `Arc.ByFilletTangentToCurve`, and the cyclic periodic interpolation. |
+| **Verify with** | **If the row closes by naming `PlaneOf`, the verification is the manifest**: the reverse direction of the parity check already refuses a `Done` row naming a member that does not exist, so the gate is the docs harness plus the residue budget **exact** at 343. **If a member is needed after all**, then a named test that goes red when the branch is removed (AGENTS.md step 7), and the branch is the **collinear** case — a chain that lies in infinitely many planes must not be handed one of them arbitrarily. Either way the row has to state which reading of `BasePlane` was taken and why, because the two readings differ exactly on the curves that have no unique plane. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -14571,3 +14571,67 @@ at. The capability is the radius.
 **Residue unchanged at 343.**
 
 **Cost.** One session. One member, fifteen tests, one node, three mutations.
+
+### 2026-09-14 — Closing a chain, and a fixture that proves nothing
+
+**What.** `PolyCurve.ClosedWithLineAndTangentArcs(startRadius, endRadius, tolerance)`. Nineteen
+tests, a node, the row to `Done`, and the register at **443 of 545**.
+
+**The row's premise had expired, and it was still worth reading.** It said the member waited
+because *Spark's only fillet is `CurveOffset.FilletLines`, which takes two lines* — untrue
+twice over by the time it was reached. But reading it produced the more useful correction:
+**this is not a fillet at all**. A fillet rounds a corner that *exists*; this closes a gap that
+has **no corner in it**. The chain must leave its own end travelling the way it was going,
+turn, run straight, turn again, and arrive at its own start travelling the way the chain sets
+off — which is the Dubins *curve-straight-curve* path with two different radii.
+
+**Four candidates and not sixteen, worked out on paper before any code.** Each arc's centre
+sits on one of two sides of its end, which is four combinations — and for each combination the
+tangent line is **unique**, not one of the four a pair of circles generally has. Writing `v`
+for the vector between the centres and `k` for the signed difference of the radii, the travel
+direction `d` must satisfy `v·(n×d) = k` and `v·d = L` with the run length `L` not negative,
+and that second condition picks one of the two roots. Feasible when `|k| ≤ |v|`. Having that
+written down before starting is what kept the implementation to one loop over four cases.
+
+**The decision the row left open is which candidate, and shortest is the wrong rule.** Shortest
+is Dubins' answer to Dubins' question — the least distance a vehicle travels — and this is
+closing an *outline*. The shortest closure is free to cut straight through the shape it is
+closing. So the candidates that keep clear of the chain **and of each other** are preferred,
+and the shortest of those is taken; when every candidate crosses, the shortest is returned
+anyway, because a crossing closure is an answer and an exception is not.
+
+**And then the mutation ran green, which is the lesson of the step.** Taking the shortest
+candidate unconditionally passed every test — because on the obvious L-shaped fixture the
+shortest candidate *happens* to be the clear one. **A fixture chosen for being easy to read is
+not chosen for discriminating between two rules**, and the only way to find out is to run the
+mutation. Two fixtures that do discriminate were found by enumerating the four candidates over
+random chains and keeping the ones where the shortest crosses and another does not; the
+mutation then reddens both. The criterion was unguarded for as long as it took to notice, and
+the thing that noticed was AGENTS.md step 7 rather than judgement.
+
+**Two corrections to my own write-ahead.**
+
+**A radius too large for the gap is not an error.** The write-ahead promised a test for it, by
+analogy with `CurveOffset.Fillet`, which genuinely does run out of room. This does not: moving
+a centre further from its end moves it further from the *other* centre too, so a bigger radius
+gives an enormous loop rather than an impossibility. A radius of 500 on a one-unit chain
+returns a perfectly good closure 500 units round, and there is now a test saying so. The
+refusal stays as a guard on a degenerate configuration, and **it is recorded as unguarded
+rather than safe** — no fixture reachable from ordinary inputs makes all four candidates
+infeasible at once.
+
+**The first false failure was `Tessellate`, not the closure.** The tests reported the outline
+crossing itself at a *tangent join*, which made no sense until the cause showed: `Tessellate`
+concatenates each segment's points and drops the duplicate at a join only when the two points
+are **exactly** equal. Every join this member and `Filleted` make is computed, so the points
+agree to a few ulps and the duplicate survives — leaving a near-zero segment whose two
+neighbours are non-consecutive and therefore compared, and reported as a crossing at the join.
+**The fix is one line and it is a real defect rather than a test artefact**: the method already
+takes a tolerance, and `FromJoinedCurves` already accepts segments up to that far apart, so an
+exact test inside it was inconsistent with the type's own join rule. The whole suite is green
+on the change.
+
+**Residue unchanged at 343.**
+
+**Cost.** One session. One member, nineteen tests, one node, three mutations and a fixture
+search.

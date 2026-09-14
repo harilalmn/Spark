@@ -56,3 +56,4 @@ static Spark.Nodes.Core.PolyLine.SelfIntersections(Spark.Geometry.PolyLine! poly
 static Spark.Nodes.Core.Arc.FromCenterStartEnd(Spark.Geometry.Point3d center, Spark.Geometry.Point3d startPoint, Spark.Geometry.Point3d endPoint) -> Spark.Geometry.Arc!
 static Spark.Nodes.Core.Arc.FromStartEndStartTangent(Spark.Geometry.Point3d startPoint, Spark.Geometry.Point3d endPoint, Spark.Geometry.Vector3d startTangent) -> Spark.Geometry.Arc!
 static Spark.Nodes.Core.PolyCurve.Filleted(Spark.Geometry.PolyCurve! polycurve, double radius, double tolerance = 1E-06) -> Spark.Geometry.PolyCurve!
+static Spark.Nodes.Core.PolyCurve.ClosedWithLineAndTangentArcs(Spark.Geometry.PolyCurve! polycurve, double startRadius, double endRadius, double tolerance = 1E-06) -> Spark.Geometry.PolyCurve!
