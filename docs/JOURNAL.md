@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: CI back on, the repository public again)
+**Last updated:** 2026-09-14 (CI back on, and five days of work about to meet it)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Turning CI back on — the client made the repository public on 2026-09-14 so that Actions minutes are free.** **The instruction, verbatim: *I made the repository public, so that actions wont have usage limit and wont cost me anything*.** Verified rather than assumed: `harilalmn/Spark` reports `"visibility": "PUBLIC"`. **`E13-T19` predicted this moment and left the work small**, which is the whole reason it kept the workflow files instead of deleting them: *the open-source release makes a public repository's minutes free again, and restoring the triggers is then the whole of turning CI back on*. **Two things are off, not one.** Actions are disabled at the repository level (`actions/permissions` reports `enabled: false`) **and** all three workflows were reduced to `workflow_dispatch` so that nothing would fire if the setting were ever flipped back. Both have to be undone, and they are separate. **`release.yml` is not touched.** It was `workflow_dispatch` with a tag input *before* the switch-off too, so it never had an automatic trigger — and the client's standing instruction since 2026-09-11 is **no tag and no release until the register is worked out**. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`E2-T30` withdrawn on a measurement — the compact binary `.sparkgeo` is not worth having.** **Its premise named the wrong file.** A `.spark` file *cannot hold a mesh*: `SparkFile.IsWritableLiteral` takes `null`, `bool`, `int`, `long`, `double`, `string` and `Angle` and nothing else, so the 500k-triangle mesh the row worried about is never in the file. The only serialiser that writes geometry is `GeometryJson`. **Measured against that, the ratio is 3.1× and not 30×** — 12.4 MB against 4.0 MB for 204,800 triangles with **full-precision** coordinates, stable at 3.00×, 3.07×, 3.10× across three sizes. Parse is about **100 ms** for those triangles, so a 500k mesh is a quarter of a second. **And a binary mesh path already exists** in `PlyFile`. **A format is the most expensive thing a project can add**, and three times the size on data that is not in the file anybody opens does not buy it. The numbers are in the row rather than the row deleted. Residue **unchanged at 346**. No test change, **3875**. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3875** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 346, and the help-sample compiler green. No stashes. |
-| **Next action** | **Enable Actions, restore the two triggers that were removed, and push.** `ci.yml` gets back `push: branches: [main]` and `pull_request:`; `nightly.yml` gets back its `cron: 17 3 * * *` — **the exact triggers `3d8fab6` removed**, read out of that commit rather than reinvented, because a trigger somebody remembers is a trigger somebody gets wrong. **Then push sixty-one commits**, which is the first CI run this work has ever had: everything since 2026-09-09 has been verified only on this machine. **Expect the ubuntu leg to find something** — it exists precisely as a second implementation of the same arithmetic, and it has caught a real defect before ([N28](NOTES.md)). **Then work whatever it finds**, and reopen the four rows that were blocked only by the switch-off: `E1-T19`, `E1-T21`, `E11-T14` and `E8-T15`. |
-| **Verify with** | **A green run on GitHub, not a green run here** — that is the entire point of the exercise, and this machine has been the only witness for five days. Both legs of `ci.yml`, the documentation harness among them. **Whatever is red gets fixed rather than excused**, and if something is red *only* on ubuntu that is the second implementation earning its keep and the finding goes in [NOTES.md](NOTES.md). **The four blocked rows are re-examined against the run** rather than simply reopened: a row blocked on a switch that is now flipped is not automatically buildable, and each has to say what it needs now. **No tag, no release.** |
+| **Working on** | **Nothing — between steps.** Forty-seven steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*, then *finish everything - we release only after that*; 2026-09-14 *do not stop until all epics are completed*.** **The repository is public again as of 2026-09-14** and **CI runs**, which changes the blocked list: four of the seven blocked rows were blocked on nothing but the switch-off. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **CI turned back on, because the client made the repository public.** *I made the repository public, so that actions wont have usage limit and wont cost me anything* — verified rather than assumed: `harilalmn/Spark` reports `PUBLIC`. **Two things were off, not one**, and that is the part worth carrying: Actions was disabled at the repository **and** all three workflows had been reduced to `workflow_dispatch`, deliberately, so that flipping the setting back could not start a billable run by accident. Both undone — and the triggers were **restored from `3d8fab6^` rather than retyped**, because a trigger somebody remembers is a trigger somebody gets wrong. **`release.yml` was not touched.** It never had an automatic trigger, and the standing instruction is no tag and no release until the register is worked out. **`E13-T19` predicted this exactly** and is recorded as reversed rather than reopened. Four blocked rows reopened with what each *actually* still needs. No test change, **3875**. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3875** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 346, and the help-sample compiler green. No stashes. **Pushed**, which is the first CI run this work has had. |
+| **Next action** | **Read the CI run and work whatever it finds.** Sixty-odd commits went up at once and everything since 2026-09-09 has been verified on **one Windows machine and nowhere else**, so this is the first honest test of five days of work. **Expect the ubuntu leg to be where something goes red.** It exists as a second implementation of the same arithmetic — a different libc, a different floating-point library, a different culture default — and it has caught a real defect here before ([N28](NOTES.md)). **A red ubuntu leg on a commit whose local gates were green is a finding, not an annoyance**, and it belongs in NOTES.md. **Two things to check that are not test failures.** The ubuntu leg never builds the native provider, so anything needing the shim must already be skipped or guarded there rather than failing. And a clean-room checkout proves what a local run cannot: that **nothing needed is uncommitted** — `bin/` is gitignored, so a file that only exists here has been invisible for five days. |
+| **Verify with** | **A green run on GitHub, both legs**, which is the only verification this step has — the local gates already passed and have been passing all along; they are not evidence for the thing being tested. **Whatever is red gets fixed rather than excused.** If the two environments genuinely disagree, the difference is the finding and it gets written down. **No tag, no release.** |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -15345,3 +15345,61 @@ person starts from numbers rather than from this row's.
 
 **Cost.** One session, and a short one. No code shipped, which is the point: the cheapest
 version of this task was finding out it should not be done.
+
+### 2026-09-14 — CI back on, and five days of work about to meet it
+
+**What.** The client made the repository **public**, and CI runs again. No code; a repository
+setting, two trigger blocks, and five documents that had been telling a reader something that
+stopped being true.
+
+**The instruction, verbatim: *I made the repository public, so that actions wont have usage
+limit and wont cost me anything*.** Checked rather than taken on trust — `harilalmn/Spark`
+reports `"visibility": "PUBLIC"` — because the whole point of the next half hour depended on
+it, and it costs one call to know.
+
+**Two things were off, and only one of them was the setting.** `actions/permissions` reported
+`enabled: false`, which is what everybody remembers. But `E13-T19` had also stripped the
+automatic triggers out of `ci.yml` and `nightly.yml`, leaving all three workflows
+`workflow_dispatch` only — **deliberately**, so that somebody flipping the setting back could
+not start a billable run before they meant to. Enabling Actions alone would have produced a
+repository that looks like it has CI and never runs any.
+
+**That row predicted this moment, and left the work small on purpose.** It said the workflow
+files were kept rather than deleted because *the open-source release makes a public
+repository's minutes free again, and restoring the triggers is then the whole of turning CI
+back on*. It was right to the letter. **A decision recorded with its reversal condition costs
+one paragraph and saves an afternoon of archaeology** — this is the second time this run that
+a row written months ago has said exactly what to do.
+
+**The triggers were restored from `3d8fab6^` rather than retyped.** `ci.yml` gets back
+`push: branches: [main]` and `pull_request:`; `nightly.yml` gets back `cron: '17 3 * * *'`,
+comment and all — including the note that the minute is deliberately not zero because the top
+of the hour is when hosted runners are most contended and that job measures time. A trigger
+somebody remembers is a trigger somebody gets wrong.
+
+**`release.yml` was not touched, and that is a decision rather than an oversight.** It was
+`workflow_dispatch` with a tag input *before* the switch-off as well, so it never had an
+automatic trigger to restore — and the client's standing instruction since 2026-09-11 is **no
+tag and no release until the register is worked out**. Nothing here can publish anything.
+
+**Five documents were saying something that had stopped being true**, and a stale instruction
+is worse than a missing one: `AGENTS.md`'s *before you commit* section told the next session
+that nothing runs anywhere except the machine it is sitting at, `README.md` told a reader that
+CI's last word was in September, and both workflow files opened with a paragraph explaining why
+they were dormant. All rewritten. `AGENTS.md` now says the thing that matters going forward:
+**run the local gates anyway**, and treat a red CI run on a locally-green commit as a finding
+about the difference between the two environments rather than as an annoyance.
+
+**And four blocked rows came back — but not as *unblocked*, as *re-examined*.** `E1-T19`,
+`E1-T21`, `E11-T14` and `E8-T15` were blocked on the switch-off and nothing else, so each now
+says what it *actually* still needs: `E1-T19` wants `E11-T15`'s harness before it can have a
+job that runs it; `E1-T21` and `E8-T15` want their results committed as a time series, which
+the workflow does not do; `E11-T14` is a job over a harness that already runs 28 checks
+locally, so it is about making a failure visible on a pull request. **A row blocked on a switch
+that is now flipped is not automatically a row somebody can pick up**, and saying so is the
+difference between a backlog and a list.
+
+**Residue unchanged at 346. No tag, no release.**
+
+**Cost.** One session. One setting, two trigger blocks, five documents, five task rows — and
+the first push in five days, which is where the actual verification starts.

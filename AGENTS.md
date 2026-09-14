@@ -127,11 +127,19 @@ XML doc = what this member does.*
 
 ## Before you commit
 
-> **GitHub Actions is switched off for this repository, since 2026-09-09 (`E13-T19`).** Releases
-> are cut locally and CI was not paying for itself once the repository went private. **Nothing runs
-> anywhere except the machine you are sitting at**, so every mention of a CI job below describes a
-> check that used to happen and does not now. The workflow files are still in `.github/workflows/`
-> and are inert; turning them back on is one repository setting.
+> **GitHub Actions runs again, since 2026-09-14.** The client made the repository **public** —
+> *I made the repository public, so that actions wont have usage limit and wont cost me anything* —
+> and both halves of the 2026-09-09 switch-off were undone: the repository setting, and the
+> automatic triggers `E13-T19` had stripped out of `ci.yml` and `nightly.yml` so that flipping the
+> setting could not start a billable run by accident.
+>
+> **Run the local gates anyway, and do not wait for CI to tell you something you could have
+> known.** The marathon ran on local gates alone from 2026-09-09 to 2026-09-14 and they are the
+> same three; CI adds what a local run cannot prove — a clean-room build on a machine that has
+> never seen this tree, and the ubuntu leg's second implementation of the same arithmetic
+> ([N28](docs/NOTES.md)). **A red CI run on a commit whose local gates were green is a finding,
+> not an annoyance**: it is the difference between the two environments, and it belongs in
+> `docs/NOTES.md`.
 >
 > **What this costs, stated once so nobody has to rediscover it.** `dotnet test Spark.slnx` does not
 > work on this machine — see below — and CI's was the only run of it. CI was also the only build

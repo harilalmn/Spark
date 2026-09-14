@@ -171,7 +171,7 @@
     <p class="sub">
       A parametric design environment for AEC, in marathon development towards 1.0.
       Generated <b>2026-09-14</b> from the task register, the journal and the repository
-      at <span class="mono">11a132f</span>.
+      at <span class="mono">faec59f</span>.
     </p>
   </header>
 
@@ -193,8 +193,8 @@
         <div class="tiles">
           <div class="tile done"><div class="n">367</div><div class="l">Done</div></div>
           <div class="tile progress"><div class="n">9</div><div class="l">In progress</div></div>
-          <div class="tile open"><div class="n">17</div><div class="l">Open</div></div>
-          <div class="tile blocked"><div class="n">7</div><div class="l">Blocked</div></div>
+          <div class="tile open"><div class="n">21</div><div class="l">Open</div></div>
+          <div class="tile blocked"><div class="n">3</div><div class="l">Blocked</div></div>
           <div class="tile deferred"><div class="n">2</div><div class="l">Deferred</div></div>
           <div class="tile withdrawn"><div class="n">12</div><div class="l">Withdrawn</div></div>
         </div>
@@ -261,7 +261,7 @@
 
       <div class="epic">
         <div class="name"><b>E1 &middot; Foundations, build and CI</b><em>M0 &middot; 33 rows</em></div>
-        <div class="bar" style="height:16px; border-radius:3px" title="28 done, 2 open, 2 blocked, 1 withdrawn"><i class="done" style="flex:28"></i><i class="open" style="flex:2"></i><i class="blocked" style="flex:2"></i><i class="withdrawn" style="flex:1"></i></div>
+        <div class="bar" style="height:16px; border-radius:3px" title="28 done, 4 open, 1 withdrawn"><i class="done" style="flex:28"></i><i class="open" style="flex:4"></i><i class="withdrawn" style="flex:1"></i></div>
         <div class="pct">88%</div>
       </div>
 
@@ -303,7 +303,7 @@
 
       <div class="epic">
         <div class="name"><b>E8 &middot; UI shell and node canvas</b><em>M2 &middot; 51 rows</em></div>
-        <div class="bar" style="height:16px; border-radius:3px" title="49 done, 1 in progress, 1 blocked"><i class="done" style="flex:49"></i><i class="progress" style="flex:1"></i><i class="blocked" style="flex:1"></i></div>
+        <div class="bar" style="height:16px; border-radius:3px" title="49 done, 1 in progress, 1 open"><i class="done" style="flex:49"></i><i class="progress" style="flex:1"></i><i class="open" style="flex:1"></i></div>
         <div class="pct">96%</div>
       </div>
 
@@ -321,7 +321,7 @@
 
       <div class="epic">
         <div class="name"><b>E11 &middot; Quality and verification</b><em>M0 onwards &middot; 31 rows</em></div>
-        <div class="bar" style="height:16px; border-radius:3px" title="25 done, 1 in progress, 4 open, 1 blocked"><i class="done" style="flex:25"></i><i class="progress" style="flex:1"></i><i class="open" style="flex:4"></i><i class="blocked" style="flex:1"></i></div>
+        <div class="bar" style="height:16px; border-radius:3px" title="25 done, 1 in progress, 5 open"><i class="done" style="flex:25"></i><i class="progress" style="flex:1"></i><i class="open" style="flex:5"></i></div>
         <div class="pct">81%</div>
       </div>
 
@@ -360,11 +360,14 @@
           <tr><td class="mono">E6-T14</td><td><span class="pill progress">In progress</span></td><td>The two node types over one pipeline</td></tr>
           <tr><td class="mono">E7-T20</td><td><span class="pill progress">In progress</span></td><td>Install from nuget.org into the graph's folder, with its dependencies</td></tr>
           <tr><td class="mono">E8-T14</td><td><span class="pill progress">In progress</span></td><td>Help panel and F1 &mdash; the generated-reference drill-down waits on the post-1.0 Help pass</td></tr>
+          <tr><td class="mono">E1-T19</td><td><span class="pill open">Open</span></td><td>CI job: headless UI smoke &mdash; Actions is off</td></tr>
+          <tr><td class="mono">E1-T21</td><td><span class="pill open">Open</span></td><td>Nightly benchmark workflow &mdash; Actions is off</td></tr>
           <tr><td class="mono">E1-T22</td><td><span class="pill open">Open</span></td><td>Release workflow that verifies the computed version equals the tag</td></tr>
           <tr><td class="mono">E1-T28</td><td><span class="pill open">Open</span></td><td>Branch protection, CI concurrency and build caching</td></tr>
           <tr><td class="mono">E10-T12</td><td><span class="pill open">Open</span></td><td>Per-PR changelog fragments</td></tr>
           <tr><td class="mono">E10-T14</td><td><span class="pill open">Open</span></td><td>Website</td></tr>
           <tr><td class="mono">E11-T11</td><td><span class="pill open">Open</span></td><td>Golden-file infrastructure with readable diff tables</td></tr>
+          <tr><td class="mono">E11-T14</td><td><span class="pill open">Open</span></td><td><span class="mono">docs-freshness</span> CI job &mdash; Actions is off</td></tr>
           <tr><td class="mono">E11-T15</td><td><span class="pill open">Open</span></td><td>Headless UI smoke test</td></tr>
           <tr><td class="mono">E11-T17</td><td><span class="pill open">Open</span></td><td>tests/corpus/ regression corpus</td></tr>
           <tr><td class="mono">E11-T7</td><td><span class="pill open">Open</span></td><td>Link and asset integrity, plus Markdown renderer parity against a golden corpus</td></tr>
@@ -377,13 +380,10 @@
           <tr><td class="mono">E2-T67</td><td><span class="pill open">Open</span></td><td>Mass properties on a <span class="mono">Brep</span> exactly, not off the tessellation</td></tr>
           <tr><td class="mono">E5-T11</td><td><span class="pill open">Open</span></td><td>CI acceptance test: import a well-known third-party NuGet package and assert a sane node count with no crashes</td></tr>
           <tr><td class="mono">E13-T22</td><td><span class="pill open">Open</span></td><td>A face or edge index does not survive the crossing into OCCT</td></tr>
-          <tr><td class="mono">E1-T19</td><td><span class="pill blocked">Blocked</span></td><td>CI job: headless UI smoke &mdash; Actions is off</td></tr>
-          <tr><td class="mono">E1-T21</td><td><span class="pill blocked">Blocked</span></td><td>Nightly benchmark workflow &mdash; Actions is off</td></tr>
-          <tr><td class="mono">E11-T14</td><td><span class="pill blocked">Blocked</span></td><td><span class="mono">docs-freshness</span> CI job &mdash; Actions is off</td></tr>
+          <tr><td class="mono">E8-T15</td><td><span class="pill open">Open</span></td><td>2,000-node canvas benchmark, nightly &mdash; Actions is off</td></tr>
           <tr><td class="mono">E13-T18</td><td><span class="pill blocked">Blocked</span></td><td>An imported model's closed shells should come back as solids &mdash; the OpenCascade install is gone from this machine</td></tr>
           <tr><td class="mono">E2-T72</td><td><span class="pill blocked">Blocked</span></td><td>The concrete curve-type gaps E2-T41 step B found</td></tr>
           <tr><td class="mono">E13-T21</td><td><span class="pill blocked">Blocked</span></td><td>The shim meshes a deep copy of the shape &mdash; same toolchain block</td></tr>
-          <tr><td class="mono">E8-T15</td><td><span class="pill blocked">Blocked</span></td><td>2,000-node canvas benchmark, nightly &mdash; Actions is off</td></tr>
           <tr><td class="mono">E12-T2</td><td><span class="pill deferred">Post-1.0</span></td><td><span class="mono">IHostServices</span> seam (D20)</td></tr>
           <tr><td class="mono">E12-T4</td><td><span class="pill deferred">Post-1.0</span></td><td>Prove <span class="mono">Spark.Host</span> inside a real Revit or AutoCAD add-in (D20)</td></tr>
         </tbody>
@@ -467,9 +467,9 @@
             <tbody>
               <tr><td>Architecture decision records</td><td class="num">27</td></tr>
               <tr><td>Notes &mdash; traps paid for once</td><td class="num">168</td></tr>
-              <tr><td>Journal entries</td><td class="num">326</td></tr>
+              <tr><td>Journal entries</td><td class="num">327</td></tr>
               <tr><td>Help topics written</td><td class="num">13</td></tr>
-              <tr><td>Commits</td><td class="num">430</td></tr>
+              <tr><td>Commits</td><td class="num">432</td></tr>
               <tr><td>Tags released</td><td class="num">10</td></tr>
               <tr><td>Working days</td><td class="num">16</td></tr>
             </tbody>
@@ -482,7 +482,7 @@
   <section>
     <h2>Commits per day</h2>
     <div class="card">
-      <div class="vel" role="img" aria-label="Commits per day, 430 over 16 working days">
+      <div class="vel" role="img" aria-label="Commits per day, 432 over 16 working days">
         <div style="height:13%" title="27 Aug &mdash; 8"></div>
         <div style="height:22%" title="28 Aug &mdash; 13"></div>
         <div style="height:15%" title="29 Aug &mdash; 9"></div>
@@ -501,11 +501,11 @@
         <div style="height:78%" title="11 Sep &mdash; 47"></div>
         <div style="height:30%" title="12 Sep &mdash; 18"></div>
         <div style="height:85%" title="13 Sep &mdash; 51"></div>
-        <div style="height:75%" title="14 Sep &mdash; 45"></div>
+        <div style="height:78%" title="14 Sep &mdash; 47"></div>
       </div>
       <div class="velx"><div>27</div><div>28</div><div>29</div><div>30</div><div>31</div><div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div><div>10</div><div>11</div><div>12</div><div>13</div><div>14</div></div>
       <p class="sub" style="margin:10px 0 0; font-size:12.5px">
-        430 commits over 16 working days; a step is a commit.
+        432 commits over 16 working days; a step is a commit.
       </p>
     </div>
   </section>
@@ -523,7 +523,7 @@
       from <span class="mono">tests/corpus/dynamo-parity.tsv</span> and
       <a href="DYNAMO-COVERAGE.md">DYNAMO-COVERAGE.md</a>; the suite figure from
       <a href="JOURNAL.md">JOURNAL.md</a>'s <i>Current state</i>; line counts, commits and tags
-      from the repository at <span class="mono">11a132f</span>.</p>
+      from the repository at <span class="mono">faec59f</span>.</p>
     <p><b>Generated, not written.</b> <span class="mono">scripts/build-progress.py</span> rebuilds
       this page from those documents, and <span class="mono">ProgressDashboardChecks</span> in
       <span class="mono">tests/Spark.Docs.Verify</span> fails the build when it is out of date.
@@ -536,12 +536,11 @@
 </div>
 <script type="application/json" id="spark-progress-data">
 {
-  "commit": "11a132f",
+  "commit": "faec59f",
   "epics": {
     "E1": {
-      "Blocked": 2,
       "Done": 28,
-      "Open": 2,
+      "Open": 4,
       "Withdrawn": 1
     },
     "E10": {
@@ -550,10 +549,9 @@
       "Open": 2
     },
     "E11": {
-      "Blocked": 1,
       "Done": 25,
       "In progress": 1,
-      "Open": 4
+      "Open": 5
     },
     "E12": {
       "Deferred": 2,
@@ -596,9 +594,9 @@
       "In progress": 1
     },
     "E8": {
-      "Blocked": 1,
       "Done": 49,
-      "In progress": 1
+      "In progress": 1,
+      "Open": 1
     },
     "E9": {
       "Done": 15
@@ -615,11 +613,11 @@
   "tests": 3875,
   "total": 414,
   "totals": {
-    "Blocked": 7,
+    "Blocked": 3,
     "Deferred": 2,
     "Done": 367,
     "In progress": 9,
-    "Open": 17,
+    "Open": 21,
     "Withdrawn": 12
   }
 }

@@ -18,22 +18,31 @@ name: CI
 # macOS is deliberately not built. Shipping there needs a paid Apple Developer account
 # and notarization in CI, and under D16 it is not shipped at all.
 
-# STOPPED 2026-09-12, AT THE CLIENT'S INSTRUCTION, AND DORMANT RATHER THAN DELETED.
+# RUNNING AGAIN SINCE 2026-09-14, AND THE DORMANCY IS WORTH READING BEFORE THE FILE.
 #
-# Actions has been switched off for this repository since 2026-09-09 (`E13-T19`): a private
-# repository's minutes are billed, and the client is not spending money on this project. The
-# automatic triggers are removed so that nothing can start a run - and therefore a bill - if
-# Actions is ever switched back on before anybody means it to.
+# This was stopped on 2026-09-12 at the client's instruction and left dormant rather than deleted:
+# Actions was switched off at the repository (`E13-T19`) because a PRIVATE repository's minutes are
+# billed, and the automatic triggers were removed as well, so that flipping the setting back could
+# not start a run - and therefore a bill - before anybody meant it to.
 #
-# The guard has moved rather than gone: every step of the marathon runs the same gates locally -
-# a warnings-as-errors build, all ten test executables, and `dotnet format --verify-no-changes`.
-# What is genuinely lost is what a local run cannot prove: a clean-room build on a machine that
-# has never seen this tree, and the ubuntu leg's second implementation of the same arithmetic.
+# The client made the repository PUBLIC on 2026-09-14, where minutes are free, and said so: "I made
+# the repository public, so that actions wont have usage limit and wont cost me anything". Both
+# halves were undone - the repository setting and the triggers below - which is exactly what
+# `E13-T19` said turning CI back on would amount to.
+#
+# WHAT CI IS FOR HERE, NOW THAT LOCAL GATES EXIST TOO. Between those two dates every step of the
+# marathon ran the same gates on one machine: a warnings-as-errors build, all ten test executables,
+# and `dotnet format --verify-no-changes`. Those stay. What only CI can prove is what a local run
+# cannot: a clean-room build on a machine that has never seen this tree, and the ubuntu leg's
+# second implementation of the same arithmetic.
 #
 # This file stays because the answer changes at release: Spark is to be released **open source**,
 # and a public repository's minutes are free again. Restoring the push and pull_request triggers
 # below is then the whole of turning CI back on.
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:

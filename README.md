@@ -97,10 +97,15 @@ Spark is like and what it does not require.*
 > pipeline — nineteen benchmark cases, the canvas benchmark and the budget check — is green.
 > **CI ran the build, the tests and the format check on Windows and Linux on commit `53596ab` and
 > was green**, 952 tests on each — so the Linux leg was not a claim, and it caught something Windows
-> could not. **That was the last word CI had.** GitHub Actions is switched off for this repository
-> as of 2026-09-09 (`E13-T19`): releases are cut locally, and a private repository's Actions minutes
-> are billed rather than free. **Everything verified after `53596ab` was verified on Windows, on one
-> developer machine, and nowhere else.**
+> could not.
+>
+> **Then it stopped for five days, and it runs again.** GitHub Actions was switched off on
+> 2026-09-09 (`E13-T19`) because the repository had gone private and a private repository's minutes
+> are billed; releases were being cut locally in any case. **Everything verified between `53596ab`
+> and 2026-09-14 was verified on Windows, on one developer machine, and nowhere else.** The client
+> made the repository **public** on 2026-09-14 — where minutes are free — and both halves of the
+> switch-off were undone: the repository setting, and the automatic triggers that had been stripped
+> out of the workflows so that flipping the setting could not start a billable run by accident.
 >
 > **Worth knowing about how this code is accepted.** The kernel's first slice passed all three
 > gates and was rejected on review, with three of its eight claims false — most visibly a

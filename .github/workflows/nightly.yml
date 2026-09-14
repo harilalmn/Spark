@@ -16,19 +16,23 @@ name: Nightly
 # GitHub disables a scheduled workflow after 60 days without repository activity, and says so by
 # email. If this stops running, that is the first thing to check.
 
-# STOPPED 2026-09-12, AT THE CLIENT'S INSTRUCTION. The schedule is the expensive half of this
-# file - a nightly BenchmarkDotNet run on a doubly-billed Windows runner, whether or not anything
-# changed - and Actions is switched off for this repository in any case (`E13-T19`). The cron is
-# removed so that no run can start, and therefore no bill, if Actions is ever switched back on
-# before anybody means it to. The budgets in `bench/budgets.jsonc` are a manual gate meanwhile.
+# STOPPED 2026-09-12 AND RUNNING AGAIN SINCE 2026-09-14. The schedule is the expensive half of
+# this file - a nightly BenchmarkDotNet run on a doubly-billed Windows runner, whether or not
+# anything changed - so when Actions was switched off for billing (`E13-T19`) the cron went with
+# it, and `bench/budgets.jsonc` was a manual gate meanwhile.
 #
-# The schedule comes back with the open-source release, when a public repository's minutes are
-# free again: restore the `schedule:` block below and nothing else changes.
+# That file said the schedule would come back with the open-source release, when a public
+# repository's minutes are free again, and that restoring the `schedule:` block would be the whole
+# of it. The client made the repository public on 2026-09-14 and it was.
 #
 # 03:17 UTC was the cadence. The hour was arbitrary; the minute deliberately was not zero,
 # because the top of the hour is when hosted runners are most contended and this job measures
 # time.
 on:
+  schedule:
+    # 03:00 UTC daily. The hour is arbitrary; the minute deliberately is not zero, because the
+    # top of the hour is when hosted runners are most contended and this job measures time.
+    - cron: '17 3 * * *'
   workflow_dispatch:
 
 permissions:
