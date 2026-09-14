@@ -119,8 +119,12 @@ The conventions:
 - **Golden files stored as hashes plus summary statistics**, with failures printing a
   readable diff table: bounding box, counts, area, volume. A bare hash mismatch tells you
   nothing.
-- **Regression tests go in `tests/corpus/`** and stay there. The corpus grows with every
-  bug found.
+- **Regression tests go in [`tests/corpus/`](tests/corpus/README.md)** and stay there. The
+  corpus grows with every bug found — and it holds three other kinds of thing besides, which its
+  README sets out: goldens, manifests, and **real old-version artefacts** a previous build
+  genuinely wrote. **Name what you add in that README.** A fixture with no provenance cannot be
+  judged when it goes red, regenerated, or retired, and `CorpusIndexChecks` fails a file that
+  arrives without a row.
 
 ## The documentation rule
 

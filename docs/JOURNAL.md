@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (the note about NUL bytes contained two NUL bytes)
+**Last updated:** 2026-09-14 (the rule had nothing to stand on, and git had the fixture)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **Nothing — between steps.** Fifty-eight steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
+| **Working on** | **Nothing — between steps.** Fifty-nine steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*, and the repository is public so CI runs.** |
 | **Step status** | `CLEAN` |
-| **Last completed step** | **[N132](NOTES.md) — *A NUL byte in a source file compiles, and greps as binary* — contained two NUL bytes, and one of them was inside the scan it prescribes.** So `docs/NOTES.md` was a file `grep` would not search, which is the symptom in the note's own title. **It had already cost something**: a census of that file returned **111** entries against an actual **172**, because `grep` stopped reporting — and it arrived as a *correction* of a number that was right, one command from being written into this journal. **Five control characters in four files, and none was the one the note is about.** `C:\dev\vcpkg` had lost its `\v` to a vertical tab three times across `JOURNAL` and `TASKS`; `WorkspaceLayoutTests` had `@"C:\feed"` with its `\f` eaten into a form feed **twice, on both sides of the same assertion**, so the test compared the corrupted value to itself and could never have failed. **`ControlCharacterChecks` walks every text file on every run now**, because N132's *one command* had gone unrun for a month. **Six mutations, six killed.** 3 tests, **3921 → 3924**. Residue **unchanged at 346**. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3924** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **40** checks with the residue budget exact at 346. **No text file in the repository contains a control character**, and that is now asserted rather than assumed. No stashes. |
-| **Next action** | **`E11-T17`, the regression corpus, which this step was scoping when it found the NULs.** Two things are real there. **(1)** `AGENTS.md` promises every migration ships *with a golden-file test against a real old-version graph in `tests/corpus/`* and **there is no such graph** — but git has real ones: `docs/examples/curves.spark` at `a30e98c` (2026-08-28) names `Circle.ByCentreRadius` and `PolyLine.ByRegularPolygon`, keys that no longer exist, so opening it exercises the alias path that is presently proved only by string literals inside test files. **(2)** The corpus has **no README**, and the two prose definitions disagree: `CONTRIBUTING.md` says regression inputs, `AGENTS.md` says old-version graphs. Both are true; neither mentions the other. **And `AGENTS.md` still says `tests/corpus/` does not exist.** It has ten files in it. |
-| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7). The three gates, the residue budget **exact** at 346, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **And a number that arrives as a correction gets checked like any other number** — this step's was wrong. **No tag, no release.** |
+| **Last completed step** | **`E11-T17` `Done` — and the half that mattered was a rule with nothing behind it.** `AGENTS.md` has promised since M0 that every migration ships *with a golden-file test against a real old-version graph in `tests/corpus/`*. **There was no such graph.** Compatibility was tested against JSON typed inside test methods, which proves the alias *mechanism* and cannot prove that **the real library's aliases cover the renames this project actually made**. **Git had the fixture.** `tests/corpus/graphs/curves-2026-08-28.spark` is `docs/examples/curves.spark` exactly as it stood at `a30e98c`; **eight of its eleven node keys no longer exist**, so opening it resolves eight aliases at once from a file an older build really wrote. **And the corpus got a definition**, because the two that existed disagreed and one said the directory did not exist while it held eleven files. `CorpusIndexChecks` fails a file with no row and a row with no file — **a corpus rots by holding a fixture whose purpose nobody remembers, not by holding a wrong one.** **Six mutations, six killed**, including removing `Circle.ByCentreRadius`'s alias from `Spark.Nodes.Core` — the mutation no test could kill before this row. 7 tests, **3924 → 3931**. Residue **unchanged at 346**. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3931** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green at **44** checks with the residue budget exact at 346. No stashes. |
+| **Next action** | **`E5-T11` — import a well-known third-party NuGet package in CI and assert a sane node count with no crashes**, which the row calls *the only honest way to know zero-config actually works*. `Spark.Packages` exists and its 119 tests pass; what the row asks for is a package **nobody here wrote**, which is the difference between testing the importer and testing the claim — the same difference this step just made for aliases. **Check first whether CI can reach nuget.org at all**, and whether a package should be pinned by version and hash rather than resolved, because a test that depends on the internet is a test that goes red for reasons that are not about Spark. **Then**: `E10-T12`, `E2-T32`, `E2-T27`, `E1-T22`, `E10-T14`. |
+| **Verify with** | **Whatever is taken next, the usual**: a named test that goes red when the branch is removed, proved by removing it (AGENTS.md step 7) — **and mutate the thing the guard guards**, which here meant deleting an alias from the shipping node library rather than editing the test. The three gates, the residue budget **exact** at 346, and `scripts/check-docs-freshness.sh 'HEAD~1..HEAD'` before pushing. **No tag, no release.** |
 | **Blocked on** | **Four things need a human, and the fourth is new.** **(0)** `E1-T28`'s **branch protection**, which is a decision and not work: requiring a green pull request on `main` would refuse every commit this marathon makes — *go non stop till all Epics are done* against 206 commits pushed straight to `main` by design. Nothing is configured today (`branches/main/protection` says *Branch not protected*, `rulesets` is empty), the other two thirds of the row are done and guarded, and this is one `gh api -X PUT` on the day the marathon ends and somebody else contributes. Recorded here rather than applied, because applying it stops the work, and rather than dropped, because it was asked for. **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -15923,3 +15923,63 @@ the argument for the check being code with tests of its own rather than a line i
 
 **Cost.** One session, spent on a defect nobody had reported, in a note about that defect,
 found by a number that was wrong in a way that looked like a correction.
+
+### 2026-09-14 — The rule had nothing to stand on, and git had the fixture
+
+**What.** `E11-T17` to `Done`. One captured file, a README, two checks, seven tests, six
+mutations.
+
+**The row's second sentence was the whole row**: *also holds the real old-version graphs the
+migration golden-file tests need*. `AGENTS.md` has said since M0 that every migration ships
+**with a golden-file test against a real old-version graph in `tests/corpus/`**. There was no
+such graph, and there never had been.
+
+**What existed proved the mechanism and could not prove the claim.** `NodeAliasTests` opens a
+file naming an old key and checks it resolves — against a synthetic library holding one
+synthetic renamed definition, and a JSON string typed inside the test. That is a good test of
+the alias path. **It cannot tell you whether the real library's aliases cover the renames this
+project actually made**, because those renames are not in it. The difference is the same one
+`E10-T11` turned on three steps ago: a mechanism that works, and a claim nobody checks.
+
+**So the fixture was captured rather than written.** `docs/examples/curves.spark` at
+`a30e98c` — 2026-08-28, before `E2-T58` turned every `By` factory into `From` and `E2-T60`
+turned `Centre` into `Center`. **Eight of its eleven node keys no longer exist.** Opening it
+resolves eight aliases at once, from a file an older build really wrote.
+
+**Writing a fixture that resembles history is not the same as keeping history**, and the
+difference is that a written fixture encodes what somebody believed the old format looked
+like. Git does not have that problem. It is a cheap habit and this repository had not used it
+once.
+
+**The test names both ends of every rename rather than counting them.** A test asserting
+*eight aliases resolved* passes on the day somebody quietly rewrites the fixture's keys to the
+new spellings — which is precisely the edit that destroys its value, and precisely the edit a
+well-meaning tidy-up makes. So it asserts the file still says `Circle.ByCentreRadius`, and
+that opening it yields `Circle.FromCenterRadius`, and that saving writes the new key while the
+file on disk keeps the old one.
+
+**Then the corpus got a definition, because the two that existed disagreed.**
+`CONTRIBUTING.md` said regression inputs that grow with every bug. `AGENTS.md` said
+old-version graphs for migration goldens. Both true, neither mentioning the other — and
+`AGENTS.md` **also said the directory did not exist**, while it held eleven files.
+[tests/corpus/README.md](../tests/corpus/README.md) now names every file, what reads it and
+where it came from.
+
+**The argument for `CorpusIndexChecks` is not tidiness.** A corpus does not rot by holding a
+wrong fixture. It rots by holding one whose purpose nobody remembers. **A golden with no
+provenance cannot be judged when it goes red** — is the code wrong, or was the golden wrong
+when it was captured? — cannot be regenerated, because nobody knows what produced it, and
+cannot be retired, because nobody knows what would break. And it survives every review,
+because reviewing it requires exactly the knowledge it failed to record.
+
+**Six mutations, six killed, and the sixth is the one that matters.** A file added with no
+row; a row naming a deleted file; the walk emptied; the transient-artefact exclusion widened
+until it swallowed every fixture; the fixture's keys rewritten to today's; and
+**`Circle.ByCentreRadius`'s alias deleted from `Spark.Nodes.Core`**. That last one is a
+mutation nothing in this repository could kill before today — a shipping alias could have been
+removed and every test would have stayed green.
+
+**Residue unchanged at 346. 7 tests, 3924 → 3931. No tag, no release.**
+
+**Cost.** One session. The useful part was noticing that the fixture the rule needed already
+existed in the repository's own history, and had done for seventeen days.

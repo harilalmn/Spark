@@ -1482,7 +1482,13 @@ nothing.
       (**E11-T16**, [ADR-0023](adr/0023-performance-budgets-not-a-benchmark-time-series.md)).
       *Marshalling, evaluation and the canvas do. Replication over 100 000 items is covered only
       through marshalling, and tessellation throughput has nothing to benchmark yet.*
-- [ ] `tests/corpus/` grows with every bug found (**E11-T17**).
+- [x] `tests/corpus/` grows with every bug found (**E11-T17**). *And it now says what it is:
+      [a README](../tests/corpus/README.md) naming every file, what reads it and where it came
+      from, with `CorpusIndexChecks` failing a file that arrives without a row — because a corpus
+      rots by holding a fixture whose purpose nobody remembers, not by holding a wrong one. The
+      first **real old-version graph** landed with it: `docs/examples/curves.spark` as it stood at
+      `a30e98c`, eight of whose eleven node keys no longer exist, which is what `AGENTS.md`'s
+      migration rule had been promising against since M0 with nothing behind it.*
 - [x] The three M1.5 spikes have **pass/fail criteria written down before the spike starts**
       (**E11-T19**, **E11-T20**, **E11-T21**). *All three are taken and **M1.5 is complete**.
       Spike (c)'s five criteria were written first and are on its row, and two of the five were

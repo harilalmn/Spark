@@ -528,7 +528,15 @@ survive value-only tests. Do not change lacing semantics without bumping
 
 A migration written against typed models silently changes meaning every time those models
 change. Migrations are never deleted, and each ships with a golden-file test against a real
-old-version graph in `tests/corpus/`.
+old-version graph in [`tests/corpus/`](tests/corpus/README.md).
+
+> **This rule had nothing to stand on until 2026-09-14 (`E11-T17`), and the phrase that mattered
+> was *a real old-version graph*.** There was no such file: compatibility was tested against JSON
+> typed inside test methods, which proves the mechanism and cannot prove that the **real library's
+> aliases cover the renames this project actually made**. `tests/corpus/graphs/curves-2026-08-28.spark`
+> is now `docs/examples/curves.spark` exactly as it stood at `a30e98c`, and **eight of its eleven
+> node keys no longer exist**. Capture history rather than writing a fixture that resembles it —
+> git has the real ones, and a captured artefact is never regenerated.
 
 **Callback registries must be cleared before an ALC unload.**
 
@@ -632,7 +640,10 @@ Two of those lines are intent rather than description, and are marked. Everythin
 disk, with one qualification worth knowing before you add a project: `tests/` holds **nine**
 projects — `Spark.Architecture.Tests`, `Spark.Docs.Verify`, `Spark.Geometry.Tests`,
 `Spark.Geometry.Properties`, `Spark.Geometry.Occt.Tests`, `Spark.Engine.Tests`,
-`Spark.Packages.Tests`, `Spark.UI.Tests` and `Spark.Viewport.Tests` — and nothing else. `tests/corpus/` does not exist yet. Each of the last three arrived **with
+`Spark.Packages.Tests`, `Spark.UI.Tests` and `Spark.Viewport.Tests` — and nothing else, plus
+`tests/corpus/`, which is **data and deliberately not a project** and has a
+[README of its own](tests/corpus/README.md) naming every file and what reads it. *This said
+`tests/corpus/` does not exist yet until 2026-09-14, by which time it held eleven files.* Each of the last three arrived **with
 the code it tests**, not ahead of it, because a test project containing no tests fails the run
 outright — [NOTES.md N12](docs/NOTES.md). The ceiling on `InternalsVisibleTo` for the kernel was two and is now **three**:
 `Spark.Geometry.Tests`, `Spark.Geometry.Properties` and `Spark.Geometry.Occt` —
