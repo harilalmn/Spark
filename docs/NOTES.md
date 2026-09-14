@@ -2,7 +2,7 @@
 
 Non-obvious implementation facts, numbered. Adopted from DoodleSharp's convention.
 
-**Last updated:** 2026-09-14 (N171: a prelude that depended on what had already run)
+**Last updated:** 2026-09-14 (N90 no longer reproduces, and two rows come off it)
 
 ---
 
@@ -2454,6 +2454,17 @@ headless dispatcher and was deleted rather than left in the suite, which fails A
 
 ## N90 — A wrapped, data-bound `TextBlock` inside a `Grid` hangs Avalonia's headless `Window.Show()`
 
+> **NO LONGER REPRODUCES, 2026-09-14 (`E11-T15`).** Shown headlessly today, `InspectorPane` opens
+> in under a second and the **real `MainWindow`** composes completely — title bar, menu, a
+> `DockControl` laid out at 1480x838, status bar — renders a frame and closes, in under a second.
+> Nothing in this repository was changed to achieve that; it was tried because two rows had been
+> blocked on this note for a month and nobody had retried it. **A note that records a hang is a
+> note that stops people retrying**, which is most of its value and all of its cost. It is kept
+> rather than deleted so that a return of the hang is read as a regression against a known-good
+> state rather than as a new fault, and `MainWindowSmokeTests` is now the thing that would notice.
+> The cause below was never traced past the symptom, so what fixed it is unknown — an Avalonia
+> patch between 12.1.0 and 12.1.1 is the likeliest, and nobody should claim more than that.
+>
 > **Amended 2026-09-09 (`E8-T75`), and the amendment is a narrowing.** This note had been read as
 > *panes cannot be shown headlessly*, and that is not what it says. `CanvasPane` shows, lays out and
 > hit-tests perfectly well in the headless session — it hosts the canvas, which draws its own text
