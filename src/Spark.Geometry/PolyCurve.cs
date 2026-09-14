@@ -352,6 +352,206 @@ public sealed class PolyCurve : Curve
             controlPoints, new KnotVector(degree, knots), rational ? weights : null);
     }
 
+    /// <summary>
+    /// Returns the chain with every corner rounded to a fillet of the same radius (`E2-T72`).
+    /// </summary>
+    /// <param name="radius">The fillet radius. Positive.</param>
+    /// <param name="tolerance">
+    /// The tolerance for finding the plane, the corners and the offsets. Defaults to the ambient one.
+    /// </param>
+    /// <returns>
+    /// The rounded chain. A polycurve of one segment has no corners and is returned unchanged.
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="radius"/> is not positive and finite.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The chain is not planar, so there is no plane for its fillets to lie in.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <b>This is <see cref="CurveOffset.Fillet"/> over every join, and the chain is the whole of
+    /// the work.</b> Each call trims <i>both</i> of the curves it is given, so the segment between
+    /// two rounded corners is trimmed <b>twice</b> — and the second trim must act on the result of
+    /// the first rather than on the original segment. The joins are therefore walked in order with
+    /// the running trimmed segment carried forward. Rounding each corner against the original
+    /// neighbours and reassembling afterwards produces a chain that does not join, and it fails
+    /// most quietly on the segments that are shortest relative to the radius.
+    /// </para>
+    /// <para>
+    /// <b>The plane is inferred here, where <see cref="CurveOffset.Fillet"/> has to ask for it.</b>
+    /// That member takes a normal because two <i>straight</i> curves have no plane of their own to
+    /// read; a chain of segments does, and <see cref="Curve.PlaneOf(in Tolerance)"/> supplies it.
+    /// Which way the fitted normal points does not matter — the fillet search tries both sides of
+    /// each curve anyway.
+    /// </para>
+    /// <para>
+    /// <b>A corner too tight for the radius is left sharp rather than throwing the chain away.</b>
+    /// A fillet of radius ten does not fit a corner two across, and a twenty-corner chain with one
+    /// such corner should come back with nineteen rounded — a partial fillet is what the caller
+    /// wants and an exception is not. A radius that fits nowhere therefore returns the chain
+    /// unchanged, which is the same rule taken to its limit rather than a separate case.
+    /// </para>
+    /// <para>
+    /// <b>A closed chain has one more corner than an open one</b>, the join from the last segment
+    /// back to the first, and that one is not symmetric with the others: by the time it is reached
+    /// the first segment has already been trimmed at its far end, so rounding the wrap replaces the
+    /// front of the result rather than appending to the back of it.
+    /// </para>
+    /// <para>
+    /// <b>A rounded closed chain closes to within rounding, and <see cref="Curve.IsClosed"/> will
+    /// still say <see langword="false"/>.</b> That property is exact equality by doctrine — Spark's
+    /// tolerance is passed rather than ambient (ADR-0010), so a parameterless property cannot ask a
+    /// tolerant question — and the closed factories elsewhere keep it true by <i>repeating</i> the
+    /// first point rather than by arithmetic. A fillet has no such option: both ends of the wrap
+    /// are evaluated, from a trim parameter at one end and an arc's sweep at the other, so they
+    /// agree to a few ulps and not to the bit. Measured on a rounded square the gap is under
+    /// 1e-15. A caller who wants the tolerant answer compares <see cref="Curve.StartPoint"/> and
+    /// <see cref="Curve.EndPoint"/> with the tolerance they mean, which is what
+    /// <see cref="PolyLine"/> already tells them.
+    /// </para>
+    /// <para>
+    /// <b>Dynamo's <c>PolyCurve.Fillet</c> carries a second, flag argument whose meaning its
+    /// signature does not give</b> (§6.3 of the Dynamo coverage register). The capability is the
+    /// radius; the flag is not guessed at here.
+    /// </para>
+    /// </remarks>
+    public PolyCurve Filleted(double radius, in Tolerance tolerance = default)
+    {
+        // BEFORE the loop, and deliberately. The loop swallows ArgumentException to skip a corner
+        // that cannot take the radius, and ArgumentOutOfRangeException IS an ArgumentException —
+        // so a validation left inside would read a bad radius as every corner being too tight and
+        // hand back the chain unchanged instead of saying what was wrong.
+        if (!double.IsFinite(radius) || radius <= 0.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(radius), radius, "A fillet radius must be positive and finite.");
+        }
+
+        if (_segments.Length < 2)
+        {
+            return this;
+        }
+
+        Plane plane = PlaneOf(tolerance)
+            ?? throw new InvalidOperationException(
+                "A polycurve can only be filleted in a plane, and this chain is not planar. "
+                + "Fillet its corners individually with CurveOffset.Fillet, which takes the plane "
+                + "normal for each one.");
+
+        Vector3d normal = plane.Normal;
+
+        List<Curve> rounded = [];
+        Curve current = _segments[0];
+
+        for (int index = 1; index < _segments.Length; index++)
+        {
+            if (TryRound(
+                current, _segments[index], radius, normal, tolerance,
+                out Arc? arc, out Curve? before, out Curve? after))
+            {
+                rounded.Add(before!);
+                rounded.Add(arc!);
+                current = after!;
+            }
+            else
+            {
+                rounded.Add(current);
+                current = _segments[index];
+            }
+        }
+
+        // The wrap. `current` is the running last segment and `rounded[0]` is the first, already
+        // trimmed where the very first corner took a bite out of its end.
+        if (IsClosed
+            && TryRound(
+                current, rounded[0], radius, normal, tolerance,
+                out Arc? wrap, out Curve? last, out Curve? first))
+        {
+            rounded[0] = first!;
+            rounded.Add(last!);
+            rounded.Add(wrap!);
+        }
+        else
+        {
+            rounded.Add(current);
+        }
+
+        return FromJoinedCurves(rounded, tolerance);
+    }
+
+    /// <summary>One corner rounded, or the news that this radius does not fit it.</summary>
+    /// <param name="first">The curve the fillet leaves, already trimmed at its other end.</param>
+    /// <param name="second">The curve it arrives at.</param>
+    /// <param name="radius">The fillet radius.</param>
+    /// <param name="normal">The plane normal.</param>
+    /// <param name="tolerance">The tolerance.</param>
+    /// <param name="arc">The fillet.</param>
+    /// <param name="before">The first curve, trimmed back to the fillet.</param>
+    /// <param name="after">The second curve, trimmed forward to it.</param>
+    /// <returns><see langword="false"/> when no fillet of that radius fits the corner.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The refusal is <see cref="CurveOffset.Fillet"/>'s own and is not re-derived here.</b> It
+    /// throws when the two curves do not cross, when they are not coplanar, and when their offsets
+    /// never meet — which is what a radius too large for the corner looks like. All three mean the
+    /// same thing to a chain: leave this corner alone.
+    /// </para>
+    /// <para>
+    /// <b>The two trimmed pieces come back running <i>away from the corner</i>, and only one of
+    /// those directions is the chain's.</b> That is the right contract for a pair of curves — it
+    /// keeps the answer independent of which way the caller happened to draw the second one — but
+    /// it means the second piece arrives running backwards along the chain, and joining it as it
+    /// stands leaves a gap the width of the whole segment. So each piece is turned to meet its arc:
+    /// the first must <i>end</i> where the fillet starts and the second must <i>start</i> where it
+    /// finishes, which is the definition of a fillet rather than an assumption about direction.
+    /// </para>
+    /// </remarks>
+    private static bool TryRound(
+        Curve first,
+        Curve second,
+        double radius,
+        in Vector3d normal,
+        in Tolerance tolerance,
+        out Arc? arc,
+        out Curve? before,
+        out Curve? after)
+    {
+        try
+        {
+            (Arc fillet, Curve trimmedFirst, Curve trimmedSecond) =
+                CurveOffset.Fillet(first, second, radius, normal, tolerance);
+
+            arc = fillet;
+            before = TurnedTowards(trimmedFirst, fillet.StartPoint, atItsEnd: true);
+            after = TurnedTowards(trimmedSecond, fillet.EndPoint, atItsEnd: false);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            arc = null;
+            before = null;
+            after = null;
+            return false;
+        }
+    }
+
+    /// <summary>A curve turned so that the named end of it is the one nearest a point.</summary>
+    /// <param name="curve">The curve.</param>
+    /// <param name="meetingPoint">The point it has to meet.</param>
+    /// <param name="atItsEnd">
+    /// <see langword="true"/> when the curve must <i>end</i> at the point, <see langword="false"/>
+    /// when it must <i>start</i> there.
+    /// </param>
+    /// <returns>The curve, or its reverse.</returns>
+    private static Curve TurnedTowards(Curve curve, in Point3d meetingPoint, bool atItsEnd)
+    {
+        double atStart = curve.StartPoint.DistanceTo(meetingPoint);
+        double atEnd = curve.EndPoint.DistanceTo(meetingPoint);
+
+        return (atItsEnd ? atEnd <= atStart : atStart <= atEnd) ? curve : curve.Reversed();
+    }
+
     /// <inheritdoc/>
     public override Curve Reversed()
     {

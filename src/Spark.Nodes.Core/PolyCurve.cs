@@ -26,4 +26,20 @@ public static class PolyCurve
         IReadOnlyList<Spark.Geometry.Curve> curves, double tolerance = 1e-6) =>
         Spark.Geometry.PolyCurve.FromJoinedCurves(
             curves, new Tolerance(tolerance, Angle.FromDegrees(0.001), 1e-12));
+
+    /// <summary>Rounds every corner of a chain to a fillet of the same radius.</summary>
+    /// <param name="polycurve">The chain.</param>
+    /// <param name="radius">The fillet radius. Positive.</param>
+    /// <param name="tolerance">The tolerance for the plane, the corners and the offsets.</param>
+    /// <returns>The rounded chain.</returns>
+    /// <remarks>
+    /// <b>A corner too tight for the radius is left sharp rather than losing the whole chain</b>, so
+    /// one bad corner in twenty comes back with nineteen rounded. The chain has to be planar; a
+    /// closed one has its wrap corner rounded too.
+    /// </remarks>
+    [return: NodePort("polycurve")]
+    [SparkNodeAlias("PolyCurve.Fillet")]
+    public static Spark.Geometry.PolyCurve Filleted(
+        Spark.Geometry.PolyCurve polycurve, double radius, double tolerance = 1e-6) =>
+        polycurve.Filleted(radius, new Tolerance(tolerance, Angle.FromDegrees(0.001), 1e-12));
 }

@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: every corner of a chain rounded at once)
+**Last updated:** 2026-09-14 (`E2-T72`: every corner of a chain rounded at once)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T72`'s `PolyCurve.Fillet` — every corner of a chain rounded at once.** **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **The algorithm is written already**: `CurveOffset.Fillet` rounds one corner between two curves and returns the arc with both neighbours trimmed back to it. What this adds is the **chain** — and the chain is where it can go wrong, because a segment between two filleted corners is trimmed **twice** and the second trim has to act on the result of the first. **Three decisions go in with it.** The plane is **inferred** here rather than asked for, because a chain of several segments has a plane of its own where two straight curves do not — which is the reason `CurveOffset.Fillet` takes a normal, and that reason expires one level up. **A corner too tight for the radius is skipped and left sharp**, not thrown, because one bad corner in twenty should not lose the other nineteen. **A closed chain has one more corner than an open one**, and the wrap join trims the first segment after it has already been trimmed at its far end. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **Two `Arc` constructors — `FromCenterStartEnd` and `FromStartEndStartTangent`, `E2-T72`'s last constructions.** **The interesting one is the over-determined one**: a centre, a start and an end do *not* generally lie on a common circle, because the end sits at a different radius. The radius comes from the **start** and the end point supplies only a **direction**, so the arc finishes on the ray towards it — written into the remarks, because a caller handing in three measured points will otherwise wonder why their arc misses the third. The mutation that uses the end point directly turns six tests red. **The tangent form is the well-posed one** and passes through both points exactly; **a tangent along the chord is refused rather than straightened**, because the shape wanted is a line. **Its branch is the tangent**: an implementation that merely joined the two points satisfies every assertion about position, so the test pins the leaving direction to 1e-9. Residue **unchanged at 343**. 16 tests, **3687 → 3703**. **Before it:** `PolyLine.SelfIntersections`. |
-| **Working tree** | Clean. Build clean with zero warnings, format clean, **3703** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
-| **Next action** | **Write `PolyCurve.Filleted(double radius, in Tolerance)` and its tests.** Walk the interior joins in order carrying the running trimmed segment forward: `current` starts as segment 0, each join fillets `current` against the next original segment, and the **trimmed second** becomes the next `current`. Taking the joins independently and reassembling afterwards is the way that silently loses the middle of short segments. **The closed wrap is the last join and it is not symmetric with the others**: it fillets the running last segment against the *already trimmed* first, so the first element of the result is replaced rather than appended. **Validate the radius before the loop, not inside it**, because the skip swallows `ArgumentException` and `ArgumentOutOfRangeException` is one — a bad radius must not be silently read as twenty tight corners. Then the node, the API file, the parity row, and the register documents. |
-| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **the double trim**. A chain of three segments filleted at both joins has a middle segment trimmed from both ends; an implementation that trims each corner against the *original* neighbour produces a chain whose pieces overlap or leave gaps, and whose total length is wrong while every individual fillet looks right. So the assertion is that the result is a continuous `PolyCurve` — which `FromJoinedCurves` already refuses to build across a gap — and that its length equals the sum of its pieces. **Tangency at every fillet** is the other claim, asserted either side of each arc. **The too-tight corner is skipped rather than thrown**, with its own test naming that. **A closed chain gets its wrap tested.** The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
+| **Working on** | **Nothing — between steps.** Thirty-two steps landed across 2026-09-13 and 2026-09-14. **Run parameters from the client, 2026-09-11: *go non stop till all Epics are done*, then *finish everything - we release only after that*: no tag or release until the register is worked out.** **`E2-T66` is closed; `E2-T68`, `E2-T69` and `E2-T72` are each part done.** `E2-T67` is skipped with its reason — the shim cannot be rebuilt without the OpenCascade install `E13-T21` waits on. |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`PolyCurve.Filleted` — every corner of a chain rounded at once, and the row was right that it is a composition rather than an algorithm.** **The chain is the whole of the work**: each `CurveOffset.Fillet` call trims *both* of the curves it is given, so the segment between two rounded corners is trimmed **twice** and the second trim has to act on the result of the first. Rounding against the original neighbours turns **eight of fifteen** tests red. **What the row did not predict is the orientation**, and the first run of the tests found it: `CurveOffset.Fillet` returns each trimmed piece running *away from the corner* — the right contract for a pair, and it means the second piece arrives running **backwards** along the chain, leaving a gap the width of the whole segment. Each piece is now turned to meet its arc. **Three more decisions**: the plane is **inferred** here where that member has to ask; a corner too tight is **left sharp** rather than losing the chain; and a rounded closed chain closes to under 1e-15 while `IsClosed` still says `false`, which is ADR-0010's doctrine rather than a defect. Residue **unchanged at 343**. 15 tests, **3703 → 3718**. **Before it:** two `Arc` constructors. |
+| **Working tree** | Clean. Build clean with zero warnings, format clean, **3718** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 343, and the help-sample compiler green. No stashes. |
+| **Next action** | **`E2-T72`'s `PolyCurve.CloseWithLineAndTangentArcs(double, double)` — the row that has been waiting for a fillet and now has one.** **Its register entry says exactly what blocked it**: *closing with a line and two tangent arcs is a fillet construction, and Spark's only fillet is `CurveOffset.FilletLines`, which takes two lines*. That stopped being true twice over — `CurveOffset.Fillet` is general, and `PolyCurve.Filleted` now walks a chain — so read the row before assuming it is the same shape. **The construction is not the same as a fillet, and that is the trap.** A fillet rounds a corner that *exists*; this one **closes a gap that has no corner in it**, between an open chain's end and its start. The two radii are the caller's, one per end, and the line is the common tangent between the two arcs — so the unknowns are where each arc's centre sits on the normal at its end, and the constraint is that one line is tangent to both. **A common tangent to two circles has up to four solutions**, and which one closes the chain without crossing it is the decision the row leaves open. **Then what is left of `E2-T72`** is `PolyCurve` thickening and grouping, `BasePlane`, the flagged offset, `Arc.ByFilletTangentToCurve`, and the cyclic periodic interpolation. |
+| **Verify with** | **A named test that goes red when the branch is removed, proved by removing it** (AGENTS.md step 7) — and the branch is **which common tangent**. Up to four lines are tangent to both arcs and only one of them closes the chain the way a caller means; an implementation that takes the first solution the algebra offers will look right on a symmetric fixture and cross itself on an asymmetric one, so **the fixture has to be asymmetric** and the assertion has to be that the closed chain does not self-intersect — which `PolyLine.SelfIntersections` can now answer, two steps after it was written. **Tangency at all four new joins** is the other claim, asserted either side. **The result is closed**, to the same measured tolerance `Filleted` established rather than to exact equality. **Radii too large for the gap are refused**, with their own test. The three gates, and the residue budget **exact** at 343 or moved with the reason written in the exclusions history. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -14510,3 +14510,64 @@ failure needs the same care as re-running a migration.
 **Residue unchanged at 343.**
 
 **Cost.** One session. Two members, sixteen tests, two nodes.
+
+### 2026-09-14 — Every corner of a chain rounded at once
+
+**What.** `PolyCurve.Filleted(radius, tolerance)`. Fifteen tests, a node, the row to `Done`,
+and the register at **442 of 545**.
+
+**The row predicted the shape of this correctly and it is worth saying so.** It said the member
+was *a composition away rather than an algorithm away* — `CurveOffset.Fillet` over
+`PolyCurve.Segments` with the joins rebuilt — and that is what it turned out to be. It also
+named the thing that makes it non-trivial: **each call trims both of the curves it is given**,
+so a segment lying between two rounded corners is trimmed **twice**, and the second trim has to
+act on the *result* of the first rather than on the original. Walking the joins in order with
+the running trimmed segment carried forward is the whole implementation. Rounding each corner
+against the original neighbours turns **eight of the fifteen tests** red.
+
+**What the row did not predict, and the tests found in their first run, is the orientation.**
+`CurveOffset.Fillet` returns each trimmed piece running **away from the corner**. That is the
+right contract for a *pair* of curves — it makes the answer independent of which way the
+caller happened to draw the second one, which the member's own remarks say in as many words —
+and it means the second piece arrives running **backwards** along a chain. Joining it as it
+stands leaves a gap the width of the entire segment, which is exactly what the first run
+reported: *segments 1 and 2 are 8 apart*, on a ten-unit side. Each piece is now turned to meet
+its arc — the first must end where the fillet starts and the second must start where it
+finishes — which is the definition of a fillet rather than an assumption about direction.
+**A contract that is right at one level can be wrong one level up**, and the way that showed up
+was a failure with a number in it big enough to be unmistakable.
+
+**Three decisions, each made rather than deferred.**
+
+**The plane is inferred here, where `CurveOffset.Fillet` has to ask for it.** That member takes
+a normal because two *straight* curves have no plane of their own to read; a chain of segments
+does, and `Curve.PlaneOf` — built three steps ago as `E2-T71` family (2) — supplies it. Which
+way the fitted normal points does not matter, because the fillet search tries both sides of
+each curve anyway. A reason for a parameter can expire one level up.
+
+**A corner too tight for the radius is left sharp rather than throwing the chain away.** Twenty
+corners with one too tight should come back with nineteen rounded, because a partial fillet is
+what a caller wants and an exception is not. A radius that fits nowhere therefore returns the
+chain unchanged, which is the same rule at its limit rather than a separate case. **The radius
+is validated before the loop, and that placement is a claim with a test behind it**: the loop
+swallows `ArgumentException` to skip a corner, and `ArgumentOutOfRangeException` **is** an
+`ArgumentException`, so a check left inside would read a bad radius as every corner being too
+tight and hand back the chain unchanged instead of saying what was wrong. Removing the up-front
+check turns the four bad-radius cases red, in exactly that way.
+
+**A rounded closed chain closes to under 1e-15 and `IsClosed` still says `false`.** That was
+the one surprise that needed a doctrine rather than a fix, and the doctrine already existed:
+closure in Spark is **exact equality**, because tolerance is passed rather than ambient
+(ADR-0010) and a parameterless property cannot ask a tolerant question. `PolyLine` keeps it
+true by **repeating** the first point rather than evaluating the full turn. A fillet has no
+such option — both ends of the wrap are evaluated, one from a trim parameter and one from an
+arc's sweep — so they agree to a few ulps and not to the bit. The member says so, and the test
+asserts the gap **and** asserts that `IsClosed` is false, so that a future change to either
+cannot pass silently.
+
+**Dynamo's second, flag argument is still §6.3's undeducible-flag problem** and is not guessed
+at. The capability is the radius.
+
+**Residue unchanged at 343.**
+
+**Cost.** One session. One member, fifteen tests, one node, three mutations.

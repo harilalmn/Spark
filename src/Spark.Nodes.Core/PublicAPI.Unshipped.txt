@@ -55,3 +55,4 @@ static Spark.Nodes.Core.Mesh.Smooth(Spark.Geometry.Mesh! mesh, double strength =
 static Spark.Nodes.Core.PolyLine.SelfIntersections(Spark.Geometry.PolyLine! polyline) -> System.Collections.Generic.IReadOnlyList<Spark.Geometry.Point3d>!
 static Spark.Nodes.Core.Arc.FromCenterStartEnd(Spark.Geometry.Point3d center, Spark.Geometry.Point3d startPoint, Spark.Geometry.Point3d endPoint) -> Spark.Geometry.Arc!
 static Spark.Nodes.Core.Arc.FromStartEndStartTangent(Spark.Geometry.Point3d startPoint, Spark.Geometry.Point3d endPoint, Spark.Geometry.Vector3d startTangent) -> Spark.Geometry.Arc!
+static Spark.Nodes.Core.PolyCurve.Filleted(Spark.Geometry.PolyCurve! polycurve, double radius, double tolerance = 1E-06) -> Spark.Geometry.PolyCurve!
