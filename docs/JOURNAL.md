@@ -4,7 +4,7 @@ The resumable record of the marathon run to 1.0. **Current state** is where the 
 now*; **Log** is how it got there. Everything else in `docs/` says what the product should be —
 this file says what is happening.
 
-**Last updated:** 2026-09-14 (write-ahead: measuring before believing a format)
+**Last updated:** 2026-09-14 (`E2-T30` withdrawn: 3.1x, not 30x)
 **Protocol version:** 2
 
 ---
@@ -17,12 +17,12 @@ this file says what is happening.
 | | |
 |---|---|
 | **Milestone** | **M1 … M7 done, and `v2026.9.0` published on 2026-09-09 to a *different repository than the source*** — <https://github.com/harilalmn/Spark-Releases/releases/tag/v2026.9.0>, cut from a developer machine rather than a workflow, with `spark-2026.9.0-setup.exe` (35.6 MB) and `spark-portable-win-x64.zip` (52.1 MB), not a draft and not a prerelease. **The source repository went private on 2026-09-09 and Spark stopped being open source**, at the client's instruction; a private repository's releases are private with it, so the binaries live in a public repository holding no source. **Nothing is signed**, and the release notes say so. **`v2026.8.1` and the first `v2026.9.0` are unreachable** and the client asked that they be forgotten rather than fixed. |
-| **Working on** | **`E2-T30` — the compact binary `.sparkgeo`, and the measurement its row rests on.** **Run parameters: 2026-09-11 *go non stop till all Epics are done*; 2026-09-14 *do not stop until all epics are completed*.** **The first reading already moved the row, before any measurement.** Its premise is *JSON for a 500k-triangle mesh is roughly 30x the size and 50x the parse time* — but **a `.spark` file cannot hold a mesh at all**: `SparkFile.IsWritableLiteral` accepts `null`, `bool`, `int`, `long`, `double`, `string` and `Angle`, and nothing else. A graph stores its network and its literal inputs; geometry is **recomputed** on open. So the row's scenario does not arise in the format everyone assumed it was about. **The real consumer is `GeometryJson`**, which does serialise geometry, and that is what has to be measured. **And a compact binary path for meshes may already exist**: `PlyFile` and `StlFile` are in `Spark.Geometry.Io` and PLY has a binary form, so the question is not whether Spark can write a mesh compactly but whether it needs **its own** format to. |
-| **Step status** | `IN PROGRESS` |
-| **Last completed step** | **`E5-T14`'s criterion arrived, and it is not a count.** That row said in as many words that *a node count with no target is not a criterion*, and waited for `E2-T42`…`E2-T45` to say what the sets were. They have — so the target is the **register**, and the register was making a claim nothing checked: **twenty-nine rows end *Exposed as the node X.Y***, written by hand on the day each row closed. **All twenty-nine resolve.** The check reads `Spark.Nodes.Core` through the same `PEReader` the parity check already used, which became `internal` rather than being copied — one definition of *what counts as a public member* in this harness instead of two that can drift. **Not a hypothetical guard**: `Mesh.Repair` became `Mesh.Repaired` an hour after it was written and the claim was corrected by hand. **Two tests guard the guard**, and the mutation proves them: breaking the pattern leaves the register check **green** and reddens both. Residue **unchanged at 346**. 3 tests, **3872 → 3875**. **Before it:** `E11-T7`'s anchors. |
+| **Working on** | **Nothing — between steps.** Forty-six steps landed across 2026-09-13 and 2026-09-14. **Run parameters: 2026-09-11 *go non stop till all Epics are done*, then *finish everything - we release only after that*; 2026-09-14 *do not stop until all epics are completed*.** |
+| **Step status** | `CLEAN` |
+| **Last completed step** | **`E2-T30` withdrawn on a measurement — the compact binary `.sparkgeo` is not worth having.** **Its premise named the wrong file.** A `.spark` file *cannot hold a mesh*: `SparkFile.IsWritableLiteral` takes `null`, `bool`, `int`, `long`, `double`, `string` and `Angle` and nothing else, so the 500k-triangle mesh the row worried about is never in the file. The only serialiser that writes geometry is `GeometryJson`. **Measured against that, the ratio is 3.1× and not 30×** — 12.4 MB against 4.0 MB for 204,800 triangles with **full-precision** coordinates, stable at 3.00×, 3.07×, 3.10× across three sizes. Parse is about **100 ms** for those triangles, so a 500k mesh is a quarter of a second. **And a binary mesh path already exists** in `PlyFile`. **A format is the most expensive thing a project can add**, and three times the size on data that is not in the file anybody opens does not buy it. The numbers are in the row rather than the row deleted. Residue **unchanged at 346**. No test change, **3875**. |
 | **Working tree** | Clean. Build clean with zero warnings, format clean, **3875** tests over **ten** executables with zero failures and zero skips — verified by each runner's exit code ([N167](NOTES.md)) — docs harness green with the residue budget exact at 346, and the help-sample compiler green. No stashes. |
-| **Next action** | **`E2-T30` — the compact binary `.sparkgeo` for bulk data.** **Read the row and the format that exists first.** `SparkFile` writes the graph as JSON and the row's whole argument is a measurement: *JSON for a 500k-triangle mesh is roughly 30× the size and 50× the parse time*. **Check that measurement before building to it** — it was written before the mesh type existed, and a claim of 30× is a claim about *this* serialiser, not about JSON in general. **If it holds, the shape is clear**: a length-prefixed binary blob for vertices, faces and channels, addressed from the JSON rather than replacing it, so a graph stays readable and only its bulk goes binary. **The decision is where the boundary sits** — what counts as bulk, and whether a reader that does not understand `.sparkgeo` can still open the graph. **If the measurement does not hold**, say so in the row with the numbers, and the row becomes a smaller one or none at all. A format is expensive: it has to be versioned, documented and read back forever. |
-| **Verify with** | **A measurement before any code**, written into the row either way — the size and parse time of a real mesh through the existing serialiser, against the same mesh in whatever binary shape is proposed. A format justified by an unmeasured ratio is a format justified by nothing. **If it is built**, a named test that goes red when the branch is removed (AGENTS.md step 7), and the branch is the **round trip**: bytes in, geometry out, identical — with a test over a mesh carrying *every* channel, because a channel nobody wrote a fixture for is exactly the one a binary writer forgets. **Endianness and version are stated in the header or the format is not readable forever.** The three gates, and the residue budget **exact** at 346. |
+| **Next action** | **`E2-T64` — `Curve2d`, lines and NURBS in a face's parameter space, for trim pcurves.** **It is the last kernel row that is neither blocked nor a project**, and the register says what it unblocks: §3.5's topology stands at **31 of 33**, and *the two left are `E2-T64`'s pcurves*. **The row has been open waiting for a consumer, so check whether it has one now.** A pcurve is the curve a trim follows in the *surface's* `(u, v)` space rather than in world space, and `BrepTrim` is where it would live. **Read what `BrepTrim` stores today before designing anything** — if it already carries a world-space curve and nothing reads a parameter-space one, then building `Curve2d` alone still leaves the two parity rows open, and the honest step is the pair or neither. **The type itself is small**: a `Line2d` and a NURBS curve over `Point2d`, which `Spark.Geometry` already has as a planar-layer value. What is not small is deciding what reads it. |
+| **Verify with** | **If `Curve2d` is built, a named test that goes red when the branch is removed** (AGENTS.md step 7), and the branch is the **parameter space itself**: a pcurve's whole job is that evaluating it and then evaluating the surface at that `(u, v)` lands on the trim — so the assertion is that round trip, on a surface whose parameterisation is *not* uniform, because a plane would pass with the parameter space and the world space confused. **If the consumer is missing, the step is the finding**: say in the row what `BrepTrim` actually stores, which of the two parity rows a bare `Curve2d` would still not close, and what would. The three gates, and the residue budget **exact** at 346. |
 | **Blocked on** | **Three things need a human, and the list is shorter than it was.** **(1)** `E13-T12`'s acceptance: a public STEP corpus and a **third-party viewer, never our own reader** — the round trip and the file's own text are evidence, a viewer is not. **(2)** `Q13`'s six counsel questions, the first of which is whether `spark_occt` is a *work that uses the Library* or a derivative work. **(3)** `E13-T17`'s **code signing** and antivirus submissions, which need an identity to sign with. **This row said the installer was outstanding and that `release.yml` drafts and never publishes, and both stopped being true on 2026-09-02**: the installer is built by `scripts/pack-installer.ps1` inside the workflow, and the workflow publishes — `v0.3.0`, `v0.4.0` and `v2026.8.1` were all published by it, none of them drafts. What is left of the row is the signature: the installer and the executables carry no Authenticode signature, so a first run shows SmartScreen, and the release notes say so rather than hiding it. *And still: opening an exported OBJ or STEP in a third-party viewer, which is also M1's stated acceptance, and watching the first nightly benchmark run.* **`E12-T21` came off this list by half on 2026-09-07**: the live check now answers against the published `v0.3.0` — a pretend `0.2.0` gets `0.3.0` and its release URL, `0.3.0` and `9.9.9` get nothing — so the request, the comparison and the URL are proven against production. What still needs a person is an installed *older* build showing the pill in its own shell. **`E12-T4` was on this list and should not have been.** It needs a Revit or AutoCAD licence, but it proves a **second** claim — that the engine can be embedded — and Spark ships standalone without it. [D20](PRD.md#13-decision-log) moves it and `E12-T2` past 1.0. Listing it beside the signing identity implied Spark could not ship without a CAD licence, which was wrong, and the client caught it. |
 | **Requested and refused** | **ACIS (`.sat`) export, item 6 as the client wrote it.** Nothing in the repository can write ACIS and OpenCascade has no ACIS writer — it is Spatial's proprietary format. The client was asked and chose **STEP, with IGES beside it**, which is what every ACIS-based application reads and what `OcctBrepKernel.WriteFile` already produces. Recorded here rather than only in the log because the next reader will otherwise re-derive it. |
 
@@ -15299,3 +15299,49 @@ while both guards go red.
 **Residue unchanged at 346.**
 
 **Cost.** One session, and a short one. One check, three tests, one method's visibility.
+
+### 2026-09-14 — Three times, not thirty: a format withdrawn on a measurement
+
+**What.** `E2-T30`, the compact binary `.sparkgeo`, withdrawn. No code, one measurement, and a
+row that now carries numbers instead of an assumption.
+
+**The row's whole argument was a ratio: *JSON for a 500k-triangle mesh is roughly 30× the size
+and 50× the parse time*.** Both halves are the kind of claim that sounds obviously true and had
+never been checked, and the write-ahead said to check it before building to it.
+
+**The first finding needed no measurement at all, only reading.** A `.spark` file **cannot hold
+a mesh**. `SparkFile.IsWritableLiteral` accepts `null`, `bool`, `int`, `long`, `double`,
+`string` and `Angle`, and nothing else. A graph stores its network and its literal inputs;
+geometry is **recomputed** when the graph opens. So the 500k-triangle mesh the row worries
+about is never in the file whose format it proposes to change. The only serialiser in Spark
+that writes geometry is `GeometryJson`, and that is what had to be measured.
+
+**Measured there, the ratio is 3.1×.** A 204,800-triangle mesh serialises to **12.4 MB** where
+a tight binary encoding of the same data — three doubles a vertex, four ints a face — would be
+**4.0 MB**. It is stable across three sizes: 3.00×, 3.07×, 3.10×.
+
+**And the first measurement was flattering JSON, which is worth saying because it nearly went
+into the row.** A `MeshPrimitives.Plane` grid has coordinates like `0` and `1.5625` — short
+strings that text encodes cheaply — and gave 2.4×. A scanned mesh has full-precision doubles
+everywhere, so the vertices were perturbed off the grid and the ratio rose to 3.1×. **A
+benchmark whose fixture is tidier than reality measures the fixture**, and the honest number
+was the less favourable one for the decision I was about to make.
+
+**Parse time is about 100 ms for those 204,800 triangles**, so a 500k-triangle mesh is roughly
+a quarter of a second. A binary reader would beat that comfortably. It is not the emergency the
+row describes, and it is not on the path anybody opens a graph through.
+
+**A compact binary path for meshes also already exists**: `Spark.Geometry.Io` has `PlyFile`,
+and PLY has a binary form. The question was never whether Spark can write a mesh compactly.
+
+**So the row is withdrawn, and the reasoning is the general one.** A format is the most
+expensive thing a project can add: it has to be versioned, documented, and read back forever,
+including by every build that predates every future change to it. Three times the size, on data
+that is not in the file anybody opens, does not buy that. **The measurement is kept in the row
+rather than the row deleted**, so that if bulk geometry ever does go into a document, the next
+person starts from numbers rather than from this row's.
+
+**Residue unchanged at 346.**
+
+**Cost.** One session, and a short one. No code shipped, which is the point: the cheapest
+version of this task was finding out it should not be done.
